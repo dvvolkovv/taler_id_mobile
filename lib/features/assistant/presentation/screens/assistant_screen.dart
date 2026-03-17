@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -43,6 +44,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
+  late VideoPlayerController _logoVideo;
+  bool _logoVideoReady = false;
+
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   // Function call buffering
@@ -60,6 +64,15 @@ class _AssistantScreenState extends State<AssistantScreen>
     _pulseAnim = Tween<double>(begin: 1.0, end: 1.18).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+    _logoVideo = VideoPlayerController.asset('assets/video.mp4')
+      ..setLooping(true)
+      ..setVolume(0)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _logoVideoReady = true);
+          _logoVideo.play();
+        }
+      });
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       // On Android, audioplayers takes audio focus and stops the recorder.
@@ -76,6 +89,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _logoVideo.dispose();
     _cleanup();
     _player.dispose();
     super.dispose();
@@ -392,8 +406,23 @@ class _AssistantScreenState extends State<AssistantScreen>
                     ),
                   ],
                 ),
-                child: Icon(Icons.mic_rounded,
-                    size: 64, color: AppColors.of(context).primary),
+                child: ClipOval(
+                  child: _logoVideoReady
+                      ? SizedBox(
+                          width: 120,
+                          height: 120,
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _logoVideo.value.size.width,
+                              height: _logoVideo.value.size.height,
+                              child: VideoPlayer(_logoVideo),
+                            ),
+                          ),
+                        )
+                      : Image.asset('app_icon_1024.png',
+                          width: 120, height: 120, fit: BoxFit.cover),
+                ),
               ),
             ),
           ),
@@ -463,8 +492,23 @@ class _AssistantScreenState extends State<AssistantScreen>
                     ]
                   : null,
             ),
-            child: Icon(Icons.smart_toy_rounded,
-                size: 52, color: AppColors.of(context).primary),
+            child: ClipOval(
+              child: _logoVideoReady
+                  ? SizedBox(
+                      width: 90,
+                      height: 90,
+                      child: FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _logoVideo.value.size.width,
+                          height: _logoVideo.value.size.height,
+                          child: VideoPlayer(_logoVideo),
+                        ),
+                      ),
+                    )
+                  : Image.asset('app_icon_1024.png',
+                      width: 90, height: 90, fit: BoxFit.cover),
+            ),
           ),
         ),
         const SizedBox(height: 20),
