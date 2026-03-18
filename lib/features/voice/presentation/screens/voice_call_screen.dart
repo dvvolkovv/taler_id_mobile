@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:permission_handler/permission_handler.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../../core/services/call_state_service.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../profile/presentation/bloc/profile_state.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -84,6 +86,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final List<lk.RemoteParticipant> _participants = [];
   lk.EventsListener<lk.RoomEvent>? _eventsListener;
   StreamSubscription? _callEndedSub;
+  StreamSubscription? _callkitEndedSub;
   Timer? _emptyRoomTimer;
 
   // Server-side translation state
@@ -128,6 +131,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (!mounted || _navigatedAway) return;
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
       if (ourRoom == roomName) {
+        _hangUp();
+      }
+    });
+    // Listen for CallKit end — user pressed "End" on native CallKit UI
+    _callkitEndedSub = NotificationService.callEvents.listen((CallEvent? event) {
+      if (event == null || !mounted || _navigatedAway) return;
+      if (event.event == Event.actionCallEnded) {
+        debugPrint('[VoiceCall] CallKit actionCallEnded received — calling _hangUp()');
         _hangUp();
       }
     });
@@ -255,6 +266,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         await _room?.localParticipant?.setMicrophoneEnabled(true);
       } catch (_) {}
     }
+    // Set audio output to earpiece — CallKit defaults to speaker.
+    // Must be done AFTER mic is enabled because LiveKit reconfigures the
+    // audio session when publishing the audio track. Add a delay to let
+    // WebRTC finish its async audio session setup.
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted || _navigatedAway) return;
+    try {
+      await _audioChannel.invokeMethod('setAudioOutput', 'earpiece');
+    } catch (_) {}
+    try {
+      await lk.Hardware.instance.setSpeakerphoneOn(false);
+    } catch (_) {}
+    if (mounted) setState(() {});
     debugPrint('[VoiceCall] _restoreAudioAfterCallKit: complete');
   }
 
@@ -275,6 +299,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Re-activate audio session independently for LiveKit
       try {
         await _audioChannel.invokeMethod('requestAudioFocus');
+      } catch (_) {}
+      // Set earpiece — CallKit defaults to speaker
+      try {
+        await lk.Hardware.instance.setSpeakerphoneOn(false);
+      } catch (_) {}
+      try {
+        await _audioChannel.invokeMethod('setAudioOutput', 'earpiece');
       } catch (_) {}
     }
     // Play ringback tone for outgoing calls to user (not incoming, not AI assistant)
@@ -1186,39 +1217,76 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   Future<void> _hangUp() async {
-    // Mark as navigated away FIRST — stops any async retries
-    // (e.g. _restoreAudioAfterCallKit) from re-activating audio
+    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, connectionState=${_room?.connectionState}');
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
-    // Stop ringback if still playing (call not answered)
     _stopRingback();
     // Disable microphone first to release audio track
     try {
       await _room?.localParticipant?.setMicrophoneEnabled(false);
-    } catch (_) {}
+      debugPrint('[VoiceCall] mic disabled');
+    } catch (e) {
+      debugPrint('[VoiceCall] mic disable error: $e');
+    }
     // Notify the other party that the call ended
     final convId = widget.conversationId ?? CallStateService.instance.conversationId;
     final rName = _roomName ?? CallStateService.instance.roomName;
+    debugPrint('[VoiceCall] sendCallEnded convId=$convId, rName=$rName');
     if (convId != null && rName != null) {
+      // Socket (best-effort)
       try {
         sl<MessengerRemoteDataSource>().sendCallEnded(convId, rName);
       } catch (_) {}
+      // HTTP (reliable fallback)
+      try {
+        sl<DioClient>().post(
+          '/messenger/call-ended',
+          data: {'conversationId': convId, 'roomName': rName},
+          fromJson: (d) => d,
+        );
+      } catch (_) {}
+      debugPrint('[VoiceCall] sendCallEnded sent (socket+http)');
     }
-    // Disconnect from LiveKit FIRST — must happen while network/audio is still active
-    // so the server receives the leave signal immediately.
-    await CallStateService.instance.endCall();
-    // Now release audio focus & deactivate session
-    try {
-      await _audioChannel.invokeMethod('abandonAudioFocus');
-    } catch (_) {}
-    try {
-      await _audioChannel.invokeMethod('deactivateAudioSession');
-    } catch (_) {}
-    // Tell CallKit the call ended (releases iOS background audio session)
-    try {
-      await FlutterCallkitIncoming.endAllCalls();
-    } catch (_) {}
-    _navigateBack();
+    // Remove room listeners BEFORE disconnect
+    _eventsListener?.dispose();
+    _eventsListener = null;
+    _room?.removeListener(_onRoomChanged);
+    // Disconnect from LiveKit
+    final roomRef = _room;
+    _room = null;
+    CallStateService.instance.notifyEnded();
+    if (roomRef != null) {
+      debugPrint('[VoiceCall] disconnecting room...');
+      try {
+        await roomRef.disconnect().timeout(const Duration(seconds: 3));
+        debugPrint('[VoiceCall] room.disconnect() completed');
+      } catch (e) {
+        debugPrint('[VoiceCall] room.disconnect() error/timeout: $e');
+      }
+      try {
+        roomRef.dispose();
+        debugPrint('[VoiceCall] room.dispose() completed');
+      } catch (e) {
+        debugPrint('[VoiceCall] room.dispose() error: $e');
+      }
+    } else {
+      debugPrint('[VoiceCall] roomRef is null — no room to disconnect');
+    }
+    // Release audio
+    try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
+    try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
+    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+    debugPrint('[VoiceCall] audio cleanup done, navigating back...');
+    if (mounted) {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.messenger);
+      }
+      debugPrint('[VoiceCall] navigation done');
+    } else {
+      debugPrint('[VoiceCall] NOT mounted, cannot navigate');
+    }
   }
 
   Future<void> _addParticipant() async {
@@ -1523,6 +1591,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _callEndedSub?.cancel();
+    _callkitEndedSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../core/api/dio_client.dart';
 import '../../../core/services/call_state_service.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -59,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     // Do NOT use FlutterCallkitIncoming.onEvent directly here — that creates a NEW
     // EventChannel listener each time, replacing (killing) the one in main.dart.
     // Navigation on accept is handled by _navigateWhenResumed in main.dart.
-    _callkitSub = NotificationService.callEvents.listen((CallEvent? event) {
+    _callkitSub = NotificationService.callEvents.listen((CallEvent? event) async {
       if (event == null) return;
       final extra = event.body['extra'] as Map?;
       final roomName = extra?['roomName'] as String?;
@@ -121,6 +123,37 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             FlutterCallkitIncoming.endAllCalls();
           }
         }
+      } else if (event.event == Event.actionCallEnded) {
+        // User pressed "End" on CallKit native UI during an active call.
+        // Fallback to CallStateService if event extras are missing.
+        final rn = roomName ?? CallStateService.instance.roomName;
+        final cId = convId ?? CallStateService.instance.conversationId;
+        debugPrint('[Dashboard] actionCallEnded: roomName=$rn, convId=$cId, isInCall=${CallStateService.instance.isInCall}');
+        if (rn != null && cId != null) {
+          // Send via socket (best-effort — may fail if socket disconnected on locked screen)
+          try {
+            sl<MessengerRemoteDataSource>().sendCallEnded(cId, rn);
+          } catch (_) {}
+          // Also send via HTTP (reliable fallback — works even when socket is down)
+          try {
+            await sl<DioClient>().post(
+              '/messenger/call-ended',
+              data: {'conversationId': cId, 'roomName': rn},
+              fromJson: (d) => d,
+            );
+            debugPrint('[Dashboard] HTTP call-ended sent');
+          } catch (e) {
+            debugPrint('[Dashboard] HTTP call-ended error: $e');
+          }
+        }
+        // Disconnect the LiveKit room via CallStateService
+        await CallStateService.instance.endCall();
+        // Deactivate audio session
+        try {
+          const audioChannel = MethodChannel('taler_id/audio');
+          await audioChannel.invokeMethod('deactivateAudioSession');
+        } catch (_) {}
+        debugPrint('[Dashboard] actionCallEnded cleanup done');
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {

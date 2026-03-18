@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import '../api/dio_client.dart';
 import '../config/app_config.dart';
@@ -102,6 +103,13 @@ class CallStateService {
       // Enable microphone — CallKit's audio session is active so this should work
       try {
         await r.localParticipant?.setMicrophoneEnabled(true);
+      } catch (_) {}
+      // Switch to earpiece — CallKit defaults to speaker on locked screen
+      try {
+        await Future.delayed(const Duration(milliseconds: 500));
+        const audioChannel = MethodChannel('taler_id/audio');
+        await audioChannel.invokeMethod('setAudioOutput', 'earpiece');
+        await lk.Hardware.instance.setSpeakerphoneOn(false);
       } catch (_) {}
       debugPrint('[CallState] connectInBackground OK, room=$rName, e2ee=${e2eeKey != null}');
       _bgConnecting = false;

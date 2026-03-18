@@ -60,15 +60,15 @@ import flutter_callkit_incoming
           do {
             switch type {
             case "speaker":
-              try session.setCategory(.playAndRecord, options: [.allowBluetooth, .allowBluetoothA2DP])
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
               try session.setActive(true)
               try session.overrideOutputAudioPort(.speaker)
             case "bluetooth":
-              try session.setCategory(.playAndRecord, options: [.allowBluetooth])
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
               try session.setActive(true)
               try session.overrideOutputAudioPort(.none)
             default: // earpiece, headphones
-              try session.setCategory(.playAndRecord, options: [.allowBluetooth, .allowBluetoothA2DP])
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
               try session.setActive(true)
               try session.overrideOutputAudioPort(.none)
             }
