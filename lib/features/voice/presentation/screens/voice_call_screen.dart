@@ -77,6 +77,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String? _error;
   bool _ringing = false; // outgoing: ringback playing, waiting for callee to answer
   bool _navigatedAway = false;
+  bool _settingUp = true; // true during _initCall/_connect, prevents spurious actionCallEnded
   bool _aiRecording = false;
   bool _isRecording = false; // simple recording (no AI analysis)
   String? _roomName; // actual room name (resolved after connect)
@@ -134,12 +135,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _hangUp();
       }
     });
-    // Listen for CallKit end — user pressed "End" on native CallKit UI
+    // Listen for CallKit end — user pressed "End" on native CallKit UI.
+    // Skip during _settingUp — endAllCalls() in _connect() fires actionCallEnded
+    // which would immediately tear down the room we just connected to.
     _callkitEndedSub = NotificationService.callEvents.listen((CallEvent? event) {
       if (event == null || !mounted || _navigatedAway) return;
       if (event.event == Event.actionCallEnded) {
-        debugPrint('[VoiceCall] CallKit actionCallEnded received — calling _hangUp()');
-        _hangUp();
+        if (_settingUp) {
+          debugPrint('[VoiceCall] CallKit actionCallEnded SKIPPED (still setting up)');
+          return;
+        }
+        if (_room != null) {
+          debugPrint('[VoiceCall] CallKit actionCallEnded — calling _hangUp()');
+          _hangUp();
+        }
       }
     });
     _initCall();
@@ -187,6 +196,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);
         } catch (_) {}
       }
+      _settingUp = false;
       if (mounted) setState(() {});
       WakelockPlus.enable();
     } else {
@@ -458,6 +468,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         await _room!.localParticipant?.setMicrophoneEnabled(true);
       } catch (_) {}
 
+      _settingUp = false;
       setState(() => _connecting = false);
       WakelockPlus.enable();
 
@@ -466,6 +477,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _forceEarpiece();
     } catch (e) {
       debugPrint('[VoiceCall] _connect() error: $e');
+      _settingUp = false;
       setState(() {
         _error = e.toString();
         _connecting = false;
@@ -565,7 +577,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         // Just update UI — each participant leaves on their own
         if (mounted) setState(() {});
       })
-      ..on<lk.RoomMetadataChangedEvent>((event) {
+      ..on<lk.RoomMetadataChangedEvent>((event) async {
         // When another participant enables translator, backend updates room metadata
         // to signal all participants to disable E2EE
         try {
@@ -573,8 +585,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           if (metadata != null && metadata.contains('e2ee_disabled')) {
             final room = _room;
             if (room?.e2eeManager != null) {
-              room!.setE2EEEnabled(false);
+              await room!.setE2EEEnabled(false);
               debugPrint('[VoiceCall] E2EE disabled via room metadata signal');
+              // Re-subscribe to tracks after E2EE transition
+              await _resubscribeAllTracks();
             }
           }
         } catch (_) {}
@@ -1388,8 +1402,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       });
     }
     if (enabled) {
-      // Disable E2EE so the translator agent can hear unencrypted audio
+      // Disable E2EE so the translator agent can hear unencrypted audio.
+      // Wait for metadata event to propagate to all participants before
+      // starting the translator — both sides must disable E2EE first.
       await _disableE2EEForTranslator();
+      await Future.delayed(const Duration(milliseconds: 1500));
       await _startServerTranslator();
     }
     _updateTranslationTrackSubscription();
@@ -1399,13 +1416,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     final room = _room;
     if (room == null) return;
     if (room.e2eeManager == null) return; // E2EE not active
-    try {
-      await room.setE2EEEnabled(false);
-      debugPrint('[Translation] E2EE disabled for translator');
-    } catch (e) {
-      debugPrint('[Translation] Failed to disable E2EE: $e');
-    }
-    // Ask backend to disable E2EE for all other participants in the room
+    // Do NOT disable E2EE locally here — request via backend metadata instead.
+    // Both participants receive RoomMetadataChangedEvent simultaneously and
+    // disable E2EE at the same time, avoiding the asymmetric window where
+    // one side sends unencrypted audio while the other still tries to decrypt.
     final roomName = _roomName;
     if (roomName != null) {
       try {
@@ -1414,10 +1428,34 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           data: {},
           fromJson: (d) => d,
         );
+        debugPrint('[Translation] E2EE disable requested via backend');
       } catch (e) {
-        debugPrint('[Translation] Failed to notify others to disable E2EE: $e');
+        debugPrint('[Translation] Failed to request E2EE disable: $e');
+        // Fallback: disable locally if backend request failed
+        try {
+          await room.setE2EEEnabled(false);
+          debugPrint('[Translation] E2EE disabled locally (fallback)');
+          await _resubscribeAllTracks();
+        } catch (_) {}
       }
     }
+  }
+
+  /// Re-subscribe to all remote audio/video tracks. Needed after E2EE
+  /// is disabled mid-call — LiveKit may drop subscriptions during transition.
+  Future<void> _resubscribeAllTracks() async {
+    final room = _room;
+    if (room == null) return;
+    await Future.delayed(const Duration(milliseconds: 500));
+    for (final p in room.remoteParticipants.values) {
+      if (p.identity == 'voice-translator') continue;
+      for (final pub in [...p.audioTrackPublications, ...p.videoTrackPublications]) {
+        if (!pub.subscribed) {
+          try { pub.subscribe(); } catch (_) {}
+        }
+      }
+    }
+    debugPrint('[VoiceCall] Re-subscribed to all tracks after E2EE change');
   }
 
   Future<void> _startServerTranslator() async {

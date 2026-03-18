@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:math';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -264,18 +262,14 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       final roomName = res['roomName'] as String;
-      final e2eeKey = base64Url.encode(
-        List<int>.generate(32, (_) => Random.secure().nextInt(256)),
-      );
-      sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName, e2eeKey: e2eeKey);
+      sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
 
       final calleeName = [member.firstName, member.lastName]
           .where((s) => s != null && s.isNotEmpty)
           .join(' ');
       final calleeParam = calleeName.isNotEmpty ? '&callee=${Uri.encodeComponent(calleeName)}' : '';
-      final e2eeParam = '&e2ee=${Uri.encodeComponent(e2eeKey)}';
       if (mounted) {
-        context.push('/dashboard/voice?room=$roomName&convId=$convId$calleeParam$e2eeParam');
+        context.push('/dashboard/voice?room=$roomName&convId=$convId$calleeParam');
       }
     } catch (e) {
       if (mounted) {

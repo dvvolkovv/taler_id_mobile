@@ -125,35 +125,44 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         }
       } else if (event.event == Event.actionCallEnded) {
         // User pressed "End" on CallKit native UI during an active call.
-        // Fallback to CallStateService if event extras are missing.
-        final rn = roomName ?? CallStateService.instance.roomName;
-        final cId = convId ?? CallStateService.instance.conversationId;
-        debugPrint('[Dashboard] actionCallEnded: roomName=$rn, convId=$cId, isInCall=${CallStateService.instance.isInCall}');
-        if (rn != null && cId != null) {
-          // Send via socket (best-effort — may fail if socket disconnected on locked screen)
-          try {
-            sl<MessengerRemoteDataSource>().sendCallEnded(cId, rn);
-          } catch (_) {}
-          // Also send via HTTP (reliable fallback — works even when socket is down)
-          try {
-            await sl<DioClient>().post(
-              '/messenger/call-ended',
-              data: {'conversationId': cId, 'roomName': rn},
-              fromJson: (d) => d,
-            );
-            debugPrint('[Dashboard] HTTP call-ended sent');
-          } catch (e) {
-            debugPrint('[Dashboard] HTTP call-ended error: $e');
-          }
-        }
-        // Disconnect the LiveKit room via CallStateService
-        await CallStateService.instance.endCall();
-        // Deactivate audio session
+        // Only handle here if VoiceCallScreen is NOT showing — if it is,
+        // VoiceCallScreen's own listener will call _hangUp().
+        // Also skip during call accept flow — endAllCalls() in VoiceCallScreen
+        // fires actionCallEnded before VoiceCallScreen route is committed,
+        // which would kill the background-connected room.
+        bool onVoiceScreen = false;
         try {
-          const audioChannel = MethodChannel('taler_id/audio');
-          await audioChannel.invokeMethod('deactivateAudioSession');
+          final loc = GoRouter.of(context)
+              .routerDelegate.currentConfiguration.uri.path;
+          onVoiceScreen = loc.startsWith('/dashboard/voice');
         } catch (_) {}
-        debugPrint('[Dashboard] actionCallEnded cleanup done');
+        if (_waitingForCallAccept || _acceptingInApp) {
+          debugPrint('[Dashboard] actionCallEnded SKIPPED (accepting call)');
+        } else if (onVoiceScreen) {
+          debugPrint('[Dashboard] actionCallEnded SKIPPED (VoiceCallScreen handles it)');
+        } else if (CallStateService.instance.isInCall || CallStateService.instance.isBackgroundConnecting) {
+          final rn = roomName ?? CallStateService.instance.roomName;
+          final cId = convId ?? CallStateService.instance.conversationId;
+          debugPrint('[Dashboard] actionCallEnded: roomName=$rn, convId=$cId');
+          if (rn != null && cId != null) {
+            try { sl<MessengerRemoteDataSource>().sendCallEnded(cId, rn); } catch (_) {}
+            try {
+              await sl<DioClient>().post(
+                '/messenger/call-ended',
+                data: {'conversationId': cId, 'roomName': rn},
+                fromJson: (d) => d,
+              );
+            } catch (_) {}
+          }
+          await CallStateService.instance.endCall();
+          try {
+            const audioChannel = MethodChannel('taler_id/audio');
+            await audioChannel.invokeMethod('deactivateAudioSession');
+          } catch (_) {}
+          debugPrint('[Dashboard] actionCallEnded cleanup done');
+        } else {
+          debugPrint('[Dashboard] actionCallEnded SKIPPED (not in call)');
+        }
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {

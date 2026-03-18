@@ -44,8 +44,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
 
-  late VideoPlayerController _logoVideo;
+  VideoPlayerController? _logoVideo;
   bool _logoVideoReady = false;
+  bool _logoVideoInitialized = false;
 
   static const _audioChannel = MethodChannel('taler_id/audio');
 
@@ -64,15 +65,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     _pulseAnim = Tween<double>(begin: 1.0, end: 1.18).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
-    _logoVideo = VideoPlayerController.asset('assets/video.mp4')
-      ..setLooping(true)
-      ..setVolume(0)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _logoVideoReady = true);
-          _logoVideo.play();
-        }
-      });
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       // On Android, audioplayers takes audio focus and stops the recorder.
@@ -87,9 +79,28 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_logoVideoInitialized) {
+      _logoVideoInitialized = true;
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final asset = isDark ? 'assets/video.mp4' : 'assets/video_light.mp4';
+      _logoVideo = VideoPlayerController.asset(asset)
+        ..setLooping(true)
+        ..setVolume(0)
+        ..initialize().then((_) {
+          if (mounted) {
+            setState(() => _logoVideoReady = true);
+            _logoVideo!.play();
+          }
+        });
+    }
+  }
+
+  @override
   void dispose() {
     _pulseCtrl.dispose();
-    _logoVideo.dispose();
+    _logoVideo?.dispose();
     _cleanup();
     _player.dispose();
     super.dispose();
@@ -407,16 +418,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ],
                 ),
                 child: ClipOval(
-                  child: _logoVideoReady
+                  child: _logoVideoReady && _logoVideo != null
                       ? SizedBox(
                           width: 120,
                           height: 120,
                           child: FittedBox(
                             fit: BoxFit.cover,
                             child: SizedBox(
-                              width: _logoVideo.value.size.width,
-                              height: _logoVideo.value.size.height,
-                              child: VideoPlayer(_logoVideo),
+                              width: _logoVideo!.value.size.width,
+                              height: _logoVideo!.value.size.height,
+                              child: VideoPlayer(_logoVideo!),
                             ),
                           ),
                         )
@@ -493,16 +504,16 @@ class _AssistantScreenState extends State<AssistantScreen>
                   : null,
             ),
             child: ClipOval(
-              child: _logoVideoReady
+              child: _logoVideoReady && _logoVideo != null
                   ? SizedBox(
                       width: 90,
                       height: 90,
                       child: FittedBox(
                         fit: BoxFit.cover,
                         child: SizedBox(
-                          width: _logoVideo.value.size.width,
-                          height: _logoVideo.value.size.height,
-                          child: VideoPlayer(_logoVideo),
+                          width: _logoVideo!.value.size.width,
+                          height: _logoVideo!.value.size.height,
+                          child: VideoPlayer(_logoVideo!),
                         ),
                       ),
                     )

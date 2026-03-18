@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -237,12 +236,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       final roomName = res['roomName'] as String;
-      // Generate E2EE key for human-to-human calls (not AI)
-      final String? e2eeKey = withAi ? null : base64Url.encode(
-        List<int>.generate(32, (_) => Random.secure().nextInt(256)),
-      );
       sl<MessengerRemoteDataSource>()
-          .sendCallInvite(widget.conversationId, roomName, e2eeKey: e2eeKey);
+          .sendCallInvite(widget.conversationId, roomName);
       final _conv = context.read<MessengerBloc>().state.conversations
           .where((c) => c.id == widget.conversationId)
           .firstOrNull;
@@ -250,8 +245,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final calleeParam = calleeName != null && calleeName.isNotEmpty
           ? '&callee=${Uri.encodeComponent(calleeName)}'
           : '';
-      final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
-      if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$e2eeParam');
+      if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
