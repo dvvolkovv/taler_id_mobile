@@ -149,18 +149,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           }
         }
       }
-      // End CallKit now that the voice screen is visible — release native UI
+      // End CallKit and restore audio — must be properly sequenced
       if (widget.isIncoming) {
-        FlutterCallkitIncoming.endAllCalls();
-        // Re-activate audio session after CallKit releases it —
-        // without this LiveKit loses audio when accepting from lock screen.
-        try {
-          _audioChannel.invokeMethod('requestAudioFocus');
-        } catch (_) {}
-        // Re-enable microphone — CallKit deactivation may have muted it
-        try {
-          _room!.localParticipant?.setMicrophoneEnabled(true);
-        } catch (_) {}
+        _restoreAudioAfterCallKit();
       }
       // Notify other devices this device answered (dismiss their CallKit)
       if (widget.isIncoming && widget.conversationId != null && _roomName != null) {
@@ -213,21 +204,58 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  /// End CallKit and properly restore the audio session for LiveKit.
+  /// Must be async and properly sequenced: endAllCalls() triggers iOS to
+  /// deactivate the audio session. We must WAIT for that to complete, then
+  /// re-activate the session for LiveKit. Without the delay, requestAudioFocus
+  /// fires before CallKit's deactivation, and the session dies.
+  Future<void> _restoreAudioAfterCallKit() async {
+    try {
+      await FlutterCallkitIncoming.endAllCalls();
+      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls done');
+    } catch (e) {
+      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls error: $e');
+    }
+    // Wait for CallKit to fully release the audio session.
+    // iOS CXProvider.reportCall(endedAt:) triggers async audio deactivation.
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    // Re-activate audio session for LiveKit
+    try {
+      await _audioChannel.invokeMethod('requestAudioFocus');
+      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: requestAudioFocus done');
+    } catch (_) {}
+    // Re-enable microphone — CallKit deactivation may have muted it
+    try {
+      await _room?.localParticipant?.setMicrophoneEnabled(true);
+    } catch (_) {}
+    // Second requestAudioFocus after a longer delay — belt-and-suspenders
+    // in case iOS audio deactivation arrived late
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
+    try {
+      await _audioChannel.invokeMethod('requestAudioFocus');
+    } catch (_) {}
+    try {
+      await _room?.localParticipant?.setMicrophoneEnabled(true);
+    } catch (_) {}
+    debugPrint('[VoiceCall] _restoreAudioAfterCallKit: complete');
+  }
+
   Future<void> _connect() async {
     debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}');
     if (widget.isIncoming) {
       // Release the CallKit-owned audio session before LiveKit connects.
       // When accepting from locked screen, CallKit activates the audio session
       // but continues to "own" it — this blocks LiveKit's WebRTC audio stack.
-      // By the time _connect() is called, the phone is already unlocked
-      // (navigation happens only after didChangeAppLifecycleState.resumed),
-      // so endAllCalls() no longer causes iOS to re-lock the screen.
       try {
         await FlutterCallkitIncoming.endAllCalls();
         debugPrint('[VoiceCall] endAllCalls() done');
       } catch (e) {
         debugPrint('[VoiceCall] endAllCalls() error: $e');
       }
+      // Wait for CallKit to fully release the audio session
+      await Future.delayed(const Duration(milliseconds: 500));
       // Re-activate audio session independently for LiveKit
       try {
         await _audioChannel.invokeMethod('requestAudioFocus');
