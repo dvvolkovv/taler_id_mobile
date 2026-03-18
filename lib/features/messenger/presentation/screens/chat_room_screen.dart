@@ -51,6 +51,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   StreamSubscription? _reconnectSub;
   Timer? _typingTimer;
   bool _isTypingSent = false;
+  // Pending attachment (inline preview before send)
+  String? _pendingFilePath;
+  String? _pendingFileName;
+  String? _pendingFileType;
 
   @override
   void initState() {
@@ -263,65 +267,35 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final colors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: colors.textSecondary.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+              ListTile(
+                leading: Icon(Icons.photo, color: colors.primary),
+                title: Text('Фото', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.gallery, isVideo: false); },
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildAttachOption(
-                    icon: Icons.photo_rounded,
-                    label: 'Фото',
-                    color: Colors.purple,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickMedia(ImageSource.gallery, isVideo: false);
-                    },
-                  ),
-                  _buildAttachOption(
-                    icon: Icons.videocam_rounded,
-                    label: 'Видео',
-                    color: Colors.blue,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickMedia(ImageSource.gallery, isVideo: true);
-                    },
-                  ),
-                  _buildAttachOption(
-                    icon: Icons.camera_alt_rounded,
-                    label: 'Камера',
-                    color: Colors.orange,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickMedia(ImageSource.camera, isVideo: false);
-                    },
-                  ),
-                  _buildAttachOption(
-                    icon: Icons.insert_drive_file_rounded,
-                    label: 'Файл',
-                    color: colors.primary,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickFile();
-                    },
-                  ),
-                ],
+              ListTile(
+                leading: Icon(Icons.videocam, color: colors.primary),
+                title: Text('Видео', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.gallery, isVideo: true); },
+              ),
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: colors.primary),
+                title: Text('Камера', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.camera); },
+              ),
+              ListTile(
+                leading: Icon(Icons.insert_drive_file, color: colors.primary),
+                title: Text('Файл', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickFile(); },
               ),
             ],
           ),
@@ -330,102 +304,104 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Widget _buildAttachOption({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: color, size: 26),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _pickMedia(ImageSource source, {required bool isVideo}) async {
+  Future<void> _pickMedia(ImageSource source, {bool isVideo = false}) async {
     final picker = ImagePicker();
     final XFile? picked;
-    if (isVideo) {
-      picked = await picker.pickVideo(source: source);
+    if (source == ImageSource.camera) {
+      picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    } else if (isVideo) {
+      picked = await picker.pickVideo(source: ImageSource.gallery);
     } else {
-      picked = await picker.pickImage(source: source, imageQuality: 85);
+      picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     }
     if (picked == null || !mounted) return;
-    await _uploadAndSendFile(picked.path, picked.name);
+    final pickedFile = picked;
+    setState(() {
+      _pendingFilePath = pickedFile.path;
+      _pendingFileName = pickedFile.name;
+      _pendingFileType = isVideo ? 'video' : 'image';
+      _ctrl.clear();
+    });
   }
 
   Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.single.path == null || !mounted) return;
     final file = result.files.single;
-    await _uploadAndSendFile(file.path!, file.name);
+    final ext = file.name.split('.').last.toLowerCase();
+    const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
+    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
+    String? typeOverride;
+    if (imageExts.contains(ext)) typeOverride = 'image';
+    if (videoExts.contains(ext)) typeOverride = 'video';
+    setState(() {
+      _pendingFilePath = file.path!;
+      _pendingFileName = file.name;
+      _pendingFileType = typeOverride;
+      _ctrl.clear();
+    });
   }
 
-  Future<void> _uploadAndSendFile(String filePath, String fileName) async {
-    // Optional caption
-    final captionCtrl = TextEditingController();
-    final caption = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.of(context).card,
-        title: Text('Подпись к файлу', style: TextStyle(color: AppColors.of(context).textPrimary)),
-        content: TextField(
-          controller: captionCtrl,
-          style: TextStyle(color: AppColors.of(context).textPrimary),
-          decoration: InputDecoration(
-            hintText: 'Необязательно...',
-            hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
-          ),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, ''),
-            child: const Text('Без подписи'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, captionCtrl.text.trim()),
-            child: Text('Отправить', style: TextStyle(color: AppColors.of(context).primary)),
-          ),
-        ],
-      ),
-    );
-    captionCtrl.dispose();
-    if (caption == null || !mounted) return;
+  void _cancelPendingAttachment() {
+    setState(() {
+      _pendingFilePath = null;
+      _pendingFileName = null;
+      _pendingFileType = null;
+    });
+  }
 
+  Future<void> _sendPendingAttachment() async {
+    if (_pendingFilePath == null) return;
+    final path = _pendingFilePath!;
+    final name = _pendingFileName!;
+    final type = _pendingFileType;
+    final caption = _ctrl.text.trim();
+    _cancelPendingAttachment();
+    _ctrl.clear();
+    await _uploadAndSendFile(path, name, typeOverride: type, caption: caption.isNotEmpty ? caption : null);
+  }
+
+  double? _uploadProgress;
+  CancelToken? _uploadCancelToken;
+
+  void _cancelUpload() {
+    _uploadCancelToken?.cancel('User cancelled');
+    _uploadCancelToken = null;
+    setState(() => _uploadProgress = null);
+  }
+
+  Future<void> _uploadAndSendFile(String filePath, String fileName, {String? typeOverride, String? caption}) async {
+    _uploadCancelToken = CancelToken();
+    setState(() => _uploadProgress = 0);
     try {
       final client = sl<DioClient>();
       final formData = FormData.fromMap({
         'file': await MultipartFile.fromFile(filePath, filename: fileName),
       });
-      final res = await client.post(
+      final res = await client.dio.post<Map<String, dynamic>>(
         '/messenger/files',
         data: formData,
-        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        cancelToken: _uploadCancelToken,
+        onSendProgress: (sent, total) {
+          if (total > 0 && mounted) {
+            setState(() => _uploadProgress = sent / total);
+          }
+        },
       );
       if (!mounted) return;
-      String msgContent = caption.isNotEmpty ? caption : fileName;
+      setState(() => _uploadProgress = null);
+      final data = res.data!;
+      // Use client-side type if known, fallback to backend
+      final fileType = typeOverride ?? (data['fileType'] as String? ?? 'document');
+      // Fix fileUrl if backend returns hardcoded prod URL on staging
+      var fileUrl = data['fileUrl'] as String;
+      final baseUrl = AppConfig.baseUrl;
+      if (!fileUrl.startsWith(baseUrl)) {
+        final uri = Uri.parse(fileUrl);
+        final baseUri = Uri.parse(baseUrl);
+        fileUrl = fileUrl.replaceFirst('${uri.scheme}://${uri.host}', '${baseUri.scheme}://${baseUri.host}');
+      }
+      String msgContent = caption ?? fileName;
       if (_replyTo != null) {
         final quoted = _replyTo!.fileUrl != null
             ? (_replyTo!.fileName ?? '📎 Файл')
@@ -437,14 +413,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       context.read<MessengerBloc>().add(SendMessage(
         widget.conversationId,
         msgContent,
-        fileUrl: res['fileUrl'] as String,
-        fileName: res['fileName'] as String,
-        fileSize: res['fileSize'] as int?,
-        fileType: res['fileType'] as String,
+        fileUrl: fileUrl,
+        fileName: data['fileName'] as String,
+        fileSize: data['fileSize'] as int?,
+        fileType: fileType,
       ));
       _cancelReply();
     } catch (e) {
       if (!mounted) return;
+      setState(() => _uploadProgress = null);
+      _uploadCancelToken = null;
+      if (e is DioException && e.type == DioExceptionType.cancel) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Ошибка загрузки файла: $e'), backgroundColor: AppColors.of(context).error),
       );
@@ -833,9 +812,94 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   );
                 },
               ),
+              if (_pendingFilePath != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    children: [
+                      if (_pendingFileType == 'image')
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Image.file(File(_pendingFilePath!), width: 48, height: 48, fit: BoxFit.cover),
+                        )
+                      else if (_pendingFileType == 'video')
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(6)),
+                          child: const Icon(Icons.videocam_rounded, color: Colors.white54, size: 24),
+                        )
+                      else
+                        Container(
+                          width: 48, height: 48,
+                          decoration: BoxDecoration(color: AppColors.of(context).background, borderRadius: BorderRadius.circular(6)),
+                          child: Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 24),
+                        ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _pendingFileName ?? '',
+                          style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 13),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: _cancelPendingAttachment,
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(Icons.close, size: 20, color: AppColors.of(context).textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_uploadProgress != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Загрузка… ${(_uploadProgress! * 100).toInt()}%',
+                              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: _uploadProgress,
+                                minHeight: 4,
+                                backgroundColor: AppColors.of(context).textSecondary.withOpacity(0.2),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.of(context).primary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: _cancelUpload,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.of(context).error.withOpacity(0.15),
+                          ),
+                          child: Icon(Icons.close, size: 18, color: AppColors.of(context).error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _InputBar(
                 controller: _ctrl,
-                onSend: _sendMessage,
+                onSend: _pendingFilePath != null ? _sendPendingAttachment : _sendMessage,
                 onAttach: _showAttachMenu,
                 isRecording: _isRecording,
                 onRecordStart: _startRecording,
@@ -993,6 +1057,20 @@ class _MessageBubbleState extends State<_MessageBubble> {
   static const _replyThreshold = 56.0;
   static const _maxDrag = 72.0;
 
+  static const _imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
+  static const _videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
+
+  String _effectiveFileType(MessageEntity msg) {
+    final ft = msg.fileType;
+    if (ft == 'image' || ft == 'video' || ft == 'audio') return ft!;
+    // Detect by URL or fileName extension
+    final name = (msg.fileName ?? msg.fileUrl ?? '').split('?').first.toLowerCase();
+    final ext = name.contains('.') ? name.split('.').last : '';
+    if (_imageExts.contains(ext)) return 'image';
+    if (_videoExts.contains(ext)) return 'video';
+    return 'document';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.message.isSystem) {
@@ -1074,7 +1152,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                 ),
               ),
-            if (widget.message.fileUrl != null && widget.message.fileType == 'image')
+            if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'image')
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: ClipRRect(
@@ -1092,9 +1170,48 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                 ),
               )
-            else if (widget.message.fileUrl != null && widget.message.fileType == 'audio')
+            else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'video')
+              GestureDetector(
+                onTap: () async {
+                  final uri = Uri.parse(widget.message.fileUrl!);
+                  if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 220,
+                        maxHeight: 260,
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 220,
+                            height: 140,
+                            color: Colors.black87,
+                            child: Icon(Icons.videocam_rounded, color: Colors.white54, size: 48),
+                          ),
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black54,
+                            ),
+                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'audio')
               _AudioMessagePlayer(fileUrl: widget.message.fileUrl!, isMe: widget.isMe)
-            else if (widget.message.fileUrl != null && widget.message.fileType == 'document')
+            else if (widget.message.fileUrl != null)
               GestureDetector(
                 onTap: () async {
                   final uri = Uri.parse(widget.message.fileUrl!);
@@ -1130,6 +1247,18 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   color: AppColors.of(context).primary,
                   fontSize: 14,
                   decoration: TextDecoration.underline,
+                ),
+              ),
+            // Show caption under image/video if content differs from fileName
+            if (widget.message.fileUrl != null &&
+                (_effectiveFileType(widget.message) == 'image' || _effectiveFileType(widget.message) == 'video') &&
+                widget.message.content.isNotEmpty &&
+                widget.message.content != widget.message.fileName)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  widget.message.content,
+                  style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14),
                 ),
               ),
             const SizedBox(height: 4),

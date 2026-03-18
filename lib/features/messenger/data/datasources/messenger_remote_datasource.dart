@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
@@ -60,8 +61,12 @@ class MessengerRemoteDataSource {
     _socket!.on('call_ended', (d) {
       try {
         final data = Map<String, dynamic>.from(d as Map);
-        _callEndedCtrl.add(data['roomName'] as String? ?? '');
-      } catch (_) {}
+        final roomName = data['roomName'] as String? ?? '';
+        debugPrint('[Socket] call_ended received: roomName=$roomName');
+        _callEndedCtrl.add(roomName);
+      } catch (e) {
+        debugPrint('[Socket] call_ended parse error: $e');
+      }
     });
     _socket!.on('message_updated', (d) {
       try {

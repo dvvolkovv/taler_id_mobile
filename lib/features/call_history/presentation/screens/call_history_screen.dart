@@ -542,9 +542,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               isMissed
                   ? Icons.call_missed_rounded
                   : e.isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
-              color: isMissed
-                  ? colors.error
-                  : e.isOutgoing ? colors.primary : _kIncomingColor,
+              color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
               size: 20,
             ),
           ),
@@ -562,21 +560,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(
-                      _formatDate(e.startedAt),
-                      style: TextStyle(color: colors.textSecondary, fontSize: 12),
-                    ),
-                    if (isMissed) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        'Пропущенный',
-                        style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ],
+                Text(
+                  _formatDate(e.startedAt),
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
                 ),
+                if (isMissed) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'Пропущенный',
+                    style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ],
                 if (e.hasSummary || e.hasRecording) ...[
                   const SizedBox(height: 4),
                   Wrap(
@@ -592,7 +586,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               ],
             ),
           ),
-          if (e.durationSec != null) ...[
+          if (e.durationSec != null && e.durationSec! > 0) ...[
             Text(
               _formatDuration(e.durationSec!),
               style: TextStyle(color: colors.textSecondary, fontSize: 12),
@@ -953,7 +947,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 _fmtDate(startedAt),
                 style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
               ),
-              if (durationSec != null) ...[
+              if (durationSec != null && durationSec > 0) ...[
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),

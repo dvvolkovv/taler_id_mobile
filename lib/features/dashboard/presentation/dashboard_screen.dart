@@ -49,6 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   String? _pendingCallRoute; // queued when accept fires while phone is locked
   bool _waitingForCallAccept = false; // blocks in-app dialog after CallKit accept
   bool _acceptingInApp = false; // suppresses actionCallDecline after in-app accept
+  bool _endingCallKitFromSocket = false; // suppresses actionCallDecline when CallKit ended by socket call_ended
   Timer? _callAcceptTimer;
   UpdateInfo? _updateInfo;
   bool _updateDismissed = false;
@@ -93,6 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             bool skipNotify = _pendingCallRoute != null; // navigating to voice screen
             if (!skipNotify && _acceptingInApp) skipNotify = true; // in-app accept triggered endAllCalls
             if (!skipNotify && _waitingForCallAccept) skipNotify = true; // CallKit accept in progress
+            if (!skipNotify && _endingCallKitFromSocket) skipNotify = true; // CallKit ended by socket call_ended event
             if (!skipNotify) {
               try {
                 final loc = GoRouter.of(context)
@@ -205,13 +207,25 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callEndedSub = sl<MessengerRemoteDataSource>()
         .callEndedStream
         .listen((roomName) async {
+      debugPrint('[Dashboard] callEndedStream fired: roomName=$roomName');
       final wasInCallRoom = CallStateService.instance.roomName;
       final isOurCall = wasInCallRoom != null && wasInCallRoom == roomName;
 
       // Always dismiss a pending incoming call invite from the UI.
+      debugPrint('[Dashboard] dismissing call invite, wasInCallRoom=$wasInCallRoom, isOurCall=$isOurCall, showingDialog=$_showingCallDialogRoom');
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
+      // Close the in-app incoming call modal dialog if it's showing
+      if (mounted && _showingCallDialogRoom != null) {
+        _showingCallDialogRoom = null;
+        try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+      }
+      // Set flag BEFORE ending CallKit so the resulting actionCallDecline
+      // doesn't emit call_ended back to the server (causing double push).
+      _endingCallKitFromSocket = true;
       // Dismiss CallKit ringing for this room.
       await _endCallKitCallForRoom(roomName, wasInCallRoom: wasInCallRoom);
+      // Reset flag after a short delay (actionCallDecline fires asynchronously)
+      Future.delayed(const Duration(seconds: 2), () => _endingCallKitFromSocket = false);
 
       if (!isOurCall) return;
 

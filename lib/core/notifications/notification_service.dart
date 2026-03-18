@@ -68,7 +68,7 @@ Future<void> _showMissedCallNotification({required String fromName}) async {
   await _localNotifications.show(
     DateTime.now().millisecondsSinceEpoch ~/ 1000,
     'Пропущенный звонок',
-    'от $fromName',
+    fromName,
     const NotificationDetails(android: androidDetails, iOS: iosDetails),
   );
 }
@@ -158,10 +158,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   } else if (type == 'call_cancelled') {
     // Caller hung up before answer — dismiss CallKit UI
     await FlutterCallkitIncoming.endAllCalls();
-    // Show missed call notification
-    final fromName = message.data['fromName'] as String? ?? 'Неизвестный';
     await _initLocalNotifications();
-    await _showMissedCallNotification(fromName: fromName);
+    await _showMissedCallNotification(
+      fromName: message.data['fromName'] ?? 'Неизвестный',
+    );
   }
 }
 
@@ -311,11 +311,14 @@ class NotificationService {
         if (title.isNotEmpty && body.isNotEmpty) {
           _showLocalNotification(title: title, body: body, conversationId: convId);
         }
-      } else if (type == 'call_cancelled') {
-        final fromName = message.data['fromName'] as String? ?? 'Неизвестный';
-        _showMissedCallNotification(fromName: fromName);
       }
       // call_invite is intentionally ignored here — socket handles it.
+      if (type == 'call_cancelled') {
+        FlutterCallkitIncoming.endAllCalls();
+        _showMissedCallNotification(
+          fromName: message.data['fromName'] ?? 'Неизвестный',
+        );
+      }
     });
 
     // App opened from background notification tap
