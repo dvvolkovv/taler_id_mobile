@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -258,12 +259,130 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  Future<void> _sendFile() async {
-    // Allow any file type
+  void _showAttachMenu() {
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildAttachOption(
+                    icon: Icons.photo_rounded,
+                    label: 'Фото',
+                    color: Colors.purple,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickMedia(ImageSource.gallery, isVideo: false);
+                    },
+                  ),
+                  _buildAttachOption(
+                    icon: Icons.videocam_rounded,
+                    label: 'Видео',
+                    color: Colors.blue,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickMedia(ImageSource.gallery, isVideo: true);
+                    },
+                  ),
+                  _buildAttachOption(
+                    icon: Icons.camera_alt_rounded,
+                    label: 'Камера',
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickMedia(ImageSource.camera, isVideo: false);
+                    },
+                  ),
+                  _buildAttachOption(
+                    icon: Icons.insert_drive_file_rounded,
+                    label: 'Файл',
+                    color: colors.primary,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickFile();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 26),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.of(context).textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickMedia(ImageSource source, {required bool isVideo}) async {
+    final picker = ImagePicker();
+    final XFile? picked;
+    if (isVideo) {
+      picked = await picker.pickVideo(source: source);
+    } else {
+      picked = await picker.pickImage(source: source, imageQuality: 85);
+    }
+    if (picked == null || !mounted) return;
+    await _uploadAndSendFile(picked.path, picked.name);
+  }
+
+  Future<void> _pickFile() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.any);
     if (result == null || result.files.single.path == null || !mounted) return;
     final file = result.files.single;
+    await _uploadAndSendFile(file.path!, file.name);
+  }
 
+  Future<void> _uploadAndSendFile(String filePath, String fileName) async {
     // Optional caption
     final captionCtrl = TextEditingController();
     final caption = await showDialog<String>(
@@ -298,7 +417,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     try {
       final client = sl<DioClient>();
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(file.path!, filename: file.name),
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
       });
       final res = await client.post(
         '/messenger/files',
@@ -306,7 +425,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       if (!mounted) return;
-      String msgContent = caption.isNotEmpty ? caption : file.name;
+      String msgContent = caption.isNotEmpty ? caption : fileName;
       if (_replyTo != null) {
         final quoted = _replyTo!.fileUrl != null
             ? (_replyTo!.fileName ?? '📎 Файл')
@@ -597,7 +716,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   onJoin: () => _joinActiveCall(activeRoomName),
                 ),
               Expanded(
-                child: messages.isEmpty
+                child: GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.translucent,
+                  child: messages.isEmpty
                     ? Center(
                         child: Text(
                           'Начните переписку',
@@ -653,6 +775,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           );
                         },
                       ),
+                ),
               ),
               if (_editingMessage != null)
                 _EditPreviewBar(
@@ -713,7 +836,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               _InputBar(
                 controller: _ctrl,
                 onSend: _sendMessage,
-                onAttach: _sendFile,
+                onAttach: _showAttachMenu,
                 isRecording: _isRecording,
                 onRecordStart: _startRecording,
                 onRecordStop: _stopRecordingAndSend,

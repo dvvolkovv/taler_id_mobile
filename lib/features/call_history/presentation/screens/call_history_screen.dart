@@ -519,6 +519,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildCallCard(_CallEntry e, AppColorsExtension colors) {
+    final isMissed = !e.isOutgoing && (e.durationSec == null || e.durationSec == 0);
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => CallDetailScreen(callId: e.id)),
@@ -530,14 +531,20 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: e.isOutgoing
-                  ? colors.primary.withOpacity(0.12)
-                  : _kIncomingColor.withOpacity(0.12),
+              color: isMissed
+                  ? colors.error.withOpacity(0.12)
+                  : e.isOutgoing
+                      ? colors.primary.withOpacity(0.12)
+                      : _kIncomingColor.withOpacity(0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
-              e.isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
-              color: e.isOutgoing ? colors.primary : _kIncomingColor,
+              isMissed
+                  ? Icons.call_missed_rounded
+                  : e.isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
+              color: isMissed
+                  ? colors.error
+                  : e.isOutgoing ? colors.primary : _kIncomingColor,
               size: 20,
             ),
           ),
@@ -549,15 +556,26 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 Text(
                   e.otherPartyName,
                   style: TextStyle(
-                    color: colors.textPrimary,
+                    color: isMissed ? colors.error : colors.textPrimary,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  _formatDate(e.startedAt),
-                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                Row(
+                  children: [
+                    Text(
+                      _formatDate(e.startedAt),
+                      style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                    ),
+                    if (isMissed) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        'Пропущенный',
+                        style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ],
                 ),
                 if (e.hasSummary || e.hasRecording) ...[
                   const SizedBox(height: 4),
