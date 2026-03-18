@@ -84,6 +84,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final List<lk.RemoteParticipant> _participants = [];
   lk.EventsListener<lk.RoomEvent>? _eventsListener;
   StreamSubscription? _callEndedSub;
+  Timer? _emptyRoomTimer;
 
   // Server-side translation state
   String _preferredLang = 'ru';
@@ -130,7 +131,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _hangUp();
       }
     });
+    _initCall();
+  }
+
+  /// Initialise the call — either resume an existing background-connected room,
+  /// wait for a background connect in progress, or start a fresh connection.
+  Future<void> _initCall() async {
     final cs = CallStateService.instance;
+
+    // If background connect is still in progress, wait for it (up to 5s)
+    if (cs.isBackgroundConnecting) {
+      debugPrint('[VoiceCall] waiting for background connect...');
+      await cs.waitForBackgroundConnect().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => false,
+      );
+    }
+
     // Resume existing room if already connected (e.g. from background connect)
     if (cs.isInCall && cs.room != null) {
       _room = cs.room;
@@ -151,7 +168,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       // End CallKit and restore audio — must be properly sequenced
       if (widget.isIncoming) {
-        _restoreAudioAfterCallKit();
+        await _restoreAudioAfterCallKit();
       }
       // Notify other devices this device answered (dismiss their CallKit)
       if (widget.isIncoming && widget.conversationId != null && _roomName != null) {
@@ -159,6 +176,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);
         } catch (_) {}
       }
+      if (mounted) setState(() {});
       WakelockPlus.enable();
     } else {
       _connect();
@@ -207,9 +225,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   /// End CallKit and properly restore the audio session for LiveKit.
   /// Must be async and properly sequenced: endAllCalls() triggers iOS to
   /// deactivate the audio session. We must WAIT for that to complete, then
-  /// re-activate the session for LiveKit. Without the delay, requestAudioFocus
-  /// fires before CallKit's deactivation, and the session dies.
+  /// re-activate the session for LiveKit.
   Future<void> _restoreAudioAfterCallKit() async {
+    debugPrint('[VoiceCall] _restoreAudioAfterCallKit: starting');
     try {
       await FlutterCallkitIncoming.endAllCalls();
       debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls done');
@@ -217,28 +235,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls error: $e');
     }
     // Wait for CallKit to fully release the audio session.
-    // iOS CXProvider.reportCall(endedAt:) triggers async audio deactivation.
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    // Re-activate audio session for LiveKit
-    try {
-      await _audioChannel.invokeMethod('requestAudioFocus');
-      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: requestAudioFocus done');
-    } catch (_) {}
-    // Re-enable microphone — CallKit deactivation may have muted it
-    try {
-      await _room?.localParticipant?.setMicrophoneEnabled(true);
-    } catch (_) {}
-    // Second requestAudioFocus after a longer delay — belt-and-suspenders
-    // in case iOS audio deactivation arrived late
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    try {
-      await _audioChannel.invokeMethod('requestAudioFocus');
-    } catch (_) {}
-    try {
-      await _room?.localParticipant?.setMicrophoneEnabled(true);
-    } catch (_) {}
+    // iOS CXProvider.reportCall(endedAt:) triggers async audio deactivation
+    // and DashboardScreen's actionCallDecline handler may also fire endCall.
+    // 1 second is enough for both to complete.
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted || _navigatedAway) return;
+    // Re-activate audio session for LiveKit — retry multiple times
+    // because iOS audio deactivation timing is unpredictable.
+    // Check _navigatedAway on each retry to stop if user already hung up.
+    for (final delay in [0, 500, 1000, 2000]) {
+      if (delay > 0) {
+        await Future.delayed(Duration(milliseconds: delay));
+        if (!mounted || _navigatedAway) return;
+      }
+      try {
+        await _audioChannel.invokeMethod('requestAudioFocus');
+      } catch (_) {}
+      try {
+        await _room?.localParticipant?.setMicrophoneEnabled(true);
+      } catch (_) {}
+    }
     debugPrint('[VoiceCall] _restoreAudioAfterCallKit: complete');
   }
 
@@ -255,7 +271,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         debugPrint('[VoiceCall] endAllCalls() error: $e');
       }
       // Wait for CallKit to fully release the audio session
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 1000));
       // Re-activate audio session independently for LiveKit
       try {
         await _audioChannel.invokeMethod('requestAudioFocus');
@@ -556,6 +572,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Stop ringback if human participants appeared
       if (_ringing && _participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
+      }
+      // Auto-hangup when all remote participants left (call was active)
+      if (_participants.isEmpty && !_connecting && !_ringing && !_reconnecting && !_manualReconnecting) {
+        _emptyRoomTimer ??= Timer(const Duration(seconds: 3), () {
+          if (!mounted || _navigatedAway) return;
+          if (_participants.isEmpty) {
+            debugPrint('[VoiceCall] All participants left — auto hanging up');
+            _hangUp();
+          }
+        });
+      } else {
+        _emptyRoomTimer?.cancel();
+        _emptyRoomTimer = null;
       }
     }
   }
@@ -1124,15 +1153,25 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   Future<void> _setAudioOutput(String type) async {
+    setState(() => _audioOutputType = type);
+    // Apply immediately
+    await _applyAudioOutput(type);
+    // Re-apply with delays to override LiveKit/WebRTC async overrides
+    for (final delay in [200, 600, 1500]) {
+      await Future.delayed(Duration(milliseconds: delay));
+      if (!mounted || _audioOutputType != type) return;
+      await _applyAudioOutput(type);
+    }
+  }
+
+  Future<void> _applyAudioOutput(String type) async {
     try {
-      // Use LiveKit Hardware API — WebRTC respects this over native AudioManager
       final speakerOn = type == 'speaker';
       await lk.Hardware.instance.setSpeakerphoneOn(speakerOn);
     } catch (_) {}
     try {
       await _audioChannel.invokeMethod('setAudioOutput', type);
     } catch (_) {}
-    setState(() => _audioOutputType = type);
   }
 
   void _minimizeCall() {
@@ -1147,6 +1186,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   Future<void> _hangUp() async {
+    // Mark as navigated away FIRST — stops any async retries
+    // (e.g. _restoreAudioAfterCallKit) from re-activating audio
+    _navigatedAway = true;
+    _emptyRoomTimer?.cancel();
     // Stop ringback if still playing (call not answered)
     _stopRingback();
     // Disable microphone first to release audio track
@@ -1161,15 +1204,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         sl<MessengerRemoteDataSource>().sendCallEnded(convId, rName);
       } catch (_) {}
     }
-    // Release audio focus
+    // Disconnect from LiveKit FIRST — must happen while network/audio is still active
+    // so the server receives the leave signal immediately.
+    await CallStateService.instance.endCall();
+    // Now release audio focus & deactivate session
     try {
       await _audioChannel.invokeMethod('abandonAudioFocus');
     } catch (_) {}
-    // Deactivate iOS audio session so system call process stops
     try {
       await _audioChannel.invokeMethod('deactivateAudioSession');
     } catch (_) {}
-    CallStateService.instance.endCall();
     // Tell CallKit the call ended (releases iOS background audio session)
     try {
       await FlutterCallkitIncoming.endAllCalls();
@@ -1480,6 +1524,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     WidgetsBinding.instance.removeObserver(this);
     _callEndedSub?.cancel();
     _ringbackTimer?.cancel();
+    _emptyRoomTimer?.cancel();
     _ringbackActive = false;
     _audioChannel.setMethodCallHandler(null);
     WakelockPlus.disable();

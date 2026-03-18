@@ -14,6 +14,7 @@ class CallStateService {
   String? conversationId;
   String? e2eeKey;
   bool _bgConnecting = false;
+  Completer<bool>? _bgCompleter;
 
   final _stateCtrl = StreamController<bool>.broadcast();
   Stream<bool> get stateStream => _stateCtrl.stream;
@@ -21,6 +22,16 @@ class CallStateService {
   bool get isInCall =>
       room != null &&
       room!.connectionState != lk.ConnectionState.disconnected;
+
+  /// True if a background connect is in progress.
+  bool get isBackgroundConnecting => _bgConnecting;
+
+  /// Wait for an in-progress background connect to finish.
+  /// Returns true if successfully connected, false otherwise.
+  Future<bool> waitForBackgroundConnect() async {
+    if (!_bgConnecting || _bgCompleter == null) return isInCall;
+    return _bgCompleter!.future;
+  }
 
   void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue}) {
     room = r;
@@ -30,14 +41,18 @@ class CallStateService {
     _stateCtrl.add(true);
   }
 
-  void endCall() {
-    room?.disconnect();
+  Future<void> endCall() async {
+    final r = room;
     room = null;
     roomName = null;
     conversationId = null;
     e2eeKey = null;
     _bgConnecting = false;
     _stateCtrl.add(false);
+    // Disconnect AFTER clearing state — await so the server receives the signal
+    try {
+      await r?.disconnect();
+    } catch (_) {}
   }
 
   void notifyEnded() {
@@ -55,8 +70,9 @@ class CallStateService {
   /// VoiceCallScreen will detect the existing room in initState and resume it.
   Future<bool> connectInBackground(String rName, String? convId, {String? e2eeKey}) async {
     if (isInCall) return true;
-    if (_bgConnecting) return false;
+    if (_bgConnecting) return _bgCompleter?.future ?? Future.value(false);
     _bgConnecting = true;
+    _bgCompleter = Completer<bool>();
     try {
       final client = sl<DioClient>();
       final res = await client.post<Map<String, dynamic>>(
@@ -89,10 +105,14 @@ class CallStateService {
       } catch (_) {}
       debugPrint('[CallState] connectInBackground OK, room=$rName, e2ee=${e2eeKey != null}');
       _bgConnecting = false;
+      _bgCompleter?.complete(true);
+      _bgCompleter = null;
       return true;
     } catch (e) {
       debugPrint('[CallState] connectInBackground failed: $e');
       _bgConnecting = false;
+      _bgCompleter?.complete(false);
+      _bgCompleter = null;
       return false;
     }
   }

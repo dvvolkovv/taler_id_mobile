@@ -108,12 +108,18 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             (_showingCallDialogRoom == roomName || roomName == null)) {
           Navigator.of(context, rootNavigator: true).pop();
         }
-        // End only this specific call, not all calls
-        final callId = (event.body['id'] ?? event.body['uuid']) as String?;
-        if (callId != null) {
-          FlutterCallkitIncoming.endCall(callId);
-        } else {
-          FlutterCallkitIncoming.endAllCalls();
+        // End only this specific call, not all calls.
+        // SKIP if we are accepting a call — VoiceCallScreen's endAllCalls()
+        // triggers actionCallDecline for the same CallKit call; calling endCall
+        // again here would deactivate the audio session AFTER VoiceCallScreen
+        // re-activated it, killing LiveKit audio.
+        if (!_waitingForCallAccept && !_acceptingInApp) {
+          final callId = (event.body['id'] ?? event.body['uuid']) as String?;
+          if (callId != null) {
+            FlutterCallkitIncoming.endCall(callId);
+          } else {
+            FlutterCallkitIncoming.endAllCalls();
+          }
         }
       }
     });
