@@ -159,7 +159,7 @@ class _SplashScreenState extends State<SplashScreen>
                             child: VideoPlayer(_videoController!),
                           ),
                         )
-                      : Image.asset('app_icon_1024.png', width: 80, height: 80),
+                      : Container(width: 80, height: 80, color: colors.card),
                 ),
               ),
               const SizedBox(height: 20),

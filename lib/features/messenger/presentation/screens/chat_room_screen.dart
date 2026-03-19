@@ -301,15 +301,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _pickMediaMultiple() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickMultipleMedia();
-    if (picked.isEmpty || !mounted) return;
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.media,
+      allowMultiple: true,
+    );
+    if (result == null || result.files.isEmpty || !mounted) return;
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
     setState(() {
-      for (final f in picked) {
+      for (final f in result.files) {
+        if (f.path == null) continue;
         final ext = f.name.split('.').last.toLowerCase();
         final type = videoExts.contains(ext) ? 'video' : 'image';
-        _pendingFiles.add(_PendingFile(path: f.path, name: f.name, type: type));
+        _pendingFiles.add(_PendingFile(path: f.path!, name: f.name, type: type));
       }
     });
   }

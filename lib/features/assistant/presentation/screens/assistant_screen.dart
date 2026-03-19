@@ -431,8 +431,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                             ),
                           ),
                         )
-                      : Image.asset('app_icon_1024.png',
-                          width: 120, height: 120, fit: BoxFit.cover),
+                      : const SizedBox(width: 120, height: 120),
                 ),
               ),
             ),
@@ -517,8 +516,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                         ),
                       ),
                     )
-                  : Image.asset('app_icon_1024.png',
-                      width: 90, height: 90, fit: BoxFit.cover),
+                  : const SizedBox(width: 90, height: 90),
             ),
           ),
         ),
