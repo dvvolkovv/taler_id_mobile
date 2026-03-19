@@ -1,54 +1,49 @@
 #!/usr/bin/env python3
-"""Generate TID notification and CallKit icons from the main app icon."""
+"""Generate notification and CallKit icons from the main app icon silhouette."""
 
 import os
 import json
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageFilter
 
 PROJECT = os.path.dirname(os.path.abspath(__file__))
 ANDROID_RES = os.path.join(PROJECT, 'android', 'app', 'src', 'main', 'res')
 IOS_ASSETS = os.path.join(PROJECT, 'ios', 'Runner', 'Assets.xcassets')
+SOURCE_ICON = os.path.join(PROJECT, 'app_icon_1024.png')
 
-WHITE = (255, 255, 255)
-
-# Bold rounded font for "TID" text
-FONT_PATH = '/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf'
-FALLBACK_FONT = '/System/Library/Fonts/Supplemental/Arial Bold.ttf'
+# Brightness threshold to separate star from black background
+THRESHOLD = 40
 
 
-def get_font(size):
-    """Load a bold rounded font, with fallback."""
-    for path in [FONT_PATH, FALLBACK_FONT]:
-        try:
-            return ImageFont.truetype(path, size)
-        except (OSError, IOError):
-            continue
-    return ImageFont.load_default()
+def make_silhouette(size):
+    """Extract the star shape from app_icon_1024.png as white silhouette on transparent bg.
 
+    The source icon has a bright star on a black background (no alpha channel).
+    We threshold by brightness to extract the star shape, then render it as
+    white pixels with the brightness mapped to alpha.
+    """
+    src = Image.open(SOURCE_ICON).convert('RGBA')
+    w, h = src.size
 
-def make_tid_silhouette(size):
-    """Generate white 'TID' text on transparent background."""
-    # Render at 4x for anti-aliasing
-    render_s = size * 4
-    img = Image.new('RGBA', (render_s, render_s), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
+    # Add padding to make it square if needed, then crop to star area
+    # Work at source resolution for quality
+    pixels = src.load()
 
-    # Find optimal font size to fill ~75% of the icon width
-    font_size = int(render_s * 0.48)
-    font = get_font(font_size)
+    # Create output at source resolution
+    out = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    out_px = out.load()
 
-    # Measure text and center it
-    bbox = draw.textbbox((0, 0), 'TID', font=font)
-    text_w = bbox[2] - bbox[0]
-    text_h = bbox[3] - bbox[1]
-    x = (render_s - text_w) // 2 - bbox[0]
-    y = (render_s - text_h) // 2 - bbox[1]
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pixels[x, y]
+            brightness = max(r, g, b)
+            if brightness > THRESHOLD:
+                # Map brightness to alpha, make pixel white
+                alpha = min(255, int(brightness * 255 / 255))
+                out_px[x, y] = (255, 255, 255, alpha)
 
-    draw.text((x, y), 'TID', fill=(*WHITE, 255), font=font)
-
-    # Downscale with high-quality resampling
-    img = img.resize((size, size), Image.LANCZOS)
-    return img
+    # Resize to target
+    out = out.resize((size, size), Image.LANCZOS)
+    return out
 
 
 def make_notification_icons():
@@ -60,7 +55,7 @@ def make_notification_icons():
     for density, px in densities.items():
         folder = os.path.join(ANDROID_RES, f'drawable-{density}')
         os.makedirs(folder, exist_ok=True)
-        icon = make_tid_silhouette(px)
+        icon = make_silhouette(px)
         path = os.path.join(folder, 'ic_notification.png')
         icon.save(path, 'PNG')
         print(f'  Saved: {path} ({px}x{px})')
@@ -77,7 +72,7 @@ def make_callkit_icons():
         'CallKitLogo@3x.png': 120,
     }
     for filename, px in scales.items():
-        icon = make_tid_silhouette(px)
+        icon = make_silhouette(px)
         path = os.path.join(imageset_dir, filename)
         icon.save(path, 'PNG')
         print(f'  Saved: {path} ({px}x{px})')
@@ -100,10 +95,10 @@ def make_callkit_icons():
 if __name__ == '__main__':
     print('=== TalerID Icon Generator ===\n')
 
-    print('1. Generating Android notification icons (TID silhouette)...')
+    print('1. Generating Android notification icons (star silhouette)...')
     make_notification_icons()
 
-    print('\n2. Generating iOS CallKit icons (TID silhouette)...')
+    print('\n2. Generating iOS CallKit icons (star silhouette)...')
     make_callkit_icons()
 
-    print('\n=== Done! Run: dart run flutter_launcher_icons ===')
+    print('\n=== Done! ===')
