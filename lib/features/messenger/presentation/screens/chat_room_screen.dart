@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:video_thumbnail/video_thumbnail.dart' as vt;
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,7 +17,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
+import 'package:video_player/video_player.dart' as vp;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
@@ -52,10 +54,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   StreamSubscription? _reconnectSub;
   Timer? _typingTimer;
   bool _isTypingSent = false;
-  // Pending attachment (inline preview before send)
-  String? _pendingFilePath;
-  String? _pendingFileName;
-  String? _pendingFileType;
+  // Pending attachments (inline preview before send)
+  final List<_PendingFile> _pendingFiles = [];
 
   @override
   void initState() {
@@ -279,19 +279,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.photo, color: colors.primary),
-                title: Text('Фото', style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.gallery, isVideo: false); },
-              ),
-              ListTile(
-                leading: Icon(Icons.videocam, color: colors.primary),
-                title: Text('Видео', style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.gallery, isVideo: true); },
+                leading: Icon(Icons.photo_library, color: colors.primary),
+                title: Text('Фото / Видео', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickMediaMultiple(); },
               ),
               ListTile(
                 leading: Icon(Icons.camera_alt, color: colors.primary),
                 title: Text('Камера', style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickMedia(ImageSource.camera); },
+                onTap: () { Navigator.pop(ctx); _pickFromCamera(); },
               ),
               ListTile(
                 leading: Icon(Icons.insert_drive_file, color: colors.primary),
@@ -305,61 +300,66 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Future<void> _pickMedia(ImageSource source, {bool isVideo = false}) async {
+  Future<void> _pickMediaMultiple() async {
     final picker = ImagePicker();
-    final XFile? picked;
-    if (source == ImageSource.camera) {
-      picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
-    } else if (isVideo) {
-      picked = await picker.pickVideo(source: ImageSource.gallery);
-    } else {
-      picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    }
-    if (picked == null || !mounted) return;
-    final pickedFile = picked;
+    final picked = await picker.pickMultipleMedia();
+    if (picked.isEmpty || !mounted) return;
+    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
     setState(() {
-      _pendingFilePath = pickedFile.path;
-      _pendingFileName = pickedFile.name;
-      _pendingFileType = isVideo ? 'video' : 'image';
-      _ctrl.clear();
+      for (final f in picked) {
+        final ext = f.name.split('.').last.toLowerCase();
+        final type = videoExts.contains(ext) ? 'video' : 'image';
+        _pendingFiles.add(_PendingFile(path: f.path, name: f.name, type: type));
+      }
+    });
+  }
+
+  Future<void> _pickFromCamera() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _pendingFiles.add(_PendingFile(path: picked.path, name: picked.name, type: 'image'));
     });
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(type: FileType.any);
-    if (result == null || result.files.single.path == null || !mounted) return;
-    final file = result.files.single;
-    final ext = file.name.split('.').last.toLowerCase();
+    final result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: true);
+    if (result == null || result.files.isEmpty || !mounted) return;
     const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
-    String? typeOverride;
-    if (imageExts.contains(ext)) typeOverride = 'image';
-    if (videoExts.contains(ext)) typeOverride = 'video';
     setState(() {
-      _pendingFilePath = file.path!;
-      _pendingFileName = file.name;
-      _pendingFileType = typeOverride;
-      _ctrl.clear();
+      for (final file in result.files) {
+        if (file.path == null) continue;
+        final ext = file.name.split('.').last.toLowerCase();
+        String? typeOverride;
+        if (imageExts.contains(ext)) typeOverride = 'image';
+        if (videoExts.contains(ext)) typeOverride = 'video';
+        _pendingFiles.add(_PendingFile(path: file.path!, name: file.name, type: typeOverride));
+      }
     });
   }
 
-  void _cancelPendingAttachment() {
+  void _cancelPendingAttachment([int? index]) {
     setState(() {
-      _pendingFilePath = null;
-      _pendingFileName = null;
-      _pendingFileType = null;
+      if (index != null) {
+        _pendingFiles.removeAt(index);
+      } else {
+        _pendingFiles.clear();
+      }
     });
   }
 
   Future<void> _sendPendingAttachment() async {
-    if (_pendingFilePath == null) return;
-    final path = _pendingFilePath!;
-    final name = _pendingFileName!;
-    final type = _pendingFileType;
+    if (_pendingFiles.isEmpty) return;
+    final files = List<_PendingFile>.from(_pendingFiles);
     final caption = _ctrl.text.trim();
-    _cancelPendingAttachment();
+    setState(() => _pendingFiles.clear());
     _ctrl.clear();
-    await _uploadAndSendFile(path, name, typeOverride: type, caption: caption.isNotEmpty ? caption : null);
+    for (var i = 0; i < files.length; i++) {
+      final f = files[i];
+      await _uploadAndSendFile(f.path, f.name, typeOverride: f.type, caption: i == 0 && caption.isNotEmpty ? caption : null);
+    }
   }
 
   double? _uploadProgress;
@@ -402,7 +402,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         final baseUri = Uri.parse(baseUrl);
         fileUrl = fileUrl.replaceFirst('${uri.scheme}://${uri.host}', '${baseUri.scheme}://${baseUri.host}');
       }
-      String msgContent = caption ?? fileName;
+      final isMedia = fileType == 'image' || fileType == 'video' || fileType == 'audio';
+      String msgContent = caption ?? (isMedia ? '' : fileName);
       if (_replyTo != null) {
         final quoted = _replyTo!.fileUrl != null
             ? (_replyTo!.fileName ?? '📎 Файл')
@@ -740,6 +741,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 isMe: isMe,
                                 isGroup: isGroup,
                                 senderName: sName,
+                                allMessages: messages,
                                 onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? 'Вы' : sName),
                                 onEdit: (isMe && !msg.isSystem && msg.fileUrl == null) ? () => _startEditing(msg) : null,
                                 onReact: msg.isSystem ? null : (emoji) {
@@ -813,46 +815,85 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   );
                 },
               ),
-              if (_pendingFilePath != null)
+              if (_pendingFiles.isNotEmpty)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   color: AppColors.of(context).card,
-                  child: Row(
-                    children: [
-                      if (_pendingFileType == 'image')
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Image.file(File(_pendingFilePath!), width: 48, height: 48, fit: BoxFit.cover),
-                        )
-                      else if (_pendingFileType == 'video')
-                        Container(
-                          width: 48, height: 48,
-                          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(6)),
-                          child: const Icon(Icons.videocam_rounded, color: Colors.white54, size: 24),
-                        )
-                      else
-                        Container(
-                          width: 48, height: 48,
-                          decoration: BoxDecoration(color: AppColors.of(context).background, borderRadius: BorderRadius.circular(6)),
-                          child: Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 24),
+                  child: SizedBox(
+                    height: 64,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _pendingFiles.length,
+                            separatorBuilder: (_, __) => const SizedBox(width: 8),
+                            itemBuilder: (_, i) {
+                              final f = _pendingFiles[i];
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  if (f.type == 'image')
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.file(File(f.path), width: 56, height: 56, fit: BoxFit.cover),
+                                    )
+                                  else if (f.type == 'video')
+                                    Container(
+                                      width: 56, height: 56,
+                                      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
+                                      child: const Icon(Icons.videocam_rounded, color: Colors.white54, size: 28),
+                                    )
+                                  else
+                                    Container(
+                                      width: 56, height: 56,
+                                      decoration: BoxDecoration(color: AppColors.of(context).background, borderRadius: BorderRadius.circular(8)),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 22),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            f.name.length > 8 ? '${f.name.substring(0, 6)}...' : f.name,
+                                            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 8),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  Positioned(
+                                    top: -6, right: -6,
+                                    child: GestureDetector(
+                                      onTap: () => _cancelPendingAttachment(i),
+                                      child: Container(
+                                        width: 20, height: 20,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.of(context).error,
+                                        ),
+                                        child: const Icon(Icons.close, size: 12, color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
                         ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _pendingFileName ?? '',
-                          style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 13),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _showAttachMenu,
+                          child: Container(
+                            width: 40, height: 40,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: AppColors.of(context).primary.withOpacity(0.15),
+                            ),
+                            child: Icon(Icons.add, color: AppColors.of(context).primary, size: 22),
+                          ),
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: _cancelPendingAttachment,
-                        child: Padding(
-                          padding: const EdgeInsets.all(4),
-                          child: Icon(Icons.close, size: 20, color: AppColors.of(context).textSecondary),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               if (_uploadProgress != null)
@@ -900,7 +941,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ),
               _InputBar(
                 controller: _ctrl,
-                onSend: _pendingFilePath != null ? _sendPendingAttachment : _sendMessage,
+                onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
                 onAttach: _showAttachMenu,
                 isRecording: _isRecording,
                 onRecordStart: _startRecording,
@@ -1037,6 +1078,7 @@ class _MessageBubble extends StatefulWidget {
   final VoidCallback? onEdit;
   final void Function(String emoji)? onReact;
   final String? currentUserId;
+  final List<MessageEntity> allMessages;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -1046,6 +1088,7 @@ class _MessageBubble extends StatefulWidget {
     this.onEdit,
     this.onReact,
     this.currentUserId,
+    this.allMessages = const [],
   });
 
   @override
@@ -1154,58 +1197,56 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 ),
               ),
             if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'image')
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 220,
-                      maxHeight: 260,
+              GestureDetector(
+                onTap: () {
+                  final imageMessages = widget.allMessages
+                      .where((m) => m.fileUrl != null && _effectiveFileType(m) == 'image')
+                      .toList();
+                  final idx = imageMessages.indexWhere((m) => m.id == widget.message.id);
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => _FullScreenImageGallery(
+                      imageUrls: imageMessages.map((m) => m.fileUrl!).toList(),
+                      initialIndex: idx >= 0 ? idx : 0,
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: widget.message.fileUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Icon(Icons.broken_image, color: AppColors.of(context).textSecondary),
+                  ));
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 220,
+                      height: 160,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.message.fileUrl!,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.of(context).primary,
+                          ),
+                        ),
+                        errorWidget: (_, __, ___) => Icon(Icons.broken_image, color: AppColors.of(context).textSecondary),
+                      ),
                     ),
                   ),
                 ),
               )
             else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'video')
               GestureDetector(
-                onTap: () async {
-                  final uri = Uri.parse(widget.message.fileUrl!);
-                  if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => _FullScreenVideoPlayer(videoUrl: widget.message.fileUrl!),
+                  ));
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: 220,
-                        maxHeight: 260,
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: 220,
-                            height: 140,
-                            color: Colors.black87,
-                            child: Icon(Icons.videocam_rounded, color: Colors.white54, size: 48),
-                          ),
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.black54,
-                            ),
-                            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
-                          ),
-                        ],
-                      ),
+                    child: SizedBox(
+                      width: 220,
+                      height: 160,
+                      child: _VideoThumbnail(videoUrl: widget.message.fileUrl!),
                     ),
                   ),
                 ),
@@ -1997,6 +2038,76 @@ class _EditPreviewBar extends StatelessWidget {
   }
 }
 
+class _VideoThumbnail extends StatefulWidget {
+  final String videoUrl;
+  const _VideoThumbnail({required this.videoUrl});
+
+  @override
+  State<_VideoThumbnail> createState() => _VideoThumbnailState();
+}
+
+class _VideoThumbnailState extends State<_VideoThumbnail> {
+  Uint8List? _thumb;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  Future<void> _loadThumbnail() async {
+    try {
+      final data = await vt.VideoThumbnail.thumbnailData(
+        video: widget.videoUrl,
+        imageFormat: vt.ImageFormat.JPEG,
+        maxWidth: 440,
+        quality: 75,
+      );
+      if (mounted && data != null) {
+        setState(() {
+          _thumb = data;
+          _loaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loaded = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      fit: StackFit.expand,
+      children: [
+        if (_thumb != null)
+          Image.memory(_thumb!, fit: BoxFit.cover)
+        else
+          Container(
+            color: Colors.black87,
+            child: Center(
+              child: _loaded
+                  ? Icon(Icons.videocam_rounded, color: Colors.white54, size: 48)
+                  : CircularProgressIndicator(strokeWidth: 2, color: AppColors.of(context).primary),
+            ),
+          ),
+        Center(
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.black54,
+            ),
+            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _AudioMessagePlayer extends StatefulWidget {
   final String fileUrl;
   final bool isMe;
@@ -2021,7 +2132,12 @@ class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
       await _player.pause();
       setState(() => _playing = false);
     } else {
-      await _player.play(UrlSource(widget.fileUrl));
+      try {
+        final file = await DefaultCacheManager().getSingleFile(widget.fileUrl);
+        await _player.play(DeviceFileSource(file.path));
+      } catch (_) {
+        await _player.play(UrlSource(widget.fileUrl));
+      }
       setState(() => _playing = true);
       _player.onPlayerComplete.listen((_) {
         if (mounted) setState(() => _playing = false);
@@ -2267,7 +2383,7 @@ class _FullScreenVideoPlayer extends StatefulWidget {
 }
 
 class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
-  late VideoPlayerController _ctrl;
+  vp.VideoPlayerController? _ctrl;
   bool _initialized = false;
   bool _showControls = true;
   Timer? _hideTimer;
@@ -2275,15 +2391,34 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _initialized = true);
-          _ctrl.play();
-          _scheduleHideControls();
-        }
-      });
-    _ctrl.addListener(_onVideoUpdate);
+    _initVideo();
+  }
+
+  Future<void> _initVideo() async {
+    try {
+      final file = await DefaultCacheManager().getSingleFile(widget.videoUrl);
+      if (!mounted) return;
+      _ctrl = vp.VideoPlayerController.file(file)
+        ..initialize().then((_) {
+          if (mounted) {
+            setState(() => _initialized = true);
+            _ctrl!.play();
+            _scheduleHideControls();
+          }
+        });
+      _ctrl!.addListener(_onVideoUpdate);
+    } catch (_) {
+      if (!mounted) return;
+      _ctrl = vp.VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+        ..initialize().then((_) {
+          if (mounted) {
+            setState(() => _initialized = true);
+            _ctrl!.play();
+            _scheduleHideControls();
+          }
+        });
+      _ctrl!.addListener(_onVideoUpdate);
+    }
   }
 
   void _onVideoUpdate() {
@@ -2312,8 +2447,8 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   @override
   void dispose() {
     _hideTimer?.cancel();
-    _ctrl.removeListener(_onVideoUpdate);
-    _ctrl.dispose();
+    _ctrl?.removeListener(_onVideoUpdate);
+    _ctrl?.dispose();
     super.dispose();
   }
 
@@ -2326,10 +2461,10 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
         child: Stack(
           children: [
             Center(
-              child: _initialized
+              child: _initialized && _ctrl != null
                   ? AspectRatio(
-                      aspectRatio: _ctrl.value.aspectRatio,
-                      child: VideoPlayer(_ctrl),
+                      aspectRatio: _ctrl!.value.aspectRatio,
+                      child: vp.VideoPlayer(_ctrl!),
                     )
                   : const CircularProgressIndicator(color: Colors.white),
             ),
@@ -2353,11 +2488,11 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                       IconButton(
                         iconSize: 48,
                         icon: Icon(
-                          _ctrl.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                          _ctrl!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
                           color: Colors.white,
                         ),
                         onPressed: () {
-                          _ctrl.value.isPlaying ? _ctrl.pause() : _ctrl.play();
+                          _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play();
                           _scheduleHideControls();
                         },
                       ),
@@ -2365,17 +2500,17 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                       Row(
                         children: [
                           Text(
-                            _formatDuration(_ctrl.value.position),
+                            _formatDuration(_ctrl!.value.position),
                             style: const TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                           Expanded(
                             child: Slider(
-                              value: _ctrl.value.duration.inMilliseconds > 0
-                                  ? _ctrl.value.position.inMilliseconds / _ctrl.value.duration.inMilliseconds
+                              value: _ctrl!.value.duration.inMilliseconds > 0
+                                  ? _ctrl!.value.position.inMilliseconds / _ctrl!.value.duration.inMilliseconds
                                   : 0,
                               onChanged: (v) {
-                                _ctrl.seekTo(Duration(
-                                  milliseconds: (v * _ctrl.value.duration.inMilliseconds).toInt(),
+                                _ctrl!.seekTo(Duration(
+                                  milliseconds: (v * _ctrl!.value.duration.inMilliseconds).toInt(),
                                 ));
                                 _scheduleHideControls();
                               },
@@ -2384,7 +2519,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                             ),
                           ),
                           Text(
-                            _formatDuration(_ctrl.value.duration),
+                            _formatDuration(_ctrl!.value.duration),
                             style: const TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
@@ -2398,4 +2533,11 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
       ),
     );
   }
+}
+
+class _PendingFile {
+  final String path;
+  final String name;
+  final String? type;
+  const _PendingFile({required this.path, required this.name, this.type});
 }

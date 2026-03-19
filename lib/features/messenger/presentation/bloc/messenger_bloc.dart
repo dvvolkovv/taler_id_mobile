@@ -638,7 +638,15 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
 
   Future<void> _onForwardMessage(ForwardMessage event, Emitter<MessengerState> emit) async {
     try {
-      _repo.sendMessage(event.targetConversationId, event.message.content);
+      final msg = event.message;
+      _repo.sendMessage(
+        event.targetConversationId,
+        msg.content,
+        fileUrl: msg.fileUrl,
+        fileName: msg.fileName,
+        fileSize: msg.fileSize,
+        fileType: msg.fileType,
+      );
     } catch (_) {}
   }
 
