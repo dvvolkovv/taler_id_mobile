@@ -15,6 +15,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
@@ -2166,6 +2167,234 @@ class _ReactionsRow extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+}
+
+// ─── Fullscreen Image Gallery ────────────────────────────
+
+class _FullScreenImageGallery extends StatefulWidget {
+  final List<String> imageUrls;
+  final int initialIndex;
+  const _FullScreenImageGallery({required this.imageUrls, this.initialIndex = 0});
+
+  @override
+  State<_FullScreenImageGallery> createState() => _FullScreenImageGalleryState();
+}
+
+class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
+  late PageController _pageCtrl;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageCtrl = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageCtrl,
+            itemCount: widget.imageUrls.length,
+            onPageChanged: (i) => setState(() => _currentIndex = i),
+            itemBuilder: (_, i) => InteractiveViewer(
+              minScale: 1.0,
+              maxScale: 5.0,
+              child: Center(
+                child: CachedNetworkImage(
+                  imageUrl: widget.imageUrls[i],
+                  fit: BoxFit.contain,
+                  placeholder: (_, __) => const CircularProgressIndicator(color: Colors.white),
+                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            left: 8,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          if (widget.imageUrls.length > 1)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 16,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${_currentIndex + 1} / ${widget.imageUrls.length}',
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Fullscreen Video Player ─────────────────────────────
+
+class _FullScreenVideoPlayer extends StatefulWidget {
+  final String videoUrl;
+  const _FullScreenVideoPlayer({required this.videoUrl});
+
+  @override
+  State<_FullScreenVideoPlayer> createState() => _FullScreenVideoPlayerState();
+}
+
+class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
+  late VideoPlayerController _ctrl;
+  bool _initialized = false;
+  bool _showControls = true;
+  Timer? _hideTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _initialized = true);
+          _ctrl.play();
+          _scheduleHideControls();
+        }
+      });
+    _ctrl.addListener(_onVideoUpdate);
+  }
+
+  void _onVideoUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  void _scheduleHideControls() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _showControls = false);
+    });
+  }
+
+  void _toggleControls() {
+    setState(() => _showControls = !_showControls);
+    if (_showControls) _scheduleHideControls();
+  }
+
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    if (d.inHours > 0) return '${d.inHours}:$m:$s';
+    return '$m:$s';
+  }
+
+  @override
+  void dispose() {
+    _hideTimer?.cancel();
+    _ctrl.removeListener(_onVideoUpdate);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: _toggleControls,
+        child: Stack(
+          children: [
+            Center(
+              child: _initialized
+                  ? AspectRatio(
+                      aspectRatio: _ctrl.value.aspectRatio,
+                      child: VideoPlayer(_ctrl),
+                    )
+                  : const CircularProgressIndicator(color: Colors.white),
+            ),
+            if (_showControls) ...[
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              if (_initialized)
+                Positioned(
+                  bottom: MediaQuery.of(context).padding.bottom + 16,
+                  left: 16,
+                  right: 16,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        iconSize: 48,
+                        icon: Icon(
+                          _ctrl.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          _ctrl.value.isPlaying ? _ctrl.pause() : _ctrl.play();
+                          _scheduleHideControls();
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            _formatDuration(_ctrl.value.position),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          Expanded(
+                            child: Slider(
+                              value: _ctrl.value.duration.inMilliseconds > 0
+                                  ? _ctrl.value.position.inMilliseconds / _ctrl.value.duration.inMilliseconds
+                                  : 0,
+                              onChanged: (v) {
+                                _ctrl.seekTo(Duration(
+                                  milliseconds: (v * _ctrl.value.duration.inMilliseconds).toInt(),
+                                ));
+                                _scheduleHideControls();
+                              },
+                              activeColor: Colors.white,
+                              inactiveColor: Colors.white30,
+                            ),
+                          ),
+                          Text(
+                            _formatDuration(_ctrl.value.duration),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
       ),
     );
   }
