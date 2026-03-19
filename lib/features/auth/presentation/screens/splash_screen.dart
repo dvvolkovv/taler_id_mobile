@@ -159,7 +159,20 @@ class _SplashScreenState extends State<SplashScreen>
                             child: VideoPlayer(_videoController!),
                           ),
                         )
-                      : Container(width: 80, height: 80, color: colors.card),
+                      : Container(
+                          width: 80,
+                          height: 80,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(10),
+                            child: Image.asset(
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? 'assets/app_icon_dark.png'
+                                  : 'assets/app_icon_light.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),

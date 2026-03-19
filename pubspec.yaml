@@ -136,4 +136,6 @@ flutter:
     - assets/audio/ringback.wav
     - assets/video.mp4
     - assets/video_light.mp4
+    - assets/app_icon_light.png
+    - assets/app_icon_dark.png
     - app_icon_1024.png

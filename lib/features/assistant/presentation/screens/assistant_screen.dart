@@ -431,7 +431,20 @@ class _AssistantScreenState extends State<AssistantScreen>
                             ),
                           ),
                         )
-                      : const SizedBox(width: 120, height: 120),
+                      : Container(
+                          width: 120,
+                          height: 120,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Image.asset(
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? 'assets/app_icon_dark.png'
+                                  : 'assets/app_icon_light.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -516,7 +529,20 @@ class _AssistantScreenState extends State<AssistantScreen>
                         ),
                       ),
                     )
-                  : const SizedBox(width: 90, height: 90),
+                  : Container(
+                      width: 90,
+                      height: 90,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Image.asset(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? 'assets/app_icon_dark.png'
+                              : 'assets/app_icon_light.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
             ),
           ),
         ),
