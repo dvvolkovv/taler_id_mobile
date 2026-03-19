@@ -214,7 +214,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
           activeCalls[c.id] = c.activeCallRoomName!;
         }
       }
-      emit(state.copyWith(conversations: convs, isLoading: false, activeGroupCalls: activeCalls));
+      emit(state.copyWith(conversations: convs, isLoading: false, activeGroupCalls: activeCalls, clearError: true));
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }
@@ -339,7 +339,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     emit(state.copyWith(isLoading: true));
     try {
       final results = await _repo.searchUsers(event.query);
-      emit(state.copyWith(searchResults: results, isLoading: false));
+      emit(state.copyWith(searchResults: results, isLoading: false, clearError: true));
     } catch (e) {
       emit(state.copyWith(isLoading: false, error: e.toString()));
     }

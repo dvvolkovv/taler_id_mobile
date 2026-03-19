@@ -85,6 +85,9 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
           ),
           Expanded(
             child: BlocConsumer<MessengerBloc, MessengerState>(
+              listenWhen: (prev, curr) =>
+                  curr.newConversationId != prev.newConversationId ||
+                  (curr.error != null && curr.error != prev.error),
               listener: (context, state) {
                 if (state.newConversationId != null) {
                   context
