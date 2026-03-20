@@ -24,6 +24,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/services/call_state_service.dart';
+import '../../../../core/services/chunked_upload_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
@@ -379,27 +380,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _uploadCancelToken = CancelToken();
     setState(() => _uploadProgress = 0);
     try {
-      final client = sl<DioClient>();
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath, filename: fileName),
-      });
-      final res = await client.dio.post<Map<String, dynamic>>(
-        '/messenger/files',
-        data: formData,
+      final result = await ChunkedUploadService.upload(
+        filePath: filePath,
+        fileName: fileName,
         cancelToken: _uploadCancelToken,
-        onSendProgress: (sent, total) {
-          if (total > 0 && mounted) {
-            setState(() => _uploadProgress = sent / total);
-          }
+        onProgress: (p) {
+          if (mounted) setState(() => _uploadProgress = p);
         },
       );
       if (!mounted) return;
       setState(() => _uploadProgress = null);
-      final data = res.data!;
       // Use client-side type if known, fallback to backend
-      final fileType = typeOverride ?? (data['fileType'] as String? ?? 'document');
+      final fileType = typeOverride ?? result.fileType;
       // Fix fileUrl if backend returns hardcoded prod URL on staging
-      var fileUrl = data['fileUrl'] as String;
+      var fileUrl = result.fileUrl;
       final baseUrl = AppConfig.baseUrl;
       if (!fileUrl.startsWith(baseUrl)) {
         final uri = Uri.parse(fileUrl);
@@ -420,13 +414,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         widget.conversationId,
         msgContent,
         fileUrl: fileUrl,
-        fileName: data['fileName'] as String,
-        fileSize: data['fileSize'] as int?,
+        fileName: result.fileName,
+        fileSize: result.fileSize,
         fileType: fileType,
-        s3Key: data['s3Key'] as String?,
-        thumbnailSmallUrl: data['thumbnailSmallUrl'] as String?,
-        thumbnailMediumUrl: data['thumbnailMediumUrl'] as String?,
-        thumbnailLargeUrl: data['thumbnailLargeUrl'] as String?,
+        s3Key: result.s3Key,
+        thumbnailSmallUrl: result.thumbnailSmallUrl,
+        thumbnailMediumUrl: result.thumbnailMediumUrl,
+        thumbnailLargeUrl: result.thumbnailLargeUrl,
       ));
       _cancelReply();
     } catch (e) {
