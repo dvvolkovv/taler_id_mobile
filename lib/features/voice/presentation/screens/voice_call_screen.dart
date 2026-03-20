@@ -54,6 +54,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String _audioOutputType = 'earpiece'; // earpiece, speaker, bluetooth, headphones
   bool _reconnecting = false;
   bool _manualReconnecting = false;
+  bool _hadRemoteParticipant = false; // true once at least one remote participant joined
   int _reconnectAttempts = 0;
   static const _kMaxReconnectAttempts = 8;
   static const _kReconnectDelays = [2, 3, 4, 5, 8, 10, 15, 20];
@@ -614,12 +615,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           ..clear()
           ..addAll(room.remoteParticipants.values);
       });
+      // Track if any real participant ever joined
+      if (_participants.any((p) => p.identity != 'ai-assistant' && p.identity != 'meeting-recorder' && p.identity != 'voice-translator')) {
+        _hadRemoteParticipant = true;
+      }
       // Stop ringback if human participants appeared
       if (_ringing && _participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
       }
-      // Auto-hangup when all remote participants left (call was active)
-      if (_participants.isEmpty && !_connecting && !_ringing && !_reconnecting && !_manualReconnecting) {
+      // Auto-hangup when all remote participants left (only if someone WAS here before)
+      if (_participants.isEmpty && !_connecting && !_ringing && !_reconnecting && !_manualReconnecting && _hadRemoteParticipant) {
         _emptyRoomTimer ??= Timer(const Duration(seconds: 3), () {
           if (!mounted || _navigatedAway) return;
           if (_participants.isEmpty) {
@@ -1329,9 +1334,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       // Send call invite to selected user via messenger
-      if (convId != null) {
-        sl<MessengerRemoteDataSource>().sendCallInvite(convId, rName, inviteeId: selected.id);
-      }
+      sl<MessengerRemoteDataSource>().sendCallInvite(convId ?? '', rName, inviteeId: selected.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1477,12 +1480,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  String get _sourceLang {
+    final locale = Localizations.localeOf(context).languageCode;
+    return _translationLangs.containsKey(locale) ? locale : 'ru';
+  }
+
   Future<void> _setServerLang(String roomName, String lang) async {
     try {
       final client = sl<DioClient>();
       await client.post(
         '/voice/rooms/$roomName/set-lang',
-        data: {'lang': lang},
+        data: {'lang': lang, 'sourceLang': _sourceLang},
         fromJson: (d) => d,
       );
     } catch (e) {
