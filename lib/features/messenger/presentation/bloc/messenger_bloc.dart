@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
+import '../../../../core/services/messenger_cache_service.dart';
+import '../../../../core/di/service_locator.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
 class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   final IMessengerRepository _repo;
+  final MessengerCacheService _cache = sl<MessengerCacheService>();
   StreamSubscription? _msgSub;
   StreamSubscription? _callSub;
   StreamSubscription? _msgUpdatedSub;
@@ -196,18 +200,22 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
 
   Future<void> _onLoadConversations(
       LoadConversations event, Emitter<MessengerState> emit) async {
-    emit(state.copyWith(isLoading: true));
+    // 1. Load from cache instantly
+    final cached = _cache.getConversations();
+    if (cached != null && cached.isNotEmpty && state.conversations.isEmpty) {
+      try {
+        final cachedConvs = cached.map((e) => ConversationEntity.fromJson(e)).toList();
+        _sortConversations(cachedConvs);
+        emit(state.copyWith(conversations: cachedConvs, isLoading: true));
+      } catch (_) {}
+    } else {
+      emit(state.copyWith(isLoading: true));
+    }
+
+    // 2. Fetch from server and merge
     try {
       final convs = await _repo.getConversations();
-      convs.sort((a, b) {
-        final aTime = a.lastMessageAt;
-        final bTime = b.lastMessageAt;
-        if (aTime == null && bTime == null) return 0;
-        if (aTime == null) return 1;
-        if (bTime == null) return -1;
-        return bTime.compareTo(aTime);
-      });
-      // Initialize active group calls from conversation data
+      _sortConversations(convs);
       final activeCalls = Map<String, String>.from(state.activeGroupCalls);
       for (final c in convs) {
         if (c.activeCallRoomName != null) {
@@ -215,15 +223,49 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         }
       }
       emit(state.copyWith(conversations: convs, isLoading: false, activeGroupCalls: activeCalls, clearError: true));
+      // Save to cache (fire-and-forget)
+      _cache.saveConversations(convs.map((c) => c.toJson()).toList());
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
+      // If cache was shown, just stop loading; otherwise show error
+      if (state.conversations.isNotEmpty) {
+        emit(state.copyWith(isLoading: false));
+      } else {
+        emit(state.copyWith(isLoading: false, error: e.toString()));
+      }
     }
+  }
+
+  void _sortConversations(List<ConversationEntity> convs) {
+    convs.sort((a, b) {
+      final aTime = a.lastMessageAt;
+      final bTime = b.lastMessageAt;
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return bTime.compareTo(aTime);
+    });
   }
 
   Future<void> _onOpenConversation(
       OpenConversation event, Emitter<MessengerState> emit) async {
     _repo.joinConversation(event.conversationId);
-    emit(state.copyWith(isLoading: true));
+
+    // 1. Load from cache instantly
+    final cachedMsgs = _cache.getMessages(event.conversationId);
+    if (cachedMsgs != null && cachedMsgs.isNotEmpty && (state.messages[event.conversationId]?.isEmpty ?? true)) {
+      try {
+        final msgs = cachedMsgs.map((e) => MessageEntity.fromJson(e)).toList();
+        final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
+        newMessages[event.conversationId] = msgs;
+        emit(state.copyWith(messages: newMessages, isLoading: true));
+      } catch (_) {
+        emit(state.copyWith(isLoading: true));
+      }
+    } else {
+      emit(state.copyWith(isLoading: true));
+    }
+
+    // 2. Fetch from server and merge
     try {
       final result = await _repo.getMessages(event.conversationId);
       final rawMessages = result['messages'] as List? ?? [];
@@ -250,8 +292,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       newCursors[event.conversationId] = nextCursor;
       emit(state.copyWith(
           messages: newMessages, nextCursors: newCursors, isLoading: false));
+      // Save to cache (fire-and-forget)
+      _cache.saveMessages(event.conversationId,
+          newMessages[event.conversationId]!.map((m) => m.toJson()).toList());
     } catch (e) {
-      emit(state.copyWith(isLoading: false, error: e.toString()));
+      // If cache was shown, just stop loading
+      if (state.messages[event.conversationId]?.isNotEmpty ?? false) {
+        emit(state.copyWith(isLoading: false));
+      } else {
+        emit(state.copyWith(isLoading: false, error: e.toString()));
+      }
     }
   }
 
@@ -310,6 +360,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         Map<String, List<MessageEntity>>.from(state.messages);
     newMessages[msg.conversationId] = existing;
     emit(state.copyWith(messages: newMessages));
+    // Cache the new message
+    _cache.appendMessage(msg.conversationId, msg.toJson());
     add(LoadConversations());
   }
 

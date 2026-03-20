@@ -6,6 +6,7 @@ import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
+import '../services/messenger_cache_service.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -60,6 +61,10 @@ Future<void> setupDependencies() async {
   // Cache
   await CacheService.init();
   sl.registerSingleton<CacheService>(CacheService());
+
+  // Messenger cache (Hive)
+  await MessengerCacheService.init();
+  sl.registerSingleton<MessengerCacheService>(MessengerCacheService());
 
   // Dio (raw, for auth interceptor use)
   final rawDio = Dio(
