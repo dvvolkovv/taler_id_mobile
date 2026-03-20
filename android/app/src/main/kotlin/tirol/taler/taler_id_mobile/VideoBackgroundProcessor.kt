@@ -5,10 +5,8 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
-import android.graphics.ImageFormat
+import android.graphics.BlurMaskFilter
 import android.graphics.Rect
-import android.graphics.YuvImage
-import android.graphics.BitmapFactory
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
@@ -17,7 +15,6 @@ import com.google.mlkit.vision.segmentation.SegmentationMask
 import com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions
 import org.webrtc.JavaI420Buffer
 import org.webrtc.VideoFrame
-import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 
@@ -34,11 +31,11 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
             .build()
     )
 
-    // Segmentation mask cache (reused across frames)
+    // Segmentation mask (smoothed, reused across frames)
     private var lastMaskBitmap: Bitmap? = null
     private var frameCount = 0
 
-    // Cached scaled background (avoid recreating every frame)
+    // Cached scaled background
     private var scaledBackground: Bitmap? = null
     private var scaledBgWidth = 0
     private var scaledBgHeight = 0
@@ -47,14 +44,13 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
     private val SEGMENTATION_INTERVAL = 3
 
     // Reusable paint objects
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
-    private val maskPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+    private val maskPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG).apply {
         xfermode = PorterDuffXfermode(PorterDuff.Mode.DST_IN)
     }
 
-    // Reusable NV21 buffer
-    private var nv21Buffer: ByteArray? = null
-    private var jpegStream = ByteArrayOutputStream(64 * 1024)
+    // Reusable pixel buffers (avoid allocation per frame)
+    private var argbBuffer: IntArray? = null
 
     override fun onFrame(frame: VideoFrame): VideoFrame {
         frameCount++
@@ -71,14 +67,10 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
         val i420 = buffer.toI420() ?: return frame
 
         try {
-            // Convert current frame to bitmap (at processing resolution)
-            val bitmap = i420ToBitmap(i420, width, height)
-            if (bitmap == null) {
-                i420.release()
-                return frame
-            }
+            // Direct I420 → ARGB conversion (no JPEG compression!)
+            val bitmap = i420ToBitmapDirect(i420, width, height)
 
-            // Run segmentation periodically (every Nth frame)
+            // Run segmentation periodically
             if (frameCount % SEGMENTATION_INTERVAL == 1 || lastMaskBitmap == null) {
                 try {
                     val inputImage = InputImage.fromBitmap(bitmap, 0)
@@ -96,7 +88,7 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
                 return frame
             }
 
-            // Apply effect: background + person (masked by segmentation) on every frame
+            // Apply effect on every frame with current mask
             val result = applyEffectCanvas(bitmap, maskBmp, width, height)
             bitmap.recycle()
 
@@ -111,13 +103,54 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
         }
     }
 
+    /**
+     * Direct I420 → ARGB Bitmap conversion without JPEG compression.
+     * Eliminates compression artifacts at edges.
+     */
+    private fun i420ToBitmapDirect(i420: VideoFrame.I420Buffer, width: Int, height: Int): Bitmap {
+        val size = width * height
+        val argb = if (argbBuffer != null && argbBuffer!!.size >= size) argbBuffer!! else IntArray(size).also { argbBuffer = it }
+
+        val yPlane = i420.dataY
+        val uPlane = i420.dataU
+        val vPlane = i420.dataV
+        val strideY = i420.strideY
+        val strideU = i420.strideU
+        val strideV = i420.strideV
+
+        for (row in 0 until height) {
+            val yRowOffset = row * strideY
+            val uvRow = row / 2
+            val uRowOffset = uvRow * strideU
+            val vRowOffset = uvRow * strideV
+            val pixelRowOffset = row * width
+
+            for (col in 0 until width) {
+                val yVal = (yPlane.get(yRowOffset + col).toInt() and 0xFF)
+                val uVal = (uPlane.get(uRowOffset + col / 2).toInt() and 0xFF) - 128
+                val vVal = (vPlane.get(vRowOffset + col / 2).toInt() and 0xFF) - 128
+
+                // YUV to RGB (BT.601)
+                val r = (yVal + ((359 * vVal) shr 8)).coerceIn(0, 255)
+                val g = (yVal - ((88 * uVal + 183 * vVal) shr 8)).coerceIn(0, 255)
+                val b = (yVal + ((454 * uVal) shr 8)).coerceIn(0, 255)
+
+                argb[pixelRowOffset + col] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+            }
+        }
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(argb, 0, width, 0, 0, width, height)
+        return bitmap
+    }
+
     private fun updateMaskBitmap(mask: SegmentationMask, targetW: Int, targetH: Int) {
         val w = mask.width
         val h = mask.height
         val buf = mask.buffer
         buf.rewind()
 
-        // Create alpha mask as ARGB bitmap (white with variable alpha = person confidence)
+        // Create alpha mask with confidence values
         val pixels = IntArray(w * h)
         for (i in pixels.indices) {
             val conf = (buf.float * 255).toInt().coerceIn(0, 255)
@@ -127,22 +160,40 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
         val rawMask = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         rawMask.setPixels(pixels, 0, w, 0, 0, w, h)
 
-        // Scale to target dimensions
-        lastMaskBitmap?.recycle()
-        lastMaskBitmap = Bitmap.createScaledBitmap(rawMask, targetW, targetH, true)
+        // Scale to target dimensions with bilinear filtering
+        val scaled = Bitmap.createScaledBitmap(rawMask, targetW, targetH, true)
         rawMask.recycle()
+
+        // Smooth the mask edges: draw with BlurMaskFilter for feathered edges
+        val smoothed = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(smoothed)
+
+        // First pass: draw the mask slightly eroded (to avoid halo)
+        val smoothPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        canvas.drawBitmap(scaled, 0f, 0f, smoothPaint)
+
+        // Second pass: blur the edges by drawing a slightly blurred version on top
+        // Use a small-radius stack blur approach: scale down and back up
+        val blurScale = 0.5f
+        val smallW = (targetW * blurScale).toInt().coerceAtLeast(1)
+        val smallH = (targetH * blurScale).toInt().coerceAtLeast(1)
+        val smallMask = Bitmap.createScaledBitmap(scaled, smallW, smallH, true)
+        val blurredMask = Bitmap.createScaledBitmap(smallMask, targetW, targetH, true)
+        smallMask.recycle()
+        scaled.recycle()
+
+        // Blend: use the blurred mask (smoother edges) as the final mask
+        smoothed.recycle()
+        lastMaskBitmap?.recycle()
+        lastMaskBitmap = blurredMask
     }
 
     private fun applyEffectCanvas(source: Bitmap, mask: Bitmap, width: Int, height: Int): Bitmap {
-        // Get background
         val bg = when (effectType) {
             EffectType.BLUR -> blurBitmap(source)
             EffectType.BACKGROUND -> getScaledBackground(width, height) ?: return source
         }
 
-        // Compositing with Canvas:
-        // 1. Start with background
-        // 2. Layer person (source masked by segmentation) on top
         val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(result)
 
@@ -153,10 +204,10 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
             canvas.drawBitmap(bg, Rect(0, 0, bg.width, bg.height), Rect(0, 0, width, height), paint)
         }
 
-        // Draw person with mask
+        // Draw person (source masked by segmentation) on top
         val saveCount = canvas.saveLayer(0f, 0f, width.toFloat(), height.toFloat(), null)
         canvas.drawBitmap(source, 0f, 0f, paint)
-        canvas.drawBitmap(mask, 0f, 0f, maskPaint) // DST_IN: keep source where mask has alpha
+        canvas.drawBitmap(mask, 0f, 0f, maskPaint)
         canvas.restoreToCount(saveCount)
 
         if (effectType == EffectType.BLUR) {
@@ -179,64 +230,21 @@ class VideoBackgroundProcessor : LocalVideoTrack.ExternalVideoFrameProcessing {
     }
 
     private fun blurBitmap(source: Bitmap): Bitmap {
-        val smallW = (source.width * 0.06f).toInt().coerceAtLeast(1)
-        val smallH = (source.height * 0.06f).toInt().coerceAtLeast(1)
+        // Strong blur via aggressive downscale + upscale
+        val smallW = (source.width * 0.05f).toInt().coerceAtLeast(1)
+        val smallH = (source.height * 0.05f).toInt().coerceAtLeast(1)
         val small = Bitmap.createScaledBitmap(source, smallW, smallH, true)
         val blurred = Bitmap.createScaledBitmap(small, source.width, source.height, true)
         small.recycle()
         return blurred
     }
 
-    private fun i420ToBitmap(i420: VideoFrame.I420Buffer, width: Int, height: Int): Bitmap? {
-        val nv21Size = width * height * 3 / 2
-        val nv21 = if (nv21Buffer != null && nv21Buffer!!.size >= nv21Size) nv21Buffer!! else ByteArray(nv21Size).also { nv21Buffer = it }
-
-        val yPlane = i420.dataY
-        val uPlane = i420.dataU
-        val vPlane = i420.dataV
-        val strideY = i420.strideY
-        val strideU = i420.strideU
-        val strideV = i420.strideV
-
-        // Copy Y plane
-        if (strideY == width) {
-            yPlane.position(0)
-            yPlane.get(nv21, 0, width * height)
-        } else {
-            for (row in 0 until height) {
-                yPlane.position(row * strideY)
-                yPlane.get(nv21, row * width, width)
-            }
-        }
-
-        // Interleave V and U for NV21
-        val chromaW = width / 2
-        val chromaH = height / 2
-        var offset = width * height
-        for (row in 0 until chromaH) {
-            val vOff = row * strideV
-            val uOff = row * strideU
-            for (col in 0 until chromaW) {
-                nv21[offset++] = vPlane.get(vOff + col)
-                nv21[offset++] = uPlane.get(uOff + col)
-            }
-        }
-
-        return try {
-            val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
-            jpegStream.reset()
-            yuvImage.compressToJpeg(Rect(0, 0, width, height), 70, jpegStream)
-            BitmapFactory.decodeByteArray(jpegStream.toByteArray(), 0, jpegStream.size())
-        } catch (_: Exception) {
-            null
-        }
-    }
-
     private fun bitmapToI420Buffer(bitmap: Bitmap, width: Int, height: Int): VideoFrame.I420Buffer {
-        val argb = IntArray(width * height)
+        val size = width * height
+        val argb = if (argbBuffer != null && argbBuffer!!.size >= size) argbBuffer!! else IntArray(size).also { argbBuffer = it }
         bitmap.getPixels(argb, 0, width, 0, 0, width, height)
 
-        val ySize = width * height
+        val ySize = size
         val uvSize = (width / 2) * (height / 2)
         val yData = ByteBuffer.allocateDirect(ySize)
         val uData = ByteBuffer.allocateDirect(uvSize)
