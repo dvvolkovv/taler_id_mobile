@@ -17,6 +17,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:video_player/video_player.dart' as vp;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -1273,29 +1274,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
             else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'audio')
               _AudioMessagePlayer(fileUrl: widget.message.fileUrl!, isMe: widget.isMe)
             else if (widget.message.fileUrl != null)
-              GestureDetector(
-                onTap: () async {
-                  final uri = Uri.parse(widget.message.fileUrl!);
-                  if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 20),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
-                        widget.message.fileName ?? widget.message.content,
-                        style: TextStyle(
-                          color: AppColors.of(context).primary,
-                          fontSize: 13,
-                          decoration: TextDecoration.underline,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+              _DocumentBubble(
+                fileUrl: widget.message.fileUrl!,
+                fileName: widget.message.fileName ?? widget.message.content,
+                fileSize: widget.message.fileSize,
               )
             else
               _LinkifiedText(
@@ -2050,6 +2032,106 @@ class _EditPreviewBar extends StatelessWidget {
             icon: Icon(Icons.close_rounded, color: colors.textSecondary, size: 20),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DocumentBubble extends StatefulWidget {
+  final String fileUrl;
+  final String fileName;
+  final int? fileSize;
+  const _DocumentBubble({required this.fileUrl, required this.fileName, this.fileSize});
+  @override
+  State<_DocumentBubble> createState() => _DocumentBubbleState();
+}
+
+class _DocumentBubbleState extends State<_DocumentBubble> {
+  double? _progress;
+  bool _downloading = false;
+
+  String get _sizeLabel {
+    if (widget.fileSize == null) return '';
+    final kb = widget.fileSize! / 1024;
+    if (kb < 1024) return '${kb.toStringAsFixed(0)} KB';
+    return '${(kb / 1024).toStringAsFixed(1)} MB';
+  }
+
+  Future<void> _openFile() async {
+    final dir = await getTemporaryDirectory();
+    final safeName = widget.fileName.replaceAll(RegExp(r'[^\w\.\-]'), '_');
+    final filePath = '${dir.path}/messenger_files/$safeName';
+    final file = File(filePath);
+
+    // Use cached file if exists
+    if (await file.exists()) {
+      await OpenFilex.open(filePath);
+      return;
+    }
+
+    setState(() { _downloading = true; _progress = 0; });
+
+    try {
+      await Directory('${dir.path}/messenger_files').create(recursive: true);
+      await Dio().download(
+        widget.fileUrl,
+        filePath,
+        onReceiveProgress: (received, total) {
+          if (total > 0 && mounted) {
+            setState(() => _progress = received / total);
+          }
+        },
+      );
+      if (!mounted) return;
+      setState(() { _downloading = false; _progress = null; });
+      await OpenFilex.open(filePath);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _downloading = false; _progress = null; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Ошибка загрузки файла'),
+          action: SnackBarAction(label: 'Повторить', onPressed: _openFile),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _downloading ? null : _openFile,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_downloading)
+            SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(
+                value: _progress,
+                strokeWidth: 2,
+                color: AppColors.of(context).primary,
+              ),
+            )
+          else
+            Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 20),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.fileName,
+                  style: TextStyle(color: AppColors.of(context).primary, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (_sizeLabel.isNotEmpty)
+                  Text(_sizeLabel, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 11)),
+              ],
+            ),
           ),
         ],
       ),
