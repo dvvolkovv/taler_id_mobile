@@ -8,6 +8,7 @@ import flutter_callkit_incoming
 @objc class AppDelegate: FlutterAppDelegate {
   private var audioChannel: FlutterMethodChannel?
   private var voipRegistry: PKPushRegistry?
+  private var videoEffectsPlugin: VideoEffectsPlugin?
 
   override func application(
     _ application: UIApplication,
@@ -104,6 +105,13 @@ import flutter_callkit_incoming
           result(FlutterMethodNotImplemented)
         }
       }
+    }
+
+    // Set up video effects method channel (background blur / virtual backgrounds)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let vfx = VideoEffectsPlugin()
+      vfx.register(with: controller.binaryMessenger)
+      videoEffectsPlugin = vfx
     }
 
     // Register for audio session interruptions (parallel calls from other apps/phone)

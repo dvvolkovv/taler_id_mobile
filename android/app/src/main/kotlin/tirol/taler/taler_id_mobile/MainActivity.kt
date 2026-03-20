@@ -12,6 +12,12 @@ import android.media.AudioManager
 import android.os.Build
 import android.media.AudioFocusRequest
 import android.media.AudioAttributes
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Log
+import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
+import com.cloudwebrtc.webrtc.LocalTrack
+import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -21,6 +27,10 @@ class MainActivity : FlutterFragmentActivity() {
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
     private var audioFocusGranted = false
     private var flutterChannel: MethodChannel? = null
+    private var videoProcessor: VideoBackgroundProcessor? = null
+    private var isVideoProcessing = false
+    // Capture the correct FlutterWebRTCPlugin instance right after plugin registration
+    private var webrtcPlugin: FlutterWebRTCPlugin? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +54,81 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Capture the correct FlutterWebRTCPlugin instance immediately after plugin registration.
+        // sharedSingleton may be overwritten later by another instance, so grab it now.
+        webrtcPlugin = FlutterWebRTCPlugin.sharedSingleton
+        Log.i("VideoEffects", "[VideoEffects] Captured WebRTC plugin: ${System.identityHashCode(webrtcPlugin)}")
+
+        // Video effects channel (ML Kit selfie segmentation)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/video_effects")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isSupported" -> result.success(true)
+                    "startProcessing" -> {
+                        val args = call.arguments as? Map<*, *>
+                        val effectType = args?.get("effectType") as? String ?: "blur"
+                        val trackId = args?.get("trackId") as? String
+
+                        val proc = videoProcessor ?: VideoBackgroundProcessor().also { videoProcessor = it }
+
+                        if (effectType == "blur") {
+                            proc.effectType = VideoBackgroundProcessor.EffectType.BLUR
+                        } else if (effectType == "background") {
+                            val imageBytes = args?.get("backgroundImageData") as? ByteArray
+                            if (imageBytes != null) {
+                                val bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                if (bmp != null) {
+                                    proc.backgroundBitmap = bmp
+                                    proc.effectType = VideoBackgroundProcessor.EffectType.BACKGROUND
+                                }
+                            }
+                        }
+
+                        if (!isVideoProcessing) {
+                            addProcessorToActiveTrack(proc, trackId)
+                            isVideoProcessing = true
+                        }
+                        result.success(null)
+                    }
+                    "setEffect" -> {
+                        val args = call.arguments as? Map<*, *>
+                        val effectType = args?.get("effectType") as? String ?: "blur"
+                        val proc = videoProcessor
+                        if (proc != null) {
+                            if (effectType == "blur") {
+                                proc.effectType = VideoBackgroundProcessor.EffectType.BLUR
+                            } else if (effectType == "background") {
+                                val imageBytes = args?.get("backgroundImageData") as? ByteArray
+                                if (imageBytes != null) {
+                                    val bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                                    if (bmp != null) {
+                                        proc.backgroundBitmap = bmp
+                                        proc.effectType = VideoBackgroundProcessor.EffectType.BACKGROUND
+                                    }
+                                }
+                            }
+                        }
+                        result.success(null)
+                    }
+                    "stopProcessing" -> {
+                        videoProcessor?.let { proc ->
+                            removeProcessorFromAllTracks(proc)
+                            proc.cleanup()
+                        }
+                        isVideoProcessing = false
+                        result.success(null)
+                    }
+                    "reattach" -> {
+                        if (isVideoProcessing) {
+                            videoProcessor?.let { addProcessorToActiveTrack(it, null) }
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
         val ch = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/audio")
         flutterChannel = ch
         ch.setMethodCallHandler { call, result ->
@@ -201,5 +286,71 @@ class MainActivity : FlutterFragmentActivity() {
             am.abandonAudioFocus(focusListener)
         }
         focusListener = null
+    }
+
+    // Track the LocalVideoTrack wrapper we created (for removal later)
+    private var activeLocalVideoTrack: LocalVideoTrack? = null
+
+    private fun addProcessorToActiveTrack(processor: VideoBackgroundProcessor, trackId: String?) {
+        Log.i("VideoEffects", "[VideoEffects] addProcessorToActiveTrack trackId=$trackId")
+
+        // Strategy 1: Use track ID with both captured and current singleton
+        val candidates = listOfNotNull(webrtcPlugin, FlutterWebRTCPlugin.sharedSingleton).distinct()
+        Log.i("VideoEffects", "[VideoEffects] Plugin candidates: ${candidates.size}, captured=${System.identityHashCode(webrtcPlugin)}, singleton=${System.identityHashCode(FlutterWebRTCPlugin.sharedSingleton)}")
+
+        for (plugin in candidates) {
+            try {
+                // Strategy 1a: Direct getLocalTrack by ID (same approach LiveKit uses)
+                if (trackId != null) {
+                    val localTrack = plugin.getLocalTrack(trackId)
+                    if (localTrack is LocalVideoTrack) {
+                        Log.i("VideoEffects", "[VideoEffects] Found LocalVideoTrack via getLocalTrack($trackId) on plugin ${System.identityHashCode(plugin)}")
+                        localTrack.addProcessor(processor)
+                        activeLocalVideoTrack = localTrack
+                        return
+                    }
+                    Log.i("VideoEffects", "[VideoEffects] getLocalTrack($trackId) returned ${localTrack?.javaClass?.name ?: "null"} on plugin ${System.identityHashCode(plugin)}")
+                }
+
+                // Strategy 1b: Iterate all localTracks looking for any video track
+                val handlerField = plugin.javaClass.getDeclaredField("methodCallHandler")
+                handlerField.isAccessible = true
+                val handler = handlerField.get(plugin) ?: continue
+
+                val tracksField = handler.javaClass.getDeclaredField("localTracks")
+                tracksField.isAccessible = true
+                @Suppress("UNCHECKED_CAST")
+                val tracks = tracksField.get(handler) as? Map<String, LocalTrack> ?: emptyMap()
+                Log.i("VideoEffects", "[VideoEffects] Plugin ${System.identityHashCode(plugin)}: localTracks=${tracks.size}, keys=${tracks.keys}")
+
+                for ((tid, track) in tracks) {
+                    if (track is LocalVideoTrack) {
+                        Log.i("VideoEffects", "[VideoEffects] Adding processor to localTrack: $tid")
+                        track.addProcessor(processor)
+                        activeLocalVideoTrack = track
+                        return
+                    }
+                }
+
+                // Check handler initialization state for diagnostics
+                val gumField = handler.javaClass.getDeclaredField("getUserMediaImpl")
+                gumField.isAccessible = true
+                val gum = gumField.get(handler)
+                val pcObsField = handler.javaClass.getDeclaredField("mPeerConnectionObservers")
+                pcObsField.isAccessible = true
+                val pcObs = pcObsField.get(handler) as? Map<*, *>
+                Log.i("VideoEffects", "[VideoEffects] Plugin ${System.identityHashCode(plugin)}: getUserMediaImpl=${gum != null}, PCs=${pcObs?.size ?: 0}")
+
+            } catch (e: Exception) {
+                Log.i("VideoEffects", "[VideoEffects] Error with plugin ${System.identityHashCode(plugin)}: ${e.message}")
+            }
+        }
+
+        Log.i("VideoEffects", "[VideoEffects] No LocalVideoTrack found via any plugin. Will try again on next frame.")
+    }
+
+    private fun removeProcessorFromAllTracks(processor: VideoBackgroundProcessor) {
+        activeLocalVideoTrack?.removeProcessor(processor)
+        activeLocalVideoTrack = null
     }
 }

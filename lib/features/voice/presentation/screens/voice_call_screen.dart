@@ -24,6 +24,8 @@ import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../profile/presentation/bloc/profile_state.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/user_search_entity.dart';
+import '../../../../core/services/video_effects_service.dart';
+import '../widgets/video_effects_picker.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String? roomName; // null = create new room with AI
@@ -141,6 +143,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final TransformationController _screenShareTransformCtrl = TransformationController();
 
   static const _audioChannel = MethodChannel('taler_id/audio');
+
+  /// Video effects supported on iOS 15+ only (Vision framework).
+  bool get _videoEffectsSupported => Platform.isIOS || Platform.isAndroid;
 
   @override
   void initState() {
@@ -1034,6 +1039,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           await _audioChannel.invokeMethod('requestAudioFocus');
         }
       }
+      // Stop video effects processor before disabling camera
+      final vfx = sl<VideoEffectsService>();
+      if (!newCameraOn && vfx.current != VideoEffect.none) {
+        await vfx.stopEffect();
+      }
+
       await _room?.localParticipant?.setCameraEnabled(newCameraOn);
       debugPrint('[VoiceCall] setCameraEnabled($newCameraOn) done, pubs=${_room?.localParticipant?.videoTrackPublications.length}');
       if (mounted) setState(() => _cameraOn = newCameraOn);
@@ -1085,10 +1096,44 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           ),
         );
       }
+      // Re-attach video effects processor to the new track
+      final vfx = sl<VideoEffectsService>();
+      if (vfx.current != VideoEffect.none) {
+        await Future.delayed(const Duration(milliseconds: 300));
+        await vfx.reattach();
+      }
       if (mounted) setState(() => _isFrontCamera = newFront);
     } catch (e) {
       debugPrint('[VoiceCall] flipCamera error: $e');
     }
+  }
+
+  void _showVideoEffectsPicker() {
+    final vfx = sl<VideoEffectsService>();
+    // Get the native track ID for Android to find the correct LocalVideoTrack
+    String? nativeTrackId;
+    final pubs = _room?.localParticipant?.videoTrackPublications ?? [];
+    final localVideoTrack = pubs.firstWhereOrNull((p) => p.track != null)?.track;
+    if (localVideoTrack != null) {
+      nativeTrackId = localVideoTrack.mediaStreamTrack.id;
+      debugPrint('[VoiceCall] Video track ID for effects: $nativeTrackId');
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => VideoEffectsPicker(
+        currentEffect: vfx.current,
+        onSelect: (effect) async {
+          Navigator.pop(context);
+          try {
+            await vfx.applyEffect(effect, trackId: nativeTrackId);
+          } catch (e) {
+            debugPrint('[VoiceCall] Video effect error: $e');
+          }
+          if (mounted) setState(() {});
+        },
+      ),
+    );
   }
 
   Future<void> _toggleSimpleRecorder() async {
@@ -1664,6 +1709,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
     _audioChannel.setMethodCallHandler(null);
+    // Stop video effects on dispose
+    try { sl<VideoEffectsService>().stopEffect(); } catch (_) {}
     WakelockPlus.disable();
     _eventsListener?.dispose();
     _room?.removeListener(_onRoomChanged);
@@ -1956,9 +2003,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Secondary row: Record, AI Record, Translate, Audio Output, [Flip Camera]
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              // Secondary row: Record, AI Record, Translate, Audio Output, [Flip Camera], [Bg]
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ControlButton(
                     icon: _isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded,
@@ -2017,14 +2066,25 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         : AppColors.of(context).card,
                     onTap: _showAudioOutputPicker,
                   ),
-                  if (_cameraOn)
+                  if (_cameraOn) ...[
                     _ControlButton(
                       icon: Icons.flip_camera_ios_rounded,
                       label: 'Повернуть',
                       color: AppColors.of(context).card,
                       onTap: _flipCamera,
                     ),
+                    if (_videoEffectsSupported)
+                    _ControlButton(
+                      icon: Icons.blur_on_rounded,
+                      label: 'Фон',
+                      color: sl<VideoEffectsService>().current != VideoEffect.none
+                          ? AppColors.of(context).primary.withValues(alpha: 0.2)
+                          : AppColors.of(context).card,
+                      onTap: _showVideoEffectsPicker,
+                    ),
+                  ],
                 ],
+              ),
               ),
               const SizedBox(height: 12),
               // Primary row: Mic, Camera, End Call

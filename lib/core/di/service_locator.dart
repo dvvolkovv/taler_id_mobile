@@ -7,6 +7,7 @@ import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
 import '../services/messenger_cache_service.dart';
+import '../services/video_effects_service.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -134,6 +135,9 @@ Future<void> setupDependencies() async {
 
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
+
+  // Video effects (background blur / virtual backgrounds)
+  sl.registerLazySingleton(() => VideoEffectsService());
 
   // BLoCs
   sl.registerFactory(() => AuthBloc(authRepository: sl<IAuthRepository>()));
