@@ -708,6 +708,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         fileName: msg.fileName,
         fileSize: msg.fileSize,
         fileType: msg.fileType,
+        s3Key: msg.s3Key,
+        thumbnailSmallUrl: msg.thumbnailSmallUrl,
+        thumbnailMediumUrl: msg.thumbnailMediumUrl,
+        thumbnailLargeUrl: msg.thumbnailLargeUrl,
+        fileRecordId: msg.fileRecordId,
       );
     } catch (_) {}
   }
