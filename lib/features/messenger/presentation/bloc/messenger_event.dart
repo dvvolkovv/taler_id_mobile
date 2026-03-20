@@ -33,6 +33,10 @@ class SendMessage extends MessengerEvent {
   final String? fileName;
   final int? fileSize;
   final String? fileType;
+  final String? s3Key;
+  final String? thumbnailSmallUrl;
+  final String? thumbnailMediumUrl;
+  final String? thumbnailLargeUrl;
   const SendMessage(
     this.conversationId,
     this.content, {
@@ -40,6 +44,10 @@ class SendMessage extends MessengerEvent {
     this.fileName,
     this.fileSize,
     this.fileType,
+    this.s3Key,
+    this.thumbnailSmallUrl,
+    this.thumbnailMediumUrl,
+    this.thumbnailLargeUrl,
   });
   @override
   List<Object?> get props => [conversationId, content, fileUrl, fileName];

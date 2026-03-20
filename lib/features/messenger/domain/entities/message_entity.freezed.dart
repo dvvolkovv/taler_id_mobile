@@ -30,6 +30,10 @@ mixin _$MessageEntity {
   String? get fileName => throw _privateConstructorUsedError;
   int? get fileSize => throw _privateConstructorUsedError;
   String? get fileType => throw _privateConstructorUsedError;
+  String? get s3Key => throw _privateConstructorUsedError;
+  String? get thumbnailSmallUrl => throw _privateConstructorUsedError;
+  String? get thumbnailMediumUrl => throw _privateConstructorUsedError;
+  String? get thumbnailLargeUrl => throw _privateConstructorUsedError;
   bool get isDelivered => throw _privateConstructorUsedError;
   bool get isRead => throw _privateConstructorUsedError;
   bool get isSystem => throw _privateConstructorUsedError;
@@ -60,6 +64,10 @@ abstract class $MessageEntityCopyWith<$Res> {
       String? fileName,
       int? fileSize,
       String? fileType,
+      String? s3Key,
+      String? thumbnailSmallUrl,
+      String? thumbnailMediumUrl,
+      String? thumbnailLargeUrl,
       bool isDelivered,
       bool isRead,
       bool isSystem,
@@ -90,6 +98,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? fileName = freezed,
     Object? fileSize = freezed,
     Object? fileType = freezed,
+    Object? s3Key = freezed,
+    Object? thumbnailSmallUrl = freezed,
+    Object? thumbnailMediumUrl = freezed,
+    Object? thumbnailLargeUrl = freezed,
     Object? isDelivered = null,
     Object? isRead = null,
     Object? isSystem = null,
@@ -137,6 +149,22 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.fileType
           : fileType // ignore: cast_nullable_to_non_nullable
               as String?,
+      s3Key: freezed == s3Key
+          ? _value.s3Key
+          : s3Key // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailSmallUrl: freezed == thumbnailSmallUrl
+          ? _value.thumbnailSmallUrl
+          : thumbnailSmallUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailMediumUrl: freezed == thumbnailMediumUrl
+          ? _value.thumbnailMediumUrl
+          : thumbnailMediumUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailLargeUrl: freezed == thumbnailLargeUrl
+          ? _value.thumbnailLargeUrl
+          : thumbnailLargeUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       isDelivered: null == isDelivered
           ? _value.isDelivered
           : isDelivered // ignore: cast_nullable_to_non_nullable
@@ -180,6 +208,10 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       String? fileName,
       int? fileSize,
       String? fileType,
+      String? s3Key,
+      String? thumbnailSmallUrl,
+      String? thumbnailMediumUrl,
+      String? thumbnailLargeUrl,
       bool isDelivered,
       bool isRead,
       bool isSystem,
@@ -208,6 +240,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? fileName = freezed,
     Object? fileSize = freezed,
     Object? fileType = freezed,
+    Object? s3Key = freezed,
+    Object? thumbnailSmallUrl = freezed,
+    Object? thumbnailMediumUrl = freezed,
+    Object? thumbnailLargeUrl = freezed,
     Object? isDelivered = null,
     Object? isRead = null,
     Object? isSystem = null,
@@ -255,6 +291,22 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value.fileType
           : fileType // ignore: cast_nullable_to_non_nullable
               as String?,
+      s3Key: freezed == s3Key
+          ? _value.s3Key
+          : s3Key // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailSmallUrl: freezed == thumbnailSmallUrl
+          ? _value.thumbnailSmallUrl
+          : thumbnailSmallUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailMediumUrl: freezed == thumbnailMediumUrl
+          ? _value.thumbnailMediumUrl
+          : thumbnailMediumUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
+      thumbnailLargeUrl: freezed == thumbnailLargeUrl
+          ? _value.thumbnailLargeUrl
+          : thumbnailLargeUrl // ignore: cast_nullable_to_non_nullable
+              as String?,
       isDelivered: null == isDelivered
           ? _value.isDelivered
           : isDelivered // ignore: cast_nullable_to_non_nullable
@@ -293,6 +345,10 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.fileName,
       this.fileSize,
       this.fileType,
+      this.s3Key,
+      this.thumbnailSmallUrl,
+      this.thumbnailMediumUrl,
+      this.thumbnailLargeUrl,
       this.isDelivered = false,
       this.isRead = false,
       this.isSystem = false,
@@ -324,6 +380,14 @@ class _$MessageEntityImpl implements _MessageEntity {
   @override
   final String? fileType;
   @override
+  final String? s3Key;
+  @override
+  final String? thumbnailSmallUrl;
+  @override
+  final String? thumbnailMediumUrl;
+  @override
+  final String? thumbnailLargeUrl;
+  @override
   @JsonKey()
   final bool isDelivered;
   @override
@@ -346,7 +410,7 @@ class _$MessageEntityImpl implements _MessageEntity {
 
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions)';
   }
 
   @override
@@ -370,6 +434,13 @@ class _$MessageEntityImpl implements _MessageEntity {
                 other.fileSize == fileSize) &&
             (identical(other.fileType, fileType) ||
                 other.fileType == fileType) &&
+            (identical(other.s3Key, s3Key) || other.s3Key == s3Key) &&
+            (identical(other.thumbnailSmallUrl, thumbnailSmallUrl) ||
+                other.thumbnailSmallUrl == thumbnailSmallUrl) &&
+            (identical(other.thumbnailMediumUrl, thumbnailMediumUrl) ||
+                other.thumbnailMediumUrl == thumbnailMediumUrl) &&
+            (identical(other.thumbnailLargeUrl, thumbnailLargeUrl) ||
+                other.thumbnailLargeUrl == thumbnailLargeUrl) &&
             (identical(other.isDelivered, isDelivered) ||
                 other.isDelivered == isDelivered) &&
             (identical(other.isRead, isRead) || other.isRead == isRead) &&
@@ -383,23 +454,28 @@ class _$MessageEntityImpl implements _MessageEntity {
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      conversationId,
-      senderId,
-      senderName,
-      content,
-      sentAt,
-      fileUrl,
-      fileName,
-      fileSize,
-      fileType,
-      isDelivered,
-      isRead,
-      isSystem,
-      isEdited,
-      const DeepCollectionEquality().hash(_reactions));
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        conversationId,
+        senderId,
+        senderName,
+        content,
+        sentAt,
+        fileUrl,
+        fileName,
+        fileSize,
+        fileType,
+        s3Key,
+        thumbnailSmallUrl,
+        thumbnailMediumUrl,
+        thumbnailLargeUrl,
+        isDelivered,
+        isRead,
+        isSystem,
+        isEdited,
+        const DeepCollectionEquality().hash(_reactions)
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -427,6 +503,10 @@ abstract class _MessageEntity implements MessageEntity {
       final String? fileName,
       final int? fileSize,
       final String? fileType,
+      final String? s3Key,
+      final String? thumbnailSmallUrl,
+      final String? thumbnailMediumUrl,
+      final String? thumbnailLargeUrl,
       final bool isDelivered,
       final bool isRead,
       final bool isSystem,
@@ -456,6 +536,14 @@ abstract class _MessageEntity implements MessageEntity {
   int? get fileSize;
   @override
   String? get fileType;
+  @override
+  String? get s3Key;
+  @override
+  String? get thumbnailSmallUrl;
+  @override
+  String? get thumbnailMediumUrl;
+  @override
+  String? get thumbnailLargeUrl;
   @override
   bool get isDelivered;
   @override

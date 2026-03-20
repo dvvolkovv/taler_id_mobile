@@ -267,6 +267,10 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       fileName: event.fileName,
       fileSize: event.fileSize,
       fileType: event.fileType,
+      s3Key: event.s3Key,
+      thumbnailSmallUrl: event.thumbnailSmallUrl,
+      thumbnailMediumUrl: event.thumbnailMediumUrl,
+      thumbnailLargeUrl: event.thumbnailLargeUrl,
     );
     final existing =
         List<MessageEntity>.from(state.messages[event.conversationId] ?? []);
@@ -282,6 +286,10 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       fileName: event.fileName,
       fileSize: event.fileSize,
       fileType: event.fileType,
+      s3Key: event.s3Key,
+      thumbnailSmallUrl: event.thumbnailSmallUrl,
+      thumbnailMediumUrl: event.thumbnailMediumUrl,
+      thumbnailLargeUrl: event.thumbnailLargeUrl,
     );
   }
 

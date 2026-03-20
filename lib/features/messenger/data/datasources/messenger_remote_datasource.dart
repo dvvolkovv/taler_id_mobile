@@ -174,6 +174,10 @@ class MessengerRemoteDataSource {
     String? fileName,
     int? fileSize,
     String? fileType,
+    String? s3Key,
+    String? thumbnailSmallUrl,
+    String? thumbnailMediumUrl,
+    String? thumbnailLargeUrl,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
     if (fileUrl != null) {
@@ -181,6 +185,10 @@ class MessengerRemoteDataSource {
       payload['fileName'] = fileName;
       payload['fileSize'] = fileSize;
       payload['fileType'] = fileType;
+      if (s3Key != null) payload['s3Key'] = s3Key;
+      if (thumbnailSmallUrl != null) payload['thumbnailSmallUrl'] = thumbnailSmallUrl;
+      if (thumbnailMediumUrl != null) payload['thumbnailMediumUrl'] = thumbnailMediumUrl;
+      if (thumbnailLargeUrl != null) payload['thumbnailLargeUrl'] = thumbnailLargeUrl;
     }
     _socket?.emit('message', payload);
   }

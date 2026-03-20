@@ -422,6 +422,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fileName: data['fileName'] as String,
         fileSize: data['fileSize'] as int?,
         fileType: fileType,
+        s3Key: data['s3Key'] as String?,
+        thumbnailSmallUrl: data['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: data['thumbnailMediumUrl'] as String?,
+        thumbnailLargeUrl: data['thumbnailLargeUrl'] as String?,
       ));
       _cancelReply();
     } catch (e) {
@@ -1221,7 +1225,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       width: 220,
                       height: 160,
                       child: CachedNetworkImage(
-                        imageUrl: widget.message.fileUrl!,
+                        imageUrl: widget.message.thumbnailLargeUrl ?? widget.message.fileUrl!,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => Center(
                           child: CircularProgressIndicator(
@@ -1249,7 +1253,19 @@ class _MessageBubbleState extends State<_MessageBubble> {
                     child: SizedBox(
                       width: 220,
                       height: 160,
-                      child: _VideoThumbnail(videoUrl: widget.message.fileUrl!),
+                      child: widget.message.thumbnailMediumUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: widget.message.thumbnailMediumUrl!,
+                              fit: BoxFit.cover,
+                              width: 220,
+                              height: 160,
+                              placeholder: (_, __) => Container(
+                                color: Colors.black26,
+                                child: const Center(child: Icon(Icons.play_circle_outline, size: 48, color: Colors.white70)),
+                              ),
+                              errorWidget: (_, __, ___) => _VideoThumbnail(videoUrl: widget.message.fileUrl!),
+                            )
+                          : _VideoThumbnail(videoUrl: widget.message.fileUrl!),
                     ),
                   ),
                 ),
