@@ -271,6 +271,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       thumbnailSmallUrl: event.thumbnailSmallUrl,
       thumbnailMediumUrl: event.thumbnailMediumUrl,
       thumbnailLargeUrl: event.thumbnailLargeUrl,
+      fileRecordId: event.fileRecordId,
     );
     final existing =
         List<MessageEntity>.from(state.messages[event.conversationId] ?? []);
@@ -290,6 +291,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       thumbnailSmallUrl: event.thumbnailSmallUrl,
       thumbnailMediumUrl: event.thumbnailMediumUrl,
       thumbnailLargeUrl: event.thumbnailLargeUrl,
+      fileRecordId: event.fileRecordId,
     );
   }
 

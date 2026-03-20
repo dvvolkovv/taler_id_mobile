@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
@@ -12,6 +13,7 @@ class ChunkedUploadResult {
   final String? thumbnailSmallUrl;
   final String? thumbnailMediumUrl;
   final String? thumbnailLargeUrl;
+  final String? fileRecordId;
 
   ChunkedUploadResult({
     required this.fileUrl,
@@ -22,12 +24,86 @@ class ChunkedUploadResult {
     this.thumbnailSmallUrl,
     this.thumbnailMediumUrl,
     this.thumbnailLargeUrl,
+    this.fileRecordId,
   });
 }
 
 class ChunkedUploadService {
   static const int chunkSize = 5 * 1024 * 1024; // 5MB (S3 minimum)
   static const int maxRetries = 3;
+
+  static const _mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'mp4': 'video/mp4',
+    'mov': 'video/quicktime',
+    'avi': 'video/x-msvideo',
+    'mp3': 'audio/mpeg',
+    'aac': 'audio/aac',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'm4a': 'audio/mp4',
+    'pdf': 'application/pdf',
+    'doc': 'application/msword',
+    'docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  };
+
+  /// Detect MIME type from file name extension.
+  static String detectMimeType(String fileName) {
+    final ext = fileName.split('.').last.toLowerCase();
+    return _mimeMap[ext] ?? 'application/octet-stream';
+  }
+
+  /// Compute SHA-256 hash of a file by reading it in chunks.
+  static Future<String> _computeSha256(String filePath) async {
+    final file = File(filePath);
+    final bytes = await file.readAsBytes();
+    return sha256.convert(bytes).toString();
+  }
+
+  /// Check if a file with the given hash already exists on the server.
+  /// Returns the existing file record data if found, or null otherwise.
+  static Future<ChunkedUploadResult?> _checkDedup({
+    required String sha256Hash,
+    required int fileSize,
+    required String mimeType,
+    CancelToken? cancelToken,
+  }) async {
+    final client = sl<DioClient>();
+    try {
+      final res = await client.dio.post<Map<String, dynamic>>(
+        '/messenger/files/check',
+        data: {
+          'sha256': sha256Hash,
+          'fileSize': fileSize,
+          'mimeType': mimeType,
+        },
+        cancelToken: cancelToken,
+      );
+      final data = res.data!;
+      if (data['exists'] == true && data['fileRecord'] != null) {
+        final record = Map<String, dynamic>.from(data['fileRecord'] as Map);
+        return ChunkedUploadResult(
+          fileUrl: record['fileUrl'] as String,
+          fileName: record['fileName'] as String,
+          fileSize: record['fileSize'] as int,
+          fileType: record['fileType'] as String? ?? 'document',
+          s3Key: record['s3Key'] as String? ?? '',
+          thumbnailSmallUrl: record['thumbnailSmallUrl'] as String?,
+          thumbnailMediumUrl: record['thumbnailMediumUrl'] as String?,
+          thumbnailLargeUrl: record['thumbnailLargeUrl'] as String?,
+          fileRecordId: record['id'] as String?,
+        );
+      }
+    } catch (_) {
+      // If dedup check fails, proceed with normal upload
+    }
+    return null;
+  }
 
   /// Upload a file, using chunked upload for files >= 5MB, single POST otherwise.
   /// [onProgress] receives 0.0 to 1.0
@@ -40,15 +116,40 @@ class ChunkedUploadService {
     final file = File(filePath);
     final fileSize = await file.length();
 
+    // Phase 1: Compute SHA-256 (progress 0.0 -> 0.05)
+    onProgress?.call(0.0);
+    final sha256Hash = await _computeSha256(filePath);
+    onProgress?.call(0.05);
+
+    // Phase 2: Check dedup
+    final mimeType = detectMimeType(fileName);
+    final existing = await _checkDedup(
+      sha256Hash: sha256Hash,
+      fileSize: fileSize,
+      mimeType: mimeType,
+      cancelToken: cancelToken,
+    );
+    if (existing != null) {
+      onProgress?.call(1.0);
+      return existing;
+    }
+
+    // Phase 3: Upload (progress 0.05 -> 1.0)
     // Small files: use existing single POST
     if (fileSize < chunkSize) {
       return _singleUpload(filePath, fileName,
-          cancelToken: cancelToken, onProgress: onProgress);
+          cancelToken: cancelToken,
+          onProgress: onProgress != null
+              ? (p) => onProgress(0.05 + p * 0.95)
+              : null);
     }
 
     // Large files: chunked upload
     return _chunkedUpload(filePath, fileName, fileSize,
-        cancelToken: cancelToken, onProgress: onProgress);
+        cancelToken: cancelToken,
+        onProgress: onProgress != null
+            ? (p) => onProgress(0.05 + p * 0.95)
+            : null);
   }
 
   static Future<ChunkedUploadResult> _singleUpload(
@@ -79,6 +180,7 @@ class ChunkedUploadService {
       thumbnailSmallUrl: data['thumbnailSmallUrl'] as String?,
       thumbnailMediumUrl: data['thumbnailMediumUrl'] as String?,
       thumbnailLargeUrl: data['thumbnailLargeUrl'] as String?,
+      fileRecordId: data['id'] as String?,
     );
   }
 
@@ -93,28 +195,7 @@ class ChunkedUploadService {
     final file = File(filePath);
 
     // Determine MIME type
-    String mimeType = 'application/octet-stream';
-    final ext = fileName.split('.').last.toLowerCase();
-    const mimeMap = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'webp': 'image/webp',
-      'mp4': 'video/mp4',
-      'mov': 'video/quicktime',
-      'avi': 'video/x-msvideo',
-      'mp3': 'audio/mpeg',
-      'aac': 'audio/aac',
-      'wav': 'audio/wav',
-      'ogg': 'audio/ogg',
-      'm4a': 'audio/mp4',
-      'pdf': 'application/pdf',
-      'doc': 'application/msword',
-      'docx':
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    };
-    mimeType = mimeMap[ext] ?? mimeType;
+    final mimeType = detectMimeType(fileName);
 
     // 1. Init
     final initRes = await client.dio.post<Map<String, dynamic>>(
@@ -196,6 +277,7 @@ class ChunkedUploadService {
       thumbnailSmallUrl: data['thumbnailSmallUrl'] as String?,
       thumbnailMediumUrl: data['thumbnailMediumUrl'] as String?,
       thumbnailLargeUrl: data['thumbnailLargeUrl'] as String?,
+      fileRecordId: data['id'] as String?,
     );
   }
 }

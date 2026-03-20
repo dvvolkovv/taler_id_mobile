@@ -303,11 +303,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _pickMediaMultiple() async {
+    setState(() => _isPreparing = true);
     final result = await FilePicker.platform.pickFiles(
       type: FileType.media,
       allowMultiple: true,
     );
-    if (result == null || result.files.isEmpty || !mounted) return;
+    if (!mounted) return;
+    setState(() => _isPreparing = false);
+    if (result == null || result.files.isEmpty) return;
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
     setState(() {
       for (final f in result.files) {
@@ -329,8 +332,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _pickFile() async {
+    setState(() => _isPreparing = true);
     final result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: true);
-    if (result == null || result.files.isEmpty || !mounted) return;
+    if (!mounted) return;
+    setState(() => _isPreparing = false);
+    if (result == null || result.files.isEmpty) return;
     const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
     setState(() {
@@ -367,6 +373,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  bool _isPreparing = false;
   double? _uploadProgress;
   CancelToken? _uploadCancelToken;
 
@@ -421,6 +428,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         thumbnailSmallUrl: result.thumbnailSmallUrl,
         thumbnailMediumUrl: result.thumbnailMediumUrl,
         thumbnailLargeUrl: result.thumbnailLargeUrl,
+        fileRecordId: result.fileRecordId,
       ));
       _cancelReply();
     } catch (e) {
@@ -896,6 +904,27 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+              if (_isPreparing)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 16, height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.of(context).primary),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Подготовка файла…',
+                        style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               if (_uploadProgress != null)

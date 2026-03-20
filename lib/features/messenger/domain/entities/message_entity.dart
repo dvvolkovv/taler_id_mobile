@@ -20,6 +20,7 @@ class MessageEntity with _$MessageEntity {
     String? thumbnailSmallUrl,
     String? thumbnailMediumUrl,
     String? thumbnailLargeUrl,
+    String? fileRecordId,
     @Default(false) bool isDelivered,
     @Default(false) bool isRead,
     @Default(false) bool isSystem,

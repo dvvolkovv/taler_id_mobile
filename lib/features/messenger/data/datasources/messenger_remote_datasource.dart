@@ -178,6 +178,7 @@ class MessengerRemoteDataSource {
     String? thumbnailSmallUrl,
     String? thumbnailMediumUrl,
     String? thumbnailLargeUrl,
+    String? fileRecordId,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
     if (fileUrl != null) {
@@ -189,6 +190,7 @@ class MessengerRemoteDataSource {
       if (thumbnailSmallUrl != null) payload['thumbnailSmallUrl'] = thumbnailSmallUrl;
       if (thumbnailMediumUrl != null) payload['thumbnailMediumUrl'] = thumbnailMediumUrl;
       if (thumbnailLargeUrl != null) payload['thumbnailLargeUrl'] = thumbnailLargeUrl;
+      if (fileRecordId != null) payload['fileRecordId'] = fileRecordId;
     }
     _socket?.emit('message', payload);
   }
