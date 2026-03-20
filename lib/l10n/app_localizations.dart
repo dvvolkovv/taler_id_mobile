@@ -2030,6 +2030,138 @@ abstract class AppLocalizations {
   /// **'Arabic'**
   String get translatorLangAr;
 
+  /// No description provided for @translatorLangPl.
+  ///
+  /// In en, this message translates to:
+  /// **'Polish'**
+  String get translatorLangPl;
+
+  /// No description provided for @translatorLangSk.
+  ///
+  /// In en, this message translates to:
+  /// **'Slovak'**
+  String get translatorLangSk;
+
+  /// No description provided for @translatorLangCs.
+  ///
+  /// In en, this message translates to:
+  /// **'Czech'**
+  String get translatorLangCs;
+
+  /// No description provided for @translatorLangNl.
+  ///
+  /// In en, this message translates to:
+  /// **'Dutch'**
+  String get translatorLangNl;
+
+  /// No description provided for @translatorLangSv.
+  ///
+  /// In en, this message translates to:
+  /// **'Swedish'**
+  String get translatorLangSv;
+
+  /// No description provided for @translatorLangDa.
+  ///
+  /// In en, this message translates to:
+  /// **'Danish'**
+  String get translatorLangDa;
+
+  /// No description provided for @translatorLangNo.
+  ///
+  /// In en, this message translates to:
+  /// **'Norwegian'**
+  String get translatorLangNo;
+
+  /// No description provided for @translatorLangFi.
+  ///
+  /// In en, this message translates to:
+  /// **'Finnish'**
+  String get translatorLangFi;
+
+  /// No description provided for @translatorLangUk.
+  ///
+  /// In en, this message translates to:
+  /// **'Ukrainian'**
+  String get translatorLangUk;
+
+  /// No description provided for @translatorLangEl.
+  ///
+  /// In en, this message translates to:
+  /// **'Greek'**
+  String get translatorLangEl;
+
+  /// No description provided for @translatorLangRo.
+  ///
+  /// In en, this message translates to:
+  /// **'Romanian'**
+  String get translatorLangRo;
+
+  /// No description provided for @translatorLangHu.
+  ///
+  /// In en, this message translates to:
+  /// **'Hungarian'**
+  String get translatorLangHu;
+
+  /// No description provided for @translatorLangBg.
+  ///
+  /// In en, this message translates to:
+  /// **'Bulgarian'**
+  String get translatorLangBg;
+
+  /// No description provided for @translatorLangHr.
+  ///
+  /// In en, this message translates to:
+  /// **'Croatian'**
+  String get translatorLangHr;
+
+  /// No description provided for @translatorLangSr.
+  ///
+  /// In en, this message translates to:
+  /// **'Serbian'**
+  String get translatorLangSr;
+
+  /// No description provided for @translatorLangHi.
+  ///
+  /// In en, this message translates to:
+  /// **'Hindi'**
+  String get translatorLangHi;
+
+  /// No description provided for @translatorLangTh.
+  ///
+  /// In en, this message translates to:
+  /// **'Thai'**
+  String get translatorLangTh;
+
+  /// No description provided for @translatorLangVi.
+  ///
+  /// In en, this message translates to:
+  /// **'Vietnamese'**
+  String get translatorLangVi;
+
+  /// No description provided for @translatorLangId.
+  ///
+  /// In en, this message translates to:
+  /// **'Indonesian'**
+  String get translatorLangId;
+
+  /// No description provided for @translatorLangMs.
+  ///
+  /// In en, this message translates to:
+  /// **'Malay'**
+  String get translatorLangMs;
+
+  /// No description provided for @translatorLangHe.
+  ///
+  /// In en, this message translates to:
+  /// **'Hebrew'**
+  String get translatorLangHe;
+
+  /// No description provided for @translatorLangFa.
+  ///
+  /// In en, this message translates to:
+  /// **'Persian'**
+  String get translatorLangFa;
+
   /// No description provided for @callInProgress.
   ///
   /// In en, this message translates to:

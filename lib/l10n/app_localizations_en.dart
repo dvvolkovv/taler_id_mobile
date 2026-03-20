@@ -1031,6 +1031,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String get translatorLangAr => 'Arabic';
 
   @override
+  String get translatorLangPl => 'Polish';
+
+  @override
+  String get translatorLangSk => 'Slovak';
+
+  @override
+  String get translatorLangCs => 'Czech';
+
+  @override
+  String get translatorLangNl => 'Dutch';
+
+  @override
+  String get translatorLangSv => 'Swedish';
+
+  @override
+  String get translatorLangDa => 'Danish';
+
+  @override
+  String get translatorLangNo => 'Norwegian';
+
+  @override
+  String get translatorLangFi => 'Finnish';
+
+  @override
+  String get translatorLangUk => 'Ukrainian';
+
+  @override
+  String get translatorLangEl => 'Greek';
+
+  @override
+  String get translatorLangRo => 'Romanian';
+
+  @override
+  String get translatorLangHu => 'Hungarian';
+
+  @override
+  String get translatorLangBg => 'Bulgarian';
+
+  @override
+  String get translatorLangHr => 'Croatian';
+
+  @override
+  String get translatorLangSr => 'Serbian';
+
+  @override
+  String get translatorLangHi => 'Hindi';
+
+  @override
+  String get translatorLangTh => 'Thai';
+
+  @override
+  String get translatorLangVi => 'Vietnamese';
+
+  @override
+  String get translatorLangId => 'Indonesian';
+
+  @override
+  String get translatorLangMs => 'Malay';
+
+  @override
+  String get translatorLangHe => 'Hebrew';
+
+  @override
+  String get translatorLangFa => 'Persian';
+
+  @override
   String get callInProgress => 'Call in progress';
 
   @override

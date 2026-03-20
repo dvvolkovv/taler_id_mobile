@@ -1033,6 +1033,72 @@ class AppLocalizationsRu extends AppLocalizations {
   String get translatorLangAr => 'Арабский';
 
   @override
+  String get translatorLangPl => 'Польский';
+
+  @override
+  String get translatorLangSk => 'Словацкий';
+
+  @override
+  String get translatorLangCs => 'Чешский';
+
+  @override
+  String get translatorLangNl => 'Нидерландский';
+
+  @override
+  String get translatorLangSv => 'Шведский';
+
+  @override
+  String get translatorLangDa => 'Датский';
+
+  @override
+  String get translatorLangNo => 'Норвежский';
+
+  @override
+  String get translatorLangFi => 'Финский';
+
+  @override
+  String get translatorLangUk => 'Украинский';
+
+  @override
+  String get translatorLangEl => 'Греческий';
+
+  @override
+  String get translatorLangRo => 'Румынский';
+
+  @override
+  String get translatorLangHu => 'Венгерский';
+
+  @override
+  String get translatorLangBg => 'Болгарский';
+
+  @override
+  String get translatorLangHr => 'Хорватский';
+
+  @override
+  String get translatorLangSr => 'Сербский';
+
+  @override
+  String get translatorLangHi => 'Хинди';
+
+  @override
+  String get translatorLangTh => 'Тайский';
+
+  @override
+  String get translatorLangVi => 'Вьетнамский';
+
+  @override
+  String get translatorLangId => 'Индонезийский';
+
+  @override
+  String get translatorLangMs => 'Малайский';
+
+  @override
+  String get translatorLangHe => 'Иврит';
+
+  @override
+  String get translatorLangFa => 'Фарси';
+
+  @override
   String get callInProgress => 'Идёт звонок';
 
   @override
