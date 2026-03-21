@@ -51,6 +51,8 @@
 	<string>Распознавание речи используется для голосового ввода сообщений ассистенту</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Доступ к фотогалерее необходим для загрузки документов при верификации</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Для сохранения фото и видео из чата на устройство</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Геолокация может использоваться для верификации личности</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

@@ -18,6 +18,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:gal/gal.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -283,7 +285,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ListTile(
                 leading: Icon(Icons.photo_library, color: colors.primary),
                 title: Text('Фото / Видео', style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickMediaMultiple(); },
+                onTap: () { Navigator.pop(ctx); _pickMediaFromGallery(); },
               ),
               ListTile(
                 leading: Icon(Icons.camera_alt, color: colors.primary),
@@ -302,24 +304,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
-  Future<void> _pickMediaMultiple() async {
+  Future<void> _pickMediaFromGallery() async {
     setState(() => _isPreparing = true);
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.media,
-      allowMultiple: true,
-    );
-    if (!mounted) return;
-    setState(() => _isPreparing = false);
-    if (result == null || result.files.isEmpty) return;
-    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp', 'm4v'};
-    setState(() {
-      for (final f in result.files) {
-        if (f.path == null) continue;
-        final ext = f.name.split('.').last.toLowerCase();
-        final type = videoExts.contains(ext) ? 'video' : 'image';
-        _pendingFiles.add(_PendingFile(path: f.path!, name: f.name, type: type));
+    try {
+      final assets = await AssetPicker.pickAssets(
+        context,
+        pickerConfig: AssetPickerConfig(
+          maxAssets: 9,
+          requestType: RequestType.common,
+          themeColor: AppColors.of(context).primary,
+        ),
+      );
+      if (!mounted) return;
+      setState(() => _isPreparing = false);
+      if (assets == null || assets.isEmpty) return;
+      for (final asset in assets) {
+        final file = await asset.file;
+        if (file == null || !mounted) continue;
+        final type = asset.type == AssetType.video ? 'video' : 'image';
+        setState(() {
+          _pendingFiles.add(_PendingFile(path: file.path, name: asset.title ?? file.path.split('/').last, type: type));
+        });
       }
-    });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isPreparing = false);
+    }
   }
 
   Future<void> _pickFromCamera() async {
@@ -1469,6 +1479,15 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   );
                 },
               ),
+            if (widget.message.fileUrl != null)
+              ListTile(
+                leading: Icon(Icons.download_rounded, color: colors.textSecondary),
+                title: Text('Сохранить', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _saveFile(context);
+                },
+              ),
             ListTile(
               leading: Icon(Icons.forward_rounded, color: colors.textSecondary),
               title: Text('Переслать', style: TextStyle(color: colors.textPrimary)),
@@ -1490,6 +1509,60 @@ class _MessageBubbleState extends State<_MessageBubble> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveFile(BuildContext context) async {
+    final url = widget.message.fileUrl;
+    if (url == null) return;
+    final fileType = _effectiveFileType(widget.message);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Сохранение...'), duration: Duration(seconds: 1)),
+      );
+
+      if (fileType == 'image' || fileType == 'video') {
+        // Download to temp, then save to gallery
+        final dir = await getTemporaryDirectory();
+        final ext = fileType == 'image' ? '.jpg' : '.mp4';
+        final fileName = widget.message.fileName ?? 'taler_${DateTime.now().millisecondsSinceEpoch}$ext';
+        final safeName = fileName.replaceAll(RegExp(r'[^\w\.\-]'), '_');
+        final filePath = '${dir.path}/save_$safeName';
+        await Dio().download(url, filePath);
+
+        if (fileType == 'image') {
+          await Gal.putImage(filePath);
+        } else {
+          await Gal.putVideo(filePath);
+        }
+        // Clean up temp file
+        try { await File(filePath).delete(); } catch (_) {}
+
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Сохранено в галерею'), duration: Duration(seconds: 2)),
+        );
+      } else {
+        // Document / audio — download and open
+        final dir = await getTemporaryDirectory();
+        final fileName = widget.message.fileName ?? 'file_${DateTime.now().millisecondsSinceEpoch}';
+        final safeName = fileName.replaceAll(RegExp(r'[^\w\.\-]'), '_');
+        final filePath = '${dir.path}/messenger_files/$safeName';
+        await Directory('${dir.path}/messenger_files').create(recursive: true);
+        await Dio().download(url, filePath);
+        await OpenFilex.open(filePath);
+      }
+    } catch (e) {
+      if (e.toString().contains('access')) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Нет разрешения на сохранение. Проверьте настройки.'), duration: Duration(seconds: 3)),
+        );
+      } else {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Ошибка сохранения файла'), duration: Duration(seconds: 2)),
+        );
+      }
+    }
   }
 
   void _showDeleteConfirm(BuildContext context) {
@@ -1923,8 +1996,7 @@ class _InputBar extends StatelessWidget {
                       hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
                       border: InputBorder.none,
                     ),
-                    onSubmitted: (_) => onSend(),
-                    textInputAction: TextInputAction.send,
+                    textInputAction: TextInputAction.newline,
                   ),
           ),
           IconButton(
@@ -2471,6 +2543,14 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
               onPressed: () => Navigator.of(context).pop(),
             ),
           ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 8,
+            right: 8,
+            child: IconButton(
+              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 28),
+              onPressed: _saving ? null : _saveCurrentImage,
+            ),
+          ),
           if (widget.imageUrls.length > 1)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 16,
@@ -2494,6 +2574,28 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
       ),
     );
   }
+
+  bool _saving = false;
+
+  Future<void> _saveCurrentImage() async {
+    setState(() => _saving = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final dir = await getTemporaryDirectory();
+      final filePath = '${dir.path}/save_img_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await Dio().download(widget.imageUrls[_currentIndex], filePath);
+      await Gal.putImage(filePath);
+      try { await File(filePath).delete(); } catch (_) {}
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Сохранено в галерею'), duration: Duration(seconds: 2)),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Ошибка сохранения'), duration: Duration(seconds: 2)),
+      );
+    }
+    if (mounted) setState(() => _saving = false);
+  }
 }
 
 // ─── Fullscreen Video Player ─────────────────────────────
@@ -2511,6 +2613,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   bool _initialized = false;
   bool _showControls = true;
   Timer? _hideTimer;
+  bool _savingVideo = false;
 
   @override
   void initState() {
@@ -2568,6 +2671,26 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
     return '$m:$s';
   }
 
+  Future<void> _saveVideo() async {
+    setState(() => _savingVideo = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final dir = await getTemporaryDirectory();
+      final filePath = '${dir.path}/save_vid_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      await Dio().download(widget.videoUrl, filePath);
+      await Gal.putVideo(filePath);
+      try { await File(filePath).delete(); } catch (_) {}
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Видео сохранено в галерею'), duration: Duration(seconds: 2)),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Ошибка сохранения'), duration: Duration(seconds: 2)),
+      );
+    }
+    if (mounted) setState(() => _savingVideo = false);
+  }
+
   @override
   void dispose() {
     _hideTimer?.cancel();
@@ -2599,6 +2722,14 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
                 child: IconButton(
                   icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
                   onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                right: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.download_rounded, color: Colors.white, size: 28),
+                  onPressed: _savingVideo ? null : _saveVideo,
                 ),
               ),
               if (_initialized)

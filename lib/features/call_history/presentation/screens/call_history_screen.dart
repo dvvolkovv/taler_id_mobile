@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -527,25 +528,32 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: isMissed
+          if (e.otherPartyAvatar != null) ...[
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: colors.primary.withOpacity(0.12),
+              backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+            ),
+          ] else ...[
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: isMissed
                   ? colors.error.withOpacity(0.12)
                   : e.isOutgoing
                       ? colors.primary.withOpacity(0.12)
                       : _kIncomingColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
+              child: e.withAi
+                  ? Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20)
+                  : Text(
+                      e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
             ),
-            child: Icon(
-              isMissed
-                  ? Icons.call_missed_rounded
-                  : e.isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
-              color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
-              size: 20,
-            ),
-          ),
+          ],
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -744,6 +752,7 @@ class _PersonalRoom {
 class _CallEntry {
   final String id;
   final String otherPartyName;
+  final String? otherPartyAvatar;
   final DateTime startedAt;
   final int? durationSec;
   final bool isOutgoing;
@@ -755,6 +764,7 @@ class _CallEntry {
   const _CallEntry({
     required this.id,
     required this.otherPartyName,
+    this.otherPartyAvatar,
     required this.startedAt,
     this.durationSec,
     required this.isOutgoing,
@@ -768,6 +778,7 @@ class _CallEntry {
     final participants = json['participants'] as List? ?? [];
     final withAi = json['withAi'] as bool? ?? false;
     String name;
+    String? avatar;
     if (withAi && participants.isEmpty) {
       name = 'AI-ассистент';
     } else {
@@ -775,6 +786,10 @@ class _CallEntry {
           .map((p) => (p as Map)['displayName'] as String? ?? 'Неизвестный')
           .join(', ');
       if (name.isEmpty) name = 'Неизвестный';
+      // Take avatar from first participant
+      if (participants.isNotEmpty) {
+        avatar = (participants.first as Map)['avatarUrl'] as String?;
+      }
     }
     // Check for meeting summary info
     final summary = json['meetingSummary'] as Map<String, dynamic>?;
@@ -784,6 +799,7 @@ class _CallEntry {
     return _CallEntry(
       id: json['id'] as String? ?? '',
       otherPartyName: name,
+      otherPartyAvatar: avatar,
       startedAt: DateTime.tryParse(json['startedAt'] as String? ?? '') ?? DateTime.now(),
       durationSec: json['durationSec'] as int?,
       isOutgoing: json['isOutgoing'] as bool? ?? true,

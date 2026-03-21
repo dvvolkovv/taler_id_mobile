@@ -1375,6 +1375,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  void _copyRoomLink() {
+    final code = widget.publicCode;
+    final name = _roomName;
+    if (code == null && name == null) return;
+    final link = code != null
+        ? '${ApiConstants.baseUrl}/room/$code'
+        : '${ApiConstants.baseUrl}/room/$name';
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Ссылка скопирована'), duration: Duration(seconds: 2)),
+    );
+  }
+
   Future<void> _addParticipant() async {
     final convId = widget.conversationId ?? CallStateService.instance.conversationId;
     final rName = _roomName ?? CallStateService.instance.roomName;
@@ -1739,6 +1752,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           (widget.publicCode != null && _publicRoomCreatorName != null
               ? 'Комната ${_publicRoomCreatorName}'
               : 'Голосовой звонок'),
+          overflow: TextOverflow.ellipsis,
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -1746,6 +1760,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         ),
         automaticallyImplyLeading: false,
         actions: [
+          if (_roomName != null)
+            IconButton(
+              icon: const Icon(Icons.link_rounded),
+              onPressed: _copyRoomLink,
+              tooltip: 'Скопировать ссылку',
+            ),
           IconButton(
             icon: const Icon(Icons.person_add_rounded),
             onPressed: _addParticipant,
