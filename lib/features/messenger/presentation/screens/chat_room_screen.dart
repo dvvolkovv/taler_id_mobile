@@ -559,6 +559,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (_isTypingSent) {
       context.read<MessengerBloc>().add(SendTyping(conversationId: widget.conversationId, isTyping: false));
     }
+    // Clear unread count and refresh conversations list on exit
+    context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
+    context.read<MessengerBloc>().add(LoadConversations());
     _typingTimer?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();

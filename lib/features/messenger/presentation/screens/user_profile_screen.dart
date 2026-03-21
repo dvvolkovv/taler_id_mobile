@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
+import 'shared_media_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -118,6 +119,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final username = _profile?['username'] as String?;
     final avatarUrl = _profile?['avatarUrl'] as String?;
     final initials = fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
+    final colors = AppColors.of(context);
 
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
@@ -226,9 +228,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      _buildSharedMediaButton(colors),
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildSharedMediaButton(AppColorsExtension colors) {
+    // Find conversation with this user from BLoC state
+    final convs = context.read<MessengerBloc>().state.conversations;
+    final conv = convs.where((c) => c.type == 'DIRECT' && c.otherUserId == widget.userId).firstOrNull;
+    if (conv == null) return const SizedBox.shrink();
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => SharedMediaScreen(conversationId: conv.id)),
+        ),
+        icon: Icon(Icons.perm_media_outlined, color: colors.textPrimary),
+        label: Text('Медиа и файлы', style: TextStyle(color: colors.textPrimary)),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: BorderSide(color: colors.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
     );
   }
 }

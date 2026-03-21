@@ -33,10 +33,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
   Future<void> _loadConversationsIfNeeded() async {
     final bloc = context.read<MessengerBloc>();
-    if (bloc.state.conversations.isEmpty && !bloc.state.isLoading) {
-      if (bloc.state.isConnected) {
-        bloc.add(LoadConversations());
-      }
+    if (!bloc.state.isLoading && bloc.state.isConnected) {
+      bloc.add(LoadConversations());
     }
   }
 

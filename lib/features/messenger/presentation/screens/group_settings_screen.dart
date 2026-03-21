@@ -12,6 +12,7 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/group_member_entity.dart';
+import 'shared_media_screen.dart';
 
 class GroupSettingsScreen extends StatefulWidget {
   final String conversationId;
@@ -500,6 +501,16 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
               ),
               // Member list
               ...members.map((m) => _buildMemberTile(m, myRole, state.currentUserId, l10n)),
+              const Divider(height: 32),
+              // Shared media
+              ListTile(
+                leading: Icon(Icons.perm_media_outlined, color: AppColors.of(context).textPrimary),
+                title: Text('Медиа и файлы', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                trailing: Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => SharedMediaScreen(conversationId: widget.conversationId)),
+                ),
+              ),
               const Divider(height: 32),
               // Mute notifications
               SwitchListTile(

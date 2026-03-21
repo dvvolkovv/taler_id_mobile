@@ -465,7 +465,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // With autoSubscribe:false, manually subscribe to existing tracks
       for (final p in _room!.remoteParticipants.values) {
         if (p.identity == 'voice-translator') {
-          // Subscribe only to the translation track matching user's preferred language
+          // Subscribe to translation track only if user enabled translation
           if (_translationEnabled) {
             for (final pub in p.audioTrackPublications) {
               if (pub.name == 'translation-$_preferredLang') {
@@ -584,6 +584,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         // Auto-detect meeting recorder joining
         if (event.participant.identity == 'meeting-recorder') {
           if (mounted) setState(() => _aiRecording = true);
+        }
+        // voice-translator joined — update subscription if user has translation enabled
+        if (event.participant.identity == 'voice-translator') {
+          if (_translationEnabled) _updateTranslationTrackSubscription();
         }
       })
       ..on<lk.TrackPublishedEvent>((event) {
@@ -1485,11 +1489,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       });
     }
     if (enabled) {
-      // Disable E2EE so the translator agent can hear unencrypted audio.
-      // Wait for metadata event to propagate to all participants before
-      // starting the translator — both sides must disable E2EE first.
-      await _disableE2EEForTranslator();
-      await Future.delayed(const Duration(milliseconds: 1500));
+      // Disable E2EE if active so the translator agent can hear audio
+      final hasE2EE = _room?.e2eeManager != null;
+      if (hasE2EE) {
+        await _disableE2EEForTranslator();
+        await Future.delayed(const Duration(milliseconds: 1500));
+      }
       await _startServerTranslator();
     }
     _updateTranslationTrackSubscription();
