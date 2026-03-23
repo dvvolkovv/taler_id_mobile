@@ -37,7 +37,8 @@ import '../../data/datasources/messenger_remote_datasource.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
-  const ChatRoomScreen({super.key, required this.conversationId});
+  final List? sharedFiles;
+  const ChatRoomScreen({super.key, required this.conversationId, this.sharedFiles});
 
   @override
   State<ChatRoomScreen> createState() => _ChatRoomScreenState();
@@ -70,6 +71,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     context.read<MessengerBloc>().add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
     context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
+    // Handle shared files from external apps
+    if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _addSharedFiles(widget.sharedFiles!);
+      });
+    }
     // Listen for socket connectivity changes
     final ds = sl<MessengerRemoteDataSource>();
     _disconnectSub = ds.disconnectStream.listen((_) {
@@ -338,6 +346,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (picked == null || !mounted) return;
     setState(() {
       _pendingFiles.add(_PendingFile(path: picked.path, name: picked.name, type: 'image'));
+    });
+  }
+
+  void _addSharedFiles(List sharedFiles) {
+    const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
+    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
+    setState(() {
+      for (final file in sharedFiles) {
+        final path = file.path as String? ?? '';
+        if (path.isEmpty) continue;
+        final name = path.split('/').last;
+        final ext = name.split('.').last.toLowerCase();
+        String? typeOverride;
+        if (imageExts.contains(ext)) typeOverride = 'image';
+        if (videoExts.contains(ext)) typeOverride = 'video';
+        _pendingFiles.add(_PendingFile(path: path, name: name, type: typeOverride));
+      }
     });
   }
 
@@ -688,6 +713,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           return currCount > prevCount;
         },
         listener: (context, state) {
+          // Mark new incoming messages as read immediately since chat is open
+          context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
           // With reverse:true the list starts at bottom — only scroll if user scrolled up
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted || !_scrollCtrl.hasClients) return;

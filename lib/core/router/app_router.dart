@@ -182,9 +182,13 @@ final appRouter = GoRouter(
             ),
             GoRoute(
               path: ':id',
-              builder: (_, state) => ChatRoomScreen(
-                conversationId: state.pathParameters['id']!,
-              ),
+              builder: (_, state) {
+                final extra = state.extra as Map<String, dynamic>?;
+                return ChatRoomScreen(
+                  conversationId: state.pathParameters['id']!,
+                  sharedFiles: extra?['sharedFiles'] as List?,
+                );
+              },
               routes: [
                 GoRoute(
                   path: 'settings',

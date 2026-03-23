@@ -106,6 +106,7 @@ dependencies:
 
   # Share
   share_plus: ^10.1.4
+  receive_sharing_intent: ^1.8.1
 
   # Utils
   intl: any

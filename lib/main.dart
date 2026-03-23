@@ -11,6 +11,7 @@ import 'core/api/dio_client.dart';
 import 'core/di/service_locator.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/services/call_state_service.dart';
+import 'core/services/share_intent_service.dart';
 import 'firebase_options.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/router/app_router.dart';
@@ -196,6 +197,11 @@ Future<void> main() async {
     };
   } catch (_) {
     // Corrupted storage — use defaults
+  }
+
+  // Initialize share intent listener (receive files from other apps)
+  if (!kIsWeb) {
+    ShareIntentService.instance.init();
   }
 
   runApp(TalerIdApp(initialLocale: savedLang, initialThemeMode: themeMode));

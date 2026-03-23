@@ -20,7 +20,9 @@ import '../../../core/notifications/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/update_check_service.dart';
+import '../../../core/services/share_intent_service.dart';
 import '../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../messenger/presentation/screens/share_target_screen.dart';
 import '../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../messenger/presentation/bloc/messenger_event.dart';
 import '../../messenger/presentation/bloc/messenger_state.dart';
@@ -45,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callAnsweredSub;
   StreamSubscription? _callkitSub;
+  StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
   String? _pendingCallRoute; // queued when accept fires while phone is locked
   bool _waitingForCallAccept = false; // blocks in-app dialog after CallKit accept
@@ -198,6 +201,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForDisconnect();
       _listenForCallEnded();
       _listenForCallAnswered();
+      _listenForShareIntent();
       _checkForUpdate();
     });
   }
@@ -400,7 +404,39 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAnsweredSub?.cancel();
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
+    _shareIntentSub?.cancel();
     super.dispose();
+  }
+
+  void _listenForShareIntent() {
+    _shareIntentSub?.cancel();
+    _shareIntentSub = ShareIntentService.instance.pendingFilesStream.listen((files) {
+      if (!mounted || files.isEmpty) return;
+      debugPrint('[Dashboard] Received ${files.length} shared files');
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: context.read<MessengerBloc>(),
+            child: ShareTargetScreen(sharedFiles: files),
+          ),
+        ),
+      );
+    });
+    // Check for initial files (app was cold-started via share)
+    final initial = ShareIntentService.instance.initialFiles;
+    if (initial != null && initial.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: context.read<MessengerBloc>(),
+              child: ShareTargetScreen(sharedFiles: initial),
+            ),
+          ),
+        );
+      });
+    }
   }
 
   Future<void> _checkForUpdate() async {
