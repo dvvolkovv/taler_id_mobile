@@ -59,18 +59,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   StreamSubscription? _reconnectSub;
   Timer? _typingTimer;
   bool _isTypingSent = false;
+  late final MessengerBloc _messengerBloc;
   // Pending attachments (inline preview before send)
   final List<_PendingFile> _pendingFiles = [];
 
   @override
   void initState() {
     super.initState();
+    _messengerBloc = context.read<MessengerBloc>();
     _ctrl = TextEditingController();
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
-    context.read<MessengerBloc>().add(OpenConversation(widget.conversationId));
+    _messengerBloc.add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
-    context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
+    _messengerBloc.add(MarkConversationRead(widget.conversationId));
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -580,13 +582,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   void dispose() {
-    // Send typing stop on exit
+    // Send typing stop on exit — use cached bloc reference (context is deactivated in dispose)
     if (_isTypingSent) {
-      context.read<MessengerBloc>().add(SendTyping(conversationId: widget.conversationId, isTyping: false));
+      _messengerBloc.add(SendTyping(conversationId: widget.conversationId, isTyping: false));
     }
     // Clear unread count and refresh conversations list on exit
-    context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
-    context.read<MessengerBloc>().add(LoadConversations());
+    _messengerBloc.add(MarkConversationRead(widget.conversationId));
+    _messengerBloc.add(LoadConversations());
     _typingTimer?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();

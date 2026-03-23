@@ -292,7 +292,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => setState(() => _personalRoomFuture = _loadPersonalRoom()),
+                  onPressed: () { final f = _loadPersonalRoom(); setState(() => _personalRoomFuture = f); },
                   child: Text('Повторить', style: TextStyle(color: colors.primary, fontSize: 13)),
                 ),
               ],
@@ -490,7 +490,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 const SizedBox(height: 8),
                 Text('Ошибка загрузки', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                 TextButton(
-                  onPressed: () => setState(() => _historyFuture = _loadHistory()),
+                  onPressed: () { final f = _loadHistory(); setState(() => _historyFuture = f); },
                   child: Text('Повторить', style: TextStyle(color: colors.primary)),
                 ),
               ],
@@ -916,7 +916,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   const SizedBox(height: 8),
                   Text('Ошибка загрузки', style: TextStyle(color: colors.textPrimary)),
                   TextButton(
-                    onPressed: () => setState(() => _future = _load()),
+                    onPressed: () { final f = _load(); setState(() => _future = f); },
                     child: Text('Повторить', style: TextStyle(color: colors.primary)),
                   ),
                 ],
@@ -1211,7 +1211,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
     _refreshTimer?.cancel();
     if (hasProcessing && mounted) {
       _refreshTimer = Timer(const Duration(seconds: 15), () {
-        if (mounted) setState(() => _future = _load());
+        if (mounted) { final f = _load(); setState(() => _future = f); }
       });
     }
     return list;
@@ -1225,7 +1225,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
       appBar: AppBar(title: const Text('Резюме встреч')),
       body: RefreshIndicator(
         color: colors.primary,
-        onRefresh: () async { setState(() => _future = _load()); },
+        onRefresh: () async { final f = _load(); setState(() => _future = f); },
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _future,
           builder: (context, snap) {
@@ -1611,7 +1611,8 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
             backgroundColor: AppColors.of(context).primary,
           ),
         );
-        setState(() => _future = _load());
+        final f = _load();
+        setState(() => _future = f);
       }
     } catch (e) {
       if (mounted) {
@@ -1635,7 +1636,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
       appBar: AppBar(title: const Text('Записи встреч')),
       body: RefreshIndicator(
         color: colors.primary,
-        onRefresh: () async { setState(() => _future = _load()); },
+        onRefresh: () async { final f = _load(); setState(() => _future = f); },
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _future,
           builder: (context, snap) {

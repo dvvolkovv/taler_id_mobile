@@ -107,7 +107,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Timer? _emptyRoomTimer;
 
   // Server-side translation state
-  String _preferredLang = 'ru';
+  String _preferredLang = '';
   bool _translationEnabled = false;
   bool _translationActive = false; // translator agent is running
 
@@ -495,6 +495,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         }
       }
 
+      // If meeting-recorder is already in the room, mark recording as active
+      if (_participants.any((p) => p.identity == 'meeting-recorder')) {
+        setState(() {
+          _isRecording = true;
+          _recordingApproved = true;
+        });
+      }
+
       // If there are already human participants in the room, stop ringback immediately
       if (_participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
@@ -596,18 +604,44 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity != 'ai-assistant') {
           _stopRingback();
         }
-        // If we're the recording initiator and consent is still pending, notify new human participant
         final newId = event.participant.identity;
-        if (_consentPending &&
-            _recordingInitiatorId == _room?.localParticipant?.identity &&
-            newId != 'meeting-recorder' && newId != 'ai-assistant' && newId != 'voice-translator') {
-          // Add new participant to consent tracking
-          _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
-          _broadcastData({
-            'type': 'recording_consent_request',
-            'initiatorId': _recordingInitiatorId,
-            'initiatorName': _recordingInitiatorName,
-          });
+        final localId = _room?.localParticipant?.identity;
+        final isHuman = newId != 'meeting-recorder' && newId != 'ai-assistant' && newId != 'voice-translator';
+
+        if (isHuman && localId != null) {
+          // Delay to let new participant's data channel initialize, then retry
+          for (int i = 0; i < 3; i++) {
+            await Future.delayed(Duration(seconds: i == 0 ? 2 : 1));
+            if (!mounted || _navigatedAway) return;
+
+            // If consent is pending, re-send request to new participant
+            if (_consentPending && _recordingInitiatorId == localId) {
+              _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+              _broadcastData({
+                'type': 'recording_consent_request',
+                'initiatorId': _recordingInitiatorId,
+                'initiatorName': _recordingInitiatorName,
+              });
+              break; // sent successfully, stop retrying
+            }
+
+            // If recording is already active, send consent request to new participant
+            // They must agree before staying in the room
+            if (_isRecording && _recordingApproved && _recordingInitiatorId == localId) {
+              _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+              setState(() => _consentPending = true);
+              _broadcastData({
+                'type': 'recording_consent_request',
+                'initiatorId': _recordingInitiatorId,
+                'initiatorName': _recordingInitiatorName,
+                'recordingActive': true,
+              });
+              break; // sent successfully, stop retrying
+            }
+
+            // If nothing to send, stop
+            if (!_consentPending && !_isRecording) break;
+          }
         }
         // voice-translator joined — update subscription if user has translation enabled
         if (event.participant.identity == 'voice-translator') {
@@ -648,22 +682,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       ..on<lk.DataReceivedEvent>((event) {
         _handleDataReceived(event);
       })
-      ..on<lk.RoomMetadataChangedEvent>((event) async {
-        // When another participant enables translator, backend updates room metadata
-        // to signal all participants to disable E2EE
-        try {
-          final metadata = event.metadata;
-          if (metadata != null && metadata.contains('e2ee_disabled')) {
-            final room = _room;
-            if (room?.e2eeManager != null) {
-              await room!.setE2EEEnabled(false);
-              debugPrint('[VoiceCall] E2EE disabled via room metadata signal');
-              // Re-subscribe to tracks after E2EE transition
-              await _resubscribeAllTracks();
-            }
-          }
-        } catch (_) {}
-      });
+      ..on<lk.RoomMetadataChangedEvent>((_) {});
   }
 
   void _onRoomChanged() {
@@ -1234,10 +1253,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
     });
 
-    _broadcastData({
+    // Send consent request with retries — data channel may not be ready
+    _sendConsentRequestWithRetry(localId!, localName);
+  }
+
+  void _sendConsentRequestWithRetry(String initiatorId, String initiatorName, {bool recordingActive = false}) {
+    final msg = {
       'type': 'recording_consent_request',
-      'initiatorId': localId,
-      'initiatorName': localName,
+      'initiatorId': initiatorId,
+      'initiatorName': initiatorName,
+      if (recordingActive) 'recordingActive': true,
+    };
+    _broadcastData(msg);
+    // Retry after 2s if still pending (participant may not have received)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted || _navigatedAway || !_consentPending) return;
+      // Check if any response is still null (not yet responded)
+      final anyPending = _consentResponses.values.any((e) => e.accepted == null);
+      if (anyPending) {
+        _broadcastData(msg);
+      }
     });
   }
 
@@ -1273,6 +1308,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         case 'recording_denied':
           _onRecordingDenied(msg);
           break;
+        case 'recording_denied_late':
+          _onRecordingDeniedLate(msg);
+          break;
         case 'recording_ended':
           _onRecordingEnded(msg);
           break;
@@ -1292,6 +1330,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (!mounted || _navigatedAway) return;
     final initiatorId = msg['initiatorId'] as String?;
     final initiatorName = msg['initiatorName'] as String? ?? 'Участник';
+    final recordingAlreadyActive = msg['recordingActive'] as bool? ?? false;
     final localId = _room?.localParticipant?.identity;
     if (initiatorId == localId) return; // self
     if (_isRecording && _recordingInitiatorId == initiatorId) return; // already recording
@@ -1302,7 +1341,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _recordingInitiatorName = initiatorName;
     });
 
-    _showConsentDialog(initiatorName);
+    _showConsentDialog(initiatorName, recordingActive: recordingAlreadyActive);
   }
 
   void _onConsentResponse(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
@@ -1321,6 +1360,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
 
     if (!accepted) {
+      // If recording is already active, don't stop it — just notify
+      if (_isRecording && _recordingApproved) {
+        setState(() => _consentPending = false);
+        _consentResponses.remove(identity);
+        _broadcastData({
+          'type': 'recording_denied_late',
+          'initiatorId': localId,
+          'declinedBy': responderName,
+        });
+        _showSnack('$responderName отклонил запись и покинет звонок');
+        return;
+      }
       setState(() => _consentPending = false);
       _broadcastData({'type': 'recording_denied', 'initiatorId': localId, 'declinedBy': responderName});
       _showSnack('$responderName отклонил запись');
@@ -1340,13 +1391,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _consentPending = false;
         _recordingApproved = true;
       });
-      _startRecording();
+      // Only start recording if not already recording (new participant consent)
+      if (!_isRecording) {
+        _startRecording();
+        _showSnack('Все согласились. Запись началась.');
+      } else {
+        _showSnack('Новый участник согласился на запись.');
+      }
       _broadcastData({
         'type': 'recording_approved',
         'initiatorId': _recordingInitiatorId,
         'initiatorName': _recordingInitiatorName,
       });
-      _showSnack('Все согласились. Запись началась.');
     }
   }
 
@@ -1370,6 +1426,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     _resetRecordingState();
     if (declinedBy != null) _showSnack('$declinedBy отклонил запись');
+  }
+
+  void _onRecordingDeniedLate(Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
+    final declinedBy = msg['declinedBy'] as String? ?? 'Участник';
+    final localName = _room?.localParticipant?.name ?? '';
+    // If I'm the one who declined, I need to leave the call
+    if (declinedBy == localName) {
+      _showSnack('Вы отклонили запись. Покидаете звонок.');
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted && !_navigatedAway) _hangUp();
+      });
+    } else {
+      _showSnack('$declinedBy отклонил запись и покинет звонок');
+    }
   }
 
   void _onRecordingEnded(Map<String, dynamic> msg) {
@@ -1427,9 +1498,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     });
   }
 
-  void _showConsentDialog(String initiatorName) {
+  void _showConsentDialog(String initiatorName, {bool recordingActive = false}) {
     if (_consentDialogShowing || _navigatedAway || !mounted) return;
     _consentDialogShowing = true;
+    final declineLabel = recordingActive ? 'Отклонить и выйти' : 'Отклонить';
+    final contentText = recordingActive
+        ? ' ведёт запись встречи.\nВаш голос будет записан.\nПри отказе вы покинете звонок.'
+        : ' хочет начать запись встречи.\nВаш голос будет записан.';
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1449,7 +1524,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 20),
             ),
             const SizedBox(width: 12),
-            const Text('Запрос на запись', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+            Expanded(
+              child: Text(
+                recordingActive ? 'Запись идёт' : 'Запрос на запись',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
         ),
         content: RichText(
@@ -1457,7 +1537,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14, height: 1.5),
             children: [
               TextSpan(text: initiatorName, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const TextSpan(text: ' хочет начать запись встречи.\nВаш голос и видео будут записаны.'),
+              TextSpan(text: contentText),
             ],
           ),
         ),
@@ -1467,7 +1547,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               Navigator.pop(ctx);
               _respondToConsent(false);
             },
-            child: Text('Отклонить', style: TextStyle(color: AppColors.of(context).textSecondary)),
+            child: Text(declineLabel, style: TextStyle(color: AppColors.of(context).error)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -1933,61 +2013,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       });
     }
     if (enabled) {
-      // Disable E2EE if active so the translator agent can hear audio
-      final hasE2EE = _room?.e2eeManager != null;
-      if (hasE2EE) {
-        await _disableE2EEForTranslator();
-        await Future.delayed(const Duration(milliseconds: 1500));
-      }
       await _startServerTranslator();
+    } else {
+      await _stopServerTranslator();
     }
     _updateTranslationTrackSubscription();
-  }
-
-  Future<void> _disableE2EEForTranslator() async {
-    final room = _room;
-    if (room == null) return;
-    if (room.e2eeManager == null) return; // E2EE not active
-    // Do NOT disable E2EE locally here — request via backend metadata instead.
-    // Both participants receive RoomMetadataChangedEvent simultaneously and
-    // disable E2EE at the same time, avoiding the asymmetric window where
-    // one side sends unencrypted audio while the other still tries to decrypt.
-    final roomName = _roomName;
-    if (roomName != null) {
-      try {
-        await sl<DioClient>().post(
-          '/voice/rooms/$roomName/disable-e2ee',
-          data: {},
-          fromJson: (d) => d,
-        );
-        debugPrint('[Translation] E2EE disable requested via backend');
-      } catch (e) {
-        debugPrint('[Translation] Failed to request E2EE disable: $e');
-        // Fallback: disable locally if backend request failed
-        try {
-          await room.setE2EEEnabled(false);
-          debugPrint('[Translation] E2EE disabled locally (fallback)');
-          await _resubscribeAllTracks();
-        } catch (_) {}
-      }
-    }
-  }
-
-  /// Re-subscribe to all remote audio/video tracks. Needed after E2EE
-  /// is disabled mid-call — LiveKit may drop subscriptions during transition.
-  Future<void> _resubscribeAllTracks() async {
-    final room = _room;
-    if (room == null) return;
-    await Future.delayed(const Duration(milliseconds: 500));
-    for (final p in room.remoteParticipants.values) {
-      if (p.identity == 'voice-translator') continue;
-      for (final pub in [...p.audioTrackPublications, ...p.videoTrackPublications]) {
-        if (!pub.subscribed) {
-          try { pub.subscribe(); } catch (_) {}
-        }
-      }
-    }
-    debugPrint('[VoiceCall] Re-subscribed to all tracks after E2EE change');
   }
 
   Future<void> _startServerTranslator() async {
@@ -1995,17 +2025,30 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (roomName == null) return;
     try {
       final client = sl<DioClient>();
-      // Start translator agent for the room
       await client.post(
         '/voice/rooms/$roomName/translator/start',
         data: {},
         fromJson: (d) => d,
       );
-      // Set preferred language on the server
       await _setServerLang(roomName, _preferredLang);
       debugPrint('[Translation] Server translator started for $roomName');
     } catch (e) {
       debugPrint('[Translation] Failed to start server translator: $e');
+    }
+  }
+
+  Future<void> _stopServerTranslator() async {
+    final roomName = _roomName;
+    if (roomName == null) return;
+    try {
+      await sl<DioClient>().post(
+        '/voice/rooms/$roomName/translator/stop',
+        data: {},
+        fromJson: (d) => d,
+      );
+      debugPrint('[Translation] Server translator stopped for $roomName');
+    } catch (e) {
+      debugPrint('[Translation] Failed to stop server translator: $e');
     }
   }
 
@@ -2060,11 +2103,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       ),
       builder: (_) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          final filtered = _translationLangs.entries.where((e) =>
+          final filtered = (_translationLangs.entries.where((e) =>
             searchQuery.isEmpty ||
             e.value.toLowerCase().contains(searchQuery.toLowerCase()) ||
             e.key.toLowerCase().contains(searchQuery.toLowerCase()),
-          ).toList();
+          ).toList()..sort((a, b) => a.value.compareTo(b.value)));
           return SafeArea(
             child: DraggableScrollableSheet(
               initialChildSize: 0.7,
@@ -2133,22 +2176,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                               : null,
                           onTap: () {
                             Navigator.pop(context);
-                            _setPreferredLang(e.key);
-                            if (!_translationEnabled) _toggleTranslation(true);
+                            if (_preferredLang == e.key && _translationEnabled) {
+                              _toggleTranslation(false);
+                              setState(() => _preferredLang = '');
+                            } else {
+                              _setPreferredLang(e.key);
+                              if (!_translationEnabled) _toggleTranslation(true);
+                            }
                           },
                         )),
-                        SwitchListTile(
-                          title: Text(
-                            'Включить перевод',
-                            style: TextStyle(color: colors.textPrimary),
-                          ),
-                          value: _translationEnabled,
-                          activeColor: colors.primary,
-                          onChanged: (v) {
-                            Navigator.pop(context);
-                            _toggleTranslation(v);
-                          },
-                        ),
                         const SizedBox(height: 8),
                       ],
                     ),
