@@ -830,6 +830,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   final List<StreamSubscription> _subs = [];
+  bool _transcribing = false;
 
   @override
   void initState() {
@@ -869,6 +870,23 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     } else {
       setState(() => _position = Duration.zero);
       await _player.play(UrlSource(url));
+    }
+  }
+
+  Future<void> _requestTranscription(String summaryId) async {
+    setState(() { _transcribing = true; });
+    try {
+      await sl<DioClient>().post<dynamic>('/voice/recordings/$summaryId/transcribe');
+      // Reload to show processing state
+      setState(() { _future = _load(); });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() { _transcribing = false; });
     }
   }
 
@@ -1097,6 +1115,41 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
+        ],
+
+        // Protocol button — show when recording exists but no transcript yet
+        if (recordingUrl != null && recordingUrl.isNotEmpty && summary != null) ...[
+          if ((summary['transcript'] as String? ?? '').isEmpty && summary['status'] != 'processing') ...[
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _transcribing ? null : () => _requestTranscription(summary['id'] as String),
+                icon: _transcribing
+                    ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.textPrimary))
+                    : const Icon(Icons.description_rounded),
+                label: Text(_transcribing ? 'Обработка...' : 'Создать протокол'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          // Show transcript if available
+          if ((summary['transcript'] as String? ?? '').isNotEmpty) ...[
+            _SectionHeader(icon: Icons.description_rounded, title: 'Протокол записи', colors: colors),
+            const SizedBox(height: 8),
+            AppCard(
+              child: Text(
+                summary['transcript'] as String,
+                style: TextStyle(color: colors.textPrimary, fontSize: 14, height: 1.5),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ],
 
         // Meeting summary
