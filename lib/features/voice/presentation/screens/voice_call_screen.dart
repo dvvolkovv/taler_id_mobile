@@ -90,6 +90,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final Map<String, _ConsentEntry> _consentResponses = {};
   bool _recordingApproved = false;
   bool _consentDialogShowing = false;  // prevent duplicate dialogs
+  bool _consentForTranscription = false; // true = consent is for protocol, false = for recording
   final Set<String> _processedMessageIds = {};  // dedup DataChannel messages
 
   // ── Transcription state ──
@@ -496,10 +497,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
 
       // If meeting-recorder is already in the room, mark recording as active
+      // and claim ownership so user can stop/restart it
       if (_participants.any((p) => p.identity == 'meeting-recorder')) {
+        final myId = _room?.localParticipant?.identity;
+        final myName = _room?.localParticipant?.name ?? 'Участник';
         setState(() {
           _isRecording = true;
           _recordingApproved = true;
+          _recordingInitiatorId = myId;
+          _recordingInitiatorName = myName;
         });
       }
 
@@ -609,38 +615,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         final isHuman = newId != 'meeting-recorder' && newId != 'ai-assistant' && newId != 'voice-translator';
 
         if (isHuman && localId != null) {
-          // Delay to let new participant's data channel initialize, then retry
-          for (int i = 0; i < 3; i++) {
-            await Future.delayed(Duration(seconds: i == 0 ? 2 : 1));
-            if (!mounted || _navigatedAway) return;
+          // Delay to let new participant's data channel initialize
+          await Future.delayed(const Duration(seconds: 2));
+          if (!mounted || _navigatedAway) return;
 
-            // If consent is pending, re-send request to new participant
-            if (_consentPending && _recordingInitiatorId == localId) {
-              _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
-              _broadcastData({
-                'type': 'recording_consent_request',
-                'initiatorId': _recordingInitiatorId,
-                'initiatorName': _recordingInitiatorName,
-              });
-              break; // sent successfully, stop retrying
-            }
+          // If consent is pending, add new participant and send request ONLY to them
+          if (_consentPending && _recordingInitiatorId == localId) {
+            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+            _sendDataTo([newId], {
+              'type': 'recording_consent_request',
+              'initiatorId': _recordingInitiatorId,
+              'initiatorName': _recordingInitiatorName,
+            });
+          }
 
-            // If recording is already active, send consent request to new participant
-            // They must agree before staying in the room
-            if (_isRecording && _recordingApproved && _recordingInitiatorId == localId) {
-              _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
-              setState(() => _consentPending = true);
-              _broadcastData({
-                'type': 'recording_consent_request',
-                'initiatorId': _recordingInitiatorId,
-                'initiatorName': _recordingInitiatorName,
-                'recordingActive': true,
-              });
-              break; // sent successfully, stop retrying
-            }
-
-            // If nothing to send, stop
-            if (!_consentPending && !_isRecording) break;
+          // If recording is already active, send consent request ONLY to new participant
+          if (_isRecording && _recordingApproved && _recordingInitiatorId == localId && !_consentPending) {
+            _consentResponses.clear(); // clear old entries — only track new participant
+            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+            setState(() => _consentPending = true);
+            _sendDataTo([newId], {
+              'type': 'recording_consent_request',
+              'initiatorId': _recordingInitiatorId,
+              'initiatorName': _recordingInitiatorName,
+              'recordingActive': true,
+            });
           }
         }
         // voice-translator joined — update subscription if user has translation enabled
@@ -661,21 +660,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       ..on<lk.ParticipantDisconnectedEvent>((event) {
         if (!mounted || _navigatedAway) return;
         final identity = event.participant.identity;
-        // If recording initiator left, end recording
-        if (identity == _recordingInitiatorId && (_isRecording || _consentPending)) {
+        // If recording/transcription initiator left, end everything
+        if (identity == _recordingInitiatorId && (_isRecording || _transcriptionActive || _consentPending)) {
           _resetRecordingState();
         }
         // Remove from consent tracking
         if (_consentPending && _consentResponses.containsKey(identity)) {
           _consentResponses.remove(identity);
           _checkAllConsented();
-        }
-        // If transcription initiator left, end transcription
-        if (identity == _transcriptionInitiatorId && _transcriptionActive) {
-          setState(() {
-            _transcriptionActive = false;
-            _transcriptionInitiatorId = null;
-          });
         }
         if (mounted) setState(() {});
       })
@@ -1206,24 +1198,27 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // ── RECORDING WITH CONSENT ──
   // ═══════════════════════════════════════════
 
-  void _toggleRecordingWithConsent() {
+  void _toggleRecordingWithConsent({bool forTranscription = false}) {
     final localId = _room?.localParticipant?.identity;
     if (localId == null) return;
 
     // If we are the initiator and recording/consent is active — stop
-    if (_recordingInitiatorId == localId && (_isRecording || _consentPending)) {
+    if (_recordingInitiatorId == localId && (_isRecording || _transcriptionActive || _consentPending)) {
       _endRecordingSession();
       return;
     }
-    // If recording is active by someone else — can't stop
-    if (_recordingApproved && _recordingInitiatorId != localId) return;
+    // If recording/transcription is active by someone else — can't stop
+    if ((_recordingApproved || _transcriptionActive) && _recordingInitiatorId != localId) return;
     // Start consent flow
+    _consentForTranscription = forTranscription;
     _requestRecordingConsent();
   }
 
   void _requestRecordingConsent() {
     final room = _room;
-    if (room == null || _consentPending || _isRecording) return;
+    if (room == null) return;
+    debugPrint('[VoiceCall] _requestRecordingConsent: consentPending=$_consentPending isRecording=$_isRecording transcription=$_transcriptionActive initiator=$_recordingInitiatorId forTranscription=$_consentForTranscription');
+    if (_consentPending || _isRecording || _transcriptionActive) return;
     final localId = room.localParticipant?.identity;
     final localName = room.localParticipant?.name ?? 'Участник';
 
@@ -1231,15 +1226,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         .where((p) => p.identity != 'meeting-recorder' && p.identity != 'voice-translator' && p.identity != 'ai-assistant')
         .toList();
 
-    // If no other participants, start recording directly
+    // If no other participants, start directly
     if (participants.isEmpty) {
       setState(() {
         _recordingInitiatorId = localId;
         _recordingInitiatorName = localName;
         _recordingApproved = true;
       });
-      _startRecording();
-      _broadcastData({'type': 'recording_approved', 'initiatorId': localId, 'initiatorName': localName});
+      if (_consentForTranscription) {
+        _startTranscription();
+      } else {
+        _startRecording();
+      }
+      _broadcastData({'type': 'recording_approved', 'initiatorId': localId, 'initiatorName': localName, 'forTranscription': _consentForTranscription});
       return;
     }
 
@@ -1258,22 +1257,24 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _sendConsentRequestWithRetry(String initiatorId, String initiatorName, {bool recordingActive = false}) {
-    final msg = {
-      'type': 'recording_consent_request',
-      'initiatorId': initiatorId,
-      'initiatorName': initiatorName,
-      if (recordingActive) 'recordingActive': true,
-    };
-    _broadcastData(msg);
-    // Retry after 2s if still pending (participant may not have received)
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted || _navigatedAway || !_consentPending) return;
-      // Check if any response is still null (not yet responded)
-      final anyPending = _consentResponses.values.any((e) => e.accepted == null);
-      if (anyPending) {
-        _broadcastData(msg);
-      }
-    });
+    // Send consent request multiple times with increasing delays
+    // Data channel may not be ready immediately after (re)connecting
+    for (int i = 0; i < 4; i++) {
+      final delay = [0, 2, 4, 7][i];
+      Future.delayed(Duration(seconds: delay), () {
+        if (!mounted || _navigatedAway || !_consentPending) return;
+        final anyPending = _consentResponses.values.any((e) => e.accepted == null);
+        if (!anyPending && i > 0) return; // all responded — stop retrying
+        debugPrint('[VoiceCall] Sending consent request attempt ${i + 1}/4 forTranscription=$_consentForTranscription');
+        _broadcastData({
+          'type': 'recording_consent_request',
+          'initiatorId': initiatorId,
+          'initiatorName': initiatorName,
+          if (recordingActive) 'recordingActive': true,
+          if (_consentForTranscription) 'forTranscription': true,
+        });
+      });
+    }
   }
 
   void _handleDataReceived(lk.DataReceivedEvent event) {
@@ -1331,27 +1332,30 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     final initiatorId = msg['initiatorId'] as String?;
     final initiatorName = msg['initiatorName'] as String? ?? 'Участник';
     final recordingAlreadyActive = msg['recordingActive'] as bool? ?? false;
+    final forTranscription = msg['forTranscription'] as bool? ?? false;
     final localId = _room?.localParticipant?.identity;
     if (initiatorId == localId) return; // self
-    if (_isRecording && _recordingInitiatorId == initiatorId) return; // already recording
+    if ((_isRecording || _transcriptionActive) && _recordingInitiatorId == initiatorId) return; // already active
+    if (_recordingApproved && _recordingInitiatorId == initiatorId) return; // already approved
     if (_consentDialogShowing) return; // already showing dialog
 
     setState(() {
       _recordingInitiatorId = initiatorId;
       _recordingInitiatorName = initiatorName;
+      _consentForTranscription = forTranscription;
     });
 
-    _showConsentDialog(initiatorName, recordingActive: recordingAlreadyActive);
+    _showConsentDialog(initiatorName, recordingActive: recordingAlreadyActive, forTranscription: forTranscription);
   }
 
   void _onConsentResponse(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
     if (!mounted || _navigatedAway) return;
     final localId = _room?.localParticipant?.identity;
-    if (_recordingInitiatorId != localId || !_consentPending) return;
-
     final identity = participant?.identity;
     final accepted = msg['accepted'] as bool? ?? false;
     final responderName = msg['responderName'] as String? ?? 'Участник';
+    debugPrint('[VoiceCall] _onConsentResponse from=$identity accepted=$accepted initiator=$_recordingInitiatorId localId=$localId consentPending=$_consentPending keys=${_consentResponses.keys}');
+    if (_recordingInitiatorId != localId || !_consentPending) return;
 
     if (identity != null && _consentResponses.containsKey(identity)) {
       setState(() {
@@ -1391,10 +1395,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _consentPending = false;
         _recordingApproved = true;
       });
-      // Only start recording if not already recording (new participant consent)
-      if (!_isRecording) {
-        _startRecording();
-        _showSnack('Все согласились. Запись началась.');
+      // Only start if not already active (new participant consent)
+      if (!_isRecording && !_transcriptionActive) {
+        if (_consentForTranscription) {
+          _startTranscription();
+          _showSnack('Все согласились. Протоколирование начато.');
+        } else {
+          _startRecording();
+          _showSnack('Все согласились. Запись началась.');
+        }
       } else {
         _showSnack('Новый участник согласился на запись.');
       }
@@ -1402,16 +1411,24 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         'type': 'recording_approved',
         'initiatorId': _recordingInitiatorId,
         'initiatorName': _recordingInitiatorName,
+        'forTranscription': _consentForTranscription,
       });
     }
   }
 
   void _onRecordingApproved(Map<String, dynamic> msg) {
     if (!mounted || _navigatedAway) return;
+    final forTranscription = msg['forTranscription'] as bool? ?? false;
     setState(() {
       _recordingInitiatorId = msg['initiatorId'] as String?;
       _recordingInitiatorName = msg['initiatorName'] as String? ?? '';
       _recordingApproved = true;
+      _consentForTranscription = forTranscription;
+      if (forTranscription) {
+        _transcriptionActive = true;
+        _transcriptionInitiatorId = msg['initiatorId'] as String?;
+        _transcriptionInitiatorName = msg['initiatorName'] as String? ?? '';
+      }
     });
     if (_consentDialogShowing) {
       try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
@@ -1448,17 +1465,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (_consentDialogShowing) {
       try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
     }
-    if (_isRecording && _recordingInitiatorId == _room?.localParticipant?.identity) {
+    final wasTranscription = _transcriptionActive;
+    if ((_isRecording || _transcriptionActive) && _recordingInitiatorId == _room?.localParticipant?.identity) {
       _stopRecording();
     }
     _resetRecordingState();
-    _showSnack('Запись завершена');
+    _showSnack(wasTranscription ? 'Протоколирование завершено' : 'Запись завершена');
   }
 
   void _endRecordingSession() {
     final localId = _room?.localParticipant?.identity;
     if (_recordingInitiatorId != localId) return;
-    if (_isRecording) _stopRecording();
+    if (_isRecording || _transcriptionActive) _stopRecording();
     _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
     _resetRecordingState();
   }
@@ -1472,6 +1490,24 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (mounted) setState(() => _isRecording = true);
     } catch (e) {
       debugPrint('[VoiceCall] Recorder start error: $e');
+    }
+  }
+
+  Future<void> _startTranscription() async {
+    final roomName = _roomName;
+    if (roomName == null) return;
+    final localId = _room?.localParticipant?.identity;
+    final localName = _room?.localParticipant?.name ?? 'Участник';
+    try {
+      await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/start',
+          data: {'withAi': true});
+      if (mounted) setState(() {
+        _transcriptionActive = true;
+        _transcriptionInitiatorId = localId;
+        _transcriptionInitiatorName = localName;
+      });
+    } catch (e) {
+      debugPrint('[VoiceCall] Transcription start error: $e');
     }
   }
 
@@ -1493,18 +1529,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _recordingInitiatorName = '';
       _consentPending = false;
       _recordingApproved = false;
+      _consentForTranscription = false;
       _consentResponses.clear();
       _isRecording = false;
+      _transcriptionActive = false;
+      _transcriptionInitiatorId = null;
+      _transcriptionInitiatorName = '';
     });
   }
 
-  void _showConsentDialog(String initiatorName, {bool recordingActive = false}) {
+  void _showConsentDialog(String initiatorName, {bool recordingActive = false, bool forTranscription = false}) {
     if (_consentDialogShowing || _navigatedAway || !mounted) return;
     _consentDialogShowing = true;
+    final actionWord = forTranscription ? 'протоколирование' : 'запись';
     final declineLabel = recordingActive ? 'Отклонить и выйти' : 'Отклонить';
     final contentText = recordingActive
-        ? ' ведёт запись встречи.\nВаш голос будет записан.\nПри отказе вы покинете звонок.'
-        : ' хочет начать запись встречи.\nВаш голос будет записан.';
+        ? ' ведёт $actionWord встречи.\nВаш голос будет записан.\nПри отказе вы покинете звонок.'
+        : ' хочет начать $actionWord встречи.\nВаш голос будет записан.';
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1526,7 +1567,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                recordingActive ? 'Запись идёт' : 'Запрос на запись',
+                recordingActive
+                    ? (forTranscription ? 'Протоколирование идёт' : 'Запись идёт')
+                    : (forTranscription ? 'Запрос на протоколирование' : 'Запрос на запись'),
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
@@ -1577,51 +1620,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       'responderId': localId,
       'responderName': localName,
     });
-    if (!accepted) _resetRecordingState();
+    if (accepted) {
+      // Mark as approved so retry consent requests are ignored
+      setState(() => _recordingApproved = true);
+    } else {
+      _resetRecordingState();
+    }
   }
 
   // ═══════════════════════════════════════════
   // ── TRANSCRIPTION (ПРОТОКОЛИРОВАНИЕ) ──
   // ═══════════════════════════════════════════
 
-  Future<void> _toggleTranscription() async {
-    final roomName = _roomName;
-    if (roomName == null) return;
-    final localId = _room?.localParticipant?.identity;
-    final localName = _room?.localParticipant?.name ?? 'Участник';
-
-    try {
-      if (!_transcriptionActive) {
-        await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/start',
-            data: {'withAi': true});
-        if (mounted) setState(() {
-          _transcriptionActive = true;
-          _transcriptionInitiatorId = localId;
-          _transcriptionInitiatorName = localName;
-        });
-        _broadcastData({
-          'type': 'transcription_status',
-          'active': true,
-          'initiatorId': localId,
-          'initiatorName': localName,
-        });
-        _showSnack('Протоколирование начато');
-      } else {
-        if (_transcriptionInitiatorId != localId) {
-          _showSnack('Только инициатор может остановить');
-          return;
-        }
-        await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/stop');
-        if (mounted) setState(() {
-          _transcriptionActive = false;
-          _transcriptionInitiatorId = null;
-        });
-        _broadcastData({'type': 'transcription_status', 'active': false, 'initiatorId': localId});
-        _showSnack('Протоколирование завершено');
-      }
-    } catch (e) {
-      debugPrint('[VoiceCall] Transcription error: $e');
-    }
+  /// Uses the same consent flow as recording
+  void _toggleTranscription() {
+    _toggleRecordingWithConsent(forTranscription: true);
   }
 
   void _onTranscriptionStatus(Map<String, dynamic> msg) {
@@ -1647,6 +1660,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (room == null) return;
     // Add unique messageId for deduplication
     msg['msgId'] = '${room.localParticipant?.identity ?? ''}_${_msgSeq++}';
+    final type = msg['type'];
+    final remoteCount = room.remoteParticipants.length;
+    debugPrint('[VoiceCall] broadcastData type=$type to $remoteCount participants');
     try {
       room.localParticipant?.publishData(
         utf8.encode(jsonEncode(msg)),
@@ -1654,6 +1670,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       );
     } catch (e) {
       debugPrint('[VoiceCall] broadcastData error: $e');
+    }
+  }
+
+  /// Send data to specific participants only (not broadcast)
+  void _sendDataTo(List<String> identities, Map<String, dynamic> msg) {
+    final room = _room;
+    if (room == null) return;
+    msg['msgId'] = '${room.localParticipant?.identity ?? ''}_${_msgSeq++}';
+    debugPrint('[VoiceCall] sendDataTo ${identities.join(',')} type=${msg['type']}');
+    try {
+      room.localParticipant?.publishData(
+        utf8.encode(jsonEncode(msg)),
+        reliable: true,
+        destinationIdentities: identities,
+      );
+    } catch (e) {
+      debugPrint('[VoiceCall] sendDataTo error: $e');
     }
   }
 
@@ -1820,15 +1853,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     // Stop recording/transcription on server BEFORE disconnecting
     final localId = _room?.localParticipant?.identity;
-    if (_recordingInitiatorId == localId && _isRecording) {
+    if (_recordingInitiatorId == localId && (_isRecording || _transcriptionActive)) {
       _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
       await _stopRecording();
     } else if (_recordingInitiatorId == localId && _consentPending) {
       _broadcastData({'type': 'recording_denied', 'initiatorId': localId});
-    }
-    if (_transcriptionActive && _transcriptionInitiatorId == localId) {
-      _broadcastData({'type': 'transcription_status', 'active': false, 'initiatorId': localId});
-      try { await sl<DioClient>().dio.post('/voice/rooms/${_roomName}/recorder/stop'); } catch (_) {}
     }
     // Disable microphone first to release audio track
     try {
@@ -2395,8 +2424,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: (_isRecording || _consentPending) ? Colors.red
-                      : _transcriptionActive ? const Color(0xFF10B981)
+                  color: (_isRecording || (_consentPending && !_consentForTranscription)) ? Colors.red
+                      : (_transcriptionActive || (_consentPending && _consentForTranscription)) ? const Color(0xFF10B981)
                       : Colors.green,
                   shape: BoxShape.circle,
                 ),
@@ -2410,7 +2439,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (_isRecording || _consentPending) ...[
+              if (_isRecording || (_consentPending && !_consentForTranscription)) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2428,14 +2457,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        _consentPending ? 'ОЖИДАНИЕ' : 'REC',
+                        (_consentPending && !_consentForTranscription) ? 'ОЖИДАНИЕ' : 'REC',
                         style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                 ),
               ],
-              if (_transcriptionActive) ...[
+              if (_transcriptionActive || (_consentPending && _consentForTranscription)) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -2452,9 +2481,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 5),
-                      const Text(
-                        'ПРОТОКОЛ',
-                        style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
+                      Text(
+                        (_consentPending && _consentForTranscription) ? 'ОЖИДАНИЕ' : 'ПРОТОКОЛ',
+                        style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -2517,27 +2546,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ControlButton(
-                    icon: (_isRecording || _consentPending)
+                    icon: (_isRecording || (_consentPending && !_consentForTranscription))
                         ? Icons.stop_circle_rounded
                         : Icons.fiber_manual_record_rounded,
-                    label: _consentPending ? 'Ожидание' : (_isRecording ? 'Стоп' : 'Запись'),
-                    color: (_isRecording || _consentPending)
+                    label: (_consentPending && !_consentForTranscription) ? 'Ожидание' : (_isRecording ? 'Стоп' : 'Запись'),
+                    color: (_isRecording || (_consentPending && !_consentForTranscription))
                         ? Colors.red.withValues(alpha: 0.2)
                         : AppColors.of(context).card,
-                    iconColor: (_isRecording || _consentPending) ? Colors.red : null,
-                    onTap: (_recordingApproved && _recordingInitiatorId != _room?.localParticipant?.identity)
+                    iconColor: (_isRecording || (_consentPending && !_consentForTranscription)) ? Colors.red : null,
+                    onTap: (_transcriptionActive || (_consentPending && _consentForTranscription) ||
+                            (_recordingApproved && _recordingInitiatorId != _room?.localParticipant?.identity))
                         ? null
-                        : _toggleRecordingWithConsent,
+                        : () => _toggleRecordingWithConsent(),
                   ),
-                  _ControlButton(
-                    icon: _transcriptionActive ? Icons.description : Icons.description_outlined,
-                    label: _transcriptionActive ? 'Стоп' : 'Протокол',
-                    color: _transcriptionActive
-                        ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                        : AppColors.of(context).card,
-                    iconColor: _transcriptionActive ? const Color(0xFF10B981) : null,
-                    onTap: _toggleTranscription,
-                  ),
+                  // Протокол кнопка убрана — запись и протокол объединены
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
