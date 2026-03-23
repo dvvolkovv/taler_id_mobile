@@ -2887,7 +2887,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final name = isAI
           ? 'AI Ассистент'
           : isRecorder
-              ? 'AI Запись'
+              ? 'Запись'
               : (p.name?.isNotEmpty == true ? p.name! : p.identity);
       tiles.add(_VideoTileData(name: name, track: track, hasMic: _participantHasMic(p), isLocal: false, isAI: isAI, isRecorder: isRecorder));
     }
@@ -2982,7 +2982,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final name = isAI
           ? 'AI Ассистент'
           : isRecorder
-              ? 'AI Запись'
+              ? 'Запись'
               : (p.name?.isNotEmpty == true ? p.name! : p.identity);
       final hasMic = _participantHasMic(p);
       tiles.add(_VideoTileData(
