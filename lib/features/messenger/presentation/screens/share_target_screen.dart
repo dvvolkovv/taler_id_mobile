@@ -182,7 +182,7 @@ class _ConversationTile extends StatelessWidget {
 
   String get displayName {
     if (conversation.type == 'GROUP') {
-      return conversation.groupName ?? 'Группа';
+      return conversation.name ?? 'Группа';
     }
     return conversation.otherUserName ?? 'Чат';
   }
@@ -204,9 +204,9 @@ class _ConversationTile extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
-      subtitle: conversation.lastMessage != null
+      subtitle: conversation.lastMessageContent != null
           ? Text(
-              conversation.lastMessage!,
+              conversation.lastMessageContent!,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 13,
