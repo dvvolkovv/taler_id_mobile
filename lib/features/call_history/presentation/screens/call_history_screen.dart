@@ -520,7 +520,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildCallCard(_CallEntry e, AppColorsExtension colors) {
-    final isMissed = !e.isOutgoing && (e.durationSec == null || e.durationSec == 0);
+    final isMissed = e.isMissed;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => CallDetailScreen(callId: e.id)),
@@ -756,6 +756,7 @@ class _CallEntry {
   final DateTime startedAt;
   final int? durationSec;
   final bool isOutgoing;
+  final bool isMissed;
   final bool withAi;
   final String? conversationId;
   final bool hasSummary;
@@ -768,6 +769,7 @@ class _CallEntry {
     required this.startedAt,
     this.durationSec,
     required this.isOutgoing,
+    this.isMissed = false,
     required this.withAi,
     this.conversationId,
     this.hasSummary = false,
@@ -803,6 +805,7 @@ class _CallEntry {
       startedAt: DateTime.tryParse(json['startedAt'] as String? ?? '') ?? DateTime.now(),
       durationSec: json['durationSec'] as int?,
       isOutgoing: json['isOutgoing'] as bool? ?? true,
+      isMissed: json['isMissed'] as bool? ?? false,
       withAi: withAi,
       conversationId: json['conversationId'] as String?,
       hasSummary: hasSummary,
