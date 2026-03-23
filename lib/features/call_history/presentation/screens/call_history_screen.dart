@@ -1248,7 +1248,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                         Text('Нет резюме', style: TextStyle(color: colors.textSecondary, fontSize: 15)),
                         const SizedBox(height: 6),
                         Text(
-                          'Нажмите "AI Запись" во время звонка',
+                          'Нажмите "Запись" во время звонка',
                           style: TextStyle(color: colors.textSecondary, fontSize: 13),
                         ),
                       ],
@@ -1529,6 +1529,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   final List<StreamSubscription> _subs = [];
+  final Set<String> _transcribingIds = {};
 
   @override
   void initState() {
@@ -1598,6 +1599,34 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     return '${h}ч ${mm.toString().padLeft(2, '0')}м';
   }
 
+  Future<void> _transcribe(String id) async {
+    if (_transcribingIds.contains(id)) return;
+    setState(() => _transcribingIds.add(id));
+    try {
+      await sl<DioClient>().post<dynamic>('/voice/recordings/$id/transcribe');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Протокол создан'),
+            backgroundColor: AppColors.of(context).primary,
+          ),
+        );
+        setState(() => _future = _load());
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: $e'),
+            backgroundColor: AppColors.of(context).error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _transcribingIds.remove(id));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -1629,7 +1658,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                         Text('Нет записей', style: TextStyle(color: colors.textSecondary, fontSize: 15)),
                         const SizedBox(height: 6),
                         Text(
-                          'Нажмите "AI Запись" во время звонка',
+                          'Нажмите "Запись" во время звонка',
                           style: TextStyle(color: colors.textSecondary, fontSize: 13),
                         ),
                       ],
@@ -1656,9 +1685,13 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     final durationSec = item['durationSec'] as int?;
     final createdAt = (DateTime.tryParse(item['createdAt'] as String? ?? '') ?? DateTime.now()).toLocal();
     final recordingUrl = item['recordingUrl'] as String? ?? '';
+    final status = item['status'] as String? ?? 'done';
+    final hasTranscript = item['hasTranscript'] as bool? ?? false;
+    final hasSummary = item['hasSummary'] as bool? ?? false;
     final durationStr = durationSec != null ? _formatDuration(durationSec) : '';
     final isThis = _playingId == id;
     final isPlaying = isThis && _playerState == PlayerState.playing;
+    final isTranscribing = _transcribingIds.contains(id) || status == 'processing';
 
     return AppCard(
       child: Column(
@@ -1753,6 +1786,63 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
           ] else ...[
             Text('Запись недоступна', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
           ],
+          // Protocol / Transcription button
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (hasTranscript || hasSummary)
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => MeetingSummaryDetailScreen(id: id)),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.description_rounded, size: 14, color: Color(0xFF10B981)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Протокол готов',
+                          style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(Icons.chevron_right_rounded, size: 14, color: Color(0xFF10B981)),
+                      ],
+                    ),
+                  ),
+                ),
+              const Spacer(),
+              if (isTranscribing)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Обработка...', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                  ],
+                )
+              else if (!hasTranscript)
+                TextButton.icon(
+                  onPressed: () => _transcribe(id),
+                  icon: const Icon(Icons.auto_awesome, size: 16),
+                  label: const Text('Протокол'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: colors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );

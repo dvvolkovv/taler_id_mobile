@@ -89,6 +89,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _consentPending = false;      // initiator waiting for responses
   final Map<String, _ConsentEntry> _consentResponses = {};
   bool _recordingApproved = false;
+  bool _consentDialogShowing = false;  // prevent duplicate dialogs
+  final Set<String> _processedMessageIds = {};  // dedup DataChannel messages
 
   // ── Transcription state ──
   bool _transcriptionActive = false;
@@ -594,9 +596,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity != 'ai-assistant') {
           _stopRingback();
         }
-        // If we're the recording initiator and consent is pending/approved, notify new participant
-        if (_recordingInitiatorId == _room?.localParticipant?.identity &&
-            (_consentPending || _recordingApproved)) {
+        // If we're the recording initiator and consent is still pending, notify new human participant
+        final newId = event.participant.identity;
+        if (_consentPending &&
+            _recordingInitiatorId == _room?.localParticipant?.identity &&
+            newId != 'meeting-recorder' && newId != 'ai-assistant' && newId != 'voice-translator') {
+          // Add new participant to consent tracking
+          _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
           _broadcastData({
             'type': 'recording_consent_request',
             'initiatorId': _recordingInitiatorId,
@@ -827,10 +833,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void _navigateBack() {
     if (_navigatedAway || !mounted) return;
     _navigatedAway = true;
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(RouteConstants.assistant);
+    try {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.assistant);
+      }
+    } catch (e) {
+      debugPrint('[VoiceCall] _navigateBack error (ignored): $e');
     }
   }
 
@@ -1232,12 +1242,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _handleDataReceived(lk.DataReceivedEvent event) {
-    if (!mounted) return;
+    if (!mounted || _navigatedAway) return;
     try {
       final msg = jsonDecode(utf8.decode(event.data)) as Map<String, dynamic>;
       final type = msg['type'] as String?;
       final participant = event.participant;
       if (type == null) return;
+
+      // Deduplicate messages
+      final msgId = msg['msgId'] as String?;
+      if (msgId != null) {
+        if (_processedMessageIds.contains(msgId)) return;
+        _processedMessageIds.add(msgId);
+        // Keep set bounded
+        if (_processedMessageIds.length > 200) {
+          _processedMessageIds.clear();
+        }
+      }
 
       switch (type) {
         case 'recording_consent_request':
@@ -1268,11 +1289,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _onConsentRequest(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
     final initiatorId = msg['initiatorId'] as String?;
     final initiatorName = msg['initiatorName'] as String? ?? 'Участник';
     final localId = _room?.localParticipant?.identity;
     if (initiatorId == localId) return; // self
     if (_isRecording && _recordingInitiatorId == initiatorId) return; // already recording
+    if (_consentDialogShowing) return; // already showing dialog
 
     setState(() {
       _recordingInitiatorId = initiatorId;
@@ -1283,6 +1306,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _onConsentResponse(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
     final localId = _room?.localParticipant?.identity;
     if (_recordingInitiatorId != localId || !_consentPending) return;
 
@@ -1308,7 +1332,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _checkAllConsented() {
-    if (!_consentPending) return;
+    if (!mounted || _navigatedAway || !_consentPending) return;
     final all = _consentResponses.values.toList();
     if (all.isEmpty) return;
     if (all.every((e) => e.accepted == true)) {
@@ -1327,33 +1351,32 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _onRecordingApproved(Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
     setState(() {
       _recordingInitiatorId = msg['initiatorId'] as String?;
       _recordingInitiatorName = msg['initiatorName'] as String? ?? '';
       _recordingApproved = true;
     });
-    Navigator.of(context, rootNavigator: true).popUntil((route) {
-      // Close consent dialog if open
-      if (route.settings.name == 'consent_dialog') return false;
-      return true;
-    });
+    if (_consentDialogShowing) {
+      try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+    }
   }
 
   void _onRecordingDenied(Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
     final declinedBy = msg['declinedBy'] as String?;
-    Navigator.of(context, rootNavigator: true).popUntil((route) {
-      if (route.settings.name == 'consent_dialog') return false;
-      return true;
-    });
+    if (_consentDialogShowing) {
+      try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+    }
     _resetRecordingState();
     if (declinedBy != null) _showSnack('$declinedBy отклонил запись');
   }
 
   void _onRecordingEnded(Map<String, dynamic> msg) {
-    Navigator.of(context, rootNavigator: true).popUntil((route) {
-      if (route.settings.name == 'consent_dialog') return false;
-      return true;
-    });
+    if (!mounted || _navigatedAway) return;
+    if (_consentDialogShowing) {
+      try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
+    }
     if (_isRecording && _recordingInitiatorId == _room?.localParticipant?.identity) {
       _stopRecording();
     }
@@ -1393,7 +1416,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _resetRecordingState() {
-    if (!mounted) return;
+    if (!mounted || _navigatedAway) return;
     setState(() {
       _recordingInitiatorId = null;
       _recordingInitiatorName = '';
@@ -1405,6 +1428,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _showConsentDialog(String initiatorName) {
+    if (_consentDialogShowing || _navigatedAway || !mounted) return;
+    _consentDialogShowing = true;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1458,7 +1483,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      _consentDialogShowing = false;
+    });
   }
 
   void _respondToConsent(bool accepted) {
@@ -1518,6 +1545,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _onTranscriptionStatus(Map<String, dynamic> msg) {
+    if (!mounted || _navigatedAway) return;
     final active = msg['active'] as bool? ?? false;
     setState(() {
       _transcriptionActive = active;
@@ -1533,9 +1561,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   // ── Shared helpers ──
 
+  int _msgSeq = 0;
   void _broadcastData(Map<String, dynamic> msg) {
     final room = _room;
     if (room == null) return;
+    // Add unique messageId for deduplication
+    msg['msgId'] = '${room.localParticipant?.identity ?? ''}_${_msgSeq++}';
     try {
       room.localParticipant?.publishData(
         utf8.encode(jsonEncode(msg)),
@@ -1547,7 +1578,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   void _showSnack(String text) {
-    if (!mounted) return;
+    if (!mounted || _navigatedAway) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(text),
@@ -1681,27 +1712,43 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void _minimizeCall() {
     if (_navigatedAway || !mounted) return;
     _navigatedAway = true;
-    // Navigate to dashboard without ending the call
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(RouteConstants.messenger);
+    try {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.messenger);
+      }
+    } catch (e) {
+      debugPrint('[VoiceCall] _minimizeCall error (ignored): $e');
     }
   }
 
+  bool _hangingUp = false;
   Future<void> _hangUp() async {
+    if (_hangingUp) return;
+    _hangingUp = true;
     debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, connectionState=${_room?.connectionState}');
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
-    // Broadcast recording/transcription end if we're the initiator
+    // Close any open consent dialog before navigating
+    if (_consentDialogShowing && mounted) {
+      try {
+        Navigator.of(context, rootNavigator: true).pop();
+      } catch (_) {}
+      _consentDialogShowing = false;
+    }
+    // Stop recording/transcription on server BEFORE disconnecting
     final localId = _room?.localParticipant?.identity;
-    if (_recordingInitiatorId == localId && (_isRecording || _consentPending)) {
+    if (_recordingInitiatorId == localId && _isRecording) {
       _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
+      await _stopRecording();
+    } else if (_recordingInitiatorId == localId && _consentPending) {
+      _broadcastData({'type': 'recording_denied', 'initiatorId': localId});
     }
     if (_transcriptionActive && _transcriptionInitiatorId == localId) {
-      try { sl<DioClient>().dio.post('/voice/rooms/${_roomName}/recorder/stop'); } catch (_) {}
       _broadcastData({'type': 'transcription_status', 'active': false, 'initiatorId': localId});
+      try { await sl<DioClient>().dio.post('/voice/rooms/${_roomName}/recorder/stop'); } catch (_) {}
     }
     // Disable microphone first to release audio track
     try {
@@ -1759,15 +1806,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
     try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
     debugPrint('[VoiceCall] audio cleanup done, navigating back...');
-    if (mounted) {
+    if (!mounted) {
+      debugPrint('[VoiceCall] NOT mounted, cannot navigate');
+      return;
+    }
+    try {
       if (context.canPop()) {
         context.pop();
       } else {
         context.go(RouteConstants.messenger);
       }
       debugPrint('[VoiceCall] navigation done');
-    } else {
-      debugPrint('[VoiceCall] NOT mounted, cannot navigate');
+    } catch (e) {
+      debugPrint('[VoiceCall] navigation error (ignored): $e');
     }
   }
 
@@ -1779,6 +1830,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         ? '${ApiConstants.baseUrl}/room/$code'
         : '${ApiConstants.baseUrl}/room/$name';
     Clipboard.setData(ClipboardData(text: link));
+    if (!mounted || _navigatedAway) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Ссылка скопирована'), duration: Duration(seconds: 2)),
     );
@@ -2575,7 +2627,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               final displayName = isAI
                   ? 'AI Ассистент'
                   : isRecorder
-                      ? 'AI Запись'
+                      ? 'Запись'
                       : (p.name?.isNotEmpty == true ? p.name! : p.identity);
               return Card(
                 color: AppColors.of(context).card,
@@ -2610,16 +2662,57 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       ? Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.15),
+                            color: Colors.red.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text('REC', style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700)),
                         )
                       : isAI
                           ? Icon(Icons.graphic_eq_rounded, color: AppColors.of(context).primary)
-                          : Icon(
-                              hasMic ? Icons.mic_rounded : Icons.mic_off_rounded,
-                              color: hasMic ? Colors.green : AppColors.of(context).textSecondary,
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Recording initiator badge
+                                if (_recordingApproved && _recordingInitiatorId == p.identity)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.fiber_manual_record, color: Colors.red, size: 8),
+                                        SizedBox(width: 3),
+                                        Text('REC', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  ),
+                                // Transcription initiator badge
+                                if (_transcriptionActive && _transcriptionInitiatorId == p.identity)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                    margin: const EdgeInsets.only(right: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('📝', style: TextStyle(fontSize: 10)),
+                                        SizedBox(width: 2),
+                                        Text('AI', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w700)),
+                                      ],
+                                    ),
+                                  ),
+                                Icon(
+                                  hasMic ? Icons.mic_rounded : Icons.mic_off_rounded,
+                                  color: hasMic ? Colors.green : AppColors.of(context).textSecondary,
+                                ),
+                              ],
                             ),
                 ),
               );
