@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:collection/collection.dart';
@@ -81,8 +82,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _ringing = false; // outgoing: ringback playing, waiting for callee to answer
   bool _navigatedAway = false;
   bool _settingUp = true; // true during _initCall/_connect, prevents spurious actionCallEnded
-  bool _aiRecording = false;
-  bool _isRecording = false; // simple recording (no AI analysis)
+  // ── Recording consent state ──
+  bool _isRecording = false;
+  String? _recordingInitiatorId;     // identity of who started recording
+  String _recordingInitiatorName = '';
+  bool _consentPending = false;      // initiator waiting for responses
+  final Map<String, _ConsentEntry> _consentResponses = {};
+  bool _recordingApproved = false;
+
+  // ── Transcription state ──
+  bool _transcriptionActive = false;
+  String? _transcriptionInitiatorId;
+  String _transcriptionInitiatorName = '';
   String? _roomName; // actual room name (resolved after connect)
   String? _publicRoomCreatorName; // owner name fetched from GET /voice/rooms/public/{code}
   String? _publicRoomCreatorAvatar; // owner avatar URL
@@ -202,8 +213,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _roomName = cs.roomName;
       _connecting = false;
       _participants.addAll(_room!.remoteParticipants.values);
-      // Detect if recorder is already in the room
-      _aiRecording = _participants.any((p) => p.identity == 'meeting-recorder');
+      // Detect if recorder is already in the room (transcription mode)
+      if (_participants.any((p) => p.identity == 'meeting-recorder')) {
+        _transcriptionActive = true;
+      }
       _room!.addListener(_onRoomChanged);
       _subscribeRoomEvents();
       // Manually subscribe to tracks — background connect may have missed subscriptions
@@ -581,9 +594,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity != 'ai-assistant') {
           _stopRingback();
         }
-        // Auto-detect meeting recorder joining
-        if (event.participant.identity == 'meeting-recorder') {
-          if (mounted) setState(() => _aiRecording = true);
+        // If we're the recording initiator and consent is pending/approved, notify new participant
+        if (_recordingInitiatorId == _room?.localParticipant?.identity &&
+            (_consentPending || _recordingApproved)) {
+          _broadcastData({
+            'type': 'recording_consent_request',
+            'initiatorId': _recordingInitiatorId,
+            'initiatorName': _recordingInitiatorName,
+          });
         }
         // voice-translator joined — update subscription if user has translation enabled
         if (event.participant.identity == 'voice-translator') {
@@ -602,12 +620,27 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       })
       ..on<lk.ParticipantDisconnectedEvent>((event) {
         if (!mounted || _navigatedAway) return;
-        // Auto-detect meeting recorder leaving
-        if (event.participant.identity == 'meeting-recorder') {
-          if (mounted) setState(() => _aiRecording = false);
+        final identity = event.participant.identity;
+        // If recording initiator left, end recording
+        if (identity == _recordingInitiatorId && (_isRecording || _consentPending)) {
+          _resetRecordingState();
         }
-        // Just update UI — each participant leaves on their own
+        // Remove from consent tracking
+        if (_consentPending && _consentResponses.containsKey(identity)) {
+          _consentResponses.remove(identity);
+          _checkAllConsented();
+        }
+        // If transcription initiator left, end transcription
+        if (identity == _transcriptionInitiatorId && _transcriptionActive) {
+          setState(() {
+            _transcriptionActive = false;
+            _transcriptionInitiatorId = null;
+          });
+        }
         if (mounted) setState(() {});
+      })
+      ..on<lk.DataReceivedEvent>((event) {
+        _handleDataReceived(event);
       })
       ..on<lk.RoomMetadataChangedEvent>((event) async {
         // When another participant enables translator, backend updates room metadata
@@ -1140,39 +1173,389 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     );
   }
 
-  Future<void> _toggleSimpleRecorder() async {
-    final roomName = _roomName;
-    if (roomName == null) return;
-    final client = sl<DioClient>();
-    try {
-      if (!_isRecording) {
-        await client.dio.post('/voice/rooms/$roomName/recorder/start',
-            data: {'withAi': false});
-      } else {
-        await client.dio.post('/voice/rooms/$roomName/recorder/stop');
+  // ═══════════════════════════════════════════
+  // ── RECORDING WITH CONSENT ──
+  // ═══════════════════════════════════════════
+
+  void _toggleRecordingWithConsent() {
+    final localId = _room?.localParticipant?.identity;
+    if (localId == null) return;
+
+    // If we are the initiator and recording/consent is active — stop
+    if (_recordingInitiatorId == localId && (_isRecording || _consentPending)) {
+      _endRecordingSession();
+      return;
+    }
+    // If recording is active by someone else — can't stop
+    if (_recordingApproved && _recordingInitiatorId != localId) return;
+    // Start consent flow
+    _requestRecordingConsent();
+  }
+
+  void _requestRecordingConsent() {
+    final room = _room;
+    if (room == null || _consentPending || _isRecording) return;
+    final localId = room.localParticipant?.identity;
+    final localName = room.localParticipant?.name ?? 'Участник';
+
+    final participants = room.remoteParticipants.values
+        .where((p) => p.identity != 'meeting-recorder' && p.identity != 'voice-translator' && p.identity != 'ai-assistant')
+        .toList();
+
+    // If no other participants, start recording directly
+    if (participants.isEmpty) {
+      setState(() {
+        _recordingInitiatorId = localId;
+        _recordingInitiatorName = localName;
+        _recordingApproved = true;
+      });
+      _startRecording();
+      _broadcastData({'type': 'recording_approved', 'initiatorId': localId, 'initiatorName': localName});
+      return;
+    }
+
+    setState(() {
+      _consentPending = true;
+      _recordingInitiatorId = localId;
+      _recordingInitiatorName = localName;
+      _consentResponses.clear();
+      for (final p in participants) {
+        _consentResponses[p.identity] = _ConsentEntry(p.name ?? 'Участник');
       }
-      if (mounted) setState(() => _isRecording = !_isRecording);
+    });
+
+    _broadcastData({
+      'type': 'recording_consent_request',
+      'initiatorId': localId,
+      'initiatorName': localName,
+    });
+  }
+
+  void _handleDataReceived(lk.DataReceivedEvent event) {
+    if (!mounted) return;
+    try {
+      final msg = jsonDecode(utf8.decode(event.data)) as Map<String, dynamic>;
+      final type = msg['type'] as String?;
+      final participant = event.participant;
+      if (type == null) return;
+
+      switch (type) {
+        case 'recording_consent_request':
+          _onConsentRequest(participant, msg);
+          break;
+        case 'recording_consent_response':
+          _onConsentResponse(participant, msg);
+          break;
+        case 'recording_approved':
+          _onRecordingApproved(msg);
+          break;
+        case 'recording_denied':
+          _onRecordingDenied(msg);
+          break;
+        case 'recording_ended':
+          _onRecordingEnded(msg);
+          break;
+        case 'transcription_status':
+          _onTranscriptionStatus(msg);
+          break;
+        case 'recording_status':
+          // legacy web client broadcast — ignore in mobile
+          break;
+      }
     } catch (e) {
-      debugPrint('[VoiceCall] Recorder error: $e');
+      debugPrint('[VoiceCall] DataReceived parse error: $e');
     }
   }
 
-  Future<void> _toggleAiRecorder() async {
+  void _onConsentRequest(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
+    final initiatorId = msg['initiatorId'] as String?;
+    final initiatorName = msg['initiatorName'] as String? ?? 'Участник';
+    final localId = _room?.localParticipant?.identity;
+    if (initiatorId == localId) return; // self
+    if (_isRecording && _recordingInitiatorId == initiatorId) return; // already recording
+
+    setState(() {
+      _recordingInitiatorId = initiatorId;
+      _recordingInitiatorName = initiatorName;
+    });
+
+    _showConsentDialog(initiatorName);
+  }
+
+  void _onConsentResponse(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
+    final localId = _room?.localParticipant?.identity;
+    if (_recordingInitiatorId != localId || !_consentPending) return;
+
+    final identity = participant?.identity;
+    final accepted = msg['accepted'] as bool? ?? false;
+    final responderName = msg['responderName'] as String? ?? 'Участник';
+
+    if (identity != null && _consentResponses.containsKey(identity)) {
+      setState(() {
+        _consentResponses[identity] = _ConsentEntry(responderName, accepted: accepted);
+      });
+    }
+
+    if (!accepted) {
+      setState(() => _consentPending = false);
+      _broadcastData({'type': 'recording_denied', 'initiatorId': localId, 'declinedBy': responderName});
+      _showSnack('$responderName отклонил запись');
+      _resetRecordingState();
+      return;
+    }
+
+    _checkAllConsented();
+  }
+
+  void _checkAllConsented() {
+    if (!_consentPending) return;
+    final all = _consentResponses.values.toList();
+    if (all.isEmpty) return;
+    if (all.every((e) => e.accepted == true)) {
+      setState(() {
+        _consentPending = false;
+        _recordingApproved = true;
+      });
+      _startRecording();
+      _broadcastData({
+        'type': 'recording_approved',
+        'initiatorId': _recordingInitiatorId,
+        'initiatorName': _recordingInitiatorName,
+      });
+      _showSnack('Все согласились. Запись началась.');
+    }
+  }
+
+  void _onRecordingApproved(Map<String, dynamic> msg) {
+    setState(() {
+      _recordingInitiatorId = msg['initiatorId'] as String?;
+      _recordingInitiatorName = msg['initiatorName'] as String? ?? '';
+      _recordingApproved = true;
+    });
+    Navigator.of(context, rootNavigator: true).popUntil((route) {
+      // Close consent dialog if open
+      if (route.settings.name == 'consent_dialog') return false;
+      return true;
+    });
+  }
+
+  void _onRecordingDenied(Map<String, dynamic> msg) {
+    final declinedBy = msg['declinedBy'] as String?;
+    Navigator.of(context, rootNavigator: true).popUntil((route) {
+      if (route.settings.name == 'consent_dialog') return false;
+      return true;
+    });
+    _resetRecordingState();
+    if (declinedBy != null) _showSnack('$declinedBy отклонил запись');
+  }
+
+  void _onRecordingEnded(Map<String, dynamic> msg) {
+    Navigator.of(context, rootNavigator: true).popUntil((route) {
+      if (route.settings.name == 'consent_dialog') return false;
+      return true;
+    });
+    if (_isRecording && _recordingInitiatorId == _room?.localParticipant?.identity) {
+      _stopRecording();
+    }
+    _resetRecordingState();
+    _showSnack('Запись завершена');
+  }
+
+  void _endRecordingSession() {
+    final localId = _room?.localParticipant?.identity;
+    if (_recordingInitiatorId != localId) return;
+    if (_isRecording) _stopRecording();
+    _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
+    _resetRecordingState();
+  }
+
+  Future<void> _startRecording() async {
     final roomName = _roomName;
     if (roomName == null) return;
-    final client = sl<DioClient>();
+    try {
+      await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/start',
+          data: {'withAi': false});
+      if (mounted) setState(() => _isRecording = true);
+    } catch (e) {
+      debugPrint('[VoiceCall] Recorder start error: $e');
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    final roomName = _roomName;
+    if (roomName == null) return;
+    try {
+      await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/stop');
+    } catch (e) {
+      debugPrint('[VoiceCall] Recorder stop error: $e');
+    }
+    if (mounted) setState(() => _isRecording = false);
+  }
+
+  void _resetRecordingState() {
+    if (!mounted) return;
+    setState(() {
+      _recordingInitiatorId = null;
+      _recordingInitiatorName = '';
+      _consentPending = false;
+      _recordingApproved = false;
+      _consentResponses.clear();
+      _isRecording = false;
+    });
+  }
+
+  void _showConsentDialog(String initiatorName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      routeSettings: const RouteSettings(name: 'consent_dialog'),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.of(context).card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.fiber_manual_record, color: Colors.red, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Text('Запрос на запись', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+          ],
+        ),
+        content: RichText(
+          text: TextSpan(
+            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14, height: 1.5),
+            children: [
+              TextSpan(text: initiatorName, style: const TextStyle(fontWeight: FontWeight.w600)),
+              const TextSpan(text: ' хочет начать запись встречи.\nВаш голос и видео будут записаны.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _respondToConsent(false);
+            },
+            child: Text('Отклонить', style: TextStyle(color: AppColors.of(context).textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.of(context).primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _respondToConsent(true);
+            },
+            child: const Text('Согласен'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _respondToConsent(bool accepted) {
+    final localId = _room?.localParticipant?.identity;
+    final localName = _room?.localParticipant?.name ?? 'Участник';
+    _broadcastData({
+      'type': 'recording_consent_response',
+      'accepted': accepted,
+      'responderId': localId,
+      'responderName': localName,
+    });
+    if (!accepted) _resetRecordingState();
+  }
+
+  // ═══════════════════════════════════════════
+  // ── TRANSCRIPTION (ПРОТОКОЛИРОВАНИЕ) ──
+  // ═══════════════════════════════════════════
+
+  Future<void> _toggleTranscription() async {
+    final roomName = _roomName;
+    if (roomName == null) return;
+    final localId = _room?.localParticipant?.identity;
+    final localName = _room?.localParticipant?.name ?? 'Участник';
 
     try {
-      if (!_aiRecording) {
-        await client.dio.post('/voice/rooms/$roomName/recorder/start',
+      if (!_transcriptionActive) {
+        await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/start',
             data: {'withAi': true});
+        if (mounted) setState(() {
+          _transcriptionActive = true;
+          _transcriptionInitiatorId = localId;
+          _transcriptionInitiatorName = localName;
+        });
+        _broadcastData({
+          'type': 'transcription_status',
+          'active': true,
+          'initiatorId': localId,
+          'initiatorName': localName,
+        });
+        _showSnack('Протоколирование начато');
       } else {
-        await client.dio.post('/voice/rooms/$roomName/recorder/stop');
+        if (_transcriptionInitiatorId != localId) {
+          _showSnack('Только инициатор может остановить');
+          return;
+        }
+        await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/stop');
+        if (mounted) setState(() {
+          _transcriptionActive = false;
+          _transcriptionInitiatorId = null;
+        });
+        _broadcastData({'type': 'transcription_status', 'active': false, 'initiatorId': localId});
+        _showSnack('Протоколирование завершено');
       }
-      if (mounted) setState(() => _aiRecording = !_aiRecording);
     } catch (e) {
-      debugPrint('[VoiceCall] AI recorder error: $e');
+      debugPrint('[VoiceCall] Transcription error: $e');
     }
+  }
+
+  void _onTranscriptionStatus(Map<String, dynamic> msg) {
+    final active = msg['active'] as bool? ?? false;
+    setState(() {
+      _transcriptionActive = active;
+      if (active) {
+        _transcriptionInitiatorId = msg['initiatorId'] as String?;
+        _transcriptionInitiatorName = msg['initiatorName'] as String? ?? '';
+      } else {
+        _transcriptionInitiatorId = null;
+        _transcriptionInitiatorName = '';
+      }
+    });
+  }
+
+  // ── Shared helpers ──
+
+  void _broadcastData(Map<String, dynamic> msg) {
+    final room = _room;
+    if (room == null) return;
+    try {
+      room.localParticipant?.publishData(
+        utf8.encode(jsonEncode(msg)),
+        reliable: true,
+      );
+    } catch (e) {
+      debugPrint('[VoiceCall] broadcastData error: $e');
+    }
+  }
+
+  void _showSnack(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
   bool get _hasAnyVideo {
@@ -1311,6 +1694,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
+    // Broadcast recording/transcription end if we're the initiator
+    final localId = _room?.localParticipant?.identity;
+    if (_recordingInitiatorId == localId && (_isRecording || _consentPending)) {
+      _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
+    }
+    if (_transcriptionActive && _transcriptionInitiatorId == localId) {
+      try { sl<DioClient>().dio.post('/voice/rooms/${_roomName}/recorder/stop'); } catch (_) {}
+      _broadcastData({'type': 'transcription_status', 'active': false, 'initiatorId': localId});
+    }
     // Disable microphone first to release audio track
     try {
       await _room?.localParticipant?.setMicrophoneEnabled(false);
@@ -1915,7 +2307,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: (_aiRecording || _isRecording) ? Colors.red : Colors.green,
+                  color: (_isRecording || _consentPending) ? Colors.red
+                      : _transcriptionActive ? const Color(0xFF10B981)
+                      : Colors.green,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -1928,14 +2322,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (_isRecording) ...[
+              if (_isRecording || _consentPending) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.15),
+                    color: Colors.red.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1945,34 +2339,34 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 5),
-                      const Text(
-                        'REC',
-                        style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700),
+                      Text(
+                        _consentPending ? 'ОЖИДАНИЕ' : 'REC',
+                        style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
                 ),
               ],
-              if (_aiRecording) ...[
+              if (_transcriptionActive) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.15),
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         width: 6, height: 6,
-                        decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 5),
                       const Text(
-                        'AI REC',
-                        style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700),
+                        'ПРОТОКОЛ',
+                        style: TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
                   ),
@@ -2035,22 +2429,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ControlButton(
-                    icon: _isRecording ? Icons.stop_circle_rounded : Icons.fiber_manual_record_rounded,
-                    label: _isRecording ? 'Стоп' : 'Запись',
-                    color: _isRecording
-                        ? Colors.red.withOpacity(0.2)
+                    icon: (_isRecording || _consentPending)
+                        ? Icons.stop_circle_rounded
+                        : Icons.fiber_manual_record_rounded,
+                    label: _consentPending ? 'Ожидание' : (_isRecording ? 'Стоп' : 'Запись'),
+                    color: (_isRecording || _consentPending)
+                        ? Colors.red.withValues(alpha: 0.2)
                         : AppColors.of(context).card,
-                    iconColor: _isRecording ? Colors.red : null,
-                    onTap: (_aiRecording) ? null : _toggleSimpleRecorder,
+                    iconColor: (_isRecording || _consentPending) ? Colors.red : null,
+                    onTap: (_recordingApproved && _recordingInitiatorId != _room?.localParticipant?.identity)
+                        ? null
+                        : _toggleRecordingWithConsent,
                   ),
                   _ControlButton(
-                    icon: _aiRecording ? Icons.smart_toy : Icons.smart_toy_outlined,
-                    label: _aiRecording ? 'AI Стоп' : 'AI Запись',
-                    color: _aiRecording
-                        ? Colors.red.withOpacity(0.2)
+                    icon: _transcriptionActive ? Icons.description : Icons.description_outlined,
+                    label: _transcriptionActive ? 'Стоп' : 'Протокол',
+                    color: _transcriptionActive
+                        ? const Color(0xFF10B981).withValues(alpha: 0.2)
                         : AppColors.of(context).card,
-                    iconColor: _aiRecording ? Colors.red : null,
-                    onTap: (_isRecording) ? null : _toggleAiRecorder,
+                    iconColor: _transcriptionActive ? const Color(0xFF10B981) : null,
+                    onTap: _toggleTranscription,
                   ),
                   Stack(
                     clipBehavior: Clip.none,
@@ -2783,6 +3181,12 @@ class _UserSearchSheetState extends State<_UserSearchSheet> {
       ),
     );
   }
+}
+
+class _ConsentEntry {
+  final String name;
+  bool? accepted; // null = waiting
+  _ConsentEntry(this.name, {this.accepted});
 }
 
 class _ControlButton extends StatelessWidget {
