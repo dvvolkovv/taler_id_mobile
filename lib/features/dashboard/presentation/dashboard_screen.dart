@@ -609,7 +609,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
                       final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
                       final uri = '/dashboard/voice?room=$roomName'
-                          '${convId.isNotEmpty ? '&convId=$convId' : ''}$e2eeParam$calleeParam';
+                          '${convId.isNotEmpty ? '&convId=$convId' : ''}&incoming=1$e2eeParam$calleeParam';
                       context.push(uri);
                     },
                     child: Column(
