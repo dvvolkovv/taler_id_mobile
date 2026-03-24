@@ -500,8 +500,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final isForegrounded = lifecycle == AppLifecycleState.resumed;
 
     if (isForegrounded) {
-      // App is visible: show in-app dialog
-      _showIncomingCallDialog(context, fromName: fromName, fromAvatar: fromAvatar, roomName: roomName, convId: convId, e2eeKey: e2eeKey);
+      // App is visible: show native call UI with ringtone + in-app dialog
+      showCallkitIncoming(
+        fromName: fromName,
+        roomName: roomName,
+        convId: convId,
+        fromAvatar: fromAvatar,
+      );
     } else {
       // App is backgrounded/paused: use native CallKit UI
       showCallkitIncoming(

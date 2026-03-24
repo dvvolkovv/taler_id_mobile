@@ -123,7 +123,7 @@ Future<void> showCallkitIncoming({
       isCustomNotification: true,
       isShowLogo: false,
       isShowFullLockedScreen: true,
-      ringtonePath: 'system_ringtone_default',
+      ringtonePath: 'bumer_ringtone',
       backgroundColor: '#0A1628',
       actionColor: '#167EF2',
       textColor: '#FFFFFF',
@@ -144,7 +144,7 @@ Future<void> showCallkitIncoming({
       supportsHolding: false,
       supportsGrouping: false,
       supportsUngrouping: false,
-      ringtonePath: 'system_ringtone_default',
+      ringtonePath: 'bumer_ringtone.caf',
     ),
   ));
 }
