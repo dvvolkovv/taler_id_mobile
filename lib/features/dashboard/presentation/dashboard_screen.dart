@@ -755,6 +755,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 unselectedItemColor: AppColors.of(context).textSecondary,
                 type: BottomNavigationBarType.fixed,
                 elevation: 0,
+                iconSize: 28,
                 selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                 unselectedLabelStyle: const TextStyle(fontSize: 11),
                 items: [

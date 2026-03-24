@@ -108,6 +108,10 @@ dependencies:
   share_plus: ^10.1.4
   receive_sharing_intent: ^1.8.1
 
+  # QR code
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.0
+
   # Utils
   intl: any
   package_info_plus: ^8.1.3

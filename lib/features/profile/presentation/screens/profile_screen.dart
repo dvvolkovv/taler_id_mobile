@@ -3,7 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
@@ -24,10 +28,38 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  UserEntity? _cachedUser;
+
   @override
   void initState() {
     super.initState();
     context.read<ProfileBloc>().add(ProfileLoadRequested());
+  }
+
+  void _showQrCode(BuildContext context, UserEntity user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.of(context).card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _QrCodeSheet(user: user),
+    );
+  }
+
+  void _openScanner(BuildContext context) {
+    final router = GoRouter.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _QrScannerScreen(
+          onUserScanned: (userId) {
+            Navigator.of(context).pop();
+            router.go('/dashboard/user/$userId');
+          },
+        ),
+      ),
+    );
   }
 
   Color _kycColor(KycStatus status) {
@@ -55,7 +87,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         title: Text(l10n.profile),
-        actions: const [],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+            tooltip: 'Сканировать QR',
+            onPressed: () => _openScanner(context),
+          ),
+          if (_cachedUser != null)
+            IconButton(
+              icon: const Icon(Icons.qr_code_2_outlined),
+              tooltip: 'Мой QR код',
+              onPressed: () => _showQrCode(context, _cachedUser!),
+            ),
+        ],
       ),
       body: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
@@ -70,6 +114,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : state is ProfileError
                       ? state.user
                       : null;
+
+          if (user != null && _cachedUser != user) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) setState(() => _cachedUser = user);
+            });
+          }
 
           if (user == null) {
             return Center(
@@ -387,4 +437,162 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       );
+}
+
+// ── QR Code bottom sheet ──────────────────────────────────────────────────────
+
+class _QrCodeSheet extends StatelessWidget {
+  final UserEntity user;
+  const _QrCodeSheet({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final qrData = 'talerid://user/${user.id}';
+    final name = [user.firstName, user.lastName]
+        .where((s) => s != null && s!.isNotEmpty)
+        .join(' ');
+    final colors = AppColors.of(context);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Мой QR код',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: QrImageView(
+                data: qrData,
+                version: QrVersions.auto,
+                size: 220,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (name.isNotEmpty)
+              Text(
+                name,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            if (user.username != null && user.username!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                '@${user.username}',
+                style: TextStyle(color: colors.primary, fontSize: 14),
+              ),
+            ],
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Share.share(
+                  'Добавь меня в Taler ID!\n$qrData',
+                ),
+                icon: const Icon(Icons.share_outlined, color: Colors.black),
+                label: const Text('Поделиться', style: TextStyle(color: Colors.black)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.of(context).primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── QR Scanner screen ─────────────────────────────────────────────────────────
+
+class _QrScannerScreen extends StatefulWidget {
+  final void Function(String userId) onUserScanned;
+  const _QrScannerScreen({required this.onUserScanned});
+
+  @override
+  State<_QrScannerScreen> createState() => _QrScannerScreenState();
+}
+
+class _QrScannerScreenState extends State<_QrScannerScreen> {
+  bool _handled = false;
+
+  void _onDetect(BarcodeCapture capture) {
+    if (_handled) return;
+    for (final barcode in capture.barcodes) {
+      final raw = barcode.rawValue;
+      if (raw == null) continue;
+      final uri = Uri.tryParse(raw);
+      if (uri == null) continue;
+      if (uri.scheme == 'talerid' && uri.host == 'user' && uri.pathSegments.isNotEmpty) {
+        _handled = true;
+        widget.onUserScanned(uri.pathSegments.first);
+        return;
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+        title: const Text('Сканировать QR код'),
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(onDetect: _onDetect),
+          Center(
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.white70, width: 2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          const Positioned(
+            bottom: 48,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Text(
+                'Наведите камеру на QR код',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -47,6 +47,16 @@ class DeepLinkHandler {
       }
     }
 
+    // Handle user profile links:
+    // talerid://user/{userId}
+    if (uri.scheme == 'talerid' && uri.host == 'user' && uri.pathSegments.isNotEmpty) {
+      final userId = uri.pathSegments.first;
+      if (userId.isNotEmpty) {
+        router.go('/dashboard/user/$userId');
+        return;
+      }
+    }
+
     // Handle OAuth callback:
     // talerid://oauth/callback?code=X
     if (uri.path.contains('oauth/callback')) {
