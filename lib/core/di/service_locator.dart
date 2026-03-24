@@ -51,6 +51,11 @@ import '../../features/messenger/data/repositories/messenger_repository_impl.dar
 import '../../features/messenger/domain/repositories/i_messenger_repository.dart';
 import '../../features/messenger/presentation/bloc/messenger_bloc.dart';
 
+// Profile Sections
+import '../../features/profile_sections/data/datasources/profile_sections_remote_datasource.dart';
+import '../../features/profile_sections/data/repositories/profile_sections_repository_impl.dart';
+import '../../features/profile_sections/domain/repositories/i_profile_sections_repository.dart';
+
 
 final sl = GetIt.instance;
 
@@ -131,6 +136,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IMessengerRepository>(
     () => MessengerRepositoryImpl(sl<MessengerRemoteDataSource>()),
+  );
+
+  // Profile Sections
+  sl.registerLazySingleton(() => ProfileSectionsRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton<IProfileSectionsRepository>(
+    () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
   );
 
   // Update check

@@ -40,4 +40,5 @@ class RouteConstants {
   static const onboarding = '/onboarding';
   static const forgotPassword = '/auth/forgot-password';
   static const translator = '/dashboard/translator';
+  static const profileSections = '/dashboard/profile/sections';
 }

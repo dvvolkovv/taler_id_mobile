@@ -181,7 +181,12 @@ class _AssistantScreenState extends State<AssistantScreen>
         'instructions':
             'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
             'статусе KYC-верификации и данных профиля. Отвечай кратко и по делу. '
-            'Говори исключительно на русском языке. При необходимости вызывай инструменты для чтения или обновления профиля.',
+            'Говори исключительно на русском языке. При необходимости вызывай инструменты для чтения или обновления профиля. '
+            'Ты также умеешь работать с разделами "О себе" — это личная информация пользователя: ценности, видение мира, '
+            'навыки, интересы, желания, профиль, что нравится/не нравится. Ты можешь спрашивать пользователя о нём, '
+            'задавать уточняющие вопросы, и сохранять ответы в соответствующие разделы. '
+            'Перед сохранением обязательно вызови get_sections чтобы увидеть что уже заполнено, и дополняй, а не заменяй. '
+            'Используй items для кратких тегов/ключевых слов, freeText для описания.',
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
@@ -212,6 +217,54 @@ class _AssistantScreenState extends State<AssistantScreen>
                 'lastName': {'type': 'string'},
                 'phone': {'type': 'string'},
               },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_sections',
+            'description':
+                'Get all profile sections of the current user. Returns array of sections with type, content (items + freeText), and visibility.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'upsert_section',
+            'description':
+                'Create or update a profile section. Merge new items with existing ones. '
+                'Types: VALUES, WORLDVIEW, SKILLS, INTERESTS, DESIRES, BACKGROUND, LIKES, DISLIKES.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'type': {
+                  'type': 'string',
+                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES, DISLIKES'],
+                },
+                'items': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                },
+                'freeText': {'type': 'string'},
+                'visibility': {
+                  'type': 'string',
+                  'enum': ['PUBLIC', 'CONTACTS', 'PRIVATE'],
+                },
+              },
+              'required': ['type'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'delete_section',
+            'description': 'Delete a profile section.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'type': {
+                  'type': 'string',
+                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES, DISLIKES'],
+                },
+              },
+              'required': ['type'],
             },
           },
         ],
@@ -332,6 +385,31 @@ class _AssistantScreenState extends State<AssistantScreen>
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
         );
         output = jsonEncode(data);
+      } else if (name == 'get_sections') {
+        final data = await client.get<List<dynamic>>(
+          '/profile-sections',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'upsert_section') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final data = await client.put<Map<String, dynamic>>(
+          '/profile-sections',
+          data: {
+            'type': args['type'],
+            'content': {
+              'items': args['items'] ?? [],
+              if (args['freeText'] != null) 'freeText': args['freeText'],
+            },
+            if (args['visibility'] != null) 'visibility': args['visibility'],
+          },
+          fromJson: (d) => d as Map<String, dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'delete_section') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        await client.delete('/profile-sections/${args['type']}');
+        output = jsonEncode({'ok': true});
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }

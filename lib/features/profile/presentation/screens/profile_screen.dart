@@ -10,6 +10,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/countries.dart';
 import '../../../../core/api/dio_client.dart';
@@ -231,6 +232,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // About me sections
+                AppCard(
+                  child: InkWell(
+                    onTap: () => context.push(RouteConstants.profileSections),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.of(context).primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.person_pin_outlined, color: AppColors.of(context).primary, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('О себе', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Ценности, навыки, интересы и другое',
+                                style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
