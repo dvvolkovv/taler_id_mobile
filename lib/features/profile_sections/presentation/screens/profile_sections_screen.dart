@@ -250,8 +250,16 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     _items = List.from(widget.section?.content.items ?? []);
     _visibility = widget.section?.visibility ?? SectionVisibility.private_;
     _freeTextCtrl.addListener(_onTextChanged);
-    _player.onPlayerComplete.listen((_) {
+    _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
+      // On Android, audioplayers takes audio focus and stops the recorder.
+      // Restart recording after playback completes.
+      if (_ws != null && _voiceActive) {
+        await _recordSub?.cancel();
+        _recordSub = null;
+        try { await _recorder.stop(); } catch (_) {}
+        await _restartRecording();
+      }
     });
   }
 
@@ -403,6 +411,15 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     }
   }
 
+  Future<void> _restartRecording() async {
+    const config = RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: 24000, numChannels: 1);
+    final stream = await _recorder.startStream(config);
+    _recordSub = stream.listen((chunk) {
+      if (_ws == null) return;
+      _ws!.add(jsonEncode({'type': 'input_audio_buffer.append', 'audio': base64Encode(chunk)}));
+    });
+  }
+
   void _configureVoiceSession() {
     if (_sessionConfigured) return;
     _sessionConfigured = true;
@@ -419,6 +436,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
             'Ты — голосовой ассистент Taler ID, помогающий заполнить раздел "$sectionTitle" в профиле пользователя. '
             'Говори только на русском языке. Будь кратким. '
             'Текущее содержимое раздела: теги: [$currentItems], описание: "${currentText.isEmpty ? "пусто" : currentText}". '
+            'Начни разговор первым — поприветствуй и спроси о содержимом этого раздела, предложи помощь. '
             'Задавай пользователю уточняющие вопросы, чтобы лучше понять и заполнить этот раздел. '
             'Когда узнаешь что-то новое — сразу вызывай upsert_section чтобы сохранить. '
             'Объединяй новые теги с существующими, не заменяй.',
@@ -452,6 +470,9 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
         'tool_choice': 'auto',
       },
     }));
+
+    // Make AI speak first — greet and start helping with this section
+    _ws!.add(jsonEncode({'type': 'response.create'}));
   }
 
   void _onVoiceMessage(String data) {

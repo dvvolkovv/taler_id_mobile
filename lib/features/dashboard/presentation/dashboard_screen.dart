@@ -727,7 +727,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             Expanded(child: widget.child),
           ],
         ),
-        floatingActionButton: location.startsWith(RouteConstants.messenger)
+        floatingActionButton: location.startsWith(RouteConstants.messenger) || location.startsWith(RouteConstants.profile)
             ? null
             : FloatingActionButton(
                 onPressed: () => context.push(RouteConstants.chat),
