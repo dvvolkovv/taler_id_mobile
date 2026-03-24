@@ -347,7 +347,7 @@ class _ConversationsView extends StatelessWidget {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.person_add_alt_1_rounded),
-                    onPressed: () => _showContactRequests(context),
+                    onPressed: () => context.push('/dashboard/messenger/contacts'),
                   ),
                   if (count > 0)
                     Positioned(
@@ -371,10 +371,8 @@ class _ConversationsView extends StatelessWidget {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.person_search_rounded),
-            onPressed: () => context.push('/dashboard/messenger/search'),
-          ),
+          // Avatar → Profile
+          _ProfileAvatar(),
         ],
       ),
       body: BlocBuilder<MessengerBloc, MessengerState>(
@@ -548,7 +546,7 @@ class _ConversationTile extends StatelessWidget {
     );
   }
 
-  String _formatSystemMessage(BuildContext context, String content) {
+  String _formatSystemMessage(BuildContext ctx, String content) {
     try {
       final data = jsonDecode(content) as Map<String, dynamic>;
       final action = data['action'] as String?;
@@ -567,5 +565,35 @@ class _ConversationTile extends StatelessWidget {
     } catch (_) {
       return content;
     }
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cache = sl<CacheService>();
+    final profile = cache.getProfile();
+    final avatarUrl = profile?['avatarUrl'] as String?;
+    final firstName = profile?['firstName'] as String? ?? '';
+
+    return GestureDetector(
+      onTap: () => context.push('/dashboard/profile'),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: CircleAvatar(
+          radius: 16,
+          backgroundColor: AppColors.of(context).primary,
+          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+              ? CachedNetworkImageProvider(avatarUrl)
+              : null,
+          child: (avatarUrl == null || avatarUrl.isEmpty)
+              ? Text(
+                  firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
+                  style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                )
+              : null,
+        ),
+      ),
+    );
   }
 }

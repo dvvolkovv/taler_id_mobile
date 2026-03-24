@@ -19,6 +19,7 @@ class MessengerState extends Equatable {
   final Map<String, String> activeGroupCalls; // conversationId → roomName
   final Map<String, Map<String, String>> typingUsers; // conversationId → {userId: userName}
   final List<Map<String, dynamic>> contactRequests;
+  final List<Map<String, dynamic>> sentContactRequests;
   final String? contactRequestSent; // receiverId if request just sent
 
   const MessengerState({
@@ -36,6 +37,7 @@ class MessengerState extends Equatable {
     this.activeGroupCalls = const {},
     this.typingUsers = const {},
     this.contactRequests = const [],
+    this.sentContactRequests = const [],
     this.contactRequestSent,
   });
 
@@ -54,6 +56,7 @@ class MessengerState extends Equatable {
     Map<String, String>? activeGroupCalls,
     Map<String, Map<String, String>>? typingUsers,
     List<Map<String, dynamic>>? contactRequests,
+    List<Map<String, dynamic>>? sentContactRequests,
     String? contactRequestSent,
     bool clearError = false,
     bool clearNewConversation = false,
@@ -78,6 +81,7 @@ class MessengerState extends Equatable {
       activeGroupCalls: activeGroupCalls ?? this.activeGroupCalls,
       typingUsers: typingUsers ?? this.typingUsers,
       contactRequests: contactRequests ?? this.contactRequests,
+      sentContactRequests: sentContactRequests ?? this.sentContactRequests,
       contactRequestSent: clearContactRequestSent ? null : (contactRequestSent ?? this.contactRequestSent),
     );
   }
@@ -98,6 +102,7 @@ class MessengerState extends Equatable {
         activeGroupCalls,
         typingUsers,
         contactRequests,
+        sentContactRequests,
         contactRequestSent,
       ];
 }

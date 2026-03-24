@@ -361,6 +361,8 @@ String? notificationToRoute(RemoteMessage message) {
       return convId != null
           ? '/dashboard/messenger/$convId'
           : '/dashboard/messenger';
+    case 'contact_request':
+      return '/dashboard/messenger/contacts';
     default:
       return null;
   }

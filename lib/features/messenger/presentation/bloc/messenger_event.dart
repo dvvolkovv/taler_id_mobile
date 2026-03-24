@@ -343,3 +343,5 @@ class ContactRequestAccepted extends MessengerEvent {
   @override
   List<Object?> get props => [data];
 }
+
+class LoadSentContactRequests extends MessengerEvent {}

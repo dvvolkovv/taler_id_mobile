@@ -77,6 +77,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<RejectContactRequest>(_onRejectContactRequest);
     on<ContactRequestReceived>(_onContactRequestReceived);
     on<ContactRequestAccepted>(_onContactRequestAccepted);
+    on<LoadSentContactRequests>(_onLoadSentContactRequests);
     on<ReactToMessage>(_onReactToMessage);
     on<ReactionUpdated>(_onReactionUpdated);
   }
@@ -629,6 +630,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     // Refresh conversations to show the new chat
     add(LoadConversations());
     emit(state.copyWith(clearContactRequestSent: true));
+  }
+
+  Future<void> _onLoadSentContactRequests(LoadSentContactRequests event, Emitter<MessengerState> emit) async {
+    try {
+      final requests = await _repo.getSentContactRequests();
+      emit(state.copyWith(sentContactRequests: requests));
+    } catch (_) {}
   }
 
   @override

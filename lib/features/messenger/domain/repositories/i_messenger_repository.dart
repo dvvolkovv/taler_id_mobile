@@ -47,6 +47,7 @@ abstract class IMessengerRepository {
   Future<List<Map<String, dynamic>>> getContactRequests();
   Future<Map<String, dynamic>> acceptContactRequest(String requestId);
   Future<void> rejectContactRequest(String requestId);
+  Future<List<Map<String, dynamic>>> getSentContactRequests();
   Stream<Map<String, dynamic>> get contactRequestStream;
   Stream<Map<String, dynamic>> get contactAcceptedStream;
   // Reaction methods

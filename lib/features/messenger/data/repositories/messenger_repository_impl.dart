@@ -133,6 +133,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   @override
   Future<void> rejectContactRequest(String requestId) => _remote.rejectContactRequest(requestId);
   @override
+  Future<List<Map<String, dynamic>>> getSentContactRequests() => _remote.getSentContactRequests();
+  @override
   Stream<Map<String, dynamic>> get contactRequestStream => _remote.contactRequestStream;
   @override
   Stream<Map<String, dynamic>> get contactAcceptedStream => _remote.contactAcceptedStream;

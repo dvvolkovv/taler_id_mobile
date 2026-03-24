@@ -23,6 +23,7 @@ import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/messenger/presentation/screens/conversations_screen.dart';
 import '../../features/messenger/presentation/screens/chat_room_screen.dart';
 import '../../features/messenger/presentation/screens/user_search_screen.dart';
+import '../../features/messenger/presentation/screens/contact_requests_screen.dart';
 import '../../features/messenger/presentation/screens/user_profile_screen.dart';
 import '../../features/messenger/presentation/screens/create_group_screen.dart';
 import '../../features/messenger/presentation/screens/group_settings_screen.dart';
@@ -175,6 +176,10 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'search',
               builder: (_, __) => const UserSearchScreen(),
+            ),
+            GoRoute(
+              path: 'contacts',
+              builder: (_, __) => const ContactRequestsScreen(),
             ),
             GoRoute(
               path: 'create-group',

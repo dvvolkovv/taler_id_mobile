@@ -370,6 +370,14 @@ class MessengerRemoteDataSource {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getSentContactRequests() async {
+    final data = await _http.get(
+      '/messenger/contacts/requests/sent',
+      fromJson: (d) => d as List,
+    );
+    return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
   // ─── REST: Mute ───
 
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes}) async {
