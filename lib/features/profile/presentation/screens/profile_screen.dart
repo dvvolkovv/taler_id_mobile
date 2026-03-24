@@ -10,6 +10,7 @@ import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/countries.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/storage/cache_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
@@ -196,6 +197,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
       await client.post('/profile/avatar', data: formData, fromJson: (d) => d);
       if (!mounted) return;
+      // Clear image cache so updated avatar URL reloads fresh
+      await CachedNetworkImage.evictFromCache(sl<CacheService>().getProfile()?['avatarUrl'] ?? '');
+      imageCache.clear();
       context.read<ProfileBloc>().add(ProfileLoadRequested());
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Аватар обновлён'), backgroundColor: Colors.green),

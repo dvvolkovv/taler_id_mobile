@@ -106,6 +106,8 @@ final appRouter = GoRouter(
         final conversationId = state.uri.queryParameters['convId'];
         final incoming = state.uri.queryParameters['incoming'] == '1';
         final callee = state.uri.queryParameters['callee'];
+        final calleeAvatar = state.uri.queryParameters['calleeAvatar'];
+        final calleeId = state.uri.queryParameters['calleeId'];
         final e2eeKey = state.uri.queryParameters['e2ee'];
         final publicCode = state.uri.queryParameters['publicCode'];
         return VoiceCallScreen(
@@ -113,6 +115,8 @@ final appRouter = GoRouter(
           conversationId: conversationId,
           isIncoming: incoming,
           calleeName: callee,
+          calleeAvatar: calleeAvatar,
+          calleeId: calleeId,
           e2eeKey: e2eeKey,
           publicCode: publicCode,
         );

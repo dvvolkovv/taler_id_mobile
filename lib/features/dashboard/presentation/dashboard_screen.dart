@@ -382,9 +382,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         if (!CallStateService.instance.isInCall) {
           CallStateService.instance.connectInBackground(roomName, convId, e2eeKey: e2eeKey);
         }
+        final callerName = extra?['callerName'] as String? ?? call['nameCaller'] as String? ?? '';
+        final callerAvatar = extra?['callerAvatar'] as String? ?? '';
         final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
+        final calleeParam = callerName.isNotEmpty ? '&callee=${Uri.encodeComponent(callerName)}' : '';
+        final avatarParam = callerAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(callerAvatar)}' : '';
         final voiceRoute =
-            '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam';
+            '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam$calleeParam$avatarParam';
         if (mounted) {
           context.push(voiceRoute);
         }
@@ -504,6 +508,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         fromName: fromName,
         roomName: roomName,
         convId: convId,
+        fromAvatar: fromAvatar,
       );
     }
     if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
@@ -608,8 +613,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       Future.delayed(const Duration(seconds: 5), () => _acceptingInApp = false);
                       final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
                       final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
+                      final avatarParam = fromAvatar != null && fromAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(fromAvatar)}' : '';
                       final uri = '/dashboard/voice?room=$roomName'
-                          '${convId.isNotEmpty ? '&convId=$convId' : ''}&incoming=1$e2eeParam$calleeParam';
+                          '${convId.isNotEmpty ? '&convId=$convId' : ''}&incoming=1$e2eeParam$calleeParam$avatarParam';
                       context.push(uri);
                     },
                     child: Column(

@@ -96,8 +96,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final calleeParam = calleeName.isNotEmpty
           ? '&callee=${Uri.encodeComponent(calleeName)}'
           : '';
+      final avatarUrl = _profile?['avatarUrl'] as String?;
+      final avatarParam = avatarUrl != null && avatarUrl.isNotEmpty
+          ? '&calleeAvatar=${Uri.encodeComponent(avatarUrl)}'
+          : '';
       if (mounted) {
-        context.push('/dashboard/voice?room=$roomName&convId=$convId$calleeParam');
+        context.push('/dashboard/voice?room=$roomName&convId=$convId$calleeParam$avatarParam');
       }
     } catch (e) {
       if (mounted) {

@@ -80,47 +80,37 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
 
   // ─── Search tab ───
 
-  Widget _buildSearchTab(AppColors colors) {
+  Widget _buildSearchTab(AppColorsExtension colors) {
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchCtrl,
-                  style: TextStyle(color: colors.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'Никнейм или email',
-                    hintStyle: TextStyle(color: colors.textSecondary),
-                    prefixIcon: Icon(Icons.search, color: colors.textSecondary),
-                    filled: true,
-                    fillColor: colors.card,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: colors.border),
-                    ),
-                  ),
-                  onSubmitted: (_) => _doSearch(),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
+          child: TextField(
+            controller: _searchCtrl,
+            autofocus: false,
+            style: TextStyle(color: colors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'Никнейм или email',
+              hintStyle: TextStyle(color: colors.textSecondary),
+              prefixIcon: Icon(Icons.search, color: colors.textSecondary),
+              suffixIcon: IconButton(
+                icon: _searching
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                    : Icon(Icons.arrow_forward_rounded, color: colors.primary),
                 onPressed: _searching ? null : _doSearch,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: Colors.black,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: const Text('Найти'),
               ),
-            ],
+              filled: true,
+              fillColor: colors.card,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: colors.border),
+              ),
+            ),
+            onSubmitted: (_) => _doSearch(),
           ),
         ),
         Expanded(
@@ -128,6 +118,9 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
             listenWhen: (prev, curr) =>
                 curr.contactRequestSent != prev.contactRequestSent ||
                 (curr.error != null && curr.error != prev.error),
+            buildWhen: (prev, curr) =>
+                prev.searchResults != curr.searchResults ||
+                prev.isLoading != curr.isLoading,
             listener: (context, state) {
               if (state.contactRequestSent != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -148,10 +141,15 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
               }
             },
             builder: (context, state) {
+              if (state.isLoading && state.searchResults.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
               if (state.searchResults.isEmpty) {
                 return Center(
                   child: Text(
-                    'Введите точный никнейм или email\nи нажмите "Найти"',
+                    _searchCtrl.text.length >= 2
+                        ? 'Пользователи не найдены'
+                        : 'Введите точный никнейм или email\nи нажмите поиск',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: colors.textSecondary),
                   ),
@@ -185,23 +183,15 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                       displayName,
                       style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (user.username != null)
-                          Text('@${user.username}', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
-                        Text(user.email, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
-                      ],
+                    subtitle: Text(
+                      user.username != null ? '@${user.username}\n${user.email}' : user.email,
+                      style: TextStyle(color: colors.textSecondary, fontSize: 12),
                     ),
-                    trailing: ElevatedButton(
+                    isThreeLine: user.username != null,
+                    trailing: IconButton(
+                      icon: Icon(Icons.person_add_rounded, color: colors.primary),
+                      tooltip: 'Отправить запрос',
                       onPressed: () => _sendRequest(context, user.id, displayName),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colors.primary,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Запрос', style: TextStyle(fontSize: 13)),
                     ),
                     onTap: () => context.push('/dashboard/user/${user.id}'),
                   );
@@ -247,7 +237,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
 
   // ─── Incoming tab ───
 
-  Widget _buildIncomingTab(AppColors colors) {
+  Widget _buildIncomingTab(AppColorsExtension colors) {
     return BlocBuilder<MessengerBloc, MessengerState>(
       buildWhen: (prev, curr) => prev.contactRequests != curr.contactRequests,
       builder: (context, state) {
@@ -297,7 +287,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
 
   // ─── Sent tab ───
 
-  Widget _buildSentTab(AppColors colors) {
+  Widget _buildSentTab(AppColorsExtension colors) {
     return BlocBuilder<MessengerBloc, MessengerState>(
       buildWhen: (prev, curr) => prev.sentContactRequests != curr.sentContactRequests,
       builder: (context, state) {
@@ -349,7 +339,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
     }
   }
 
-  Color _statusColor(AppColors colors, String status) {
+  Color _statusColor(AppColorsExtension colors, String status) {
     switch (status) {
       case 'PENDING':
         return colors.textSecondary;
@@ -362,7 +352,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
     }
   }
 
-  Widget _avatar(AppColors colors, String? url, String name) {
+  Widget _avatar(AppColorsExtension colors, String? url, String name) {
     return CircleAvatar(
       backgroundColor: colors.primary,
       backgroundImage: url != null && url.isNotEmpty ? CachedNetworkImageProvider(url) : null,

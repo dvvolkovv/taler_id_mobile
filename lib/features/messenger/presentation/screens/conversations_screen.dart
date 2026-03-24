@@ -546,7 +546,7 @@ class _ConversationTile extends StatelessWidget {
     );
   }
 
-  String _formatSystemMessage(BuildContext ctx, String content) {
+  String _formatSystemMessage(BuildContext context, String content) {
     try {
       final data = jsonDecode(content) as Map<String, dynamic>;
       final action = data['action'] as String?;

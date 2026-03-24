@@ -10,6 +10,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
+import '../../../../core/storage/cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -207,10 +208,16 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
         final calleeParam = e.otherPartyName.isNotEmpty
             ? '&callee=${Uri.encodeComponent(e.otherPartyName)}'
             : '';
+        final avatarParam = e.otherPartyAvatar != null && e.otherPartyAvatar!.isNotEmpty
+            ? '&calleeAvatar=${Uri.encodeComponent(e.otherPartyAvatar!)}'
+            : '';
+        final calleeIdParam = e.otherPartyId != null && e.otherPartyId!.isNotEmpty
+            ? '&calleeId=${e.otherPartyId}'
+            : '';
         context.push(
           '/dashboard/voice?room=$roomName'
           '${e.conversationId != null && e.conversationId!.isNotEmpty ? "&convId=${e.conversationId}" : ""}'
-          '$calleeParam',
+          '$calleeParam$avatarParam$calleeIdParam',
         );
       }
     } catch (err) {
@@ -229,7 +236,16 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final colors = AppColors.of(context);
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Звонки')),
+      appBar: AppBar(
+        title: const Text('Звонки'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            onPressed: () => context.push('/dashboard/messenger/contacts'),
+          ),
+          _CallHistoryProfileAvatar(),
+        ],
+      ),
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
@@ -741,6 +757,36 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+class _CallHistoryProfileAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cache = sl<CacheService>();
+    final profile = cache.getProfile();
+    final avatarUrl = profile?['avatarUrl'] as String?;
+    final firstName = profile?['firstName'] as String? ?? '';
+
+    return GestureDetector(
+      onTap: () => context.push('/dashboard/profile'),
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: CircleAvatar(
+          radius: 16,
+          backgroundColor: AppColors.of(context).primary,
+          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+              ? CachedNetworkImageProvider(avatarUrl)
+              : null,
+          child: (avatarUrl == null || avatarUrl.isEmpty)
+              ? Text(
+                  firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
+                  style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
 // ─── Models ───
 
 class _PersonalRoom {
@@ -753,6 +799,7 @@ class _CallEntry {
   final String id;
   final String otherPartyName;
   final String? otherPartyAvatar;
+  final String? otherPartyId;
   final DateTime startedAt;
   final int? durationSec;
   final bool isOutgoing;
@@ -766,6 +813,7 @@ class _CallEntry {
     required this.id,
     required this.otherPartyName,
     this.otherPartyAvatar,
+    this.otherPartyId,
     required this.startedAt,
     this.durationSec,
     required this.isOutgoing,
@@ -788,11 +836,14 @@ class _CallEntry {
           .map((p) => (p as Map)['displayName'] as String? ?? 'Неизвестный')
           .join(', ');
       if (name.isEmpty) name = 'Неизвестный';
-      // Take avatar from first participant
+      // Take avatar and userId from first participant
       if (participants.isNotEmpty) {
         avatar = (participants.first as Map)['avatarUrl'] as String?;
       }
     }
+    final otherPartyId = participants.isNotEmpty
+        ? (participants.first as Map)['userId'] as String?
+        : null;
     // Check for meeting summary info
     final summary = json['meetingSummary'] as Map<String, dynamic>?;
     final hasSummary = summary != null && (summary['summary'] as String?)?.isNotEmpty == true;
@@ -802,6 +853,7 @@ class _CallEntry {
       id: json['id'] as String? ?? '',
       otherPartyName: name,
       otherPartyAvatar: avatar,
+      otherPartyId: otherPartyId,
       startedAt: DateTime.tryParse(json['startedAt'] as String? ?? '') ?? DateTime.now(),
       durationSec: json['durationSec'] as int?,
       isOutgoing: json['isOutgoing'] as bool? ?? true,

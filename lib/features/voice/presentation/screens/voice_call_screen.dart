@@ -20,6 +20,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../../core/services/call_state_service.dart';
+import '../../../../core/storage/cache_service.dart';
+import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
 import '../../../profile/presentation/bloc/profile_state.dart';
@@ -27,12 +29,15 @@ import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../widgets/video_effects_picker.dart';
+import '../widgets/pulsing_avatar.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String? roomName; // null = create new room with AI
   final String? conversationId; // for sending call_ended when hanging up
   final bool isIncoming; // opened from FCM push notification
   final String? calleeName; // name of the person being called (outgoing)
+  final String? calleeAvatar; // avatar URL of the person being called
+  final String? calleeId; // userId of the person being called (for avatar loading)
   final String? e2eeKey; // E2EE shared key for human-to-human calls (null = no E2EE)
   final String? publicCode; // public room code — join without auth via /voice/rooms/public/{code}/join
   const VoiceCallScreen({
@@ -41,6 +46,8 @@ class VoiceCallScreen extends StatefulWidget {
     this.conversationId,
     this.isIncoming = false,
     this.calleeName,
+    this.calleeAvatar,
+    this.calleeId,
     this.e2eeKey,
     this.publicCode,
   });
@@ -102,6 +109,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String? _publicRoomCreatorAvatar; // owner avatar URL
   String? _publicRoomTitle; // room title
   final List<lk.RemoteParticipant> _participants = [];
+  final Set<String> _speakingIdentities = {}; // identities currently speaking
+  final Map<String, String> _participantAvatars = {}; // identity -> avatar URL
+  String? _calleeAvatarLoaded; // loaded from API when widget.calleeAvatar is null
   lk.EventsListener<lk.RoomEvent>? _eventsListener;
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callkitEndedSub;
@@ -337,7 +347,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   }
 
   Future<void> _connect() async {
-    debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}');
+    debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}, calleeName=${widget.calleeName}, calleeAvatar=${widget.calleeAvatar}, calleeId=${widget.calleeId}');
+    // Load avatars: callee (if not passed) and own avatar
+    if (widget.calleeAvatar == null) {
+      _loadCalleeAvatar();
+    }
+    _loadMyAvatar();
     if (widget.isIncoming) {
       // Release the CallKit-owned audio session before LiveKit connects.
       // When accepting from locked screen, CallKit activates the audio session
@@ -478,6 +493,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _participants.addAll(_room!.remoteParticipants.values);
       });
 
+      // Fetch avatars for all initial participants
+      for (final p in _room!.remoteParticipants.values) {
+        _fetchParticipantAvatar(p.identity);
+      }
+
       // With autoSubscribe:false, manually subscribe to existing tracks
       for (final p in _room!.remoteParticipants.values) {
         if (p.identity == 'voice-translator') {
@@ -610,6 +630,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity != 'ai-assistant') {
           _stopRingback();
         }
+        // Fetch avatar for new participant
+        _fetchParticipantAvatar(event.participant.identity);
         final newId = event.participant.identity;
         final localId = _room?.localParticipant?.identity;
         final isHuman = newId != 'meeting-recorder' && newId != 'ai-assistant' && newId != 'voice-translator';
@@ -670,6 +692,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           _checkAllConsented();
         }
         if (mounted) setState(() {});
+      })
+      ..on<lk.ActiveSpeakersChangedEvent>((event) {
+        if (!mounted) return;
+        final newSpeakers = event.speakers
+            .where((p) => p.isSpeaking)
+            .map((p) => p.identity)
+            .toSet();
+        if (!setEquals(_speakingIdentities, newSpeakers)) {
+          setState(() {
+            _speakingIdentities.clear();
+            _speakingIdentities.addAll(newSpeakers);
+          });
+        }
       })
       ..on<lk.DataReceivedEvent>((event) {
         _handleDataReceived(event);
@@ -1106,6 +1141,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       await _room?.localParticipant?.setCameraEnabled(newCameraOn);
       debugPrint('[VoiceCall] setCameraEnabled($newCameraOn) done, pubs=${_room?.localParticipant?.videoTrackPublications.length}');
       if (mounted) setState(() => _cameraOn = newCameraOn);
+
+      // Switch to speaker when video is enabled
+      if (newCameraOn && mounted && _audioOutputType == 'earpiece') {
+        _setAudioOutput('speaker');
+      }
 
       // Verify local video track appeared after enabling camera
       if (newCameraOn && mounted) {
@@ -2318,23 +2358,33 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Widget _buildOutgoingCallCenter({required String statusText}) {
     final colors = AppColors.of(context);
     final name = widget.calleeName ?? _publicRoomCreatorName;
+    final avatarUrl = widget.calleeAvatar ?? _calleeAvatarLoaded ?? _publicRoomCreatorAvatar;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircleAvatar(
+          PulsingAvatar(
             radius: 48,
-            backgroundColor: colors.primary.withOpacity(0.15),
-            child: name != null && name.isNotEmpty
-                ? Text(
-                    name[0].toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: colors.primary,
-                    ),
-                  )
-                : Icon(Icons.person_rounded, size: 48, color: colors.primary),
+            glowColor: rainbowColorFor(widget.roomName ?? name ?? 'caller'),
+            child: CircleAvatar(
+              radius: 48,
+              backgroundColor: colors.primary.withValues(alpha: 0.15),
+              backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: (avatarUrl == null || avatarUrl.isEmpty)
+                  ? (name != null && name.isNotEmpty
+                      ? Text(
+                          name[0].toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            color: colors.primary,
+                          ),
+                        )
+                      : Icon(Icons.person_rounded, size: 48, color: colors.primary))
+                  : null,
+            ),
           ),
           const SizedBox(height: 20),
           if (name != null && name.isNotEmpty)
@@ -2502,36 +2552,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       ? _buildVideoGrid()
                       : _buildParticipantsList(),
         ),
-        // Self participant indicator (audio mode only)
-        if (!_hasAnyVideo && !_screenShareFullscreen)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Card(
-            color: AppColors.of(context).card,
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.of(context).primary,
-                child: Icon(
-                  Icons.person_rounded,
-                  color: Colors.black,
-                ),
-              ),
-              title: Text(
-                'Вы',
-                style: TextStyle(
-                  color: AppColors.of(context).textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              trailing: Icon(
-                _muted
-                    ? Icons.mic_off_rounded
-                    : Icons.mic_rounded,
-                color: _muted ? AppColors.of(context).error : Colors.green,
-              ),
-            ),
-          ),
-        ),
+        // Self is now shown as a circular avatar in _buildParticipantsList
         // Controls — two rows for small screens (hidden in fullscreen screen share)
         if (!_screenShareFullscreen)
         Padding(
@@ -2656,126 +2677,285 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     );
   }
 
+  /// Fetch avatar URL for a participant by their identity (user ID).
+  /// Load callee avatar from conversation participants when calleeAvatar is not passed.
+  /// Load callee avatar by fetching their profile.
+  Future<void> _loadCalleeAvatar() async {
+    String? targetUserId = widget.calleeId;
+
+    // If calleeId not passed, find it from conversation participants
+    if ((targetUserId == null || targetUserId.isEmpty) && widget.conversationId != null) {
+      try {
+        final myId = await sl<SecureStorageService>().getUserId();
+        final convs = await sl<DioClient>().get<List<dynamic>>(
+          '/messenger/conversations',
+          fromJson: (d) => (d as List),
+        );
+        final conv = convs.cast<Map<String, dynamic>>().where((c) => c['id'] == widget.conversationId).firstOrNull;
+        if (conv != null) {
+          // Try otherUserId first
+          final otherId = conv['otherUserId'] as String?;
+          if (otherId != null && otherId.isNotEmpty) {
+            targetUserId = otherId;
+          } else if (myId != null) {
+            // Fallback: find other participant from participantIds
+            final pIds = (conv['participantIds'] as List?)?.cast<String>() ?? [];
+            targetUserId = pIds.where((id) => id != myId).firstOrNull;
+          }
+          // Also check if conversation already has avatar
+          final otherAvatar = conv['otherUserAvatar'] as String?;
+          if (otherAvatar != null && otherAvatar.isNotEmpty && mounted) {
+            setState(() => _calleeAvatarLoaded = otherAvatar);
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('[VoiceCall] Error getting conversation: $e');
+      }
+    }
+
+    if (targetUserId == null || targetUserId.isEmpty) return;
+    try {
+      final res = await sl<DioClient>().get<Map<String, dynamic>>(
+        '/profile/$targetUserId',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      final avatarUrl = res['avatarUrl'] as String?;
+      if (avatarUrl != null && avatarUrl.isNotEmpty && mounted) {
+        setState(() {
+          _calleeAvatarLoaded = avatarUrl;
+          _participantAvatars[targetUserId!] = avatarUrl;
+        });
+      }
+    } catch (e) {
+      debugPrint('[VoiceCall] Error loading callee avatar: $e');
+    }
+  }
+
+  Future<void> _fetchParticipantAvatar(String identity) async {
+    if (_participantAvatars.containsKey(identity)) return;
+    if (identity == 'ai-assistant' || identity == 'meeting-recorder' || identity == 'voice-translator') return;
+    try {
+      debugPrint('[VoiceCall] Fetching avatar for identity: $identity');
+      final res = await sl<DioClient>().get<Map<String, dynamic>>(
+        '/profile/$identity',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      debugPrint('[VoiceCall] Profile response for $identity: $res');
+      final avatarUrl = res['avatarUrl'] as String?;
+      if (avatarUrl != null && avatarUrl.isNotEmpty && mounted) {
+        debugPrint('[VoiceCall] Setting avatar for $identity: $avatarUrl');
+        setState(() => _participantAvatars[identity] = avatarUrl);
+      } else {
+        debugPrint('[VoiceCall] No avatar in response for $identity');
+      }
+    } catch (e) {
+      debugPrint('[VoiceCall] Error fetching avatar for $identity: $e');
+    }
+  }
+
+  String? _myAvatarUrl;
+
+  /// Get current user's avatar URL from ProfileBloc, CacheService, or loaded value.
+  String? _getMyAvatarUrl() {
+    if (_myAvatarUrl != null) return _myAvatarUrl;
+    // Try ProfileBloc
+    try {
+      final pState = context.read<ProfileBloc>().state;
+      if (pState is ProfileLoaded) {
+        _myAvatarUrl = pState.user.avatarUrl;
+        return _myAvatarUrl;
+      }
+    } catch (_) {}
+    // Try CacheService
+    try {
+      final cached = sl<CacheService>().getProfile();
+      if (cached != null) {
+        _myAvatarUrl = cached['avatarUrl'] as String?;
+        return _myAvatarUrl;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Load my avatar from API if not available from cache/bloc.
+  Future<void> _loadMyAvatar() async {
+    if (_getMyAvatarUrl() != null) return;
+    try {
+      final res = await sl<DioClient>().get<Map<String, dynamic>>(
+        '/profile',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      final avatarUrl = res['avatarUrl'] as String?;
+      if (avatarUrl != null && avatarUrl.isNotEmpty && mounted) {
+        setState(() => _myAvatarUrl = avatarUrl);
+      }
+    } catch (_) {}
+  }
+
   Widget _buildParticipantsList() {
-    return _participants.isEmpty
-        ? _ringing
-            ? _buildOutgoingCallCenter(statusText: 'Вызов...')
-            : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_outline, size: 64, color: AppColors.of(context).textSecondary),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Ожидание участников...',
-                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
-                    ),
-                  ],
-                ),
-              )
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _participants.length,
-            itemBuilder: (_, i) {
-              final p = _participants[i];
-              if (p.identity == 'voice-translator') return const SizedBox.shrink();
-              final isAI = p.identity == 'ai-assistant';
-              final isRecorder = p.identity == 'meeting-recorder';
-              final hasMic = _participantHasMic(p);
-              final displayName = isAI
-                  ? 'AI Ассистент'
-                  : isRecorder
-                      ? 'Запись'
-                      : (p.name?.isNotEmpty == true ? p.name! : p.identity);
-              return Card(
-                color: AppColors.of(context).card,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: isRecorder
-                    ? RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(color: Colors.red.withOpacity(0.5), width: 1.5),
-                      )
+    if (_participants.isEmpty) {
+      return _ringing
+          ? _buildOutgoingCallCenter(statusText: 'Вызов...')
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_outline, size: 64, color: AppColors.of(context).textSecondary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ожидание участников...',
+                    style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
+                  ),
+                ],
+              ),
+            );
+    }
+
+    final colors = AppColors.of(context);
+    final totalCount = _participants.where((p) => p.identity != 'voice-translator').length + 1; // +1 for self
+    final avatarRadius = totalCount <= 2 ? 48.0 : 36.0;
+    final fontSize = totalCount <= 2 ? 32.0 : 24.0;
+    final myAvatarUrl = _getMyAvatarUrl();
+    final myName = _room?.localParticipant?.name ?? '';
+    final myIdentity = _room?.localParticipant?.identity ?? '';
+    final mySpeaking = _speakingIdentities.contains(myIdentity);
+
+    return Center(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 24,
+        runSpacing: 24,
+        children: [
+          // Local user (self)
+          _buildParticipantAvatar(
+            identity: myIdentity,
+            displayName: myName.isNotEmpty ? myName : 'Вы',
+            avatarUrl: myAvatarUrl,
+            avatarRadius: avatarRadius,
+            fontSize: fontSize,
+            hasMic: !_muted,
+            isSpeaking: mySpeaking,
+            isLocal: true,
+            colors: colors,
+          ),
+          // Remote participants
+          ..._participants
+              .where((p) => p.identity != 'voice-translator')
+              .map((p) {
+            final isAI = p.identity == 'ai-assistant';
+            final isRecorder = p.identity == 'meeting-recorder';
+            final hasMic = _participantHasMic(p);
+            final speaking = _speakingIdentities.contains(p.identity);
+            final displayName = isAI
+                ? 'AI Ассистент'
+                : isRecorder
+                    ? 'Запись'
+                    : (p.name?.isNotEmpty == true ? p.name! : p.identity);
+            // Get avatar from fetched avatars or calleeAvatar fallback
+            String? avatarUrl = _participantAvatars[p.identity];
+            // For callee in 1-on-1 calls, use the calleeAvatar passed via route
+            if (avatarUrl == null && !isAI && !isRecorder && _participants.where((pp) => pp.identity != 'voice-translator' && pp.identity != 'meeting-recorder' && pp.identity != 'ai-assistant').length == 1) {
+              avatarUrl = widget.calleeAvatar ?? _calleeAvatarLoaded;
+            }
+
+            return _buildParticipantAvatar(
+              identity: p.identity,
+              displayName: displayName,
+              avatarUrl: avatarUrl,
+              avatarRadius: avatarRadius,
+              fontSize: fontSize,
+              hasMic: hasMic,
+              isSpeaking: speaking,
+              isAI: isAI,
+              isRecorder: isRecorder,
+              colors: colors,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParticipantAvatar({
+    required String identity,
+    required String displayName,
+    String? avatarUrl,
+    required double avatarRadius,
+    required double fontSize,
+    required bool hasMic,
+    required bool isSpeaking,
+    bool isAI = false,
+    bool isRecorder = false,
+    bool isLocal = false,
+    required AppColorsExtension colors,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            PulsingAvatar(
+              radius: avatarRadius,
+              glowColor: isRecorder ? Colors.red : isAI ? colors.primary : rainbowColorFor(identity),
+              isSpeaking: isSpeaking,
+              child: CircleAvatar(
+                radius: avatarRadius,
+                backgroundColor: isRecorder
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : isAI
+                        ? colors.primary
+                        : colors.surface,
+                backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty && !isAI && !isRecorder
+                    ? NetworkImage(avatarUrl)
                     : null,
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: isRecorder
-                        ? Colors.red.withOpacity(0.15)
+                child: (avatarUrl == null || avatarUrl.isEmpty || isAI || isRecorder)
+                    ? isRecorder
+                        ? Icon(Icons.fiber_manual_record_rounded, color: Colors.red, size: fontSize)
                         : isAI
-                            ? AppColors.of(context).primary
-                            : AppColors.of(context).surface,
-                    child: Icon(
-                      isRecorder ? Icons.fiber_manual_record_rounded : isAI ? Icons.smart_toy_rounded : Icons.person_rounded,
-                      color: isRecorder ? Colors.red : isAI ? Colors.black : AppColors.of(context).textPrimary,
-                      size: isRecorder ? 20 : 24,
-                    ),
+                            ? Icon(Icons.smart_toy_rounded, color: Colors.black, size: fontSize)
+                            : Text(
+                                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                                style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: colors.textPrimary),
+                              )
+                    : null,
+              ),
+            ),
+            // Mic indicator
+            if (!isRecorder)
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: hasMic ? Colors.green : colors.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.background, width: 2),
                   ),
-                  title: Text(
-                    displayName,
-                    style: TextStyle(
-                      color: isRecorder ? Colors.red : AppColors.of(context).textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Icon(
+                    hasMic ? Icons.mic_rounded : Icons.mic_off_rounded,
+                    size: 14,
+                    color: hasMic ? Colors.white : colors.textSecondary,
                   ),
-                  trailing: isRecorder
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('REC', style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700)),
-                        )
-                      : isAI
-                          ? Icon(Icons.graphic_eq_rounded, color: AppColors.of(context).primary)
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Recording initiator badge
-                                if (_recordingApproved && _recordingInitiatorId == p.identity)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                    margin: const EdgeInsets.only(right: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.fiber_manual_record, color: Colors.red, size: 8),
-                                        SizedBox(width: 3),
-                                        Text('REC', style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w700)),
-                                      ],
-                                    ),
-                                  ),
-                                // Transcription initiator badge
-                                if (_transcriptionActive && _transcriptionInitiatorId == p.identity)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                    margin: const EdgeInsets.only(right: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text('📝', style: TextStyle(fontSize: 10)),
-                                        SizedBox(width: 2),
-                                        Text('AI', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w700)),
-                                      ],
-                                    ),
-                                  ),
-                                Icon(
-                                  hasMic ? Icons.mic_rounded : Icons.mic_off_rounded,
-                                  color: hasMic ? Colors.green : AppColors.of(context).textSecondary,
-                                ),
-                              ],
-                            ),
                 ),
-              );
-            },
-          );
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          isLocal ? 'Вы' : displayName,
+          style: TextStyle(
+            color: isRecorder ? Colors.red : colors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
   }
 
   /// Screen share layout: large screen share on top, small participant strip at bottom.
@@ -2947,18 +3127,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           : isRecorder
               ? 'Запись'
               : (p.name?.isNotEmpty == true ? p.name! : p.identity);
-      tiles.add(_VideoTileData(name: name, track: track, hasMic: _participantHasMic(p), isLocal: false, isAI: isAI, isRecorder: isRecorder));
+      tiles.add(_VideoTileData(name: name, identity: p.identity, track: track, hasMic: _participantHasMic(p), isLocal: false, isAI: isAI, isRecorder: isRecorder, isSpeaking: _speakingIdentities.contains(p.identity)));
     }
     // Add local
+    final localIdentity = _room?.localParticipant?.identity ?? '';
     if (_cameraOn) {
       final localTrack = (_room?.localParticipant?.videoTrackPublications ?? [])
           .firstWhereOrNull((p) => p.track != null)?.track;
       tiles.add(_VideoTileData(
         name: _room?.localParticipant?.name ?? '',
+        identity: localIdentity,
         track: localTrack as lk.VideoTrack?,
         hasMic: !_muted,
         isLocal: true,
         isAI: false,
+        isSpeaking: _speakingIdentities.contains(localIdentity),
       ));
     }
     if (tiles.isEmpty) return const SizedBox.shrink();
@@ -2982,12 +3165,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                     lk.VideoTrackRenderer(tile.track!)
                   else
                     Center(
-                      child: CircleAvatar(
+                      child: PulsingAvatar(
                         radius: 20,
-                        backgroundColor: AppColors.of(context).card,
-                        child: Text(
-                          tile.name.isNotEmpty ? tile.name[0].toUpperCase() : '?',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.of(context).textPrimary),
+                        glowColor: tile.isAI ? AppColors.of(context).primary : rainbowColorFor(tile.identity.isNotEmpty ? tile.identity : tile.name),
+                        isSpeaking: tile.isSpeaking,
+                        child: CircleAvatar(
+                          radius: 20,
+                          backgroundColor: AppColors.of(context).card,
+                          child: Text(
+                            tile.name.isNotEmpty ? tile.name[0].toUpperCase() : '?',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.of(context).textPrimary),
+                          ),
                         ),
                       ),
                     ),
@@ -3045,22 +3233,27 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final hasMic = _participantHasMic(p);
       tiles.add(_VideoTileData(
         name: name,
+        identity: p.identity,
         track: track,
         hasMic: hasMic,
         isLocal: false,
         isAI: isAI,
         isRecorder: isRecorder,
+        isSpeaking: _speakingIdentities.contains(p.identity),
       ));
     }
 
     // Add local participant — only when camera is on (no avatar placeholder when camera off)
+    final localIdentity = _room?.localParticipant?.identity ?? '';
     if (_cameraOn) {
       tiles.add(_VideoTileData(
         name: localName,
+        identity: localIdentity,
         track: localTrack as lk.VideoTrack?,
         hasMic: !_muted,
         isLocal: true,
         isAI: false,
+        isSpeaking: _speakingIdentities.contains(localIdentity),
       ));
     }
 
@@ -3095,10 +3288,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       itemCount: count,
       itemBuilder: (_, i) {
         final tile = tiles[i];
+        final speakingColor = tile.isRecorder ? Colors.red : tile.isAI ? AppColors.of(context).primary : rainbowColorFor(tile.identity.isNotEmpty ? tile.identity : tile.name);
         return GestureDetector(
           onTap: tile.isLocal ? _flipCamera : null,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: tile.isSpeaking && tile.track != null
+                  ? Border.all(color: speakingColor, width: 3)
+                  : null,
+            ),
+            child: ClipRRect(
+            borderRadius: BorderRadius.circular(tile.isSpeaking && tile.track != null ? 9 : 12),
             child: Container(
               color: AppColors.of(context).surface,
               child: Stack(
@@ -3109,25 +3311,30 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                     lk.VideoTrackRenderer(tile.track!)
                   else
                     Center(
-                      child: CircleAvatar(
+                      child: PulsingAvatar(
                         radius: count <= 2 ? 40 : 28,
-                        backgroundColor: tile.isRecorder
-                            ? Colors.red.withOpacity(0.15)
-                            : tile.isAI
-                                ? AppColors.of(context).primary
-                                : AppColors.of(context).card,
-                        child: tile.isRecorder
-                            ? Icon(Icons.fiber_manual_record_rounded, size: count <= 2 ? 32 : 22, color: Colors.red)
-                            : tile.isAI
-                                ? Icon(Icons.smart_toy_rounded, size: count <= 2 ? 36 : 24, color: Colors.black)
-                                : Text(
-                                tile.name.isNotEmpty ? tile.name[0].toUpperCase() : '?',
-                                style: TextStyle(
-                                  fontSize: count <= 2 ? 32 : 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.of(context).textPrimary,
+                        glowColor: tile.isRecorder ? Colors.red : tile.isAI ? AppColors.of(context).primary : rainbowColorFor(tile.identity.isNotEmpty ? tile.identity : tile.name),
+                        isSpeaking: tile.isSpeaking,
+                        child: CircleAvatar(
+                          radius: count <= 2 ? 40 : 28,
+                          backgroundColor: tile.isRecorder
+                              ? Colors.red.withOpacity(0.15)
+                              : tile.isAI
+                                  ? AppColors.of(context).primary
+                                  : AppColors.of(context).card,
+                          child: tile.isRecorder
+                              ? Icon(Icons.fiber_manual_record_rounded, size: count <= 2 ? 32 : 22, color: Colors.red)
+                              : tile.isAI
+                                  ? Icon(Icons.smart_toy_rounded, size: count <= 2 ? 36 : 24, color: Colors.black)
+                                  : Text(
+                                  tile.name.isNotEmpty ? tile.name[0].toUpperCase() : '?',
+                                  style: TextStyle(
+                                    fontSize: count <= 2 ? 32 : 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.of(context).textPrimary,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
                     ),
 
@@ -3211,6 +3418,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               ),
             ),
           ),
+          ),
         );
       },
     );
@@ -3219,19 +3427,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
 class _VideoTileData {
   final String name;
+  final String identity;
   final lk.VideoTrack? track;
   final bool hasMic;
   final bool isLocal;
   final bool isAI;
   final bool isRecorder;
+  final bool isSpeaking;
 
   const _VideoTileData({
     required this.name,
+    this.identity = '',
     required this.track,
     required this.hasMic,
     required this.isLocal,
     required this.isAI,
     this.isRecorder = false,
+    this.isSpeaking = false,
   });
 }
 

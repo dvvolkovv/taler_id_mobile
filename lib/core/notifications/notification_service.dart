@@ -102,6 +102,7 @@ Future<void> showCallkitIncoming({
   required String roomName,
   required String fromName,
   required String convId,
+  String? fromAvatar,
 }) async {
   if (_isIosSimulator) return;
   await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
@@ -112,7 +113,12 @@ Future<void> showCallkitIncoming({
     textAccept: 'Принять',
     textDecline: 'Отклонить',
     duration: 60000,
-    extra: <String, dynamic>{'roomName': roomName, 'conversationId': convId},
+    extra: <String, dynamic>{
+      'roomName': roomName,
+      'conversationId': convId,
+      if (fromName.isNotEmpty) 'callerName': fromName,
+      if (fromAvatar != null && fromAvatar.isNotEmpty) 'callerAvatar': fromAvatar,
+    },
     android: const AndroidParams(
       isCustomNotification: true,
       isShowLogo: false,
@@ -154,6 +160,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       roomName: message.data['roomName'] ?? '',
       fromName: message.data['fromName'] ?? 'Входящий звонок',
       convId: message.data['conversationId'] ?? '',
+      fromAvatar: message.data['fromAvatar'] as String?,
     );
   } else if (type == 'call_cancelled') {
     // Caller hung up before answer — dismiss CallKit UI

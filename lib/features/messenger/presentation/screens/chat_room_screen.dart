@@ -24,6 +24,8 @@ import 'package:video_player/video_player.dart' as vp;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/storage/cache_service.dart';
+import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/services/chunked_upload_service.dart';
@@ -230,7 +232,31 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       }
       return;
     }
-    if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}');
+    if (mounted) {
+      final conv = context.read<MessengerBloc>().state.conversations
+          .where((c) => c.id == widget.conversationId)
+          .firstOrNull;
+      final calleeName = conv?.type == 'GROUP' ? conv?.name : conv?.otherUserName;
+      final calleeAvatar = conv?.type == 'GROUP' ? conv?.avatarUrl : conv?.otherUserAvatar;
+      final calleeParam = calleeName != null && calleeName.isNotEmpty
+          ? '&callee=${Uri.encodeComponent(calleeName)}'
+          : '';
+      final avatarParam = calleeAvatar != null && calleeAvatar.isNotEmpty
+          ? '&calleeAvatar=${Uri.encodeComponent(calleeAvatar)}'
+          : '';
+      var calleeId = conv?.type == 'DIRECT' ? conv?.otherUserId : null;
+      if (calleeId == null && conv != null && conv.type == 'DIRECT' && conv.participantIds.length == 2) {
+        final myId = await sl<SecureStorageService>().getUserId();
+        if (myId != null) {
+          calleeId = conv.participantIds.firstWhere((id) => id != myId, orElse: () => '');
+          if (calleeId!.isEmpty) calleeId = null;
+        }
+      }
+      final calleeIdParam = calleeId != null && calleeId.isNotEmpty
+          ? '&calleeId=$calleeId'
+          : '';
+      context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
+    }
   }
 
   Future<void> _startCall() async {
@@ -258,14 +284,35 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final roomName = res['roomName'] as String;
       sl<MessengerRemoteDataSource>()
           .sendCallInvite(widget.conversationId, roomName);
-      final _conv = context.read<MessengerBloc>().state.conversations
+      final allConvs = context.read<MessengerBloc>().state.conversations;
+      debugPrint('[ChatRoom] _startCall: convCount=${allConvs.length}, looking for convId=${widget.conversationId}');
+      final _conv = allConvs
           .where((c) => c.id == widget.conversationId)
           .firstOrNull;
+      debugPrint('[ChatRoom] _startCall: found conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}');
       final calleeName = _conv?.type == 'GROUP' ? _conv?.name : _conv?.otherUserName;
+      final calleeAvatar = _conv?.type == 'GROUP' ? _conv?.avatarUrl : _conv?.otherUserAvatar;
       final calleeParam = calleeName != null && calleeName.isNotEmpty
           ? '&callee=${Uri.encodeComponent(calleeName)}'
           : '';
-      if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam');
+      final avatarParam = calleeAvatar != null && calleeAvatar.isNotEmpty
+          ? '&calleeAvatar=${Uri.encodeComponent(calleeAvatar)}'
+          : '';
+      var calleeId = _conv?.type == 'DIRECT' ? _conv?.otherUserId : null;
+      debugPrint('[ChatRoom] _startCall: conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}, calleeAvatar=$calleeAvatar');
+      // Fallback: get otherUserId from participantIds if otherUserId is null
+      if (calleeId == null && _conv != null && _conv.type == 'DIRECT' && _conv.participantIds.length == 2) {
+        final myId = await sl<SecureStorageService>().getUserId();
+        debugPrint('[ChatRoom] myId=$myId');
+        if (myId != null) {
+          calleeId = _conv.participantIds.firstWhere((id) => id != myId, orElse: () => '');
+          if (calleeId!.isEmpty) calleeId = null;
+        }
+      }
+      final calleeIdParam = calleeId != null && calleeId.isNotEmpty
+          ? '&calleeId=$calleeId'
+          : '';
+      if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
