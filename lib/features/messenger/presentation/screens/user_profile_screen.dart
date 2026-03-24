@@ -79,7 +79,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Future<void> _acceptContactRequest() async {
-    if (_requestId == null) return;
+    if (_requestId == null || _contactActionLoading) return;
     setState(() => _contactActionLoading = true);
     try {
       final client = sl<DioClient>();
