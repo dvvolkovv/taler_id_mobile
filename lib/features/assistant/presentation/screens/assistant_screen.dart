@@ -237,7 +237,7 @@ class _AssistantScreenState extends State<AssistantScreen>
               'properties': {
                 'type': {
                   'type': 'string',
-                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES, DISLIKES'],
+                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES', 'DISLIKES'],
                 },
                 'items': {
                   'type': 'array',
@@ -261,7 +261,7 @@ class _AssistantScreenState extends State<AssistantScreen>
               'properties': {
                 'type': {
                   'type': 'string',
-                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES, DISLIKES'],
+                  'enum': ['VALUES', 'WORLDVIEW', 'SKILLS', 'INTERESTS', 'DESIRES', 'BACKGROUND', 'LIKES', 'DISLIKES'],
                 },
               },
               'required': ['type'],
