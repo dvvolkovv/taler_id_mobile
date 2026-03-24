@@ -93,12 +93,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             tooltip: 'Сканировать QR',
             onPressed: () => _openScanner(context),
           ),
-          if (_cachedUser != null)
-            IconButton(
-              icon: const Icon(Icons.qr_code_2_outlined),
-              tooltip: 'Мой QR код',
-              onPressed: () => _showQrCode(context, _cachedUser!),
-            ),
         ],
       ),
       body: BlocBuilder<ProfileBloc, ProfileState>(
@@ -179,6 +173,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ],
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // QR code card
+                AppCard(
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Мой QR код',
+                            style: TextStyle(
+                              color: AppColors.of(context).textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => Share.share(
+                              'Добавь меня в Taler ID!\ntalerid://user/${user.id}',
+                            ),
+                            child: Icon(Icons.share_outlined, color: AppColors.of(context).primary, size: 18),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: QrImageView(
+                            data: 'talerid://user/${user.id}',
+                            version: QrVersions.auto,
+                            size: 180,
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                          ),
+                        ),
+                      ),
+                      if (user.username != null && user.username!.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          '@${user.username}',
+                          style: TextStyle(color: AppColors.of(context).primary, fontSize: 13),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Покажи этот код, чтобы добавить тебя',
+                        style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
