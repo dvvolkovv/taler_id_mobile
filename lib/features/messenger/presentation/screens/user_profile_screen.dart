@@ -24,22 +24,77 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _loading = true;
   String? _error;
 
+  // Contact status
+  bool _isContact = false;
+  String? _pendingRequest; // 'sent' | 'received' | null
+  String? _requestId;
+  bool _contactActionLoading = false;
+
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadAll();
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadAll() async {
+    final client = sl<DioClient>();
     try {
-      final client = sl<DioClient>();
-      final data = await client.get(
-        '/profile/${widget.userId}',
-        fromJson: (d) => Map<String, dynamic>.from(d as Map),
-      );
-      if (mounted) setState(() { _profile = data; _loading = false; });
+      final results = await Future.wait([
+        client.get('/profile/${widget.userId}', fromJson: (d) => Map<String, dynamic>.from(d as Map)),
+        client.get('/messenger/contacts/check/${widget.userId}', fromJson: (d) => Map<String, dynamic>.from(d as Map)),
+      ]);
+      if (mounted) {
+        setState(() {
+          _profile = results[0] as Map<String, dynamic>;
+          final cs = results[1] as Map<String, dynamic>;
+          _isContact = cs['isContact'] as bool? ?? false;
+          _pendingRequest = cs['pendingRequest'] as String?;
+          _requestId = cs['requestId'] as String?;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
+    }
+  }
+
+  Future<void> _sendContactRequest() async {
+    setState(() => _contactActionLoading = true);
+    try {
+      final client = sl<DioClient>();
+      await client.post(
+        '/messenger/contacts/request',
+        data: {'receiverId': widget.userId},
+        fromJson: (d) => d,
+      );
+      if (mounted) setState(() { _pendingRequest = 'sent'; _contactActionLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        );
+      }
+    }
+  }
+
+  Future<void> _acceptContactRequest() async {
+    if (_requestId == null) return;
+    setState(() => _contactActionLoading = true);
+    try {
+      final client = sl<DioClient>();
+      await client.patch(
+        '/messenger/contacts/requests/$_requestId/accept',
+        fromJson: (d) => d,
+      );
+      if (mounted) setState(() { _isContact = true; _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        );
+      }
     }
   }
 
@@ -53,6 +108,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final convId = state.newConversationId;
     if (convId != null) {
       bloc.add(ClearNewConversation());
+    } else if (state.error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Не удалось открыть чат'),
+          backgroundColor: AppColors.of(context).error,
+        ),
+      );
     }
     return convId;
   }
@@ -197,41 +259,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                       ],
                       const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _openChat,
-                              icon: const Icon(Icons.chat_bubble_outline_rounded,
-                                  color: Colors.black),
-                              label: const Text('Написать',
-                                  style: TextStyle(color: Colors.black)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.of(context).primary,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: _startDirectCall,
-                              icon: const Icon(Icons.call_outlined,
-                                  color: Colors.black),
-                              label: const Text('Позвонить',
-                                  style: TextStyle(color: Colors.black)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.of(context).primary,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _buildActionButtons(colors),
                       const SizedBox(height: 24),
                       _buildSharedMediaButton(colors),
                     ],
@@ -240,8 +268,108 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Widget _buildActionButtons(AppColorsExtension colors) {
+    if (_contactActionLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_isContact) {
+      return Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _openChat,
+              icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.black),
+              label: const Text('Написать', style: TextStyle(color: Colors.black)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _startDirectCall,
+              icon: const Icon(Icons.call_outlined, color: Colors.black),
+              label: const Text('Позвонить', style: TextStyle(color: Colors.black)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_pendingRequest == 'sent') {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: null,
+          icon: Icon(Icons.hourglass_empty_rounded, color: colors.textSecondary),
+          label: Text('Запрос отправлен', style: TextStyle(color: colors.textSecondary)),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            side: BorderSide(color: colors.border),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      );
+    }
+
+    if (_pendingRequest == 'received') {
+      return Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _acceptContactRequest,
+              icon: const Icon(Icons.check_rounded, color: Colors.black),
+              label: const Text('Принять', style: TextStyle(color: Colors.black)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colors.primary,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: null,
+              icon: Icon(Icons.close_rounded, color: colors.textSecondary),
+              label: Text('Отклонить', style: TextStyle(color: colors.textSecondary)),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                side: BorderSide(color: colors.border),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // No contact — show Add button
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _sendContactRequest,
+        icon: const Icon(Icons.person_add_outlined, color: Colors.black),
+        label: const Text('Добавить в контакты', style: TextStyle(color: Colors.black)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colors.primary,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSharedMediaButton(AppColorsExtension colors) {
-    // Find conversation with this user from BLoC state
     final convs = context.read<MessengerBloc>().state.conversations;
     final conv = convs.where((c) => c.type == 'DIRECT' && c.otherUserId == widget.userId).firstOrNull;
     if (conv == null) return const SizedBox.shrink();
