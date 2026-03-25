@@ -46,6 +46,11 @@ class MessengerRemoteDataSource {
           .setTransports(['websocket'])
           .setAuth({'token': accessToken})
           .disableAutoConnect()
+          .enableReconnection()
+          .setReconnectionAttempts(double.infinity)
+          .setReconnectionDelay(1000)
+          .setReconnectionDelayMax(30000)
+          .setTimeout(10000)
           .build(),
     );
     _socket!.on('new_message', (d) {

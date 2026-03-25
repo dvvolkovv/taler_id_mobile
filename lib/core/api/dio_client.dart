@@ -2,6 +2,35 @@ import 'package:dio/dio.dart';
 import '../utils/constants.dart';
 import 'auth_interceptor.dart';
 import 'api_error_handler.dart';
+
+class _RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final int maxRetries;
+
+  _RetryInterceptor(this.dio, {this.maxRetries = 2});
+
+  @override
+  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
+    final retryCount = err.requestOptions.extra['retryCount'] as int? ?? 0;
+    final isNetworkError = err.type == DioExceptionType.connectionTimeout ||
+        err.type == DioExceptionType.receiveTimeout ||
+        err.type == DioExceptionType.connectionError;
+
+    if (isNetworkError && retryCount < maxRetries) {
+      await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1)));
+      final opts = err.requestOptions;
+      opts.extra['retryCount'] = retryCount + 1;
+      try {
+        final response = await dio.fetch(opts);
+        return handler.resolve(response);
+      } catch (e) {
+        return handler.next(err);
+      }
+    }
+    return handler.next(err);
+  }
+}
+
 class DioClient {
   late final Dio _dio;
 
@@ -13,7 +42,7 @@ class DioClient {
     final dio = Dio(
       BaseOptions(
         baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 15),
+        connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
           'Content-Type': 'application/json',
@@ -22,6 +51,7 @@ class DioClient {
       ),
     );
 
+    dio.interceptors.add(_RetryInterceptor(dio));
     dio.interceptors.add(authInterceptor);
     dio.interceptors.add(LogInterceptor(
       requestBody: false,
