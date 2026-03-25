@@ -158,111 +158,22 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   Widget build(BuildContext context) => _ConversationsView(myUsername: _myUsername);
 }
 
-class _ConversationsView extends StatelessWidget {
+class _ConversationsView extends StatefulWidget {
   final String? myUsername;
   const _ConversationsView({this.myUsername});
 
-  void _showContactRequests(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.of(context).card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => DraggableScrollableSheet(
-        initialChildSize: 0.5,
-        minChildSize: 0.3,
-        maxChildSize: 0.8,
-        expand: false,
-        builder: (ctx, scrollCtrl) => Column(
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.of(context).textSecondary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Запросы на общение',
-                style: TextStyle(
-                  color: AppColors.of(context).textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Expanded(
-              child: BlocBuilder<MessengerBloc, MessengerState>(
-                builder: (context, state) {
-                  if (state.contactRequests.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'Нет новых запросов',
-                        style: TextStyle(color: AppColors.of(context).textSecondary),
-                      ),
-                    );
-                  }
-                  return ListView.builder(
-                    controller: scrollCtrl,
-                    itemCount: state.contactRequests.length,
-                    itemBuilder: (context, i) {
-                      final req = state.contactRequests[i];
-                      final name = req['senderName'] as String? ?? '';
-                      final username = req['senderUsername'] as String?;
-                      final email = req['senderEmail'] as String? ?? '';
-                      final avatar = req['senderAvatar'] as String?;
-                      final id = req['id'] as String;
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.of(context).primary,
-                          backgroundImage: avatar != null ? NetworkImage(avatar) : null,
-                          child: avatar == null
-                              ? Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                                )
-                              : null,
-                        ),
-                        title: Text(
-                          name.isNotEmpty ? name : (username != null ? '@$username' : email),
-                          style: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: username != null
-                            ? Text('@$username', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12))
-                            : null,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.close_rounded, color: AppColors.of(context).error),
-                              onPressed: () {
-                                context.read<MessengerBloc>().add(RejectContactRequest(id));
-                              },
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.check_rounded, color: Colors.green),
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                context.read<MessengerBloc>().add(AcceptContactRequest(id));
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  @override
+  State<_ConversationsView> createState() => _ConversationsViewState();
+}
+
+class _ConversationsViewState extends State<_ConversationsView> {
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   void _showNewChatSheet(BuildContext context) {
@@ -270,152 +181,248 @@ class _ConversationsView extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.of(context).card,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.of(context).textSecondary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (ctx) {
+        final convs = context.read<MessengerBloc>().state.conversations;
+        final contacts = convs.where((c) => c.type == 'DIRECT').toList();
+        return DraggableScrollableSheet(
+          initialChildSize: contacts.isEmpty ? 0.3 : 0.6,
+          minChildSize: 0.25,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (ctx, scrollCtrl) => SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).textSecondary.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
+                    child: Icon(Icons.person_add_rounded, color: AppColors.of(context).primary),
+                  ),
+                  title: Text(l10n.newChat, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/dashboard/messenger/search');
+                  },
+                ),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
+                    child: Icon(Icons.group_add_rounded, color: AppColors.of(context).primary),
+                  ),
+                  title: Text(l10n.newGroup, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/dashboard/messenger/create-group');
+                  },
+                ),
+                if (contacts.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Контакты',
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: ListView.builder(
+                      controller: scrollCtrl,
+                      itemCount: contacts.length,
+                      itemBuilder: (context, i) {
+                        final c = contacts[i];
+                        final name = c.otherUserName ?? 'Пользователь';
+                        final avatar = c.otherUserAvatar;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.of(context).primary,
+                            backgroundImage: avatar != null && avatar.isNotEmpty
+                                ? CachedNetworkImageProvider(avatar)
+                                : null,
+                            child: (avatar == null || avatar.isEmpty)
+                                ? Text(
+                                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  )
+                                : null,
+                          ),
+                          title: Text(name, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            context.push('/dashboard/messenger/${c.id}');
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                child: Icon(Icons.person_add_rounded, color: AppColors.of(context).primary),
-              ),
-              title: Text(l10n.newChat, style: TextStyle(color: AppColors.of(context).textPrimary)),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/dashboard/messenger/search');
-              },
-            ),
-            ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                child: Icon(Icons.group_add_rounded, color: AppColors.of(context).primary),
-              ),
-              title: Text(l10n.newGroup, style: TextStyle(color: AppColors.of(context).textPrimary)),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/dashboard/messenger/create-group');
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  List<ConversationEntity> _filterConversations(List<ConversationEntity> convs) {
+    if (_searchQuery.isEmpty) return convs;
+    final q = _searchQuery.toLowerCase();
+    return convs.where((c) {
+      final name = (c.type == 'GROUP' ? (c.name ?? '') : (c.otherUserName ?? '')).toLowerCase();
+      return name.contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
     return Scaffold(
-      backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.tabMessenger),
-            if (myUsername != null && myUsername!.isNotEmpty)
-              Text(
-                '@$myUsername',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppColors.of(context).textSecondary,
-                  fontWeight: FontWeight.normal,
-                ),
-              ),
-          ],
-        ),
-        actions: [
-          // Contact requests badge
-          BlocBuilder<MessengerBloc, MessengerState>(
-            buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
-            builder: (context, state) {
-              final count = state.contactRequests.length;
-              return Stack(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.person_add_alt_1_rounded),
-                    onPressed: () => context.push('/dashboard/messenger/contacts'),
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppColors.of(context).error,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                        child: Text(
-                          '$count',
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          // Avatar → Profile
-          _ProfileAvatar(),
-        ],
-      ),
+      backgroundColor: colors.background,
       body: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
-          if (state.isLoading && state.conversations.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state.conversations.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.chat_bubble_outline_rounded, size: 64,
-                      color: AppColors.of(context).textSecondary),
-                  const SizedBox(height: 16),
-                  Text('Нет диалогов',
-                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Text('Найдите пользователя чтобы начать переписку',
-                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
-                      textAlign: TextAlign.center),
+          final filtered = _filterConversations(state.conversations);
+          return CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                centerTitle: true,
+                floating: true,
+                snap: true,
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: _ProfileAvatar(),
+                ),
+                title: Text(l10n.tabMessenger),
+                actions: [
+                  BlocBuilder<MessengerBloc, MessengerState>(
+                    buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
+                    builder: (context, state) {
+                      final count = state.contactRequests.length;
+                      return Stack(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.person_add_alt_1_rounded),
+                            onPressed: () => context.push('/dashboard/messenger/contacts'),
+                          ),
+                          if (count > 0)
+                            Positioned(
+                              right: 6,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: colors.error,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                                child: Text(
+                                  '$count',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
                 ],
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(52),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Поиск...',
+                        hintStyle: TextStyle(color: colors.textSecondary, fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: colors.textSecondary, size: 20),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.close, color: colors.textSecondary, size: 18),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: colors.surface,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                    ),
+                  ),
+                ),
               ),
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: () async =>
-                context.read<MessengerBloc>().add(LoadConversations()),
-            child: ListView.separated(
-              itemCount: state.conversations.length,
-              separatorBuilder: (_, __) =>
-                  Divider(color: AppColors.of(context).border, height: 1),
-              itemBuilder: (context, index) {
-                final conv = state.conversations[index];
-                return _ConversationTile(conversation: conv);
-              },
-            ),
+              if (state.isLoading && state.conversations.isEmpty)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (state.conversations.isEmpty)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.chat_bubble_outline_rounded, size: 64, color: colors.textSecondary),
+                        const SizedBox(height: 16),
+                        Text('Нет диалогов', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                        const SizedBox(height: 8),
+                        Text('Найдите пользователя чтобы начать переписку',
+                            style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                            textAlign: TextAlign.center),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final conv = filtered[index];
+                      return Column(
+                        children: [
+                          _ConversationTile(conversation: conv),
+                          if (index < filtered.length - 1)
+                            Divider(color: colors.border, height: 1),
+                        ],
+                      );
+                    },
+                    childCount: filtered.length,
+                  ),
+                ),
+            ],
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showNewChatSheet(context),
-        backgroundColor: AppColors.of(context).primary,
+        backgroundColor: colors.primary,
         child: const Icon(Icons.edit_rounded, color: Colors.black),
       ),
     );
@@ -443,10 +450,25 @@ class _ConversationTile extends StatelessWidget {
     if (lastMsg != null) {
       if (conversation.lastMessageIsSystem) {
         subtitleText = _formatSystemMessage(context, lastMsg);
-      } else if (isGroup && conversation.lastMessageSenderName != null) {
-        subtitleText = '${conversation.lastMessageSenderName}: $lastMsg';
       } else {
-        subtitleText = lastMsg;
+        String displayMsg = lastMsg;
+        // Format contact card preview
+        if (lastMsg.startsWith('[CONTACT]')) {
+          try {
+            final json = lastMsg.substring('[CONTACT]'.length);
+            final data = Map<String, dynamic>.from(
+              const JsonDecoder().convert(json) as Map,
+            );
+            displayMsg = '👤 ${data['name'] ?? 'Контакт'}';
+          } catch (_) {
+            displayMsg = '👤 Контакт';
+          }
+        }
+        if (isGroup && conversation.lastMessageSenderName != null) {
+          subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
+        } else {
+          subtitleText = displayMsg;
+        }
       }
     }
 
@@ -578,10 +600,9 @@ class _ProfileAvatar extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push('/dashboard/profile'),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 8),
+      child: Center(
         child: CircleAvatar(
-          radius: 16,
+          radius: 20,
           backgroundColor: AppColors.of(context).primary,
           backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
               ? CachedNetworkImageProvider(avatarUrl)
@@ -589,7 +610,7 @@ class _ProfileAvatar extends StatelessWidget {
           child: (avatarUrl == null || avatarUrl.isEmpty)
               ? Text(
                   firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                 )
               : null,
         ),

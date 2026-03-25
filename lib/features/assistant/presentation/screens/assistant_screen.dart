@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class AssistantScreen extends StatefulWidget {
 }
 
 class _AssistantScreenState extends State<AssistantScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   _CallState _state = _CallState.idle;
   WebSocket? _ws;
   final _recorder = AudioRecorder();
@@ -45,6 +46,10 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
+
+  // Orbit animation
+  late AnimationController _orbitCtrl;
+  int? _selectedOrbitIndex;
 
   VideoPlayerController? _logoVideo;
   bool _logoVideoReady = false;
@@ -70,6 +75,10 @@ class _AssistantScreenState extends State<AssistantScreen>
     _pulseAnim = Tween<double>(begin: 1.0, end: 1.18).animate(
       CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
+    _orbitCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 30),
+    )..repeat();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       // On Android, audioplayers takes audio focus and stops the recorder.
@@ -105,6 +114,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void dispose() {
     _pulseCtrl.dispose();
+    _orbitCtrl.dispose();
     _logoVideo?.dispose();
     _cleanup();
     _player.dispose();
@@ -592,17 +602,9 @@ class _AssistantScreenState extends State<AssistantScreen>
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         final convId = args['conversationId'] as String;
         final calleeName = args['calleeName'] as String? ?? '';
-        // Create room
-        final room = await client.post<Map<String, dynamic>>(
-          '/voice/rooms',
-          data: {'conversationId': convId, 'withAi': false},
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        final roomName = room?['roomName'] as String? ?? '';
-        // Send call invite via socket
-        sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
-        output = jsonEncode({'ok': true, 'roomName': roomName});
-        // Send function output before navigating away
+
+        // Show confirmation dialog instead of calling immediately
+        output = jsonEncode({'ok': true, 'waiting_confirmation': true});
         _sendEvent({
           'type': 'conversation.item.create',
           'item': {
@@ -611,11 +613,54 @@ class _AssistantScreenState extends State<AssistantScreen>
             'output': output,
           },
         });
-        // Clean up assistant and navigate to call
-        await _cleanup();
+
+        // Stop assistant audio/recording while showing dialog
+        await _recorder.stop();
+        await _recordSub?.cancel();
+
         if (mounted) {
-          final calleeEncoded = Uri.encodeComponent(calleeName);
-          context.push('/dashboard/voice?room=$roomName&convId=$convId&callee=$calleeEncoded');
+          final confirmed = await _showCallConfirmation(calleeName);
+          if (confirmed == true && mounted) {
+            // Proceed with call
+            try {
+              final room = await client.post<Map<String, dynamic>>(
+                '/voice/rooms',
+                data: {'conversationId': convId, 'withAi': false},
+                fromJson: (d) => Map<String, dynamic>.from(d as Map),
+              );
+              final roomName = room?['roomName'] as String? ?? '';
+              sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
+
+              await _cleanup();
+              if (mounted) {
+                setState(() {
+                  _state = _CallState.idle;
+                  _muted = false;
+                  _aiSpeaking = false;
+                });
+                final calleeEncoded = Uri.encodeComponent(calleeName);
+                String avatarParam = '';
+                try {
+                  final convs = await client.get<List<dynamic>>('/messenger/conversations', fromJson: (d) => d as List);
+                  final conv = convs.cast<Map<String, dynamic>>().where((c) => c['id'] == convId).firstOrNull;
+                  final avatar = conv?['otherUserAvatar'] as String?;
+                  if (avatar != null && avatar.isNotEmpty) {
+                    avatarParam = '&calleeAvatar=${Uri.encodeComponent(avatar)}';
+                  }
+                } catch (_) {}
+                if (mounted) {
+                  context.push('/dashboard/voice?room=$roomName&convId=$convId&callee=$calleeEncoded$avatarParam');
+                }
+              }
+            } catch (e) {
+              debugPrint('[Assistant] Call failed: $e');
+            }
+          } else {
+            // Cancelled — resume assistant
+            if (_ws != null && mounted) {
+              await _startRecording();
+            }
+          }
         }
         return; // Skip the default sendEvent below — already sent
       } else if (name == 'send_message') {
@@ -675,7 +720,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(title: Text(l10n.tabAssistant)),
+      appBar: AppBar(centerTitle: true, title: Text(l10n.tabAssistant)),
       body: switch (_state) {
         _CallState.idle => _buildIdle(l10n),
         _CallState.connecting => _buildConnecting(l10n),
@@ -685,112 +730,236 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
+  static const _capabilities = [
+    _CapabilityData(
+      icon: Icons.message_outlined,
+      title: 'Сообщения',
+      description: 'Проверь сообщения или напиши кому-нибудь. Например: "Напиши Виктору: буду через час"',
+    ),
+    _CapabilityData(
+      icon: Icons.call_outlined,
+      title: 'Звонки',
+      description: 'Позвони любому контакту голосом. Например: "Позвони Виктору Викторову"',
+    ),
+    _CapabilityData(
+      icon: Icons.history_outlined,
+      title: 'Переписка',
+      description: 'Проанализирую историю чата. Например: "Что мы обсуждали с Виктором?"',
+    ),
+    _CapabilityData(
+      icon: Icons.person_outline,
+      title: 'Профиль',
+      description: 'Покажу или обновлю твой профиль. Например: "Покажи мой профиль"',
+    ),
+    _CapabilityData(
+      icon: Icons.psychology_outlined,
+      title: 'Коучинг',
+      description: 'Режимы: коучинг ICF, психолог, HR-консультация. Скажи: "Давай коучинг"',
+    ),
+  ];
+
   Widget _buildIdle(AppLocalizations l10n) {
     final colors = AppColors.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          const SizedBox(height: 40),
-          GestureDetector(
-            onTap: _connect,
-            child: ScaleTransition(
-              scale: _pulseAnim,
-              child: Container(
-                width: 140,
-                height: 140,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.card,
-                  border: Border.all(color: colors.primary, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withValues(alpha: 0.25),
-                      blurRadius: 32,
-                      spreadRadius: 6,
+    final screenSize = MediaQuery.of(context).size;
+    final orbitRadius = screenSize.width * 0.32;
+
+    return Stack(
+      children: [
+        // Center assistant button
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: _connect,
+                child: ScaleTransition(
+                  scale: _pulseAnim,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.card,
+                      border: Border.all(color: colors.primary, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primary.withValues(alpha: 0.25),
+                          blurRadius: 32,
+                          spreadRadius: 6,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: _logoVideoReady && _logoVideo != null
-                      ? SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: _logoVideo!.value.size.width,
-                              height: _logoVideo!.value.size.height,
-                              child: VideoPlayer(_logoVideo!),
+                    child: ClipOval(
+                      child: _logoVideoReady && _logoVideo != null
+                          ? SizedBox(
+                              width: 90,
+                              height: 90,
+                              child: FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: _logoVideo!.value.size.width,
+                                  height: _logoVideo!.value.size.height,
+                                  child: VideoPlayer(_logoVideo!),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 90,
+                              height: 90,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
-                          ),
-                        )
-                      : Container(
-                          width: 100,
-                          height: 100,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Image.asset(
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? 'assets/app_icon_dark.png'
-                                  : 'assets/app_icon_light.png',
-                              fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.assistantTapToTalk,
+                style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+
+        // Orbiting icons
+        Center(
+          child: AnimatedBuilder(
+            animation: _orbitCtrl,
+            builder: (context, _) {
+              return SizedBox(
+                width: orbitRadius * 2 + 60,
+                height: orbitRadius * 2 + 60,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: List.generate(_capabilities.length, (i) {
+                    final angle = (2 * math.pi * i / _capabilities.length) +
+                        (_orbitCtrl.value * 2 * math.pi);
+                    final x = orbitRadius * math.cos(angle);
+                    final y = orbitRadius * math.sin(angle);
+                    final cap = _capabilities[i];
+                    final isSelected = _selectedOrbitIndex == i;
+
+                    return Positioned(
+                      left: orbitRadius + 30 + x - 24,
+                      top: orbitRadius + 30 + y - 24,
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedOrbitIndex = isSelected ? null : i;
+                          });
+                        },
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.3 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelected
+                                  ? colors.primary
+                                  : colors.primary.withValues(alpha: 0.15),
+                              border: Border.all(
+                                color: colors.primary.withValues(alpha: isSelected ? 1.0 : 0.4),
+                                width: 1.5,
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: colors.primary.withValues(alpha: 0.4),
+                                        blurRadius: 12,
+                                        spreadRadius: 2,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Icon(
+                              cap.icon,
+                              size: 22,
+                              color: isSelected ? Colors.white : colors.primary,
                             ),
                           ),
                         ),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // Selected capability description (bottom)
+        if (_selectedOrbitIndex != null)
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 40,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: Container(
+                key: ValueKey(_selectedOrbitIndex),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _capabilities[_selectedOrbitIndex!].icon,
+                          color: colors.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _capabilities[_selectedOrbitIndex!].title,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      _capabilities[_selectedOrbitIndex!].description,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.assistantTapToTalk,
-            style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                _CapabilityTile(
-                  icon: Icons.message_outlined,
-                  title: 'Сообщения',
-                  subtitle: '"Проверь сообщения", "Напиши Виктору: буду через час"',
-                  color: colors.primary,
-                ),
-                _CapabilityTile(
-                  icon: Icons.call_outlined,
-                  title: 'Звонки',
-                  subtitle: '"Позвони Виктору Викторову"',
-                  color: colors.primary,
-                ),
-                _CapabilityTile(
-                  icon: Icons.history_outlined,
-                  title: 'Анализ переписки',
-                  subtitle: '"Что мы обсуждали с Виктором?", "На чём остановились?"',
-                  color: colors.primary,
-                ),
-                _CapabilityTile(
-                  icon: Icons.person_outline,
-                  title: 'Профиль',
-                  subtitle: '"Покажи мой профиль", "Обнови имя"',
-                  color: colors.primary,
-                ),
-                _CapabilityTile(
-                  icon: Icons.psychology_outlined,
-                  title: 'Специальные режимы',
-                  subtitle: '"Давай коучинг", "Поговори как психолог", "HR консультация"',
-                  color: colors.primary,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
+      ],
     );
   }
 
@@ -923,6 +1092,60 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
+  Future<bool?> _showCallConfirmation(String calleeName) async {
+    final colors = AppColors.of(context);
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.primary.withValues(alpha: 0.15),
+              ),
+              child: Icon(Icons.call_rounded, size: 36, color: colors.primary),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Позвонить?',
+              style: TextStyle(color: colors.textPrimary, fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              calleeName,
+              style: TextStyle(color: colors.primary, fontSize: 18, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Отмена', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.call_rounded, size: 20),
+            label: const Text('Позвонить', style: TextStyle(fontSize: 16)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildError(AppLocalizations l10n) {
     return Center(
       child: Padding(
@@ -999,61 +1222,14 @@ class _CallButton extends StatelessWidget {
   }
 }
 
-class _CapabilityTile extends StatelessWidget {
+class _CapabilityData {
   final IconData icon;
   final String title;
-  final String subtitle;
-  final Color color;
+  final String description;
 
-  const _CapabilityTile({
+  const _CapabilityData({
     required this.icon,
     required this.title,
-    required this.subtitle,
-    required this.color,
+    required this.description,
   });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: AppColors.of(context).textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppColors.of(context).textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

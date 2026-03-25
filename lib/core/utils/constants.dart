@@ -37,6 +37,7 @@ class RouteConstants {
   static const messengerSearch = '/dashboard/messenger/search';
   static const voice = '/dashboard/voice';
   static const callHistory = '/dashboard/call-history';
+  static const contacts = '/dashboard/contacts';
   static const onboarding = '/onboarding';
   static const forgotPassword = '/auth/forgot-password';
   static const translator = '/dashboard/translator';

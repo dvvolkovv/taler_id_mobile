@@ -29,12 +29,20 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   Future<_PersonalRoom?>? _personalRoomFuture;
   bool _calling = false;
   bool _creatingTemp = false;
+  final _searchCtrl = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _historyFuture = _loadHistory();
     _personalRoomFuture = _loadPersonalRoom();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<List<_CallEntry>> _loadHistory() async {
@@ -236,16 +244,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final colors = AppColors.of(context);
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        title: const Text('Звонки'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-            onPressed: () => context.push('/dashboard/messenger/contacts'),
-          ),
-          _CallHistoryProfileAvatar(),
-        ],
-      ),
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
@@ -254,28 +252,39 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             _personalRoomFuture = _loadPersonalRoom();
           });
         },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // ── Personal room section ──
-            _buildPersonalRoomSection(colors),
-            const SizedBox(height: 12),
-            // ── Create meeting button ──
-            _buildCreateMeetingButton(colors),
-            const SizedBox(height: 12),
-            // ── Meeting summaries button ──
-            _buildMeetingSummariesButton(colors),
-            const SizedBox(height: 8),
-            // ── Meeting recordings button ──
-            _buildMeetingRecordingsButton(colors),
-            const SizedBox(height: 24),
-            // ── Call history ──
-            Text(
-              'История звонков',
-              style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+        child: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              centerTitle: true,
+              floating: true,
+              snap: true,
+              leading: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: _CallHistoryProfileAvatar(),
+              ),
+              title: const Text('Звонки'),
             ),
-            const SizedBox(height: 12),
-            _buildHistoryList(colors),
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _buildPersonalRoomSection(colors),
+                  const SizedBox(height: 12),
+                  _buildCreateMeetingButton(colors),
+                  const SizedBox(height: 12),
+                  _buildMeetingSummariesButton(colors),
+                  const SizedBox(height: 8),
+                  _buildMeetingRecordingsButton(colors),
+                  const SizedBox(height: 24),
+                  Text(
+                    'История звонков',
+                    style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHistoryList(colors),
+                ]),
+              ),
+            ),
           ],
         ),
       ),
@@ -767,10 +776,9 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => context.push('/dashboard/profile'),
-      child: Padding(
-        padding: const EdgeInsets.only(right: 8),
+      child: Center(
         child: CircleAvatar(
-          radius: 16,
+          radius: 20,
           backgroundColor: AppColors.of(context).primary,
           backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
               ? CachedNetworkImageProvider(avatarUrl)
@@ -778,7 +786,7 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
           child: (avatarUrl == null || avatarUrl.isEmpty)
               ? Text(
                   firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                 )
               : null,
         ),
@@ -1099,6 +1107,66 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           const SizedBox(height: 12),
         ],
 
+        // Meeting summary (first, before recording)
+        if (summary != null && summary['status'] != 'processing') ...[
+          if ((summary['summary'] as String? ?? '').isNotEmpty) ...[
+            _SectionHeader(icon: Icons.smart_toy_rounded, title: 'Резюме встречи', colors: colors),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => MeetingSummaryDetailScreen(id: summary['id'] as String)),
+              ),
+              child: AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      summary['summary'] as String,
+                      style: TextStyle(color: colors.textPrimary, fontSize: 14),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.arrow_forward_rounded, size: 16, color: colors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Подробнее',
+                          style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ],
+
+        if (summary != null && summary['status'] == 'processing') ...[
+          AppCard(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Резюме обрабатывается...',
+                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
         // Recording
         if (recordingUrl != null && recordingUrl.isNotEmpty) ...[
           _SectionHeader(icon: Icons.fiber_manual_record_rounded, title: 'Запись встречи', colors: colors),
@@ -1190,78 +1258,6 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          // Show transcript if available
-          if ((summary['transcript'] as String? ?? '').isNotEmpty) ...[
-            _SectionHeader(icon: Icons.description_rounded, title: 'Протокол записи', colors: colors),
-            const SizedBox(height: 8),
-            AppCard(
-              child: Text(
-                summary['transcript'] as String,
-                style: TextStyle(color: colors.textPrimary, fontSize: 14, height: 1.5),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
-
-        // Meeting summary
-        if (summary != null && summary['status'] != 'processing') ...[
-          if ((summary['summary'] as String? ?? '').isNotEmpty) ...[
-            _SectionHeader(icon: Icons.smart_toy_rounded, title: 'Резюме встречи', colors: colors),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => MeetingSummaryDetailScreen(id: summary['id'] as String)),
-              ),
-              child: AppCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      summary['summary'] as String,
-                      style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(Icons.arrow_forward_rounded, size: 16, color: colors.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Подробнее',
-                          style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-        ],
-
-        if (summary != null && summary['status'] == 'processing') ...[
-          AppCard(
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Резюме обрабатывается...',
-                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
         ],
       ],
     );

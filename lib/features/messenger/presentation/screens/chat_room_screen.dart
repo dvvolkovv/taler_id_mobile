@@ -354,6 +354,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 title: Text('Файл', style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickFile(); },
               ),
+              ListTile(
+                leading: Icon(Icons.person_rounded, color: colors.primary),
+                title: Text('Контакт', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _pickContact(); },
+              ),
             ],
           ),
         ),
@@ -433,6 +438,85 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _pendingFiles.add(_PendingFile(path: file.path!, name: file.name, type: typeOverride));
       }
     });
+  }
+
+  void _pickContact() {
+    final colors = AppColors.of(context);
+    final bloc = context.read<MessengerBloc>();
+    final convs = bloc.state.conversations.where((c) => c.type == 'DIRECT').toList();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (ctx, scrollCtrl) => SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: colors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Выберите контакт',
+                    style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (convs.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text('Нет контактов', style: TextStyle(color: colors.textSecondary)),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollCtrl,
+                    itemCount: convs.length,
+                    itemBuilder: (context, i) {
+                      final c = convs[i];
+                      final name = c.otherUserName ?? 'Пользователь';
+                      final avatar = c.otherUserAvatar;
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: colors.primary,
+                          backgroundImage: avatar != null && avatar.isNotEmpty
+                              ? CachedNetworkImageProvider(avatar)
+                              : null,
+                          child: (avatar == null || avatar.isEmpty)
+                              ? Text(name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+                              : null,
+                        ),
+                        title: Text(name, style: TextStyle(color: colors.textPrimary)),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          final contactJson = jsonEncode({'name': name, 'userId': c.otherUserId, 'avatar': c.otherUserAvatar ?? ''});
+                          context.read<MessengerBloc>().add(SendMessage(widget.conversationId, '[CONTACT]$contactJson'));
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _cancelPendingAttachment([int? index]) {
@@ -1391,6 +1475,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 fileName: widget.message.fileName ?? widget.message.content,
                 fileSize: widget.message.fileSize,
               )
+            else if (widget.message.content.startsWith('[CONTACT]'))
+              _ContactCardWidget(content: widget.message.content)
             else
               _LinkifiedText(
                 text: widget.message.content,
@@ -1779,6 +1865,68 @@ final _urlRegex = RegExp(
   caseSensitive: false,
 );
 
+class _ContactCardWidget extends StatelessWidget {
+  final String content;
+  const _ContactCardWidget({required this.content});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    try {
+      final jsonStr = content.substring('[CONTACT]'.length);
+      final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+      final name = data['name'] as String? ?? 'Контакт';
+      final userId = data['userId'] as String? ?? '';
+      final avatar = data['avatar'] as String? ?? '';
+
+      return GestureDetector(
+        onTap: userId.isNotEmpty
+            ? () => GoRouter.of(context).push('/dashboard/user/$userId')
+            : null,
+        child: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: colors.primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: colors.primary,
+                backgroundImage: avatar.isNotEmpty ? CachedNetworkImageProvider(avatar) : null,
+                child: avatar.isEmpty
+                    ? Icon(Icons.person_rounded, color: Colors.black, size: 22)
+                    : null,
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(name,
+                      style: TextStyle(color: colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text('Контакт · нажмите чтобы открыть',
+                      style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded, color: colors.textSecondary, size: 20),
+            ],
+          ),
+        ),
+      );
+    } catch (_) {
+      return Text(content, style: TextStyle(color: colors.textPrimary, fontSize: 14));
+    }
+  }
+}
+
 class _LinkifiedText extends StatelessWidget {
   final String text;
   final TextStyle style;
@@ -1810,11 +1958,21 @@ class _LinkifiedText extends StatelessWidget {
           ..onTap = () {
             final uri = Uri.tryParse(url);
             if (uri == null) return;
+            const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol'};
+            final isTaler = talerHosts.contains(uri.host);
             // Open room links inside the app instead of the browser
-            if (uri.host == Uri.parse(AppConfig.baseUrl).host && uri.path.startsWith('/room/')) {
+            if (isTaler && uri.path.startsWith('/room/')) {
               final code = uri.pathSegments.last;
               if (code.isNotEmpty) {
                 GoRouter.of(context).go('/dashboard/voice?publicCode=$code');
+                return;
+              }
+            }
+            // Open contact profile links inside the app
+            if (isTaler && uri.path.startsWith('/u/')) {
+              final userId = uri.pathSegments.last;
+              if (userId.isNotEmpty) {
+                GoRouter.of(context).push('/dashboard/user/$userId');
                 return;
               }
             }

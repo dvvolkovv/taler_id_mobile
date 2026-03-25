@@ -44,11 +44,13 @@ void _setupCallkitListener() {
     final convId = extra?['conversationId'] as String?;
     final e2eeKey = extra?['e2eeKey'] as String?;
     final callerName = event.body['nameCaller'] as String? ?? '';
+    final callerAvatar = extra?['callerAvatar'] as String? ?? '';
     if (roomName == null || roomName.isEmpty) return;
     final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
     final calleeParam = callerName.isNotEmpty ? '&callee=${Uri.encodeComponent(callerName)}' : '';
+    final avatarParam = callerAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(callerAvatar)}' : '';
     final route =
-        '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam$calleeParam';
+        '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam$calleeParam$avatarParam';
     debugPrint('[CallKit] accept: roomName=$roomName, e2ee=${e2eeKey != null}, setting pending route');
     // Store for DashboardScreen's cold-start initState path.
     NotificationService.setPendingCallRoute(route);

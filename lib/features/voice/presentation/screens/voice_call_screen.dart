@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform, WebSocket;
+import 'dart:typed_data';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -116,6 +119,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callkitEndedSub;
   Timer? _emptyRoomTimer;
+
+  // In-call assistant state
+  bool _assistantActive = false;
+  WebSocket? _assistantWs;
+  final AudioRecorder _assistantRecorder = AudioRecorder();
+  StreamSubscription<Uint8List>? _assistantRecordSub;
+  bool _assistantSessionConfigured = false;
+  String? _assistantPendingCallId;
+  String? _assistantPendingCallName;
+  final StringBuffer _assistantPendingArgs = StringBuffer();
 
   // Server-side translation state
   String _preferredLang = '';
@@ -348,8 +361,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _connect() async {
     debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}, calleeName=${widget.calleeName}, calleeAvatar=${widget.calleeAvatar}, calleeId=${widget.calleeId}');
-    // Load avatars: callee (if not passed) and own avatar
-    if (widget.calleeAvatar == null) {
+    // Load avatars: callee (if not passed or empty) and own avatar
+    if (widget.calleeAvatar == null || widget.calleeAvatar!.isEmpty) {
       _loadCalleeAvatar();
     }
     _loadMyAvatar();
@@ -1097,6 +1110,309 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     setState(() => _muted = newMuted);
   }
 
+  // ── In-call Assistant ──
+
+  // PCM16 audio buffer for assistant speech playback
+  final List<int> _assistantAudioBuffer = [];
+  bool _assistantSpeaking = false;
+
+  Future<void> _startAssistant() async {
+    if (_assistantActive) return;
+
+    setState(() {
+      _assistantActive = true;
+      _muted = true;
+    });
+
+    // Fully disable LiveKit microphone to release hardware
+    await _room?.localParticipant?.setMicrophoneEnabled(false);
+    // Wait for hardware to be released
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    try {
+      final token = await sl<SecureStorageService>().getAccessToken();
+      final baseUrl = AppConfig.baseUrl.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
+      final wsUrl = '$baseUrl/voice/realtime-proxy?token=$token';
+      _assistantWs = await WebSocket.connect(wsUrl);
+
+      _assistantWs!.listen(
+        (data) => _handleAssistantMessage(data),
+        onDone: () {
+          if (mounted) _stopAssistant();
+        },
+        onError: (_) {
+          if (mounted) _stopAssistant();
+        },
+      );
+
+      // Wait for WebSocket handshake
+      await Future.delayed(const Duration(milliseconds: 500));
+      _configureAssistantSession();
+      // Additional delay for session to be configured
+      await Future.delayed(const Duration(milliseconds: 300));
+      await _startAssistantRecording();
+    } catch (e) {
+      debugPrint('[InCallAssistant] Error: $e');
+      _stopAssistant();
+    }
+  }
+
+  void _configureAssistantSession() {
+    if (_assistantWs == null) return;
+
+    // Get participant names for context
+    final participantNames = _participants.map((p) => p.name ?? p.identity).toList();
+    final participantsStr = participantNames.isEmpty ? '' : '\nУчастники текущего звонка: ${participantNames.join(", ")}';
+
+    final sessionConfig = {
+      'type': 'session.update',
+      'session': {
+        'modalities': ['text', 'audio'],
+        'voice': 'sage',
+        'input_audio_format': 'pcm16',
+        'output_audio_format': 'pcm16',
+        'instructions': '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
+$participantsStr
+Если пользователь просит добавить кого-то в звонок:
+1. Вызови get_conversations чтобы получить список контактов
+2. Найди нужного человека по имени или username (otherUserUsername)
+3. Вызови send_call_invite с conversationId найденного диалога
+4. Если не нашёл в диалогах — вызови search_contacts и повтори поиск
+
+Отвечай коротко — пользователь в разгаре разговора.''',
+        'tools': [
+          {
+            'type': 'function',
+            'name': 'get_conversations',
+            'description': 'Get list of user conversations/chats. Returns array with id, otherUserName, otherUserUsername, otherUserId, type fields.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'search_contacts',
+            'description': 'Search for users by name, username. Returns array with id, firstName, lastName, username.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'query': {'type': 'string', 'description': 'Search query (name or username, min 2 chars)'},
+              },
+              'required': ['query'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'send_call_invite',
+            'description': 'Send call invite to a contact to join current call. Provide the conversationId of the direct chat with this person.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string', 'description': 'Conversation ID of the direct chat'},
+                'name': {'type': 'string', 'description': 'Name of the person being invited'},
+              },
+              'required': ['conversationId'],
+            },
+          },
+        ],
+        'turn_detection': {
+          'type': 'server_vad',
+          'threshold': 0.5,
+          'prefix_padding_ms': 300,
+          'silence_duration_ms': 500,
+        },
+      },
+    };
+
+    _assistantWs!.add(jsonEncode(sessionConfig));
+    _assistantSessionConfigured = true;
+  }
+
+  Future<void> _startAssistantRecording() async {
+    if (_assistantWs == null) return;
+    final tmpDir = await getTemporaryDirectory();
+    final stream = await _assistantRecorder.startStream(RecordConfig(
+      encoder: AudioEncoder.pcm16bits,
+      sampleRate: 24000,
+      numChannels: 1,
+      autoGain: true,
+      echoCancel: true,
+      noiseSuppress: true,
+    ));
+    _assistantRecordSub = stream.listen((data) {
+      if (_assistantWs != null && _assistantSessionConfigured) {
+        _assistantWs!.add(jsonEncode({
+          'type': 'input_audio_buffer.append',
+          'audio': base64Encode(data),
+        }));
+      }
+    });
+  }
+
+  void _handleAssistantMessage(dynamic raw) {
+    if (raw is! String) return;
+    final msg = jsonDecode(raw) as Map<String, dynamic>;
+    final type = msg['type'] as String? ?? '';
+
+    if (type == 'response.function_call_arguments.done') {
+      final name = msg['name'] as String? ?? '';
+      final args = msg['arguments'] as String? ?? '{}';
+      final callId = msg['call_id'] as String? ?? '';
+      _handleAssistantFunctionCall(name, args, callId);
+    } else if (type == 'response.audio.delta') {
+      // Buffer assistant audio response
+      final audioB64 = msg['delta'] as String? ?? '';
+      if (audioB64.isNotEmpty) {
+        _assistantAudioBuffer.addAll(base64Decode(audioB64));
+      }
+    } else if (type == 'response.audio.done') {
+      // Play buffered assistant audio
+      _playAssistantAudio();
+    } else if (type == 'response.audio_transcript.delta') {
+      // Could show transcript overlay if needed
+    }
+  }
+
+  Future<void> _playAssistantAudio() async {
+    if (_assistantAudioBuffer.isEmpty) return;
+    if (mounted) setState(() => _assistantSpeaking = true);
+
+    try {
+      // Convert PCM16 24kHz mono to WAV for playback
+      final pcmData = Uint8List.fromList(_assistantAudioBuffer);
+      _assistantAudioBuffer.clear();
+
+      final wavHeader = _buildWavHeader(pcmData.length, 24000, 1, 16);
+      final wavData = Uint8List(wavHeader.length + pcmData.length);
+      wavData.setAll(0, wavHeader);
+      wavData.setAll(wavHeader.length, pcmData);
+
+      final tmpDir = await getTemporaryDirectory();
+      final wavFile = File('${tmpDir.path}/assistant_response.wav');
+      await wavFile.writeAsBytes(wavData);
+
+      // Stop recording while playing to avoid feedback
+      await _assistantRecordSub?.cancel();
+      _assistantRecordSub = null;
+      try { await _assistantRecorder.stop(); } catch (_) {}
+
+      final player = AudioPlayer();
+      await player.play(DeviceFileSource(wavFile.path));
+      await player.onPlayerComplete.first;
+      player.dispose();
+
+      // Resume recording after playback
+      if (_assistantActive && _assistantWs != null) {
+        await _startAssistantRecording();
+      }
+    } catch (e) {
+      debugPrint('[InCallAssistant] Audio playback error: $e');
+    } finally {
+      if (mounted) setState(() => _assistantSpeaking = false);
+    }
+  }
+
+  Uint8List _buildWavHeader(int dataLength, int sampleRate, int channels, int bitsPerSample) {
+    final byteRate = sampleRate * channels * bitsPerSample ~/ 8;
+    final blockAlign = channels * bitsPerSample ~/ 8;
+    final header = ByteData(44);
+    // RIFF header
+    header.setUint8(0, 0x52); header.setUint8(1, 0x49); header.setUint8(2, 0x46); header.setUint8(3, 0x46);
+    header.setUint32(4, 36 + dataLength, Endian.little);
+    header.setUint8(8, 0x57); header.setUint8(9, 0x41); header.setUint8(10, 0x56); header.setUint8(11, 0x45);
+    // fmt chunk
+    header.setUint8(12, 0x66); header.setUint8(13, 0x6D); header.setUint8(14, 0x74); header.setUint8(15, 0x20);
+    header.setUint32(16, 16, Endian.little);
+    header.setUint16(20, 1, Endian.little); // PCM
+    header.setUint16(22, channels, Endian.little);
+    header.setUint32(24, sampleRate, Endian.little);
+    header.setUint32(28, byteRate, Endian.little);
+    header.setUint16(32, blockAlign, Endian.little);
+    header.setUint16(34, bitsPerSample, Endian.little);
+    // data chunk
+    header.setUint8(36, 0x64); header.setUint8(37, 0x61); header.setUint8(38, 0x74); header.setUint8(39, 0x61);
+    header.setUint32(40, dataLength, Endian.little);
+    return header.buffer.asUint8List();
+  }
+
+  Future<void> _handleAssistantFunctionCall(String name, String argsJson, String callId) async {
+    try {
+      final args = jsonDecode(argsJson) as Map<String, dynamic>;
+      String output;
+
+      if (name == 'get_conversations') {
+        debugPrint('[InCallAssistant] get_conversations');
+        final data = await sl<DioClient>().get<List<dynamic>>(
+          '/messenger/conversations',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'search_contacts') {
+        final query = args['query'] as String? ?? '';
+        debugPrint('[InCallAssistant] search_contacts: "$query"');
+        final encoded = Uri.encodeComponent(query);
+        final data = await sl<DioClient>().get<List<dynamic>>(
+          '/messenger/users/search?q=$encoded',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'send_call_invite') {
+        final convId = args['conversationId'] as String? ?? '';
+        final inviteeName = args['name'] as String? ?? '';
+        debugPrint('[InCallAssistant] send_call_invite: convId=$convId, name=$inviteeName, room=$_roomName');
+        if (_roomName != null && convId.isNotEmpty) {
+          sl<MessengerRemoteDataSource>().sendCallInvite(convId, _roomName!);
+          output = jsonEncode({'ok': true, 'message': 'Приглашение отправлено ${inviteeName.isNotEmpty ? inviteeName : "участнику"}'});
+        } else {
+          output = jsonEncode({'ok': false, 'message': 'Нет активной комнаты или conversationId'});
+        }
+      } else {
+        debugPrint('[InCallAssistant] unknown function: $name');
+        output = jsonEncode({'error': 'Unknown function: $name'});
+      }
+
+      debugPrint('[InCallAssistant] $name result: ${output.length > 200 ? '${output.substring(0, 200)}...' : output}');
+      _assistantWs?.add(jsonEncode({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'function_call_output',
+          'call_id': callId,
+          'output': output,
+        },
+      }));
+      _assistantWs?.add(jsonEncode({'type': 'response.create'}));
+    } catch (e) {
+      debugPrint('[InCallAssistant] $name error: $e');
+      _assistantWs?.add(jsonEncode({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'function_call_output',
+          'call_id': callId,
+          'output': jsonEncode({'error': e.toString()}),
+        },
+      }));
+      _assistantWs?.add(jsonEncode({'type': 'response.create'}));
+    }
+  }
+
+  Future<void> _stopAssistant() async {
+    _assistantSessionConfigured = false;
+    await _assistantRecordSub?.cancel();
+    _assistantRecordSub = null;
+    try { await _assistantRecorder.stop(); } catch (_) {}
+    try { _assistantWs?.close(); } catch (_) {}
+    _assistantWs = null;
+
+    // Unmute mic back in the room
+    if (_room != null && mounted) {
+      await _room!.localParticipant?.setMicrophoneEnabled(true);
+      setState(() {
+        _assistantActive = false;
+        _muted = false;
+      });
+    } else {
+      if (mounted) setState(() => _assistantActive = false);
+    }
+  }
+
   Future<void> _toggleCamera() async {
     if (!_cameraOn) {
       final status = await Permission.camera.request();
@@ -1439,7 +1755,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (!_isRecording && !_transcriptionActive) {
         if (_consentForTranscription) {
           _startTranscription();
-          _showSnack('Все согласились. Протоколирование начато.');
+          _showSnack('Все согласились. Запись начата.');
         } else {
           _startRecording();
           _showSnack('Все согласились. Запись началась.');
@@ -1510,7 +1826,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _stopRecording();
     }
     _resetRecordingState();
-    _showSnack(wasTranscription ? 'Протоколирование завершено' : 'Запись завершена');
+    _showSnack('Запись завершена');
   }
 
   void _endRecordingSession() {
@@ -1608,7 +1924,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             Expanded(
               child: Text(
                 recordingActive
-                    ? (forTranscription ? 'Протоколирование идёт' : 'Запись идёт')
+                    ? 'Запись идёт'
                     : (forTranscription ? 'Запрос на протоколирование' : 'Запрос на запись'),
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
@@ -1884,6 +2200,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
+    // Stop in-call assistant if active
+    if (_assistantActive) {
+      _assistantSessionConfigured = false;
+      await _assistantRecordSub?.cancel();
+      _assistantRecordSub = null;
+      try { await _assistantRecorder.stop(); } catch (_) {}
+      try { _assistantWs?.close(); } catch (_) {}
+      _assistantWs = null;
+      _assistantActive = false;
+      _assistantSpeaking = false;
+      _assistantAudioBuffer.clear();
+    }
     // Close any open consent dialog before navigating
     if (_consentDialogShowing && mounted) {
       try {
@@ -2358,7 +2686,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Widget _buildOutgoingCallCenter({required String statusText}) {
     final colors = AppColors.of(context);
     final name = widget.calleeName ?? _publicRoomCreatorName;
-    final avatarUrl = widget.calleeAvatar ?? _calleeAvatarLoaded ?? _publicRoomCreatorAvatar;
+    final avatarUrl = (widget.calleeAvatar?.isNotEmpty == true ? widget.calleeAvatar : null) ?? _calleeAvatarLoaded ?? _publicRoomCreatorAvatar;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -2532,7 +2860,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        (_consentPending && _consentForTranscription) ? 'ОЖИДАНИЕ' : 'ПРОТОКОЛ',
+                        (_consentPending && _consentForTranscription) ? 'ОЖИДАНИЕ' : 'REC',
                         style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -2567,16 +2895,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _ControlButton(
-                    icon: (_isRecording || (_consentPending && !_consentForTranscription))
+                    icon: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
                         ? Icons.stop_circle_rounded
                         : Icons.fiber_manual_record_rounded,
-                    label: (_consentPending && !_consentForTranscription) ? 'Ожидание' : (_isRecording ? 'Стоп' : 'Запись'),
-                    color: (_isRecording || (_consentPending && !_consentForTranscription))
+                    label: (_consentPending && !_consentForTranscription) ? 'Ожидание' : ((_isRecording || _transcriptionActive) ? 'Стоп' : 'Запись'),
+                    color: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
                         ? Colors.red.withValues(alpha: 0.2)
                         : AppColors.of(context).card,
-                    iconColor: (_isRecording || (_consentPending && !_consentForTranscription)) ? Colors.red : null,
-                    onTap: (_transcriptionActive || (_consentPending && _consentForTranscription) ||
-                            (_recordingApproved && _recordingInitiatorId != _room?.localParticipant?.identity))
+                    iconColor: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription)) ? Colors.red : null,
+                    onTap: ((_consentPending && _consentForTranscription) ||
+                            ((_isRecording || _transcriptionActive || _recordingApproved) && _recordingInitiatorId != _room?.localParticipant?.identity))
                         ? null
                         : () => _toggleRecordingWithConsent(),
                   ),
@@ -2641,7 +2969,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               ),
               ),
               const SizedBox(height: 12),
-              // Primary row: Mic, Camera, End Call
+              // Assistant active indicator
+              if (_assistantActive)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.of(context).primary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.of(context).primary.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.smart_toy_rounded, size: 16, color: AppColors.of(context).primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _assistantSpeaking ? 'Ассистент говорит...' : 'Ассистент слушает...',
+                          style: TextStyle(color: AppColors.of(context).primary, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              // Primary row: Mic, Assistant, End Call, Camera
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -2651,7 +3003,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                         : Icons.mic_rounded,
                     label: _muted ? 'Включить' : 'Микрофон',
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
-                    onTap: _toggleMute,
+                    onTap: _assistantActive ? null : _toggleMute,
+                  ),
+                  _ControlButton(
+                    icon: Icons.smart_toy_rounded,
+                    label: _assistantActive ? 'Стоп' : 'Ассистент',
+                    color: _assistantActive
+                        ? AppColors.of(context).primary
+                        : AppColors.of(context).card,
+                    onTap: _assistantActive ? _stopAssistant : _startAssistant,
                   ),
                   _ControlButton(
                     icon: Icons.call_end_rounded,
@@ -2856,7 +3216,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             String? avatarUrl = _participantAvatars[p.identity];
             // For callee in 1-on-1 calls, use the calleeAvatar passed via route
             if (avatarUrl == null && !isAI && !isRecorder && _participants.where((pp) => pp.identity != 'voice-translator' && pp.identity != 'meeting-recorder' && pp.identity != 'ai-assistant').length == 1) {
-              avatarUrl = widget.calleeAvatar ?? _calleeAvatarLoaded;
+              avatarUrl = (widget.calleeAvatar?.isNotEmpty == true ? widget.calleeAvatar : null) ?? _calleeAvatarLoaded;
             }
 
             return _buildParticipantAvatar(

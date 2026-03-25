@@ -106,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(title: Text(l10n.settings)),
+      appBar: AppBar(centerTitle: true, title: Text(l10n.settings)),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthLoggedOut) {
