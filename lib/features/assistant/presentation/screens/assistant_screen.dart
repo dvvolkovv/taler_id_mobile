@@ -14,6 +14,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import 'package:go_router/go_router.dart';
 
 enum _CallState { idle, connecting, connected, error }
 
@@ -54,6 +56,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   String? _pendingCallId;
   String? _pendingCallName;
   final StringBuffer _pendingArgs = StringBuffer();
+
+  // Incoming message listener
+  StreamSubscription? _messageSub;
 
   @override
   void initState() {
@@ -109,6 +114,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   Future<void> _cleanup() async {
     _sessionConfigured = false;
     _audioBuffer.clear();
+    await _messageSub?.cancel();
+    _messageSub = null;
     await _recordSub?.cancel();
     _recordSub = null;
     await _recorder.stop();
@@ -161,9 +168,10 @@ class _AssistantScreenState extends State<AssistantScreen>
       // 6. Start recording microphone and streaming to OpenAI
       await _startRecording();
 
-      // 7. Make AI speak first — greet the user
-      _sendEvent({'type': 'response.create'});
+      // Listen for incoming messages and notify AI
+      _messageSub = sl<MessengerRemoteDataSource>().messageStream.listen(_onIncomingMessage);
 
+      // No greeting — start listening immediately
       setState(() => _state = _CallState.connected);
     } catch (e) {
       await _cleanup();
@@ -184,13 +192,59 @@ class _AssistantScreenState extends State<AssistantScreen>
         'instructions':
             'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
             'статусе KYC-верификации и данных профиля. Отвечай кратко и по делу. '
-            'Говори исключительно на русском языке. Начни разговор первым — поприветствуй пользователя и спроси, чем можешь помочь. '
+            'Говори на том же языке, на котором говорит пользователь. Не начинай разговор первым — жди когда пользователь заговорит. '
+            'Отвечай кратко и по делу. '
             'При необходимости вызывай инструменты для чтения или обновления профиля. '
             'Ты также умеешь работать с разделами "О себе" — это личная информация пользователя: ценности, видение мира, '
             'навыки, интересы, желания, профиль, что нравится/не нравится. Ты можешь спрашивать пользователя о нём, '
             'задавать уточняющие вопросы, и сохранять ответы в соответствующие разделы. '
             'Перед сохранением обязательно вызови get_sections чтобы увидеть что уже заполнено, и дополняй, а не заменяй. '
-            'Используй items для кратких тегов/ключевых слов, freeText для описания.',
+            'Используй items для кратких тегов/ключевых слов, freeText для описания.\n\n'
+            'Помимо основного режима работы с профилем, ты можешь работать в специальных режимах по запросу пользователя:\n\n'
+            'РЕЖИМ "КОУЧ ICF":\n'
+            'Активируется если пользователь говорит "давай коучинг", "коуч-сессия", "хочу поработать с коучем" и т.п.\n'
+            '- Работай строго по стандартам ICF (PCC уровень)\n'
+            '- НИКОГДА не давай советов и готовых решений\n'
+            '- Задавай только открытые вопросы (что, как, какой, насколько)\n'
+            '- Используй перефразирование и отражение чувств\n'
+            '- Структура: контракт на сессию → исследование темы → осознание → конкретный шаг\n'
+            '- В этом режиме НЕ вызывай инструменты профиля\n\n'
+            'РЕЖИМ "ПСИХОЛОГ":\n'
+            'Активируется если пользователь говорит "поговори как психолог", "нужна поддержка", "хочу поговорить" и т.п.\n'
+            '- Эмпатическое слушание, рефлексивные вопросы\n'
+            '- Валидация чувств и эмоциональная поддержка\n'
+            '- Не давай медицинских рекомендаций\n'
+            '- В этом режиме НЕ вызывай инструменты профиля\n\n'
+            'РЕЖИМ "HR-КОНСУЛЬТАНТ":\n'
+            'Активируется если пользователь говорит "HR консультация", "помоги с карьерой", "подготовка к собеседованию" и т.п.\n'
+            '- Карьерные консультации, подготовка к собеседованиям, разрешение рабочих конфликтов, развитие карьеры\n'
+            '- Можешь использовать get_profile и get_sections для понимания фона пользователя\n\n'
+            'ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ:\n'
+            '- При входе в режим — подтверди голосом какой режим активирован\n'
+            '- "Сменить роль" / "выйди из роли" / "хватит" → вернись в обычный режим ассистента\n'
+            '- Если пользователь просит что-то из основного режима (профиль, KYC) — спроси, хочет ли он выйти из текущего режима\n\n'
+            'ЗВОНКИ КОНТАКТАМ:\n'
+            'Если пользователь говорит "позвони [имя]" или "набери [имя]":\n'
+            '1. Вызови get_conversations чтобы найти диалог с этим человеком по имени\n'
+            '2. Если нашёл — вызови start_call с conversationId и calleeName\n'
+            '3. Если не нашёл — вызови search_contacts и спроси уточнение\n'
+            '4. Перед звонком скажи "Звоню [имя]"\n\n'
+            'АНАЛИЗ ПЕРЕПИСКИ:\n'
+            'Если пользователь спрашивает "что мы обсуждали с [имя]", "на чём остановились с [имя]" и т.п.:\n'
+            '1. Найди диалог через get_conversations\n'
+            '2. Загрузи историю через get_messages\n'
+            '3. Проанализируй и расскажи: ключевые темы, договорённости, на чём остановились\n\n'
+            'ПРОВЕРКА НОВЫХ СООБЩЕНИЙ:\n'
+            'Если пользователь говорит "проверь сообщения", "что нового", "есть непрочитанные?" и т.п.:\n'
+            '1. Вызови get_conversations — в ответе будет unreadCount для каждого диалога\n'
+            '2. Расскажи от кого есть непрочитанные сообщения\n'
+            '3. Если пользователь хочет узнать подробнее — загрузи историю через get_messages\n'
+            '4. Предложи ответить — если пользователь диктует ответ, отправь через send_message\n\n'
+            'ОТВЕТ НА СООБЩЕНИЯ:\n'
+            'Если пользователь говорит "ответь [имя] [текст]" или "напиши [имя] [текст]":\n'
+            '1. Найди диалог через get_conversations\n'
+            '2. Отправь сообщение через send_message\n'
+            '3. Подтверди отправку голосом',
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
@@ -269,6 +323,63 @@ class _AssistantScreenState extends State<AssistantScreen>
                 },
               },
               'required': ['type'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'search_contacts',
+            'description': 'Search for users/contacts by name, username, email or phone. Min 2 chars.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'query': {'type': 'string', 'description': 'Search query (min 2 chars)'},
+              },
+              'required': ['query'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_conversations',
+            'description': 'Get list of user conversations/chats with contact names, IDs, unreadCount and last message info.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'get_messages',
+            'description': 'Get message history for a conversation. Use to analyze past discussions, meetings, agreements.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'limit': {'type': 'integer', 'description': 'Number of messages to fetch (default 50)'},
+              },
+              'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'start_call',
+            'description': 'Start a voice call to a contact. Creates a room, sends invite, and navigates to call screen.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'calleeName': {'type': 'string'},
+              },
+              'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'send_message',
+            'description': 'Send a text message to a conversation. Use to reply to messages.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'content': {'type': 'string', 'description': 'Message text to send'},
+              },
+              'required': ['conversationId', 'content'],
             },
           },
         ],
@@ -370,6 +481,33 @@ class _AssistantScreenState extends State<AssistantScreen>
     return result;
   }
 
+  void _onIncomingMessage(dynamic msg) {
+    if (_ws == null || _state != _CallState.connected) return;
+    final senderName = msg.senderName ?? 'Unknown';
+    final content = msg.content;
+    final conversationId = msg.conversationId;
+    if (content == null || content.isEmpty) return;
+    // Inject as a user-context message with conversationId so AI can load history and recommend a reply
+    _sendEvent({
+      'type': 'conversation.item.create',
+      'item': {
+        'type': 'message',
+        'role': 'user',
+        'content': [
+          {
+            'type': 'input_text',
+            'text': '[СИСТЕМНОЕ УВЕДОМЛЕНИЕ] Новое входящее сообщение от "$senderName" (conversationId: $conversationId): "$content". '
+                'Загрузи последние сообщения этого диалога через get_messages(conversationId: "$conversationId", limit: 10), '
+                'проанализируй контекст переписки и сообщи пользователю: кто написал, что написал, '
+                'и предложи взвешенный вариант ответа с учётом контекста. '
+                'Если пользователь одобрит — отправь через send_message.',
+          },
+        ],
+      },
+    });
+    _sendEvent({'type': 'response.create'});
+  }
+
   Future<void> _handleFunctionCall(
       String callId, String name, String argsJson) async {
     final client = sl<DioClient>();
@@ -414,6 +552,78 @@ class _AssistantScreenState extends State<AssistantScreen>
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         await client.delete('/profile-sections/${args['type']}');
         output = jsonEncode({'ok': true});
+      } else if (name == 'search_contacts') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final query = args['query'] as String? ?? '';
+        final data = await client.get<List<dynamic>>(
+          '/messenger/users/search?q=${Uri.encodeComponent(query)}',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'get_conversations') {
+        final data = await client.get<List<dynamic>>(
+          '/messenger/conversations',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        // Return essential fields including unread info
+        final slim = (data ?? []).map((c) {
+          final m = c as Map<String, dynamic>;
+          return {
+            'id': m['id'],
+            'otherUserName': m['otherUserName'],
+            'otherUserId': m['otherUserId'],
+            'type': m['type'],
+            'unreadCount': m['unreadCount'] ?? 0,
+            'lastMessageContent': m['lastMessageContent'],
+            'lastMessageSenderName': m['lastMessageSenderName'],
+          };
+        }).toList();
+        output = jsonEncode(slim);
+      } else if (name == 'get_messages') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final convId = args['conversationId'] as String;
+        final limit = args['limit'] as int? ?? 50;
+        final data = await client.get<Map<String, dynamic>>(
+          '/messenger/conversations/$convId/messages?limit=$limit',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        output = jsonEncode(data);
+      } else if (name == 'start_call') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final convId = args['conversationId'] as String;
+        final calleeName = args['calleeName'] as String? ?? '';
+        // Create room
+        final room = await client.post<Map<String, dynamic>>(
+          '/voice/rooms',
+          data: {'conversationId': convId, 'withAi': false},
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final roomName = room?['roomName'] as String? ?? '';
+        // Send call invite via socket
+        sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
+        output = jsonEncode({'ok': true, 'roomName': roomName});
+        // Send function output before navigating away
+        _sendEvent({
+          'type': 'conversation.item.create',
+          'item': {
+            'type': 'function_call_output',
+            'call_id': callId,
+            'output': output,
+          },
+        });
+        // Clean up assistant and navigate to call
+        await _cleanup();
+        if (mounted) {
+          final calleeEncoded = Uri.encodeComponent(calleeName);
+          context.push('/dashboard/voice?room=$roomName&convId=$convId&callee=$calleeEncoded');
+        }
+        return; // Skip the default sendEvent below — already sent
+      } else if (name == 'send_message') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final convId = args['conversationId'] as String;
+        final content = args['content'] as String;
+        sl<MessengerRemoteDataSource>().sendMessage(convId, content);
+        output = jsonEncode({'ok': true, 'message': 'sent'});
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
@@ -476,24 +686,25 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Widget _buildIdle(AppLocalizations l10n) {
-    return Center(
+    final colors = AppColors.of(context);
+    return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          const SizedBox(height: 40),
           GestureDetector(
             onTap: _connect,
             child: ScaleTransition(
               scale: _pulseAnim,
               child: Container(
-                width: 160,
-                height: 160,
+                width: 140,
+                height: 140,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.of(context).card,
-                  border: Border.all(color: AppColors.of(context).primary, width: 2),
+                  color: colors.card,
+                  border: Border.all(color: colors.primary, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.of(context).primary.withValues(alpha: 0.25),
+                      color: colors.primary.withValues(alpha: 0.25),
                       blurRadius: 32,
                       spreadRadius: 6,
                     ),
@@ -502,8 +713,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                 child: ClipOval(
                   child: _logoVideoReady && _logoVideo != null
                       ? SizedBox(
-                          width: 120,
-                          height: 120,
+                          width: 100,
+                          height: 100,
                           child: FittedBox(
                             fit: BoxFit.cover,
                             child: SizedBox(
@@ -514,11 +725,11 @@ class _AssistantScreenState extends State<AssistantScreen>
                           ),
                         )
                       : Container(
-                          width: 120,
-                          height: 120,
+                          width: 100,
+                          height: 100,
                           color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
                           child: Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             child: Image.asset(
                               Theme.of(context).brightness == Brightness.dark
                                   ? 'assets/app_icon_dark.png'
@@ -531,20 +742,53 @@ class _AssistantScreenState extends State<AssistantScreen>
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Text(
             l10n.assistantTapToTalk,
             style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 16,
-                fontWeight: FontWeight.w500),
+                color: colors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600),
           ),
-          const SizedBox(height: 8),
-          Text(
-            l10n.assistantRealtimeDesc,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                _CapabilityTile(
+                  icon: Icons.message_outlined,
+                  title: 'Сообщения',
+                  subtitle: '"Проверь сообщения", "Напиши Виктору: буду через час"',
+                  color: colors.primary,
+                ),
+                _CapabilityTile(
+                  icon: Icons.call_outlined,
+                  title: 'Звонки',
+                  subtitle: '"Позвони Виктору Викторову"',
+                  color: colors.primary,
+                ),
+                _CapabilityTile(
+                  icon: Icons.history_outlined,
+                  title: 'Анализ переписки',
+                  subtitle: '"Что мы обсуждали с Виктором?", "На чём остановились?"',
+                  color: colors.primary,
+                ),
+                _CapabilityTile(
+                  icon: Icons.person_outline,
+                  title: 'Профиль',
+                  subtitle: '"Покажи мой профиль", "Обнови имя"',
+                  color: colors.primary,
+                ),
+                _CapabilityTile(
+                  icon: Icons.psychology_outlined,
+                  title: 'Специальные режимы',
+                  subtitle: '"Давай коучинг", "Поговори как психолог", "HR консультация"',
+                  color: colors.primary,
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -749,6 +993,65 @@ class _CallButton extends StatelessWidget {
           Text(label,
               style: TextStyle(
                   color: AppColors.of(context).textSecondary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CapabilityTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+
+  const _CapabilityTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: AppColors.of(context).textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: AppColors.of(context).textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
