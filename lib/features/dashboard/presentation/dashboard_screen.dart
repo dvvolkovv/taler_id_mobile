@@ -40,7 +40,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     RouteConstants.messenger,
     RouteConstants.callHistory,
     RouteConstants.assistant,
-    RouteConstants.contacts,
     RouteConstants.settings,
   ];
 
@@ -469,6 +468,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 
   int _currentIndex(String location) {
+    // Contacts is accessed from Calls tab — highlight Calls when on contacts
+    if (location.startsWith(RouteConstants.contacts)) return 1;
     for (int i = 0; i < _tabs.length; i++) {
       if (location.startsWith(_tabs[i])) return i;
     }
@@ -733,13 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             Expanded(child: widget.child),
           ],
         ),
-        floatingActionButton: location.startsWith(RouteConstants.messenger) || location.startsWith(RouteConstants.profile)
-            ? null
-            : FloatingActionButton(
-                onPressed: () => context.push(RouteConstants.chat),
-                backgroundColor: AppColors.of(context).primary,
-                child: const Icon(Icons.smart_toy_outlined, color: Colors.white),
-              ),
+        floatingActionButton: null,
         bottomNavigationBar: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
@@ -795,11 +790,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     icon: const Icon(Icons.headset_mic_outlined),
                     activeIcon: const Icon(Icons.headset_mic),
                     label: l10n.tabAssistant,
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.contacts_outlined),
-                    activeIcon: Icon(Icons.contacts),
-                    label: 'Контакты',
                   ),
                   BottomNavigationBarItem(
                     icon: const Icon(Icons.settings_outlined),

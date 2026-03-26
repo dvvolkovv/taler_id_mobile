@@ -631,13 +631,14 @@ class _AssistantScreenState extends State<AssistantScreen>
               final roomName = room?['roomName'] as String? ?? '';
               sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
 
+              // Set state to idle BEFORE cleanup to prevent onDone → _endCall() race
+              setState(() {
+                _state = _CallState.idle;
+                _muted = false;
+                _aiSpeaking = false;
+              });
               await _cleanup();
               if (mounted) {
-                setState(() {
-                  _state = _CallState.idle;
-                  _muted = false;
-                  _aiSpeaking = false;
-                });
                 final calleeEncoded = Uri.encodeComponent(calleeName);
                 String avatarParam = '';
                 try {
@@ -765,75 +766,62 @@ class _AssistantScreenState extends State<AssistantScreen>
 
     return Stack(
       children: [
-        // Center assistant button
+        // Center assistant button (strictly centered)
         Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: _connect,
-                child: ScaleTransition(
-                  scale: _pulseAnim,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colors.card,
-                      border: Border.all(color: colors.primary, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.primary.withValues(alpha: 0.25),
-                          blurRadius: 32,
-                          spreadRadius: 6,
-                        ),
-                      ],
+          child: GestureDetector(
+            onTap: _connect,
+            child: ScaleTransition(
+              scale: _pulseAnim,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.card,
+                  border: Border.all(color: colors.primary, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.25),
+                      blurRadius: 32,
+                      spreadRadius: 6,
                     ),
-                    child: ClipOval(
-                      child: _logoVideoReady && _logoVideo != null
-                          ? SizedBox(
-                              width: 90,
-                              height: 90,
-                              child: FittedBox(
-                                fit: BoxFit.cover,
-                                child: SizedBox(
-                                  width: _logoVideo!.value.size.width,
-                                  height: _logoVideo!.value.size.height,
-                                  child: VideoPlayer(_logoVideo!),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              width: 90,
-                              height: 90,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Image.asset(
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? 'assets/app_icon_dark.png'
-                                      : 'assets/app_icon_light.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _logoVideoReady && _logoVideo != null
+                      ? SizedBox(
+                          width: 90,
+                          height: 90,
+                          child: FittedBox(
+                            fit: BoxFit.cover,
+                            child: SizedBox(
+                              width: _logoVideo!.value.size.width,
+                              height: _logoVideo!.value.size.height,
+                              child: VideoPlayer(_logoVideo!),
                             ),
-                    ),
-                  ),
+                          ),
+                        )
+                      : Container(
+                          width: 90,
+                          height: 90,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Image.asset(
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? 'assets/app_icon_dark.png'
+                                  : 'assets/app_icon_light.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.assistantTapToTalk,
-                style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600),
-              ),
-            ],
+            ),
           ),
         ),
 
-        // Orbiting icons
+        // Orbiting icons (same center as logo)
         Center(
           child: AnimatedBuilder(
             animation: _orbitCtrl,
@@ -956,6 +944,23 @@ class _AssistantScreenState extends State<AssistantScreen>
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+
+        // Text hint at the bottom
+        if (_selectedOrbitIndex == null)
+          Positioned(
+            left: 24,
+            right: 24,
+            bottom: 40,
+            child: Text(
+              l10n.assistantTapToTalk,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

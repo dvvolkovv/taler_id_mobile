@@ -263,6 +263,13 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 child: _CallHistoryProfileAvatar(),
               ),
               title: const Text('Звонки'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.contacts_outlined),
+                  tooltip: 'Контакты',
+                  onPressed: () => context.push('/dashboard/contacts'),
+                ),
+              ],
             ),
             SliverPadding(
               padding: const EdgeInsets.all(16),
