@@ -14,14 +14,15 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
-  late Future<List<_Contact>> _contactsFuture;
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
+  List<_ContactItem> _items = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _contactsFuture = _loadContacts();
+    _load();
   }
 
   @override
@@ -30,24 +31,64 @@ class _ContactsScreenState extends State<ContactsScreen> {
     super.dispose();
   }
 
-  Future<List<_Contact>> _loadContacts() async {
-    final data = await sl<DioClient>().get<dynamic>('/messenger/conversations');
-    final list = (data as List?) ?? [];
-    final contacts = <_Contact>[];
-    for (final item in list) {
-      final conv = Map<String, dynamic>.from(item as Map);
-      final type = conv['type'] as String? ?? 'direct';
-      if (type != 'direct') continue;
-      contacts.add(_Contact(
-        conversationId: conv['id'] as String,
-        userId: conv['otherUserId'] as String? ?? '',
-        name: conv['otherUserName'] as String? ?? 'Пользователь',
-        username: conv['otherUserUsername'] as String?,
-        avatarUrl: conv['otherUserAvatar'] as String?,
-      ));
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final client = sl<DioClient>();
+      // Load accepted contacts from conversations
+      final convData = await client.get<dynamic>('/messenger/conversations');
+      final convList = (convData as List?) ?? [];
+      final items = <_ContactItem>[];
+
+      for (final item in convList) {
+        final conv = Map<String, dynamic>.from(item as Map);
+        final type = (conv['type'] as String? ?? 'DIRECT').toUpperCase();
+        if (type != 'DIRECT') continue;
+        items.add(_ContactItem(
+          conversationId: conv['id'] as String,
+          userId: conv['otherUserId'] as String? ?? '',
+          name: conv['otherUserName'] as String? ?? 'Пользователь',
+          username: conv['otherUserUsername'] as String?,
+          avatarUrl: conv['otherUserAvatar'] as String?,
+          status: _ContactStatus.accepted,
+        ));
+      }
+
+      // Load sent pending requests
+      final sentData = await client.get<dynamic>('/messenger/contacts/requests/sent');
+      final sentList = (sentData as List?) ?? [];
+      final acceptedUserIds = items.map((e) => e.userId).toSet();
+
+      for (final item in sentList) {
+        final req = Map<String, dynamic>.from(item as Map);
+        final status = req['status'] as String? ?? 'PENDING';
+        final receiverId = req['receiverId'] as String? ?? '';
+        if (status != 'PENDING') continue;
+        if (acceptedUserIds.contains(receiverId)) continue;
+
+        final createdAt = DateTime.tryParse(req['createdAt'] as String? ?? '');
+        final updatedAt = DateTime.tryParse(req['updatedAt'] as String? ?? '');
+
+        items.add(_ContactItem(
+          userId: receiverId,
+          name: req['receiverName'] as String? ?? '',
+          username: req['receiverUsername'] as String?,
+          avatarUrl: req['receiverAvatar'] as String?,
+          status: _ContactStatus.pending,
+          requestId: req['id'] as String?,
+          requestSentAt: updatedAt ?? createdAt,
+        ));
+      }
+
+      items.sort((a, b) {
+        if (a.status != b.status) return a.status == _ContactStatus.accepted ? -1 : 1;
+        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      });
+
+      if (mounted) setState(() { _items = items; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
     }
-    contacts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-    return contacts;
   }
 
   @override
@@ -65,7 +106,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.person_add_alt_1_rounded),
-                onPressed: () => context.push('/dashboard/messenger/contacts'),
+                onPressed: () async {
+                  await context.push('/dashboard/messenger/contacts');
+                  _load(); // Refresh after returning from contact requests screen
+                },
                 tooltip: 'Добавить контакт',
               ),
             ],
@@ -102,85 +146,68 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: FutureBuilder<List<_Contact>>(
-              future: _contactsFuture,
-              builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
-                  return SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
-                  );
-                }
-                if (snap.hasError) {
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.error_outline, color: colors.error, size: 36),
-                          const SizedBox(height: 8),
-                          Text('Ошибка загрузки', style: TextStyle(color: colors.textPrimary)),
-                          TextButton(
-                            onPressed: () => setState(() => _contactsFuture = _loadContacts()),
-                            child: Text('Повторить', style: TextStyle(color: colors.primary)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                var contacts = snap.data ?? [];
-                if (_searchQuery.isNotEmpty) {
-                  final q = _searchQuery.toLowerCase();
-                  contacts = contacts.where((c) =>
-                    c.name.toLowerCase().contains(q) ||
-                    (c.username?.toLowerCase().contains(q) ?? false)
-                  ).toList();
-                }
-
-                if (contacts.isEmpty) {
-                  return SliverFillRemaining(
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.people_outline, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
-                          const SizedBox(height: 12),
-                          Text(
-                            _searchQuery.isNotEmpty ? 'Ничего не найдено' : 'Нет контактов',
-                            style: TextStyle(color: colors.textSecondary, fontSize: 16),
-                          ),
-                          if (_searchQuery.isEmpty) ...[
-                            const SizedBox(height: 8),
-                            TextButton.icon(
-                              onPressed: () => context.push('/dashboard/messenger/contacts'),
-                              icon: Icon(Icons.person_add, color: colors.primary, size: 18),
-                              label: Text('Добавить контакт', style: TextStyle(color: colors.primary)),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  );
-                }
-
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildContactTile(contacts[index], colors),
-                    childCount: contacts.length,
-                  ),
-                );
-              },
-            ),
-          ),
+          if (_loading)
+            SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+            )
+          else
+            _buildList(colors),
         ],
       ),
     );
   }
 
-  Widget _buildContactTile(_Contact contact, AppColorsExtension colors) {
+  Widget _buildList(AppColorsExtension colors) {
+    var filtered = _items;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered.where((c) =>
+        c.name.toLowerCase().contains(q) ||
+        (c.username?.toLowerCase().contains(q) ?? false)
+      ).toList();
+    }
+
+    if (filtered.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.people_outline, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
+              const SizedBox(height: 12),
+              Text(
+                _searchQuery.isNotEmpty ? 'Ничего не найдено' : 'Нет контактов',
+                style: TextStyle(color: colors.textSecondary, fontSize: 16),
+              ),
+              if (_searchQuery.isEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () async {
+                    await context.push('/dashboard/messenger/contacts');
+                    _load();
+                  },
+                  icon: Icon(Icons.person_add, color: colors.primary, size: 18),
+                  label: Text('Добавить контакт', style: TextStyle(color: colors.primary)),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate(
+          (context, index) => _buildTile(filtered[index], colors),
+          childCount: filtered.length,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTile(_ContactItem contact, AppColorsExtension colors) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: ListTile(
@@ -188,10 +215,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
         leading: CircleAvatar(
           radius: 24,
           backgroundColor: colors.primary.withValues(alpha: 0.15),
-          backgroundImage: contact.avatarUrl != null
+          backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
               ? CachedNetworkImageProvider(contact.avatarUrl!)
               : null,
-          child: contact.avatarUrl == null
+          child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
               ? Text(
                   contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
                   style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontSize: 18),
@@ -202,34 +229,76 @@ class _ContactsScreenState extends State<ContactsScreen> {
           contact.name,
           style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
         ),
-        subtitle: contact.username != null
-            ? Text(
-                '@${contact.username}',
-                style: TextStyle(color: colors.textSecondary, fontSize: 13),
+        subtitle: contact.status == _ContactStatus.pending
+            ? Text('Ожидает подтверждения', style: TextStyle(color: colors.textSecondary, fontSize: 12))
+            : contact.username != null
+                ? Text('@${contact.username}', style: TextStyle(color: colors.textSecondary, fontSize: 13))
+                : null,
+        trailing: contact.status == _ContactStatus.accepted
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.chat_bubble_outline_rounded, size: 20, color: colors.primary),
+                    onPressed: () => context.push('/dashboard/messenger/${contact.conversationId}'),
+                    tooltip: 'Написать',
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.call_rounded, size: 20, color: colors.primary),
+                    onPressed: () => _startCall(contact),
+                    tooltip: 'Позвонить',
+                  ),
+                ],
               )
-            : null,
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: Icon(Icons.chat_bubble_outline_rounded, size: 20, color: colors.primary),
-              onPressed: () => context.push('/dashboard/messenger/chat/${contact.conversationId}'),
-              tooltip: 'Написать',
-            ),
-            IconButton(
-              icon: Icon(Icons.call_rounded, size: 20, color: colors.primary),
-              onPressed: () => _startCall(contact),
-              tooltip: 'Позвонить',
-            ),
-          ],
-        ),
+            : _buildResendButton(contact, colors),
         onTap: () => context.push('/dashboard/user/${contact.userId}'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  Future<void> _startCall(_Contact contact) async {
+  Widget _buildResendButton(_ContactItem contact, AppColorsExtension colors) {
+    final canResend = contact.requestSentAt != null &&
+        DateTime.now().difference(contact.requestSentAt!).inHours >= 24;
+
+    return IconButton(
+      icon: Icon(
+        Icons.refresh_rounded,
+        size: 20,
+        color: canResend ? colors.primary : colors.textSecondary.withValues(alpha: 0.4),
+      ),
+      tooltip: canResend ? 'Отправить повторно' : 'Повтор через 24ч',
+      onPressed: canResend ? () => _resendRequest(contact) : null,
+    );
+  }
+
+  Future<void> _resendRequest(_ContactItem contact) async {
+    try {
+      await sl<DioClient>().post(
+        '/messenger/contacts/request',
+        data: {'receiverId': contact.userId},
+        fromJson: (d) => d,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Запрос отправлен повторно'),
+            backgroundColor: AppColors.of(context).primary,
+          ),
+        );
+        _load();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _startCall(_ContactItem contact) async {
+    if (contact.conversationId == null) return;
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms',
@@ -238,7 +307,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       );
       final roomName = room?['roomName'] as String? ?? '';
       if (mounted) {
-        sl<MessengerRemoteDataSource>().sendCallInvite(contact.conversationId, roomName);
+        sl<MessengerRemoteDataSource>().sendCallInvite(contact.conversationId!, roomName);
         final calleeEncoded = Uri.encodeComponent(contact.name);
         String avatarParam = '';
         if (contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty) {
@@ -256,18 +325,26 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 }
 
-class _Contact {
-  final String conversationId;
+enum _ContactStatus { accepted, pending }
+
+class _ContactItem {
+  final String? conversationId;
   final String userId;
   final String name;
   final String? username;
   final String? avatarUrl;
+  final _ContactStatus status;
+  final String? requestId;
+  final DateTime? requestSentAt;
 
-  _Contact({
-    required this.conversationId,
+  _ContactItem({
+    this.conversationId,
     required this.userId,
     required this.name,
     this.username,
     this.avatarUrl,
+    required this.status,
+    this.requestId,
+    this.requestSentAt,
   });
 }

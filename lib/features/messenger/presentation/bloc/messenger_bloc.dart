@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
@@ -349,9 +350,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   void _onMessageReceived(
       MessageReceived event, Emitter<MessengerState> emit) {
     final msg = event.message;
+    debugPrint('[MessengerBloc] MessageReceived: id=${msg.id} convId=${msg.conversationId} content=${msg.content?.substring(0, (msg.content?.length ?? 0).clamp(0, 30))}');
     final existing =
         List<MessageEntity>.from(state.messages[msg.conversationId] ?? []);
-    if (existing.any((m) => m.id == msg.id)) return;
+    if (existing.any((m) => m.id == msg.id)) {
+      debugPrint('[MessengerBloc] Duplicate message, skipping');
+      return;
+    }
     existing.removeWhere((m) =>
         m.id.startsWith('temp_') &&
         m.senderId == msg.senderId &&
@@ -595,7 +600,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     try {
       final requests = await _repo.getContactRequests();
       emit(state.copyWith(contactRequests: requests));
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[MessengerBloc] LoadContactRequests error: $e');
+    }
   }
 
   Future<void> _onAcceptContactRequest(AcceptContactRequest event, Emitter<MessengerState> emit) async {
@@ -635,7 +642,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   Future<void> _onLoadSentContactRequests(LoadSentContactRequests event, Emitter<MessengerState> emit) async {
     try {
       final requests = await _repo.getSentContactRequests();
-      emit(state.copyWith(sentContactRequests: requests));
+      emit(state.copyWith(sentContactRequests: requests, clearContactRequestSent: true));
     } catch (_) {}
   }
 

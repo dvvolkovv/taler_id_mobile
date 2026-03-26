@@ -56,7 +56,9 @@ class MessengerRemoteDataSource {
     _socket!.on('new_message', (d) {
       try {
         _messageCtrl.add(MessageEntity.fromJson(Map<String, dynamic>.from(d as Map)));
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[Socket] new_message parse error: $e');
+      }
     });
     _socket!.on('call_invite', (d) {
       try {
