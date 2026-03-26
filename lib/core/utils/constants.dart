@@ -38,6 +38,8 @@ class RouteConstants {
   static const voice = '/dashboard/voice';
   static const callHistory = '/dashboard/call-history';
   static const contacts = '/dashboard/contacts';
+  static const notes = '/dashboard/notes';
+  static const calendar = '/dashboard/calendar';
   static const onboarding = '/onboarding';
   static const forgotPassword = '/auth/forgot-password';
   static const translator = '/dashboard/translator';

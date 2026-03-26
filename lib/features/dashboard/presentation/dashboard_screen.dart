@@ -40,6 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     RouteConstants.messenger,
     RouteConstants.callHistory,
     RouteConstants.assistant,
+    RouteConstants.calendar,
     RouteConstants.settings,
   ];
 
@@ -790,6 +791,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     icon: const Icon(Icons.headset_mic_outlined),
                     activeIcon: const Icon(Icons.headset_mic),
                     label: l10n.tabAssistant,
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.calendar_month_outlined),
+                    activeIcon: Icon(Icons.calendar_month),
+                    label: 'Календарь',
                   ),
                   BottomNavigationBarItem(
                     icon: const Icon(Icons.settings_outlined),

@@ -13,6 +13,8 @@ import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/assistant/presentation/screens/assistant_screen.dart';
 import '../../features/contacts/presentation/screens/contacts_screen.dart';
+import '../../features/notes/presentation/screens/notes_screen.dart';
+import '../../features/calendar/presentation/screens/calendar_screen.dart';
 
 import '../../features/kyc/presentation/screens/kyc_screen.dart';
 import '../../features/tenant/presentation/screens/organization_list_screen.dart';
@@ -138,6 +140,14 @@ final appRouter = GoRouter(
         GoRoute(
           path: RouteConstants.contacts,
           builder: (_, __) => const ContactsScreen(),
+        ),
+        GoRoute(
+          path: RouteConstants.notes,
+          builder: (_, __) => const NotesScreen(),
+        ),
+        GoRoute(
+          path: RouteConstants.calendar,
+          builder: (_, __) => const CalendarScreen(),
         ),
         GoRoute(
           path: RouteConstants.profile,

@@ -254,7 +254,21 @@ class _AssistantScreenState extends State<AssistantScreen>
             'Если пользователь говорит "ответь [имя] [текст]" или "напиши [имя] [текст]":\n'
             '1. Найди диалог через get_conversations\n'
             '2. Отправь сообщение через send_message\n'
-            '3. Подтверди отправку голосом',
+            '3. Подтверди отправку голосом\n\n'
+            'ЗАМЕТКИ:\n'
+            'Если пользователь говорит "запиши", "сохрани мысль", "заметка", "запомни" и т.п.:\n'
+            '1. Извлеки ключевую мысль и сформулируй краткий заголовок\n'
+            '2. Сохрани через create_note\n'
+            '3. Подтверди сохранение голосом\n'
+            'Если пользователь спрашивает "какие у меня заметки" — вызови get_notes и перескажи\n'
+            'Если просит резюме заметок — вызови get_notes, проанализируй и дай краткое резюме\n\n'
+            'КАЛЕНДАРЬ И НАПОМИНАНИЯ:\n'
+            'Если пользователь говорит "напомни", "поставь напоминание", "запланируй", "добавь в календарь":\n'
+            '1. Уточни дату/время если не указаны\n'
+            '2. Создай событие через create_event с типом REMINDER, EVENT или CALL\n'
+            '3. Установи reminderAt если пользователь хочет уведомление заранее\n'
+            '4. Подтверди создание голосом\n'
+            'Если спрашивает "что у меня запланировано" — вызови get_events и расскажи',
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
@@ -390,6 +404,83 @@ class _AssistantScreenState extends State<AssistantScreen>
                 'content': {'type': 'string', 'description': 'Message text to send'},
               },
               'required': ['conversationId', 'content'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_notes',
+            'description': 'Get all user notes. Returns list with id, title, content, source, createdAt.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'limit': {'type': 'integer', 'description': 'Max notes to return (default 20)'},
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'create_note',
+            'description': 'Save a note/thought for the user. Use when user shares an idea or asks to save something.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'title': {'type': 'string', 'description': 'Short title or main thought'},
+                'content': {'type': 'string', 'description': 'Detailed content'},
+              },
+              'required': ['title', 'content'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'delete_note',
+            'description': 'Delete a note by ID.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'noteId': {'type': 'string'},
+              },
+              'required': ['noteId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_events',
+            'description': 'Get calendar events for a date range. Returns events with id, title, type, startAt, reminderAt.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'from': {'type': 'string', 'description': 'Start date ISO string (default: today)'},
+                'to': {'type': 'string', 'description': 'End date ISO string (default: 30 days from now)'},
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'create_event',
+            'description': 'Create a calendar event, reminder, or scheduled call.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'title': {'type': 'string'},
+                'description': {'type': 'string'},
+                'type': {'type': 'string', 'enum': ['CALL', 'EVENT', 'REMINDER']},
+                'startAt': {'type': 'string', 'description': 'ISO datetime'},
+                'endAt': {'type': 'string', 'description': 'ISO datetime (optional)'},
+                'reminderAt': {'type': 'string', 'description': 'When to send push reminder (ISO datetime)'},
+              },
+              'required': ['title', 'type', 'startAt'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'delete_event',
+            'description': 'Delete a calendar event by ID.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'eventId': {'type': 'string'},
+              },
+              'required': ['eventId'],
             },
           },
         ],
@@ -670,6 +761,45 @@ class _AssistantScreenState extends State<AssistantScreen>
         final content = args['content'] as String;
         sl<MessengerRemoteDataSource>().sendMessage(convId, content);
         output = jsonEncode({'ok': true, 'message': 'sent'});
+      } else if (name == 'get_notes') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final limit = args['limit'] as int? ?? 20;
+        final data = await client.get<dynamic>('/notes?limit=$limit');
+        output = jsonEncode(data);
+      } else if (name == 'create_note') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final data = await client.post('/notes', data: {
+          'title': args['title'] as String,
+          'content': args['content'] as String,
+          'source': 'ASSISTANT',
+        }, fromJson: (d) => d);
+        output = jsonEncode(data);
+      } else if (name == 'delete_note') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        await client.delete('/notes/${args['noteId']}');
+        output = jsonEncode({'ok': true});
+      } else if (name == 'get_events') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final from = args['from'] as String? ?? DateTime.now().toIso8601String();
+        final to = args['to'] as String? ?? DateTime.now().add(const Duration(days: 30)).toIso8601String();
+        final data = await client.get<dynamic>('/calendar?from=$from&to=$to');
+        output = jsonEncode(data);
+      } else if (name == 'create_event') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final data = await client.post('/calendar', data: {
+          'title': args['title'],
+          'description': args['description'],
+          'type': args['type'],
+          'startAt': args['startAt'],
+          if (args['endAt'] != null) 'endAt': args['endAt'],
+          if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          'createdBy': 'ASSISTANT',
+        }, fromJson: (d) => d);
+        output = jsonEncode(data);
+      } else if (name == 'delete_event') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        await client.delete('/calendar/${args['eventId']}');
+        output = jsonEncode({'ok': true});
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
@@ -756,6 +886,16 @@ class _AssistantScreenState extends State<AssistantScreen>
       icon: Icons.psychology_outlined,
       title: 'Коучинг',
       description: 'Режимы: коучинг ICF, психолог, HR-консультация. Скажи: "Давай коучинг"',
+    ),
+    _CapabilityData(
+      icon: Icons.calendar_month_outlined,
+      title: 'Календарь',
+      description: 'Запланируй встречу или поставь напоминание. Например: "Поставь встречу с Виктором на завтра в 15:00"',
+    ),
+    _CapabilityData(
+      icon: Icons.sticky_note_2_outlined,
+      title: 'Заметки',
+      description: 'Сохрани мысль или прочитай последние заметки. Например: "Запиши идею..." или "Прочитай последние заметки"',
     ),
   ];
 

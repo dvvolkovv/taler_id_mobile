@@ -269,6 +269,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Notes
+                AppCard(
+                  child: InkWell(
+                    onTap: () => context.push(RouteConstants.notes),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.of(context).primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.sticky_note_2_outlined, color: AppColors.of(context).primary, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Заметки', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Мысли, идеи и записи',
+                                style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 // Personal info
                 AppCard(
