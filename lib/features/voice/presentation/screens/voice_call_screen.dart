@@ -92,6 +92,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _ringing = false; // outgoing: ringback playing, waiting for callee to answer
   bool _navigatedAway = false;
   bool _settingUp = true; // true during _initCall/_connect, prevents spurious actionCallEnded
+  DateTime? _initTime; // used to ignore early call_ended events
   // ── Recording consent state ──
   bool _isRecording = false;
   String? _recordingInitiatorId;     // identity of who started recording
@@ -190,11 +191,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     WidgetsBinding.instance.addObserver(this);
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
+    _initTime = DateTime.now();
     // Listen for call_ended socket event — the other party hung up
     _callEndedSub = sl<MessengerRemoteDataSource>()
         .callEndedStream
         .listen((roomName) {
       if (!mounted || _navigatedAway) return;
+      // Ignore call_ended in first 5 seconds — prevents race with assistant cleanup
+      if (_initTime != null && DateTime.now().difference(_initTime!).inSeconds < 5) {
+        debugPrint('[VoiceCall] Ignoring early call_ended (${DateTime.now().difference(_initTime!).inSeconds}s after init)');
+        return;
+      }
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
       if (ourRoom == roomName) {
         _hangUp();
@@ -2993,14 +3000,12 @@ $participantsStr
                     ),
                   ),
                 ),
-              // Primary row: Mic, Assistant, End Call, Camera
+              // Controls: secondary row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _ControlButton(
-                    icon: _muted
-                        ? Icons.mic_off_rounded
-                        : Icons.mic_rounded,
+                    icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     label: _muted ? 'Включить' : 'Микрофон',
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
                     onTap: _assistantActive ? null : _toggleMute,
@@ -3008,27 +3013,27 @@ $participantsStr
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
                     label: _assistantActive ? 'Стоп' : 'Ассистент',
-                    color: _assistantActive
-                        ? AppColors.of(context).primary
-                        : AppColors.of(context).card,
+                    color: _assistantActive ? AppColors.of(context).primary : AppColors.of(context).card,
                     onTap: _assistantActive ? _stopAssistant : _startAssistant,
-                  ),
-                  _ControlButton(
-                    icon: Icons.call_end_rounded,
-                    label: 'Завершить',
-                    color: AppColors.of(context).error,
-                    onTap: _hangUp,
-                    large: true,
                   ),
                   _ControlButton(
                     icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
                     label: _cameraOn ? 'Камера вкл.' : 'Камера',
-                    color: _cameraOn
-                        ? AppColors.of(context).primary.withValues(alpha: 0.2)
-                        : AppColors.of(context).card,
+                    color: _cameraOn ? AppColors.of(context).primary.withValues(alpha: 0.2) : AppColors.of(context).card,
                     onTap: _toggleCamera,
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              // End call button — centered
+              Center(
+                child: _ControlButton(
+                  icon: Icons.call_end_rounded,
+                  label: 'Завершить',
+                  color: AppColors.of(context).error,
+                  onTap: _hangUp,
+                  large: true,
+                ),
               ),
             ],
           ),

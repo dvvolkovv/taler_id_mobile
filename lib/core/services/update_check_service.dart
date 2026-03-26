@@ -5,41 +5,45 @@ import '../config/app_config.dart';
 
 class UpdateInfo {
   final bool isAvailable;
+  final bool isRequired;
   final String downloadUrl;
   final String latestVersion;
 
   const UpdateInfo({
     required this.isAvailable,
+    required this.isRequired,
     required this.downloadUrl,
     required this.latestVersion,
   });
 }
 
 class UpdateCheckService {
-  static const _baseDownloadUrl = 'https://id.taler.tirol/download';
-
   final _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
   ));
 
   Future<UpdateInfo?> checkForUpdate() async {
-    if (!Platform.isAndroid) return null;
     try {
-      final versionFile = AppConfig.isDev ? 'version-dev.json' : 'version.json';
       final response = await _dio.get<Map<String, dynamic>>(
-        '$_baseDownloadUrl/$versionFile',
+        '${AppConfig.baseUrl}/app/version',
       );
       final data = response.data!;
-      final remoteBuild = data['buildNumber'] as int? ?? 0;
-      final downloadUrl = data['downloadUrl'] as String? ?? '';
-      final remoteVersion = data['version'] as String? ?? '';
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      final platformData = data[platform] as Map<String, dynamic>? ?? {};
+      final urls = data['updateUrl'] as Map<String, dynamic>? ?? {};
+
+      final remoteBuild = platformData['build'] as int? ?? 0;
+      final remoteVersion = platformData['version'] as String? ?? '';
+      final required = platformData['required'] as bool? ?? false;
+      final downloadUrl = urls[platform] as String? ?? '';
 
       final info = await PackageInfo.fromPlatform();
       final localBuild = int.tryParse(info.buildNumber) ?? 0;
 
       return UpdateInfo(
         isAvailable: remoteBuild > localBuild,
+        isRequired: required,
         downloadUrl: downloadUrl,
         latestVersion: remoteVersion,
       );

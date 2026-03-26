@@ -221,13 +221,32 @@ class MessengerRemoteDataSource {
   void sendTyping(String id, bool isTyping) =>
       _socket?.emit('typing', {'conversationId': id, 'isTyping': isTyping});
 
-  void sendCallInvite(String conversationId, String roomName, {String? inviteeId, String? e2eeKey}) =>
-      _socket?.emit('call_invite', {
-        'conversationId': conversationId,
-        'roomName': roomName,
-        if (inviteeId != null) 'inviteeId': inviteeId,
-        if (e2eeKey != null) 'e2eeKey': e2eeKey,
-      });
+  void sendCallInvite(String conversationId, String roomName, {String? inviteeId, String? e2eeKey}) {
+    if (_socket == null || !_socket!.connected) {
+      debugPrint('[Socket] sendCallInvite: socket disconnected, reconnecting...');
+      // Try to reconnect
+      if (_socket != null) {
+        _socket!.connect();
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _socket?.emit('call_invite', {
+            'conversationId': conversationId,
+            'roomName': roomName,
+            if (inviteeId != null) 'inviteeId': inviteeId,
+            if (e2eeKey != null) 'e2eeKey': e2eeKey,
+          });
+          debugPrint('[Socket] sendCallInvite: sent after reconnect');
+        });
+      }
+      return;
+    }
+    debugPrint('[Socket] sendCallInvite: sending via connected socket');
+    _socket!.emit('call_invite', {
+      'conversationId': conversationId,
+      'roomName': roomName,
+      if (inviteeId != null) 'inviteeId': inviteeId,
+      if (e2eeKey != null) 'e2eeKey': e2eeKey,
+    });
+  }
 
   void sendCallEnded(String conversationId, String roomName) =>
       _socket?.emit('call_ended', {'conversationId': conversationId, 'roomName': roomName});

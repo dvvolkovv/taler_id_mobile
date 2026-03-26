@@ -36,6 +36,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   final _player = AudioPlayer();
 
   bool _muted = false;
+  bool _navigatingToCall = false;
   bool _speakerOn = false;
   bool _aiSpeaking = false;
   bool _sessionConfigured = false;
@@ -157,7 +158,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       _ws!.listen(
         (data) => _onMessage(data as String),
         onDone: () {
-          if (mounted && _state == _CallState.connected) _endCall();
+          if (mounted && _state == _CallState.connected && !_navigatingToCall) _endCall();
         },
         onError: (e) {
           if (mounted) {
@@ -722,28 +723,25 @@ class _AssistantScreenState extends State<AssistantScreen>
               final roomName = room?['roomName'] as String? ?? '';
               sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
 
-              // Set state to idle BEFORE cleanup to prevent onDone → _endCall() race
+              // Navigate FIRST, then cleanup — prevents mounted becoming false
+              _navigatingToCall = true;
+              final calleeEncoded = Uri.encodeComponent(calleeName);
+              final route = '/dashboard/voice?room=$roomName&convId=$convId&callee=$calleeEncoded';
+              debugPrint('[Assistant] Navigating to voice: $route');
+
               setState(() {
                 _state = _CallState.idle;
                 _muted = false;
                 _aiSpeaking = false;
               });
-              await _cleanup();
+
+              // Navigate before cleanup
               if (mounted) {
-                final calleeEncoded = Uri.encodeComponent(calleeName);
-                String avatarParam = '';
-                try {
-                  final convs = await client.get<List<dynamic>>('/messenger/conversations', fromJson: (d) => d as List);
-                  final conv = convs.cast<Map<String, dynamic>>().where((c) => c['id'] == convId).firstOrNull;
-                  final avatar = conv?['otherUserAvatar'] as String?;
-                  if (avatar != null && avatar.isNotEmpty) {
-                    avatarParam = '&calleeAvatar=${Uri.encodeComponent(avatar)}';
-                  }
-                } catch (_) {}
-                if (mounted) {
-                  context.push('/dashboard/voice?room=$roomName&convId=$convId&callee=$calleeEncoded$avatarParam');
-                }
+                context.push(route);
               }
+
+              // Cleanup after navigation
+              await _cleanup();
             } catch (e) {
               debugPrint('[Assistant] Call failed: $e');
             }

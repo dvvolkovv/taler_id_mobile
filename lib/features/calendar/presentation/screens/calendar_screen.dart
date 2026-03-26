@@ -26,6 +26,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedMonth = DateTime.now();
   List<Map<String, dynamic>> _events = [];
+  List<Map<String, dynamic>> _invites = [];
   bool _loading = true;
   bool _calendarExpanded = true;
 
@@ -68,6 +69,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final to = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
       final ds = CalendarRemoteDataSource(sl<DioClient>());
       _events = await ds.getEvents(from: from.toIso8601String(), to: to.toIso8601String());
+      _invites = await ds.getMyInvites();
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -362,6 +364,56 @@ class _CalendarScreenState extends State<CalendarScreen> {
             _buildCalendarGrid(colors),
           ],
           const Divider(height: 1),
+          // Pending invites banner
+          if (_invites.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: colors.primary.withValues(alpha: 0.08),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Приглашения (${_invites.length})', style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 6),
+                  ..._invites.map((inv) {
+                    final event = inv['event'] as Map<String, dynamic>? ?? {};
+                    final creator = event['user'] as Map<String, dynamic>? ?? {};
+                    final profile = creator['profile'] as Map<String, dynamic>? ?? {};
+                    final creatorName = [profile['firstName'], profile['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                    final title = event['title'] as String? ?? '';
+                    final start = DateTime.tryParse(event['startAt'] as String? ?? '')?.toLocal();
+                    final timeStr = start != null ? DateFormat('dd.MM HH:mm').format(start) : '';
+                    return Card(
+                      color: colors.card,
+                      margin: const EdgeInsets.only(bottom: 6),
+                      child: ListTile(
+                        dense: true,
+                        title: Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                        subtitle: Text('$creatorName · $timeStr', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.close, color: colors.error, size: 20),
+                              onPressed: () async {
+                                await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inv['id'] as String);
+                                _loadEvents();
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.check, color: Colors.green, size: 20),
+                              onPressed: () async {
+                                await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inv['id'] as String);
+                                _loadEvents();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
@@ -508,7 +560,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     // Extract room link from description
     final linkMatch = RegExp(r'https://id\.taler\.tirol/room/[\w-]+').firstMatch(desc);
     final roomLink = linkMatch?.group(0);
-    final descClean = desc.replaceAll(RegExp(r'\nСсылка: https://id\.taler\.tirol/room/[\w-]+'), '').trim();
+    final descClean = desc.replaceAll(RegExp(r'\n?https://id\.taler\.tirol/room/[\w-]+'), '').replaceAll(RegExp(r'Место: '), '').trim();
+    final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     return Dismissible(
       key: Key(event['id'] as String),
@@ -577,13 +630,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ],
+                    if (invites.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6, runSpacing: 4,
+                        children: invites.map<Widget>((inv) {
+                          final u = inv['user'] as Map<String, dynamic>? ?? {};
+                          final p = u['profile'] as Map<String, dynamic>? ?? {};
+                          final name = [p['firstName'], p['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                          final status = inv['status'] as String? ?? 'PENDING';
+                          final Color sc;
+                          final IconData si;
+                          switch (status) {
+                            case 'ACCEPTED': sc = Colors.green; si = Icons.check_circle; break;
+                            case 'DECLINED': sc = colors.error; si = Icons.cancel; break;
+                            default: sc = colors.textSecondary; si = Icons.schedule; break;
+                          }
+                          return Chip(
+                            avatar: Icon(si, size: 14, color: sc),
+                            label: Text(name.isNotEmpty ? name : '?', style: TextStyle(fontSize: 11, color: colors.textPrimary)),
+                            backgroundColor: colors.surface,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
       ),
     );
   }

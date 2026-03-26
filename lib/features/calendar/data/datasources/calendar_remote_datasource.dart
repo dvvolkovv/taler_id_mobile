@@ -24,4 +24,17 @@ class CalendarRemoteDataSource {
   Future<void> delete(String id) async {
     await _http.delete('/calendar/$id');
   }
+
+  Future<List<Map<String, dynamic>>> getMyInvites() async {
+    final data = await _http.get<dynamic>('/calendar/invites');
+    return (data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<void> acceptInvite(String inviteId) async {
+    await _http.patch('/calendar/invites/$inviteId/accept', data: {}, fromJson: (d) => d);
+  }
+
+  Future<void> declineInvite(String inviteId) async {
+    await _http.patch('/calendar/invites/$inviteId/decline', data: {}, fromJson: (d) => d);
+  }
 }
