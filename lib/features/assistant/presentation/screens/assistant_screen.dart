@@ -958,9 +958,11 @@ class _AssistantScreenState extends State<AssistantScreen>
   Future<void> _toggleSpeaker() => _setSpeaker(!_speakerOn);
 
   Future<void> _endCall() async {
+    // Stop audio immediately so user doesn't hear lingering speech
+    await _player.stop();
+    _audioBuffer.clear();
     await _cleanup();
     await _setSpeaker(false);
-    await _player.stop();
     if (mounted) {
       setState(() {
         _state = _CallState.idle;

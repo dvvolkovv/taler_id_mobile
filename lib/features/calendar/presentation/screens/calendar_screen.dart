@@ -419,14 +419,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ],
               ),
             ),
-          _buildMonthHeader(colors),
-          if (_calendarExpanded) ...[
-            _buildWeekDays(colors),
-            _buildCalendarGrid(colors),
-          ],
-          const Divider(height: 1),
-          // Pending invites banner
-          if (_invites.isNotEmpty)
+          // Pending invites banner — shown above calendar for visibility
+          if (_invites.isNotEmpty) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               color: colors.primary.withValues(alpha: 0.08),
@@ -485,6 +479,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ],
               ),
             ),
+            const Divider(height: 1),
+          ],
+          _buildMonthHeader(colors),
+          if (_calendarExpanded) ...[
+          _buildWeekDays(colors),
+          _buildCalendarGrid(colors),
+          ],
+          const Divider(height: 1),
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
