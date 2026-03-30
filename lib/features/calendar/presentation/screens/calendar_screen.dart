@@ -285,17 +285,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         String? desc = args['description'] as String?;
-        // Convert local time to UTC
-        String startAtUtc = args['startAt'] as String? ?? '';
-        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
-          final local = DateTime.tryParse(startAtUtc);
-          if (local != null) startAtUtc = local.toUtc().toIso8601String();
-        }
-        String? reminderAtUtc;
-        if (args['reminderAt'] != null) {
-          final rLocal = DateTime.tryParse(args['reminderAt'] as String);
-          if (rLocal != null) reminderAtUtc = rLocal.toUtc().toIso8601String();
-        }
+        // Send local time as-is (no UTC conversion) — server stores it directly
+        final startAt = args['startAt'] as String? ?? '';
+        final reminderAt = args['reminderAt'] as String?;
         // For CALL type, create room and add link
         if (args['type'] == 'CALL') {
           try {
@@ -309,8 +301,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
         final data = await client.post('/calendar', data: {
           'title': args['title'], 'description': desc, 'type': args['type'],
-          'startAt': startAtUtc,
-          if (reminderAtUtc != null) 'reminderAt': reminderAtUtc,
+          'startAt': startAt,
+          if (reminderAt != null) 'reminderAt': reminderAt,
           if (args['contactIds'] != null) 'contactIds': args['contactIds'],
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
@@ -328,7 +320,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _loadEvents();
         output = jsonEncode({'ok': true});
       } else if (name == 'get_events') {
-        final data = await client.get<dynamic>('/calendar?from=${DateTime.now().toIso8601String()}&to=${DateTime.now().add(const Duration(days: 30)).toIso8601String()}');
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final now = DateTime.now();
+        final fromStr = args['from'] as String? ?? DateTime(now.year, now.month, now.day).toIso8601String();
+        final toStr = args['to'] as String? ?? now.add(const Duration(days: 30)).toIso8601String();
+        final data = await client.get<dynamic>('/calendar?from=$fromStr&to=$toStr');
         output = jsonEncode(data);
       } else if (name == 'get_conversations') {
         final data = await client.get<dynamic>('/messenger/conversations');

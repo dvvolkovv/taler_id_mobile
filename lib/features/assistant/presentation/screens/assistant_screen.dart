@@ -864,29 +864,15 @@ class _AssistantScreenState extends State<AssistantScreen>
         output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        // Convert local time to UTC
-        String startAtUtc = args['startAt'] as String? ?? '';
-        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
-          final local = DateTime.tryParse(startAtUtc);
-          if (local != null) startAtUtc = local.toUtc().toIso8601String();
-        }
-        String? reminderUtc;
-        if (args['reminderAt'] != null) {
-          final r = DateTime.tryParse(args['reminderAt'] as String);
-          if (r != null) reminderUtc = r.toUtc().toIso8601String();
-        }
-        String? endUtc;
-        if (args['endAt'] != null) {
-          final e = DateTime.tryParse(args['endAt'] as String);
-          if (e != null) endUtc = e.toUtc().toIso8601String();
-        }
+        // Send local time as-is — no UTC conversion
         final data = await client.post('/calendar', data: {
           'title': args['title'],
           'description': args['description'],
           'type': args['type'],
-          'startAt': startAtUtc,
-          if (endUtc != null) 'endAt': endUtc,
-          if (reminderUtc != null) 'reminderAt': reminderUtc,
+          'startAt': args['startAt'],
+          if (args['endAt'] != null) 'endAt': args['endAt'],
+          if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          if (args['contactIds'] != null) 'contactIds': args['contactIds'],
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
         output = jsonEncode(data);
