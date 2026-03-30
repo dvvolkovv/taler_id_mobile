@@ -331,8 +331,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 centerTitle: true,
                 floating: true,
                 snap: true,
+                leadingWidth: 72,
                 leading: Padding(
-                  padding: const EdgeInsets.only(left: 12),
+                  padding: const EdgeInsets.only(left: 8),
                   child: _ProfileAvatar(),
                 ),
                 title: Text(l10n.tabMessenger),
@@ -689,7 +690,7 @@ class _ProfileAvatar extends StatelessWidget {
             border: Border.all(color: glowColor, width: 2),
           ),
           child: CircleAvatar(
-            radius: 22,
+            radius: 30,
             backgroundColor: AppColors.of(context).primary,
             backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
                 ? CachedNetworkImageProvider(avatarUrl)
@@ -697,7 +698,7 @@ class _ProfileAvatar extends StatelessWidget {
             child: (avatarUrl == null || avatarUrl.isEmpty)
                 ? Text(
                     firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold),
                   )
                 : null,
           ),

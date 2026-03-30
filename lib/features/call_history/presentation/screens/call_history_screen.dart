@@ -265,8 +265,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               centerTitle: true,
               floating: true,
               snap: true,
+              leadingWidth: 72,
               leading: Padding(
-                padding: const EdgeInsets.only(left: 12),
+                padding: const EdgeInsets.only(left: 8),
                 child: _CallHistoryProfileAvatar(),
               ),
               title: Text(l10n.callHistoryTitle),
@@ -810,7 +811,7 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
             border: Border.all(color: glowColor, width: 2),
           ),
           child: CircleAvatar(
-            radius: 26,
+            radius: 30,
             backgroundColor: AppColors.of(context).primary,
             backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
                 ? CachedNetworkImageProvider(avatarUrl)
@@ -818,7 +819,7 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
             child: (avatarUrl == null || avatarUrl.isEmpty)
                 ? Text(
                     firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold),
                   )
                 : null,
           ),
