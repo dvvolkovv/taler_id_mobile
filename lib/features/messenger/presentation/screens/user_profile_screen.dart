@@ -37,6 +37,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   // Conversation for shared media
   String? _conversationId;
 
+  // Custom alias for this contact
+  String? _customName;
+
   // Shared media tab controller
   late TabController _mediaTabCtrl;
 
@@ -70,10 +73,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
           _loading = false;
         });
         _findConversation();
+        _loadAlias();
       }
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
+  }
+
+  Future<void> _loadAlias() async {
+    try {
+      final aliases = await sl<DioClient>().get<dynamic>('/messenger/contacts/aliases');
+      final list = (aliases as List?) ?? [];
+      for (final a in list) {
+        final alias = Map<String, dynamic>.from(a as Map);
+        if (alias['targetId'] == widget.userId) {
+          if (mounted) setState(() => _customName = alias['customName'] as String?);
+          break;
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _editAlias(String originalName) {
+    // Navigate to a separate screen to avoid dialog/context issues
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _EditAliasScreen(
+          userId: widget.userId,
+          currentAlias: _customName,
+          originalName: originalName,
+        ),
+      ),
+    ).then((changed) {
+      if (changed == true && mounted) {
+        _loadAll();
+        try { context.read<MessengerBloc>().add(LoadConversations()); } catch (_) {}
+      }
+    });
   }
 
   void _findConversation() {
@@ -280,7 +316,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: Text(fullName.isNotEmpty ? fullName : l10n.userProfileTitle),
+        title: Text(_customName ?? (fullName.isNotEmpty ? fullName : l10n.userProfileTitle)),
         backgroundColor: AppColors.of(context).surface,
         actions: [
           if (_profile != null)
@@ -340,13 +376,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                     const SizedBox(height: 20),
                     if (fullName.isNotEmpty)
                       Center(
-                        child: Text(
-                          fullName,
-                          style: TextStyle(
-                              color: AppColors.of(context).textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _customName ?? fullName,
+                                style: TextStyle(
+                                    color: AppColors.of(context).textPrimary,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _editAlias(fullName),
+                              child: Icon(Icons.edit_outlined, size: 18, color: colors.primary),
+                            ),
+                          ],
                         ),
                       ),
                     if (username != null && username.isNotEmpty) ...[
@@ -950,6 +998,99 @@ class _FullScreenMediaView extends StatelessWidget {
             placeholder: (_, __) => const CircularProgressIndicator(),
             errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 48),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EditAliasScreen extends StatefulWidget {
+  final String userId;
+  final String? currentAlias;
+  final String originalName;
+  const _EditAliasScreen({required this.userId, this.currentAlias, required this.originalName});
+  @override
+  State<_EditAliasScreen> createState() => _EditAliasScreenState();
+}
+
+class _EditAliasScreenState extends State<_EditAliasScreen> {
+  late final TextEditingController _ctrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.currentAlias ?? widget.originalName);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _ctrl.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await sl<DioClient>().put<Map<String, dynamic>>(
+        '/messenger/contacts/aliases/${widget.userId}',
+        data: {'customName': name},
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _reset() async {
+    setState(() => _saving = true);
+    try {
+      await sl<DioClient>().delete('/messenger/contacts/aliases/${widget.userId}');
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) Navigator.pop(context, true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: const Text('Имя контакта'),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
+                : Text('Сохранить', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Оригинальное имя: ${widget.originalName}', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _ctrl,
+              autofocus: true,
+              style: TextStyle(color: colors.textPrimary, fontSize: 18),
+              decoration: InputDecoration(
+                labelText: 'Отображаемое имя',
+                labelStyle: TextStyle(color: colors.textSecondary),
+              ),
+            ),
+          ],
         ),
       ),
     );

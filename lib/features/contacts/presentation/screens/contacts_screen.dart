@@ -255,7 +255,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 ],
               )
             : _buildResendButton(contact, colors),
-        onTap: () => context.push('/dashboard/user/${contact.userId}'),
+        onTap: () async {
+          await context.push('/dashboard/user/${contact.userId}');
+          _load(); // Reload to show updated alias
+        },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
