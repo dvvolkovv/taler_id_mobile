@@ -466,7 +466,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  DateFormat('MMMM yyyy', 'ru').format(_focusedMonth),
+                  DateFormat('MMMM yyyy', Localizations.localeOf(context).languageCode).format(_focusedMonth),
                   style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(width: 4),
