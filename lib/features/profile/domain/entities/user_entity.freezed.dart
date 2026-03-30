@@ -25,6 +25,7 @@ mixin _$UserEntity {
   String? get phone => throw _privateConstructorUsedError;
   String? get firstName => throw _privateConstructorUsedError;
   String? get lastName => throw _privateConstructorUsedError;
+  String? get middleName => throw _privateConstructorUsedError;
   String? get country => throw _privateConstructorUsedError;
   String? get avatarUrl => throw _privateConstructorUsedError;
   String? get postalCode => throw _privateConstructorUsedError;
@@ -51,6 +52,7 @@ abstract class $UserEntityCopyWith<$Res> {
       String? phone,
       String? firstName,
       String? lastName,
+      String? middleName,
       String? country,
       String? avatarUrl,
       String? postalCode,
@@ -78,6 +80,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? phone = freezed,
     Object? firstName = freezed,
     Object? lastName = freezed,
+    Object? middleName = freezed,
     Object? country = freezed,
     Object? avatarUrl = freezed,
     Object? postalCode = freezed,
@@ -106,6 +109,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
       lastName: freezed == lastName
           ? _value.lastName
           : lastName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      middleName: freezed == middleName
+          ? _value.middleName
+          : middleName // ignore: cast_nullable_to_non_nullable
               as String?,
       country: freezed == country
           ? _value.country
@@ -153,6 +160,7 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       String? phone,
       String? firstName,
       String? lastName,
+      String? middleName,
       String? country,
       String? avatarUrl,
       String? postalCode,
@@ -178,6 +186,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? phone = freezed,
     Object? firstName = freezed,
     Object? lastName = freezed,
+    Object? middleName = freezed,
     Object? country = freezed,
     Object? avatarUrl = freezed,
     Object? postalCode = freezed,
@@ -206,6 +215,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
       lastName: freezed == lastName
           ? _value.lastName
           : lastName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      middleName: freezed == middleName
+          ? _value.middleName
+          : middleName // ignore: cast_nullable_to_non_nullable
               as String?,
       country: freezed == country
           ? _value.country
@@ -248,6 +261,7 @@ class _$UserEntityImpl implements _UserEntity {
       this.phone,
       this.firstName,
       this.lastName,
+      this.middleName,
       this.country,
       this.avatarUrl,
       this.postalCode,
@@ -270,6 +284,8 @@ class _$UserEntityImpl implements _UserEntity {
   @override
   final String? lastName;
   @override
+  final String? middleName;
+  @override
   final String? country;
   @override
   final String? avatarUrl;
@@ -287,7 +303,7 @@ class _$UserEntityImpl implements _UserEntity {
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username)';
   }
 
   @override
@@ -302,6 +318,8 @@ class _$UserEntityImpl implements _UserEntity {
                 other.firstName == firstName) &&
             (identical(other.lastName, lastName) ||
                 other.lastName == lastName) &&
+            (identical(other.middleName, middleName) ||
+                other.middleName == middleName) &&
             (identical(other.country, country) || other.country == country) &&
             (identical(other.avatarUrl, avatarUrl) ||
                 other.avatarUrl == avatarUrl) &&
@@ -326,6 +344,7 @@ class _$UserEntityImpl implements _UserEntity {
       phone,
       firstName,
       lastName,
+      middleName,
       country,
       avatarUrl,
       postalCode,
@@ -355,6 +374,7 @@ abstract class _UserEntity implements UserEntity {
       final String? phone,
       final String? firstName,
       final String? lastName,
+      final String? middleName,
       final String? country,
       final String? avatarUrl,
       final String? postalCode,
@@ -376,6 +396,8 @@ abstract class _UserEntity implements UserEntity {
   String? get firstName;
   @override
   String? get lastName;
+  @override
+  String? get middleName;
   @override
   String? get country;
   @override

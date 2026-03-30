@@ -18,6 +18,7 @@ class UserEntity with _$UserEntity {
     String? phone,
     String? firstName,
     String? lastName,
+    String? middleName,
     String? country,
     String? avatarUrl,
     String? postalCode,

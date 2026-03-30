@@ -20,6 +20,7 @@ class RouteConstants {
   static const twoFA = '/auth/2fa';
   static const dashboard = '/dashboard';
   static const profile = '/dashboard/profile';
+  static const editProfile = '/dashboard/profile/edit';
 
   static const kyc = '/dashboard/kyc';
   static const kycSumsub = '/dashboard/kyc/sumsub';
