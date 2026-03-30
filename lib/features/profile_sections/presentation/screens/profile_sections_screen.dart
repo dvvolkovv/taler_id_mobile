@@ -255,9 +255,9 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     _freeTextCtrl.addListener(_onTextChanged);
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      // Restore .voiceChat audio session after playback
-      try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      // Restart recording after playback completes.
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
       if (_ws != null && _voiceActive) {
         await _recordSub?.cancel();
         _recordSub = null;
@@ -579,13 +579,12 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
 
   Future<void> _playVoiceAudio() async {
     if (_audioBuffer.isEmpty) return;
-    // Stop recording before playback — on iOS the active recorder holds
-    // the audio session and prevents AudioPlayer from producing sound.
-    await _recordSub?.cancel();
-    _recordSub = null;
-    try { await _recorder.stop(); } catch (_) {}
-    // On iOS, switch audio session from .voiceChat to .default mode
-    try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    if (Platform.isIOS) {
+      await _recordSub?.cancel();
+      _recordSub = null;
+      try { await _recorder.stop(); } catch (_) {}
+      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -597,6 +596,13 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[ProfileSections] playback error: $e');
+      if (mounted) setState(() => _aiSpeaking = false);
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
+      if (_ws != null && _voiceActive) {
+        await _restartRecording();
+      }
     }
   }
 

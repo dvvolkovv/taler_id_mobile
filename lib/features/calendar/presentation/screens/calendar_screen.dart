@@ -48,7 +48,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     _loadEvents();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
       if (_ws != null && _voiceActive) {
         await _recordSub?.cancel();
         try { await _recorder.stop(); } catch (_) {}
@@ -260,7 +262,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (_audioBuffer.isEmpty) return;
     await _recordSub?.cancel(); _recordSub = null;
     try { await _recorder.stop(); } catch (_) {}
-    try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    if (Platform.isIOS) {
+      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    }
     final h = ByteData(44);
     void w(int o, String s) { for (var i = 0; i < s.length; i++) h.setUint8(o + i, s.codeUnitAt(i)); }
     w(0, 'RIFF'); h.setUint32(4, 36 + _audioBuffer.length, Endian.little);
@@ -270,7 +274,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     w(36, 'data'); h.setUint32(40, _audioBuffer.length, Endian.little);
     final wav = Uint8List.fromList([...h.buffer.asUint8List(), ..._audioBuffer]);
     _audioBuffer.clear();
-    await _player.play(BytesSource(wav));
+    try {
+      await _player.play(BytesSource(wav));
+    } catch (e) {
+      debugPrint('[Calendar] playback error: $e');
+      if (mounted) setState(() => _aiSpeaking = false);
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
+      if (_ws != null && _voiceActive) {
+        await _restartRecording();
+      }
+    }
   }
 
   Future<void> _handleVoiceTool(String name, String argsJson, String callId) async {

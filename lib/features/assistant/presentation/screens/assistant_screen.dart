@@ -82,8 +82,10 @@ class _AssistantScreenState extends State<AssistantScreen>
     )..repeat();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      // Restore .voiceChat audio session after playback
-      try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      // On iOS, restore .voiceChat audio session and restart recorder
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
       // Restart recording after playback completes.
       if (_ws != null && _state == _CallState.connected && !_muted) {
         await _recordSub?.cancel();
@@ -267,7 +269,8 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Передавай startAt и reminderAt в МЕСТНОМ времени формат YYYY-MM-DDTHH:MM:SS (БЕЗ Z, БЕЗ конвертации в UTC).\n'
           'Если говорит "встреча с [имя]" — ставь type="CALL", найди контакт через get_conversations, передай contactIds.\n'
           'Типы: CALL=встреча со ссылкой, EVENT=событие, REMINDER=напоминание.\n'
-          'Если спрашивает "что у меня запланировано" — вызови get_events и расскажи';
+          'Если спрашивает "что у меня запланировано", "встречи на сегодня", "что сегодня" — вызови get_events с from=начало сегодняшнего дня (YYYY-MM-DDT00:00:00) и to=конец дня (YYYY-MM-DDT23:59:59) и расскажи.\n'
+          'Для запросов "на эту неделю" — from=сегодня, to=через 7 дней.';
     }
 
     return 'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
@@ -337,7 +340,8 @@ class _AssistantScreenState extends State<AssistantScreen>
         'When user says a time — it\'s LOCAL. Convert to UTC for startAt.\n'
         'If says "meeting with [name]" — set type="CALL", find contact via get_conversations, pass contactIds.\n'
         'Types: CALL=meeting with link, EVENT=event, REMINDER=reminder.\n'
-        'If asks "what do I have planned" — call get_events and tell them';
+        'If asks "what do I have planned", "meetings today", "what\'s today" — call get_events with from=start of today (YYYY-MM-DDT00:00:00) and to=end of day (YYYY-MM-DDT23:59:59) and tell them.\n'
+        'For "this week" — from=today, to=7 days from now.';
   }
 
   void _onChannelOpen() {
@@ -622,14 +626,14 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Future<void> _playBufferedAudio() async {
     if (_audioBuffer.isEmpty) return;
-    // Stop recording before playback — on iOS the active recorder holds
+    // On iOS, stop recorder before playback — the active recorder holds
     // the audio session and prevents AudioPlayer from producing sound.
-    await _recordSub?.cancel();
-    _recordSub = null;
-    try { await _recorder.stop(); } catch (_) {}
-    // On iOS, switch audio session from .voiceChat to .default mode
-    // so AudioPlayer can produce sound at normal volume.
-    try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    if (Platform.isIOS) {
+      await _recordSub?.cancel();
+      _recordSub = null;
+      try { await _recorder.stop(); } catch (_) {}
+      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
+    }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -641,6 +645,14 @@ class _AssistantScreenState extends State<AssistantScreen>
       await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[Assistant] playback error: $e');
+      // Playback failed — onPlayerComplete won't fire, so restart recorder now
+      if (mounted) setState(() => _aiSpeaking = false);
+      if (Platform.isIOS) {
+        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
+      }
+      if (_ws != null && _state == _CallState.connected && !_muted) {
+        await _startRecording();
+      }
     }
   }
 
@@ -865,8 +877,10 @@ class _AssistantScreenState extends State<AssistantScreen>
         output = jsonEncode({'ok': true});
       } else if (name == 'get_events') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final from = args['from'] as String? ?? DateTime.now().toIso8601String();
-        final to = args['to'] as String? ?? DateTime.now().add(const Duration(days: 30)).toIso8601String();
+        final today = DateTime.now();
+        final startOfDay = DateTime(today.year, today.month, today.day);
+        final from = args['from'] as String? ?? startOfDay.toIso8601String();
+        final to = args['to'] as String? ?? today.add(const Duration(days: 30)).toIso8601String();
         final data = await client.get<dynamic>('/calendar?from=$from&to=$to');
         output = jsonEncode(data);
       } else if (name == 'create_event') {
