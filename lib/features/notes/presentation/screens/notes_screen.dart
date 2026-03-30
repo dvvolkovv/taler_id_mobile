@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -230,7 +231,10 @@ class _NotesScreenState extends State<NotesScreen> {
     final wav = Uint8List.fromList([...header, ..._audioBuffer]);
     _audioBuffer.clear();
     try {
-      await _player.play(BytesSource(wav));
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/notes_ai.wav');
+      await file.writeAsBytes(wav);
+      await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[Notes] playback error: $e');
     }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -267,7 +268,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final wav = Uint8List.fromList([...h.buffer.asUint8List(), ..._audioBuffer]);
     _audioBuffer.clear();
     try {
-      await _player.play(BytesSource(wav));
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/calendar_ai.wav');
+      await file.writeAsBytes(wav);
+      await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[Calendar] playback error: $e');
     }
