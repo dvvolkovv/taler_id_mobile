@@ -1,7 +1,8 @@
-import 'dart:io' show Platform;
+import 'dart:io' show File, Platform;
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
 
-enum VideoEffect { none, blur, bg1, bg2, bg3, bg4, bg5, bg6 }
+enum VideoEffect { none, blur, bg1, bg2, bg3, bg4, bg5, bg6, custom }
 
 class VideoEffectsService {
   static const _channel = MethodChannel('taler_id/video_effects');
@@ -37,6 +38,7 @@ class VideoEffectsService {
       case VideoEffect.bg4: return 'effectLibrary';
       case VideoEffect.bg5: return 'effectCity';
       case VideoEffect.bg6: return 'effectMinimalism';
+      case VideoEffect.custom: return 'effectCustom';
     }
   }
   String? thumbPathFor(VideoEffect effect) => _thumbPaths[effect];
@@ -89,6 +91,28 @@ class VideoEffectsService {
         }
       }
       _current = effect;
+    } catch (e) {
+      _current = VideoEffect.none;
+      rethrow;
+    }
+  }
+
+  /// Apply a custom image from file path or network URL (cached locally).
+  Future<void> applyCustomImage(Uint8List imageBytes, {String? trackId}) async {
+    try {
+      if (_current == VideoEffect.none) {
+        await _channel.invokeMethod('startProcessing', {
+          'effectType': 'background',
+          'backgroundImageData': imageBytes,
+          if (trackId != null) 'trackId': trackId,
+        });
+      } else {
+        await _channel.invokeMethod('setEffect', {
+          'effectType': 'background',
+          'backgroundImageData': imageBytes,
+        });
+      }
+      _current = VideoEffect.custom;
     } catch (e) {
       _current = VideoEffect.none;
       rethrow;

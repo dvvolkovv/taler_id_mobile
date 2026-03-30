@@ -382,7 +382,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
       );
       if (!mounted) return;
-      setState(() => _isPreparing = false);
       if (assets == null || assets.isEmpty) return;
       for (final asset in assets) {
         final file = await asset.file;
@@ -393,8 +392,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         });
       }
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _isPreparing = false);
+      // ignore picker errors
+    } finally {
+      if (mounted) setState(() => _isPreparing = false);
     }
   }
 
@@ -426,14 +426,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Future<void> _pickFile() async {
     setState(() => _isPreparing = true);
-    final result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: true);
-    if (!mounted) return;
-    setState(() => _isPreparing = false);
-    if (result == null || result.files.isEmpty) return;
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: true);
+    } catch (_) {
+      // ignore picker errors
+    } finally {
+      if (mounted) setState(() => _isPreparing = false);
+    }
+    if (!mounted || result == null || result!.files.isEmpty) return;
+    final pickedFiles = result!.files;
     const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
     setState(() {
-      for (final file in result.files) {
+      for (final file in pickedFiles) {
         if (file.path == null) continue;
         final ext = file.name.split('.').last.toLowerCase();
         String? typeOverride;
@@ -542,7 +548,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.clear();
     for (var i = 0; i < files.length; i++) {
       final f = files[i];
-      await _uploadAndSendFile(f.path, f.name, typeOverride: f.type, caption: i == 0 && caption.isNotEmpty ? caption : null);
+      try {
+        await _uploadAndSendFile(f.path, f.name, typeOverride: f.type, caption: i == 0 && caption.isNotEmpty ? caption : null);
+      } catch (_) {
+        // Continue uploading remaining files even if one fails
+      }
     }
   }
 
@@ -557,6 +567,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _uploadAndSendFile(String filePath, String fileName, {String? typeOverride, String? caption}) async {
+    if (!File(filePath).existsSync()) return;
     _uploadCancelToken = CancelToken();
     setState(() => _uploadProgress = 0);
     try {

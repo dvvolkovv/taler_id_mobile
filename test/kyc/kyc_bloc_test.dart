@@ -115,7 +115,7 @@ void main() {
       expect: () => [
         isA<KycLoading>(),
         isA<KycError>().having(
-            (s) => s.message, 'message', 'Не удалось загрузить статус верификации'),
+            (s) => s.message, 'message', 'error.failedToLoadKycStatus'),
       ],
     );
   });
@@ -201,7 +201,7 @@ void main() {
       expect: () => [
         isA<KycApplicantDataLoading>(),
         isA<KycError>().having(
-            (s) => s.message, 'message', 'Не удалось загрузить данные верификации'),
+            (s) => s.message, 'message', 'error.failedToLoadKycData'),
       ],
     );
   });

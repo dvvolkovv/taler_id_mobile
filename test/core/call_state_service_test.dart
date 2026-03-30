@@ -14,34 +14,24 @@ class DisconnectedRoom extends Mock implements lk.Room {
 }
 
 void main() {
-  // CallStateService is a singleton — use a fresh instance per test
-  // by resetting its state between tests.
   late CallStateService svc;
 
-  setUp(() {
+  setUp(() async {
     svc = CallStateService.instance;
-    // Reset state
-    svc.room = null;
-    svc.roomName = null;
-    svc.conversationId = null;
-    svc.e2eeKey = null;
+    // Reset state by ending all calls
+    await svc.endCall();
   });
 
   // ── isInCall ──────────────────────────────────────────────────────────────
 
   group('isInCall', () {
-    test('returns false when room is null', () {
+    test('returns false when no lines', () {
       expect(svc.isInCall, isFalse);
     });
 
-    test('returns true when room is connected', () {
-      svc.room = MockRoom();
+    test('returns true when room is set', () {
+      svc.setRoom(MockRoom(), 'room-1', null);
       expect(svc.isInCall, isTrue);
-    });
-
-    test('returns false when room is disconnected', () {
-      svc.room = DisconnectedRoom();
-      expect(svc.isInCall, isFalse);
     });
   });
 
@@ -84,23 +74,17 @@ void main() {
   // ── notifyEnded ───────────────────────────────────────────────────────────
 
   group('notifyEnded', () {
-    test('clears all fields', () {
-      svc.room = MockRoom();
-      svc.roomName = 'room-xyz';
-      svc.conversationId = 'conv-1';
-      svc.e2eeKey = 'secret';
-
+    test('clears active line', () {
+      svc.setRoom(MockRoom(), 'room-xyz', 'conv-1');
       svc.notifyEnded();
 
       expect(svc.room, isNull);
       expect(svc.roomName, isNull);
-      expect(svc.conversationId, isNull);
-      expect(svc.e2eeKey, isNull);
       expect(svc.isInCall, isFalse);
     });
 
-    test('emits false on stateStream', () async {
-      svc.room = MockRoom();
+    test('emits false on stateStream when last line ended', () async {
+      svc.setRoom(MockRoom(), 'room-1', null);
       final events = <bool>[];
       final sub = svc.stateStream.listen(events.add);
 
@@ -111,23 +95,24 @@ void main() {
       await sub.cancel();
     });
 
-    test('isInCall is false after notifyEnded', () {
-      svc.room = MockRoom();
-      expect(svc.isInCall, isTrue);
+    test('switches to next line if multiple', () {
+      svc.setRoom(MockRoom(), 'room-1', null);
+      svc.setRoom(MockRoom(), 'room-2', null);
 
-      svc.notifyEnded();
-      expect(svc.isInCall, isFalse);
+      svc.notifyEnded(); // ends room-2 (active)
+
+      expect(svc.isInCall, isTrue);
+      expect(svc.roomName, 'room-1');
     });
   });
 
   // ── endCall ───────────────────────────────────────────────────────────────
 
   group('endCall', () {
-    test('clears room and emits false', () async {
+    test('clears all lines and emits false', () async {
       final room = MockRoom();
       when(() => room.disconnect()).thenAnswer((_) async {});
-      svc.room = room;
-      svc.roomName = 'room-abc';
+      svc.setRoom(room, 'room-abc', null);
 
       final events = <bool>[];
       final sub = svc.stateStream.listen(events.add);
@@ -137,49 +122,95 @@ void main() {
 
       expect(svc.room, isNull);
       expect(svc.roomName, isNull);
+      expect(svc.lineCount, 0);
       expect(events, contains(false));
       await sub.cancel();
     });
 
-    test('calls disconnect on the room', () async {
-      final room = MockRoom();
-      when(() => room.disconnect()).thenAnswer((_) async {});
-      svc.room = room;
+    test('calls disconnect on all rooms', () async {
+      final room1 = MockRoom();
+      final room2 = MockRoom();
+      when(() => room1.disconnect()).thenAnswer((_) async {});
+      when(() => room2.disconnect()).thenAnswer((_) async {});
+      svc.setRoom(room1, 'room-1', null);
+      svc.setRoom(room2, 'room-2', null);
 
       await svc.endCall();
 
-      verify(() => room.disconnect()).called(1);
+      verify(() => room1.disconnect()).called(1);
+      verify(() => room2.disconnect()).called(1);
     });
 
-    test('does not throw when room is null', () async {
-      svc.room = null;
+    test('does not throw when no lines', () async {
       await expectLater(svc.endCall(), completes);
     });
+  });
 
-    test('silently handles disconnect exception', () async {
-      final room = MockRoom();
-      when(() => room.disconnect()).thenThrow(Exception('WebRTC error'));
-      svc.room = room;
+  // ── Multi-line ──────────────────────────────────────────────────────────
 
-      await expectLater(svc.endCall(), completes);
-      expect(svc.room, isNull);
+  group('Multi-line', () {
+    test('can hold multiple lines', () {
+      svc.setRoom(MockRoom(), 'room-1', null);
+      svc.setRoom(MockRoom(), 'room-2', null);
+      svc.setRoom(MockRoom(), 'room-3', null);
+
+      expect(svc.lineCount, 3);
+      expect(svc.roomName, 'room-3'); // last set is active
+    });
+
+    test('endLine removes specific line', () async {
+      final room1 = MockRoom();
+      final room2 = MockRoom();
+      when(() => room1.disconnect()).thenAnswer((_) async {});
+      when(() => room2.disconnect()).thenAnswer((_) async {});
+      svc.setRoom(room1, 'room-1', null);
+      svc.setRoom(room2, 'room-2', null);
+
+      await svc.endLine('room-1');
+
+      expect(svc.lineCount, 1);
+      expect(svc.roomName, 'room-2');
+      verify(() => room1.disconnect()).called(1);
+    });
+
+    test('endLine switches to remaining line when active ended', () async {
+      final room1 = MockRoom();
+      final room2 = MockRoom();
+      when(() => room1.disconnect()).thenAnswer((_) async {});
+      when(() => room2.disconnect()).thenAnswer((_) async {});
+      svc.setRoom(room1, 'room-1', null);
+      svc.setRoom(room2, 'room-2', null);
+
+      await svc.endLine('room-2'); // end active line
+
+      expect(svc.roomName, 'room-1');
+      expect(svc.lineCount, 1);
+    });
+
+    test('allLines returns all lines', () {
+      svc.setRoom(MockRoom(), 'room-1', 'conv-1');
+      svc.setRoom(MockRoom(), 'room-2', 'conv-2');
+
+      final lines = svc.allLines;
+      expect(lines.length, 2);
+      expect(lines.map((l) => l.roomName).toSet(), {'room-1', 'room-2'});
     });
   });
 
   // ── stateStream ───────────────────────────────────────────────────────────
 
   group('stateStream', () {
-    test('is a broadcast stream (multiple listeners ok)', () async {
+    test('is a broadcast stream', () async {
       final events1 = <bool>[];
       final events2 = <bool>[];
       final sub1 = svc.stateStream.listen(events1.add);
       final sub2 = svc.stateStream.listen(events2.add);
 
-      svc.notifyEnded();
+      svc.setRoom(MockRoom(), 'room-1', null);
       await Future.delayed(Duration.zero);
 
-      expect(events1, [false]);
-      expect(events2, [false]);
+      expect(events1, [true]);
+      expect(events2, [true]);
       await sub1.cancel();
       await sub2.cancel();
     });
@@ -214,7 +245,7 @@ void main() {
     test('returns current isInCall when not connecting', () async {
       expect(await svc.waitForBackgroundConnect(), isFalse);
 
-      svc.room = MockRoom();
+      svc.setRoom(MockRoom(), 'room-1', null);
       expect(await svc.waitForBackgroundConnect(), isTrue);
     });
   });

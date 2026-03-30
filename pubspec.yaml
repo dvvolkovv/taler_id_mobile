@@ -146,6 +146,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/audio/ringback.wav
+    - assets/audio/hold_music.mp3
     - assets/video.mp4
     - assets/video_light.mp4
     - assets/app_icon_light.png

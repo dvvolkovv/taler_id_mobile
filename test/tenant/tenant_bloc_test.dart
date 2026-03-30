@@ -79,7 +79,7 @@ void main() {
       expect: () => [
         isA<TenantLoading>(),
         isA<TenantError>().having(
-            (s) => s.message, 'message', 'Не удалось загрузить список организаций'),
+            (s) => s.message, 'message', 'error.failedToLoadOrgs'),
       ],
     );
   });
@@ -258,7 +258,7 @@ void main() {
         role: TenantRole.admin,
       )),
       expect: () => [
-        isA<TenantActionSuccess>().having((s) => s.message, 'message', 'Роль изменена'),
+        isA<TenantActionSuccess>().having((s) => s.message, 'message', 'success.roleChanged'),
         isA<TenantLoading>(),
         isA<TenantDetailLoaded>(),
       ],

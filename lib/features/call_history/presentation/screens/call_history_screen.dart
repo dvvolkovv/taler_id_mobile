@@ -953,6 +953,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   }
 
   Future<void> _requestTranscription(String summaryId) async {
+    if (_transcribing) return;
     setState(() { _transcribing = true; });
     try {
       await sl<DioClient>().post<dynamic>('/voice/recordings/$summaryId/transcribe');

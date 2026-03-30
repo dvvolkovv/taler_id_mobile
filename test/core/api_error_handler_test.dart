@@ -30,7 +30,7 @@ void main() {
       final result = ApiErrorHandler.handle(err);
 
       expect(result, isA<ApiException>());
-      expect(result.message, contains('время ожидания'));
+      expect(result.message, 'error.timeout');
       expect(result.statusCode, isNull);
     });
 
@@ -38,14 +38,14 @@ void main() {
       final err = _makeDioError(type: DioExceptionType.receiveTimeout);
       final result = ApiErrorHandler.handle(err);
 
-      expect(result.message, contains('время ожидания'));
+      expect(result.message, 'error.timeout');
     });
 
     test('sendTimeout returns timeout message', () {
       final err = _makeDioError(type: DioExceptionType.sendTimeout);
       final result = ApiErrorHandler.handle(err);
 
-      expect(result.message, contains('время ожидания'));
+      expect(result.message, 'error.timeout');
     });
   });
 
@@ -56,7 +56,7 @@ void main() {
       final err = _makeDioError(type: DioExceptionType.connectionError);
       final result = ApiErrorHandler.handle(err);
 
-      expect(result.message, contains('подключения к интернету'));
+      expect(result.message, 'error.noConnection');
     });
   });
 
@@ -97,7 +97,7 @@ void main() {
       final result = ApiErrorHandler.handle(err);
 
       expect(result.statusCode, 422);
-      expect(result.message, contains('Произошла ошибка'));
+      expect(result.message, 'error.general');
     });
 
     test('handles non-map response data gracefully', () {
@@ -109,7 +109,7 @@ void main() {
       final result = ApiErrorHandler.handle(err);
 
       expect(result.statusCode, 503);
-      expect(result.message, contains('Произошла ошибка'));
+      expect(result.message, 'error.general');
       expect(result.data, isNull);
     });
 

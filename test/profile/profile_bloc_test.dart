@@ -82,7 +82,7 @@ void main() {
       act: (b) => b.add(ProfileLoadRequested()),
       expect: () => [
         isA<ProfileLoading>(),
-        isA<ProfileError>().having((s) => s.message, 'message', 'Не удалось загрузить профиль'),
+        isA<ProfileError>().having((s) => s.message, 'message', 'error.failedToLoadProfile'),
       ],
     );
 
@@ -150,7 +150,7 @@ void main() {
       act: (b) => b.add(const ProfileUpdateSubmitted({'firstName': 'Test'})),
       expect: () => [
         isA<ProfileLoading>(),
-        isA<ProfileError>().having((s) => s.message, 'message', contains('Не удалось обновить профиль')),
+        isA<ProfileError>().having((s) => s.message, 'message', 'error.failedToUpdateProfile'),
       ],
     );
   });

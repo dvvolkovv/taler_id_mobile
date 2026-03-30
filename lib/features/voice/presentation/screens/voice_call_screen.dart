@@ -13,6 +13,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
+import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../../core/config/app_config.dart';
@@ -103,6 +104,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _recordingApproved = false;
   bool _consentDialogShowing = false;  // prevent duplicate dialogs
   bool _consentForTranscription = false; // true = consent is for protocol, false = for recording
+
+  // ── Hold state ──
+  bool _onHold = false;
+  final AudioPlayer _holdPlayer = AudioPlayer();
   final Set<String> _processedMessageIds = {};  // dedup DataChannel messages
 
   // ── Transcription state ──
@@ -889,6 +894,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (mounted) setState(() => _ringing = false);
   }
 
+  Future<void> _toggleHold() async {
+    if (_onHold) {
+      // Resume
+      await _holdPlayer.stop();
+      await _room?.localParticipant?.setMicrophoneEnabled(true);
+      if (_cameraOn) await _room?.localParticipant?.setCameraEnabled(true);
+      setState(() { _onHold = false; _muted = false; });
+    } else {
+      // Hold: mute mic, disable camera, play hold music locally
+      await _room?.localParticipant?.setMicrophoneEnabled(false);
+      await _room?.localParticipant?.setCameraEnabled(false);
+      _holdPlayer.setReleaseMode(ReleaseMode.loop);
+      _holdPlayer.play(AssetSource('audio/hold_music.mp3'), volume: 0.4).catchError((_) {});
+      setState(() { _onHold = true; _muted = true; });
+    }
+  }
+
   Future<void> _playReconnectBeep() async {
     try {
       await _ringPlayer.stop();
@@ -1579,6 +1601,15 @@ Answer briefly — the user is in the middle of a conversation.''';
             await vfx.applyEffect(effect, trackId: nativeTrackId);
           } catch (e) {
             debugPrint('[VoiceCall] Video effect error: $e');
+          }
+          if (mounted) setState(() {});
+        },
+        onSelectCustom: (imageBytes) async {
+          Navigator.pop(context);
+          try {
+            await vfx.applyCustomImage(imageBytes, trackId: nativeTrackId);
+          } catch (e) {
+            debugPrint('[VoiceCall] Custom background error: $e');
           }
           if (mounted) setState(() {});
         },
@@ -2652,6 +2683,8 @@ Answer briefly — the user is in the middle of a conversation.''';
     _eventsListener?.dispose();
     _room?.removeListener(_onRoomChanged);
     _ringPlayer.dispose();
+    _holdPlayer.stop().catchError((_) {});
+    _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
     // Restore portrait if we were in landscape for screen share
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -3049,19 +3082,25 @@ Answer briefly — the user is in the middle of a conversation.''';
                     icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     label: _muted ? AppLocalizations.of(context)!.voiceUnmute : AppLocalizations.of(context)!.voiceMic,
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
-                    onTap: _assistantActive ? null : _toggleMute,
+                    onTap: _assistantActive || _onHold ? null : _toggleMute,
+                  ),
+                  _ControlButton(
+                    icon: _onHold ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                    label: _onHold ? 'Resume' : 'Hold',
+                    color: _onHold ? AppColors.of(context).primary : AppColors.of(context).card,
+                    onTap: _toggleHold,
                   ),
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
                     label: _assistantActive ? AppLocalizations.of(context)!.voiceStop : AppLocalizations.of(context)!.voiceAssistantLabel,
                     color: _assistantActive ? AppColors.of(context).primary : AppColors.of(context).card,
-                    onTap: _assistantActive ? _stopAssistant : _startAssistant,
+                    onTap: _onHold ? null : (_assistantActive ? _stopAssistant : _startAssistant),
                   ),
                   _ControlButton(
                     icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
                     label: _cameraOn ? AppLocalizations.of(context)!.voiceCameraOn : AppLocalizations.of(context)!.voiceCameraLabel,
                     color: _cameraOn ? AppColors.of(context).primary.withValues(alpha: 0.2) : AppColors.of(context).card,
-                    onTap: _toggleCamera,
+                    onTap: _onHold ? null : _toggleCamera,
                   ),
                 ],
               ),
@@ -3570,7 +3609,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                 fit: StackFit.expand,
                 children: [
                   if (tile.track != null)
-                    lk.VideoTrackRenderer(tile.track!)
+                    lk.VideoTrackRenderer(tile.track!, fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
                   else
                     Center(
                       child: PulsingAvatar(
@@ -3686,13 +3725,18 @@ Answer briefly — the user is in the middle of a conversation.''';
     final count = tiles.length;
     final crossAxisCount = count <= 1 ? 1 : count <= 4 ? 2 : 3;
 
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final aspectRatio = isLandscape
+        ? (count <= 2 ? 4 / 3 : 4 / 3)
+        : (count <= 2 ? 3 / 4 : 3 / 4);
+
     return GridView.builder(
       padding: const EdgeInsets.all(4),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
-        childAspectRatio: count <= 2 ? 3 / 4 : 3 / 4,
+        childAspectRatio: aspectRatio,
       ),
       itemCount: count,
       itemBuilder: (_, i) {
@@ -3717,7 +3761,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                 children: [
                   // Video or avatar
                   if (tile.track != null)
-                    lk.VideoTrackRenderer(tile.track!)
+                    lk.VideoTrackRenderer(tile.track!, fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
                   else
                     Center(
                       child: PulsingAvatar(

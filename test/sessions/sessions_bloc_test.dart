@@ -119,7 +119,7 @@ void main() {
       expect: () => [
         isA<SessionsLoading>(),
         isA<SessionsError>()
-            .having((s) => s.message, 'message', 'Не удалось загрузить сессии'),
+            .having((s) => s.message, 'message', 'error.failedToLoadSessions'),
       ],
     );
   });
