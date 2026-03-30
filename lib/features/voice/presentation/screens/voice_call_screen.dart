@@ -896,15 +896,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _toggleHold() async {
     if (_onHold) {
-      // Resume
+      // Resume: re-subscribe to remote audio, unmute mic, restore camera
+      for (final p in _room!.remoteParticipants.values) {
+        for (final pub in p.audioTrackPublications) {
+          try { pub.subscribe(); } catch (_) {}
+        }
+      }
       await _holdPlayer.stop();
       await _room?.localParticipant?.setMicrophoneEnabled(true);
       if (_cameraOn) await _room?.localParticipant?.setCameraEnabled(true);
       setState(() { _onHold = false; _muted = false; });
     } else {
-      // Hold: mute mic, disable camera, play hold music locally
+      // Hold: mute mic, disable camera, mute incoming audio, play hold music
       await _room?.localParticipant?.setMicrophoneEnabled(false);
       await _room?.localParticipant?.setCameraEnabled(false);
+      // Unsubscribe from remote audio so we don't hear the other party
+      for (final p in _room!.remoteParticipants.values) {
+        for (final pub in p.audioTrackPublications) {
+          try { pub.unsubscribe(); } catch (_) {}
+        }
+      }
       _holdPlayer.setReleaseMode(ReleaseMode.loop);
       _holdPlayer.play(AssetSource('audio/hold_music.mp3'), volume: 0.4).catchError((_) {});
       setState(() { _onHold = true; _muted = true; });
