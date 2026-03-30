@@ -897,9 +897,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _toggleHold() async {
     if (_onHold) {
-      // Resume: re-subscribe to remote audio, unmute mic, restore camera
+      // Resume: stop server-side hold music, re-subscribe to remote audio
+      try {
+        final client = sl<DioClient>();
+        await client.post('/voice/rooms/$_roomName/hold-music/stop', data: {}, fromJson: (d) => d);
+      } catch (_) {}
       for (final p in _room!.remoteParticipants.values) {
         for (final pub in p.audioTrackPublications) {
+          if (pub.participant?.identity == 'hold-music') continue;
           try { pub.subscribe(); } catch (_) {}
         }
       }
@@ -908,7 +913,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (_cameraOn) await _room?.localParticipant?.setCameraEnabled(true);
       setState(() { _onHold = false; _muted = false; });
     } else {
-      // Hold: mute mic, disable camera, mute incoming audio, play hold music
+      // Hold: mute mic, disable camera, mute incoming audio
       await _room?.localParticipant?.setMicrophoneEnabled(false);
       await _room?.localParticipant?.setCameraEnabled(false);
       // Unsubscribe from remote audio so we don't hear the other party
@@ -917,8 +922,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           try { pub.unsubscribe(); } catch (_) {}
         }
       }
+      // Play hold music locally (for us) and start server-side hold music (for them)
       _holdPlayer.setReleaseMode(ReleaseMode.loop);
       _holdPlayer.play(AssetSource('audio/hold_music.mp3'), volume: 0.4).catchError((_) {});
+      try {
+        final client = sl<DioClient>();
+        await client.post('/voice/rooms/$_roomName/hold-music/start', data: {}, fromJson: (d) => d);
+      } catch (_) {}
       setState(() { _onHold = true; _muted = true; });
     }
   }
@@ -3571,7 +3581,7 @@ Answer briefly — the user is in the middle of a conversation.''';
   Widget _buildParticipantStrip() {
     final tiles = <_VideoTileData>[];
     for (final p in _participants) {
-      if (p.identity == 'voice-translator') continue;
+      if (p.identity == 'voice-translator' || p.identity == 'hold-music') continue;
       final track = p.videoTrackPublications
           .firstWhereOrNull((pub) =>
               pub.subscribed &&
@@ -3674,7 +3684,7 @@ Answer briefly — the user is in the middle of a conversation.''';
 
     // Add remote participants
     for (final p in _participants) {
-      if (p.identity == 'voice-translator') continue;
+      if (p.identity == 'voice-translator' || p.identity == 'hold-music') continue;
       // Pick camera track only (skip screen share tracks)
       final track = p.videoTrackPublications
           .firstWhereOrNull((pub) =>
