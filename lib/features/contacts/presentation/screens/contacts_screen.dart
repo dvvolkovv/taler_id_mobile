@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 
 class ContactsScreen extends StatefulWidget {
@@ -47,7 +48,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         items.add(_ContactItem(
           conversationId: conv['id'] as String,
           userId: conv['otherUserId'] as String? ?? '',
-          name: conv['otherUserName'] as String? ?? 'Пользователь',
+          name: conv['otherUserName'] as String? ?? AppLocalizations.of(context)!.convDefaultUser,
           username: conv['otherUserUsername'] as String?,
           avatarUrl: conv['otherUserAvatar'] as String?,
           status: _ContactStatus.accepted,
@@ -94,6 +95,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       body: CustomScrollView(
@@ -102,7 +104,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
             centerTitle: true,
             floating: true,
             snap: true,
-            title: const Text('Контакты'),
+            title: Text(l10n.contactsTitle),
             actions: [
               IconButton(
                 icon: const Icon(Icons.person_add_alt_1_rounded),
@@ -110,7 +112,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   await context.push('/dashboard/messenger/contacts');
                   _load(); // Refresh after returning from contact requests screen
                 },
-                tooltip: 'Добавить контакт',
+                tooltip: l10n.contactsAddTooltip,
               ),
             ],
             bottom: PreferredSize(
@@ -121,7 +123,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   controller: _searchCtrl,
                   style: TextStyle(color: colors.textPrimary, fontSize: 14),
                   decoration: InputDecoration(
-                    hintText: 'Поиск контактов...',
+                    hintText: l10n.contactsSearchHint,
                     hintStyle: TextStyle(color: colors.textSecondary, fontSize: 14),
                     prefixIcon: Icon(Icons.search, color: colors.textSecondary, size: 20),
                     suffixIcon: _searchQuery.isNotEmpty
@@ -158,6 +160,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildList(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     var filtered = _items;
     if (_searchQuery.isNotEmpty) {
       final q = _searchQuery.toLowerCase();
@@ -176,7 +179,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               Icon(Icons.people_outline, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
               const SizedBox(height: 12),
               Text(
-                _searchQuery.isNotEmpty ? 'Ничего не найдено' : 'Нет контактов',
+                _searchQuery.isNotEmpty ? l10n.contactsNotFound : l10n.contactsEmpty,
                 style: TextStyle(color: colors.textSecondary, fontSize: 16),
               ),
               if (_searchQuery.isEmpty) ...[
@@ -187,7 +190,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     _load();
                   },
                   icon: Icon(Icons.person_add, color: colors.primary, size: 18),
-                  label: Text('Добавить контакт', style: TextStyle(color: colors.primary)),
+                  label: Text(l10n.contactsAdd, style: TextStyle(color: colors.primary)),
                 ),
               ],
             ],
@@ -208,6 +211,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildTile(_ContactItem contact, AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: ListTile(
@@ -230,7 +234,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
         ),
         subtitle: contact.status == _ContactStatus.pending
-            ? Text('Ожидает подтверждения', style: TextStyle(color: colors.textSecondary, fontSize: 12))
+            ? Text(l10n.contactsPendingConfirmation, style: TextStyle(color: colors.textSecondary, fontSize: 12))
             : contact.username != null
                 ? Text('@${contact.username}', style: TextStyle(color: colors.textSecondary, fontSize: 13))
                 : null,
@@ -241,12 +245,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   IconButton(
                     icon: Icon(Icons.chat_bubble_outline_rounded, size: 20, color: colors.primary),
                     onPressed: () => context.push('/dashboard/messenger/${contact.conversationId}'),
-                    tooltip: 'Написать',
+                    tooltip: l10n.contactsMessage,
                   ),
                   IconButton(
                     icon: Icon(Icons.call_rounded, size: 20, color: colors.primary),
                     onPressed: () => _startCall(contact),
-                    tooltip: 'Позвонить',
+                    tooltip: l10n.contactsCall,
                   ),
                 ],
               )
@@ -258,6 +262,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildResendButton(_ContactItem contact, AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     final canResend = contact.requestSentAt != null &&
         DateTime.now().difference(contact.requestSentAt!).inHours >= 24;
 
@@ -267,7 +272,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         size: 20,
         color: canResend ? colors.primary : colors.textSecondary.withValues(alpha: 0.4),
       ),
-      tooltip: canResend ? 'Отправить повторно' : 'Повтор через 24ч',
+      tooltip: canResend ? l10n.contactsResend : l10n.contactsResendTimeout,
       onPressed: canResend ? () => _resendRequest(contact) : null,
     );
   }
@@ -280,9 +285,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
         fromJson: (d) => d,
       );
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Запрос отправлен повторно'),
+            content: Text(l10n.contactsResent),
             backgroundColor: AppColors.of(context).primary,
           ),
         );
@@ -290,8 +296,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -318,7 +325,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red),
         );
       }
     }

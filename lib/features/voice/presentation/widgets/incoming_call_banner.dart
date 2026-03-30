@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class IncomingCallBanner extends StatelessWidget {
   final String fromUserName;
@@ -17,6 +18,7 @@ class IncomingCallBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -33,7 +35,7 @@ class IncomingCallBanner extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Входящий звонок',
+            l10n.incomingCallLabel,
             style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
           ),
           const SizedBox(height: 4),
@@ -68,7 +70,7 @@ class IncomingCallBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Отклонить',
+                      l10n.incomingCallDecline,
                       style: TextStyle(
                         color: AppColors.of(context).textSecondary,
                         fontSize: 12,
@@ -96,7 +98,7 @@ class IncomingCallBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Принять',
+                      l10n.incomingCallAccept,
                       style: TextStyle(
                         color: AppColors.of(context).textSecondary,
                         fontSize: 12,

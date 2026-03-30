@@ -45,7 +45,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     final localAuth = LocalAuthentication();
     try {
       final ok = await localAuth.authenticate(
-        localizedReason: 'Войдите в Taler ID',
+        localizedReason: AppLocalizations.of(context)?.biometricLoginReason ?? 'Sign in to Taler ID',
         options: const AuthenticationOptions(biometricOnly: false),
       );
       if (ok && mounted) {

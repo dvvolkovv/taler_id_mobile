@@ -10,6 +10,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
@@ -99,7 +100,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       if (mounted) {
         setState(() => _contactActionLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     }
@@ -119,7 +120,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       if (mounted) {
         setState(() => _contactActionLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     }
@@ -140,7 +141,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Не удалось открыть чат'),
+            content: Text(AppLocalizations.of(context)!.userProfileFailedOpenChat),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -161,7 +162,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Уже идёт звонок'),
+            content: Text(AppLocalizations.of(context)!.chatAlreadyInCall),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -199,7 +200,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка звонка: $e'),
+            content: Text(AppLocalizations.of(context)!.chatCallError(e.toString())),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -234,8 +235,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             const SizedBox(height: 16),
             ListTile(
               leading: Icon(Icons.share_rounded, color: AppColors.of(context).primary),
-              title: Text('Поделиться контактом', style: TextStyle(color: AppColors.of(context).textPrimary)),
-              subtitle: Text('Отправить ссылку на контакт', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+              title: Text(AppLocalizations.of(context)!.userProfileShareContact, style: TextStyle(color: AppColors.of(context).textPrimary)),
+              subtitle: Text(AppLocalizations.of(context)!.userProfileShareContactDesc, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
               onTap: () {
                 Navigator.pop(ctx);
                 final shareText = username != null
@@ -246,7 +247,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             ),
             ListTile(
               leading: Icon(Icons.copy_rounded, color: AppColors.of(context).primary),
-              title: Text('Скопировать ссылку', style: TextStyle(color: AppColors.of(context).textPrimary)),
+              title: Text(AppLocalizations.of(context)!.userProfileCopyLink, style: TextStyle(color: AppColors.of(context).textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 final link = username != null
@@ -254,7 +255,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                     : fullName;
                 Clipboard.setData(ClipboardData(text: link));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Скопировано'), duration: const Duration(seconds: 1)),
+                  SnackBar(content: Text(AppLocalizations.of(context)!.userProfileCopied), duration: const Duration(seconds: 1)),
                 );
               },
             ),
@@ -274,11 +275,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     final avatarUrl = _profile?['avatarUrl'] as String?;
     final initials = fullName.isNotEmpty ? fullName[0].toUpperCase() : '?';
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: Text(fullName.isNotEmpty ? fullName : 'Профиль'),
+        title: Text(fullName.isNotEmpty ? fullName : l10n.userProfileTitle),
         backgroundColor: AppColors.of(context).surface,
         actions: [
           if (_profile != null)
@@ -297,7 +299,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                     children: [
                       Icon(Icons.error_outline, color: AppColors.of(context).error, size: 48),
                       const SizedBox(height: 16),
-                      Text('Ошибка загрузки профиля',
+                      Text(l10n.userProfileLoadError,
                           style: TextStyle(color: AppColors.of(context).textPrimary)),
                     ],
                   ),
@@ -369,6 +371,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   }
 
   Widget _buildActionButtons(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     if (_contactActionLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -380,7 +383,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             child: ElevatedButton.icon(
               onPressed: _openChat,
               icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.black),
-              label: const Text('Написать', style: TextStyle(color: Colors.black)),
+              label: Text(l10n.userProfileMessage, style: const TextStyle(color: Colors.black)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -393,7 +396,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             child: ElevatedButton.icon(
               onPressed: _startDirectCall,
               icon: const Icon(Icons.call_outlined, color: Colors.black),
-              label: const Text('Позвонить', style: TextStyle(color: Colors.black)),
+              label: Text(l10n.userProfileCall, style: const TextStyle(color: Colors.black)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -411,7 +414,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
         child: OutlinedButton.icon(
           onPressed: null,
           icon: Icon(Icons.hourglass_empty_rounded, color: colors.textSecondary),
-          label: Text('Запрос отправлен', style: TextStyle(color: colors.textSecondary)),
+          label: Text(l10n.userProfileRequestSent, style: TextStyle(color: colors.textSecondary)),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             side: BorderSide(color: colors.border),
@@ -428,7 +431,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             child: ElevatedButton.icon(
               onPressed: _acceptContactRequest,
               icon: const Icon(Icons.check_rounded, color: Colors.black),
-              label: const Text('Принять', style: TextStyle(color: Colors.black)),
+              label: Text(l10n.userProfileAccept, style: const TextStyle(color: Colors.black)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -441,7 +444,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             child: OutlinedButton.icon(
               onPressed: null,
               icon: Icon(Icons.close_rounded, color: colors.textSecondary),
-              label: Text('Отклонить', style: TextStyle(color: colors.textSecondary)),
+              label: Text(l10n.userProfileDecline, style: TextStyle(color: colors.textSecondary)),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 side: BorderSide(color: colors.border),
@@ -459,7 +462,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       child: ElevatedButton.icon(
         onPressed: _sendContactRequest,
         icon: const Icon(Icons.person_add_outlined, color: Colors.black),
-        label: const Text('Добавить в контакты', style: TextStyle(color: Colors.black)),
+        label: Text(l10n.userProfileAddToContacts, style: const TextStyle(color: Colors.black)),
         style: ElevatedButton.styleFrom(
           backgroundColor: colors.primary,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -565,6 +568,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final hasContent = _mediaItems.isNotEmpty || _docItems.isNotEmpty ||
         _linkItems.isNotEmpty || _recordings.isNotEmpty || _summaries.isNotEmpty;
 
@@ -579,11 +583,11 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: [
-            Tab(text: 'Медиа${_mediaLoading ? '' : ' (${_mediaItems.length})'}'),
-            Tab(text: 'Файлы${_docsLoading ? '' : ' (${_docItems.length})'}'),
-            Tab(text: 'Ссылки${_linksLoading ? '' : ' (${_linkItems.length})'}'),
-            Tab(text: 'Записи${_callsLoading ? '' : ' (${_recordings.length})'}'),
-            Tab(text: 'Резюме${_callsLoading ? '' : ' (${_summaries.length})'}'),
+            Tab(text: '${l10n.userProfileMediaTab}${_mediaLoading ? '' : ' (${_mediaItems.length})'}'),
+            Tab(text: '${l10n.userProfileFilesTab}${_docsLoading ? '' : ' (${_docItems.length})'}'),
+            Tab(text: '${l10n.userProfileLinksTab}${_linksLoading ? '' : ' (${_linkItems.length})'}'),
+            Tab(text: '${l10n.userProfileRecordingsTab}${_callsLoading ? '' : ' (${_recordings.length})'}'),
+            Tab(text: '${l10n.userProfileSummariesTab}${_callsLoading ? '' : ' (${_summaries.length})'}'),
           ],
         ),
         SizedBox(
@@ -607,7 +611,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
     if (_mediaLoading) return const Center(child: CircularProgressIndicator());
     if (_mediaItems.isEmpty) {
       return Center(
-        child: Text('Нет медиафайлов', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        child: Text(AppLocalizations.of(context)!.userProfileNoMedia, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
     return GridView.builder(
@@ -641,7 +645,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
     if (_docsLoading) return const Center(child: CircularProgressIndicator());
     if (_docItems.isEmpty) {
       return Center(
-        child: Text('Нет файлов', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        child: Text(AppLocalizations.of(context)!.userProfileNoFiles, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
     return ListView.builder(
@@ -673,7 +677,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
     if (_linksLoading) return const Center(child: CircularProgressIndicator());
     if (_linkItems.isEmpty) {
       return Center(
-        child: Text('Нет ссылок', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        child: Text(AppLocalizations.of(context)!.userProfileNoLinks, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
     return ListView.builder(
@@ -695,7 +699,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
     if (_callsLoading) return const Center(child: CircularProgressIndicator());
     if (_recordings.isEmpty) {
       return Center(
-        child: Text('Нет записей', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        child: Text(AppLocalizations.of(context)!.userProfileNoRecordings, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
     return ListView.builder(
@@ -719,7 +723,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
     if (_callsLoading) return const Center(child: CircularProgressIndicator());
     if (_summaries.isEmpty) {
       return Center(
-        child: Text('Нет резюме', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+        child: Text(AppLocalizations.of(context)!.userProfileNoSummaries, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
       );
     }
     return ListView.builder(
@@ -753,7 +757,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
         backgroundColor: colors.background,
         appBar: AppBar(
           backgroundColor: colors.surface,
-          title: Text('Резюме встречи${dateStr.isNotEmpty ? ' · $dateStr' : ''}',
+          title: Text('${AppLocalizations.of(context)!.userProfileMeetingSummary}${dateStr.isNotEmpty ? ' · $dateStr' : ''}',
             style: const TextStyle(fontSize: 16)),
           actions: [
             IconButton(
@@ -761,7 +765,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: text));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: const Text('Скопировано'), backgroundColor: colors.primary, duration: const Duration(seconds: 1)),
+                  SnackBar(content: Text(AppLocalizations.of(context)!.userProfileCopied), backgroundColor: colors.primary, duration: const Duration(seconds: 1)),
                 );
               },
             ),

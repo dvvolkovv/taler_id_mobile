@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
@@ -15,9 +16,23 @@ class VideoEffectsPicker extends StatelessWidget {
 
   static const _effects = VideoEffect.values;
 
+  String _effectLabel(AppLocalizations l10n, VideoEffect effect) {
+    switch (effect) {
+      case VideoEffect.none: return l10n.effectNone;
+      case VideoEffect.blur: return l10n.effectBlur;
+      case VideoEffect.bg1: return l10n.effectOffice;
+      case VideoEffect.bg2: return l10n.effectNature;
+      case VideoEffect.bg3: return l10n.effectGradient;
+      case VideoEffect.bg4: return l10n.effectLibrary;
+      case VideoEffect.bg5: return l10n.effectCity;
+      case VideoEffect.bg6: return l10n.effectMinimalism;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final service = VideoEffectsService();
     return Container(
       padding: const EdgeInsets.only(top: 12, bottom: 24),
@@ -42,7 +57,7 @@ class VideoEffectsPicker extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Фон видео',
+                l10n.voiceVideoBackground,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 18,
@@ -64,7 +79,7 @@ class VideoEffectsPicker extends StatelessWidget {
                 final isSelected = effect == currentEffect;
                 return _EffectOption(
                   effect: effect,
-                  label: service.labelFor(effect),
+                  label: _effectLabel(l10n, effect),
                   thumbPath: service.thumbPathFor(effect),
                   isSelected: isSelected,
                   primaryColor: colors.primary,

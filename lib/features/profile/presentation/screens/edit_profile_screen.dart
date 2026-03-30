@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/countries.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
@@ -20,6 +21,7 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _firstNameCtrl = TextEditingController();
   final _lastNameCtrl = TextEditingController();
+  final _middleNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
@@ -32,6 +34,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     _firstNameCtrl.dispose();
     _lastNameCtrl.dispose();
+    _middleNameCtrl.dispose();
     _phoneCtrl.dispose();
     _dateCtrl.dispose();
     _countryCtrl.dispose();
@@ -42,6 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_initialized) return;
     _firstNameCtrl.text = user.firstName ?? '';
     _lastNameCtrl.text = user.lastName ?? '';
+    _middleNameCtrl.text = user.middleName ?? '';
     _phoneCtrl.text = user.phone ?? '';
     _selectedCountry = user.country;
     if (_selectedCountry != null) {
@@ -207,7 +211,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             context.pop();
           } else if (state is ProfileError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           }
         },
@@ -220,6 +224,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           if (user != null) _initialize(user);
           final loading = state is ProfileUpdating;
+          final kycDone = user?.kycStatus == KycStatus.verified;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -229,14 +234,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   TextFormField(
                     controller: _firstNameCtrl,
-                    style: TextStyle(color: AppColors.of(context).textPrimary),
-                    decoration: InputDecoration(labelText: l10n.firstName),
+                    readOnly: kycDone,
+                    style: TextStyle(color: kycDone ? AppColors.of(context).textSecondary : AppColors.of(context).textPrimary),
+                    decoration: InputDecoration(
+                      labelText: l10n.firstName,
+                      suffixIcon: kycDone ? Icon(Icons.lock_outline, size: 16, color: AppColors.of(context).textSecondary) : null,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _lastNameCtrl,
-                    style: TextStyle(color: AppColors.of(context).textPrimary),
-                    decoration: InputDecoration(labelText: l10n.lastName),
+                    readOnly: kycDone,
+                    style: TextStyle(color: kycDone ? AppColors.of(context).textSecondary : AppColors.of(context).textPrimary),
+                    decoration: InputDecoration(
+                      labelText: l10n.lastName,
+                      suffixIcon: kycDone ? Icon(Icons.lock_outline, size: 16, color: AppColors.of(context).textSecondary) : null,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _middleNameCtrl,
+                    readOnly: kycDone,
+                    style: TextStyle(color: kycDone ? AppColors.of(context).textSecondary : AppColors.of(context).textPrimary),
+                    decoration: InputDecoration(
+                      labelText: l10n.editProfilePatronymic,
+                      suffixIcon: kycDone ? Icon(Icons.lock_outline, size: 16, color: AppColors.of(context).textSecondary) : null,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   GestureDetector(
@@ -288,6 +311,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         final data = <String, dynamic>{
                           'firstName': _firstNameCtrl.text.trim(),
                           'lastName': _lastNameCtrl.text.trim(),
+                          'middleName': _middleNameCtrl.text.trim(),
                           if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
                           if (_selectedCountry != null) 'country': _selectedCountry,
                           if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().split('T').first,

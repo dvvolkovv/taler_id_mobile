@@ -33,6 +33,7 @@ import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final String? roomName; // null = create new room with AI
@@ -82,11 +83,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     'headphones': Icons.headphones_rounded,
   };
 
-  static const _outputLabels = <String, String>{
-    'earpiece': 'Телефон',
-    'speaker': 'Динамик',
-    'bluetooth': 'Bluetooth',
-    'headphones': 'Наушники',
+  static Map<String, String> _outputLabels(AppLocalizations l10n) => <String, String>{
+    'earpiece': l10n.voiceAudioPhone,
+    'speaker': l10n.voiceAudioSpeaker,
+    'bluetooth': l10n.voiceAudioBluetooth,
+    'headphones': l10n.voiceAudioHeadphones,
   };
   String? _error;
   bool _ringing = false; // outgoing: ringback playing, waiting for callee to answer
@@ -540,7 +541,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // and claim ownership so user can stop/restart it
       if (_participants.any((p) => p.identity == 'meeting-recorder')) {
         final myId = _room?.localParticipant?.identity;
-        final myName = _room?.localParticipant?.name ?? 'Участник';
+        final l10n = AppLocalizations.of(context)!;
+        final myName = _room?.localParticipant?.name ?? l10n.voiceParticipant;
         setState(() {
           _isRecording = true;
           _recordingApproved = true;
@@ -663,7 +665,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
           // If consent is pending, add new participant and send request ONLY to them
           if (_consentPending && _recordingInitiatorId == localId) {
-            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? AppLocalizations.of(context)!.voiceParticipant);
             _sendDataTo([newId], {
               'type': 'recording_consent_request',
               'initiatorId': _recordingInitiatorId,
@@ -674,7 +676,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           // If recording is already active, send consent request ONLY to new participant
           if (_isRecording && _recordingApproved && _recordingInitiatorId == localId && !_consentPending) {
             _consentResponses.clear(); // clear old entries — only track new participant
-            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? 'Участник');
+            _consentResponses[newId] = _ConsentEntry(event.participant.name ?? AppLocalizations.of(context)!.voiceParticipant);
             setState(() => _consentPending = true);
             _sendDataTo([newId], {
               'type': 'recording_consent_request',
@@ -972,13 +974,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               ),
               const SizedBox(height: 2),
               Text(
-                'приглашает вас в комнату',
+                AppLocalizations.of(context)!.voiceInvitesToRoom,
                 style: TextStyle(color: colors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 12),
             ],
             Text(
-              title?.isNotEmpty == true ? title! : 'Комната',
+              title?.isNotEmpty == true ? title! : AppLocalizations.of(context)!.voiceRoom,
               style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: 18,
@@ -993,7 +995,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                   Icon(Icons.lock_outline, size: 14, color: colors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    'Защищена паролем',
+                    AppLocalizations.of(context)!.voicePasswordProtected,
                     style: TextStyle(color: colors.textSecondary, fontSize: 12),
                   ),
                 ],
@@ -1005,7 +1007,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
                 obscureText: true,
                 style: TextStyle(color: colors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Пароль',
+                  hintText: AppLocalizations.of(context)!.voicePasswordHint,
                   hintStyle: TextStyle(color: colors.textSecondary),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 ),
@@ -1019,13 +1021,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(null),
-            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
           ),
           TextButton(
             onPressed: () =>
                 Navigator.of(ctx).pop({'password': passwordController.text}),
             child: Text(
-              'Войти',
+              AppLocalizations.of(context)!.voiceEnter,
               style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600),
             ),
           ),
@@ -1064,7 +1066,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Войти в комнату',
+            Text(AppLocalizations.of(context)!.voiceJoinRoom,
                 style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
             if (_publicRoomCreatorName != null) ...[
               const SizedBox(height: 4),
@@ -1084,7 +1086,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           autofocus: true,
           style: TextStyle(color: colors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'Ваше имя',
+            hintText: AppLocalizations.of(context)!.voiceYourName,
             hintStyle: TextStyle(color: colors.textSecondary),
           ),
           onSubmitted: (v) {
@@ -1095,14 +1097,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(null),
-            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
               final t = controller.text.trim();
               if (t.isNotEmpty) Navigator.of(ctx).pop(t);
             },
-            child: Text('Войти', style: TextStyle(color: colors.primary)),
+            child: Text(AppLocalizations.of(context)!.voiceEnter, style: TextStyle(color: colors.primary)),
           ),
         ],
       ),
@@ -1164,12 +1166,45 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  String _buildCallAssistantPrompt(List<String> participantNames) {
+    final locale = Localizations.localeOf(context).languageCode;
+    final participantsJoined = participantNames.join(', ');
+
+    if (locale == 'ru') {
+      final participantsStr = participantNames.isEmpty
+          ? ''
+          : '\nУчастники текущего звонка: $participantsJoined';
+      return '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
+$participantsStr
+Если пользователь просит добавить кого-то в звонок:
+1. Вызови get_conversations чтобы получить список контактов
+2. Найди нужного человека по имени или username (otherUserUsername)
+3. Вызови send_call_invite с conversationId найденного диалога
+4. Если не нашёл в диалогах — вызови search_contacts и повтори поиск
+
+Отвечай коротко — пользователь в разгаре разговора.''';
+    }
+
+    final participantsStr = participantNames.isEmpty
+        ? ''
+        : '\nCurrent call participants: $participantsJoined';
+    return '''You are a voice assistant during a call. The user has temporarily muted their microphone in the call to give you a command. Be brief.
+$participantsStr
+If the user asks to add someone to the call:
+1. Call get_conversations to get the contact list
+2. Find the needed person by name or username (otherUserUsername)
+3. Call send_call_invite with the conversationId of the found conversation
+4. If not found in conversations — call search_contacts and retry
+
+Answer briefly — the user is in the middle of a conversation.''';
+  }
+
   void _configureAssistantSession() {
     if (_assistantWs == null) return;
 
     // Get participant names for context
     final participantNames = _participants.map((p) => p.name ?? p.identity).toList();
-    final participantsStr = participantNames.isEmpty ? '' : '\nУчастники текущего звонка: ${participantNames.join(", ")}';
+    final instructions = _buildCallAssistantPrompt(participantNames);
 
     final sessionConfig = {
       'type': 'session.update',
@@ -1178,15 +1213,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         'voice': 'sage',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
-        'instructions': '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
-$participantsStr
-Если пользователь просит добавить кого-то в звонок:
-1. Вызови get_conversations чтобы получить список контактов
-2. Найди нужного человека по имени или username (otherUserUsername)
-3. Вызови send_call_invite с conversationId найденного диалога
-4. Если не нашёл в диалогах — вызови search_contacts и повтори поиск
-
-Отвечай коротко — пользователь в разгаре разговора.''',
+        'instructions': instructions,
         'tools': [
           {
             'type': 'function',
@@ -1367,9 +1394,10 @@ $participantsStr
         debugPrint('[InCallAssistant] send_call_invite: convId=$convId, name=$inviteeName, room=$_roomName');
         if (_roomName != null && convId.isNotEmpty) {
           sl<MessengerRemoteDataSource>().sendCallInvite(convId, _roomName!);
-          output = jsonEncode({'ok': true, 'message': 'Приглашение отправлено ${inviteeName.isNotEmpty ? inviteeName : "участнику"}'});
+          final l10n = AppLocalizations.of(context)!;
+          output = jsonEncode({'ok': true, 'message': l10n.voiceInvitationSent(inviteeName.isNotEmpty ? inviteeName : l10n.voiceParticipant)});
         } else {
-          output = jsonEncode({'ok': false, 'message': 'Нет активной комнаты или conversationId'});
+          output = jsonEncode({'ok': false, 'message': AppLocalizations.of(context)!.voiceNoActiveRoom});
         }
       } else {
         debugPrint('[InCallAssistant] unknown function: $name');
@@ -1426,11 +1454,12 @@ $participantsStr
       debugPrint('[VoiceCall] Camera permission: $status');
       if (!status.isGranted) {
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text('Разрешите доступ к камере в Настройках → Конфиденциальность → Камера → TalerID'),
+              content: Text(l10n.voiceCameraPermission),
               action: SnackBarAction(
-                label: 'Открыть',
+                label: l10n.voiceOpenSettings,
                 onPressed: openAppSettings,
               ),
               duration: const Duration(seconds: 6),
@@ -1496,7 +1525,7 @@ $participantsStr
         setState(() => _cameraOn = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Не удалось включить камеру: $e'),
+            content: Text(AppLocalizations.of(context)!.voiceCameraError(e.toString())),
             duration: const Duration(seconds: 3),
           ),
         );
@@ -1583,7 +1612,8 @@ $participantsStr
     debugPrint('[VoiceCall] _requestRecordingConsent: consentPending=$_consentPending isRecording=$_isRecording transcription=$_transcriptionActive initiator=$_recordingInitiatorId forTranscription=$_consentForTranscription');
     if (_consentPending || _isRecording || _transcriptionActive) return;
     final localId = room.localParticipant?.identity;
-    final localName = room.localParticipant?.name ?? 'Участник';
+    final l10n = AppLocalizations.of(context)!;
+    final localName = room.localParticipant?.name ?? l10n.voiceParticipant;
 
     final participants = room.remoteParticipants.values
         .where((p) => p.identity != 'meeting-recorder' && p.identity != 'voice-translator' && p.identity != 'ai-assistant')
@@ -1611,7 +1641,7 @@ $participantsStr
       _recordingInitiatorName = localName;
       _consentResponses.clear();
       for (final p in participants) {
-        _consentResponses[p.identity] = _ConsentEntry(p.name ?? 'Участник');
+        _consentResponses[p.identity] = _ConsentEntry(p.name ?? l10n.voiceParticipant);
       }
     });
 
@@ -1693,7 +1723,7 @@ $participantsStr
   void _onConsentRequest(lk.RemoteParticipant? participant, Map<String, dynamic> msg) {
     if (!mounted || _navigatedAway) return;
     final initiatorId = msg['initiatorId'] as String?;
-    final initiatorName = msg['initiatorName'] as String? ?? 'Участник';
+    final initiatorName = msg['initiatorName'] as String? ?? AppLocalizations.of(context)!.voiceParticipant;
     final recordingAlreadyActive = msg['recordingActive'] as bool? ?? false;
     final forTranscription = msg['forTranscription'] as bool? ?? false;
     final localId = _room?.localParticipant?.identity;
@@ -1716,7 +1746,7 @@ $participantsStr
     final localId = _room?.localParticipant?.identity;
     final identity = participant?.identity;
     final accepted = msg['accepted'] as bool? ?? false;
-    final responderName = msg['responderName'] as String? ?? 'Участник';
+    final responderName = msg['responderName'] as String? ?? AppLocalizations.of(context)!.voiceParticipant;
     debugPrint('[VoiceCall] _onConsentResponse from=$identity accepted=$accepted initiator=$_recordingInitiatorId localId=$localId consentPending=$_consentPending keys=${_consentResponses.keys}');
     if (_recordingInitiatorId != localId || !_consentPending) return;
 
@@ -1759,16 +1789,17 @@ $participantsStr
         _recordingApproved = true;
       });
       // Only start if not already active (new participant consent)
+      final l10n = AppLocalizations.of(context)!;
       if (!_isRecording && !_transcriptionActive) {
         if (_consentForTranscription) {
           _startTranscription();
-          _showSnack('Все согласились. Запись начата.');
+          _showSnack(l10n.voiceAllAgreedRecording);
         } else {
           _startRecording();
-          _showSnack('Все согласились. Запись началась.');
+          _showSnack(l10n.voiceAllAgreedRecording);
         }
       } else {
-        _showSnack('Новый участник согласился на запись.');
+        _showSnack(l10n.voiceNewParticipantAgreed);
       }
       _broadcastData({
         'type': 'recording_approved',
@@ -1810,11 +1841,12 @@ $participantsStr
 
   void _onRecordingDeniedLate(Map<String, dynamic> msg) {
     if (!mounted || _navigatedAway) return;
-    final declinedBy = msg['declinedBy'] as String? ?? 'Участник';
+    final l10n = AppLocalizations.of(context)!;
+    final declinedBy = msg['declinedBy'] as String? ?? l10n.voiceParticipant;
     final localName = _room?.localParticipant?.name ?? '';
     // If I'm the one who declined, I need to leave the call
     if (declinedBy == localName) {
-      _showSnack('Вы отклонили запись. Покидаете звонок.');
+      _showSnack(l10n.voiceDeclinedRecording);
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted && !_navigatedAway) _hangUp();
       });
@@ -1833,7 +1865,7 @@ $participantsStr
       _stopRecording();
     }
     _resetRecordingState();
-    _showSnack('Запись завершена');
+    _showSnack(AppLocalizations.of(context)!.voiceRecordingEnded);
   }
 
   void _endRecordingSession() {
@@ -1860,7 +1892,7 @@ $participantsStr
     final roomName = _roomName;
     if (roomName == null) return;
     final localId = _room?.localParticipant?.identity;
-    final localName = _room?.localParticipant?.name ?? 'Участник';
+    final localName = _room?.localParticipant?.name ?? AppLocalizations.of(context)!.voiceParticipant;
     try {
       await sl<DioClient>().dio.post('/voice/rooms/$roomName/recorder/start',
           data: {'withAi': true});
@@ -1904,8 +1936,9 @@ $participantsStr
   void _showConsentDialog(String initiatorName, {bool recordingActive = false, bool forTranscription = false}) {
     if (_consentDialogShowing || _navigatedAway || !mounted) return;
     _consentDialogShowing = true;
-    final actionWord = forTranscription ? 'протоколирование' : 'запись';
-    final declineLabel = recordingActive ? 'Отклонить и выйти' : 'Отклонить';
+    final l10n = AppLocalizations.of(context)!;
+    final actionWord = forTranscription ? l10n.voiceTranscriptionWord : l10n.voiceRecordingWord;
+    final declineLabel = recordingActive ? l10n.voiceDeclineAndLeave : l10n.notifDecline;
     final contentText = recordingActive
         ? ' ведёт $actionWord встречи.\nВаш голос будет записан.\nПри отказе вы покинете звонок.'
         : ' хочет начать $actionWord встречи.\nВаш голос будет записан.';
@@ -1931,8 +1964,8 @@ $participantsStr
             Expanded(
               child: Text(
                 recordingActive
-                    ? 'Запись идёт'
-                    : (forTranscription ? 'Запрос на протоколирование' : 'Запрос на запись'),
+                    ? l10n.voiceRecordingInProgress
+                    : (forTranscription ? l10n.voiceTranscriptionRequest : l10n.voiceRecordingRequest),
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
               ),
             ),
@@ -1965,7 +1998,7 @@ $participantsStr
               Navigator.pop(ctx);
               _respondToConsent(true);
             },
-            child: const Text('Согласен'),
+            child: Text(l10n.voiceAgree),
           ),
         ],
       ),
@@ -1976,7 +2009,7 @@ $participantsStr
 
   void _respondToConsent(bool accepted) {
     final localId = _room?.localParticipant?.identity;
-    final localName = _room?.localParticipant?.name ?? 'Участник';
+    final localName = _room?.localParticipant?.name ?? AppLocalizations.of(context)!.voiceParticipant;
     _broadcastData({
       'type': 'recording_consent_response',
       'accepted': accepted,
@@ -2099,9 +2132,10 @@ $participantsStr
   }
 
   Future<void> _showAudioOutputPicker() async {
+    final l10n = AppLocalizations.of(context)!;
     List<Map<String, String>> outputs = [
-      {'id': 'earpiece', 'name': 'Телефон', 'type': 'earpiece'},
-      {'id': 'speaker', 'name': 'Динамик', 'type': 'speaker'},
+      {'id': 'earpiece', 'name': l10n.voiceAudioPhone, 'type': 'earpiece'},
+      {'id': 'speaker', 'name': l10n.voiceAudioSpeaker, 'type': 'speaker'},
     ];
     try {
       final raw = await _audioChannel.invokeMethod<List>('getAudioOutputs');
@@ -2131,7 +2165,7 @@ $participantsStr
             ),
             const SizedBox(height: 16),
             Text(
-              'Аудиовыход',
+              l10n.voiceAudioOutput,
               style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -2316,7 +2350,7 @@ $participantsStr
     Clipboard.setData(ClipboardData(text: link));
     if (!mounted || _navigatedAway) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Ссылка скопирована'), duration: Duration(seconds: 2)),
+      SnackBar(content: Text(AppLocalizations.of(context)!.voiceLinkCopied), duration: const Duration(seconds: 2)),
     );
   }
 
@@ -2348,9 +2382,10 @@ $participantsStr
       // Send call invite to selected user via messenger
       sl<MessengerRemoteDataSource>().sendCallInvite(convId ?? '', rName, inviteeId: selected.id);
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Приглашение отправлено ${selected.username != null ? "@${selected.username}" : selected.email}'),
+            content: Text(l10n.voiceInvitationSent(selected.username != null ? "@${selected.username}" : selected.email)),
             backgroundColor: Colors.green,
           ),
         );
@@ -2358,7 +2393,7 @@ $participantsStr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     }
@@ -2530,7 +2565,7 @@ $participantsStr
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Переводить на',
+                    AppLocalizations.of(context)!.voiceTranslateTo,
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: 16,
@@ -2544,7 +2579,7 @@ $participantsStr
                       autofocus: false,
                       style: TextStyle(color: colors.textPrimary, fontSize: 15),
                       decoration: InputDecoration(
-                        hintText: 'Поиск языка...',
+                        hintText: AppLocalizations.of(context)!.voiceSearchLanguage,
                         hintStyle: TextStyle(color: colors.textSecondary),
                         prefixIcon: Icon(Icons.search, color: colors.textSecondary),
                         filled: true,
@@ -2636,12 +2671,17 @@ $participantsStr
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: Text(
-          widget.calleeName ??
-          (widget.publicCode != null && _publicRoomCreatorName != null
-              ? 'Комната ${_publicRoomCreatorName}'
-              : 'Голосовой звонок'),
-          overflow: TextOverflow.ellipsis,
+        title: Builder(
+          builder: (context) {
+            final l10n = AppLocalizations.of(context)!;
+            return Text(
+              widget.calleeName ??
+              (widget.publicCode != null && _publicRoomCreatorName != null
+                  ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
+                  : l10n.voiceVoiceCall),
+              overflow: TextOverflow.ellipsis,
+            );
+          },
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -2653,12 +2693,12 @@ $participantsStr
             IconButton(
               icon: const Icon(Icons.link_rounded),
               onPressed: _copyRoomLink,
-              tooltip: 'Скопировать ссылку',
+              tooltip: AppLocalizations.of(context)!.voiceCopyLink,
             ),
           IconButton(
             icon: const Icon(Icons.person_add_rounded),
             onPressed: _addParticipant,
-            tooltip: 'Добавить участника',
+            tooltip: AppLocalizations.of(context)!.voiceAddParticipant,
           ),
         ],
       ),
@@ -2668,15 +2708,15 @@ $participantsStr
           if (_reconnecting)
             Container(
               color: Colors.black54,
-              child: const Center(
+              child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
                     Text(
-                      'Переподключение...',
-                      style: TextStyle(
+                      AppLocalizations.of(context)!.voiceReconnecting,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                       ),
@@ -2751,9 +2791,10 @@ $participantsStr
 
   Widget _buildBody() {
     if (_connecting) {
+      final l10n = AppLocalizations.of(context)!;
       final statusText = widget.publicCode != null && _publicRoomCreatorName != null
-          ? 'Комната ${_publicRoomCreatorName}'
-          : 'Подключение...';
+          ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
+          : l10n.voiceConnecting;
       return _buildOutgoingCallCenter(statusText: statusText);
     }
     if (_error != null) {
@@ -2770,7 +2811,7 @@ $participantsStr
               ),
               const SizedBox(height: 16),
               Text(
-                'Ошибка подключения',
+                AppLocalizations.of(context)!.voiceConnectionError,
                 style: TextStyle(
                   color: AppColors.of(context).textPrimary,
                   fontSize: 18,
@@ -2789,7 +2830,7 @@ $participantsStr
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _hangUp,
-                child: const Text('Закрыть'),
+                child: Text(AppLocalizations.of(context)!.voiceClose),
               ),
             ],
           ),
@@ -2817,7 +2858,7 @@ $participantsStr
               ),
               const SizedBox(width: 8),
               Text(
-                _ringing ? 'Вызов...' : 'Звонок активен',
+                _ringing ? AppLocalizations.of(context)!.voiceCalling : AppLocalizations.of(context)!.voiceCallActive,
                 style: TextStyle(
                   color: AppColors.of(context).textPrimary,
                   fontSize: 14,
@@ -2842,7 +2883,7 @@ $participantsStr
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        (_consentPending && !_consentForTranscription) ? 'ОЖИДАНИЕ' : 'REC',
+                        (_consentPending && !_consentForTranscription) ? AppLocalizations.of(context)!.voiceWaitingUpper : AppLocalizations.of(context)!.voiceRec,
                         style: const TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -2867,7 +2908,7 @@ $participantsStr
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        (_consentPending && _consentForTranscription) ? 'ОЖИДАНИЕ' : 'REC',
+                        (_consentPending && _consentForTranscription) ? AppLocalizations.of(context)!.voiceWaitingUpper : AppLocalizations.of(context)!.voiceRec,
                         style: const TextStyle(color: Color(0xFF10B981), fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ],
@@ -2905,7 +2946,7 @@ $participantsStr
                     icon: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
                         ? Icons.stop_circle_rounded
                         : Icons.fiber_manual_record_rounded,
-                    label: (_consentPending && !_consentForTranscription) ? 'Ожидание' : ((_isRecording || _transcriptionActive) ? 'Стоп' : 'Запись'),
+                    label: (_consentPending && !_consentForTranscription) ? AppLocalizations.of(context)!.voiceWaiting : ((_isRecording || _transcriptionActive) ? AppLocalizations.of(context)!.voiceStop : AppLocalizations.of(context)!.voiceRecord),
                     color: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
                         ? Colors.red.withValues(alpha: 0.2)
                         : AppColors.of(context).card,
@@ -2923,7 +2964,7 @@ $participantsStr
                         icon: Icons.translate_rounded,
                         label: _translationEnabled
                             ? _preferredLang.toUpperCase()
-                            : 'Перевод',
+                            : AppLocalizations.of(context)!.voiceTranslation,
                         color: _translationEnabled
                             ? AppColors.of(context).primary.withValues(alpha: 0.2)
                             : AppColors.of(context).card,
@@ -2949,7 +2990,7 @@ $participantsStr
                   ),
                   _ControlButton(
                     icon: _outputIcons[_audioOutputType] ?? Icons.volume_up_rounded,
-                    label: _outputLabels[_audioOutputType] ?? 'Аудио',
+                    label: _outputLabels(AppLocalizations.of(context)!)[_audioOutputType] ?? AppLocalizations.of(context)!.voiceAudio,
                     color: _audioOutputType != 'earpiece'
                         ? AppColors.of(context).primary.withValues(alpha: 0.2)
                         : AppColors.of(context).card,
@@ -2958,14 +2999,14 @@ $participantsStr
                   if (_cameraOn) ...[
                     _ControlButton(
                       icon: Icons.flip_camera_ios_rounded,
-                      label: 'Повернуть',
+                      label: AppLocalizations.of(context)!.voiceFlipCamera,
                       color: AppColors.of(context).card,
                       onTap: _flipCamera,
                     ),
                     if (_videoEffectsSupported)
                     _ControlButton(
                       icon: Icons.blur_on_rounded,
-                      label: 'Фон',
+                      label: AppLocalizations.of(context)!.voiceBackground,
                       color: sl<VideoEffectsService>().current != VideoEffect.none
                           ? AppColors.of(context).primary.withValues(alpha: 0.2)
                           : AppColors.of(context).card,
@@ -2993,7 +3034,7 @@ $participantsStr
                         Icon(Icons.smart_toy_rounded, size: 16, color: AppColors.of(context).primary),
                         const SizedBox(width: 6),
                         Text(
-                          _assistantSpeaking ? 'Ассистент говорит...' : 'Ассистент слушает...',
+                          _assistantSpeaking ? AppLocalizations.of(context)!.voiceAssistantSpeakingStatus : AppLocalizations.of(context)!.voiceAssistantListeningStatus,
                           style: TextStyle(color: AppColors.of(context).primary, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -3006,19 +3047,19 @@ $participantsStr
                 children: [
                   _ControlButton(
                     icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                    label: _muted ? 'Включить' : 'Микрофон',
+                    label: _muted ? AppLocalizations.of(context)!.voiceUnmute : AppLocalizations.of(context)!.voiceMic,
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
                     onTap: _assistantActive ? null : _toggleMute,
                   ),
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
-                    label: _assistantActive ? 'Стоп' : 'Ассистент',
+                    label: _assistantActive ? AppLocalizations.of(context)!.voiceStop : AppLocalizations.of(context)!.voiceAssistantLabel,
                     color: _assistantActive ? AppColors.of(context).primary : AppColors.of(context).card,
                     onTap: _assistantActive ? _stopAssistant : _startAssistant,
                   ),
                   _ControlButton(
                     icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
-                    label: _cameraOn ? 'Камера вкл.' : 'Камера',
+                    label: _cameraOn ? AppLocalizations.of(context)!.voiceCameraOn : AppLocalizations.of(context)!.voiceCameraLabel,
                     color: _cameraOn ? AppColors.of(context).primary.withValues(alpha: 0.2) : AppColors.of(context).card,
                     onTap: _toggleCamera,
                   ),
@@ -3029,7 +3070,7 @@ $participantsStr
               Center(
                 child: _ControlButton(
                   icon: Icons.call_end_rounded,
-                  label: 'Завершить',
+                  label: AppLocalizations.of(context)!.voiceEndCall,
                   color: AppColors.of(context).error,
                   onTap: _hangUp,
                   large: true,
@@ -3161,7 +3202,7 @@ $participantsStr
   Widget _buildParticipantsList() {
     if (_participants.isEmpty) {
       return _ringing
-          ? _buildOutgoingCallCenter(statusText: 'Вызов...')
+          ? _buildOutgoingCallCenter(statusText: AppLocalizations.of(context)!.voiceCalling)
           : Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -3169,7 +3210,7 @@ $participantsStr
                   Icon(Icons.person_outline, size: 64, color: AppColors.of(context).textSecondary),
                   const SizedBox(height: 16),
                   Text(
-                    'Ожидание участников...',
+                    AppLocalizations.of(context)!.voiceWaitingParticipants,
                     style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
                   ),
                 ],
@@ -3195,7 +3236,7 @@ $participantsStr
           // Local user (self)
           _buildParticipantAvatar(
             identity: myIdentity,
-            displayName: myName.isNotEmpty ? myName : 'Вы',
+            displayName: myName.isNotEmpty ? myName : AppLocalizations.of(context)!.voiceYou,
             avatarUrl: myAvatarUrl,
             avatarRadius: avatarRadius,
             fontSize: fontSize,
@@ -3212,10 +3253,11 @@ $participantsStr
             final isRecorder = p.identity == 'meeting-recorder';
             final hasMic = _participantHasMic(p);
             final speaking = _speakingIdentities.contains(p.identity);
+            final l10n = AppLocalizations.of(context)!;
             final displayName = isAI
-                ? 'AI Ассистент'
+                ? l10n.voiceAiAssistant
                 : isRecorder
-                    ? 'Запись'
+                    ? l10n.voiceRecord
                     : (p.name?.isNotEmpty == true ? p.name! : p.identity);
             // Get avatar from fetched avatars or calleeAvatar fallback
             String? avatarUrl = _participantAvatars[p.identity];
@@ -3310,7 +3352,7 @@ $participantsStr
         ),
         const SizedBox(height: 8),
         Text(
-          isLocal ? 'Вы' : displayName,
+          isLocal ? AppLocalizations.of(context)!.voiceYou : displayName,
           style: TextStyle(
             color: isRecorder ? Colors.red : colors.textPrimary,
             fontSize: 13,
@@ -3487,10 +3529,11 @@ $participantsStr
           ?.track as lk.VideoTrack?;
       final isAI = p.identity == 'ai-assistant';
       final isRecorder = p.identity == 'meeting-recorder';
+      final l10n = AppLocalizations.of(context)!;
       final name = isAI
-          ? 'AI Ассистент'
+          ? l10n.voiceAiAssistant
           : isRecorder
-              ? 'Запись'
+              ? l10n.voiceRecord
               : (p.name?.isNotEmpty == true ? p.name! : p.identity);
       tiles.add(_VideoTileData(name: name, identity: p.identity, track: track, hasMic: _participantHasMic(p), isLocal: false, isAI: isAI, isRecorder: isRecorder, isSpeaking: _speakingIdentities.contains(p.identity)));
     }
@@ -3552,7 +3595,7 @@ $participantsStr
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                       decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
                       child: Text(
-                        tile.isLocal ? 'Вы' : tile.name,
+                        tile.isLocal ? AppLocalizations.of(context)!.voiceYou : tile.name,
                         style: const TextStyle(color: Colors.white, fontSize: 10),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -3590,10 +3633,11 @@ $participantsStr
           ?.track as lk.VideoTrack?;
       final isAI = p.identity == 'ai-assistant';
       final isRecorder = p.identity == 'meeting-recorder';
+      final l10n = AppLocalizations.of(context)!;
       final name = isAI
-          ? 'AI Ассистент'
+          ? l10n.voiceAiAssistant
           : isRecorder
-              ? 'Запись'
+              ? l10n.voiceRecord
               : (p.name?.isNotEmpty == true ? p.name! : p.identity);
       final hasMic = _participantHasMic(p);
       tiles.add(_VideoTileData(
@@ -3631,7 +3675,7 @@ $participantsStr
             children: [
               Icon(Icons.videocam_off_rounded, size: 64, color: Colors.white54),
               const SizedBox(height: 12),
-              Text('Видео недоступно', style: TextStyle(color: Colors.white54, fontSize: 16)),
+              Text(AppLocalizations.of(context)!.voiceVideoUnavailable, style: TextStyle(color: Colors.white54, fontSize: 16)),
             ],
           ),
         ),
@@ -3862,7 +3906,7 @@ class _UserSearchSheetState extends State<_UserSearchSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Добавить участника',
+            AppLocalizations.of(context)!.voiceAddParticipant,
             style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -3873,7 +3917,7 @@ class _UserSearchSheetState extends State<_UserSearchSheet> {
               autofocus: true,
               style: TextStyle(color: AppColors.of(context).textPrimary),
               decoration: InputDecoration(
-                hintText: 'Поиск по никнейму...',
+                hintText: AppLocalizations.of(context)!.voiceSearchNickname,
                 hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
                 prefixIcon: Icon(Icons.search, color: AppColors.of(context).textSecondary),
                 filled: true,

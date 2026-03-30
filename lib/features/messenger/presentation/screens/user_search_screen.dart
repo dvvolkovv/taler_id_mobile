@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
@@ -37,10 +38,11 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: const Text('Найти пользователя'),
+        title: Text(l10n.userSearchTitle),
       ),
       body: Column(
         children: [
@@ -54,7 +56,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                   autofocus: true,
                   style: TextStyle(color: AppColors.of(context).textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Никнейм, телефон или email',
+                    hintText: l10n.userSearchHint,
                     hintStyle: TextStyle(
                         color: AppColors.of(context).textSecondary),
                     prefixIcon: Icon(Icons.search,
@@ -76,7 +78,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Введите @никнейм, email или имя для поиска',
+                  l10n.userSearchHelper,
                   style: TextStyle(
                       color: AppColors.of(context).textSecondary, fontSize: 12),
                 ),
@@ -99,7 +101,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                 if (state.error != null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Ошибка: ${state.error}'),
+                      content: Text(l10n.errorWithMessage(state.error ?? '')),
                       backgroundColor: AppColors.of(context).error,
                     ),
                   );
@@ -113,7 +115,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                     _ctrl.text.length >= 2) {
                   return Center(
                     child: Text(
-                      'Пользователи не найдены',
+                      l10n.userSearchNoUsers,
                       style: TextStyle(color: AppColors.of(context).textSecondary),
                     ),
                   );
@@ -206,19 +208,20 @@ class _UserTile extends StatelessWidget {
   }
 
   void _onUserTap(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.of(context).card,
-        title: Text('Запрос на общение', style: TextStyle(color: AppColors.of(context).textPrimary)),
+        title: Text(l10n.contactRequestTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
         content: Text(
-          'Отправить запрос на общение пользователю $displayName?',
+          l10n.contactRequestConfirm(displayName),
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена', style: TextStyle(color: AppColors.of(context).textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: AppColors.of(context).textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -230,12 +233,12 @@ class _UserTile extends StatelessWidget {
               context.read<MessengerBloc>().add(SendContactRequest(user.id));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text('Запрос отправлен'),
+                  content: Text(l10n.contactRequestSent),
                   backgroundColor: AppColors.of(context).primary,
                 ),
               );
             },
-            child: const Text('Отправить'),
+            child: Text(l10n.contactRequestSend),
           ),
         ],
       ),

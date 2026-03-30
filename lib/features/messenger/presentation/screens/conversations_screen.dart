@@ -62,6 +62,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   void _showUsernameDialog() {
+    final l10n = AppLocalizations.of(context)!;
     final ctrl = TextEditingController();
     String? errorText;
 
@@ -74,7 +75,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
           builder: (ctx, setDialogState) => AlertDialog(
             backgroundColor: AppColors.of(context).card,
             title: Text(
-              'Задайте никнейм',
+              l10n.convSetNickname,
               style: TextStyle(color: AppColors.of(context).textPrimary),
             ),
             content: Column(
@@ -82,7 +83,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Никнейм обязателен для использования мессенджера. Другие пользователи смогут найти вас по нему.',
+                  l10n.convNicknameRequired,
                   style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
@@ -109,7 +110,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '3–30 символов: буквы, цифры, _',
+                  l10n.convNicknameRules,
                   style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 11),
                 ),
               ],
@@ -124,7 +125,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   final regex = RegExp(r'^[a-zA-Z0-9_]{3,30}$');
                   if (!regex.hasMatch(value)) {
                     setDialogState(() =>
-                        errorText = '3–30 символов: буквы, цифры, _');
+                        errorText = l10n.convNicknameRules);
                     return;
                   }
                   try {
@@ -142,10 +143,10 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   } on Exception catch (e) {
                     final msg = e.toString();
                     setDialogState(() => errorText =
-                        msg.contains('409') ? 'Никнейм уже занят' : 'Ошибка сохранения');
+                        msg.contains('409') ? l10n.convNicknameTaken : l10n.convSaveError);
                   }
                 },
-                child: const Text('Сохранить'),
+                child: Text(l10n.save),
               ),
             ],
           ),
@@ -234,7 +235,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Контакты',
+                        l10n.convContactsLabel,
                         style: TextStyle(
                           color: AppColors.of(context).textSecondary,
                           fontSize: 13,
@@ -250,7 +251,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       itemCount: contacts.length,
                       itemBuilder: (context, i) {
                         final c = contacts[i];
-                        final name = c.otherUserName ?? 'Пользователь';
+                        final name = c.otherUserName ?? l10n.convDefaultUser;
                         final avatar = c.otherUserAvatar;
                         return ListTile(
                           leading: CircleAvatar(
@@ -354,7 +355,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       controller: _searchCtrl,
                       style: TextStyle(color: colors.textPrimary, fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Поиск...',
+                        hintText: l10n.chatSearchHint,
                         hintStyle: TextStyle(color: colors.textSecondary, fontSize: 14),
                         prefixIcon: Icon(Icons.search, color: colors.textSecondary, size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
@@ -391,9 +392,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       children: [
                         Icon(Icons.chat_bubble_outline_rounded, size: 64, color: colors.textSecondary),
                         const SizedBox(height: 16),
-                        Text('Нет диалогов', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                        Text(l10n.convNoDialogs, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
                         const SizedBox(height: 8),
-                        Text('Найдите пользователя чтобы начать переписку',
+                        Text(l10n.convFindUserToChat,
                             style: TextStyle(color: colors.textSecondary, fontSize: 13),
                             textAlign: TextAlign.center),
                       ],
@@ -435,10 +436,11 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
     final displayName = isGroup
-        ? (conversation.name ?? 'Группа')
-        : (conversation.otherUserName ?? 'Пользователь');
+        ? (conversation.name ?? l10n.chatGroup)
+        : (conversation.otherUserName ?? l10n.convDefaultUser);
     final lastMsg = conversation.lastMessageContent;
     final lastAt = conversation.lastMessageAt;
     final timeStr = lastAt != null
@@ -459,9 +461,9 @@ class _ConversationTile extends StatelessWidget {
             final data = Map<String, dynamic>.from(
               const JsonDecoder().convert(json) as Map,
             );
-            displayMsg = '👤 ${data['name'] ?? 'Контакт'}';
+            displayMsg = '👤 ${data['name'] ?? l10n.convDefaultContact}';
           } catch (_) {
-            displayMsg = '👤 Контакт';
+            displayMsg = '👤 ${l10n.convDefaultContact}';
           }
         }
         if (isGroup && conversation.lastMessageSenderName != null) {

@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/share_intent_service.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
@@ -29,10 +30,11 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: const Text('Переслать в чат'),
+        title: Text(l10n.shareToChat),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -73,7 +75,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(
-              'Выберите чат',
+              l10n.shareSelectChat,
               style: TextStyle(
                 color: AppColors.of(context).textSecondary,
                 fontSize: 13,
@@ -90,7 +92,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
                 if (conversations.isEmpty) {
                   return Center(
                     child: Text(
-                      'Нет чатов',
+                      l10n.shareNoChats,
                       style: TextStyle(color: AppColors.of(context).textSecondary),
                     ),
                   );
@@ -162,7 +164,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
       final name = file.path.split('/').last;
       return name;
     }
-    return '$count файлов';
+    return AppLocalizations.of(context)!.shareFilesCount(count);
   }
 
   void _sendToConversation(ConversationEntity conv) {
@@ -180,25 +182,27 @@ class _ConversationTile extends StatelessWidget {
 
   const _ConversationTile({required this.conversation, required this.onTap});
 
-  String get displayName {
+  String displayName(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (conversation.type == 'GROUP') {
-      return conversation.name ?? 'Группа';
+      return conversation.name ?? l10n.chatGroup;
     }
-    return conversation.otherUserName ?? 'Чат';
+    return conversation.otherUserName ?? l10n.chatDialog;
   }
 
   @override
   Widget build(BuildContext context) {
+    final name = displayName(context);
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: AppColors.of(context).primary,
         child: Text(
-          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
           style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
       ),
       title: Text(
-        displayName,
+        name,
         style: TextStyle(
           color: AppColors.of(context).textPrimary,
           fontWeight: FontWeight.w600,

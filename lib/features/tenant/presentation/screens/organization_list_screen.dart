@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../../domain/entities/tenant_entity.dart';
 import '../bloc/tenant_bloc.dart';
 import '../bloc/tenant_event.dart';
@@ -42,7 +43,7 @@ class _OrganizationListScreenState extends State<OrganizationListScreen> {
         listener: (context, state) {
           if (state is TenantError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           }
         },

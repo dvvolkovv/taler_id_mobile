@@ -13,6 +13,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -115,20 +116,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
         'type': 'session.update',
         'session': {
           'modalities': ['text', 'audio'],
-          'instructions': 'Ты — помощник для управления календарём. '
-              'Часовой пояс пользователя: UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}. '
-              'Сейчас: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}:00. '
-              'ВАЖНО: когда пользователь говорит время (например "18:00") — это МЕСТНОЕ время. '
-              'Конвертируй в UTC для startAt: если местное 18:00 и пояс UTC+${DateTime.now().timeZoneOffset.inHours}, то UTC = ${18 - DateTime.now().timeZoneOffset.inHours}:00.\n\n'
-              'ВСТРЕЧА с человеком: если пользователь говорит "встреча с [имя]" или "запланируй с [имя]":\n'
-              '1. Вызови get_conversations чтобы найти контакт по имени\n'
-              '2. Ставь type="CALL" — ссылка на комнату создастся автоматически\n'
-              '3. Передай contactIds=[otherUserId найденного контакта]\n'
-              '4. Уточни дату/время если не указаны\n\n'
-              'ТИПЫ: CALL=встреча со ссылкой, EVENT=событие, REMINDER=напоминание.\n'
-              'РЕДАКТИРОВАНИЕ: get_events → найди по названию → update_event с id. НЕ создавай дубликат!\n'
-              'ПЕРЕСЕЧЕНИЯ: перед созданием вызови get_events, проверь конфликты.\n'
-              'Начни с: "Слушаю, что хотите сделать в календаре?"',
+          'instructions': Localizations.localeOf(context).languageCode == 'ru'
+              ? 'Ты — помощник для управления календарём. '
+                'Часовой пояс пользователя: UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}. '
+                'Сейчас: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}:00. '
+                'ВАЖНО: когда пользователь говорит время (например "18:00") — это МЕСТНОЕ время. '
+                'Конвертируй в UTC для startAt: если местное 18:00 и пояс UTC+${DateTime.now().timeZoneOffset.inHours}, то UTC = ${18 - DateTime.now().timeZoneOffset.inHours}:00.\n\n'
+                'ВСТРЕЧА с человеком: если пользователь говорит "встреча с [имя]" или "запланируй с [имя]":\n'
+                '1. Вызови get_conversations чтобы найти контакт по имени\n'
+                '2. Ставь type="CALL" — ссылка на комнату создастся автоматически\n'
+                '3. Передай contactIds=[otherUserId найденного контакта]\n'
+                '4. Уточни дату/время если не указаны\n\n'
+                'ТИПЫ: CALL=встреча со ссылкой, EVENT=событие, REMINDER=напоминание.\n'
+                'РЕДАКТИРОВАНИЕ: get_events → найди по названию → update_event с id. НЕ создавай дубликат!\n'
+                'ПЕРЕСЕЧЕНИЯ: перед созданием вызови get_events, проверь конфликты.\n'
+                'Начни с: "Слушаю, что хотите сделать в календаре?"'
+              : 'You are an assistant for calendar management. '
+                'User timezone: UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}. '
+                'Now: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}:00. '
+                'IMPORTANT: when the user says a time (e.g. "18:00") — it\'s LOCAL time. '
+                'Convert to UTC for startAt: if local 18:00 and timezone UTC+${DateTime.now().timeZoneOffset.inHours}, then UTC = ${18 - DateTime.now().timeZoneOffset.inHours}:00.\n\n'
+                'MEETING with someone: if user says "meeting with [name]" or "schedule with [name]":\n'
+                '1. Call get_conversations to find contact by name\n'
+                '2. Set type="CALL" — room link will be created automatically\n'
+                '3. Pass contactIds=[otherUserId of found contact]\n'
+                '4. Clarify date/time if not specified\n\n'
+                'TYPES: CALL=meeting with link, EVENT=event, REMINDER=reminder.\n'
+                'EDITING: get_events → find by name → update_event with id. Do NOT create duplicates!\n'
+                'CONFLICTS: before creating, call get_events, check for conflicts.\n'
+                'Start with: "Listening, what would you like to do in the calendar?"',
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
           'output_audio_format': 'pcm16',
@@ -201,7 +217,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     } catch (e) {
       await _voiceCleanup();
       setState(() => _voiceConnecting = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))));
     }
   }
 
@@ -267,7 +283,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         // For CALL type, create room and add link
         if (args['type'] == 'CALL') {
           try {
-            final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Встреча'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
+            final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Meeting'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
             final code = room?['code'] as String? ?? '';
             if (code.isNotEmpty) {
               final link = 'https://id.taler.tirol/room/$code';
@@ -322,11 +338,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
       return ta.compareTo(tb);
     });
 
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Календарь'),
+        title: Text(l10n.calendarTitle),
         actions: [
           if (_voiceConnecting)
             const Padding(padding: EdgeInsets.only(right: 12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
@@ -334,12 +351,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
             IconButton(
               icon: Icon(_voiceActive ? Icons.stop : Icons.mic, color: _voiceActive ? colors.error : colors.primary),
               onPressed: _voiceActive ? _stopVoice : _startVoice,
-              tooltip: _voiceActive ? 'Остановить' : 'Голосовой ввод',
+              tooltip: _voiceActive ? l10n.calendarStop : l10n.calendarVoiceInput,
             ),
           IconButton(
             icon: Icon(Icons.add, color: colors.primary),
             onPressed: () => _openEditor(),
-            tooltip: 'Новое событие',
+            tooltip: l10n.calendarNewEvent,
           ),
         ],
       ),
@@ -354,7 +371,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Icon(_aiSpeaking ? Icons.volume_up : Icons.hearing, size: 18, color: _aiSpeaking ? colors.primary : colors.textSecondary),
                   const SizedBox(width: 8),
-                  Text(_aiSpeaking ? 'Ассистент говорит...' : 'Слушаю...', style: TextStyle(fontSize: 13, color: _aiSpeaking ? colors.primary : colors.textSecondary, fontWeight: FontWeight.w500)),
+                  Text(_aiSpeaking ? l10n.calendarAssistantSpeaking : l10n.calendarListening, style: TextStyle(fontSize: 13, color: _aiSpeaking ? colors.primary : colors.textSecondary, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -372,7 +389,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Приглашения (${_invites.length})', style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(l10n.calendarInvitations(_invites.length), style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
                   ..._invites.map((inv) {
                     final event = inv['event'] as Map<String, dynamic>? ?? {};
@@ -418,7 +435,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
                 : dayEvents.isEmpty
-                    ? Center(child: Text('Нет событий', style: TextStyle(color: colors.textSecondary)))
+                    ? Center(child: Text(l10n.calendarNoEvents, style: TextStyle(color: colors.textSecondary)))
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: dayEvents.length,
@@ -470,7 +487,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildWeekDays(AppColorsExtension colors) {
-    const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    final l10n = AppLocalizations.of(context)!;
+    final days = [l10n.calendarDayMon, l10n.calendarDayTue, l10n.calendarDayWed, l10n.calendarDayThu, l10n.calendarDayFri, l10n.calendarDaySat, l10n.calendarDaySun];
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -625,7 +643,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             children: [
                               Icon(Icons.videocam_rounded, size: 14, color: colors.primary),
                               const SizedBox(width: 4),
-                              Text('Войти в комнату', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                              Text(AppLocalizations.of(context)!.calendarEnterRoom, style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -741,7 +759,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms/public',
-        data: {'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : 'Встреча'},
+        data: {'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting},
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       final code = room?['code'] as String? ?? '';
@@ -792,7 +810,8 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       if (loc.isNotEmpty && loc.startsWith('https://id.taler.tirol/room/')) {
         description = description.isNotEmpty ? '$description\n$loc' : loc;
       } else if (loc.isNotEmpty) {
-        description = description.isNotEmpty ? '$description\nМесто: $loc' : 'Место: $loc';
+        final locPrefix = AppLocalizations.of(context)!.calendarLocationPrefix(loc);
+        description = description.isNotEmpty ? '$description\n$locPrefix' : locPrefix;
       }
 
       // Calculate reminderAt from minutes
@@ -818,7 +837,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -847,17 +866,18 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final today = DateTime.now();
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         centerTitle: true,
-        title: Text(widget.event == null ? 'Новое событие' : 'Редактировать'),
+        title: Text(widget.event == null ? l10n.calendarNewEvent : l10n.calendarEditEvent),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : Text('Сохранить', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                : Text(l10n.save, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -867,23 +887,23 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           TextField(
             controller: _titleCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(hintText: 'Название', hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
+            decoration: InputDecoration(hintText: l10n.calendarTitleHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
           ),
           TextField(
             controller: _descCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 15),
             maxLines: 3,
-            decoration: InputDecoration(hintText: 'Описание', hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
+            decoration: InputDecoration(hintText: l10n.calendarDescriptionHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
           ),
           const Divider(),
           DropdownButtonFormField<String>(
             value: _type,
             dropdownColor: colors.card,
             style: TextStyle(color: colors.textPrimary),
-            items: const [
-              DropdownMenuItem(value: 'EVENT', child: Text('Событие')),
-              DropdownMenuItem(value: 'CALL', child: Text('Встреча')),
-              DropdownMenuItem(value: 'REMINDER', child: Text('Напоминание')),
+            items: [
+              DropdownMenuItem(value: 'EVENT', child: Text(l10n.calendarTypeEvent)),
+              DropdownMenuItem(value: 'CALL', child: Text(l10n.calendarTypeMeeting)),
+              DropdownMenuItem(value: 'REMINDER', child: Text(l10n.calendarTypeReminder)),
             ],
             onChanged: (v) {
               setState(() => _type = v!);
@@ -891,14 +911,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                 _generateMeetingLink();
               }
             },
-            decoration: InputDecoration(labelText: 'Тип', labelStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
+            decoration: InputDecoration(labelText: l10n.calendarTypeLabel, labelStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
           ),
           // Location / Meeting link
           TextField(
             controller: _locationCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
-              hintText: _type == 'CALL' ? 'Ссылка на встречу' : 'Место',
+              hintText: _type == 'CALL' ? l10n.calendarMeetingLink : l10n.calendarLocationHint,
               hintStyle: TextStyle(color: colors.textSecondary),
               prefixIcon: Icon(_type == 'CALL' ? Icons.link : Icons.place_outlined, color: colors.textSecondary, size: 20),
               border: InputBorder.none,
@@ -907,7 +927,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           const Divider(),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Дата', style: TextStyle(color: colors.textSecondary)),
+            title: Text(l10n.calendarDateLabel, style: TextStyle(color: colors.textSecondary)),
             trailing: Text(DateFormat('dd.MM.yyyy').format(_startDate), style: TextStyle(color: colors.textPrimary)),
             onTap: () async {
               final d = await showDatePicker(context: context, initialDate: _startDate, firstDate: today, lastDate: DateTime(2030));
@@ -916,7 +936,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Время', style: TextStyle(color: colors.textSecondary)),
+            title: Text(l10n.calendarTimeLabel, style: TextStyle(color: colors.textSecondary)),
             trailing: Text('${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}', style: TextStyle(color: colors.textPrimary)),
             onTap: () async {
               final t = await showTimePicker(context: context, initialTime: _startTime);
@@ -926,17 +946,17 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           // Reminder selector
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Напоминание', style: TextStyle(color: colors.textPrimary)),
+            title: Text(l10n.calendarReminderLabel, style: TextStyle(color: colors.textPrimary)),
             trailing: DropdownButton<int>(
               value: _reminderMinutes,
               dropdownColor: colors.card,
               underline: const SizedBox(),
               style: TextStyle(color: colors.primary, fontSize: 14),
-              items: const [
-                DropdownMenuItem(value: -1, child: Text('Нет')),
-                DropdownMenuItem(value: 15, child: Text('За 15 мин')),
-                DropdownMenuItem(value: 30, child: Text('За 30 мин')),
-                DropdownMenuItem(value: 60, child: Text('За 1 час')),
+              items: [
+                DropdownMenuItem(value: -1, child: Text(l10n.calendarReminderNone)),
+                DropdownMenuItem(value: 15, child: Text(l10n.calendarReminder15min)),
+                DropdownMenuItem(value: 30, child: Text(l10n.calendarReminder30min)),
+                DropdownMenuItem(value: 60, child: Text(l10n.calendarReminder1hour)),
               ],
               onChanged: (v) => setState(() => _reminderMinutes = v ?? -1),
             ),
@@ -945,10 +965,10 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           // Participants
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Участники', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+            title: Text(l10n.calendarParticipants, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
             trailing: TextButton.icon(
               icon: Icon(Icons.person_add, size: 18, color: colors.primary),
-              label: Text('Добавить', style: TextStyle(color: colors.primary, fontSize: 13)),
+              label: Text(l10n.calendarAddParticipant, style: TextStyle(color: colors.primary, fontSize: 13)),
               onPressed: _showContactPicker,
             ),
           ),
@@ -1015,7 +1035,7 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
               autofocus: true,
               style: TextStyle(color: colors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Поиск контактов...',
+                hintText: AppLocalizations.of(context)!.calendarSearchContacts,
                 hintStyle: TextStyle(color: colors.textSecondary),
                 prefixIcon: Icon(Icons.search, color: colors.textSecondary),
                 filled: true,
@@ -1027,7 +1047,7 @@ class _ContactPickerSheetState extends State<_ContactPickerSheet> {
           ),
           Expanded(
             child: available.isEmpty
-                ? Center(child: Text('Нет контактов', style: TextStyle(color: colors.textSecondary)))
+                ? Center(child: Text(AppLocalizations.of(context)!.calendarNoContacts, style: TextStyle(color: colors.textSecondary)))
                 : ListView.builder(
                     controller: scrollCtrl,
                     itemCount: available.length,

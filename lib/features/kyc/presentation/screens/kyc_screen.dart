@@ -5,6 +5,7 @@ import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:flutter_idensic_mobile_sdk_plugin/flutter_idensic_mobile_sdk_plugin.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../bloc/kyc_bloc.dart';
 import '../bloc/kyc_event.dart';
 import '../bloc/kyc_state.dart';
@@ -37,7 +38,7 @@ class _KycScreenState extends State<KycScreen> {
             _launchSumsub(context, state.sdkToken);
           } else if (state is KycError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(AppLocalizations.of(context)!, state.message)), backgroundColor: AppColors.of(context).error),
             );
           }
         },
@@ -59,7 +60,7 @@ class _KycScreenState extends State<KycScreen> {
           }
 
           if (state is KycError) {
-            return _buildError(context, state.message, l10n);
+            return _buildError(context, resolveErrorMessage(l10n, state.message), l10n);
           }
 
           return const SizedBox.shrink();

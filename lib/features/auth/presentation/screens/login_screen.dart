@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -46,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(resolveErrorMessage(l10n, state.message)),
                 backgroundColor: AppColors.of(context).error,
               ),
             );
@@ -89,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Используйте email и пароль',
+                    l10n.loginSubtitle,
                     style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
                   ),
                   const SizedBox(height: 32),
@@ -128,8 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Введите email';
-                            if (!v.contains('@')) return 'Некорректный email';
+                            if (v == null || v.isEmpty) return l10n.emailRequired;
+                            if (!v.contains('@')) return l10n.emailInvalid;
                             return null;
                           },
                         ),
@@ -172,8 +173,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'Введите пароль';
-                            if (v.length < 8) return 'Минимум 8 символов';
+                            if (v == null || v.isEmpty) return l10n.passwordRequired;
+                            if (v.length < 8) return l10n.passwordMinLength;
                             return null;
                           },
                         ),

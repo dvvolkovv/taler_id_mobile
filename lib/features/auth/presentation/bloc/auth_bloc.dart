@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../../../core/api/api_exception.dart';
+import '../../../../core/utils/error_keys.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -31,7 +32,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Произошла ошибка. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.generalError));
     }
   }
 
@@ -49,7 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Произошла ошибка. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.generalError));
     }
   }
 
@@ -65,7 +66,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Неверный код. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.invalidCode));
     }
   }
 
@@ -82,7 +83,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Произошла ошибка. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.generalError));
     }
   }
 
@@ -97,7 +98,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Неверный код. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.invalidCode));
     }
   }
 
@@ -112,7 +113,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
-      emit(AuthFailure('Произошла ошибка. Попробуйте ещё раз.'));
+      emit(AuthFailure(ErrorKeys.generalError));
     }
   }
 }

@@ -478,7 +478,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 
   void _showIncomingCall(BuildContext context, Map<String, dynamic> data) {
-    final fromName = data['fromUserName'] as String? ?? 'Пользователь';
+    final l10n = AppLocalizations.of(context)!;
+    final fromName = data['fromUserName'] as String? ?? l10n.dashboardUser;
     final fromAvatar = data['fromUserAvatar'] as String?;
     final roomName = data['roomName'] as String? ?? '';
     final convId = data['conversationId'] as String? ?? '';
@@ -555,7 +556,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               ),
               const SizedBox(height: 12),
               Text(
-                'Входящий звонок',
+                AppLocalizations.of(context)!.dashboardIncomingCall,
                 style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 4),
@@ -597,7 +598,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Отклонить',
+                          AppLocalizations.of(context)!.dashboardDecline,
                           style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                         ),
                       ],
@@ -639,7 +640,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Принять',
+                          AppLocalizations.of(context)!.dashboardAccept,
                           style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                         ),
                       ],
@@ -707,9 +708,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                             const Icon(Icons.call_rounded, color: Colors.white, size: 18),
                             const SizedBox(width: 10),
                             Flexible(
-                              child: const Text(
-                                'Активный звонок — нажмите, чтобы вернуться',
-                                style: TextStyle(
+                              child: Text(
+                                l10n.dashboardActiveCall,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -782,20 +783,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     activeIcon: const Icon(Icons.chat_bubble_rounded),
                     label: l10n.tabMessenger,
                   ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.call_outlined),
-                    activeIcon: Icon(Icons.call),
-                    label: 'Звонки',
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.call_outlined),
+                    activeIcon: const Icon(Icons.call),
+                    label: l10n.tabCalls,
                   ),
                   BottomNavigationBarItem(
                     icon: const Icon(Icons.headset_mic_outlined),
                     activeIcon: const Icon(Icons.headset_mic),
                     label: l10n.tabAssistant,
                   ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.calendar_month_outlined),
-                    activeIcon: Icon(Icons.calendar_month),
-                    label: 'Календарь',
+                  BottomNavigationBarItem(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    activeIcon: const Icon(Icons.calendar_month),
+                    label: l10n.tabCalendar,
                   ),
                   BottomNavigationBarItem(
                     icon: const Icon(Icons.settings_outlined),
@@ -838,7 +839,7 @@ class _UpdateBanner extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Доступно обновление $version',
+                  AppLocalizations.of(context)!.dashboardUpdateAvailable(version),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
@@ -860,7 +861,7 @@ class _UpdateBanner extends StatelessWidget {
                   minimumSize: Size.zero,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
-                child: const Text('Обновить', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                child: Text(AppLocalizations.of(context)!.dashboardUpdate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
               ),
               const SizedBox(width: 4),
               GestureDetector(

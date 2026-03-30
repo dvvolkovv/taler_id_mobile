@@ -223,9 +223,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Future<void> _joinActiveCall(String roomName) async {
     if (CallStateService.instance.isInCall) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Уже идёт звонок'),
+            content: Text(l10n.chatAlreadyInCall),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -263,9 +264,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     // Guard: only one call at a time
     if (CallStateService.instance.isInCall) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Уже идёт звонок'),
+            content: Text(l10n.chatAlreadyInCall),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -315,9 +317,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка звонка: $e'),
+            content: Text(l10n.chatCallError(e.toString())),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -327,6 +330,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _showAttachMenu() {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -341,22 +345,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             children: [
               ListTile(
                 leading: Icon(Icons.photo_library, color: colors.primary),
-                title: Text('Фото / Видео', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatPhotoVideo, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickMediaFromGallery(); },
               ),
               ListTile(
                 leading: Icon(Icons.camera_alt, color: colors.primary),
-                title: Text('Камера', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatCamera, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickFromCamera(); },
               ),
               ListTile(
                 leading: Icon(Icons.insert_drive_file, color: colors.primary),
-                title: Text('Файл', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatFile, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickFile(); },
               ),
               ListTile(
                 leading: Icon(Icons.person_rounded, color: colors.primary),
-                title: Text('Контакт', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatContact, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickContact(); },
               ),
             ],
@@ -442,6 +446,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _pickContact() {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final bloc = context.read<MessengerBloc>();
     final convs = bloc.state.conversations.where((c) => c.type == 'DIRECT').toList();
     showModalBottomSheet(
@@ -472,7 +477,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('Выберите контакт',
+                  child: Text(l10n.chatSelectContact,
                     style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
@@ -480,7 +485,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               if (convs.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text('Нет контактов', style: TextStyle(color: colors.textSecondary)),
+                  child: Text(l10n.chatNoContacts, style: TextStyle(color: colors.textSecondary)),
                 )
               else
                 Expanded(
@@ -489,7 +494,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     itemCount: convs.length,
                     itemBuilder: (context, i) {
                       final c = convs[i];
-                      final name = c.otherUserName ?? 'Пользователь';
+                      final name = c.otherUserName ?? l10n.chatUser;
                       final avatar = c.otherUserAvatar;
                       return ListTile(
                         leading: CircleAvatar(
@@ -575,11 +580,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         final baseUri = Uri.parse(baseUrl);
         fileUrl = fileUrl.replaceFirst('${uri.scheme}://${uri.host}', '${baseUri.scheme}://${baseUri.host}');
       }
+      final l10n = AppLocalizations.of(context)!;
       final isMedia = fileType == 'image' || fileType == 'video' || fileType == 'audio';
       String msgContent = caption ?? (isMedia ? '' : fileName);
       if (_replyTo != null) {
         final quoted = _replyTo!.fileUrl != null
-            ? (_replyTo!.fileName ?? '📎 Файл')
+            ? (_replyTo!.fileName ?? l10n.chatFileAttachment)
             : _replyTo!.content;
         final q = quoted.length > 60 ? '${quoted.substring(0, 60)}...' : quoted;
         final who = _replyToSenderName != null ? '$_replyToSenderName: ' : '';
@@ -605,7 +611,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _uploadCancelToken = null;
       if (e is DioException && e.type == DioExceptionType.cancel) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки файла: $e'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(AppLocalizations.of(context)!.chatFileUploadError(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -624,10 +630,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _cancelEditing();
       return;
     }
+    final l10n = AppLocalizations.of(context)!;
     String content = text;
     if (_replyTo != null) {
       final quoted = _replyTo!.fileUrl != null
-          ? (_replyTo!.fileName ?? '📎 Файл')
+          ? (_replyTo!.fileName ?? l10n.chatFileAttachment)
           : _replyTo!.content;
       final q = quoted.length > 60 ? '${quoted.substring(0, 60)}...' : quoted;
       final who = _replyToSenderName != null ? '$_replyToSenderName: ' : '';
@@ -679,9 +686,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       context.read<MessengerBloc>().add(SendMessage(
         widget.conversationId,
-        '🎤 Голосовое сообщение',
+        l10n.chatVoiceMessage,
         fileUrl: res['fileUrl'] as String,
         fileName: res['fileName'] as String,
         fileSize: res['fileSize'] as int?,
@@ -691,7 +699,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -741,8 +749,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             final conv = state.conversations
                 .where((c) => c.id == widget.conversationId)
                 .firstOrNull;
+            final l10n = AppLocalizations.of(context)!;
             final isGroup = conv?.type == 'GROUP';
-            final name = isGroup ? (conv?.name ?? 'Группа') : conv?.otherUserName;
+            final name = isGroup ? (conv?.name ?? l10n.chatGroup) : conv?.otherUserName;
             final avatarUrl = isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
             final otherUserId = conv?.otherUserId;
             return GestureDetector(
@@ -782,7 +791,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(name != null && name.isNotEmpty ? name : 'Диалог',
+                        Text(name != null && name.isNotEmpty ? name : l10n.chatDialog,
                             overflow: TextOverflow.ellipsis),
                         if (isGroup && conv != null)
                           Text(
@@ -801,7 +810,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           IconButton(
             icon: const Icon(Icons.phone_outlined),
             onPressed: _startCall,
-            tooltip: 'Позвонить',
+            tooltip: AppLocalizations.of(context)!.chatCall,
           ),
           BlocBuilder<MessengerBloc, MessengerState>(
             buildWhen: (prev, curr) => prev.conversations != curr.conversations,
@@ -886,7 +895,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   child: messages.isEmpty
                     ? Center(
                         child: Text(
-                          'Начните переписку',
+                          AppLocalizations.of(context)!.chatStartConversation,
                           style:
                               TextStyle(color: AppColors.of(context).textSecondary),
                         ),
@@ -925,7 +934,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 isGroup: isGroup,
                                 senderName: sName,
                                 allMessages: messages,
-                                onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? 'Вы' : sName),
+                                onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? AppLocalizations.of(context)!.chatYou : sName),
                                 onEdit: (isMe && !msg.isSystem && msg.fileUrl == null) ? () => _startEditing(msg) : null,
                                 onReact: msg.isSystem ? null : (emoji) {
                                   context.read<MessengerBloc>().add(ReactToMessage(
@@ -960,12 +969,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 builder: (context, state) {
                   final typers = state.typingUsers[widget.conversationId];
                   if (typers == null || typers.isEmpty) return const SizedBox.shrink();
+                  final l10n = AppLocalizations.of(context)!;
                   final names = typers.values.where((n) => n.isNotEmpty).toList();
                   final text = names.isEmpty
-                      ? 'печатает...'
+                      ? l10n.chatIsTyping
                       : names.length == 1
-                          ? '${names.first} печатает...'
-                          : '${names.join(", ")} печатают...';
+                          ? l10n.chatUserIsTyping(names.first)
+                          : l10n.chatUsersAreTyping(names.join(', '));
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(
@@ -1094,7 +1104,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Подготовка файла…',
+                        AppLocalizations.of(context)!.chatPreparingFile,
                         style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                       ),
                     ],
@@ -1111,7 +1121,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Загрузка… ${(_uploadProgress! * 100).toInt()}%',
+                              AppLocalizations.of(context)!.chatUploading((_uploadProgress! * 100).toInt()),
                               style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                             ),
                             const SizedBox(height: 4),
@@ -1508,7 +1518,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
               children: [
                 if (widget.message.isEdited) ...[
                   Text(
-                    'Отредактировано',
+                    AppLocalizations.of(context)!.chatEdited,
                     style: TextStyle(
                       color: AppColors.of(context).textSecondary,
                       fontSize: 11,
@@ -1564,6 +1574,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
   void _showMessageActions(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -1617,7 +1628,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (widget.onReply != null)
               ListTile(
                 leading: Icon(Icons.reply_rounded, color: colors.primary),
-                title: Text('Ответить', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatReply, style: TextStyle(color: colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onReply!();
@@ -1626,7 +1637,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (widget.isMe && widget.message.fileUrl == null && widget.message.content.isNotEmpty && widget.onEdit != null)
               ListTile(
                 leading: Icon(Icons.edit_rounded, color: colors.primary),
-                title: Text('Редактировать', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatEdit, style: TextStyle(color: colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   widget.onEdit!();
@@ -1635,19 +1646,19 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (widget.message.fileUrl == null && widget.message.content.isNotEmpty)
               ListTile(
                 leading: Icon(Icons.copy_rounded, color: colors.textSecondary),
-                title: Text('Копировать', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatCopy, style: TextStyle(color: colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   Clipboard.setData(ClipboardData(text: widget.message.content));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Скопировано'), duration: Duration(seconds: 2)),
+                    SnackBar(content: Text(l10n.chatCopied), duration: const Duration(seconds: 2)),
                   );
                 },
               ),
             if (widget.message.fileUrl != null)
               ListTile(
                 leading: Icon(Icons.download_rounded, color: colors.textSecondary),
-                title: Text('Сохранить', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.chatSaveMedia, style: TextStyle(color: colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _saveFile(context);
@@ -1655,7 +1666,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
               ),
             ListTile(
               leading: Icon(Icons.forward_rounded, color: colors.textSecondary),
-              title: Text('Переслать', style: TextStyle(color: colors.textPrimary)),
+              title: Text(l10n.chatForward, style: TextStyle(color: colors.textPrimary)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showForwardPicker(context);
@@ -1663,7 +1674,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             ),
             ListTile(
               leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
-              title: Text('Удалить', style: TextStyle(color: Colors.red.shade400)),
+              title: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
               onTap: () {
                 Navigator.pop(ctx);
                 _showDeleteConfirm(context);
@@ -1681,10 +1692,11 @@ class _MessageBubbleState extends State<_MessageBubble> {
     if (url == null) return;
     final fileType = _effectiveFileType(widget.message);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     try {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Сохранение...'), duration: Duration(seconds: 1)),
+        SnackBar(content: Text(l10n.chatSaving), duration: const Duration(seconds: 1)),
       );
 
       if (fileType == 'image' || fileType == 'video') {
@@ -1705,7 +1717,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
         try { await File(filePath).delete(); } catch (_) {}
 
         messenger.showSnackBar(
-          const SnackBar(content: Text('Сохранено в галерею'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(l10n.chatSavedToGallery), duration: const Duration(seconds: 2)),
         );
       } else {
         // Document / audio — download and open
@@ -1720,11 +1732,11 @@ class _MessageBubbleState extends State<_MessageBubble> {
     } catch (e) {
       if (e.toString().contains('access')) {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Нет разрешения на сохранение. Проверьте настройки.'), duration: Duration(seconds: 3)),
+          SnackBar(content: Text(l10n.chatNoSavePermission), duration: const Duration(seconds: 3)),
         );
       } else {
         messenger.showSnackBar(
-          const SnackBar(content: Text('Ошибка сохранения файла'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(l10n.chatFileSaveError), duration: const Duration(seconds: 2)),
         );
       }
     }
@@ -1733,6 +1745,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
   void _showDeleteConfirm(BuildContext context) {
     final bloc = context.read<MessengerBloc>();
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -1755,14 +1768,14 @@ class _MessageBubbleState extends State<_MessageBubble> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Удалить сообщение',
+                l10n.chatDeleteMessage,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.textPrimary),
               ),
             ),
             const SizedBox(height: 4),
             ListTile(
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.red),
-              title: const Text('Удалить у меня', style: TextStyle(color: Colors.red)),
+              title: Text(l10n.chatDeleteForMe, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 Navigator.pop(ctx);
                 bloc.add(DeleteMessage(
@@ -1775,7 +1788,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (widget.isMe)
               ListTile(
                 leading: const Icon(Icons.delete_forever_rounded, color: Colors.red),
-                title: const Text('Удалить у всех', style: TextStyle(color: Colors.red)),
+                title: Text(l10n.chatDeleteForEveryone, style: const TextStyle(color: Colors.red)),
                 onTap: () {
                   Navigator.pop(ctx);
                   bloc.add(DeleteMessage(
@@ -1810,7 +1823,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             targetConversationId: targetConversationId,
           ));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Сообщение переслано'), duration: Duration(seconds: 2)),
+            SnackBar(content: Text(AppLocalizations.of(context)!.chatMessageForwarded), duration: const Duration(seconds: 2)),
           );
         },
       ),
@@ -1875,7 +1888,7 @@ class _ContactCardWidget extends StatelessWidget {
     try {
       final jsonStr = content.substring('[CONTACT]'.length);
       final data = jsonDecode(jsonStr) as Map<String, dynamic>;
-      final name = data['name'] as String? ?? 'Контакт';
+      final name = data['name'] as String? ?? AppLocalizations.of(context)!.chatContact;
       final userId = data['userId'] as String? ?? '';
       final avatar = data['avatar'] as String? ?? '';
 
@@ -1910,7 +1923,7 @@ class _ContactCardWidget extends StatelessWidget {
                       style: TextStyle(color: colors.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
-                    Text('Контакт · нажмите чтобы открыть',
+                    Text(AppLocalizations.of(context)!.chatContactTapToOpen,
                       style: TextStyle(color: colors.textSecondary, fontSize: 11)),
                   ],
                 ),
@@ -2000,6 +2013,7 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(
@@ -2007,7 +2021,7 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Параметры звонка',
+            l10n.voiceCallSettings,
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontSize: 18,
@@ -2025,13 +2039,13 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
               onChanged: (v) => setState(() => _withAi = v),
               activeColor: AppColors.of(context).primary,
               title: Text(
-                'Подключить AI ассистента',
+                l10n.voiceEnableAI,
                 style: TextStyle(color: AppColors.of(context).textPrimary),
               ),
               subtitle: Text(
                 _withAi
-                    ? 'AI будет участвовать в разговоре'
-                    : 'Обычный звонок без AI',
+                    ? l10n.voiceAIParticipating
+                    : l10n.voiceNormalCall,
                 style: TextStyle(
                     color: AppColors.of(context).textSecondary, fontSize: 12),
               ),
@@ -2047,9 +2061,9 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
             child: ElevatedButton.icon(
               onPressed: () => Navigator.pop(context, _withAi),
               icon: const Icon(Icons.call_rounded, color: Colors.black),
-              label: const Text(
-                'Позвонить',
-                style: TextStyle(
+              label: Text(
+                l10n.chatCall,
+                style: const TextStyle(
                     color: Colors.black,
                     fontSize: 16,
                     fontWeight: FontWeight.bold),
@@ -2087,6 +2101,7 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final filtered = widget.conversations.where((c) {
       final name = c.name ?? c.otherUserName ?? '';
       return name.toLowerCase().contains(_query.toLowerCase());
@@ -2114,7 +2129,7 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Переслать в...',
+                l10n.chatForwardTo,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 17,
@@ -2130,7 +2145,7 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
               autofocus: false,
               style: TextStyle(color: colors.textPrimary),
               decoration: InputDecoration(
-                hintText: 'Поиск...',
+                hintText: l10n.chatSearchHint,
                 hintStyle: TextStyle(color: colors.textSecondary),
                 prefixIcon: Icon(Icons.search_rounded, color: colors.textSecondary),
                 filled: true,
@@ -2151,7 +2166,7 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
               itemCount: filtered.length,
               itemBuilder: (_, i) {
                 final conv = filtered[i];
-                final name = conv.name ?? conv.otherUserName ?? 'Чат';
+                final name = conv.name ?? conv.otherUserName ?? l10n.chatDialog;
                 final avatarUrl = conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
                 return ListTile(
                   leading: CircleAvatar(
@@ -2219,7 +2234,7 @@ class _InputBar extends StatelessWidget {
                     children: [
                       Icon(Icons.circle, color: AppColors.of(context).error, size: 12),
                       SizedBox(width: 8),
-                      Text('Запись...', style: TextStyle(color: AppColors.of(context).error, fontSize: 14)),
+                      Text(AppLocalizations.of(context)!.chatRecording, style: TextStyle(color: AppColors.of(context).error, fontSize: 14)),
                     ],
                   )
                 : TextField(
@@ -2229,7 +2244,7 @@ class _InputBar extends StatelessWidget {
                     minLines: 1,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText: 'Сообщение...',
+                      hintText: AppLocalizations.of(context)!.chatMessageHint,
                       hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
                       border: InputBorder.none,
                     ),
@@ -2239,7 +2254,7 @@ class _InputBar extends StatelessWidget {
           IconButton(
             onPressed: () => FocusScope.of(context).unfocus(),
             icon: Icon(Icons.keyboard_hide_rounded, color: AppColors.of(context).textSecondary),
-            tooltip: 'Скрыть клавиатуру',
+            tooltip: AppLocalizations.of(context)!.chatHideKeyboard,
           ),
           // Voice button: hold to record voice message
           GestureDetector(
@@ -2273,8 +2288,9 @@ class _ReplyPreviewBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final preview = message.fileUrl != null
-        ? '📎 ${message.fileName ?? 'Файл'}'
+        ? '📎 ${message.fileName ?? l10n.chatFile}'
         : message.content;
     final previewText = preview.length > 60 ? '${preview.substring(0, 60)}...' : preview;
     return Container(
@@ -2347,7 +2363,7 @@ class _EditPreviewBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Редактирование',
+                  AppLocalizations.of(context)!.chatEditing,
                   style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 2),
@@ -2422,10 +2438,11 @@ class _DocumentBubbleState extends State<_DocumentBubble> {
     } catch (e) {
       if (!mounted) return;
       setState(() { _downloading = false; _progress = null; });
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Ошибка загрузки файла'),
-          action: SnackBarAction(label: 'Повторить', onPressed: _openFile),
+          content: Text(l10n.chatFileDownloadError),
+          action: SnackBarAction(label: l10n.retry, onPressed: _openFile),
         ),
       );
     }
@@ -2592,7 +2609,7 @@ class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
           ),
           const SizedBox(width: 8),
           Text(
-            'Голосовое сообщение',
+            AppLocalizations.of(context)!.chatVoiceMessageShort,
             style: TextStyle(
               color: AppColors.of(context).textPrimary,
               fontSize: 13,
@@ -2824,11 +2841,11 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
       await Gal.putImage(filePath);
       try { await File(filePath).delete(); } catch (_) {}
       messenger.showSnackBar(
-        const SnackBar(content: Text('Сохранено в галерею'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.chatSavedToGallery), duration: const Duration(seconds: 2)),
       );
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Ошибка сохранения'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.chatSavingError), duration: const Duration(seconds: 2)),
       );
     }
     if (mounted) setState(() => _saving = false);
@@ -2918,11 +2935,11 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
       await Gal.putVideo(filePath);
       try { await File(filePath).delete(); } catch (_) {}
       messenger.showSnackBar(
-        const SnackBar(content: Text('Видео сохранено в галерею'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.chatVideoSavedToGallery), duration: const Duration(seconds: 2)),
       );
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Ошибка сохранения'), duration: Duration(seconds: 2)),
+        SnackBar(content: Text(AppLocalizations.of(context)!.chatSavingError), duration: const Duration(seconds: 2)),
       );
     }
     if (mounted) setState(() => _savingVideo = false);

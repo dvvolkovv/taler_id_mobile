@@ -13,6 +13,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/notes_remote_datasource.dart';
 
 class NotesScreen extends StatefulWidget {
@@ -97,14 +98,21 @@ class _NotesScreenState extends State<NotesScreen> {
         'type': 'session.update',
         'session': {
           'modalities': ['text', 'audio'],
-          'instructions': 'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
-              'Для заметок: внимательно выслушай, сформулируй краткий заголовок (title) и подробное содержание (content), '
-              'сохрани через create_note. Подтверди голосом что заметка сохранена. '
-              'Для календаря: если пользователь говорит "напомни", "поставь встречу", "запланируй" — '
-              'уточни дату/время и создай через create_event. '
-              'Часовой пояс: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
-              'Текущая дата: ${DateTime.now().toIso8601String()}. '
-              'Начни с: "Слушаю, какую заметку хотите записать?"',
+          'instructions': Localizations.localeOf(context).languageCode == 'ru'
+              ? 'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
+                'Для заметок: внимательно выслушай, сформулируй краткий заголовок (title) и подробное содержание (content), '
+                'сохрани через create_note. Подтверди голосом что заметка сохранена. '
+                'Для календаря: если пользователь говорит "напомни", "поставь встречу", "запланируй" — '
+                'уточни дату/время и создай через create_event. '
+                'Часовой пояс: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
+                'Текущая дата: ${DateTime.now().toIso8601String()}. '
+                'Начни с: "Слушаю, какую заметку хотите записать?"'
+              : 'You are an assistant for taking notes and managing the calendar. The user will dictate thoughts or schedule meetings. '
+                'For notes: listen carefully, formulate a brief title and detailed content, save via create_note. Confirm by voice that the note is saved. '
+                'For calendar: if user says "remind me", "schedule a meeting", "plan" — clarify date/time and create via create_event. '
+                'Timezone: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
+                'Current date: ${DateTime.now().toIso8601String()}. '
+                'Start with: "Listening, what note would you like to record?"',
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
           'output_audio_format': 'pcm16',
@@ -163,7 +171,7 @@ class _NotesScreenState extends State<NotesScreen> {
     } catch (e) {
       await _voiceCleanup();
       setState(() => _voiceConnecting = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))));
     }
   }
 
@@ -277,9 +285,10 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(centerTitle: true, title: const Text('Заметки')),
+      appBar: AppBar(centerTitle: true, title: Text(l10n.notesTitle)),
       floatingActionButton: _voiceConnecting
           ? FloatingActionButton(onPressed: null, backgroundColor: colors.card, child: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)))
           : Column(
@@ -311,7 +320,7 @@ class _NotesScreenState extends State<NotesScreen> {
                 children: [
                   Icon(_aiSpeaking ? Icons.volume_up : Icons.hearing, size: 18, color: _aiSpeaking ? colors.primary : colors.textSecondary),
                   const SizedBox(width: 8),
-                  Text(_aiSpeaking ? 'Ассистент говорит...' : 'Слушаю...', style: TextStyle(fontSize: 13, color: _aiSpeaking ? colors.primary : colors.textSecondary, fontWeight: FontWeight.w500)),
+                  Text(_aiSpeaking ? l10n.notesAssistantSpeaking : l10n.notesListening, style: TextStyle(fontSize: 13, color: _aiSpeaking ? colors.primary : colors.textSecondary, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -325,9 +334,9 @@ class _NotesScreenState extends State<NotesScreen> {
                           children: [
                             Icon(Icons.sticky_note_2_outlined, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
                             const SizedBox(height: 12),
-                            Text('Нет заметок', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                            Text(l10n.notesEmpty, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
                             const SizedBox(height: 8),
-                            Text('Нажмите микрофон для диктовки\nили + для ручного ввода', textAlign: TextAlign.center, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                            Text(l10n.notesEmptyHint, textAlign: TextAlign.center, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                           ],
                         ),
                       )
@@ -384,14 +393,15 @@ class _NotesScreenState extends State<NotesScreen> {
 
   void _confirmDelete(String id) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.card,
-        title: Text('Удалить заметку?', style: TextStyle(color: colors.textPrimary)),
+        title: Text(l10n.notesDeleteConfirm, style: TextStyle(color: colors.textPrimary)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Отмена', style: TextStyle(color: colors.textSecondary))),
-          TextButton(onPressed: () { Navigator.pop(ctx); _deleteNote(id); }, child: Text('Удалить', style: TextStyle(color: colors.error))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary))),
+          TextButton(onPressed: () { Navigator.pop(ctx); _deleteNote(id); }, child: Text(l10n.delete, style: TextStyle(color: colors.error))),
         ],
       ),
     );
@@ -432,7 +442,7 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -441,17 +451,18 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         centerTitle: true,
-        title: Text(widget.note == null ? 'Новая заметка' : 'Редактировать'),
+        title: Text(widget.note == null ? l10n.notesNew : l10n.notesEdit),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : Text('Сохранить', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                : Text(l10n.save, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -462,7 +473,7 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
             TextField(
               controller: _titleCtrl,
               style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(hintText: 'Заголовок', hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
+              decoration: InputDecoration(hintText: l10n.notesTitleHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
             ),
             const Divider(height: 1),
             Expanded(
@@ -472,7 +483,7 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,
-                decoration: InputDecoration(hintText: 'Запишите свои мысли...', hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
+                decoration: InputDecoration(hintText: l10n.notesContentHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
               ),
             ),
           ],

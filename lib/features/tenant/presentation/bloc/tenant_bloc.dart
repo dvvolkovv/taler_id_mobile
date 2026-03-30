@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/i_tenant_repository.dart';
 import '../../../../core/api/api_exception.dart';
+import '../../../../core/utils/error_keys.dart';
 import 'tenant_event.dart';
 import 'tenant_state.dart';
 
@@ -28,7 +29,7 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось загрузить список организаций'));
+      emit(TenantError(ErrorKeys.failedToLoadOrgs));
     }
   }
 
@@ -40,7 +41,7 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось загрузить данные организации'));
+      emit(TenantError(ErrorKeys.failedToLoadOrg));
     }
   }
 
@@ -53,19 +54,19 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось создать организацию'));
+      emit(TenantError(ErrorKeys.failedToCreateOrg));
     }
   }
 
   Future<void> _onUpdate(TenantUpdateSubmitted event, Emitter<TenantState> emit) async {
     try {
       await repo.updateTenant(event.tenantId, event.data);
-      emit(TenantActionSuccess('Организация обновлена'));
+      emit(TenantActionSuccess(ErrorKeys.orgUpdated));
       add(TenantDetailRequested(event.tenantId));
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось обновить организацию'));
+      emit(TenantError(ErrorKeys.failedToUpdateOrg));
     }
   }
 
@@ -76,12 +77,12 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
         email: event.email,
         role: event.role,
       );
-      emit(TenantActionSuccess('Приглашение отправлено на ${event.email}'));
+      emit(TenantActionSuccess('inviteSent:${event.email}'));
       add(TenantDetailRequested(event.tenantId));
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось отправить приглашение'));
+      emit(TenantError(ErrorKeys.failedToInvite));
     }
   }
 
@@ -92,24 +93,24 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
         memberId: event.memberId,
         role: event.role,
       );
-      emit(TenantActionSuccess('Роль изменена'));
+      emit(TenantActionSuccess(ErrorKeys.roleChanged));
       add(TenantDetailRequested(event.tenantId));
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось изменить роль'));
+      emit(TenantError(ErrorKeys.failedToChangeRole));
     }
   }
 
   Future<void> _onRemoveMember(TenantMemberRemoved event, Emitter<TenantState> emit) async {
     try {
       await repo.removeMember(tenantId: event.tenantId, userId: event.userId);
-      emit(TenantActionSuccess('Участник удалён'));
+      emit(TenantActionSuccess(ErrorKeys.memberRemoved));
       add(TenantDetailRequested(event.tenantId));
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось удалить участника'));
+      emit(TenantError(ErrorKeys.failedToRemoveMember));
     }
   }
 
@@ -122,7 +123,7 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось принять приглашение'));
+      emit(TenantError(ErrorKeys.failedToAcceptInvite));
     }
   }
 
@@ -134,7 +135,7 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {
-      emit(TenantError('Не удалось запустить KYB-верификацию'));
+      emit(TenantError(ErrorKeys.failedToStartKyb));
     }
   }
 
