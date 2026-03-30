@@ -699,6 +699,10 @@
   "calendarAddParticipant": "Add",
   "calendarSearchContacts": "Search contacts...",
   "calendarNoContacts": "No contacts",
+  "calendarStatusAccepted": "Accepted",
+  "calendarStatusDeclined": "Declined",
+  "calendarStatusMaybe": "Maybe",
+  "calendarStatusPending": "Pending",
 
   "callHistoryTitle": "Calls",
   "callHistoryTab": "Call history",

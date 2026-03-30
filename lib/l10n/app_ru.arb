@@ -699,6 +699,10 @@
   "calendarAddParticipant": "Добавить",
   "calendarSearchContacts": "Поиск контактов...",
   "calendarNoContacts": "Нет контактов",
+  "calendarStatusAccepted": "Подтвердил",
+  "calendarStatusDeclined": "Отказался",
+  "calendarStatusMaybe": "Под вопросом",
+  "calendarStatusPending": "Ожидает",
 
   "callHistoryTitle": "Звонки",
   "callHistoryTab": "История звонков",

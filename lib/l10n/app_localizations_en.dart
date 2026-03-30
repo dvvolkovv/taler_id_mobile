@@ -1983,6 +1983,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarNoContacts => 'No contacts';
 
   @override
+  String get calendarStatusAccepted => 'Accepted';
+
+  @override
+  String get calendarStatusDeclined => 'Declined';
+
+  @override
+  String get calendarStatusMaybe => 'Maybe';
+
+  @override
+  String get calendarStatusPending => 'Pending';
+
+  @override
   String get callHistoryTitle => 'Calls';
 
   @override

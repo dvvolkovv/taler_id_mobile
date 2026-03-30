@@ -764,6 +764,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   bool _saving = false;
   List<Map<String, dynamic>> _contacts = [];
   List<String> _selectedContactIds = [];
+  Map<String, String> _invitesMap = {};
   String? _meetingLink;
 
   @override
@@ -803,6 +804,17 @@ class _EventEditScreenState extends State<_EventEditScreen> {
 
     if (e != null && e['contactIds'] != null) {
       _selectedContactIds = List<String>.from(e['contactIds'] as List);
+    }
+
+    if (e != null) {
+      final invites = (e['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      for (final inv in invites) {
+        final u = inv['user'] as Map<String, dynamic>? ?? {};
+        final userId = u['id'] as String?;
+        if (userId != null) {
+          _invitesMap[userId] = inv['status'] as String? ?? 'PENDING';
+        }
+      }
     }
 
     _loadContacts();
@@ -916,6 +928,26 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           Navigator.pop(ctx);
         },
       ),
+    );
+  }
+
+  Widget _buildInviteStatus(String status, AppColorsExtension colors, AppLocalizations l10n) {
+    final Color sc;
+    final IconData si;
+    final String label;
+    switch (status) {
+      case 'ACCEPTED': sc = Colors.green; si = Icons.check_circle_outline; label = l10n.calendarStatusAccepted; break;
+      case 'DECLINED': sc = colors.error; si = Icons.cancel_outlined; label = l10n.calendarStatusDeclined; break;
+      case 'MAYBE': sc = Colors.orange; si = Icons.help_outline; label = l10n.calendarStatusMaybe; break;
+      default: sc = colors.textSecondary; si = Icons.schedule; label = l10n.calendarStatusPending; break;
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(si, size: 14, color: sc),
+        const SizedBox(width: 3),
+        Text(label, style: TextStyle(color: sc, fontSize: 11, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 
@@ -1044,11 +1076,20 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                       : null,
                 ),
                 title: Text(c['name'] as String, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
-                trailing: IconButton(
-                  icon: Icon(Icons.close, size: 16, color: colors.textSecondary),
-                  onPressed: () => setState(() => _selectedContactIds.remove(id)),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_invitesMap.containsKey(id)) ...[
+                      _buildInviteStatus(_invitesMap[id]!, colors, l10n),
+                      const SizedBox(width: 4),
+                    ],
+                    IconButton(
+                      icon: Icon(Icons.close, size: 16, color: colors.textSecondary),
+                      onPressed: () => setState(() => _selectedContactIds.remove(id)),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
                 ),
               );
             }),

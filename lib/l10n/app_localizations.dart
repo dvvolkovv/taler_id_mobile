@@ -3866,6 +3866,30 @@ abstract class AppLocalizations {
   /// **'No contacts'**
   String get calendarNoContacts;
 
+  /// No description provided for @calendarStatusAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepted'**
+  String get calendarStatusAccepted;
+
+  /// No description provided for @calendarStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get calendarStatusDeclined;
+
+  /// No description provided for @calendarStatusMaybe.
+  ///
+  /// In en, this message translates to:
+  /// **'Maybe'**
+  String get calendarStatusMaybe;
+
+  /// No description provided for @calendarStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get calendarStatusPending;
+
   /// No description provided for @callHistoryTitle.
   ///
   /// In en, this message translates to:

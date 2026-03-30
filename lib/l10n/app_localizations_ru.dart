@@ -1989,6 +1989,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarNoContacts => 'Нет контактов';
 
   @override
+  String get calendarStatusAccepted => 'Подтвердил';
+
+  @override
+  String get calendarStatusDeclined => 'Отказался';
+
+  @override
+  String get calendarStatusMaybe => 'Под вопросом';
+
+  @override
+  String get calendarStatusPending => 'Ожидает';
+
+  @override
   String get callHistoryTitle => 'Звонки';
 
   @override
