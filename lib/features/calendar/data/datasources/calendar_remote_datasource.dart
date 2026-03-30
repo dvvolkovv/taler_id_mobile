@@ -37,4 +37,8 @@ class CalendarRemoteDataSource {
   Future<void> declineInvite(String inviteId) async {
     await _http.patch('/calendar/invites/$inviteId/decline', data: {}, fromJson: (d) => d);
   }
+
+  Future<void> maybeInvite(String inviteId) async {
+    await _http.patch('/calendar/invites/$inviteId/maybe', data: {}, fromJson: (d) => d);
+  }
 }

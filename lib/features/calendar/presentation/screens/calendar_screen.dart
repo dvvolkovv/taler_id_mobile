@@ -455,13 +455,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           children: [
                             IconButton(
                               icon: Icon(Icons.close, color: colors.error, size: 20),
+                              tooltip: l10n.reject,
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inv['id'] as String);
                                 _loadEvents();
                               },
                             ),
                             IconButton(
+                              icon: Icon(Icons.help_outline, color: colors.primary, size: 20),
+                              tooltip: 'Maybe',
+                              onPressed: () async {
+                                await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inv['id'] as String);
+                                _loadEvents();
+                              },
+                            ),
+                            IconButton(
                               icon: const Icon(Icons.check, color: Colors.green, size: 20),
+                              tooltip: l10n.accept,
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inv['id'] as String);
                                 _loadEvents();
@@ -706,6 +716,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           switch (status) {
                             case 'ACCEPTED': sc = Colors.green; si = Icons.check_circle; break;
                             case 'DECLINED': sc = colors.error; si = Icons.cancel; break;
+                            case 'MAYBE': sc = Colors.orange; si = Icons.help_outline; break;
                             default: sc = colors.textSecondary; si = Icons.schedule; break;
                           }
                           return Chip(

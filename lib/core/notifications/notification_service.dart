@@ -449,6 +449,8 @@ String? notificationToRoute(RemoteMessage message) {
           : '/dashboard/messenger';
     case 'contact_request':
       return '/dashboard/messenger/contacts?tab=incoming';
+    case 'calendar_invite':
+      return '/dashboard/calendar?invites=1';
     default:
       return null;
   }
