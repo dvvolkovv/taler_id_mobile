@@ -569,25 +569,19 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Future<void> _startRecording() async {
-    debugPrint('[Assistant] _startRecording called, platform=${Platform.operatingSystem}');
     const config = RecordConfig(
       encoder: AudioEncoder.pcm16bits,
       sampleRate: 24000,
       numChannels: 1,
     );
-    try {
-      final stream = await _recorder.startStream(config);
-      debugPrint('[Assistant] recorder stream started');
-      _recordSub = stream.listen((chunk) {
-        if (_muted || _ws == null) return;
-        _sendEvent({
-          'type': 'input_audio_buffer.append',
-          'audio': base64Encode(chunk),
-        });
+    final stream = await _recorder.startStream(config);
+    _recordSub = stream.listen((chunk) {
+      if (_muted || _ws == null) return;
+      _sendEvent({
+        'type': 'input_audio_buffer.append',
+        'audio': base64Encode(chunk),
       });
-    } catch (e) {
-      debugPrint('[Assistant] recorder start FAILED: $e');
-    }
+    });
   }
 
   void _sendEvent(Map<String, dynamic> event) {
@@ -627,15 +621,6 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Future<void> _playBufferedAudio() async {
     if (_audioBuffer.isEmpty) return;
-    // On iOS, stop recorder before playback — the active recorder holds
-    // the audio session and prevents AudioPlayer from producing sound.
-    // On iOS, stop recorder before playback — the active recorder holds
-    // the audio session and prevents AudioPlayer from producing sound.
-    if (Platform.isIOS) {
-      await _recordSub?.cancel();
-      _recordSub = null;
-      try { await _recorder.stop(); } catch (_) {}
-    }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -643,16 +628,11 @@ class _AssistantScreenState extends State<AssistantScreen>
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/ai_response.wav');
       await file.writeAsBytes(wav);
-      if (mounted) setState(() => _aiSpeaking = true);
       await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[Assistant] playback error: $e');
-      // Playback failed — onPlayerComplete won't fire, so restart recorder now
-      if (mounted) setState(() => _aiSpeaking = false);
-      if (_ws != null && _state == _CallState.connected && !_muted) {
-        await _startRecording();
-      }
     }
+    if (mounted) setState(() => _aiSpeaking = true);
   }
 
   // Build a WAV file from raw PCM16 little-endian data

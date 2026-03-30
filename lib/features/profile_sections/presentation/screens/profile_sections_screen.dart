@@ -576,11 +576,6 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
 
   Future<void> _playVoiceAudio() async {
     if (_audioBuffer.isEmpty) return;
-    if (Platform.isIOS) {
-      await _recordSub?.cancel();
-      _recordSub = null;
-      try { await _recorder.stop(); } catch (_) {}
-    }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -588,15 +583,9 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/section_ai.wav');
       await file.writeAsBytes(wav);
-      if (mounted) setState(() => _aiSpeaking = true);
       await _player.play(DeviceFileSource(file.path));
-    } catch (e) {
-      debugPrint('[ProfileSections] playback error: $e');
-      if (mounted) setState(() => _aiSpeaking = false);
-      if (_ws != null && _voiceActive) {
-        await _restartRecording();
-      }
-    }
+    } catch (_) {}
+    if (mounted) setState(() => _aiSpeaking = true);
   }
 
   Uint8List _buildWav(Uint8List pcm, {required int sampleRate, required int channels}) {
