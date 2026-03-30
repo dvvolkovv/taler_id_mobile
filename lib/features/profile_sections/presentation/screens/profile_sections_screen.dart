@@ -255,7 +255,8 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     _freeTextCtrl.addListener(_onTextChanged);
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      // On Android, audioplayers takes audio focus and stops the recorder.
+      // Restore .voiceChat audio session after playback
+      try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
       // Restart recording after playback completes.
       if (_ws != null && _voiceActive) {
         await _recordSub?.cancel();
@@ -578,6 +579,13 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
 
   Future<void> _playVoiceAudio() async {
     if (_audioBuffer.isEmpty) return;
+    // Stop recording before playback — on iOS the active recorder holds
+    // the audio session and prevents AudioPlayer from producing sound.
+    await _recordSub?.cancel();
+    _recordSub = null;
+    try { await _recorder.stop(); } catch (_) {}
+    // On iOS, switch audio session from .voiceChat to .default mode
+    try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -585,9 +593,11 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/section_ai.wav');
       await file.writeAsBytes(wav);
+      if (mounted) setState(() => _aiSpeaking = true);
       await _player.play(DeviceFileSource(file.path));
-    } catch (_) {}
-    if (mounted) setState(() => _aiSpeaking = true);
+    } catch (e) {
+      debugPrint('[ProfileSections] playback error: $e');
+    }
   }
 
   Uint8List _buildWav(Uint8List pcm, {required int sampleRate, required int channels}) {

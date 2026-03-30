@@ -82,12 +82,13 @@ class _AssistantScreenState extends State<AssistantScreen>
     )..repeat();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      // On Android, audioplayers takes audio focus and stops the recorder.
+      // Restore .voiceChat audio session after playback
+      try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
       // Restart recording after playback completes.
       if (_ws != null && _state == _CallState.connected && !_muted) {
         await _recordSub?.cancel();
         _recordSub = null;
-        await _recorder.stop();
+        try { await _recorder.stop(); } catch (_) {}
         await _startRecording();
       }
     });
@@ -621,6 +622,14 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Future<void> _playBufferedAudio() async {
     if (_audioBuffer.isEmpty) return;
+    // Stop recording before playback — on iOS the active recorder holds
+    // the audio session and prevents AudioPlayer from producing sound.
+    await _recordSub?.cancel();
+    _recordSub = null;
+    try { await _recorder.stop(); } catch (_) {}
+    // On iOS, switch audio session from .voiceChat to .default mode
+    // so AudioPlayer can produce sound at normal volume.
+    try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
@@ -628,11 +637,11 @@ class _AssistantScreenState extends State<AssistantScreen>
       final dir = await getTemporaryDirectory();
       final file = File('${dir.path}/ai_response.wav');
       await file.writeAsBytes(wav);
+      if (mounted) setState(() => _aiSpeaking = true);
       await _player.play(DeviceFileSource(file.path));
     } catch (e) {
       debugPrint('[Assistant] playback error: $e');
     }
-    if (mounted) setState(() => _aiSpeaking = true);
   }
 
   // Build a WAV file from raw PCM16 little-endian data
