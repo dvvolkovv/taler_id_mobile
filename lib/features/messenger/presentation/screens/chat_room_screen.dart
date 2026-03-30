@@ -221,7 +221,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _joinActiveCall(String roomName) async {
-    if (CallStateService.instance.isInCall) {
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -261,8 +261,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _startCall() async {
-    // Guard: only one call at a time
-    if (CallStateService.instance.isInCall) {
+    // Guard: only block when max lines reached
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(

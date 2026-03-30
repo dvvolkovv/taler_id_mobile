@@ -234,7 +234,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
 
   Future<void> _callMember(TenantMemberEntity member) async {
     final userId = member.userId ?? member.id;
-    if (CallStateService.instance.isInCall) {
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(AppLocalizations.of(context)!.chatAlreadyInCall), backgroundColor: AppColors.of(context).error),

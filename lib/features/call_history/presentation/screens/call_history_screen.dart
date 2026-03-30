@@ -187,7 +187,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   Future<void> _callBack(_CallEntry e) async {
     if (_calling) return;
     final l10n = AppLocalizations.of(context)!;
-    if (CallStateService.instance.isInCall) {
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.callHistoryAlreadyInCall), backgroundColor: AppColors.of(context).error),
       );
@@ -810,7 +810,7 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
             border: Border.all(color: glowColor, width: 2),
           ),
           child: CircleAvatar(
-            radius: 22,
+            radius: 26,
             backgroundColor: AppColors.of(context).primary,
             backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
                 ? CachedNetworkImageProvider(avatarUrl)
@@ -818,7 +818,7 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
             child: (avatarUrl == null || avatarUrl.isEmpty)
                 ? Text(
                     firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
                   )
                 : null,
           ),

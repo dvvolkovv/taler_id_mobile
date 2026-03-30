@@ -56,6 +56,7 @@ class CallStateService {
   List<CallLine> get allLines => _lines.values.toList();
   int get lineCount => _lines.length;
   bool get hasHeldLines => _lines.values.any((l) => l.isOnHold);
+  bool get canAddLine => _lines.length < maxLines;
 
   Future<bool> waitForBackgroundConnect() async {
     if (!_bgConnecting || _bgCompleter == null) return isInCall;

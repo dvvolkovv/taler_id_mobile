@@ -194,7 +194,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   }
 
   Future<void> _startDirectCall() async {
-    if (CallStateService.instance.isInCall) {
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
