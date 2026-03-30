@@ -68,12 +68,12 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
             const SizedBox(height: 16),
             ListTile(
               leading: Icon(Icons.camera_alt_rounded, color: AppColors.of(context).primary),
-              title: Text('Камера', style: TextStyle(color: AppColors.of(context).textPrimary)),
+              title: Text(AppLocalizations.of(context)!.groupCamera, style: TextStyle(color: AppColors.of(context).textPrimary)),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
               leading: Icon(Icons.photo_library_rounded, color: AppColors.of(context).primary),
-              title: Text('Галерея', style: TextStyle(color: AppColors.of(context).textPrimary)),
+              title: Text(AppLocalizations.of(context)!.groupGallery, style: TextStyle(color: AppColors.of(context).textPrimary)),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
             const SizedBox(height: 8),
@@ -105,12 +105,12 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
         avatarUrl: fileUrl,
       ));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Аватар группы обновлён'), backgroundColor: Colors.green),
+        SnackBar(content: Text(AppLocalizations.of(context)!.groupAvatarUpdated), backgroundColor: Colors.green),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     } finally {
       if (mounted) setState(() => _uploadingAvatar = false);
@@ -123,20 +123,20 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.of(context).card,
-        title: Text('Название группы', style: TextStyle(color: AppColors.of(context).textPrimary)),
+        title: Text(AppLocalizations.of(context)!.groupNameTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
         content: TextField(
           controller: controller,
           autofocus: true,
           style: TextStyle(color: AppColors.of(context).textPrimary),
           decoration: InputDecoration(
-            hintText: 'Введите название',
+            hintText: AppLocalizations.of(context)!.groupEnterName,
             hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -149,7 +149,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
               }
               Navigator.pop(ctx);
             },
-            child: Text('Сохранить'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -163,14 +163,14 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.of(context).card,
-        title: Text('Описание группы', style: TextStyle(color: AppColors.of(context).textPrimary)),
+        title: Text(AppLocalizations.of(context)!.groupDescriptionTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLines: 4,
           style: TextStyle(color: AppColors.of(context).textPrimary),
           decoration: InputDecoration(
-            hintText: 'Введите описание группы',
+            hintText: AppLocalizations.of(context)!.groupEnterDescription,
             hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -178,7 +178,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -189,7 +189,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
               ));
               Navigator.pop(ctx);
             },
-            child: Text('Сохранить'),
+            child: Text(AppLocalizations.of(context)!.save),
           ),
         ],
       ),
@@ -450,7 +450,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                             children: [
                               Row(
                                 children: [
-                                  Text('Описание',
+                                  Text(l10n.groupDescription,
                                       style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                                   const Spacer(),
                                   if (canManage)
@@ -468,7 +468,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  canManage ? 'Добавить описание группы' : 'Нет описания',
+                                  canManage ? l10n.groupAddDescription : l10n.groupNoDescription,
                                   style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 15),
                                 ),
                               ),
@@ -505,7 +505,7 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
               // Shared media
               ListTile(
                 leading: Icon(Icons.perm_media_outlined, color: AppColors.of(context).textPrimary),
-                title: Text('Медиа и файлы', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                title: Text(l10n.groupMediaAndFiles, style: TextStyle(color: AppColors.of(context).textPrimary)),
                 trailing: Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary),
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => SharedMediaScreen(conversationId: widget.conversationId)),

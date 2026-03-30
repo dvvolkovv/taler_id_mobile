@@ -14,6 +14,7 @@ import '../../../../core/theme/widgets.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/profile_section_entity.dart';
 import '../../domain/repositories/i_profile_sections_repository.dart';
 import '../bloc/profile_sections_bloc.dart';
@@ -39,11 +40,12 @@ class _ProfileSectionsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('О себе'),
+        title: Text(l10n.aboutMeTitle),
         backgroundColor: colors.background,
         surfaceTintColor: Colors.transparent,
       ),
@@ -116,7 +118,7 @@ class _SectionCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          titleForType(type),
+                          titleForType(type, context),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -137,7 +139,7 @@ class _SectionCard extends StatelessWidget {
                     Text(
                       hasContent
                           ? _previewText(section!)
-                          : 'Нажмите, чтобы заполнить',
+                          : AppLocalizations.of(context)!.aboutMeClickToFill,
                       style: TextStyle(
                         fontSize: 13,
                         color: hasContent ? colors.textSecondary : colors.textSecondary.withOpacity(0.5),
@@ -181,16 +183,17 @@ class _SectionCard extends StatelessWidget {
     }
   }
 
-  static String titleForType(SectionType type) {
+  static String titleForType(SectionType type, BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     switch (type) {
-      case SectionType.coreValues: return 'Ценности';
-      case SectionType.worldview: return 'Видение мира';
-      case SectionType.skills: return 'Навыки';
-      case SectionType.interests: return 'Интересы';
-      case SectionType.desires: return 'Желания';
-      case SectionType.background: return 'Профиль';
-      case SectionType.likes: return 'Нравится';
-      case SectionType.dislikes: return 'Не нравится';
+      case SectionType.coreValues: return l10n.aboutMeCoreValues;
+      case SectionType.worldview: return l10n.aboutMeWorldview;
+      case SectionType.skills: return l10n.aboutMeSkills;
+      case SectionType.interests: return l10n.aboutMeInterests;
+      case SectionType.desires: return l10n.aboutMeDesires;
+      case SectionType.background: return l10n.aboutMeBackground;
+      case SectionType.likes: return l10n.aboutMeLikes;
+      case SectionType.dislikes: return l10n.aboutMeDislikes;
     }
   }
 
@@ -334,14 +337,15 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
   }
 
   Future<void> _delete() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить раздел?'),
-        content: const Text('Все данные этого раздела будут удалены.'),
+        title: Text(l10n.aboutMeDeleteSection),
+        content: Text(l10n.aboutMeDeleteConfirm),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Удалить', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete, style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -405,7 +409,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       setState(() => _voiceConnecting = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка подключения: $e')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.aboutMeConnectionError(e.toString()))),
         );
       }
     }
@@ -424,7 +428,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     if (_sessionConfigured) return;
     _sessionConfigured = true;
 
-    final sectionTitle = _SectionCard.titleForType(widget.type);
+    final sectionTitle = _SectionCard.titleForType(widget.type, context);
     final currentItems = _items.join(', ');
     final currentText = _freeTextCtrl.text.trim();
 
@@ -432,14 +436,21 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       'type': 'session.update',
       'session': {
         'modalities': ['text', 'audio'],
-        'instructions':
-            'Ты — голосовой ассистент Taler ID, помогающий заполнить раздел "$sectionTitle" в профиле пользователя. '
-            'Говори только на русском языке. Будь кратким. '
-            'Текущее содержимое раздела: теги: [$currentItems], описание: "${currentText.isEmpty ? "пусто" : currentText}". '
-            'Начни разговор первым — поприветствуй и спроси о содержимом этого раздела, предложи помощь. '
-            'Задавай пользователю уточняющие вопросы, чтобы лучше понять и заполнить этот раздел. '
-            'Когда узнаешь что-то новое — сразу вызывай upsert_section чтобы сохранить. '
-            'Объединяй новые теги с существующими, не заменяй.',
+        'instructions': Localizations.localeOf(context).languageCode == 'ru'
+            ? 'Ты — голосовой ассистент Taler ID, помогающий заполнить раздел "$sectionTitle" в профиле пользователя. '
+              'Говори только на русском языке. Будь кратким. '
+              'Текущее содержимое раздела: теги: [$currentItems], описание: "${currentText.isEmpty ? "пусто" : currentText}". '
+              'Начни разговор первым — поприветствуй и спроси о содержимом этого раздела, предложи помощь. '
+              'Задавай пользователю уточняющие вопросы, чтобы лучше понять и заполнить этот раздел. '
+              'Когда узнаешь что-то новое — сразу вызывай upsert_section чтобы сохранить. '
+              'Объединяй новые теги с существующими, не заменяй.'
+            : 'You are a Taler ID voice assistant helping fill the "$sectionTitle" section of the user\'s profile. '
+              'Speak in the same language as the user. Be concise. '
+              'Current section content: tags: [$currentItems], description: "${currentText.isEmpty ? "empty" : currentText}". '
+              'Start the conversation — greet and ask about this section\'s content, offer help. '
+              'Ask clarifying questions to better understand and fill this section. '
+              'When you learn something new — immediately call upsert_section to save. '
+              'Merge new tags with existing ones, don\'t replace.',
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
@@ -638,7 +649,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       child: Scaffold(
         backgroundColor: colors.background,
         appBar: AppBar(
-          title: Text(_SectionCard.titleForType(widget.type)),
+          title: Text(_SectionCard.titleForType(widget.type, context)),
           backgroundColor: colors.background,
           surfaceTintColor: Colors.transparent,
           actions: [
@@ -711,7 +722,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Видимость', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+                        Text(AppLocalizations.of(context)!.aboutMeVisibility, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
                         const SizedBox(height: 10),
                         Row(
                           children: SectionVisibility.values.map((v) {
@@ -763,7 +774,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Теги', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+                        Text(AppLocalizations.of(context)!.aboutMeTags, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
@@ -786,7 +797,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                                 controller: _tagCtrl,
                                 style: TextStyle(color: colors.textPrimary),
                                 decoration: InputDecoration(
-                                  hintText: 'Добавить тег...',
+                                  hintText: AppLocalizations.of(context)!.aboutMeAddTag,
                                   hintStyle: TextStyle(color: colors.textSecondary.withOpacity(0.5)),
                                   isDense: true,
                                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -811,14 +822,14 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Описание', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
+                        Text(AppLocalizations.of(context)!.aboutMeDescription, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: colors.textPrimary)),
                         const SizedBox(height: 10),
                         TextField(
                           controller: _freeTextCtrl,
                           style: TextStyle(color: colors.textPrimary),
                           maxLines: 5,
                           decoration: InputDecoration(
-                            hintText: 'Расскажите подробнее...',
+                            hintText: AppLocalizations.of(context)!.aboutMeDescribeLong,
                             hintStyle: TextStyle(color: colors.textSecondary.withOpacity(0.5)),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                             contentPadding: const EdgeInsets.all(12),
@@ -838,10 +849,11 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
   }
 
   String _visibilityLabel(SectionVisibility v) {
+    final l10n = AppLocalizations.of(context)!;
     switch (v) {
-      case SectionVisibility.public_: return 'Все';
-      case SectionVisibility.contacts: return 'Контакты';
-      case SectionVisibility.private_: return 'Только я';
+      case SectionVisibility.public_: return l10n.aboutMeVisibilityEveryone;
+      case SectionVisibility.contacts: return l10n.aboutMeVisibilityContacts;
+      case SectionVisibility.private_: return l10n.aboutMeVisibilityOnlyMe;
     }
   }
 }

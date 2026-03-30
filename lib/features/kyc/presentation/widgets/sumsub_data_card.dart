@@ -47,7 +47,7 @@ class SumsubDataCard extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: AppCard(
                   child: Text(
-                    _formatAddress(addr),
+                    _formatAddress(addr, l10n),
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: 14,
@@ -91,7 +91,7 @@ class SumsubDataCard extends StatelessWidget {
 
   List<Widget> _buildDocRows(SumsubIdDoc doc, AppLocalizations l10n, AppColorsExtension colors) {
     final rows = <_FieldData>[];
-    if (doc.idDocType != null) rows.add(_FieldData(l10n.documentType, _docTypeName(doc.idDocType!)));
+    if (doc.idDocType != null) rows.add(_FieldData(l10n.documentType, _docTypeName(doc.idDocType!, l10n)));
     if (doc.number != null) rows.add(_FieldData(l10n.docNumber, doc.number!));
     if (doc.firstName != null || doc.lastName != null) {
       final name = [doc.lastName, doc.firstName].where((s) => s != null).join(' ');
@@ -153,12 +153,12 @@ class SumsubDataCard extends StatelessWidget {
     }
   }
 
-  String _formatAddress(SumsubAddress addr) {
+  String _formatAddress(SumsubAddress addr, AppLocalizations l10n) {
     final parts = <String>[];
     if (addr.street != null) {
       var line = addr.street!;
       if (addr.buildingNumber != null) line += ', ${addr.buildingNumber}';
-      if (addr.flatNumber != null) line += ', кв. ${addr.flatNumber}';
+      if (addr.flatNumber != null) line += ', ${l10n.addressApartment(addr.flatNumber!)}';
       parts.add(line);
     }
     if (addr.town != null) parts.add(addr.town!);
@@ -168,17 +168,17 @@ class SumsubDataCard extends StatelessWidget {
     return parts.join(', ');
   }
 
-  String _docTypeName(String type) {
+  String _docTypeName(String type, AppLocalizations l10n) {
     switch (type) {
       case 'PASSPORT':
-        return 'Паспорт';
+        return l10n.docTypePassport;
       case 'ID_CARD':
-        return 'ID-карта';
+        return l10n.docTypeIdCard;
       case 'DRIVERS':
       case 'DRIVING_LICENSE':
-        return 'Водительское удостоверение';
+        return l10n.docTypeDriverLicense;
       case 'RESIDENCE_PERMIT':
-        return 'Вид на жительство';
+        return l10n.docTypeResidencePermit;
       default:
         return type;
     }

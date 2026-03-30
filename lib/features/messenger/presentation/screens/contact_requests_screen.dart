@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 
 class ContactRequestsScreen extends StatefulWidget {
-  const ContactRequestsScreen({super.key});
+  final int initialTab;
+  const ContactRequestsScreen({super.key, this.initialTab = 0});
 
   @override
   State<ContactRequestsScreen> createState() => _ContactRequestsScreenState();
@@ -23,7 +25,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
     final bloc = context.read<MessengerBloc>();
     bloc.add(LoadContactRequests());
     bloc.add(LoadSentContactRequests());
@@ -51,19 +53,20 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Контакты'),
+        title: Text(l10n.contactRequestsTitle),
         bottom: TabBar(
           controller: _tabCtrl,
           labelColor: colors.primary,
           unselectedLabelColor: colors.textSecondary,
           indicatorColor: colors.primary,
-          tabs: const [
-            Tab(text: 'Поиск'),
-            Tab(text: 'Входящие'),
-            Tab(text: 'Отправленные'),
+          tabs: [
+            Tab(text: l10n.contactRequestsSearch),
+            Tab(text: l10n.contactRequestsIncoming),
+            Tab(text: l10n.contactRequestsSent),
           ],
         ),
       ),
@@ -81,6 +84,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
   // ─── Search tab ───
 
   Widget _buildSearchTab(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Padding(
@@ -90,7 +94,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
             autofocus: false,
             style: TextStyle(color: colors.textPrimary),
             decoration: InputDecoration(
-              hintText: 'Никнейм или email',
+              hintText: l10n.contactRequestsSearchHint,
               hintStyle: TextStyle(color: colors.textSecondary),
               prefixIcon: Icon(Icons.search, color: colors.textSecondary),
               suffixIcon: IconButton(
@@ -125,7 +129,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
               if (state.contactRequestSent != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: const Text('Запрос отправлен'),
+                    content: Text(l10n.contactRequestSent),
                     backgroundColor: colors.primary,
                   ),
                 );
@@ -148,8 +152,8 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                 return Center(
                   child: Text(
                     _searchCtrl.text.length >= 2
-                        ? 'Пользователи не найдены'
-                        : 'Введите точный никнейм или email\nи нажмите поиск',
+                        ? l10n.contactRequestsNoUsers
+                        : l10n.contactRequestsSearchHelp,
                     textAlign: TextAlign.center,
                     style: TextStyle(color: colors.textSecondary),
                   ),
@@ -190,7 +194,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                     isThreeLine: user.username != null,
                     trailing: IconButton(
                       icon: Icon(Icons.person_add_rounded, color: colors.primary),
-                      tooltip: 'Отправить запрос',
+                      tooltip: l10n.contactRequestsSendTooltip,
                       onPressed: () => _sendRequest(context, user.id, displayName),
                     ),
                     onTap: () => context.push('/dashboard/user/${user.id}'),
@@ -205,19 +209,20 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
   }
 
   void _sendRequest(BuildContext context, String userId, String name) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.of(context).card,
-        title: Text('Запрос на общение', style: TextStyle(color: AppColors.of(context).textPrimary)),
+        title: Text(l10n.contactRequestTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
         content: Text(
-          'Отправить запрос на общение пользователю $name?',
+          l10n.contactRequestConfirm(name),
           style: TextStyle(color: AppColors.of(context).textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена', style: TextStyle(color: AppColors.of(context).textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: AppColors.of(context).textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -228,7 +233,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
               Navigator.pop(ctx);
               context.read<MessengerBloc>().add(SendContactRequest(userId));
             },
-            child: const Text('Отправить'),
+            child: Text(l10n.contactRequestSend),
           ),
         ],
       ),
@@ -243,7 +248,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
       builder: (context, state) {
         if (state.contactRequests.isEmpty) {
           return Center(
-            child: Text('Нет входящих запросов', style: TextStyle(color: colors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.contactRequestsNoIncoming, style: TextStyle(color: colors.textSecondary)),
           );
         }
         return ListView.builder(
@@ -293,7 +298,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
       builder: (context, state) {
         if (state.sentContactRequests.isEmpty) {
           return Center(
-            child: Text('Нет отправленных запросов', style: TextStyle(color: colors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.contactRequestsNoSent, style: TextStyle(color: colors.textSecondary)),
           );
         }
         return ListView.builder(
@@ -327,13 +332,14 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
   }
 
   String _statusText(String status) {
+    final l10n = AppLocalizations.of(context)!;
     switch (status) {
       case 'PENDING':
-        return 'Ожидает ответа';
+        return l10n.contactRequestStatusPending;
       case 'ACCEPTED':
-        return 'Принят';
+        return l10n.contactRequestStatusAccepted;
       case 'REJECTED':
-        return 'Отклонён';
+        return l10n.contactRequestStatusRejected;
       default:
         return status;
     }

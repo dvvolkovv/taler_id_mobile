@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/session_entity.dart';
 import '../../domain/repositories/i_session_repository.dart';
 import '../../../../core/api/api_exception.dart';
+import '../../../../core/utils/error_keys.dart';
 import 'sessions_event.dart';
 import 'sessions_state.dart';
 
@@ -21,7 +22,7 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
     } on ApiException catch (e) {
       emit(SessionsError(e.message));
     } catch (_) {
-      emit(SessionsError('Не удалось загрузить сессии'));
+      emit(SessionsError(ErrorKeys.failedToLoadSessions));
     }
   }
 
@@ -34,7 +35,7 @@ class SessionsBloc extends Bloc<SessionsEvent, SessionsState> {
     } on ApiException catch (e) {
       emit(SessionsError(e.message));
     } catch (_) {
-      emit(SessionsError('Не удалось завершить сессию'));
+      emit(SessionsError(ErrorKeys.failedToDeleteSession));
     }
   }
 }

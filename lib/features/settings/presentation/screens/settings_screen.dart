@@ -140,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       name.isNotEmpty ? name : l10n.profile,
                       style: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Text('Профиль', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                    subtitle: Text(l10n.settingsProfileSubtitle, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
                     trailing: Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
                     onTap: () => context.push(RouteConstants.profile),
                   );
@@ -150,21 +150,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
 
             // Identity & Organizations section
-            _sectionHeader('Аккаунт'),
+            _sectionHeader(l10n.settingsAccount),
             AppCard(
               child: Column(
                 children: [
                   _navTile(
                     icon: Icons.verified_user_outlined,
                     iconColor: AppColors.of(context).primary,
-                    title: 'Верификация личности (KYC)',
+                    title: l10n.settingsKycVerification,
                     onTap: () => context.push(RouteConstants.kyc),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
                     icon: Icons.business_outlined,
                     iconColor: AppColors.of(context).primary,
-                    title: 'Организации',
+                    title: l10n.settingsOrganizations,
                     onTap: () => context.push(RouteConstants.organization),
                   ),
                 ],

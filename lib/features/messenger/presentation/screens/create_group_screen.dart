@@ -132,7 +132,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               final results = state.searchResults;
               if (results.isEmpty && _searchCtrl.text.length >= 2) {
                 return Center(
-                  child: Text('Нет результатов',
+                  child: Text(l10n.groupNoResults,
                       style: TextStyle(color: AppColors.of(context).textSecondary)),
                 );
               }

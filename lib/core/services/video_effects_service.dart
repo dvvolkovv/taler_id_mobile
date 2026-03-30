@@ -27,18 +27,18 @@ class VideoEffectsService {
     VideoEffect.bg6: 'assets/backgrounds/bg_6_thumb.jpg',
   };
 
-  static const _labels = {
-    VideoEffect.none: 'Без фона',
-    VideoEffect.blur: 'Размытие',
-    VideoEffect.bg1: 'Офис',
-    VideoEffect.bg2: 'Природа',
-    VideoEffect.bg3: 'Градиент',
-    VideoEffect.bg4: 'Библиотека',
-    VideoEffect.bg5: 'Город',
-    VideoEffect.bg6: 'Минимализм',
-  };
-
-  String labelFor(VideoEffect effect) => _labels[effect] ?? '';
+  static String labelKeyFor(VideoEffect effect) {
+    switch (effect) {
+      case VideoEffect.none: return 'effectNone';
+      case VideoEffect.blur: return 'effectBlur';
+      case VideoEffect.bg1: return 'effectOffice';
+      case VideoEffect.bg2: return 'effectNature';
+      case VideoEffect.bg3: return 'effectGradient';
+      case VideoEffect.bg4: return 'effectLibrary';
+      case VideoEffect.bg5: return 'effectCity';
+      case VideoEffect.bg6: return 'effectMinimalism';
+    }
+  }
   String? thumbPathFor(VideoEffect effect) => _thumbPaths[effect];
 
   Future<bool> isSupported() async {

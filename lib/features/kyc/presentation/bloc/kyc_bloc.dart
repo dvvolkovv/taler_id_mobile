@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/i_kyc_repository.dart';
 import '../../../../core/api/api_exception.dart';
+import '../../../../core/utils/error_keys.dart';
 import 'kyc_event.dart';
 import 'kyc_state.dart';
 
@@ -32,7 +33,7 @@ class KycBloc extends Bloc<KycEvent, KycState> {
     } on ApiException catch (e) {
       emit(KycError(e.message));
     } catch (_) {
-      emit(KycError('Не удалось загрузить статус верификации'));
+      emit(KycError(ErrorKeys.failedToLoadKycStatus));
     }
   }
 
@@ -55,7 +56,7 @@ class KycBloc extends Bloc<KycEvent, KycState> {
     } on ApiException catch (e) {
       emit(KycError(e.message));
     } catch (_) {
-      emit(KycError('Не удалось загрузить данные верификации'));
+      emit(KycError(ErrorKeys.failedToLoadKycData));
     }
   }
 
@@ -67,7 +68,7 @@ class KycBloc extends Bloc<KycEvent, KycState> {
     } on ApiException catch (e) {
       emit(KycError(e.message));
     } catch (_) {
-      emit(KycError('Не удалось запустить верификацию'));
+      emit(KycError(ErrorKeys.failedToStartKyc));
     }
   }
 
@@ -76,6 +77,6 @@ class KycBloc extends Bloc<KycEvent, KycState> {
   }
 
   Future<void> _onSdkFailed(KycSdkFailed event, Emitter<KycState> emit) async {
-    emit(KycError('Ошибка верификации: ${event.errorCode}'));
+    emit(KycError('verificationError:${event.errorCode}'));
   }
 }

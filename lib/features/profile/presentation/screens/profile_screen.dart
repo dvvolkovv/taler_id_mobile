@@ -91,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_outlined),
-            tooltip: 'Сканировать QR',
+            tooltip: l10n.profileScanQr,
             onPressed: () => _openScanner(context),
           ),
         ],
@@ -187,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Мой QR код',
+                            l10n.profileMyQrCode,
                             style: TextStyle(
                               color: AppColors.of(context).textSecondary,
                               fontSize: 12,
@@ -196,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           GestureDetector(
                             onTap: () => Share.share(
-                              'Добавь меня в Taler ID!\ntalerid://user/${user.id}',
+                              l10n.profileAddMeShare(user.id),
                             ),
                             child: Icon(Icons.share_outlined, color: AppColors.of(context).primary, size: 18),
                           ),
@@ -228,13 +228,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                       const SizedBox(height: 4),
                       Text(
-                        'Покажи этот код, чтобы добавить тебя',
+                        l10n.profileShowCode,
                         style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                // Edit profile
+                AppCard(
+                  child: InkWell(
+                    onTap: () => context.push(RouteConstants.editProfile),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(color: AppColors.of(context).primary.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                          child: Icon(Icons.edit_outlined, color: AppColors.of(context).primary, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(l10n.editProfile, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
+                              const SizedBox(height: 2),
+                              Text(l10n.profileEditDesc, style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary)),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 // About me sections
                 AppCard(
                   child: InkWell(
@@ -255,10 +284,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('О себе', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
+                              Text(l10n.profileAboutMe, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
                               const SizedBox(height: 2),
                               Text(
-                                'Ценности, навыки, интересы и другое',
+                                l10n.profileAboutMeDesc,
                                 style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary),
                               ),
                             ],
@@ -291,10 +320,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Заметки', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
+                              Text(l10n.profileNotes, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary)),
                               const SizedBox(height: 2),
                               Text(
-                                'Мысли, идеи и записи',
+                                l10n.profileNotesDesc,
                                 style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary),
                               ),
                             ],
@@ -345,12 +374,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 8),
             ListTile(
               leading: Icon(Icons.camera_alt_outlined, color: AppColors.of(context).primary),
-              title: Text('Сделать фото', style: TextStyle(color: AppColors.of(context).textPrimary)),
+              title: Text(AppLocalizations.of(context)!.profilePhotoCamera, style: TextStyle(color: AppColors.of(context).textPrimary)),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
               leading: Icon(Icons.photo_library_outlined, color: AppColors.of(context).primary),
-              title: Text('Выбрать из галереи', style: TextStyle(color: AppColors.of(context).textPrimary)),
+              title: Text(AppLocalizations.of(context)!.profilePhotoGallery, style: TextStyle(color: AppColors.of(context).textPrimary)),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
             const SizedBox(height: 8),
@@ -373,13 +402,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await CachedNetworkImage.evictFromCache(sl<CacheService>().getProfile()?['avatarUrl'] ?? '');
       imageCache.clear();
       context.read<ProfileBloc>().add(ProfileLoadRequested());
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Аватар обновлён'), backgroundColor: Colors.green),
+        SnackBar(content: Text(l10n.profileAvatarUpdated), backgroundColor: Colors.green),
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -435,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   String _fullName(UserEntity user) {
-    final parts = [user.firstName, user.lastName].where((s) => s != null && s.isNotEmpty).toList();
+    final parts = [user.firstName, user.middleName, user.lastName].where((s) => s != null && s.isNotEmpty).toList();
     return parts.isEmpty ? user.email : parts.join(' ');
   }
 
@@ -458,10 +489,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Icon(Icons.alternate_email, color: AppColors.of(context).textSecondary, size: 18),
             const SizedBox(width: 12),
-            Text('Никнейм', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13)),
+            Text(AppLocalizations.of(context)!.profileNickname, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13)),
             const Spacer(),
             Text(
-              user.username != null ? '@${user.username}' : 'Не задан',
+              user.username != null ? '@${user.username}' : AppLocalizations.of(context)!.profileNotSet,
               style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 13),
             ),
             const SizedBox(width: 8),
@@ -479,7 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.of(context).card,
-        title: Text('Изменить никнейм', style: TextStyle(color: AppColors.of(context).textPrimary)),
+        title: Text(AppLocalizations.of(context)!.profileChangeNickname, style: TextStyle(color: AppColors.of(context).textPrimary)),
         content: TextField(
           controller: ctrl,
           style: TextStyle(color: AppColors.of(context).textPrimary),
@@ -513,13 +544,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await client.patch('/profile/username', data: {'username': result}, fromJson: (d) => d);
       if (!mounted) return;
       context.read<ProfileBloc>().add(ProfileLoadRequested());
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Никнейм обновлён'), backgroundColor: Colors.green),
+        SnackBar(content: Text(l10n.profileNicknameUpdated), backgroundColor: Colors.green),
       );
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: $e'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -590,7 +623,7 @@ class _QrCodeSheet extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Мой QR код',
+              AppLocalizations.of(context)!.profileMyQrCode,
               style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: 18,
@@ -634,10 +667,10 @@ class _QrCodeSheet extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => Share.share(
-                  'Добавь меня в Taler ID!\n$qrData',
+                  AppLocalizations.of(context)!.profileAddMeShare(user.id),
                 ),
                 icon: const Icon(Icons.share_outlined, color: Colors.black),
-                label: const Text('Поделиться', style: TextStyle(color: Colors.black)),
+                label: Text(AppLocalizations.of(context)!.profileShareLabel, style: const TextStyle(color: Colors.black)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.of(context).primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -687,7 +720,7 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
-        title: const Text('Сканировать QR код'),
+        title: Text(AppLocalizations.of(context)!.profileScanQrCode),
       ),
       body: Stack(
         children: [
@@ -702,13 +735,13 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             bottom: 48,
             left: 0,
             right: 0,
             child: Center(
               child: Text(
-                'Наведите камеру на QR код',
+                AppLocalizations.of(context)!.profilePointCamera,
                 style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
             ),

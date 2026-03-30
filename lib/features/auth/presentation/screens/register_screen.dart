@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -53,7 +54,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             context.go(RouteConstants.assistant);
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           }
         },
@@ -69,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Один аккаунт для всей экосистемы Taler',
+                  l10n.registerSubtitle,
                   style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 32),
@@ -133,7 +134,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _usernameController,
                         style: TextStyle(color: AppColors.of(context).textPrimary),
                         decoration: InputDecoration(
-                          labelText: 'Никнейм (необязательно)',
+                          labelText: l10n.usernameOptional,
                           hintText: 'username',
                           prefixText: '@',
                           prefixStyle: TextStyle(color: AppColors.of(context).textSecondary),
@@ -159,10 +160,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         validator: (v) {
                           if (v == null || v.isEmpty) return null; // optional
-                          if (v.length < 3) return 'Минимум 3 символа';
-                          if (v.length > 30) return 'Максимум 30 символов';
+                          if (v.length < 3) return l10n.usernameMinLength;
+                          if (v.length > 30) return l10n.usernameMaxLength;
                           if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) {
-                            return 'Только буквы, цифры и _';
+                            return l10n.usernameInvalid;
                           }
                           return null;
                         },
@@ -199,8 +200,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Введите email';
-                          if (!v.contains('@')) return 'Некорректный email';
+                          if (v == null || v.isEmpty) return l10n.emailRequired;
+                          if (!v.contains('@')) return l10n.emailInvalid;
                           return null;
                         },
                       ),
@@ -243,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'Введите пароль';
+                          if (v == null || v.isEmpty) return l10n.passwordRequired;
                           if (v.length < 8) return l10n.passwordMinLength;
                           return null;
                         },

@@ -9,6 +9,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
@@ -54,11 +55,11 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
         listener: (context, state) {
           if (state is TenantActionSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).primary),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).primary),
             );
           } else if (state is TenantError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           } else if (state is TenantKybSdkReady) {
             _launchKybSumsub(context, state.sdkToken, state.tenantId);
@@ -236,7 +237,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     if (CallStateService.instance.isInCall) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Уже идёт звонок'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(AppLocalizations.of(context)!.chatAlreadyInCall), backgroundColor: AppColors.of(context).error),
         );
       }
       return;
@@ -274,7 +275,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка звонка: $e'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(AppLocalizations.of(context)!.chatCallError(e.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     }

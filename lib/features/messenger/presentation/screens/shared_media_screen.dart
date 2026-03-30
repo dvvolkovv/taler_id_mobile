@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SharedMediaScreen extends StatefulWidget {
   final String conversationId;
@@ -119,20 +120,21 @@ class _SharedMediaScreenState extends State<SharedMediaScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Медиа и файлы'),
+        title: Text(l10n.sharedMediaTitle),
         backgroundColor: colors.surface,
         bottom: TabBar(
           controller: _tabCtrl,
           labelColor: colors.primary,
           unselectedLabelColor: colors.textSecondary,
           indicatorColor: colors.primary,
-          tabs: const [
-            Tab(text: 'Медиа'),
-            Tab(text: 'Файлы'),
-            Tab(text: 'Ссылки'),
+          tabs: [
+            Tab(text: l10n.sharedMediaTab),
+            Tab(text: l10n.sharedFilesTab),
+            Tab(text: l10n.sharedLinksTab),
           ],
         ),
       ),
@@ -156,7 +158,7 @@ class _SharedMediaScreenState extends State<SharedMediaScreen> with SingleTicker
           children: [
             Icon(Icons.photo_library_outlined, size: 64, color: colors.textSecondary),
             const SizedBox(height: 16),
-            Text('Нет медиафайлов', style: TextStyle(color: colors.textSecondary)),
+            Text(AppLocalizations.of(context)!.sharedNoMedia, style: TextStyle(color: colors.textSecondary)),
           ],
         ),
       );
@@ -222,7 +224,7 @@ class _SharedMediaScreenState extends State<SharedMediaScreen> with SingleTicker
           children: [
             Icon(Icons.folder_open_outlined, size: 64, color: colors.textSecondary),
             const SizedBox(height: 16),
-            Text('Нет файлов', style: TextStyle(color: colors.textSecondary)),
+            Text(AppLocalizations.of(context)!.sharedNoFiles, style: TextStyle(color: colors.textSecondary)),
           ],
         ),
       );
@@ -284,7 +286,7 @@ class _SharedMediaScreenState extends State<SharedMediaScreen> with SingleTicker
           children: [
             Icon(Icons.link_off, size: 64, color: colors.textSecondary),
             const SizedBox(height: 16),
-            Text('Нет ссылок', style: TextStyle(color: colors.textSecondary)),
+            Text(AppLocalizations.of(context)!.sharedNoLinks, style: TextStyle(color: colors.textSecondary)),
           ],
         ),
       );

@@ -768,6 +768,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tabMessenger => 'Сообщения';
 
   @override
+  String get tabCalls => 'Звонки';
+
+  @override
+  String get tabCalendar => 'Календарь';
+
+  @override
   String get appearance => 'Оформление';
 
   @override
@@ -1122,4 +1128,1346 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get yesterday => 'Вчера';
+
+  @override
+  String get errorTimeout =>
+      'Превышено время ожидания. Проверьте подключение к интернету.';
+
+  @override
+  String get errorNoConnection => 'Нет подключения к интернету.';
+
+  @override
+  String get errorGeneral => 'Произошла ошибка. Попробуйте ещё раз.';
+
+  @override
+  String errorWithMessage(String message) {
+    return 'Ошибка: $message';
+  }
+
+  @override
+  String get notifChannelMessages => 'Сообщения';
+
+  @override
+  String get notifChannelMessagesDesc => 'Уведомления о новых сообщениях';
+
+  @override
+  String get notifChannelMissedCalls => 'Пропущенные звонки';
+
+  @override
+  String get notifChannelMissedCallsDesc => 'Уведомления о пропущенных звонках';
+
+  @override
+  String get notifMissedCall => 'Пропущенный звонок';
+
+  @override
+  String get notifAccept => 'Принять';
+
+  @override
+  String get notifDecline => 'Отклонить';
+
+  @override
+  String get notifIncomingCall => 'Входящий звонок';
+
+  @override
+  String get notifIncomingCallChannel => 'Входящий звонок';
+
+  @override
+  String get notifMissedCallChannel => 'Пропущенный звонок';
+
+  @override
+  String get notifUnknown => 'Неизвестный';
+
+  @override
+  String get effectNone => 'Без фона';
+
+  @override
+  String get effectBlur => 'Размытие';
+
+  @override
+  String get effectOffice => 'Офис';
+
+  @override
+  String get effectNature => 'Природа';
+
+  @override
+  String get effectGradient => 'Градиент';
+
+  @override
+  String get effectLibrary => 'Библиотека';
+
+  @override
+  String get effectCity => 'Город';
+
+  @override
+  String get effectMinimalism => 'Минимализм';
+
+  @override
+  String get voiceParticipant => 'Участник';
+
+  @override
+  String get voiceInvitesToRoom => 'приглашает вас в комнату';
+
+  @override
+  String get voiceRoom => 'Комната';
+
+  @override
+  String get voicePasswordProtected => 'Защищена паролем';
+
+  @override
+  String get voicePasswordHint => 'Пароль';
+
+  @override
+  String get voiceEnter => 'Войти';
+
+  @override
+  String get voiceJoinRoom => 'Войти в комнату';
+
+  @override
+  String get voiceYourName => 'Ваше имя';
+
+  @override
+  String voiceInvitationSent(String name) {
+    return 'Приглашение отправлено $name';
+  }
+
+  @override
+  String get voiceNoActiveRoom => 'Нет активной комнаты';
+
+  @override
+  String get voiceCameraPermission =>
+      'Разрешите доступ к камере в Настройках → Конфиденциальность → Камера → TalerID';
+
+  @override
+  String get voiceOpenSettings => 'Открыть';
+
+  @override
+  String voiceCameraError(String error) {
+    return 'Не удалось включить камеру: $error';
+  }
+
+  @override
+  String get voiceAllAgreedRecording => 'Все согласились. Запись начата.';
+
+  @override
+  String get voiceNewParticipantAgreed =>
+      'Новый участник согласился на запись.';
+
+  @override
+  String get voiceDeclinedRecording => 'Вы отклонили запись. Покидаете звонок.';
+
+  @override
+  String get voiceRecordingEnded => 'Запись завершена';
+
+  @override
+  String get voiceRecordingInProgress => 'Запись идёт';
+
+  @override
+  String get voiceTranscriptionRequest => 'Запрос на протоколирование';
+
+  @override
+  String get voiceRecordingRequest => 'Запрос на запись';
+
+  @override
+  String get voiceAgree => 'Согласен';
+
+  @override
+  String get voiceDeclineAndLeave => 'Отклонить и выйти';
+
+  @override
+  String get voiceAudioOutput => 'Аудиовыход';
+
+  @override
+  String get voiceAudioPhone => 'Телефон';
+
+  @override
+  String get voiceAudioSpeaker => 'Динамик';
+
+  @override
+  String get voiceAudioBluetooth => 'Bluetooth';
+
+  @override
+  String get voiceAudioHeadphones => 'Наушники';
+
+  @override
+  String get voiceLinkCopied => 'Ссылка скопирована';
+
+  @override
+  String get voiceTranslateTo => 'Переводить на';
+
+  @override
+  String get voiceSearchLanguage => 'Поиск языка...';
+
+  @override
+  String voiceRoomWithCreator(String name) {
+    return 'Комната $name';
+  }
+
+  @override
+  String get voiceVoiceCall => 'Голосовой звонок';
+
+  @override
+  String get voiceCopyLink => 'Скопировать ссылку';
+
+  @override
+  String get voiceAddParticipant => 'Добавить участника';
+
+  @override
+  String get voiceReconnecting => 'Переподключение...';
+
+  @override
+  String get voiceConnectionError => 'Ошибка подключения';
+
+  @override
+  String get voiceClose => 'Закрыть';
+
+  @override
+  String get voiceCalling => 'Вызов...';
+
+  @override
+  String get voiceCallActive => 'Звонок активен';
+
+  @override
+  String get voiceWaiting => 'Ожидание';
+
+  @override
+  String get voiceWaitingUpper => 'ОЖИДАНИЕ';
+
+  @override
+  String get voiceRec => 'REC';
+
+  @override
+  String get voiceStop => 'Стоп';
+
+  @override
+  String get voiceRecord => 'Запись';
+
+  @override
+  String get voiceTranslation => 'Перевод';
+
+  @override
+  String get voiceAudio => 'Аудио';
+
+  @override
+  String get voiceFlipCamera => 'Повернуть';
+
+  @override
+  String get voiceBackground => 'Фон';
+
+  @override
+  String get voiceAssistantSpeakingStatus => 'Ассистент говорит...';
+
+  @override
+  String get voiceAssistantListeningStatus => 'Ассистент слушает...';
+
+  @override
+  String get voiceUnmute => 'Включить';
+
+  @override
+  String get voiceMic => 'Микрофон';
+
+  @override
+  String get voiceAssistantLabel => 'Ассистент';
+
+  @override
+  String get voiceCameraOn => 'Камера вкл.';
+
+  @override
+  String get voiceCameraLabel => 'Камера';
+
+  @override
+  String get voiceEndCall => 'Завершить';
+
+  @override
+  String get voiceWaitingParticipants => 'Ожидание участников...';
+
+  @override
+  String get voiceYou => 'Вы';
+
+  @override
+  String get voiceAiAssistant => 'AI Ассистент';
+
+  @override
+  String get voiceVideoUnavailable => 'Видео недоступно';
+
+  @override
+  String get voiceSearchNickname => 'Поиск по никнейму...';
+
+  @override
+  String get voiceTranscriptionWord => 'протоколирование';
+
+  @override
+  String get voiceRecordingWord => 'запись';
+
+  @override
+  String get voiceConnecting => 'Подключение...';
+
+  @override
+  String get voiceVideoBackground => 'Фон видео';
+
+  @override
+  String get voiceCallSettings => 'Параметры звонка';
+
+  @override
+  String get voiceEnableAI => 'Подключить AI ассистента';
+
+  @override
+  String get voiceAIParticipating => 'AI будет участвовать в разговоре';
+
+  @override
+  String get voiceNormalCall => 'Обычный звонок без AI';
+
+  @override
+  String get voiceCallConfirm => 'Позвонить?';
+
+  @override
+  String get chatAlreadyInCall => 'Уже идёт звонок';
+
+  @override
+  String chatCallError(String error) {
+    return 'Ошибка звонка: $error';
+  }
+
+  @override
+  String get chatPhotoVideo => 'Фото / Видео';
+
+  @override
+  String get chatCamera => 'Камера';
+
+  @override
+  String get chatFile => 'Файл';
+
+  @override
+  String get chatContact => 'Контакт';
+
+  @override
+  String get chatSelectContact => 'Выберите контакт';
+
+  @override
+  String get chatNoContacts => 'Нет контактов';
+
+  @override
+  String get chatUser => 'Пользователь';
+
+  @override
+  String get chatFileAttachment => '📎 Файл';
+
+  @override
+  String chatFileUploadError(String error) {
+    return 'Ошибка загрузки файла: $error';
+  }
+
+  @override
+  String get chatVoiceMessage => '🎤 Голосовое сообщение';
+
+  @override
+  String get chatGroup => 'Группа';
+
+  @override
+  String get chatDialog => 'Диалог';
+
+  @override
+  String get chatCall => 'Позвонить';
+
+  @override
+  String get chatStartConversation => 'Начните переписку';
+
+  @override
+  String get chatYou => 'Вы';
+
+  @override
+  String get chatIsTyping => 'печатает...';
+
+  @override
+  String chatUserIsTyping(String name) {
+    return '$name печатает...';
+  }
+
+  @override
+  String chatUsersAreTyping(String names) {
+    return '$names печатают...';
+  }
+
+  @override
+  String get chatPreparingFile => 'Подготовка файла…';
+
+  @override
+  String chatUploading(int progress) {
+    return 'Загрузка… $progress%';
+  }
+
+  @override
+  String get chatEdited => 'Отредактировано';
+
+  @override
+  String get chatReply => 'Ответить';
+
+  @override
+  String get chatEdit => 'Редактировать';
+
+  @override
+  String get chatCopy => 'Копировать';
+
+  @override
+  String get chatCopied => 'Скопировано';
+
+  @override
+  String get chatSaveMedia => 'Сохранить';
+
+  @override
+  String get chatForward => 'Переслать';
+
+  @override
+  String get chatSaving => 'Сохранение...';
+
+  @override
+  String get chatSavedToGallery => 'Сохранено в галерею';
+
+  @override
+  String get chatNoSavePermission =>
+      'Нет разрешения на сохранение. Проверьте настройки.';
+
+  @override
+  String get chatFileSaveError => 'Ошибка сохранения файла';
+
+  @override
+  String get chatDeleteMessage => 'Удалить сообщение';
+
+  @override
+  String get chatDeleteForMe => 'Удалить у меня';
+
+  @override
+  String get chatDeleteForEveryone => 'Удалить у всех';
+
+  @override
+  String get chatMessageForwarded => 'Сообщение переслано';
+
+  @override
+  String get chatContactTapToOpen => 'Контакт · нажмите чтобы открыть';
+
+  @override
+  String get chatForwardTo => 'Переслать в...';
+
+  @override
+  String get chatSearchHint => 'Поиск...';
+
+  @override
+  String get chatRecording => 'Запись...';
+
+  @override
+  String get chatMessageHint => 'Сообщение...';
+
+  @override
+  String get chatHideKeyboard => 'Скрыть клавиатуру';
+
+  @override
+  String get chatEditing => 'Редактирование';
+
+  @override
+  String get chatFileDownloadError => 'Ошибка загрузки файла';
+
+  @override
+  String get chatVoiceMessageShort => 'Голосовое сообщение';
+
+  @override
+  String get chatVideoSavedToGallery => 'Видео сохранено в галерею';
+
+  @override
+  String get chatSavingError => 'Ошибка сохранения';
+
+  @override
+  String get convSetNickname => 'Задайте никнейм';
+
+  @override
+  String get convNicknameRequired =>
+      'Никнейм обязателен для использования мессенджера. Другие пользователи смогут найти вас по нему.';
+
+  @override
+  String get convNicknameRules => '3–30 символов: буквы, цифры, _';
+
+  @override
+  String get convNicknameTaken => 'Никнейм уже занят';
+
+  @override
+  String get convSaveError => 'Ошибка сохранения';
+
+  @override
+  String get convContactsLabel => 'Контакты';
+
+  @override
+  String get convDefaultUser => 'Пользователь';
+
+  @override
+  String get convNoDialogs => 'Нет диалогов';
+
+  @override
+  String get convFindUserToChat =>
+      'Найдите пользователя чтобы начать переписку';
+
+  @override
+  String get convDefaultContact => 'Контакт';
+
+  @override
+  String get dashboardUser => 'Пользователь';
+
+  @override
+  String get dashboardIncomingCall => 'Входящий звонок';
+
+  @override
+  String get dashboardDecline => 'Отклонить';
+
+  @override
+  String get dashboardAccept => 'Принять';
+
+  @override
+  String get dashboardActiveCall =>
+      'Активный звонок — нажмите, чтобы вернуться';
+
+  @override
+  String dashboardUpdateAvailable(String version) {
+    return 'Доступно обновление $version';
+  }
+
+  @override
+  String get dashboardUpdate => 'Обновить';
+
+  @override
+  String get contactRequestsTitle => 'Контакты';
+
+  @override
+  String get contactRequestsSearch => 'Поиск';
+
+  @override
+  String get contactRequestsIncoming => 'Входящие';
+
+  @override
+  String get contactRequestsSent => 'Отправленные';
+
+  @override
+  String get contactRequestsSearchHint => 'Никнейм или email';
+
+  @override
+  String get contactRequestSent => 'Запрос отправлен';
+
+  @override
+  String get contactRequestsNoUsers => 'Пользователи не найдены';
+
+  @override
+  String get contactRequestsSearchHelp =>
+      'Введите точный никнейм или email\nи нажмите поиск';
+
+  @override
+  String get contactRequestsSendTooltip => 'Отправить запрос';
+
+  @override
+  String get contactRequestTitle => 'Запрос на общение';
+
+  @override
+  String contactRequestConfirm(String name) {
+    return 'Отправить запрос на общение пользователю $name?';
+  }
+
+  @override
+  String get contactRequestSend => 'Отправить';
+
+  @override
+  String get contactRequestsNoIncoming => 'Нет входящих запросов';
+
+  @override
+  String get contactRequestsNoSent => 'Нет отправленных запросов';
+
+  @override
+  String get contactRequestStatusPending => 'Ожидает ответа';
+
+  @override
+  String get contactRequestStatusAccepted => 'Принят';
+
+  @override
+  String get contactRequestStatusRejected => 'Отклонён';
+
+  @override
+  String get userSearchTitle => 'Найти пользователя';
+
+  @override
+  String get userSearchHint => 'Никнейм, телефон или email';
+
+  @override
+  String get userSearchHelper => 'Введите @никнейм, email или имя для поиска';
+
+  @override
+  String get userSearchNoUsers => 'Пользователи не найдены';
+
+  @override
+  String get userProfileShareContact => 'Поделиться контактом';
+
+  @override
+  String get userProfileShareContactDesc => 'Отправить ссылку на контакт';
+
+  @override
+  String get userProfileCopyLink => 'Скопировать ссылку';
+
+  @override
+  String get userProfileCopied => 'Скопировано';
+
+  @override
+  String get userProfileTitle => 'Профиль';
+
+  @override
+  String get userProfileLoadError => 'Ошибка загрузки профиля';
+
+  @override
+  String get userProfileMessage => 'Написать';
+
+  @override
+  String get userProfileCall => 'Позвонить';
+
+  @override
+  String get userProfileRequestSent => 'Запрос отправлен';
+
+  @override
+  String get userProfileAccept => 'Принять';
+
+  @override
+  String get userProfileDecline => 'Отклонить';
+
+  @override
+  String get userProfileAddToContacts => 'Добавить в контакты';
+
+  @override
+  String get userProfileMediaTab => 'Медиа';
+
+  @override
+  String get userProfileFilesTab => 'Файлы';
+
+  @override
+  String get userProfileLinksTab => 'Ссылки';
+
+  @override
+  String get userProfileRecordingsTab => 'Записи';
+
+  @override
+  String get userProfileSummariesTab => 'Резюме';
+
+  @override
+  String get userProfileNoMedia => 'Нет медиафайлов';
+
+  @override
+  String get userProfileNoFiles => 'Нет файлов';
+
+  @override
+  String get userProfileNoLinks => 'Нет ссылок';
+
+  @override
+  String get userProfileNoRecordings => 'Нет записей';
+
+  @override
+  String get userProfileNoSummaries => 'Нет резюме';
+
+  @override
+  String get userProfileMeetingSummary => 'Резюме встречи';
+
+  @override
+  String get userProfileFailedOpenChat => 'Не удалось открыть чат';
+
+  @override
+  String get sharedMediaTitle => 'Медиа и файлы';
+
+  @override
+  String get sharedMediaTab => 'Медиа';
+
+  @override
+  String get sharedFilesTab => 'Файлы';
+
+  @override
+  String get sharedLinksTab => 'Ссылки';
+
+  @override
+  String get sharedNoMedia => 'Нет медиафайлов';
+
+  @override
+  String get sharedNoFiles => 'Нет файлов';
+
+  @override
+  String get sharedNoLinks => 'Нет ссылок';
+
+  @override
+  String get shareToChat => 'Переслать в чат';
+
+  @override
+  String get shareSelectChat => 'Выберите чат';
+
+  @override
+  String get shareNoChats => 'Нет чатов';
+
+  @override
+  String shareFilesCount(int count) {
+    return '$count файлов';
+  }
+
+  @override
+  String get contactsTitle => 'Контакты';
+
+  @override
+  String get contactsAddTooltip => 'Добавить контакт';
+
+  @override
+  String get contactsSearchHint => 'Поиск контактов...';
+
+  @override
+  String get contactsNotFound => 'Ничего не найдено';
+
+  @override
+  String get contactsEmpty => 'Нет контактов';
+
+  @override
+  String get contactsAdd => 'Добавить контакт';
+
+  @override
+  String get contactsPendingConfirmation => 'Ожидает подтверждения';
+
+  @override
+  String get contactsMessage => 'Написать';
+
+  @override
+  String get contactsCall => 'Позвонить';
+
+  @override
+  String get contactsResend => 'Отправить повторно';
+
+  @override
+  String get contactsResendTimeout => 'Повтор через 24ч';
+
+  @override
+  String get contactsResent => 'Запрос отправлен повторно';
+
+  @override
+  String get notesTitle => 'Заметки';
+
+  @override
+  String get notesAssistantSpeaking => 'Ассистент говорит...';
+
+  @override
+  String get notesListening => 'Слушаю...';
+
+  @override
+  String get notesEmpty => 'Нет заметок';
+
+  @override
+  String get notesEmptyHint =>
+      'Нажмите микрофон для диктовки\nили + для ручного ввода';
+
+  @override
+  String get notesDeleteConfirm => 'Удалить заметку?';
+
+  @override
+  String get notesNew => 'Новая заметка';
+
+  @override
+  String get notesEdit => 'Редактировать';
+
+  @override
+  String get notesTitleHint => 'Заголовок';
+
+  @override
+  String get notesContentHint => 'Запишите свои мысли...';
+
+  @override
+  String get calendarTitle => 'Календарь';
+
+  @override
+  String get calendarStop => 'Остановить';
+
+  @override
+  String get calendarVoiceInput => 'Голосовой ввод';
+
+  @override
+  String get calendarNewEvent => 'Новое событие';
+
+  @override
+  String get calendarAssistantSpeaking => 'Ассистент говорит...';
+
+  @override
+  String get calendarListening => 'Слушаю...';
+
+  @override
+  String calendarInvitations(int count) {
+    return 'Приглашения ($count)';
+  }
+
+  @override
+  String get calendarNoEvents => 'Нет событий';
+
+  @override
+  String get calendarDayMon => 'Пн';
+
+  @override
+  String get calendarDayTue => 'Вт';
+
+  @override
+  String get calendarDayWed => 'Ср';
+
+  @override
+  String get calendarDayThu => 'Чт';
+
+  @override
+  String get calendarDayFri => 'Пт';
+
+  @override
+  String get calendarDaySat => 'Сб';
+
+  @override
+  String get calendarDaySun => 'Вс';
+
+  @override
+  String get calendarEnterRoom => 'Войти в комнату';
+
+  @override
+  String get calendarMeeting => 'Встреча';
+
+  @override
+  String calendarLocationPrefix(String location) {
+    return 'Место: $location';
+  }
+
+  @override
+  String get calendarEditEvent => 'Редактировать';
+
+  @override
+  String get calendarTitleHint => 'Название';
+
+  @override
+  String get calendarDescriptionHint => 'Описание';
+
+  @override
+  String get calendarTypeEvent => 'Событие';
+
+  @override
+  String get calendarTypeMeeting => 'Встреча';
+
+  @override
+  String get calendarTypeReminder => 'Напоминание';
+
+  @override
+  String get calendarTypeLabel => 'Тип';
+
+  @override
+  String get calendarMeetingLink => 'Ссылка на встречу';
+
+  @override
+  String get calendarLocationHint => 'Место';
+
+  @override
+  String get calendarDateLabel => 'Дата';
+
+  @override
+  String get calendarTimeLabel => 'Время';
+
+  @override
+  String get calendarReminderLabel => 'Напоминание';
+
+  @override
+  String get calendarReminderNone => 'Нет';
+
+  @override
+  String get calendarReminder15min => 'За 15 мин';
+
+  @override
+  String get calendarReminder30min => 'За 30 мин';
+
+  @override
+  String get calendarReminder1hour => 'За 1 час';
+
+  @override
+  String get calendarParticipants => 'Участники';
+
+  @override
+  String get calendarAddParticipant => 'Добавить';
+
+  @override
+  String get calendarSearchContacts => 'Поиск контактов...';
+
+  @override
+  String get calendarNoContacts => 'Нет контактов';
+
+  @override
+  String get callHistoryTitle => 'Звонки';
+
+  @override
+  String get callHistoryTab => 'История звонков';
+
+  @override
+  String get callHistoryTempMeeting => 'Временная встреча';
+
+  @override
+  String get callHistoryCopy => 'Скопировать';
+
+  @override
+  String get callHistoryLinkCopied => 'Ссылка скопирована';
+
+  @override
+  String get callHistoryShare => 'Поделиться';
+
+  @override
+  String get callHistoryEnter => 'Войти';
+
+  @override
+  String get callHistoryAlreadyInCall => 'Уже идёт звонок';
+
+  @override
+  String get callHistoryCouldNotDeterminePeer =>
+      'Не удалось определить собеседника';
+
+  @override
+  String get callHistoryContacts => 'Контакты';
+
+  @override
+  String get callHistoryFailedLoadRoom => 'Не удалось загрузить вашу комнату';
+
+  @override
+  String get callHistoryYourRoom => 'Ваша комната';
+
+  @override
+  String get callHistoryCreateMeeting => 'Создать встречу';
+
+  @override
+  String get callHistoryMeetingSummaries => 'Резюме встреч';
+
+  @override
+  String get callHistoryMeetingRecordings => 'Записи встреч';
+
+  @override
+  String get callHistoryNoCalls => 'Нет звонков';
+
+  @override
+  String get callHistoryMissed => 'Пропущенный';
+
+  @override
+  String get callHistoryRecording => 'Запись';
+
+  @override
+  String get callHistorySummary => 'Резюме';
+
+  @override
+  String get callHistoryCallAgain => 'Позвонить снова';
+
+  @override
+  String callHistoryTodayTime(String time) {
+    return 'Сегодня, $time';
+  }
+
+  @override
+  String callHistoryYesterdayTime(String time) {
+    return 'Вчера, $time';
+  }
+
+  @override
+  String get callHistoryUnknown => 'Неизвестный';
+
+  @override
+  String get callHistoryDetails => 'Детали звонка';
+
+  @override
+  String get callHistoryOutgoing => 'Исходящий звонок';
+
+  @override
+  String get callHistoryIncoming => 'Входящий звонок';
+
+  @override
+  String callHistoryDuration(String duration) {
+    return 'Длительность: $duration';
+  }
+
+  @override
+  String get callHistoryWithAI => 'С AI-ассистентом';
+
+  @override
+  String get callHistoryParticipants => 'Участники';
+
+  @override
+  String get callHistoryMeetingSummary => 'Резюме встречи';
+
+  @override
+  String get callHistoryMoreDetails => 'Подробнее';
+
+  @override
+  String get callHistorySummaryProcessing => 'Резюме обрабатывается...';
+
+  @override
+  String get callHistoryMeetingRecording => 'Запись встречи';
+
+  @override
+  String get callHistoryProcessing => 'Обработка...';
+
+  @override
+  String get callHistoryCreateTranscript => 'Создать протокол';
+
+  @override
+  String get callHistoryNoSummaries => 'Нет резюме';
+
+  @override
+  String get callHistoryRecordDuringCall =>
+      'Нажмите \"Запись\" во время звонка';
+
+  @override
+  String callHistoryMeetingTime(String time) {
+    return 'Встреча $time';
+  }
+
+  @override
+  String get callHistoryTranscribing => 'Транскрибация и суммаризация...';
+
+  @override
+  String get callHistoryTranscriptCreated => 'Протокол создан';
+
+  @override
+  String get callHistoryNoRecordings => 'Нет записей';
+
+  @override
+  String callHistoryRecordingDate(String date) {
+    return 'Запись $date';
+  }
+
+  @override
+  String get callHistoryRecordingUnavailable => 'Запись недоступна';
+
+  @override
+  String get callHistoryTranscriptReady => 'Протокол готов';
+
+  @override
+  String get callHistoryTranscript => 'Протокол';
+
+  @override
+  String get callHistoryKeyPoints => 'Ключевые моменты';
+
+  @override
+  String get callHistoryTasks => 'Задачи';
+
+  @override
+  String callHistoryAssignedTo(String assignee) {
+    return 'Ответственный: $assignee';
+  }
+
+  @override
+  String get callHistoryDecisions => 'Принятые решения';
+
+  @override
+  String get callHistoryShowTranscript => 'Показать полный транскрипт';
+
+  @override
+  String get profileScanQr => 'Сканировать QR';
+
+  @override
+  String get profileMyQrCode => 'Мой QR код';
+
+  @override
+  String profileAddMeShare(String userId) {
+    return 'Добавь меня в Taler ID!\ntalerid://user/$userId';
+  }
+
+  @override
+  String get profileShowCode => 'Покажи этот код, чтобы добавить тебя';
+
+  @override
+  String get profileEditDesc => 'Имя, фамилия, отчество, дата рождения';
+
+  @override
+  String get profileAboutMe => 'О себе';
+
+  @override
+  String get profileAboutMeDesc => 'Ценности, навыки, интересы и другое';
+
+  @override
+  String get profileNotes => 'Заметки';
+
+  @override
+  String get profileNotesDesc => 'Мысли, идеи и записи';
+
+  @override
+  String get profileAvatarUpdated => 'Аватар обновлён';
+
+  @override
+  String get profileNickname => 'Никнейм';
+
+  @override
+  String get profileNotSet => 'Не задан';
+
+  @override
+  String get profileChangeNickname => 'Изменить никнейм';
+
+  @override
+  String get profileNicknameUpdated => 'Никнейм обновлён';
+
+  @override
+  String get profileShareLabel => 'Поделиться';
+
+  @override
+  String get profileScanQrCode => 'Сканировать QR код';
+
+  @override
+  String get profilePointCamera => 'Наведите камеру на QR код';
+
+  @override
+  String get profilePhotoCamera => 'Сделать фото';
+
+  @override
+  String get profilePhotoGallery => 'Выбрать из галереи';
+
+  @override
+  String get editProfilePatronymic => 'Отчество (опционально)';
+
+  @override
+  String get editProfileDateFormat => 'DD.MM.YYYY';
+
+  @override
+  String get aboutMeTitle => 'О себе';
+
+  @override
+  String get aboutMeClickToFill => 'Нажмите, чтобы заполнить';
+
+  @override
+  String get aboutMeCoreValues => 'Ценности';
+
+  @override
+  String get aboutMeWorldview => 'Видение мира';
+
+  @override
+  String get aboutMeSkills => 'Навыки';
+
+  @override
+  String get aboutMeInterests => 'Интересы';
+
+  @override
+  String get aboutMeDesires => 'Желания';
+
+  @override
+  String get aboutMeBackground => 'Профиль';
+
+  @override
+  String get aboutMeLikes => 'Нравится';
+
+  @override
+  String get aboutMeDislikes => 'Не нравится';
+
+  @override
+  String get aboutMeDeleteSection => 'Удалить раздел?';
+
+  @override
+  String get aboutMeDeleteConfirm => 'Все данные этого раздела будут удалены.';
+
+  @override
+  String aboutMeConnectionError(String error) {
+    return 'Ошибка подключения: $error';
+  }
+
+  @override
+  String get aboutMeVisibility => 'Видимость';
+
+  @override
+  String get aboutMeTags => 'Теги';
+
+  @override
+  String get aboutMeAddTag => 'Добавить тег...';
+
+  @override
+  String get aboutMeDescription => 'Описание';
+
+  @override
+  String get aboutMeDescribeLong => 'Расскажите подробнее...';
+
+  @override
+  String get aboutMeVisibilityEveryone => 'Все';
+
+  @override
+  String get aboutMeVisibilityContacts => 'Контакты';
+
+  @override
+  String get aboutMeVisibilityOnlyMe => 'Только я';
+
+  @override
+  String get settingsProfileSubtitle => 'Профиль';
+
+  @override
+  String get settingsAccount => 'Аккаунт';
+
+  @override
+  String get settingsKycVerification => 'Верификация личности (KYC)';
+
+  @override
+  String get settingsOrganizations => 'Организации';
+
+  @override
+  String get incomingCallLabel => 'Входящий звонок';
+
+  @override
+  String get incomingCallDecline => 'Отклонить';
+
+  @override
+  String get incomingCallAccept => 'Принять';
+
+  @override
+  String get groupCamera => 'Камера';
+
+  @override
+  String get groupGallery => 'Галерея';
+
+  @override
+  String get groupAvatarUpdated => 'Аватар группы обновлён';
+
+  @override
+  String get groupNameTitle => 'Название группы';
+
+  @override
+  String get groupEnterName => 'Введите название';
+
+  @override
+  String get groupDescriptionTitle => 'Описание группы';
+
+  @override
+  String get groupEnterDescription => 'Введите описание группы';
+
+  @override
+  String get groupChangeRoleTitle => 'Изменить роль';
+
+  @override
+  String get groupRemoveMemberTitle => 'Удалить участника';
+
+  @override
+  String get groupDescription => 'Описание';
+
+  @override
+  String get groupAddDescription => 'Добавить описание группы';
+
+  @override
+  String get groupNoDescription => 'Нет описания';
+
+  @override
+  String get groupMediaAndFiles => 'Медиа и файлы';
+
+  @override
+  String get groupMuteNotifications => 'Отключить уведомления';
+
+  @override
+  String get groupMuted => 'Отключено';
+
+  @override
+  String get groupNoResults => 'Нет результатов';
+
+  @override
+  String get authInvalidCode => 'Неверный код. Попробуйте ещё раз.';
+
+  @override
+  String get loginSubtitle => 'Используйте email и пароль';
+
+  @override
+  String get emailRequired => 'Введите email';
+
+  @override
+  String get emailInvalid => 'Некорректный email';
+
+  @override
+  String get passwordRequired => 'Введите пароль';
+
+  @override
+  String get registerSubtitle => 'Один аккаунт для всей экосистемы Taler';
+
+  @override
+  String get usernameOptional => 'Никнейм (необязательно)';
+
+  @override
+  String get usernameMinLength => 'Минимум 3 символа';
+
+  @override
+  String get usernameMaxLength => 'Максимум 30 символов';
+
+  @override
+  String get usernameInvalid => 'Только буквы, цифры и _';
+
+  @override
+  String get biometricLoginReason => 'Войдите в Taler ID';
+
+  @override
+  String get docTypePassport => 'Паспорт';
+
+  @override
+  String get docTypeIdCard => 'ID-карта';
+
+  @override
+  String get docTypeDriverLicense => 'Водительское удостоверение';
+
+  @override
+  String get docTypeResidencePermit => 'Вид на жительство';
+
+  @override
+  String addressApartment(String number) {
+    return 'кв. $number';
+  }
+
+  @override
+  String get failedToUpdateProfile => 'Не удалось обновить профиль';
+
+  @override
+  String get failedToStartKyb => 'Не удалось запустить KYB-верификацию';
+
+  @override
+  String get orgUpdated => 'Организация обновлена';
+
+  @override
+  String get failedToUpdateOrg => 'Не удалось обновить организацию';
+
+  @override
+  String get failedToChangeRole => 'Не удалось изменить роль';
+
+  @override
+  String get failedToRemoveMember => 'Не удалось удалить участника';
+
+  @override
+  String get capabilityMessagesTitle => 'Сообщения';
+
+  @override
+  String get capabilityMessagesDesc =>
+      'Проверь сообщения или напиши кому-нибудь. Например: \"Напиши Виктору: буду через час\"';
+
+  @override
+  String get capabilityCallsTitle => 'Звонки';
+
+  @override
+  String get capabilityCallsDesc =>
+      'Позвони любому контакту голосом. Например: \"Позвони Виктору Викторову\"';
+
+  @override
+  String get capabilityChatTitle => 'Переписка';
+
+  @override
+  String get capabilityChatDesc =>
+      'Проанализирую историю чата. Например: \"Что мы обсуждали с Виктором?\"';
+
+  @override
+  String get capabilityProfileTitle => 'Профиль';
+
+  @override
+  String get capabilityProfileDesc =>
+      'Покажу или обновлю твой профиль. Например: \"Покажи мой профиль\"';
+
+  @override
+  String get capabilityCoachingTitle => 'Коучинг';
+
+  @override
+  String get capabilityCoachingDesc =>
+      'Режимы: коучинг ICF, психолог, HR-консультация. Скажи: \"Давай коучинг\"';
+
+  @override
+  String get capabilityCalendarTitle => 'Календарь';
+
+  @override
+  String get capabilityCalendarDesc =>
+      'Запланируй встречу или поставь напоминание. Например: \"Поставь встречу с Виктором на завтра в 15:00\"';
+
+  @override
+  String get capabilityNotesTitle => 'Заметки';
+
+  @override
+  String get capabilityNotesDesc =>
+      'Сохрани мысль или прочитай последние заметки. Например: \"Запиши идею...\" или \"Прочитай последние заметки\"';
+
+  @override
+  String get assistantCallConfirm => 'Позвонить?';
 }

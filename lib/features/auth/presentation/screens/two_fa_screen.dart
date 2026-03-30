@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -55,7 +56,7 @@ class _TwoFAScreenState extends State<TwoFAScreen> {
             context.go(RouteConstants.assistant);
           } else if (state is AuthFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
             _codeController.clear();
           }

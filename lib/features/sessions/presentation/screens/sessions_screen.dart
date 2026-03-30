@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
+import '../../../../core/utils/error_keys.dart';
 import '../../domain/entities/session_entity.dart';
 import '../bloc/sessions_bloc.dart';
 import '../bloc/sessions_event.dart';
@@ -32,7 +33,7 @@ class _SessionsScreenState extends State<SessionsScreen> {
         listener: (context, state) {
           if (state is SessionsError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: AppColors.of(context).error),
+              SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           }
         },

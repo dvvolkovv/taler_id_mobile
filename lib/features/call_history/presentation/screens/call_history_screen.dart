@@ -11,6 +11,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -82,8 +83,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       if (mounted) _showTempRoomSheet(code, link);
     } catch (err) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $err'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(l10n.errorWithMessage(err.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     } finally {
@@ -93,6 +95,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   void _showTempRoomSheet(String code, String link) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.surface,
@@ -116,7 +119,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'Временная встреча',
+              l10n.callHistoryTempMeeting,
               style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
@@ -127,12 +130,12 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.copy_rounded,
-                    label: 'Скопировать',
+                    label: l10n.callHistoryCopy,
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: const Text('Ссылка скопирована'),
+                          content: Text(l10n.callHistoryLinkCopied),
                           backgroundColor: colors.primary,
                           duration: const Duration(seconds: 1),
                         ),
@@ -144,7 +147,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.share_rounded,
-                    label: 'Поделиться',
+                    label: l10n.callHistoryShare,
                     onTap: () => Share.share(link),
                   ),
                 ),
@@ -152,7 +155,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 Expanded(
                   child: _ActionButton(
                     icon: Icons.videocam_rounded,
-                    label: 'Войти',
+                    label: l10n.callHistoryEnter,
                     filled: true,
                     onTap: () {
                       Navigator.pop(ctx);
@@ -170,9 +173,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   void _copyLink(String link) {
     Clipboard.setData(ClipboardData(text: link));
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Ссылка скопирована'),
+        content: Text(l10n.callHistoryLinkCopied),
         backgroundColor: AppColors.of(context).primary,
         duration: const Duration(seconds: 1),
       ),
@@ -181,16 +185,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   Future<void> _callBack(_CallEntry e) async {
     if (_calling) return;
+    final l10n = AppLocalizations.of(context)!;
     if (CallStateService.instance.isInCall) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Уже идёт звонок'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(l10n.callHistoryAlreadyInCall), backgroundColor: AppColors.of(context).error),
       );
       return;
     }
     if (!e.withAi && (e.conversationId == null || e.conversationId!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Не удалось определить собеседника'),
+          content: Text(l10n.callHistoryCouldNotDeterminePeer),
           backgroundColor: AppColors.of(context).error,
         ),
       );
@@ -231,7 +236,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     } catch (err) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $err'), backgroundColor: AppColors.of(context).error),
+          SnackBar(content: Text(l10n.errorWithMessage(err.toString())), backgroundColor: AppColors.of(context).error),
         );
       }
     } finally {
@@ -242,6 +247,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       body: RefreshIndicator(
@@ -262,11 +268,11 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 padding: const EdgeInsets.only(left: 12),
                 child: _CallHistoryProfileAvatar(),
               ),
-              title: const Text('Звонки'),
+              title: Text(l10n.callHistoryTitle),
               actions: [
                 IconButton(
                   icon: const Icon(Icons.contacts_outlined),
-                  tooltip: 'Контакты',
+                  tooltip: l10n.callHistoryContacts,
                   onPressed: () => context.push('/dashboard/contacts'),
                 ),
               ],
@@ -284,7 +290,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   _buildMeetingRecordingsButton(colors),
                   const SizedBox(height: 24),
                   Text(
-                    'История звонков',
+                    l10n.callHistoryTab,
                     style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 12),
@@ -299,6 +305,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildPersonalRoomSection(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<_PersonalRoom?>(
       future: _personalRoomFuture,
       builder: (context, snap) {
@@ -319,13 +326,13 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Не удалось загрузить вашу комнату',
+                    l10n.callHistoryFailedLoadRoom,
                     style: TextStyle(color: colors.textSecondary, fontSize: 14),
                   ),
                 ),
                 TextButton(
                   onPressed: () { final f = _loadPersonalRoom(); setState(() { _personalRoomFuture = f; }); },
-                  child: Text('Повторить', style: TextStyle(color: colors.primary, fontSize: 13)),
+                  child: Text(l10n.retry, style: TextStyle(color: colors.primary, fontSize: 13)),
                 ),
               ],
             ),
@@ -348,7 +355,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Ваша комната',
+                      l10n.callHistoryYourRoom,
                       style: TextStyle(
                         color: colors.textPrimary,
                         fontSize: 16,
@@ -366,7 +373,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.copy_rounded,
-                      label: 'Скопировать',
+                      label: l10n.callHistoryCopy,
                       onTap: () => _copyLink(room.link),
                     ),
                   ),
@@ -374,7 +381,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.share_rounded,
-                      label: 'Поделиться',
+                      label: l10n.callHistoryShare,
                       onTap: () => Share.share(room.link),
                     ),
                   ),
@@ -382,7 +389,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   Expanded(
                     child: _ActionButton(
                       icon: Icons.videocam_rounded,
-                      label: 'Войти',
+                      label: l10n.callHistoryEnter,
                       filled: true,
                       onTap: () => context.push('/dashboard/voice?publicCode=${room.code}'),
                     ),
@@ -397,6 +404,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildCreateMeetingButton(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: _creatingTemp ? null : _createTemporaryRoom,
       child: AppCard(
@@ -418,7 +426,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Создать встречу',
+                l10n.callHistoryCreateMeeting,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 15,
@@ -434,6 +442,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildMeetingSummariesButton(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const MeetingSummariesScreen()),
@@ -452,7 +461,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Резюме встреч',
+                l10n.callHistoryMeetingSummaries,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 15,
@@ -468,6 +477,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildMeetingRecordingsButton(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const MeetingRecordingsScreen()),
@@ -486,7 +496,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Записи встреч',
+                l10n.callHistoryMeetingRecordings,
                 style: TextStyle(
                   color: colors.textPrimary,
                   fontSize: 15,
@@ -502,6 +512,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   Widget _buildHistoryList(AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     return FutureBuilder<List<_CallEntry>>(
       future: _historyFuture,
       builder: (context, snap) {
@@ -520,10 +531,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               children: [
                 Icon(Icons.error_outline, color: colors.error, size: 36),
                 const SizedBox(height: 8),
-                Text('Ошибка загрузки', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                Text(l10n.loadError, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                 TextButton(
                   onPressed: () { final f = _loadHistory(); setState(() { _historyFuture = f; }); },
-                  child: Text('Повторить', style: TextStyle(color: colors.primary)),
+                  child: Text(l10n.retry, style: TextStyle(color: colors.primary)),
                 ),
               ],
             ),
@@ -535,7 +546,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             padding: const EdgeInsets.all(24),
             child: Center(
               child: Text(
-                'Нет звонков',
+                l10n.callHistoryNoCalls,
                 style: TextStyle(color: colors.textSecondary, fontSize: 14),
               ),
             ),
@@ -607,7 +618,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 if (isMissed) ...[
                   const SizedBox(height: 2),
                   Text(
-                    'Пропущенный',
+                    AppLocalizations.of(context)!.callHistoryMissed,
                     style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -617,9 +628,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     spacing: 6,
                     children: [
                       if (e.hasRecording)
-                        _CallBadge(icon: Icons.mic_rounded, label: 'Запись', color: Colors.red),
+                        _CallBadge(icon: Icons.mic_rounded, label: AppLocalizations.of(context)!.callHistoryRecording, color: Colors.red),
                       if (e.hasSummary)
-                        _CallBadge(icon: Icons.description_rounded, label: 'Резюме', color: colors.primary),
+                        _CallBadge(icon: Icons.description_rounded, label: AppLocalizations.of(context)!.callHistorySummary, color: colors.primary),
                     ],
                   ),
                 ],
@@ -644,7 +655,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 )
               : IconButton(
                   icon: Icon(Icons.call_outlined, color: colors.primary, size: 22),
-                  tooltip: 'Позвонить снова',
+                  tooltip: AppLocalizations.of(context)!.callHistoryCallAgain,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                   onPressed: () => _callBack(e),
@@ -656,13 +667,14 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   }
 
   String _formatDate(DateTime dt) {
+    final l10n = AppLocalizations.of(context)!;
     final local = dt.toLocal();
     final now = DateTime.now();
     final diff = now.difference(local);
     final time =
         '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    if (diff.inDays == 0 && local.day == now.day) return 'Сегодня, $time';
-    if (diff.inDays <= 1 && now.day - local.day == 1) return 'Вчера, $time';
+    if (diff.inDays == 0 && local.day == now.day) return l10n.callHistoryTodayTime(time);
+    if (diff.inDays <= 1 && now.day - local.day == 1) return l10n.callHistoryYesterdayTime(time);
     return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}, $time';
   }
 
@@ -948,8 +960,9 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
       setState(() { _future = _load(); });
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -974,21 +987,23 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   }
 
   String _fmtDate(DateTime dt) {
+    final l10n = AppLocalizations.of(context)!;
     final l = dt.toLocal();
     final now = DateTime.now();
     final time = '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
-    if (l.day == now.day && l.month == now.month && l.year == now.year) return 'Сегодня, $time';
+    if (l.day == now.day && l.month == now.month && l.year == now.year) return l10n.callHistoryTodayTime(time);
     final yesterday = now.subtract(const Duration(days: 1));
-    if (l.day == yesterday.day && l.month == yesterday.month && l.year == yesterday.year) return 'Вчера, $time';
+    if (l.day == yesterday.day && l.month == yesterday.month && l.year == yesterday.year) return l10n.callHistoryYesterdayTime(time);
     return '${l.day.toString().padLeft(2, '0')}.${l.month.toString().padLeft(2, '0')}.${l.year}, $time';
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Детали звонка')),
+      appBar: AppBar(title: Text(l10n.callHistoryDetails)),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _future,
         builder: (context, snap) {
@@ -1002,10 +1017,10 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 children: [
                   Icon(Icons.error_outline, color: colors.error, size: 36),
                   const SizedBox(height: 8),
-                  Text('Ошибка загрузки', style: TextStyle(color: colors.textPrimary)),
+                  Text(l10n.loadError, style: TextStyle(color: colors.textPrimary)),
                   TextButton(
                     onPressed: () { final f = _load(); setState(() { _future = f; }); },
-                    child: Text('Повторить', style: TextStyle(color: colors.primary)),
+                    child: Text(l10n.retry, style: TextStyle(color: colors.primary)),
                   ),
                 ],
               ),
@@ -1019,6 +1034,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   }
 
   Widget _buildContent(Map<String, dynamic> data, AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     final startedAt = DateTime.tryParse(data['startedAt'] as String? ?? '')?.toLocal() ?? DateTime.now();
     final durationSec = data['durationSec'] as int?;
     final isOutgoing = data['isOutgoing'] as bool? ?? true;
@@ -1043,7 +1059,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                isOutgoing ? 'Исходящий звонок' : 'Входящий звонок',
+                isOutgoing ? l10n.callHistoryOutgoing : l10n.callHistoryIncoming,
                 style: TextStyle(color: colors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 4),
@@ -1060,7 +1076,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'Длительность: ${_fmtDuration(durationSec)}',
+                    l10n.callHistoryDuration(_fmtDuration(durationSec)),
                     style: TextStyle(color: colors.primary, fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
@@ -1072,7 +1088,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   children: [
                     Icon(Icons.smart_toy_rounded, size: 16, color: colors.primary),
                     const SizedBox(width: 4),
-                    Text('С AI-ассистентом', style: TextStyle(color: colors.primary, fontSize: 13)),
+                    Text(l10n.callHistoryWithAI, style: TextStyle(color: colors.primary, fontSize: 13)),
                   ],
                 ),
               ],
@@ -1083,12 +1099,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
         // Participants
         if (participants.isNotEmpty) ...[
-          _SectionHeader(icon: Icons.people_rounded, title: 'Участники', colors: colors),
+          _SectionHeader(icon: Icons.people_rounded, title: l10n.callHistoryParticipants, colors: colors),
           const SizedBox(height: 8),
           AppCard(
             child: Column(
               children: participants.map((p) {
-                final name = p['displayName'] as String? ?? 'Неизвестный';
+                final name = p['displayName'] as String? ?? l10n.callHistoryUnknown;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
@@ -1117,7 +1133,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
         // Meeting summary (first, before recording)
         if (summary != null && summary['status'] != 'processing') ...[
           if ((summary['summary'] as String? ?? '').isNotEmpty) ...[
-            _SectionHeader(icon: Icons.smart_toy_rounded, title: 'Резюме встречи', colors: colors),
+            _SectionHeader(icon: Icons.smart_toy_rounded, title: l10n.callHistoryMeetingSummary, colors: colors),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => Navigator.of(context).push(
@@ -1139,7 +1155,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                         Icon(Icons.arrow_forward_rounded, size: 16, color: colors.primary),
                         const SizedBox(width: 4),
                         Text(
-                          'Подробнее',
+                          l10n.callHistoryMoreDetails,
                           style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -1164,7 +1180,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Резюме обрабатывается...',
+                    l10n.callHistorySummaryProcessing,
                     style: TextStyle(color: colors.textSecondary, fontSize: 14),
                   ),
                 ),
@@ -1176,7 +1192,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
         // Recording
         if (recordingUrl != null && recordingUrl.isNotEmpty) ...[
-          _SectionHeader(icon: Icons.fiber_manual_record_rounded, title: 'Запись встречи', colors: colors),
+          _SectionHeader(icon: Icons.fiber_manual_record_rounded, title: l10n.callHistoryMeetingRecording, colors: colors),
           const SizedBox(height: 8),
           AppCard(
             child: Row(
@@ -1236,7 +1252,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
                   onPressed: () => Share.share(recordingUrl),
-                  tooltip: 'Поделиться',
+                  tooltip: l10n.callHistoryShare,
                 ),
               ],
             ),
@@ -1254,7 +1270,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 icon: _transcribing
                     ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.textPrimary))
                     : const Icon(Icons.description_rounded),
-                label: Text(_transcribing ? 'Обработка...' : 'Создать протокол'),
+                label: Text(_transcribing ? l10n.callHistoryProcessing : l10n.callHistoryCreateTranscript),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: Colors.white,
@@ -1331,9 +1347,10 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Резюме встреч')),
+      appBar: AppBar(title: Text(l10n.callHistoryMeetingSummaries)),
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async { final f = _load(); setState(() { _future = f; }); },
@@ -1344,7 +1361,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
               return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
             }
             if (snap.hasError) {
-              return Center(child: Text('Ошибка загрузки', style: TextStyle(color: colors.error)));
+              return Center(child: Text(l10n.loadError, style: TextStyle(color: colors.error)));
             }
             final items = snap.data ?? [];
             if (items.isEmpty) {
@@ -1356,10 +1373,10 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                       children: [
                         Icon(Icons.smart_toy_outlined, size: 48, color: colors.textSecondary),
                         const SizedBox(height: 12),
-                        Text('Нет резюме', style: TextStyle(color: colors.textSecondary, fontSize: 15)),
+                        Text(l10n.callHistoryNoSummaries, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
                         const SizedBox(height: 6),
                         Text(
-                          'Нажмите "Запись" во время звонка',
+                          l10n.callHistoryRecordDuringCall,
                           style: TextStyle(color: colors.textSecondary, fontSize: 13),
                         ),
                       ],
@@ -1381,6 +1398,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
   }
 
   Widget _buildSummaryCard(Map<String, dynamic> item, AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     final participants = (item['participants'] as List?)?.join(', ') ?? '';
     final summary = item['summary'] as String? ?? '';
     final durationSec = item['durationSec'] as int?;
@@ -1404,7 +1422,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Встреча $timeStr',
+                    l10n.callHistoryMeetingTime(timeStr),
                     style: TextStyle(color: colors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -1416,7 +1434,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
                   ),
                   const SizedBox(width: 6),
-                  Text('Обрабатывается', style: TextStyle(color: colors.primary, fontSize: 12)),
+                  Text(l10n.callHistoryProcessing, style: TextStyle(color: colors.primary, fontSize: 12)),
                 ],
               ],
             ),
@@ -1434,7 +1452,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                 if (!isProcessing && actionItemsCount > 0)
                   Text('$actionItemsCount задач', style: TextStyle(color: colors.primary, fontSize: 12, fontWeight: FontWeight.w500)),
                 if (isProcessing)
-                  Text('Транскрибация и суммаризация...', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                  Text(l10n.callHistoryTranscribing, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
               ],
             ),
             if (!isProcessing && summary.isNotEmpty) ...[
@@ -1479,10 +1497,11 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
   }
 
   void _share() {
+    final l10n = AppLocalizations.of(context)!;
     final url = '${AppConfig.baseUrl}/meeting/${widget.id}';
     final summary = _data?['summary'] as String? ?? '';
     final text = summary.isNotEmpty
-        ? 'Резюме встречи:\n${summary.length > 200 ? '${summary.substring(0, 200)}...' : summary}\n\n$url'
+        ? '${l10n.callHistoryMeetingSummary}:\n${summary.length > 200 ? '${summary.substring(0, 200)}...' : summary}\n\n$url'
         : url;
     Share.share(text);
   }
@@ -1490,14 +1509,15 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Резюме встречи'),
+        title: Text(l10n.callHistoryMeetingSummary),
         actions: [
           IconButton(
             icon: const Icon(Icons.share_rounded),
-            tooltip: 'Поделиться',
+            tooltip: l10n.callHistoryShare,
             onPressed: _share,
           ),
         ],
@@ -1509,7 +1529,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
             return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
           }
           if (snap.hasError) {
-            return Center(child: Text('Ошибка загрузки', style: TextStyle(color: colors.error)));
+            return Center(child: Text(l10n.loadError, style: TextStyle(color: colors.error)));
           }
           final data = snap.data!;
           final summary = data['summary'] as String? ?? '';
@@ -1523,19 +1543,19 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
             padding: const EdgeInsets.all(16),
             children: [
               if (participants.isNotEmpty) ...[
-                Text('Участники', style: TextStyle(color: colors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                Text(l10n.callHistoryParticipants, style: TextStyle(color: colors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(participants, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                 const SizedBox(height: 20),
               ],
               if (summary.isNotEmpty) ...[
-                _sectionTitle('Резюме', Icons.summarize_rounded, colors),
+                _sectionTitle(l10n.callHistorySummary, Icons.summarize_rounded, colors),
                 const SizedBox(height: 8),
                 Text(summary, style: TextStyle(color: colors.textPrimary, fontSize: 14, height: 1.5)),
                 const SizedBox(height: 20),
               ],
               if (keyPoints.isNotEmpty) ...[
-                _sectionTitle('Ключевые моменты', Icons.lightbulb_outline_rounded, colors),
+                _sectionTitle(l10n.callHistoryKeyPoints, Icons.lightbulb_outline_rounded, colors),
                 const SizedBox(height: 8),
                 ...keyPoints.map((p) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
@@ -1550,7 +1570,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
                 const SizedBox(height: 20),
               ],
               if (actionItems.isNotEmpty) ...[
-                _sectionTitle('Задачи', Icons.task_alt_rounded, colors),
+                _sectionTitle(l10n.callHistoryTasks, Icons.task_alt_rounded, colors),
                 const SizedBox(height: 8),
                 ...actionItems.map((item) {
                   final task = item is Map ? (item['task'] as String? ?? '') : item.toString();
@@ -1565,7 +1585,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
                           if (assignee != null && assignee.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
-                              child: Text('Ответственный: $assignee', style: TextStyle(color: colors.primary, fontSize: 12)),
+                              child: Text(l10n.callHistoryAssignedTo(assignee), style: TextStyle(color: colors.primary, fontSize: 12)),
                             ),
                         ],
                       ),
@@ -1575,7 +1595,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
                 const SizedBox(height: 20),
               ],
               if (decisions.isNotEmpty) ...[
-                _sectionTitle('Принятые решения', Icons.check_circle_outline_rounded, colors),
+                _sectionTitle(l10n.callHistoryDecisions, Icons.check_circle_outline_rounded, colors),
                 const SizedBox(height: 8),
                 ...decisions.map((d) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
@@ -1594,7 +1614,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
                 _sectionTitle('Транскрипт', Icons.article_outlined, colors),
                 const SizedBox(height: 8),
                 ExpansionTile(
-                  title: Text('Показать полный транскрипт', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                  title: Text(l10n.callHistoryShowTranscript, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                   children: [
                     Padding(
                       padding: const EdgeInsets.all(12),
@@ -1692,12 +1712,13 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   }
 
   String _formatDate(DateTime dt) {
+    final l10n = AppLocalizations.of(context)!;
     final local = dt.toLocal();
     final now = DateTime.now();
     final diff = now.difference(local);
     final time = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-    if (diff.inDays == 0 && local.day == now.day) return 'Сегодня, $time';
-    if (diff.inDays <= 1 && now.day - local.day == 1) return 'Вчера, $time';
+    if (diff.inDays == 0 && local.day == now.day) return l10n.callHistoryTodayTime(time);
+    if (diff.inDays <= 1 && now.day - local.day == 1) return l10n.callHistoryYesterdayTime(time);
     return '${local.day.toString().padLeft(2, '0')}.${local.month.toString().padLeft(2, '0')}.${local.year}, $time';
   }
 
@@ -1716,9 +1737,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     try {
       await sl<DioClient>().post<dynamic>('/voice/recordings/$id/transcribe');
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Протокол создан'),
+            content: Text(l10n.callHistoryTranscriptCreated),
             backgroundColor: AppColors.of(context).primary,
           ),
         );
@@ -1727,9 +1749,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка: $e'),
+            content: Text(l10n.errorWithMessage(e.toString())),
             backgroundColor: AppColors.of(context).error,
           ),
         );
@@ -1742,9 +1765,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(title: const Text('Записи встреч')),
+      appBar: AppBar(title: Text(l10n.callHistoryMeetingRecordings)),
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async { final f = _load(); setState(() { _future = f; }); },
@@ -1755,7 +1779,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
               return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary));
             }
             if (snap.hasError) {
-              return Center(child: Text('Ошибка загрузки', style: TextStyle(color: colors.error)));
+              return Center(child: Text(l10n.loadError, style: TextStyle(color: colors.error)));
             }
             final items = snap.data ?? [];
             if (items.isEmpty) {
@@ -1767,10 +1791,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                       children: [
                         Icon(Icons.fiber_manual_record_rounded, size: 48, color: colors.textSecondary),
                         const SizedBox(height: 12),
-                        Text('Нет записей', style: TextStyle(color: colors.textSecondary, fontSize: 15)),
+                        Text(l10n.callHistoryNoRecordings, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
                         const SizedBox(height: 6),
                         Text(
-                          'Нажмите "Запись" во время звонка',
+                          l10n.callHistoryRecordDuringCall,
                           style: TextStyle(color: colors.textSecondary, fontSize: 13),
                         ),
                       ],
@@ -1792,6 +1816,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   }
 
   Widget _buildRecordingCard(Map<String, dynamic> item, AppColorsExtension colors) {
+    final l10n = AppLocalizations.of(context)!;
     final id = item['id'] as String? ?? '';
     final participants = (item['participants'] as List?)?.join(', ') ?? '';
     final durationSec = item['durationSec'] as int?;
@@ -1815,7 +1840,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Запись ${_formatDate(createdAt)}',
+                  l10n.callHistoryRecordingDate(_formatDate(createdAt)),
                   style: TextStyle(color: colors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -1888,15 +1913,15 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
                   onPressed: () => Share.share(
-                    'Запись встречи от ${_formatDate(createdAt)}\nУчастники: $participants\n\n$recordingUrl',
-                    subject: 'Запись встречи',
+                    '${l10n.callHistoryMeetingRecording} ${_formatDate(createdAt)}\n${l10n.callHistoryParticipants}: $participants\n\n$recordingUrl',
+                    subject: l10n.callHistoryMeetingRecording,
                   ),
-                  tooltip: 'Поделиться',
+                  tooltip: l10n.callHistoryShare,
                 ),
               ],
             ),
           ] else ...[
-            Text('Запись недоступна', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+            Text(l10n.callHistoryRecordingUnavailable, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
           ],
           // Protocol / Transcription button
           const SizedBox(height: 8),
@@ -1920,7 +1945,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                         const Icon(Icons.description_rounded, size: 14, color: Color(0xFF10B981)),
                         const SizedBox(width: 4),
                         Text(
-                          'Протокол готов',
+                          l10n.callHistoryTranscriptReady,
                           style: const TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(width: 2),
@@ -1939,14 +1964,14 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
                     ),
                     const SizedBox(width: 6),
-                    Text('Обработка...', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                    Text(l10n.callHistoryProcessing, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
                   ],
                 )
               else if (!hasTranscript)
                 TextButton.icon(
                   onPressed: () => _transcribe(id),
                   icon: const Icon(Icons.auto_awesome, size: 16),
-                  label: const Text('Протокол'),
+                  label: Text(l10n.callHistoryTranscript),
                   style: TextButton.styleFrom(
                     foregroundColor: colors.primary,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
