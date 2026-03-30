@@ -2294,6 +2294,16 @@ Answer briefly — the user is in the middle of a conversation.''';
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
+    // If on hold, stop hold music before audio session cleanup to avoid iOS audio session conflict
+    if (_onHold) {
+      try { await _holdPlayer.stop(); } catch (_) {}
+      if (_roomName != null) {
+        try {
+          sl<DioClient>().post('/voice/rooms/$_roomName/hold-music/stop', data: {}, fromJson: (d) => d);
+        } catch (_) {}
+      }
+      _onHold = false;
+    }
     // Stop in-call assistant if active
     if (_assistantActive) {
       _assistantSessionConfigured = false;
