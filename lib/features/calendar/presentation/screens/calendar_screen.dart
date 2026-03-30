@@ -257,8 +257,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Future<void> _playAudioBuffer() async {
     if (_audioBuffer.isEmpty) return;
-    await _recordSub?.cancel(); _recordSub = null;
-    try { await _recorder.stop(); } catch (_) {}
     final h = ByteData(44);
     void w(int o, String s) { for (var i = 0; i < s.length; i++) h.setUint8(o + i, s.codeUnitAt(i)); }
     w(0, 'RIFF'); h.setUint32(4, 36 + _audioBuffer.length, Endian.little);
@@ -272,11 +270,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
       await _player.play(BytesSource(wav));
     } catch (e) {
       debugPrint('[Calendar] playback error: $e');
-      if (mounted) setState(() => _aiSpeaking = false);
-      if (_ws != null && _voiceActive) {
-        await _restartRecording();
-      }
     }
+    if (mounted) setState(() => _aiSpeaking = true);
   }
 
   Future<void> _handleVoiceTool(String name, String argsJson, String callId) async {

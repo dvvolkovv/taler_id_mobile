@@ -226,9 +226,6 @@ class _NotesScreenState extends State<NotesScreen> {
 
   Future<void> _playAudioBuffer() async {
     if (_audioBuffer.isEmpty) return;
-    await _recordSub?.cancel();
-    _recordSub = null;
-    try { await _recorder.stop(); } catch (_) {}
     final header = _buildWavHeader(_audioBuffer.length, 24000, 1, 16);
     final wav = Uint8List.fromList([...header, ..._audioBuffer]);
     _audioBuffer.clear();
@@ -236,11 +233,8 @@ class _NotesScreenState extends State<NotesScreen> {
       await _player.play(BytesSource(wav));
     } catch (e) {
       debugPrint('[Notes] playback error: $e');
-      if (mounted) setState(() => _aiSpeaking = false);
-      if (_ws != null && _voiceActive) {
-        await _restartRecording();
-      }
     }
+    if (mounted) setState(() => _aiSpeaking = true);
   }
 
   Uint8List _buildWavHeader(int dataSize, int sampleRate, int channels, int bitsPerSample) {
