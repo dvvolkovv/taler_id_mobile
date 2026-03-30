@@ -118,10 +118,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
           'modalities': ['text', 'audio'],
           'instructions': Localizations.localeOf(context).languageCode == 'ru'
               ? 'Ты — помощник для управления календарём. '
-                'Часовой пояс пользователя: UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}. '
-                'Сейчас: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}:00. '
-                'ВАЖНО: когда пользователь говорит время (например "18:00") — это МЕСТНОЕ время. '
-                'Конвертируй в UTC для startAt: если местное 18:00 и пояс UTC+${DateTime.now().timeZoneOffset.inHours}, то UTC = ${18 - DateTime.now().timeZoneOffset.inHours}:00.\n\n'
+                'Сейчас: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")} ${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}. '
+                'ВАЖНО: передавай startAt и reminderAt в МЕСТНОМ времени пользователя в формате YYYY-MM-DDTHH:MM:SS (БЕЗ Z на конце, БЕЗ конвертации в UTC). '
+                'Например если пользователь сказал "18:00 сегодня" — передай "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T18:00:00".\n\n'
                 'ВСТРЕЧА с человеком: если пользователь говорит "встреча с [имя]" или "запланируй с [имя]":\n'
                 '1. Вызови get_conversations чтобы найти контакт по имени\n'
                 '2. Ставь type="CALL" — ссылка на комнату создастся автоматически\n'
@@ -132,10 +131,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 'ПЕРЕСЕЧЕНИЯ: перед созданием вызови get_events, проверь конфликты.\n'
                 'Начни с: "Слушаю, что хотите сделать в календаре?"'
               : 'You are an assistant for calendar management. '
-                'User timezone: UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}. '
-                'Now: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}:00. '
-                'IMPORTANT: when the user says a time (e.g. "18:00") — it\'s LOCAL time. '
-                'Convert to UTC for startAt: if local 18:00 and timezone UTC+${DateTime.now().timeZoneOffset.inHours}, then UTC = ${18 - DateTime.now().timeZoneOffset.inHours}:00.\n\n'
+                'Now: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")} ${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}. '
+                'IMPORTANT: pass startAt and reminderAt in USER LOCAL time format YYYY-MM-DDTHH:MM:SS (NO Z suffix, NO UTC conversion). '
+                'For example if user says "6pm today" — pass "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T18:00:00".\n\n'
                 'MEETING with someone: if user says "meeting with [name]" or "schedule with [name]":\n'
                 '1. Call get_conversations to find contact by name\n'
                 '2. Set type="CALL" — room link will be created automatically\n'
@@ -280,6 +278,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         String? desc = args['description'] as String?;
+        // Convert local time to UTC
+        String startAtUtc = args['startAt'] as String? ?? '';
+        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
+          final local = DateTime.tryParse(startAtUtc);
+          if (local != null) startAtUtc = local.toUtc().toIso8601String();
+        }
+        String? reminderAtUtc;
+        if (args['reminderAt'] != null) {
+          final rLocal = DateTime.tryParse(args['reminderAt'] as String);
+          if (rLocal != null) reminderAtUtc = rLocal.toUtc().toIso8601String();
+        }
         // For CALL type, create room and add link
         if (args['type'] == 'CALL') {
           try {
@@ -293,8 +302,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
         final data = await client.post('/calendar', data: {
           'title': args['title'], 'description': desc, 'type': args['type'],
-          'startAt': args['startAt'],
-          if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          'startAt': startAtUtc,
+          if (reminderAtUtc != null) 'reminderAt': reminderAtUtc,
           if (args['contactIds'] != null) 'contactIds': args['contactIds'],
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);

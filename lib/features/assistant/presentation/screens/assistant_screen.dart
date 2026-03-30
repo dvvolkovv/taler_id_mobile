@@ -262,9 +262,8 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Если пользователь спрашивает "какие у меня заметки" — вызови get_notes и перескажи\n'
           'Если просит резюме заметок — вызови get_notes, проанализируй и дай краткое резюме\n\n'
           'КАЛЕНДАРЬ И НАПОМИНАНИЯ:\n'
-          'Часовой пояс: $tzStr. '
           'Сейчас: $nowStr.\n'
-          'Когда пользователь говорит время — это МЕСТНОЕ. Конвертируй в UTC для startAt.\n'
+          'Передавай startAt и reminderAt в МЕСТНОМ времени формат YYYY-MM-DDTHH:MM:SS (БЕЗ Z, БЕЗ конвертации в UTC).\n'
           'Если говорит "встреча с [имя]" — ставь type="CALL", найди контакт через get_conversations, передай contactIds.\n'
           'Типы: CALL=встреча со ссылкой, EVENT=событие, REMINDER=напоминание.\n'
           'Если спрашивает "что у меня запланировано" — вызови get_events и расскажи';
@@ -863,13 +862,29 @@ class _AssistantScreenState extends State<AssistantScreen>
         output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        // Convert local time to UTC
+        String startAtUtc = args['startAt'] as String? ?? '';
+        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
+          final local = DateTime.tryParse(startAtUtc);
+          if (local != null) startAtUtc = local.toUtc().toIso8601String();
+        }
+        String? reminderUtc;
+        if (args['reminderAt'] != null) {
+          final r = DateTime.tryParse(args['reminderAt'] as String);
+          if (r != null) reminderUtc = r.toUtc().toIso8601String();
+        }
+        String? endUtc;
+        if (args['endAt'] != null) {
+          final e = DateTime.tryParse(args['endAt'] as String);
+          if (e != null) endUtc = e.toUtc().toIso8601String();
+        }
         final data = await client.post('/calendar', data: {
           'title': args['title'],
           'description': args['description'],
           'type': args['type'],
-          'startAt': args['startAt'],
-          if (args['endAt'] != null) 'endAt': args['endAt'],
-          if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          'startAt': startAtUtc,
+          if (endUtc != null) 'endAt': endUtc,
+          if (reminderUtc != null) 'reminderAt': reminderUtc,
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
         output = jsonEncode(data);

@@ -260,9 +260,19 @@ class _NotesScreenState extends State<NotesScreen> {
         output = jsonEncode({'ok': true});
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        String startUtc = args['startAt'] as String? ?? '';
+        if (startUtc.isNotEmpty && !startUtc.endsWith('Z')) {
+          final l = DateTime.tryParse(startUtc);
+          if (l != null) startUtc = l.toUtc().toIso8601String();
+        }
+        String? remUtc;
+        if (args['reminderAt'] != null) {
+          final r = DateTime.tryParse(args['reminderAt'] as String);
+          if (r != null) remUtc = r.toUtc().toIso8601String();
+        }
         final data = await sl<DioClient>().post('/calendar', data: {
           'title': args['title'], 'description': args['description'], 'type': args['type'],
-          'startAt': args['startAt'], if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          'startAt': startUtc, if (remUtc != null) 'reminderAt': remUtc,
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
         output = jsonEncode(data);
