@@ -255,9 +255,6 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     _freeTextCtrl.addListener(_onTextChanged);
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       if (_ws != null && _voiceActive) {
         await _recordSub?.cancel();
         _recordSub = null;
@@ -583,7 +580,6 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       await _recordSub?.cancel();
       _recordSub = null;
       try { await _recorder.stop(); } catch (_) {}
-      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
     }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
@@ -597,9 +593,6 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
     } catch (e) {
       debugPrint('[ProfileSections] playback error: $e');
       if (mounted) setState(() => _aiSpeaking = false);
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       if (_ws != null && _voiceActive) {
         await _restartRecording();
       }

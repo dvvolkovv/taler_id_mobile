@@ -82,10 +82,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     )..repeat();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      // On iOS, restore .voiceChat audio session and restart recorder
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       // Restart recording after playback completes.
       if (_ws != null && _state == _CallState.connected && !_muted) {
         await _recordSub?.cancel();
@@ -335,9 +331,8 @@ class _AssistantScreenState extends State<AssistantScreen>
         'If user asks "what notes do I have" — call get_notes and summarize\n'
         'If asks for notes summary — call get_notes, analyze and give brief summary\n\n'
         'CALENDAR AND REMINDERS:\n'
-        'Timezone: $tzStr. '
         'Now: $nowStr.\n'
-        'When user says a time — it\'s LOCAL. Convert to UTC for startAt.\n'
+        'Pass startAt and reminderAt in LOCAL time format YYYY-MM-DDTHH:MM:SS (NO Z suffix, NO UTC conversion).\n'
         'If says "meeting with [name]" — set type="CALL", find contact via get_conversations, pass contactIds.\n'
         'Types: CALL=meeting with link, EVENT=event, REMINDER=reminder.\n'
         'If asks "what do I have planned", "meetings today", "what\'s today" — call get_events with from=start of today (YYYY-MM-DDT00:00:00) and to=end of day (YYYY-MM-DDT23:59:59) and tell them.\n'
@@ -574,19 +569,25 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Future<void> _startRecording() async {
+    debugPrint('[Assistant] _startRecording called, platform=${Platform.operatingSystem}');
     const config = RecordConfig(
       encoder: AudioEncoder.pcm16bits,
       sampleRate: 24000,
       numChannels: 1,
     );
-    final stream = await _recorder.startStream(config);
-    _recordSub = stream.listen((chunk) {
-      if (_muted || _ws == null) return;
-      _sendEvent({
-        'type': 'input_audio_buffer.append',
-        'audio': base64Encode(chunk),
+    try {
+      final stream = await _recorder.startStream(config);
+      debugPrint('[Assistant] recorder stream started');
+      _recordSub = stream.listen((chunk) {
+        if (_muted || _ws == null) return;
+        _sendEvent({
+          'type': 'input_audio_buffer.append',
+          'audio': base64Encode(chunk),
+        });
       });
-    });
+    } catch (e) {
+      debugPrint('[Assistant] recorder start FAILED: $e');
+    }
   }
 
   void _sendEvent(Map<String, dynamic> event) {
@@ -628,11 +629,12 @@ class _AssistantScreenState extends State<AssistantScreen>
     if (_audioBuffer.isEmpty) return;
     // On iOS, stop recorder before playback — the active recorder holds
     // the audio session and prevents AudioPlayer from producing sound.
+    // On iOS, stop recorder before playback — the active recorder holds
+    // the audio session and prevents AudioPlayer from producing sound.
     if (Platform.isIOS) {
       await _recordSub?.cancel();
       _recordSub = null;
       try { await _recorder.stop(); } catch (_) {}
-      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
     }
     final pcm = Uint8List.fromList(_audioBuffer);
     _audioBuffer.clear();
@@ -647,9 +649,6 @@ class _AssistantScreenState extends State<AssistantScreen>
       debugPrint('[Assistant] playback error: $e');
       // Playback failed — onPlayerComplete won't fire, so restart recorder now
       if (mounted) setState(() => _aiSpeaking = false);
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       if (_ws != null && _state == _CallState.connected && !_muted) {
         await _startRecording();
       }

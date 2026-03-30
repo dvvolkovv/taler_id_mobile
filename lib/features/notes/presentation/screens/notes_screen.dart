@@ -45,9 +45,6 @@ class _NotesScreenState extends State<NotesScreen> {
     _load();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       if (_ws != null && _voiceActive) {
         await _recordSub?.cancel();
         _recordSub = null;
@@ -232,9 +229,6 @@ class _NotesScreenState extends State<NotesScreen> {
     await _recordSub?.cancel();
     _recordSub = null;
     try { await _recorder.stop(); } catch (_) {}
-    if (Platform.isIOS) {
-      try { await _audioChannel.invokeMethod('prepareForPlayback'); } catch (_) {}
-    }
     final header = _buildWavHeader(_audioBuffer.length, 24000, 1, 16);
     final wav = Uint8List.fromList([...header, ..._audioBuffer]);
     _audioBuffer.clear();
@@ -243,9 +237,6 @@ class _NotesScreenState extends State<NotesScreen> {
     } catch (e) {
       debugPrint('[Notes] playback error: $e');
       if (mounted) setState(() => _aiSpeaking = false);
-      if (Platform.isIOS) {
-        try { await _audioChannel.invokeMethod('restoreVoiceChat'); } catch (_) {}
-      }
       if (_ws != null && _voiceActive) {
         await _restartRecording();
       }
