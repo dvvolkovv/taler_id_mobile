@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/api/dio_client.dart';
@@ -548,19 +549,26 @@ class _ConversationTile extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      leading: CircleAvatar(
-        backgroundColor: isGroup
-            ? AppColors.of(context).primary.withValues(alpha: 0.7)
-            : AppColors.of(context).primary,
-        child: avatar != null
-            ? ClipOval(
-                child: CachedNetworkImage(
-                  imageUrl: avatar,
-                  width: 40, height: 40, fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
-                ),
-              )
-            : _avatarLetter(context, displayName, isGroup),
+      leading: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: rainbowColorFor(displayName), width: 2),
+        ),
+        child: CircleAvatar(
+          backgroundColor: isGroup
+              ? AppColors.of(context).primary.withValues(alpha: 0.7)
+              : AppColors.of(context).primary,
+          child: avatar != null
+              ? ClipOval(
+                  child: CachedNetworkImage(
+                    imageUrl: avatar,
+                    width: 40, height: 40, fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
+                  ),
+                )
+              : _avatarLetter(context, displayName, isGroup),
+        ),
       ),
       title: Row(
         children: [
@@ -670,21 +678,29 @@ class _ProfileAvatar extends StatelessWidget {
     final avatarUrl = profile?['avatarUrl'] as String?;
     final firstName = profile?['firstName'] as String? ?? '';
 
+    final glowColor = rainbowColorFor(firstName.isNotEmpty ? firstName : 'user');
     return GestureDetector(
       onTap: () => context.push('/dashboard/profile'),
       child: Center(
-        child: CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.of(context).primary,
-          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-              ? CachedNetworkImageProvider(avatarUrl)
-              : null,
-          child: (avatarUrl == null || avatarUrl.isEmpty)
-              ? Text(
-                  firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
-                )
-              : null,
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: glowColor, width: 2),
+          ),
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.of(context).primary,
+            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                ? CachedNetworkImageProvider(avatarUrl)
+                : null,
+            child: (avatarUrl == null || avatarUrl.isEmpty)
+                ? Text(
+                    firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                  )
+                : null,
+          ),
         ),
       ),
     );

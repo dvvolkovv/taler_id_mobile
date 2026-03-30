@@ -13,6 +13,7 @@ import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 
@@ -571,32 +572,37 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
       child: Row(
         children: [
-          if (e.otherPartyAvatar != null) ...[
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: colors.primary.withOpacity(0.12),
-              backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id), width: 2),
             ),
-          ] else ...[
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: isMissed
-                  ? colors.error.withOpacity(0.12)
-                  : e.isOutgoing
-                      ? colors.primary.withOpacity(0.12)
-                      : _kIncomingColor.withOpacity(0.12),
-              child: e.withAi
-                  ? Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20)
-                  : Text(
-                      e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-            ),
-          ],
+            child: e.otherPartyAvatar != null
+                ? CircleAvatar(
+                    radius: 22,
+                    backgroundColor: colors.primary.withOpacity(0.12),
+                    backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+                  )
+                : CircleAvatar(
+                    radius: 22,
+                    backgroundColor: isMissed
+                        ? colors.error.withOpacity(0.12)
+                        : e.isOutgoing
+                            ? colors.primary.withOpacity(0.12)
+                            : _kIncomingColor.withOpacity(0.12),
+                    child: e.withAi
+                        ? Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20)
+                        : Text(
+                            e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                  ),
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -793,21 +799,29 @@ class _CallHistoryProfileAvatar extends StatelessWidget {
     final avatarUrl = profile?['avatarUrl'] as String?;
     final firstName = profile?['firstName'] as String? ?? '';
 
+    final glowColor = rainbowColorFor(firstName.isNotEmpty ? firstName : 'user');
     return GestureDetector(
       onTap: () => context.push('/dashboard/profile'),
       child: Center(
-        child: CircleAvatar(
-          radius: 20,
-          backgroundColor: AppColors.of(context).primary,
-          backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-              ? CachedNetworkImageProvider(avatarUrl)
-              : null,
-          child: (avatarUrl == null || avatarUrl.isEmpty)
-              ? Text(
-                  firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
-                )
-              : null,
+        child: Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: glowColor, width: 2),
+          ),
+          child: CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.of(context).primary,
+            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                ? CachedNetworkImageProvider(avatarUrl)
+                : null,
+            child: (avatarUrl == null || avatarUrl.isEmpty)
+                ? Text(
+                    firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
+                  )
+                : null,
+          ),
         ),
       ),
     );
