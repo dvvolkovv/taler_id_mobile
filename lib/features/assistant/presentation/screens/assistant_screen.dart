@@ -858,21 +858,50 @@ class _AssistantScreenState extends State<AssistantScreen>
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         final today = DateTime.now();
         final startOfDay = DateTime(today.year, today.month, today.day);
-        final from = args['from'] as String? ?? startOfDay.toIso8601String();
-        final to = args['to'] as String? ?? today.add(const Duration(days: 30)).toIso8601String();
-        final data = await client.get<dynamic>('/calendar?from=$from&to=$to');
+        // Convert from/to to UTC for backend query
+        String fromStr = args['from'] as String? ?? startOfDay.toUtc().toIso8601String();
+        String toStr = args['to'] as String? ?? today.add(const Duration(days: 30)).toUtc().toIso8601String();
+        if (!fromStr.endsWith('Z')) {
+          final f = DateTime.tryParse(fromStr);
+          if (f != null) fromStr = f.toUtc().toIso8601String();
+        }
+        if (!toStr.endsWith('Z')) {
+          final t = DateTime.tryParse(toStr);
+          if (t != null) toStr = t.toUtc().toIso8601String();
+        }
+        final data = await client.get<dynamic>('/calendar?from=$fromStr&to=$toStr');
         output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        // Send local time as-is — no UTC conversion
+        // Convert local time to UTC for correct storage
+        String startAtUtc = args['startAt'] as String? ?? '';
+        String displayTime = startAtUtc; // keep original for push display
+        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
+          final local = DateTime.tryParse(startAtUtc);
+          if (local != null) {
+            displayTime = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+            startAtUtc = local.toUtc().toIso8601String();
+          }
+        }
+        String? reminderUtc;
+        if (args['reminderAt'] != null) {
+          final r = DateTime.tryParse(args['reminderAt'] as String);
+          if (r != null) reminderUtc = r.toUtc().toIso8601String();
+        }
+        String? endUtc;
+        if (args['endAt'] != null) {
+          final e = DateTime.tryParse(args['endAt'] as String);
+          if (e != null) endUtc = e.toUtc().toIso8601String();
+        }
         final data = await client.post('/calendar', data: {
           'title': args['title'],
           'description': args['description'],
           'type': args['type'],
-          'startAt': args['startAt'],
-          if (args['endAt'] != null) 'endAt': args['endAt'],
-          if (args['reminderAt'] != null) 'reminderAt': args['reminderAt'],
+          'startAt': startAtUtc,
+          if (endUtc != null) 'endAt': endUtc,
+          if (reminderUtc != null) 'reminderAt': reminderUtc,
           if (args['contactIds'] != null) 'contactIds': args['contactIds'],
+          'displayTime': displayTime,
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
         output = jsonEncode(data);

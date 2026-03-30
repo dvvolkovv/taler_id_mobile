@@ -23,6 +23,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -773,28 +774,35 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       : null,
               child: Row(
                 children: [
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: isGroup ? 0.4 : 0.2),
-                    child: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? ClipOval(
-                            child: CachedNetworkImage(
-                              imageUrl: avatarUrl,
-                              width: 36, height: 36, fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => isGroup
-                                  ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
-                                  : Text(
-                                      name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                      style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
-                                    ),
-                            ),
-                          )
-                        : isGroup
+                  Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: rainbowColorFor(name ?? 'chat'), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isGroup ? 0.4 : 0.2),
+                      child: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: avatarUrl,
+                                width: 36, height: 36, fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => isGroup
+                                    ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
+                                    : Text(
+                                        name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                        style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                              ),
+                            )
+                          : isGroup
                             ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
                             : Text(
                                 name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
                                 style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
                               ),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1916,13 +1924,20 @@ class _ContactCardWidget extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: colors.primary,
-                backgroundImage: avatar.isNotEmpty ? CachedNetworkImageProvider(avatar) : null,
-                child: avatar.isEmpty
-                    ? Icon(Icons.person_rounded, color: Colors.black, size: 22)
-                    : null,
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: rainbowColorFor(name), width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 20,
+                  backgroundColor: colors.primary,
+                  backgroundImage: avatar.isNotEmpty ? CachedNetworkImageProvider(avatar) : null,
+                  child: avatar.isEmpty
+                      ? Icon(Icons.person_rounded, color: Colors.black, size: 22)
+                      : null,
+                ),
               ),
               const SizedBox(width: 10),
               Flexible(
