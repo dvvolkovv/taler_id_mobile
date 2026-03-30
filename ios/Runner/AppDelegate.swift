@@ -94,6 +94,26 @@ import flutter_callkit_incoming
           } catch {
             result(nil) // Non-fatal
           }
+        case "prepareForPlayback":
+          // Switch audio session to .default mode so AudioPlayer can produce
+          // sound at normal volume. The .voiceChat mode applies heavy AGC and
+          // may suppress AudioPlayer output on some iOS versions.
+          do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker])
+            try session.setActive(true)
+            result(nil)
+          } catch {
+            result(nil)
+          }
+        case "restoreVoiceChat":
+          // Restore .voiceChat mode after playback ends
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+            result(nil)
+          } catch {
+            result(nil)
+          }
         case "deactivateAudioSession":
           do {
             try session.setActive(false, options: .notifyOthersOnDeactivation)
