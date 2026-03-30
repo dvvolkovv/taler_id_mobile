@@ -505,6 +505,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _roomName!,
         widget.conversationId,
         e2eeKeyValue: e2eeKey,
+        calleeName: widget.calleeName,
       );
 
       // Notify other devices: this device answered the call (dismiss CallKit on others)

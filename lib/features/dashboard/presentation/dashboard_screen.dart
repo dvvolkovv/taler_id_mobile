@@ -658,6 +658,93 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     });
   }
 
+  void _showCallLinesSheet(BuildContext context, List<CallLine> lines) {
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...lines.map((line) {
+              final isActive = !line.isOnHold;
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: isActive ? colors.primary : colors.surface,
+                  child: Icon(
+                    isActive ? Icons.call_rounded : Icons.pause_rounded,
+                    color: isActive ? Colors.black : colors.textSecondary,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  line.calleeName ?? line.roomName,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+                subtitle: Text(
+                  isActive ? 'Active' : 'On hold',
+                  style: TextStyle(color: isActive ? colors.primary : colors.textSecondary, fontSize: 12),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (line.isOnHold)
+                      IconButton(
+                        icon: Icon(Icons.swap_calls_rounded, color: colors.primary),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          await CallStateService.instance.holdAndSwitch(line.roomName);
+                          if (context.mounted) {
+                            context.push(
+                              '/dashboard/voice?room=${line.roomName}${line.conversationId != null ? '&convId=${line.conversationId}' : ''}',
+                            );
+                          }
+                        },
+                      ),
+                    if (!line.isOnHold)
+                      IconButton(
+                        icon: Icon(Icons.open_in_new_rounded, color: colors.primary),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          context.push(
+                            '/dashboard/voice?room=${line.roomName}${line.conversationId != null ? '&convId=${line.conversationId}' : ''}',
+                          );
+                        },
+                      ),
+                    IconButton(
+                      icon: Icon(Icons.call_end_rounded, color: colors.error),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await CallStateService.instance.endLine(line.roomName);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -685,14 +772,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 final inCall = snapshot.data ?? false;
                 if (!inCall) return const SizedBox.shrink();
                 final cs = CallStateService.instance;
+                final lines = cs.allLines;
+                final heldCount = lines.where((l) => l.isOnHold).length;
                 return GestureDetector(
                   onTap: () {
-                    final room = cs.roomName;
-                    final convId = cs.conversationId;
-                    if (room != null) {
-                      context.push(
-                        '/dashboard/voice?room=$room${convId != null ? '&convId=$convId' : ''}',
-                      );
+                    if (lines.length > 1) {
+                      _showCallLinesSheet(context, lines);
+                    } else {
+                      final room = cs.roomName;
+                      final convId = cs.conversationId;
+                      if (room != null) {
+                        context.push(
+                          '/dashboard/voice?room=$room${convId != null ? '&convId=$convId' : ''}',
+                        );
+                      }
                     }
                   },
                   child: Container(
@@ -709,7 +802,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                             const SizedBox(width: 10),
                             Flexible(
                               child: Text(
-                                l10n.dashboardActiveCall,
+                                heldCount > 0
+                                    ? '${l10n.dashboardActiveCall} · $heldCount on hold'
+                                    : l10n.dashboardActiveCall,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -718,6 +813,20 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            if (lines.length > 1) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  '${lines.length}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

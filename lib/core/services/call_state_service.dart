@@ -12,6 +12,7 @@ class CallLine {
   final String roomName;
   final String? conversationId;
   final String? e2eeKey;
+  String? calleeName;
   bool isOnHold;
 
   CallLine({
@@ -19,6 +20,7 @@ class CallLine {
     required this.roomName,
     this.conversationId,
     this.e2eeKey,
+    this.calleeName,
     this.isOnHold = false,
   });
 }
@@ -63,12 +65,13 @@ class CallStateService {
     return _bgCompleter!.future;
   }
 
-  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue}) {
+  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? calleeName}) {
     final line = CallLine(
       room: r,
       roomName: name,
       conversationId: convId,
       e2eeKey: e2eeKeyValue,
+      calleeName: calleeName,
     );
     _lines[name] = line;
     _activeRoomName = name;
