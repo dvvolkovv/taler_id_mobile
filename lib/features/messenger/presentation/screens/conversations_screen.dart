@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -170,6 +171,8 @@ class _ConversationsView extends StatefulWidget {
 class _ConversationsViewState extends State<_ConversationsView> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
+  List<Map<String, dynamic>> _messageSearchResults = [];
+  bool _messageSearching = false;
 
   @override
   void dispose() {
@@ -284,6 +287,25 @@ class _ConversationsViewState extends State<_ConversationsView> {
     );
   }
 
+  Timer? _searchDebounce;
+
+  void _searchMessagesDebounced(String query) {
+    _searchDebounce?.cancel();
+    if (query.length < 2) {
+      setState(() { _messageSearchResults = []; _messageSearching = false; });
+      return;
+    }
+    setState(() => _messageSearching = true);
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final data = await sl<DioClient>().get<dynamic>('/messenger/messages/search?q=${Uri.encodeComponent(query)}');
+        if (mounted) setState(() { _messageSearchResults = (data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList(); _messageSearching = false; });
+      } catch (_) {
+        if (mounted) setState(() => _messageSearching = false);
+      }
+    });
+  }
+
   List<ConversationEntity> _filterConversations(List<ConversationEntity> convs) {
     if (_searchQuery.isEmpty) return convs;
     final q = _searchQuery.toLowerCase();
@@ -375,7 +397,10 @@ class _ConversationsViewState extends State<_ConversationsView> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      onChanged: (v) => setState(() => _searchQuery = v.trim()),
+                      onChanged: (v) {
+                        setState(() => _searchQuery = v.trim());
+                        _searchMessagesDebounced(v.trim());
+                      },
                     ),
                   ),
                 ),
@@ -417,6 +442,51 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     childCount: filtered.length,
                   ),
                 ),
+              // Message search results
+              if (_searchQuery.length >= 2) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.message_outlined, size: 16, color: colors.textSecondary),
+                        const SizedBox(width: 8),
+                        Text(
+                          _messageSearching ? 'Поиск в сообщениях...' : 'Найдено в сообщениях (${_messageSearchResults.length})',
+                          style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_messageSearchResults.isNotEmpty)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final msg = _messageSearchResults[index];
+                        final content = msg['content'] as String? ?? '';
+                        final sender = msg['senderName'] as String? ?? '';
+                        final convId = msg['conversationId'] as String? ?? '';
+                        final sentAt = DateTime.tryParse(msg['sentAt'] as String? ?? '')?.toLocal();
+                        final timeStr = sentAt != null ? DateFormat('dd.MM HH:mm').format(sentAt) : '';
+                        return ListTile(
+                          dense: true,
+                          leading: Icon(Icons.chat_bubble_outline, size: 20, color: colors.primary),
+                          title: Text(sender, style: TextStyle(color: colors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                          subtitle: Text(
+                            content,
+                            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Text(timeStr, style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+                          onTap: () => context.push('/dashboard/messenger/$convId'),
+                        );
+                      },
+                      childCount: _messageSearchResults.length,
+                    ),
+                  ),
+              ],
             ],
           );
         },
