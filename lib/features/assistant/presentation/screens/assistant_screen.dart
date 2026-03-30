@@ -874,6 +874,17 @@ class _AssistantScreenState extends State<AssistantScreen>
           if (t != null) toStr = t.toUtc().toIso8601String();
         }
         final data = await client.get<dynamic>('/calendar?from=$fromStr&to=$toStr');
+        // Convert UTC times to local for the AI to read correct times
+        if (data is List) {
+          for (final item in data) {
+            if (item is Map<String, dynamic>) {
+              final startUtc = DateTime.tryParse(item['startAt'] as String? ?? '');
+              if (startUtc != null) item['startAt'] = startUtc.toLocal().toIso8601String();
+              final endUtc = DateTime.tryParse(item['endAt'] as String? ?? '');
+              if (endUtc != null) item['endAt'] = endUtc.toLocal().toIso8601String();
+            }
+          }
+        }
         output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
