@@ -652,7 +652,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildEventCard(Map<String, dynamic> event, AppColorsExtension colors) {
     final start = DateTime.tryParse(event['startAt'] as String? ?? '')?.toLocal();
-    final timeStr = start != null ? DateFormat('HH:mm').format(start) : '';
+    final end = DateTime.tryParse(event['endAt'] as String? ?? '')?.toLocal();
+    final timeStr = start != null
+        ? (end != null ? '${DateFormat('HH:mm').format(start)} – ${DateFormat('HH:mm').format(end)}' : DateFormat('HH:mm').format(start))
+        : '';
     final type = event['type'] as String? ?? 'EVENT';
 
     IconData icon;
@@ -827,6 +830,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   late final TextEditingController _locationCtrl;
   late DateTime _startDate;
   late TimeOfDay _startTime;
+  TimeOfDay? _endTime; // null = no end time
   String _type = 'EVENT';
   int _reminderMinutes = -1; // -1 = off, 15, 30, 60
   bool _saving = false;
@@ -859,6 +863,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       // Round to next hour
       final now = TimeOfDay.now();
       _startTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+    }
+
+    if (e != null && e['endAt'] != null) {
+      final endDt = DateTime.parse(e['endAt'] as String).toLocal();
+      _endTime = TimeOfDay.fromDateTime(endDt);
+    } else {
+      // Default: 1 hour after start
+      _endTime = TimeOfDay(hour: (_startTime.hour + 1) % 24, minute: _startTime.minute);
     }
 
     if (e != null && e['reminderAt'] != null) {
@@ -957,11 +969,17 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         reminderAt = startAt.subtract(Duration(minutes: _reminderMinutes));
       }
 
+      DateTime? endAt;
+      if (_endTime != null) {
+        endAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _endTime!.hour, _endTime!.minute);
+      }
+
       final data = {
         'title': _titleCtrl.text.trim(),
         'description': description,
         'type': _type,
         'startAt': startAt.toUtc().toIso8601String(),
+        if (endAt != null) 'endAt': endAt.toUtc().toIso8601String(),
         if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
         if (_selectedContactIds.isNotEmpty) 'contactIds': _selectedContactIds,
       };
@@ -1097,7 +1115,31 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             trailing: Text('${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}', style: TextStyle(color: colors.textPrimary)),
             onTap: () async {
               final t = await showTimePicker(context: context, initialTime: _startTime);
-              if (t != null) setState(() => _startTime = t);
+              if (t != null) {
+                setState(() {
+                  _startTime = t;
+                  // Auto-adjust end time to stay 1h after start if end <= start
+                  if (_endTime != null) {
+                    final startMin = t.hour * 60 + t.minute;
+                    final endMin = _endTime!.hour * 60 + _endTime!.minute;
+                    if (endMin <= startMin) {
+                      _endTime = TimeOfDay(hour: (t.hour + 1) % 24, minute: t.minute);
+                    }
+                  }
+                });
+              }
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Окончание', style: TextStyle(color: colors.textSecondary)),
+            trailing: Text(
+              _endTime != null ? '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}' : '—',
+              style: TextStyle(color: colors.textPrimary),
+            ),
+            onTap: () async {
+              final t = await showTimePicker(context: context, initialTime: _endTime ?? TimeOfDay(hour: (_startTime.hour + 1) % 24, minute: _startTime.minute));
+              if (t != null) setState(() => _endTime = t);
             },
           ),
           // Reminder selector
