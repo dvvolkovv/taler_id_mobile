@@ -997,6 +997,9 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         endAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _endTime!.hour, _endTime!.minute);
       }
 
+      // Format display time in local timezone for push notifications
+      final displayTime = '${startAt.day.toString().padLeft(2, '0')}.${startAt.month.toString().padLeft(2, '0')} ${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}';
+
       final data = {
         'title': _titleCtrl.text.trim(),
         'description': description,
@@ -1005,6 +1008,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         if (endAt != null) 'endAt': endAt.toUtc().toIso8601String(),
         if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
         if (_selectedContactIds.isNotEmpty) 'contactIds': _selectedContactIds,
+        'displayTime': displayTime,
       };
       final ds = CalendarRemoteDataSource(sl<DioClient>());
       if (widget.event != null) {
