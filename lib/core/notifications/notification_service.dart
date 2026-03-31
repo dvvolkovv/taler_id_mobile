@@ -451,6 +451,11 @@ String? notificationToRoute(RemoteMessage message) {
       return '/dashboard/messenger/contacts?tab=incoming';
     case 'calendar_invite':
       return '/dashboard/calendar?invites=1';
+    case 'calendar_reminder':
+      final eventId = data['eventId'] as String?;
+      return eventId != null
+          ? '/dashboard/calendar?eventId=$eventId'
+          : '/dashboard/calendar';
     default:
       return null;
   }

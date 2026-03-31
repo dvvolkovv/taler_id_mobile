@@ -15,6 +15,9 @@ import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -43,10 +46,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final List<int> _audioBuffer = [];
   static const _audioChannel = MethodChannel('taler_id/audio');
 
+  String? _pendingEventId;
+
   @override
   void initState() {
     super.initState();
     _loadEvents();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      final eventId = uri.queryParameters['eventId'];
+      if (eventId != null && eventId.isNotEmpty) {
+        _pendingEventId = eventId;
+      }
+    });
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       if (_ws != null && _voiceActive) {
@@ -74,6 +86,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _invites = await ds.getMyInvites();
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+    // Open event detail if deep-linked from notification
+    if (_pendingEventId != null && _events.isNotEmpty) {
+      final eid = _pendingEventId;
+      _pendingEventId = null;
+      final event = _events.cast<Map<String, dynamic>?>().firstWhere(
+        (e) => e?['id'] == eid, orElse: () => null,
+      );
+      if (event != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _openEditor(event: event);
+        });
+      }
+    }
   }
 
   List<Map<String, dynamic>> _eventsForDay(DateTime day) {
@@ -93,6 +118,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       MaterialPageRoute(builder: (_) => _EventEditScreen(event: event, selectedDate: date)),
     );
     if (result == true) _loadEvents();
+  }
+
+  void _refreshBadges() {
+    try { context.read<MessengerBloc>().add(LoadBadgeCounts()); } catch (_) {}
   }
 
   Future<void> _deleteEvent(String id) async {
@@ -453,6 +482,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                             IconButton(
@@ -461,6 +491,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                             IconButton(
@@ -469,6 +500,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                           ],
@@ -647,7 +679,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
         decoration: BoxDecoration(color: colors.error, borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => _deleteEvent(event['id'] as String),
+      confirmDismiss: (_) async {
+        try {
+          await CalendarRemoteDataSource(sl<DioClient>()).delete(event['id'] as String);
+          _events.removeWhere((e) => e['id'] == event['id']);
+          if (mounted) setState(() {});
+          return true;
+        } catch (_) {
+          return false;
+        }
+      },
       child: Card(
         color: colors.card,
         margin: const EdgeInsets.only(bottom: 10),

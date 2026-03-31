@@ -237,6 +237,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _initCall() async {
     final cs = CallStateService.instance;
 
+    // Prevent calling same conversation that's already on another line
+    if (widget.conversationId != null && cs.isInCall) {
+      final existing = cs.allLines.where((l) => l.conversationId == widget.conversationId).firstOrNull;
+      if (existing != null) {
+        // Switch to existing line instead
+        await cs.holdAndSwitch(existing.roomName);
+        if (mounted) {
+          context.pop();
+          context.push('/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}');
+        }
+        return;
+      }
+    }
+
     // If background connect is still in progress, wait for it (up to 5s)
     if (cs.isBackgroundConnecting) {
       debugPrint('[VoiceCall] waiting for background connect...');
@@ -2739,6 +2753,14 @@ Answer briefly — the user is in the middle of a conversation.''';
     // Restore portrait if we were in landscape for screen share
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     // Translation cleanup — server-side, nothing local to stop
+    // Auto-hold if navigating away without hanging up (e.g. to make another call)
+    if (!_hangingUp && _room != null && _roomName != null && !_onHold) {
+      _room?.localParticipant?.setMicrophoneEnabled(false);
+      _room?.localParticipant?.setCameraEnabled(false);
+      final cs = CallStateService.instance;
+      final line = cs.allLines.where((l) => l.roomName == _roomName).firstOrNull;
+      if (line != null) line.isOnHold = true;
+    }
     // Do NOT disconnect room — call continues in background via CallStateService
     super.dispose();
   }
@@ -3139,6 +3161,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                     label: _onHold ? 'Resume' : 'Hold',
                     color: _onHold ? AppColors.of(context).primary : AppColors.of(context).card,
                     onTap: _toggleHold,
+                    active: _onHold,
                   ),
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
@@ -3336,7 +3359,7 @@ Answer briefly — the user is in the middle of a conversation.''';
           ),
           // Remote participants
           ..._participants
-              .where((p) => p.identity != 'voice-translator')
+              .where((p) => p.identity != 'voice-translator' && p.identity != 'hold-music')
               .map((p) {
             final isAI = p.identity == 'ai-assistant';
             final isRecorder = p.identity == 'meeting-recorder';
@@ -3418,6 +3441,17 @@ Answer briefly — the user is in the middle of a conversation.''';
                     : null,
               ),
             ),
+            // Hold overlay on remote participant avatar
+            if (_onHold && !isLocal && !isRecorder && !isAI)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black54,
+                  ),
+                  child: Icon(Icons.pause_rounded, color: Colors.white, size: avatarRadius * 0.8),
+                ),
+              ),
             // Mic indicator
             if (!isRecorder)
               Positioned(
@@ -4062,6 +4096,7 @@ class _ControlButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool large;
   final Color? iconColor;
+  final bool active;
 
   const _ControlButton({
     required this.icon,
@@ -4070,6 +4105,7 @@ class _ControlButton extends StatelessWidget {
     required this.onTap,
     this.large = false,
     this.iconColor,
+    this.active = false,
   });
 
   @override
@@ -4089,6 +4125,7 @@ class _ControlButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
+              border: active ? Border.all(color: Colors.white, width: 2.5) : null,
             ),
             child: Icon(
               icon,
