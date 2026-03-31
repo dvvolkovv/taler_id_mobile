@@ -192,6 +192,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   'description': {'type': 'string'},
                   'type': {'type': 'string', 'enum': ['CALL', 'EVENT', 'REMINDER']},
                   'startAt': {'type': 'string', 'description': 'ISO datetime'},
+                  'endAt': {'type': 'string', 'description': 'ISO datetime for end of event'},
                   'reminderAt': {'type': 'string', 'description': 'ISO datetime for push reminder'},
                   'contactIds': {'type': 'array', 'items': {'type': 'string'}, 'description': 'User IDs to invite'},
                 },
@@ -208,6 +209,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   'title': {'type': 'string'},
                   'description': {'type': 'string'},
                   'startAt': {'type': 'string'},
+                  'endAt': {'type': 'string'},
                   'reminderAt': {'type': 'string'},
                   'contactIds': {'type': 'array', 'items': {'type': 'string'}},
                 },
@@ -327,6 +329,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             startAtUtc = local.toUtc().toIso8601String();
           }
         }
+        String? endAtUtc;
+        if (args['endAt'] != null) {
+          final e = DateTime.tryParse(args['endAt'] as String);
+          if (e != null) endAtUtc = e.toUtc().toIso8601String();
+        }
         String? reminderUtc;
         if (args['reminderAt'] != null) {
           final r = DateTime.tryParse(args['reminderAt'] as String);
@@ -346,6 +353,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         final data = await client.post('/calendar', data: {
           'title': args['title'], 'description': desc, 'type': args['type'],
           'startAt': startAtUtc,
+          if (endAtUtc != null) 'endAt': endAtUtc,
           if (reminderUtc != null) 'reminderAt': reminderUtc,
           if (args['contactIds'] != null) 'contactIds': args['contactIds'],
           'displayTime': displayTime,
