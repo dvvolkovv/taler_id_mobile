@@ -940,7 +940,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           try { pub.subscribe(); } catch (_) {}
         }
       }
-      await _holdPlayer.stop();
       await _room?.localParticipant?.setMicrophoneEnabled(true);
       if (_cameraOn) await _room?.localParticipant?.setCameraEnabled(true);
       setState(() { _onHold = false; _muted = false; });
@@ -954,9 +953,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           try { pub.unsubscribe(); } catch (_) {}
         }
       }
-      // Play hold music locally (for us) and start server-side hold music (for them)
-      _holdPlayer.setReleaseMode(ReleaseMode.loop);
-      _holdPlayer.play(AssetSource('audio/hold_music.mp3'), volume: 0.4).catchError((_) {});
+      // Start server-side hold music for the other party (they hear music)
+      // Initiator stays in silence — no local music
       try {
         final client = sl<DioClient>();
         await client.post('/voice/rooms/$_roomName/hold-music/start', data: {}, fromJson: (d) => d);
