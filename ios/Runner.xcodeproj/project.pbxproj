@@ -269,6 +269,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				43E8C5AF2A45223CDA94C63E /* [CP] Embed Pods Frameworks */,
 				E9F66ED5D00FFCDC462272DD /* [CP] Copy Pods Resources */,
+				AABB0011FIREBASE00COPY00 /* Copy GoogleService-Info.plist */,
 			);
 			buildRules = (
 			);
@@ -449,6 +450,24 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		AABB0011FIREBASE00COPY00 /* Copy GoogleService-Info.plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy GoogleService-Info.plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/bin/sh \"${PROJECT_DIR}/scripts/copy_google_service.sh\"";
 		};
 /* End PBXShellScriptBuildPhase section */
 
