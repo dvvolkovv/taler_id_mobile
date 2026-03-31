@@ -617,7 +617,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _retryMicEnable() async {
     for (final delay in [800, 2000, 4000]) {
       await Future.delayed(Duration(milliseconds: delay));
-      if (!mounted || _navigatedAway || _onHold) return;
+      if (!mounted || _navigatedAway) return;
       if (!_muted) {
         try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
         try { await _room?.localParticipant?.setMicrophoneEnabled(true); } catch (_) {}
@@ -2324,16 +2324,6 @@ Answer briefly — the user is in the middle of a conversation.''';
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
-    // If on hold, stop hold music before audio session cleanup to avoid iOS audio session conflict
-    if (_onHold) {
-      try { await _holdPlayer.stop(); } catch (_) {}
-      if (_roomName != null) {
-        try {
-          sl<DioClient>().post('/voice/rooms/$_roomName/hold-music/stop', data: {}, fromJson: (d) => d);
-        } catch (_) {}
-      }
-      _onHold = false;
-    }
     // Stop in-call assistant if active
     if (_assistantActive) {
       _assistantSessionConfigured = false;
@@ -2751,14 +2741,6 @@ Answer briefly — the user is in the middle of a conversation.''';
     // Restore portrait if we were in landscape for screen share
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     // Translation cleanup — server-side, nothing local to stop
-    // Auto-hold if navigating away without hanging up (e.g. to make another call)
-    if (!_hangingUp && _room != null && _roomName != null && !_onHold) {
-      _room?.localParticipant?.setMicrophoneEnabled(false);
-      _room?.localParticipant?.setCameraEnabled(false);
-      final cs = CallStateService.instance;
-      final line = cs.allLines.where((l) => l.roomName == _roomName).firstOrNull;
-      if (line != null) line.isOnHold = true;
-    }
     // Do NOT disconnect room — call continues in background via CallStateService
     super.dispose();
   }
@@ -3152,26 +3134,19 @@ Answer briefly — the user is in the middle of a conversation.''';
                     icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     label: _muted ? AppLocalizations.of(context)!.voiceUnmute : AppLocalizations.of(context)!.voiceMic,
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
-                    onTap: _assistantActive || _onHold ? null : _toggleMute,
-                  ),
-                  _ControlButton(
-                    icon: _onHold ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                    label: _onHold ? 'Resume' : 'Hold',
-                    color: _onHold ? AppColors.of(context).primary : AppColors.of(context).card,
-                    onTap: _toggleHold,
-                    active: _onHold,
+                    onTap: _assistantActive ? null : _toggleMute,
                   ),
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
                     label: _assistantActive ? AppLocalizations.of(context)!.voiceStop : AppLocalizations.of(context)!.voiceAssistantLabel,
                     color: _assistantActive ? AppColors.of(context).primary : AppColors.of(context).card,
-                    onTap: _onHold ? null : (_assistantActive ? _stopAssistant : _startAssistant),
+                    onTap: _assistantActive ? _stopAssistant : _startAssistant,
                   ),
                   _ControlButton(
                     icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
                     label: _cameraOn ? AppLocalizations.of(context)!.voiceCameraOn : AppLocalizations.of(context)!.voiceCameraLabel,
                     color: _cameraOn ? AppColors.of(context).primary.withValues(alpha: 0.2) : AppColors.of(context).card,
-                    onTap: _onHold ? null : _toggleCamera,
+                    onTap: _toggleCamera,
                   ),
                 ],
               ),
@@ -3439,17 +3414,6 @@ Answer briefly — the user is in the middle of a conversation.''';
                     : null,
               ),
             ),
-            // Hold overlay on remote participant avatar
-            if (_onHold && !isLocal && !isRecorder && !isAI)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black54,
-                  ),
-                  child: Icon(Icons.pause_rounded, color: Colors.white, size: avatarRadius * 0.8),
-                ),
-              ),
             // Mic indicator
             if (!isRecorder)
               Positioned(
