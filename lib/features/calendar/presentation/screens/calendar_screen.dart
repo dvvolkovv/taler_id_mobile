@@ -345,10 +345,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
             final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Meeting'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
             final code = room?['code'] as String? ?? '';
             if (code.isNotEmpty) {
-              final link = 'https://id.taler.tirol/room/$code';
+              final link = '${ApiConstants.baseUrl}/room/$code';
               desc = desc != null && desc.isNotEmpty ? '$desc\n$link' : link;
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[Calendar] Failed to create room: $e');
+          }
         }
         final data = await client.post('/calendar', data: {
           'title': args['title'], 'description': desc, 'type': args['type'],
