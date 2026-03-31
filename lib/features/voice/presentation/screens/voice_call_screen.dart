@@ -580,6 +580,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Force earpiece mode — LiveKit may override speakerphone asynchronously on Android.
       // Call twice: once early, once after LiveKit audio stack fully initialises.
       _forceEarpiece();
+      // Retry mic enable with delays — on iOS the audio session may be deactivated
+      // right after WebRTC setup, causing a silent published track.
+      // This mirrors _restoreAudioAfterCallKit's retry strategy.
+      _retryMicEnable();
     } catch (e) {
       debugPrint('[VoiceCall] _connect() error: $e');
       _settingUp = false;
@@ -593,6 +597,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   /// Sets audio output to earpiece. Called multiple times with increasing delays
   /// to override LiveKit/WebRTC's async speakerphone activation on Android.
   /// Uses both LiveKit Hardware API and native channel for reliable control.
+  /// Retry enabling the microphone with increasing delays after connect.
+  /// On iOS, the audio session may be briefly deactivated right after WebRTC
+  /// setup — the track is published but silent until mic is re-enabled.
+  Future<void> _retryMicEnable() async {
+    for (final delay in [800, 2000, 4000]) {
+      await Future.delayed(Duration(milliseconds: delay));
+      if (!mounted || _navigatedAway || _onHold) return;
+      if (!_muted) {
+        try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
+        try { await _room?.localParticipant?.setMicrophoneEnabled(true); } catch (_) {}
+      }
+    }
+  }
+
   Future<void> _forceEarpiece() async {
     for (final delay in [100, 300, 700, 1500, 3000]) {
       await Future.delayed(Duration(milliseconds: delay));
