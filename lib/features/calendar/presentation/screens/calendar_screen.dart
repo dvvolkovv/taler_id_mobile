@@ -400,7 +400,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
         output = jsonEncode(data);
       } else if (name == 'get_conversations') {
         final data = await client.get<dynamic>('/messenger/conversations');
-        output = jsonEncode(data);
+        // Simplify for AI: extract contact name and userId
+        final contacts = <Map<String, String>>[];
+        if (data is List) {
+          for (final conv in data) {
+            if (conv is Map<String, dynamic> && conv['isGroup'] != true) {
+              final name = conv['otherUserName'] as String? ?? '';
+              final userId = conv['otherUserId'] as String? ?? '';
+              if (name.isNotEmpty && userId.isNotEmpty) {
+                contacts.add({'name': name, 'userId': userId, 'conversationId': conv['id'] as String? ?? ''});
+              }
+            }
+          }
+        }
+        output = jsonEncode(contacts);
       } else {
         output = jsonEncode({'error': 'unknown'});
       }
