@@ -18,6 +18,7 @@ import '../../../../l10n/app_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -52,6 +53,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void initState() {
     super.initState();
     _loadEvents();
+    NotificationService.setCalendarUpdateCallback(_loadEvents);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final uri = GoRouterState.of(context).uri;
       final eventId = uri.queryParameters['eventId'];
@@ -71,6 +73,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   void dispose() {
+    NotificationService.setCalendarUpdateCallback(null);
     _voiceCleanup();
     _player.dispose();
     super.dispose();
@@ -1171,6 +1174,21 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               onPressed: _showContactPicker,
             ),
           ),
+          // Show organizer for existing events
+          if (widget.event != null && widget.event!['user'] != null) ...[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.star, color: Colors.amber, size: 20),
+              title: () {
+                final ou = widget.event!['user'] as Map<String, dynamic>;
+                final op = ou['profile'] as Map<String, dynamic>? ?? {};
+                final name = [op['firstName'], op['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                return Text(name.isNotEmpty ? name : (ou['username'] as String? ?? '?'),
+                    style: TextStyle(color: colors.textPrimary));
+              }(),
+              subtitle: Text('Организатор', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+            ),
+          ],
           if (_selectedContactIds.isNotEmpty)
             ..._selectedContactIds.map((id) {
               final c = _contacts.where((c) => c['userId'] == id).firstOrNull;

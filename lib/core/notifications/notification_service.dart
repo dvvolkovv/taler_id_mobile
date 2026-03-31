@@ -250,6 +250,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final _fcm = FirebaseMessaging.instance;
   static String? _currentToken;
+  static VoidCallback? _onCalendarUpdated;
+  static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
 
   // Pending voice call route to handle CallKit accept across all app states
   static String? _pendingCallRoute;
@@ -393,6 +395,9 @@ class NotificationService {
         if (title.isNotEmpty && body.isNotEmpty) {
           _showLocalNotification(title: title, body: body, conversationId: convId);
         }
+      }
+      if (type == 'calendar_updated' || type == 'calendar_invite' || type == 'calendar_reminder') {
+        _onCalendarUpdated?.call();
       }
       // call_invite is intentionally ignored here — socket handles it.
       if (type == 'call_cancelled') {
