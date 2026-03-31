@@ -345,3 +345,14 @@ class ContactRequestAccepted extends MessengerEvent {
 }
 
 class LoadSentContactRequests extends MessengerEvent {}
+
+class LoadBadgeCounts extends MessengerEvent {}
+
+class UpdateBadgeCounts extends MessengerEvent {
+  final int? missedCallsCount;
+  final int? pendingCalendarInvites;
+  final int? pendingContactRequests;
+  const UpdateBadgeCounts({this.missedCallsCount, this.pendingCalendarInvites, this.pendingContactRequests});
+  @override
+  List<Object?> get props => [missedCallsCount, pendingCalendarInvites, pendingContactRequests];
+}

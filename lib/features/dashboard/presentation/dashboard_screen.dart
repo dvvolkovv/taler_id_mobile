@@ -350,6 +350,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // the EventChannel missed (iOS may not deliver EventChannel events
       // to suspended Flutter engine on locked screen).
       _checkActiveCallKitCalls();
+      // Refresh badge counts when app resumes
+      try {
+        context.read<MessengerBloc>().add(LoadBadgeCounts());
+      } catch (_) {}
     }
   }
 
@@ -893,7 +897,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     label: l10n.tabMessenger,
                   ),
                   BottomNavigationBarItem(
-                    icon: const Icon(Icons.call_outlined),
+                    icon: BlocBuilder<MessengerBloc, MessengerState>(
+                      buildWhen: (p, c) => p.missedCallsCount != c.missedCallsCount,
+                      builder: (ctx, state) {
+                        if (state.missedCallsCount == 0) {
+                          return const Icon(Icons.call_outlined);
+                        }
+                        return Badge(
+                          label: Text('${state.missedCallsCount}'),
+                          backgroundColor: AppColors.of(context).error,
+                          child: const Icon(Icons.call_outlined),
+                        );
+                      },
+                    ),
                     activeIcon: const Icon(Icons.call),
                     label: l10n.tabCalls,
                   ),
@@ -903,7 +919,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     label: l10n.tabAssistant,
                   ),
                   BottomNavigationBarItem(
-                    icon: const Icon(Icons.calendar_month_outlined),
+                    icon: BlocBuilder<MessengerBloc, MessengerState>(
+                      buildWhen: (p, c) => p.pendingCalendarInvites != c.pendingCalendarInvites,
+                      builder: (ctx, state) {
+                        if (state.pendingCalendarInvites == 0) {
+                          return const Icon(Icons.calendar_month_outlined);
+                        }
+                        return Badge(
+                          label: Text('${state.pendingCalendarInvites}'),
+                          backgroundColor: AppColors.of(context).error,
+                          child: const Icon(Icons.calendar_month_outlined),
+                        );
+                      },
+                    ),
                     activeIcon: const Icon(Icons.calendar_month),
                     label: l10n.tabCalendar,
                   ),

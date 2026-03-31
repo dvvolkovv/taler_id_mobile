@@ -6,6 +6,7 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../../../../core/services/messenger_cache_service.dart';
+import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
@@ -81,6 +82,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<LoadSentContactRequests>(_onLoadSentContactRequests);
     on<ReactToMessage>(_onReactToMessage);
     on<ReactionUpdated>(_onReactionUpdated);
+    on<LoadBadgeCounts>(_onLoadBadgeCounts);
+    on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
   }
 
   Future<void> _onConnect(
@@ -198,6 +201,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     ));
     add(LoadConversations());
     add(LoadContactRequests());
+    add(LoadBadgeCounts());
   }
 
   Future<void> _onLoadConversations(
@@ -780,5 +784,54 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     allMessages[event.conversationId] = msgs;
     emit(state.copyWith(messages: allMessages));
     add(LoadConversations());
+  }
+
+  Future<void> _onLoadBadgeCounts(LoadBadgeCounts event, Emitter<MessengerState> emit) async {
+    try {
+      final client = sl<DioClient>();
+      // Load missed calls
+      int missedCalls = 0;
+      try {
+        final callData = await client.get<dynamic>(
+          '/voice/call-history',
+          queryParameters: {'page': 0, 'limit': 50},
+        );
+        final items = callData as List? ?? [];
+        missedCalls = items.where((e) {
+          final m = e as Map<String, dynamic>;
+          return m['isMissed'] == true;
+        }).length;
+      } catch (_) {}
+
+      // Load pending calendar invites
+      int calendarInvites = 0;
+      try {
+        final invData = await client.get<dynamic>('/calendar/invites');
+        final invites = invData as List? ?? [];
+        calendarInvites = invites.where((e) {
+          final m = e as Map<String, dynamic>;
+          return (m['status'] as String? ?? 'PENDING') == 'PENDING';
+        }).length;
+      } catch (_) {}
+
+      // Pending contact requests count
+      final pendingContacts = state.contactRequests.where((r) =>
+        (r['status'] as String? ?? 'PENDING') == 'PENDING'
+      ).length;
+
+      emit(state.copyWith(
+        missedCallsCount: missedCalls,
+        pendingCalendarInvites: calendarInvites,
+        pendingContactRequests: pendingContacts,
+      ));
+    } catch (_) {}
+  }
+
+  void _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) {
+    emit(state.copyWith(
+      missedCallsCount: event.missedCallsCount,
+      pendingCalendarInvites: event.pendingCalendarInvites,
+      pendingContactRequests: event.pendingContactRequests,
+    ));
   }
 }

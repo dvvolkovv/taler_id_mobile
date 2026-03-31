@@ -21,6 +21,9 @@ class MessengerState extends Equatable {
   final List<Map<String, dynamic>> contactRequests;
   final List<Map<String, dynamic>> sentContactRequests;
   final String? contactRequestSent; // receiverId if request just sent
+  final int missedCallsCount;
+  final int pendingCalendarInvites;
+  final int pendingContactRequests;
 
   const MessengerState({
     this.conversations = const [],
@@ -39,6 +42,9 @@ class MessengerState extends Equatable {
     this.contactRequests = const [],
     this.sentContactRequests = const [],
     this.contactRequestSent,
+    this.missedCallsCount = 0,
+    this.pendingCalendarInvites = 0,
+    this.pendingContactRequests = 0,
   });
 
   MessengerState copyWith({
@@ -58,6 +64,9 @@ class MessengerState extends Equatable {
     List<Map<String, dynamic>>? contactRequests,
     List<Map<String, dynamic>>? sentContactRequests,
     String? contactRequestSent,
+    int? missedCallsCount,
+    int? pendingCalendarInvites,
+    int? pendingContactRequests,
     bool clearError = false,
     bool clearNewConversation = false,
     bool clearCallInvite = false,
@@ -83,6 +92,9 @@ class MessengerState extends Equatable {
       contactRequests: contactRequests ?? this.contactRequests,
       sentContactRequests: sentContactRequests ?? this.sentContactRequests,
       contactRequestSent: clearContactRequestSent ? null : (contactRequestSent ?? this.contactRequestSent),
+      missedCallsCount: missedCallsCount ?? this.missedCallsCount,
+      pendingCalendarInvites: pendingCalendarInvites ?? this.pendingCalendarInvites,
+      pendingContactRequests: pendingContactRequests ?? this.pendingContactRequests,
     );
   }
 
@@ -104,5 +116,8 @@ class MessengerState extends Equatable {
         contactRequests,
         sentContactRequests,
         contactRequestSent,
+        missedCallsCount,
+        pendingCalendarInvites,
+        pendingContactRequests,
       ];
 }
