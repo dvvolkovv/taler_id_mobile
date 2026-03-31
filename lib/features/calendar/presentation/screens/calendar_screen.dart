@@ -669,8 +669,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final descClean = desc.replaceAll(RegExp(r'\n?https://id\.taler\.tirol/room/[\w-]+'), '').replaceAll(RegExp(r'Место: '), '').trim();
     final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
+    final eventId = event['id'] as String;
     return Dismissible(
-      key: Key(event['id'] as String),
+      key: Key(eventId),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -681,13 +682,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       confirmDismiss: (_) async {
         try {
-          await CalendarRemoteDataSource(sl<DioClient>()).delete(event['id'] as String);
-          _events.removeWhere((e) => e['id'] == event['id']);
-          if (mounted) setState(() {});
+          await CalendarRemoteDataSource(sl<DioClient>()).delete(eventId);
           return true;
-        } catch (_) {
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Не удалось удалить: $e'), backgroundColor: Colors.red),
+            );
+          }
           return false;
         }
+      },
+      onDismissed: (_) {
+        _events.removeWhere((e) => e['id'] == eventId);
+        if (mounted) setState(() {});
       },
       child: Card(
         color: colors.card,
@@ -745,11 +753,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ],
-                    if (invites.isNotEmpty) ...[
+                    if (invites.isNotEmpty || event['user'] != null) ...[
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6, runSpacing: 4,
-                        children: invites.map<Widget>((inv) {
+                        children: [
+                          // Organizer chip
+                          if (event['user'] != null) ...[
+                            () {
+                              final ou = event['user'] as Map<String, dynamic>;
+                              final op = ou['profile'] as Map<String, dynamic>? ?? {};
+                              final oName = [op['firstName'], op['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                              return Chip(
+                                avatar: const Icon(Icons.star, size: 14, color: Colors.amber),
+                                label: Text(oName.isNotEmpty ? oName : (ou['username'] as String? ?? '?'), style: TextStyle(fontSize: 11, color: colors.textPrimary)),
+                                backgroundColor: colors.surface,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              );
+                            }(),
+                          ],
+                          // Invited participants
+                          ...invites.map<Widget>((inv) {
                           final u = inv['user'] as Map<String, dynamic>? ?? {};
                           final p = u['profile'] as Map<String, dynamic>? ?? {};
                           final name = [p['firstName'], p['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
@@ -770,7 +796,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
                           );
-                        }).toList(),
+                        }),
+                        ],
                       ),
                     ],
                   ],
