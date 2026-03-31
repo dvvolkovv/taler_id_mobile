@@ -865,7 +865,17 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               ),
               child: BottomNavigationBar(
                 currentIndex: currentIndex,
-                onTap: (i) => context.go(_tabs[i]),
+                onTap: (i) {
+                  context.go(_tabs[i]);
+                  // Clear badge when entering the tab
+                  if (i == 1) {
+                    // Calls tab — clear missed calls badge
+                    context.read<MessengerBloc>().add(UpdateBadgeCounts(missedCallsCount: 0));
+                  } else if (i == 3) {
+                    // Calendar tab — clear pending invites badge
+                    context.read<MessengerBloc>().add(UpdateBadgeCounts(pendingCalendarInvites: 0));
+                  }
+                },
                 backgroundColor: Colors.transparent,
                 selectedItemColor: AppColors.of(context).accent,
                 unselectedItemColor: AppColors.of(context).textSecondary,
