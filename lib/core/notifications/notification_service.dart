@@ -250,6 +250,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class NotificationService {
   static final _fcm = FirebaseMessaging.instance;
   static String? _currentToken;
+  static VoidCallback? _onCalendarUpdated;
+  static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
 
   // Pending voice call route to handle CallKit accept across all app states
   static String? _pendingCallRoute;
@@ -394,6 +396,9 @@ class NotificationService {
           _showLocalNotification(title: title, body: body, conversationId: convId);
         }
       }
+      if (type == 'calendar_updated' || type == 'calendar_invite' || type == 'calendar_reminder') {
+        _onCalendarUpdated?.call();
+      }
       // call_invite is intentionally ignored here — socket handles it.
       if (type == 'call_cancelled') {
         FlutterCallkitIncoming.endAllCalls();
@@ -450,7 +455,15 @@ String? notificationToRoute(RemoteMessage message) {
     case 'contact_request':
       return '/dashboard/messenger/contacts?tab=incoming';
     case 'calendar_invite':
-      return '/dashboard/calendar?invites=1';
+      final inviteEventId = data['eventId'] as String?;
+      return inviteEventId != null
+          ? '/dashboard/calendar?eventId=$inviteEventId'
+          : '/dashboard/calendar?invites=1';
+    case 'calendar_reminder':
+      final eventId = data['eventId'] as String?;
+      return eventId != null
+          ? '/dashboard/calendar?eventId=$eventId'
+          : '/dashboard/calendar';
     default:
       return null;
   }

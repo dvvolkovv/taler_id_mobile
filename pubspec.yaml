@@ -1,7 +1,7 @@
 name: taler_id_mobile
 description: Taler ID — мобильное приложение для iOS и Android
 publish_to: 'none'
-version: 1.0.37+123
+version: 1.0.41+127
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -122,6 +122,8 @@ dependency_overrides:
   path_provider_foundation: 2.3.2
 
 dev_dependencies:
+  integration_test:
+    sdk: flutter
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0

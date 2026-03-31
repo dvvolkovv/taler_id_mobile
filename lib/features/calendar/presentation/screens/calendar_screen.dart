@@ -15,6 +15,10 @@ import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_event.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -43,10 +47,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final List<int> _audioBuffer = [];
   static const _audioChannel = MethodChannel('taler_id/audio');
 
+  String? _pendingEventId;
+
   @override
   void initState() {
     super.initState();
     _loadEvents();
+    NotificationService.setCalendarUpdateCallback(_loadEvents);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      final eventId = uri.queryParameters['eventId'];
+      if (eventId != null && eventId.isNotEmpty) {
+        _pendingEventId = eventId;
+      }
+    });
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       if (_ws != null && _voiceActive) {
@@ -59,6 +73,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   void dispose() {
+    NotificationService.setCalendarUpdateCallback(null);
     _voiceCleanup();
     _player.dispose();
     super.dispose();
@@ -74,6 +89,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _invites = await ds.getMyInvites();
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
+    // Open event detail if deep-linked from notification
+    if (_pendingEventId != null && _events.isNotEmpty) {
+      final eid = _pendingEventId;
+      _pendingEventId = null;
+      final event = _events.cast<Map<String, dynamic>?>().firstWhere(
+        (e) => e?['id'] == eid, orElse: () => null,
+      );
+      if (event != null && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _openEditor(event: event);
+        });
+      }
+    }
   }
 
   List<Map<String, dynamic>> _eventsForDay(DateTime day) {
@@ -93,6 +121,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
       MaterialPageRoute(builder: (_) => _EventEditScreen(event: event, selectedDate: date)),
     );
     if (result == true) _loadEvents();
+  }
+
+  void _refreshBadges() {
+    try { context.read<MessengerBloc>().add(LoadBadgeCounts()); } catch (_) {}
   }
 
   Future<void> _deleteEvent(String id) async {
@@ -120,29 +152,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
           'instructions': Localizations.localeOf(context).languageCode == 'ru'
               ? 'Ты — помощник для управления календарём. '
                 'Сейчас: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")} ${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}. '
-                'ВАЖНО: передавай startAt и reminderAt в МЕСТНОМ времени пользователя в формате YYYY-MM-DDTHH:MM:SS (БЕЗ Z на конце, БЕЗ конвертации в UTC). '
+                'ВАЖНО: передавай startAt, endAt и reminderAt в МЕСТНОМ времени пользователя в формате YYYY-MM-DDTHH:MM:SS (БЕЗ Z на конце, БЕЗ конвертации в UTC). '
                 'Например если пользователь сказал "18:00 сегодня" — передай "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T18:00:00".\n\n'
-                'ВСТРЕЧА с человеком: если пользователь говорит "встреча с [имя]" или "запланируй с [имя]":\n'
-                '1. Вызови get_conversations чтобы найти контакт по имени\n'
-                '2. Ставь type="CALL" — ссылка на комнату создастся автоматически\n'
-                '3. Передай contactIds=[otherUserId найденного контакта]\n'
-                '4. Уточни дату/время если не указаны\n\n'
+                'СТРОГИЕ ПРАВИЛА:\n'
+                '1. НИКОГДА не создавай create_event без предварительного вызова get_conversations. ВСЕГДА сначала get_conversations.\n'
+                '2. НИКОГДА не вызывай create_event больше одного раза за запрос. Одна встреча = один вызов.\n'
+                '3. Если пользователь упоминает имя человека — найди его userId через get_conversations и передай в contactIds.\n'
+                '4. Если имя не упомянуто — спроси "С кем встреча?" перед созданием.\n'
+                '5. Всегда ставь type="CALL" для встреч — ссылка на комнату создастся автоматически.\n'
+                '6. Всегда ставь endAt = startAt + 1 час, если пользователь не указал длительность.\n\n'
                 'ТИПЫ: CALL=встреча со ссылкой, EVENT=событие, REMINDER=напоминание.\n'
                 'РЕДАКТИРОВАНИЕ: get_events → найди по названию → update_event с id. НЕ создавай дубликат!\n'
-                'ПЕРЕСЕЧЕНИЯ: перед созданием вызови get_events, проверь конфликты.\n'
+                'ДОБАВЛЕНИЕ УЧАСТНИКА: get_events → найди встречу → get_conversations → найди userId → update_event с contactIds.\n'
                 'Начни с: "Слушаю, что хотите сделать в календаре?"'
               : 'You are an assistant for calendar management. '
                 'Now: ${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")} ${DateTime.now().hour.toString().padLeft(2, "0")}:${DateTime.now().minute.toString().padLeft(2, "0")}. '
-                'IMPORTANT: pass startAt and reminderAt in USER LOCAL time format YYYY-MM-DDTHH:MM:SS (NO Z suffix, NO UTC conversion). '
+                'IMPORTANT: pass startAt, endAt and reminderAt in USER LOCAL time format YYYY-MM-DDTHH:MM:SS (NO Z suffix, NO UTC conversion). '
                 'For example if user says "6pm today" — pass "${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, "0")}-${DateTime.now().day.toString().padLeft(2, "0")}T18:00:00".\n\n'
-                'MEETING with someone: if user says "meeting with [name]" or "schedule with [name]":\n'
-                '1. Call get_conversations to find contact by name\n'
-                '2. Set type="CALL" — room link will be created automatically\n'
-                '3. Pass contactIds=[otherUserId of found contact]\n'
-                '4. Clarify date/time if not specified\n\n'
+                'STRICT RULES:\n'
+                '1. NEVER call create_event without calling get_conversations first. ALWAYS get_conversations first.\n'
+                '2. NEVER call create_event more than once per request. One meeting = one call.\n'
+                '3. If user mentions a person name — find their userId via get_conversations and pass in contactIds.\n'
+                '4. If no name mentioned — ask "Who is the meeting with?" before creating.\n'
+                '5. Always use type="CALL" for meetings — room link is created automatically.\n'
+                '6. Always set endAt = startAt + 1 hour unless user specifies duration.\n\n'
                 'TYPES: CALL=meeting with link, EVENT=event, REMINDER=reminder.\n'
                 'EDITING: get_events → find by name → update_event with id. Do NOT create duplicates!\n'
-                'CONFLICTS: before creating, call get_events, check for conflicts.\n'
+                'ADDING PARTICIPANT: get_events → find meeting → get_conversations → find userId → update_event with contactIds.\n'
                 'Start with: "Listening, what would you like to do in the calendar?"',
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
@@ -160,6 +196,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   'description': {'type': 'string'},
                   'type': {'type': 'string', 'enum': ['CALL', 'EVENT', 'REMINDER']},
                   'startAt': {'type': 'string', 'description': 'ISO datetime'},
+                  'endAt': {'type': 'string', 'description': 'ISO datetime for end of event'},
                   'reminderAt': {'type': 'string', 'description': 'ISO datetime for push reminder'},
                   'contactIds': {'type': 'array', 'items': {'type': 'string'}, 'description': 'User IDs to invite'},
                 },
@@ -176,6 +213,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   'title': {'type': 'string'},
                   'description': {'type': 'string'},
                   'startAt': {'type': 'string'},
+                  'endAt': {'type': 'string'},
                   'reminderAt': {'type': 'string'},
                   'contactIds': {'type': 'array', 'items': {'type': 'string'}},
                 },
@@ -295,6 +333,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             startAtUtc = local.toUtc().toIso8601String();
           }
         }
+        String? endAtUtc;
+        if (args['endAt'] != null) {
+          final e = DateTime.tryParse(args['endAt'] as String);
+          if (e != null) endAtUtc = e.toUtc().toIso8601String();
+        }
         String? reminderUtc;
         if (args['reminderAt'] != null) {
           final r = DateTime.tryParse(args['reminderAt'] as String);
@@ -306,14 +349,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
             final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Meeting'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
             final code = room?['code'] as String? ?? '';
             if (code.isNotEmpty) {
-              final link = 'https://id.taler.tirol/room/$code';
+              final link = '${ApiConstants.baseUrl}/room/$code';
               desc = desc != null && desc.isNotEmpty ? '$desc\n$link' : link;
             }
-          } catch (_) {}
+          } catch (e) {
+            debugPrint('[Calendar] Failed to create room: $e');
+          }
         }
         final data = await client.post('/calendar', data: {
           'title': args['title'], 'description': desc, 'type': args['type'],
           'startAt': startAtUtc,
+          if (endAtUtc != null) 'endAt': endAtUtc,
           if (reminderUtc != null) 'reminderAt': reminderUtc,
           if (args['contactIds'] != null) 'contactIds': args['contactIds'],
           'displayTime': displayTime,
@@ -360,7 +406,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
         output = jsonEncode(data);
       } else if (name == 'get_conversations') {
         final data = await client.get<dynamic>('/messenger/conversations');
-        output = jsonEncode(data);
+        // Simplify for AI: extract contact name and userId
+        final contacts = <Map<String, String>>[];
+        if (data is List) {
+          for (final conv in data) {
+            if (conv is Map<String, dynamic> && conv['isGroup'] != true) {
+              final name = conv['otherUserName'] as String? ?? '';
+              final userId = conv['otherUserId'] as String? ?? '';
+              if (name.isNotEmpty && userId.isNotEmpty) {
+                contacts.add({'name': name, 'userId': userId, 'conversationId': conv['id'] as String? ?? ''});
+              }
+            }
+          }
+        }
+        output = jsonEncode(contacts);
       } else {
         output = jsonEncode({'error': 'unknown'});
       }
@@ -453,6 +512,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                             IconButton(
@@ -461,6 +521,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                             IconButton(
@@ -469,6 +530,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               onPressed: () async {
                                 await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inv['id'] as String);
                                 _loadEvents();
+                                _refreshBadges();
                               },
                             ),
                           ],
@@ -620,7 +682,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _buildEventCard(Map<String, dynamic> event, AppColorsExtension colors) {
     final start = DateTime.tryParse(event['startAt'] as String? ?? '')?.toLocal();
-    final timeStr = start != null ? DateFormat('HH:mm').format(start) : '';
+    final end = DateTime.tryParse(event['endAt'] as String? ?? '')?.toLocal();
+    final timeStr = start != null
+        ? (end != null ? '${DateFormat('HH:mm').format(start)} – ${DateFormat('HH:mm').format(end)}' : DateFormat('HH:mm').format(start))
+        : '';
     final type = event['type'] as String? ?? 'EVENT';
 
     IconData icon;
@@ -637,8 +702,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final descClean = desc.replaceAll(RegExp(r'\n?https://id\.taler\.tirol/room/[\w-]+'), '').replaceAll(RegExp(r'Место: '), '').trim();
     final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
+    final eventId = event['id'] as String;
     return Dismissible(
-      key: Key(event['id'] as String),
+      key: Key(eventId),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -647,7 +713,43 @@ class _CalendarScreenState extends State<CalendarScreen> {
         decoration: BoxDecoration(color: colors.error, borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.delete, color: Colors.white),
       ),
-      onDismissed: (_) => _deleteEvent(event['id'] as String),
+      confirmDismiss: (_) async {
+        try {
+          final ds = CalendarRemoteDataSource(sl<DioClient>());
+          final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+          final eventUserId = event['userId'] as String?;
+          final isOrganizer = currentUserId != null && eventUserId == currentUserId;
+
+          if (isOrganizer) {
+            // Organizer deletes the event for everyone
+            await ds.delete(eventId);
+          } else {
+            // Participant declines their invite (removes from their calendar)
+            final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+            final myInvite = invites.where((inv) {
+              final u = inv['user'] as Map<String, dynamic>? ?? {};
+              return u['id'] == currentUserId;
+            }).firstOrNull;
+            if (myInvite != null) {
+              await ds.declineInvite(myInvite['id'] as String);
+            } else {
+              await ds.delete(eventId);
+            }
+          }
+          return true;
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Не удалось удалить: $e'), backgroundColor: Colors.red),
+            );
+          }
+          return false;
+        }
+      },
+      onDismissed: (_) {
+        _events.removeWhere((e) => e['id'] == eventId);
+        if (mounted) setState(() {});
+      },
       child: Card(
         color: colors.card,
         margin: const EdgeInsets.only(bottom: 10),
@@ -704,11 +806,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                       ],
-                    if (invites.isNotEmpty) ...[
+                    if (invites.isNotEmpty || event['user'] != null) ...[
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6, runSpacing: 4,
-                        children: invites.map<Widget>((inv) {
+                        children: [
+                          // Organizer chip
+                          if (event['user'] != null) ...[
+                            () {
+                              final ou = event['user'] as Map<String, dynamic>;
+                              final op = ou['profile'] as Map<String, dynamic>? ?? {};
+                              final oName = [op['firstName'], op['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                              return Chip(
+                                avatar: const Icon(Icons.star, size: 14, color: Colors.amber),
+                                label: Text(oName.isNotEmpty ? oName : (ou['username'] as String? ?? '?'), style: TextStyle(fontSize: 11, color: colors.textPrimary)),
+                                backgroundColor: colors.surface,
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                padding: EdgeInsets.zero,
+                                visualDensity: VisualDensity.compact,
+                              );
+                            }(),
+                          ],
+                          // Invited participants
+                          ...invites.map<Widget>((inv) {
                           final u = inv['user'] as Map<String, dynamic>? ?? {};
                           final p = u['profile'] as Map<String, dynamic>? ?? {};
                           final name = [p['firstName'], p['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
@@ -729,7 +849,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             padding: EdgeInsets.zero,
                             visualDensity: VisualDensity.compact,
                           );
-                        }).toList(),
+                        }),
+                        ],
                       ),
                     ],
                   ],
@@ -759,7 +880,8 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   late final TextEditingController _locationCtrl;
   late DateTime _startDate;
   late TimeOfDay _startTime;
-  String _type = 'EVENT';
+  TimeOfDay? _endTime; // null = no end time
+  String _type = 'CALL';
   int _reminderMinutes = -1; // -1 = off, 15, 30, 60
   bool _saving = false;
   List<Map<String, dynamic>> _contacts = [];
@@ -772,7 +894,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     super.initState();
     final e = widget.event;
     _titleCtrl = TextEditingController(text: e?['title'] as String? ?? '');
-    _type = e?['type'] as String? ?? 'EVENT';
+    _type = e?['type'] as String? ?? 'CALL';
 
     // Parse description — extract meeting link if present
     final rawDesc = e?['description'] as String? ?? '';
@@ -791,6 +913,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       // Round to next hour
       final now = TimeOfDay.now();
       _startTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+    }
+
+    if (e != null && e['endAt'] != null) {
+      final endDt = DateTime.parse(e['endAt'] as String).toLocal();
+      _endTime = TimeOfDay.fromDateTime(endDt);
+    } else {
+      // Default: 1 hour after start
+      _endTime = TimeOfDay(hour: (_startTime.hour + 1) % 24, minute: _startTime.minute);
     }
 
     if (e != null && e['reminderAt'] != null) {
@@ -889,13 +1019,23 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         reminderAt = startAt.subtract(Duration(minutes: _reminderMinutes));
       }
 
+      DateTime? endAt;
+      if (_endTime != null) {
+        endAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _endTime!.hour, _endTime!.minute);
+      }
+
+      // Format display time in local timezone for push notifications
+      final displayTime = '${startAt.day.toString().padLeft(2, '0')}.${startAt.month.toString().padLeft(2, '0')} ${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}';
+
       final data = {
         'title': _titleCtrl.text.trim(),
         'description': description,
         'type': _type,
         'startAt': startAt.toUtc().toIso8601String(),
+        if (endAt != null) 'endAt': endAt.toUtc().toIso8601String(),
         if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
         if (_selectedContactIds.isNotEmpty) 'contactIds': _selectedContactIds,
+        'displayTime': displayTime,
       };
       final ds = CalendarRemoteDataSource(sl<DioClient>());
       if (widget.event != null) {
@@ -1029,7 +1169,31 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             trailing: Text('${_startTime.hour.toString().padLeft(2, '0')}:${_startTime.minute.toString().padLeft(2, '0')}', style: TextStyle(color: colors.textPrimary)),
             onTap: () async {
               final t = await showTimePicker(context: context, initialTime: _startTime);
-              if (t != null) setState(() => _startTime = t);
+              if (t != null) {
+                setState(() {
+                  _startTime = t;
+                  // Auto-adjust end time to stay 1h after start if end <= start
+                  if (_endTime != null) {
+                    final startMin = t.hour * 60 + t.minute;
+                    final endMin = _endTime!.hour * 60 + _endTime!.minute;
+                    if (endMin <= startMin) {
+                      _endTime = TimeOfDay(hour: (t.hour + 1) % 24, minute: t.minute);
+                    }
+                  }
+                });
+              }
+            },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text('Окончание', style: TextStyle(color: colors.textSecondary)),
+            trailing: Text(
+              _endTime != null ? '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}' : '—',
+              style: TextStyle(color: colors.textPrimary),
+            ),
+            onTap: () async {
+              final t = await showTimePicker(context: context, initialTime: _endTime ?? TimeOfDay(hour: (_startTime.hour + 1) % 24, minute: _startTime.minute));
+              if (t != null) setState(() => _endTime = t);
             },
           ),
           // Reminder selector
@@ -1061,6 +1225,60 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               onPressed: _showContactPicker,
             ),
           ),
+          // RSVP buttons for participant (not organizer)
+          if (widget.event != null) ...[
+            () {
+              final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+              final eventUserId = widget.event!['userId'] as String?;
+              if (currentUserId == null || currentUserId == eventUserId) return const SizedBox.shrink();
+              final invites = (widget.event!['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+              final myInvite = invites.where((inv) {
+                final u = inv['user'] as Map<String, dynamic>? ?? {};
+                return u['id'] == currentUserId;
+              }).firstOrNull;
+              if (myInvite == null) return const SizedBox.shrink();
+              final myStatus = myInvite['status'] as String? ?? 'PENDING';
+              final inviteId = myInvite['id'] as String;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Text('Ваш ответ:', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    const Spacer(),
+                    _RsvpButton(label: 'Принять', icon: Icons.check, color: Colors.green, active: myStatus == 'ACCEPTED', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                    const SizedBox(width: 8),
+                    _RsvpButton(label: 'Возможно', icon: Icons.help_outline, color: Colors.orange, active: myStatus == 'MAYBE', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                    const SizedBox(width: 8),
+                    _RsvpButton(label: 'Отказ', icon: Icons.close, color: colors.error, active: myStatus == 'DECLINED', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                  ],
+                ),
+              );
+            }(),
+          ],
+          // Show organizer for existing events
+          if (widget.event != null && widget.event!['user'] != null) ...[
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.star, color: Colors.amber, size: 20),
+              title: () {
+                final ou = widget.event!['user'] as Map<String, dynamic>;
+                final op = ou['profile'] as Map<String, dynamic>? ?? {};
+                final name = [op['firstName'], op['lastName']].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+                return Text(name.isNotEmpty ? name : (ou['username'] as String? ?? '?'),
+                    style: TextStyle(color: colors.textPrimary));
+              }(),
+              subtitle: Text('Организатор', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+            ),
+          ],
           if (_selectedContactIds.isNotEmpty)
             ..._selectedContactIds.map((id) {
               final c = _contacts.where((c) => c['userId'] == id).firstOrNull;
@@ -1094,6 +1312,38 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               );
             }),
         ],
+      ),
+    );
+  }
+}
+
+class _RsvpButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool active;
+  final VoidCallback onTap;
+  const _RsvpButton({required this.label, required this.icon, required this.color, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: active ? color : AppColors.of(context).textSecondary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: active ? color : AppColors.of(context).textSecondary),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: active ? color : AppColors.of(context).textSecondary, fontWeight: active ? FontWeight.w600 : FontWeight.normal)),
+          ],
+        ),
       ),
     );
   }

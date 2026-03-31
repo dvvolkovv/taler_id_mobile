@@ -237,6 +237,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _initCall() async {
     final cs = CallStateService.instance;
 
+    // Prevent calling same conversation that's already on another line
+    if (widget.conversationId != null && cs.isInCall) {
+      final existing = cs.allLines.where((l) => l.conversationId == widget.conversationId).firstOrNull;
+      if (existing != null) {
+        // Switch to existing line instead
+        await cs.holdAndSwitch(existing.roomName);
+        if (mounted) {
+          context.pop();
+          context.push('/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}');
+        }
+        return;
+      }
+    }
+
     // If background connect is still in progress, wait for it (up to 5s)
     if (cs.isBackgroundConnecting) {
       debugPrint('[VoiceCall] waiting for background connect...');
@@ -603,7 +617,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _retryMicEnable() async {
     for (final delay in [800, 2000, 4000]) {
       await Future.delayed(Duration(milliseconds: delay));
-      if (!mounted || _navigatedAway || _onHold) return;
+      if (!mounted || _navigatedAway) return;
       if (!_muted) {
         try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
         try { await _room?.localParticipant?.setMicrophoneEnabled(true); } catch (_) {}
@@ -926,7 +940,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           try { pub.subscribe(); } catch (_) {}
         }
       }
-      await _holdPlayer.stop();
       await _room?.localParticipant?.setMicrophoneEnabled(true);
       if (_cameraOn) await _room?.localParticipant?.setCameraEnabled(true);
       setState(() { _onHold = false; _muted = false; });
@@ -940,9 +953,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           try { pub.unsubscribe(); } catch (_) {}
         }
       }
-      // Play hold music locally (for us) and start server-side hold music (for them)
-      _holdPlayer.setReleaseMode(ReleaseMode.loop);
-      _holdPlayer.play(AssetSource('audio/hold_music.mp3'), volume: 0.4).catchError((_) {});
+      // Start server-side hold music for the other party (they hear music)
+      // Initiator stays in silence — no local music
       try {
         final client = sl<DioClient>();
         await client.post('/voice/rooms/$_roomName/hold-music/start', data: {}, fromJson: (d) => d);
@@ -2312,16 +2324,6 @@ Answer briefly — the user is in the middle of a conversation.''';
     _navigatedAway = true;
     _emptyRoomTimer?.cancel();
     _stopRingback();
-    // If on hold, stop hold music before audio session cleanup to avoid iOS audio session conflict
-    if (_onHold) {
-      try { await _holdPlayer.stop(); } catch (_) {}
-      if (_roomName != null) {
-        try {
-          sl<DioClient>().post('/voice/rooms/$_roomName/hold-music/stop', data: {}, fromJson: (d) => d);
-        } catch (_) {}
-      }
-      _onHold = false;
-    }
     // Stop in-call assistant if active
     if (_assistantActive) {
       _assistantSessionConfigured = false;
@@ -3132,25 +3134,19 @@ Answer briefly — the user is in the middle of a conversation.''';
                     icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                     label: _muted ? AppLocalizations.of(context)!.voiceUnmute : AppLocalizations.of(context)!.voiceMic,
                     color: _muted ? AppColors.of(context).error : AppColors.of(context).card,
-                    onTap: _assistantActive || _onHold ? null : _toggleMute,
-                  ),
-                  _ControlButton(
-                    icon: _onHold ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                    label: _onHold ? 'Resume' : 'Hold',
-                    color: _onHold ? AppColors.of(context).primary : AppColors.of(context).card,
-                    onTap: _toggleHold,
+                    onTap: _assistantActive ? null : _toggleMute,
                   ),
                   _ControlButton(
                     icon: Icons.smart_toy_rounded,
                     label: _assistantActive ? AppLocalizations.of(context)!.voiceStop : AppLocalizations.of(context)!.voiceAssistantLabel,
                     color: _assistantActive ? AppColors.of(context).primary : AppColors.of(context).card,
-                    onTap: _onHold ? null : (_assistantActive ? _stopAssistant : _startAssistant),
+                    onTap: _assistantActive ? _stopAssistant : _startAssistant,
                   ),
                   _ControlButton(
                     icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
                     label: _cameraOn ? AppLocalizations.of(context)!.voiceCameraOn : AppLocalizations.of(context)!.voiceCameraLabel,
                     color: _cameraOn ? AppColors.of(context).primary.withValues(alpha: 0.2) : AppColors.of(context).card,
-                    onTap: _onHold ? null : _toggleCamera,
+                    onTap: _toggleCamera,
                   ),
                 ],
               ),
@@ -3336,7 +3332,7 @@ Answer briefly — the user is in the middle of a conversation.''';
           ),
           // Remote participants
           ..._participants
-              .where((p) => p.identity != 'voice-translator')
+              .where((p) => p.identity != 'voice-translator' && p.identity != 'hold-music')
               .map((p) {
             final isAI = p.identity == 'ai-assistant';
             final isRecorder = p.identity == 'meeting-recorder';
@@ -4062,6 +4058,7 @@ class _ControlButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool large;
   final Color? iconColor;
+  final bool active;
 
   const _ControlButton({
     required this.icon,
@@ -4070,6 +4067,7 @@ class _ControlButton extends StatelessWidget {
     required this.onTap,
     this.large = false,
     this.iconColor,
+    this.active = false,
   });
 
   @override
@@ -4089,6 +4087,7 @@ class _ControlButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
+              border: active ? Border.all(color: Colors.white, width: 2.5) : null,
             ),
             child: Icon(
               icon,
