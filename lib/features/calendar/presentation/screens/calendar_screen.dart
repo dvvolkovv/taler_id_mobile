@@ -688,7 +688,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       confirmDismiss: (_) async {
         try {
-          await CalendarRemoteDataSource(sl<DioClient>()).delete(eventId);
+          final ds = CalendarRemoteDataSource(sl<DioClient>());
+          final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+          final eventUserId = event['userId'] as String?;
+          final isOrganizer = currentUserId != null && eventUserId == currentUserId;
+
+          if (isOrganizer) {
+            // Organizer deletes the event for everyone
+            await ds.delete(eventId);
+          } else {
+            // Participant declines their invite (removes from their calendar)
+            final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+            final myInvite = invites.where((inv) {
+              final u = inv['user'] as Map<String, dynamic>? ?? {};
+              return u['id'] == currentUserId;
+            }).firstOrNull;
+            if (myInvite != null) {
+              await ds.declineInvite(myInvite['id'] as String);
+            } else {
+              await ds.delete(eventId);
+            }
+          }
           return true;
         } catch (e) {
           if (mounted) {
