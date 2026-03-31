@@ -854,7 +854,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   late DateTime _startDate;
   late TimeOfDay _startTime;
   TimeOfDay? _endTime; // null = no end time
-  String _type = 'EVENT';
+  String _type = 'CALL';
   int _reminderMinutes = -1; // -1 = off, 15, 30, 60
   bool _saving = false;
   List<Map<String, dynamic>> _contacts = [];
@@ -867,7 +867,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     super.initState();
     final e = widget.event;
     _titleCtrl = TextEditingController(text: e?['title'] as String? ?? '');
-    _type = e?['type'] as String? ?? 'EVENT';
+    _type = e?['type'] as String? ?? 'CALL';
 
     // Parse description — extract meeting link if present
     final rawDesc = e?['description'] as String? ?? '';
@@ -1198,6 +1198,45 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               onPressed: _showContactPicker,
             ),
           ),
+          // RSVP buttons for participant (not organizer)
+          if (widget.event != null) ...[
+            () {
+              final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+              final eventUserId = widget.event!['userId'] as String?;
+              if (currentUserId == null || currentUserId == eventUserId) return const SizedBox.shrink();
+              final invites = (widget.event!['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+              final myInvite = invites.where((inv) {
+                final u = inv['user'] as Map<String, dynamic>? ?? {};
+                return u['id'] == currentUserId;
+              }).firstOrNull;
+              if (myInvite == null) return const SizedBox.shrink();
+              final myStatus = myInvite['status'] as String? ?? 'PENDING';
+              final inviteId = myInvite['id'] as String;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Text('Ваш ответ:', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    const Spacer(),
+                    _RsvpButton(label: 'Принять', icon: Icons.check, color: Colors.green, active: myStatus == 'ACCEPTED', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                    const SizedBox(width: 8),
+                    _RsvpButton(label: 'Возможно', icon: Icons.help_outline, color: Colors.orange, active: myStatus == 'MAYBE', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                    const SizedBox(width: 8),
+                    _RsvpButton(label: 'Отказ', icon: Icons.close, color: colors.error, active: myStatus == 'DECLINED', onTap: () async {
+                      await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inviteId);
+                      if (mounted) Navigator.pop(context, true);
+                    }),
+                  ],
+                ),
+              );
+            }(),
+          ],
           // Show organizer for existing events
           if (widget.event != null && widget.event!['user'] != null) ...[
             ListTile(
@@ -1246,6 +1285,38 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               );
             }),
         ],
+      ),
+    );
+  }
+}
+
+class _RsvpButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool active;
+  final VoidCallback onTap;
+  const _RsvpButton({required this.label, required this.icon, required this.color, required this.active, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: active ? color.withValues(alpha: 0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: active ? color : AppColors.of(context).textSecondary.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: active ? color : AppColors.of(context).textSecondary),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: active ? color : AppColors.of(context).textSecondary, fontWeight: active ? FontWeight.w600 : FontWeight.normal)),
+          ],
+        ),
       ),
     );
   }
