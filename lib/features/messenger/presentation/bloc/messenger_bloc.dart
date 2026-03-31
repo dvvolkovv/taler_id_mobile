@@ -201,6 +201,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     ));
     add(LoadConversations());
     add(LoadContactRequests());
+    // Reset seen flags on fresh connect so badges show new data
+    emit(state.copyWith(callsBadgeSeen: false, calendarBadgeSeen: false));
     add(LoadBadgeCounts());
   }
 
@@ -820,8 +822,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       ).length;
 
       emit(state.copyWith(
-        missedCallsCount: missedCalls,
-        pendingCalendarInvites: calendarInvites,
+        missedCallsCount: state.callsBadgeSeen ? 0 : missedCalls,
+        pendingCalendarInvites: state.calendarBadgeSeen ? 0 : calendarInvites,
         pendingContactRequests: pendingContacts,
       ));
     } catch (_) {}
@@ -832,6 +834,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       missedCallsCount: event.missedCallsCount,
       pendingCalendarInvites: event.pendingCalendarInvites,
       pendingContactRequests: event.pendingContactRequests,
+      callsBadgeSeen: event.missedCallsCount == 0 ? true : null,
+      calendarBadgeSeen: event.pendingCalendarInvites == 0 ? true : null,
     ));
   }
 }
