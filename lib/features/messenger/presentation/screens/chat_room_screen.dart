@@ -959,24 +959,45 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         padding: const EdgeInsets.all(16),
                         itemCount: messages.length,
                         itemBuilder: (context, index) {
-                          final msg = messages[messages.length - 1 - index];
+                          // messages[] is chronological (index 0 = oldest).
+                          // reversed list: index 0 = newest (displayed at bottom).
+                          final chronIdx = messages.length - 1 - index;
+                          final msg = messages[chronIdx];
                           final isMe = _isMyMessage(msg, state);
-                          // For DIRECT chats prefer current alias (otherUserName) over stored senderName
-                          final sName = isMe ? null : (!isGroup ? otherUserName : (msg.senderName ?? otherUserName));
-                          // Show date separator above this message if it's the first
-                          // message of its day (i.e. previous message in chronological
-                          // order is from a different day, or this is the very first message).
-                          // Since the list is reversed, "previous chronological" = index+1.
+
+                          // Adjacent messages for grouping
+                          final prevChron = chronIdx > 0 ? messages[chronIdx - 1] : null; // visually above
+                          final nextChron = chronIdx < messages.length - 1 ? messages[chronIdx + 1] : null; // visually below
+
+                          // Date separator logic (same as before)
                           final msgDate = DateTime(msg.sentAt.year, msg.sentAt.month, msg.sentAt.day);
                           bool showDate = false;
                           if (index == messages.length - 1) {
-                            // oldest message — always show date
                             showDate = true;
                           } else {
-                            final prevMsg = messages[messages.length - 2 - index];
-                            final prevDate = DateTime(prevMsg.sentAt.year, prevMsg.sentAt.month, prevMsg.sentAt.day);
+                            final prevDate = DateTime(prevChron!.sentAt.year, prevChron.sentAt.month, prevChron.sentAt.day);
                             showDate = msgDate != prevDate;
                           }
+
+                          // Group context: consecutive messages from same sender
+                          final isFirstInGroup = showDate ||
+                              prevChron == null ||
+                              prevChron.isSystem ||
+                              msg.isSystem ||
+                              prevChron.senderId != msg.senderId;
+                          final isLastInGroup = nextChron == null ||
+                              nextChron.isSystem ||
+                              msg.isSystem ||
+                              nextChron.senderId != msg.senderId ||
+                              DateTime(nextChron.sentAt.year, nextChron.sentAt.month, nextChron.sentAt.day) != msgDate;
+
+                          // Show sender name only on first message of a group (incoming group chats)
+                          final sName = isMe
+                              ? null
+                              : (!isGroup
+                                  ? otherUserName
+                                  : (isFirstInGroup ? (msg.senderName ?? otherUserName) : null));
+
                           return Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -986,6 +1007,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 isMe: isMe,
                                 isGroup: isGroup,
                                 senderName: sName,
+                                isFirstInGroup: isFirstInGroup,
+                                isLastInGroup: isLastInGroup,
                                 allMessages: messages,
                                 onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? AppLocalizations.of(context)!.chatYou : sName),
                                 onEdit: (isMe && !msg.isSystem && msg.fileUrl == null) ? () => _startEditing(msg) : null,
@@ -1380,6 +1403,8 @@ class _MessageBubble extends StatefulWidget {
   final bool isMe;
   final String? senderName;
   final bool isGroup;
+  final bool isFirstInGroup;
+  final bool isLastInGroup;
   final VoidCallback? onReply;
   final VoidCallback? onEdit;
   final void Function(String emoji)? onReact;
@@ -1391,6 +1416,8 @@ class _MessageBubble extends StatefulWidget {
     required this.isMe,
     this.senderName,
     this.isGroup = false,
+    this.isFirstInGroup = true,
+    this.isLastInGroup = true,
     this.onReply,
     this.onEdit,
     this.onReact,
@@ -1486,13 +1513,31 @@ class _MessageBubbleState extends State<_MessageBubble> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: AppColors.of(context).card,
-          borderRadius: BorderRadius.circular(16),
+          color: widget.isMe
+              ? AppColors.of(context).primary
+              : AppColors.of(context).card,
+          borderRadius: widget.isMe
+              ? (widget.isLastInGroup
+                  ? const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(4),
+                    )
+                  : BorderRadius.circular(18))
+              : (widget.isLastInGroup
+                  ? const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(18),
+                    )
+                  : BorderRadius.circular(18)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!widget.isMe && widget.senderName != null && widget.senderName!.isNotEmpty && (widget.isGroup || widget.senderName != null))
+            if (!widget.isMe && widget.senderName != null && widget.senderName!.isNotEmpty && widget.isFirstInGroup)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
@@ -1585,11 +1630,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _LinkifiedText(
                 text: widget.message.content,
                 style: TextStyle(
-                  color: AppColors.of(context).textPrimary,
+                  color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
                   fontSize: 14,
                 ),
                 linkStyle: TextStyle(
-                  color: AppColors.of(context).primary,
+                  color: widget.isMe
+                      ? Colors.white.withValues(alpha: 0.85)
+                      : AppColors.of(context).primary,
                   fontSize: 14,
                   decoration: TextDecoration.underline,
                 ),
@@ -1603,7 +1650,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   widget.message.content,
-                  style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14),
+                  style: TextStyle(
+                    color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             const SizedBox(height: 4),
@@ -1614,7 +1664,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   Text(
                     AppLocalizations.of(context)!.chatEdited,
                     style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
                     ),
@@ -1624,7 +1676,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 Text(
                   DateFormat('HH:mm').format(widget.message.sentAt.toLocal()),
                   style: TextStyle(
-                    color: AppColors.of(context).textSecondary,
+                    color: widget.isMe
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : AppColors.of(context).textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -1638,8 +1692,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                             : Icons.done_rounded,
                     size: 14,
                     color: widget.message.isRead
-                        ? AppColors.of(context).primary
-                        : AppColors.of(context).textSecondary,
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ],
@@ -1653,8 +1707,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
           currentUserId: widget.currentUserId,
           onTap: widget.onReact,
         ),
-      if (widget.message.reactions.isEmpty)
-        const SizedBox(height: 8),
+      SizedBox(height: widget.isLastInGroup ? 8 : 2),
         ],
       ),
           ),

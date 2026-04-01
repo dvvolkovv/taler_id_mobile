@@ -539,7 +539,10 @@ class _ConversationTile extends StatelessWidget {
             displayMsg = '👤 ${l10n.convDefaultContact}';
           }
         }
-        if (isGroup && conversation.lastMessageSenderName != null) {
+        if (conversation.lastMessageSenderId != null &&
+            conversation.lastMessageSenderId == currentUserId) {
+          subtitleText = 'Вы: $displayMsg';
+        } else if (isGroup && conversation.lastMessageSenderName != null) {
           subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
         } else {
           subtitleText = displayMsg;
