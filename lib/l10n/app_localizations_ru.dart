@@ -2482,4 +2482,48 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get assistantCallConfirm => 'Позвонить?';
+
+  @override
+  String get callNoAnswer => 'Нет ответа';
+
+  @override
+  String get contactDelete => 'Удалить контакт';
+
+  @override
+  String get contactDeleteTitle => 'Удалить контакт';
+
+  @override
+  String get contactDeleteConfirm => 'Вы уверены? Контакт будет удалён.';
+
+  @override
+  String get contactBlock => 'Заблокировать';
+
+  @override
+  String get contactBlockTitle => 'Заблокировать пользователя';
+
+  @override
+  String get contactBlockConfirm =>
+      'Пользователь не сможет писать вам и звонить.';
+
+  @override
+  String get contactUnblock => 'Разблокировать';
+
+  @override
+  String get contactBlocked => 'Заблокирован';
+
+  @override
+  String get contactYouAreBlocked => 'Этот пользователь вас заблокировал';
+
+  @override
+  String get chatBlockedByYou => 'Вы заблокировали этого пользователя';
+
+  @override
+  String get chatYouAreBlocked => 'Вы заблокированы этим пользователем';
+
+  @override
+  String get chatNotContacts =>
+      'Добавьте пользователя в контакты, чтобы писать';
+
+  @override
+  String get contactRevokeRequest => 'Отозвать запрос';
 }

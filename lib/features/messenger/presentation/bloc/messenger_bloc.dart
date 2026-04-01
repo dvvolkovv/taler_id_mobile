@@ -7,6 +7,7 @@ import '../../domain/entities/group_member_entity.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/api/dio_client.dart';
+import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
@@ -31,6 +32,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _contactReqSub;
   StreamSubscription? _contactAccSub;
   StreamSubscription? _reactionSub;
+  StreamSubscription? _socketErrorSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   MessengerBloc({required IMessengerRepository repo})
@@ -84,6 +86,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<ReactionUpdated>(_onReactionUpdated);
     on<LoadBadgeCounts>(_onLoadBadgeCounts);
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
+    on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
+    on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
   }
 
   Future<void> _onConnect(
@@ -184,6 +188,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub = _repo.contactAcceptedStream.listen((data) {
       add(ContactRequestAccepted(data));
     });
+    _socketErrorSub?.cancel();
+    _socketErrorSub = _repo.socketErrorStream.listen((msg) => add(SocketErrorReceived(msg)));
     _reactionSub?.cancel();
     _reactionSub = _repo.reactionUpdatedStream.listen((data) {
       final msgId = data['messageId'] as String?;
@@ -201,8 +207,6 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     ));
     add(LoadConversations());
     add(LoadContactRequests());
-    // Reset seen flags on fresh connect so badges show new data
-    emit(state.copyWith(callsBadgeSeen: false, calendarBadgeSeen: false));
     add(LoadBadgeCounts());
   }
 
@@ -640,8 +644,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   void _onContactRequestAccepted(ContactRequestAccepted event, Emitter<MessengerState> emit) {
-    // Refresh conversations to show the new chat
+    // Refresh conversations and sent requests to update profile screen state
     add(LoadConversations());
+    add(LoadSentContactRequests());
     emit(state.copyWith(clearContactRequestSent: true));
   }
 
@@ -821,21 +826,44 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         (r['status'] as String? ?? 'PENDING') == 'PENDING'
       ).length;
 
+      // Compare with persisted "seen" counts — only show badge for NEW items
+      final storage = sl<SecureStorageService>();
+      final seenMissed = await storage.getSeenMissedCalls();
+      final seenInvites = await storage.getSeenCalendarInvites();
+      final newMissed = missedCalls > seenMissed ? missedCalls - seenMissed : 0;
+      final newInvites = calendarInvites > seenInvites ? calendarInvites - seenInvites : 0;
+
       emit(state.copyWith(
-        missedCallsCount: state.callsBadgeSeen ? 0 : missedCalls,
-        pendingCalendarInvites: state.calendarBadgeSeen ? 0 : calendarInvites,
+        missedCallsCount: newMissed,
+        pendingCalendarInvites: newInvites,
         pendingContactRequests: pendingContacts,
       ));
     } catch (_) {}
   }
 
-  void _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) {
+  Future<void> _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) async {
+    final storage = sl<SecureStorageService>();
+    // When clearing badges (user opened tab), save current total as "seen"
+    if (event.missedCallsCount == 0) {
+      try {
+        final client = sl<DioClient>();
+        final callData = await client.get<dynamic>('/voice/call-history', queryParameters: {'page': 0, 'limit': 50});
+        final total = (callData as List? ?? []).where((e) => (e as Map<String, dynamic>)['isMissed'] == true).length;
+        await storage.setSeenMissedCalls(total);
+      } catch (_) {}
+    }
+    if (event.pendingCalendarInvites == 0) {
+      try {
+        final client = sl<DioClient>();
+        final invData = await client.get<dynamic>('/calendar/invites');
+        final total = (invData as List? ?? []).where((e) => ((e as Map<String, dynamic>)['status'] as String? ?? 'PENDING') == 'PENDING').length;
+        await storage.setSeenCalendarInvites(total);
+      } catch (_) {}
+    }
     emit(state.copyWith(
       missedCallsCount: event.missedCallsCount,
       pendingCalendarInvites: event.pendingCalendarInvites,
       pendingContactRequests: event.pendingContactRequests,
-      callsBadgeSeen: event.missedCallsCount == 0 ? true : null,
-      calendarBadgeSeen: event.pendingCalendarInvites == 0 ? true : null,
     ));
   }
 }

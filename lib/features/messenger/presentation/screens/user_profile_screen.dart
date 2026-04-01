@@ -14,6 +14,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
+import '../bloc/messenger_state.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -33,6 +34,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   String? _pendingRequest; // 'sent' | 'received' | null
   String? _requestId;
   bool _contactActionLoading = false;
+  bool _isBlocked = false;    // they blocked me
+  bool _iBlockedThem = false; // I blocked them
 
   // Conversation for shared media
   String? _conversationId;
@@ -70,6 +73,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
           _isContact = cs['isContact'] as bool? ?? false;
           _pendingRequest = cs['pendingRequest'] as String?;
           _requestId = cs['requestId'] as String?;
+          _isBlocked = cs['isBlocked'] as bool? ?? false;
+          _iBlockedThem = cs['iBlockedThem'] as bool? ?? false;
           _loading = false;
         });
         _findConversation();
@@ -313,7 +318,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    return BlocListener<MessengerBloc, MessengerState>(
+      listenWhen: (prev, cur) =>
+          prev.contactRequests.length != cur.contactRequests.length ||
+          prev.conversations.length != cur.conversations.length ||
+          prev.sentContactRequests.length != cur.sentContactRequests.length ||
+          prev.contactRequestSent != cur.contactRequestSent,
+      listener: (_, __) => _loadAll(),
+      child: Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         title: Text(_customName ?? (fullName.isNotEmpty ? fullName : l10n.userProfileTitle)),
@@ -323,6 +335,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             IconButton(
               icon: const Icon(Icons.share_rounded),
               onPressed: _shareContact,
+            ),
+          if (_profile != null)
+            IconButton(
+              icon: const Icon(Icons.more_vert_rounded),
+              onPressed: _showMoreMenu,
             ),
         ],
       ),
@@ -415,6 +432,144 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                       _InlineSharedMedia(conversationId: _conversationId!, tabController: _mediaTabCtrl),
                   ],
                 ),
+      ),
+    );
+  }
+
+  Future<void> _deleteContact() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        title: Text(l10n.contactDeleteTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
+        content: Text(l10n.contactDeleteConfirm, style: TextStyle(color: AppColors.of(context).textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.contactDelete, style: TextStyle(color: AppColors.of(context).error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      setState(() => _contactActionLoading = true);
+      await sl<DioClient>().delete('/messenger/contacts/${widget.userId}');
+      if (mounted) {
+        setState(() { _isContact = false; _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
+        try { context.read<MessengerBloc>().add(LoadConversations()); } catch (_) {}
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.of(context).error));
+      }
+    }
+  }
+
+  Future<void> _blockUser() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.of(context).surface,
+        title: Text(l10n.contactBlockTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
+        content: Text(l10n.contactBlockConfirm, style: TextStyle(color: AppColors.of(context).textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.contactBlock, style: TextStyle(color: AppColors.of(context).error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      setState(() => _contactActionLoading = true);
+      await sl<DioClient>().post('/messenger/contacts/${widget.userId}/block');
+      if (mounted) {
+        setState(() { _isContact = false; _pendingRequest = null; _requestId = null; _iBlockedThem = true; _contactActionLoading = false; });
+        try { context.read<MessengerBloc>().add(LoadConversations()); } catch (_) {}
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.of(context).error));
+      }
+    }
+  }
+
+  Future<void> _unblockUser() async {
+    try {
+      setState(() => _contactActionLoading = true);
+      await sl<DioClient>().delete('/messenger/contacts/${widget.userId}/block');
+      if (mounted) {
+        await _loadAll();
+        setState(() => _contactActionLoading = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.of(context).error));
+      }
+    }
+  }
+
+  Future<void> _revokeRequest() async {
+    if (_requestId == null) return;
+    try {
+      setState(() => _contactActionLoading = true);
+      await sl<DioClient>().patch('/messenger/contacts/requests/$_requestId/reject');
+      if (mounted) setState(() { _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.of(context).error));
+      }
+    }
+  }
+
+  void _showMoreMenu() {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isContact)
+              ListTile(
+                leading: Icon(Icons.person_remove_outlined, color: colors.error),
+                title: Text(l10n.contactDelete, style: TextStyle(color: colors.error)),
+                onTap: () { Navigator.pop(ctx); _deleteContact(); },
+              ),
+            if (_pendingRequest == 'sent' && _requestId != null)
+              ListTile(
+                leading: Icon(Icons.cancel_outlined, color: colors.textSecondary),
+                title: Text(l10n.contactRevokeRequest, style: TextStyle(color: colors.textSecondary)),
+                onTap: () { Navigator.pop(ctx); _revokeRequest(); },
+              ),
+            if (_iBlockedThem)
+              ListTile(
+                leading: Icon(Icons.lock_open_outlined, color: colors.primary),
+                title: Text(l10n.contactUnblock, style: TextStyle(color: colors.primary)),
+                onTap: () { Navigator.pop(ctx); _unblockUser(); },
+              )
+            else
+              ListTile(
+                leading: Icon(Icons.block_rounded, color: colors.error),
+                title: Text(l10n.contactBlock, style: TextStyle(color: colors.error)),
+                onTap: () { Navigator.pop(ctx); _blockUser(); },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -422,6 +577,56 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     final l10n = AppLocalizations.of(context)!;
     if (_contactActionLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_iBlockedThem) {
+      return Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: colors.error.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.block_rounded, color: colors.error, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(AppLocalizations.of(context)!.contactBlocked, style: TextStyle(color: colors.error, fontSize: 13), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _unblockUser,
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  child: Text(AppLocalizations.of(context)!.contactUnblock, style: TextStyle(color: colors.primary, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_isBlocked) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: colors.card.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.block_rounded, color: colors.textSecondary, size: 16),
+            const SizedBox(width: 8),
+            Text(AppLocalizations.of(context)!.contactYouAreBlocked, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+          ],
+        ),
+      );
     }
 
     if (_isContact) {

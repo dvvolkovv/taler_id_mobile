@@ -65,6 +65,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   late final MessengerBloc _messengerBloc;
   // Pending attachments (inline preview before send)
   final List<_PendingFile> _pendingFiles = [];
+  // Block/contact status for DIRECT conversations
+  bool _iBlockedThem = false;
+  bool _theyBlockedMe = false;
+  bool _isContact = true; // assume contact until loaded
 
   @override
   void initState() {
@@ -76,6 +80,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
+    _loadBlockStatus();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -259,6 +264,27 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           : '';
       context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
     }
+  }
+
+  Future<void> _loadBlockStatus() async {
+    try {
+      final conv = context.read<MessengerBloc>().state.conversations
+          .where((c) => c.id == widget.conversationId)
+          .firstOrNull;
+      final otherUserId = conv?.otherUserId;
+      if (otherUserId == null || conv?.type != 'DIRECT') return;
+      final cs = await sl<DioClient>().get(
+        '/messenger/contacts/check/$otherUserId',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      if (mounted) {
+        setState(() {
+          _iBlockedThem = cs['iBlockedThem'] as bool? ?? false;
+          _theyBlockedMe = cs['isBlocked'] as bool? ?? false;
+          _isContact = cs['isContact'] as bool? ?? false;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _startCall() async {
@@ -871,9 +897,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         listenWhen: (prev, curr) {
           final prevCount = prev.messages[widget.conversationId]?.length ?? 0;
           final currCount = curr.messages[widget.conversationId]?.length ?? 0;
-          return currCount > prevCount;
+          return currCount > prevCount || curr.socketError != prev.socketError;
         },
         listener: (context, state) {
+          if (state.socketError != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.socketError!), backgroundColor: AppColors.of(context).error),
+            );
+            context.read<MessengerBloc>().add(const ClearSocketError());
+            return;
+          }
           // Mark new incoming messages as read immediately since chat is open
           context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
           // With reverse:true the list starts at bottom — only scroll if user scrolled up
@@ -928,7 +961,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         itemBuilder: (context, index) {
                           final msg = messages[messages.length - 1 - index];
                           final isMe = _isMyMessage(msg, state);
-                          final sName = isMe ? null : (msg.senderName ?? otherUserName);
+                          // For DIRECT chats prefer current alias (otherUserName) over stored senderName
+                          final sName = isMe ? null : (!isGroup ? otherUserName : (msg.senderName ?? otherUserName));
                           // Show date separator above this message if it's the first
                           // message of its day (i.e. previous message in chronological
                           // order is from a different day, or this is the very first message).
@@ -963,6 +997,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ));
                                 },
                                 currentUserId: state.currentUserId,
+                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call'))) ? _startCall : null,
                               ),
                             ],
                           );
@@ -1172,14 +1207,52 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ],
                   ),
                 ),
-              _InputBar(
-                controller: _ctrl,
-                onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
-                onAttach: _showAttachMenu,
-                isRecording: _isRecording,
-                onRecordStart: _startRecording,
-                onRecordStop: _stopRecordingAndSend,
-              ),
+              if (_iBlockedThem || _theyBlockedMe)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.block_rounded, size: 16, color: AppColors.of(context).textSecondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        _iBlockedThem
+                            ? AppLocalizations.of(context)!.chatBlockedByYou
+                            : AppLocalizations.of(context)!.chatYouAreBlocked,
+                        style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!_isContact)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_add_disabled_rounded, size: 16, color: AppColors.of(context).textSecondary),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context)!.chatNotContacts,
+                          style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _InputBar(
+                  controller: _ctrl,
+                  onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+                  onAttach: _showAttachMenu,
+                  isRecording: _isRecording,
+                  onRecordStart: _startRecording,
+                  onRecordStop: _stopRecordingAndSend,
+                ),
             ],
           );
         },
@@ -1312,6 +1385,7 @@ class _MessageBubble extends StatefulWidget {
   final void Function(String emoji)? onReact;
   final String? currentUserId;
   final List<MessageEntity> allMessages;
+  final VoidCallback? onStartCall;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -1322,6 +1396,7 @@ class _MessageBubble extends StatefulWidget {
     this.onReact,
     this.currentUserId,
     this.allMessages = const [],
+    this.onStartCall,
   });
 
   @override
@@ -1870,18 +1945,78 @@ class _MessageBubbleState extends State<_MessageBubble> {
       text = widget.message.content;
     }
 
+    final isMissedCall = text.contains('Пропущенный звонок') || text.contains('Missed call');
+    final colors = AppColors.of(context);
+
+    if (isMissedCall) {
+      final timeStr = DateFormat('HH:mm').format(widget.message.sentAt.toLocal());
+      // senderId = initiator (caller). isMe=true means current user is the caller.
+      if (widget.isMe) {
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: colors.card.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone_forwarded_rounded, color: colors.textSecondary, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  AppLocalizations.of(context)!.callNoAnswer,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(width: 6),
+                Text(timeStr, style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+              ],
+            ),
+          ),
+        );
+      }
+      // Callee sees missed call with callback button
+      return Center(
+        child: GestureDetector(
+          onTap: widget.onStartCall,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone_missed_rounded, color: colors.error, size: 16),
+                const SizedBox(width: 8),
+                Text(text, style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+                Text(timeStr, style: TextStyle(color: colors.error.withValues(alpha: 0.7), fontSize: 11)),
+                const SizedBox(width: 8),
+                Icon(Icons.call_rounded, color: colors.primary, size: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.of(context).card.withValues(alpha: 0.6),
+          color: colors.card.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: AppColors.of(context).textSecondary,
+            color: colors.textSecondary,
             fontSize: 12,
             fontStyle: FontStyle.italic,
           ),

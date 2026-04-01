@@ -252,6 +252,8 @@ class NotificationService {
   static String? _currentToken;
   static VoidCallback? _onCalendarUpdated;
   static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
+  static VoidCallback? _onMissedCall;
+  static void setMissedCallCallback(VoidCallback? cb) => _onMissedCall = cb;
 
   // Pending voice call route to handle CallKit accept across all app states
   static String? _pendingCallRoute;
@@ -405,6 +407,7 @@ class NotificationService {
         _notifStrings().then((s) => _showMissedCallNotification(
           fromName: message.data['fromName'] ?? s.unknown,
         ));
+        _onMissedCall?.call();
       }
     });
 

@@ -145,6 +145,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       _remote.reactToMessage(conversationId, messageId, emoji);
   @override
   Stream<Map<String, dynamic>> get reactionUpdatedStream => _remote.reactionUpdatedStream;
+  @override
+  Stream<String> get socketErrorStream => _remote.socketErrorStream;
 
   // Mute methods
   @override

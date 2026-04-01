@@ -356,3 +356,16 @@ class UpdateBadgeCounts extends MessengerEvent {
   @override
   List<Object?> get props => [missedCallsCount, pendingCalendarInvites, pendingContactRequests];
 }
+
+class SocketErrorReceived extends MessengerEvent {
+  final String message;
+  const SocketErrorReceived(this.message);
+  @override
+  List<Object?> get props => [message];
+}
+
+class ClearSocketError extends MessengerEvent {
+  const ClearSocketError();
+  @override
+  List<Object?> get props => [];
+}

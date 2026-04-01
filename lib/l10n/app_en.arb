@@ -1,10 +1,8 @@
 {
   "@@locale": "en",
-
   "appTitle": "Taler ID",
   "search": "Search",
   "appSubtitle": "Unified ecosystem identity",
-
   "login": "Sign In",
   "loginButton": "Sign In",
   "register": "Create Account",
@@ -21,17 +19,14 @@
   "passwordMinLength": "Minimum 8 characters",
   "invalidEmail": "Enter a valid email",
   "fieldRequired": "Required field",
-
   "twoFATitle": "Two-Factor Authentication",
   "twoFASubtitle": "Enter the 6-digit code from your authenticator app",
   "twoFACode": "2FA Code",
   "verify": "Verify",
-
   "tabProfile": "Profile",
   "tabKyc": "KYC",
   "tabOrganization": "Organization",
   "tabSettings": "Settings",
-
   "profile": "Profile",
   "editProfile": "Edit Profile",
   "phone": "Phone",
@@ -48,7 +43,6 @@
   "diploma": "Diploma",
   "nationalId": "National ID",
   "certificate": "Certificate",
-
   "notSpecified": "Not specified",
   "notSpecifiedFemale": "Not specified",
   "documentType": "Document Type",
@@ -56,7 +50,6 @@
   "diplomaCertificate": "Diploma / Certificate",
   "loadError": "Loading error",
   "verification": "Verification",
-
   "countryAustria": "Austria",
   "countryGermany": "Germany",
   "countryRussia": "Russia",
@@ -64,7 +57,6 @@
   "countryKazakhstan": "Kazakhstan",
   "countryBelarus": "Belarus",
   "countryOther": "Other",
-
   "kycTitle": "KYC Verification",
   "kycVerified": "Verified",
   "kycPending": "Pending",
@@ -77,7 +69,13 @@
   "startVerification": "Start Verification",
   "retryVerification": "Retry Verification",
   "verifiedAt": "Verified: {date}",
-  "@verifiedAt": { "placeholders": { "date": { "type": "String" } } },
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "documentsSubmitted": "Documents submitted for review",
   "documentsSubmittedDesc": "Review usually takes 1-2 business days. You will receive a push notification with the result.",
   "securityAes": "Your data is protected with AES-256 encryption",
@@ -85,8 +83,13 @@
   "pushNotification": "You will receive a push notification with the result",
   "kycWebOnly": "KYC verification is only available in the mobile app.",
   "verificationError": "Verification error: {code}",
-  "@verificationError": { "placeholders": { "code": { "type": "String" } } },
-
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "organizations": "Organizations",
   "noOrganizations": "No organizations",
   "noOrganizationsDesc": "Create an organization or accept an invitation",
@@ -101,12 +104,24 @@
   "organization": "Organization",
   "contacts": "Contacts",
   "members": "Members ({count})",
-  "@members": { "placeholders": { "count": { "type": "int" } } },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inviteMember": "Invite Member",
   "invite": "Invite",
   "sendInvite": "Send Invitation",
   "inviteSent": "Invitation sent to {email}",
-  "@inviteSent": { "placeholders": { "email": { "type": "String" } } },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "role": "Role",
   "roleOwner": "Owner",
   "roleAdmin": "Admin",
@@ -116,7 +131,13 @@
   "editOrganizationTitle": "Edit Organization",
   "removeMember": "Remove Member",
   "removeMemberConfirm": "Remove {name} from organization?",
-  "@removeMemberConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberRemoved": "Member removed",
   "roleChanged": "Role changed",
   "kybVerified": "Verified",
@@ -140,13 +161,11 @@
   "currentSessionLabel": "Current",
   "endSessionAction": "End",
   "deviceLoggedOut": "Device will be signed out.",
-
   "acceptInvitationTitle": "Organization Invitation",
   "acceptInvitation": "Accept Invitation",
   "acceptInvitationDesc": "You've been invited to join an organization in the Taler ecosystem.",
   "accept": "Accept",
   "reject": "Reject",
-
   "sessions": "Active Sessions",
   "currentSession": "Current session",
   "deleteSession": "End Session",
@@ -154,13 +173,30 @@
   "sessionDeleted": "Session ended",
   "noSessions": "No active sessions",
   "minutesAgo": "{count} min ago",
-  "@minutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hoursAgo": "{count} hr ago",
-  "@hoursAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "daysAgo": "{count} days ago",
-  "@daysAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "justNow": "Just now",
-
   "settings": "Settings",
   "security": "Security",
   "biometrics": "Biometrics",
@@ -190,8 +226,13 @@
   "logoutConfirm": "Sign out?",
   "logoutDesc": "You will be signed out of Taler ID on this device.",
   "version": "Taler ID v{version}",
-  "@version": { "placeholders": { "version": { "type": "String" } } },
-
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pinCode": "PIN Code",
   "pinCodeDesc": "Quick login with 4-digit code",
   "setupPin": "Set Up PIN",
@@ -203,7 +244,6 @@
   "pinIncorrect": "Incorrect PIN",
   "removePin": "Remove PIN",
   "pinRemoved": "PIN removed",
-
   "cancel": "Cancel",
   "delete": "Delete",
   "ok": "OK",
@@ -224,7 +264,6 @@
   "failedToDeleteSession": "Failed to end session",
   "failedToLoadKyc": "Failed to load verification status",
   "failedToStartKyc": "Failed to start verification",
-
   "verifiedPersonalInfo": "Verified Data",
   "middleName": "Middle Name",
   "placeOfBirth": "Place of Birth",
@@ -242,14 +281,12 @@
   "sumsubDataLoading": "Loading verification data...",
   "reviewResultGreen": "Verification passed",
   "reviewResultRed": "Verification failed",
-
   "chatTitle": "Assistant",
   "chatHint": "Type a message...",
   "chatListening": "Listening...",
   "chatError": "Connection error",
   "chatClear": "Clear chat",
   "chatEmpty": "Ask the assistant a question",
-
   "tabAssistant": "Assistant",
   "assistantConnecting": "Connecting…",
   "assistantSpeaking": "Speaking…",
@@ -266,17 +303,14 @@
   "assistantUnmute": "Unmute",
   "assistantMicrophone": "Microphone",
   "assistantConnectionError": "Connection error",
-
   "tabMessenger": "Messages",
   "tabCalls": "Calls",
   "tabCalendar": "Calendar",
-
   "appearance": "Appearance",
   "appearanceSelect": "Choose Theme",
   "themeLight": "Light",
   "themeDark": "Dark",
   "themeSystem": "System",
-
   "onboardingTitle1": "Unified Identity",
   "onboardingDesc1": "Taler ID is your digital passport in the Taler ecosystem. One account for all services.",
   "onboardingTitle2": "Data Security",
@@ -290,25 +324,35 @@
   "onboardingEnableMicrophone": "Enable Microphone",
   "onboardingStart": "Get Started",
   "onboardingSkip": "Skip",
-
   "forgotPassword": "Forgot password?",
   "forgotPasswordTitle": "Reset Password",
   "forgotPasswordSubtitle": "Enter your email to receive a reset code",
   "resetCodeSent": "Code sent to {email}",
-  "@resetCodeSent": { "placeholders": { "email": { "type": "String" } } },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "enterResetCode": "Enter the code",
   "resetPasswordButton": "Reset Password",
   "passwordResetSuccess": "Password reset successfully",
   "sendCode": "Send Code",
   "resendCode": "Resend Code",
-
   "newGroup": "New Group",
   "newChat": "New Chat",
   "groupName": "Group Name",
   "createGroup": "Create Group",
   "groupInfo": "Group Info",
   "groupMembers": "Members ({count})",
-  "@groupMembers": { "placeholders": { "count": { "type": "int" } } },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "addMembers": "Add Members",
   "leaveGroup": "Leave Group",
   "leaveGroupConfirm": "Leave this group?",
@@ -319,21 +363,59 @@
   "groupRoleMember": "Member",
   "selectParticipants": "Select participants",
   "selectedCount": "{count} selected",
-  "@selectedCount": { "placeholders": { "count": { "type": "int" } } },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "changeRole": "Change Role",
   "groupCreated": "Group created",
   "memberJoined": "{name} joined",
-  "@memberJoined": { "placeholders": { "name": { "type": "String" } } },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberLeftGroup": "{name} left",
-  "@memberLeftGroup": { "placeholders": { "name": { "type": "String" } } },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberWasRemoved": "{name} was removed",
-  "@memberWasRemoved": { "placeholders": { "name": { "type": "String" } } },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "roleChangedTo": "{name} is now {role}",
-  "@roleChangedTo": { "placeholders": { "name": { "type": "String" }, "role": { "type": "String" } } },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "participantsCount": "{count} participants",
-  "@participantsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "enterGroupName": "Enter group name",
-
   "muteNotifications": "Mute notifications",
   "unmuteNotifications": "Unmute notifications",
   "muteFor1Hour": "For 1 hour",
@@ -341,7 +423,6 @@
   "muteFor2Days": "For 2 days",
   "muteForever": "Forever",
   "muted": "Muted",
-
   "tabTranslator": "Translate",
   "translatorTitle": "Translator",
   "translatorSelectLanguage": "Select language",
@@ -387,7 +468,6 @@
   "translatorLangMs": "Malay",
   "translatorLangHe": "Hebrew",
   "translatorLangFa": "Persian",
-
   "callInProgress": "Call in progress",
   "joinCall": "Join",
   "createCallLink": "Call link",
@@ -396,13 +476,17 @@
   "connectionUnstable": "Connection unstable — check your internet",
   "today": "Today",
   "yesterday": "Yesterday",
-
   "errorTimeout": "Connection timed out. Check your internet connection.",
   "errorNoConnection": "No internet connection.",
   "errorGeneral": "An error occurred. Please try again.",
   "errorWithMessage": "Error: {message}",
-  "@errorWithMessage": { "placeholders": { "message": { "type": "String" } } },
-
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "notifChannelMessages": "Messages",
   "notifChannelMessagesDesc": "New message notifications",
   "notifChannelMissedCalls": "Missed calls",
@@ -414,7 +498,6 @@
   "notifIncomingCallChannel": "Incoming call",
   "notifMissedCallChannel": "Missed call",
   "notifUnknown": "Unknown",
-
   "effectNone": "No background",
   "effectBlur": "Blur",
   "effectOffice": "Office",
@@ -423,7 +506,6 @@
   "effectLibrary": "Library",
   "effectCity": "City",
   "effectMinimalism": "Minimalism",
-
   "voiceParticipant": "Participant",
   "voiceInvitesToRoom": "invites you to the room",
   "voiceRoom": "Room",
@@ -433,12 +515,24 @@
   "voiceJoinRoom": "Join the room",
   "voiceYourName": "Your name",
   "voiceInvitationSent": "Invitation sent to {name}",
-  "@voiceInvitationSent": { "placeholders": { "name": { "type": "String" } } },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "voiceNoActiveRoom": "No active room",
   "voiceCameraPermission": "Allow camera access in Settings → Privacy → Camera → TalerID",
   "voiceOpenSettings": "Open",
   "voiceCameraError": "Failed to enable camera: {error}",
-  "@voiceCameraError": { "placeholders": { "error": { "type": "String" } } },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "voiceAllAgreedRecording": "All agreed. Recording started.",
   "voiceNewParticipantAgreed": "New participant agreed to recording.",
   "voiceDeclinedRecording": "You declined recording. Leaving the call.",
@@ -457,7 +551,13 @@
   "voiceTranslateTo": "Translate to",
   "voiceSearchLanguage": "Search language...",
   "voiceRoomWithCreator": "Room {name}",
-  "@voiceRoomWithCreator": { "placeholders": { "name": { "type": "String" } } },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "voiceVoiceCall": "Voice call",
   "voiceCopyLink": "Copy link",
   "voiceAddParticipant": "Add participant",
@@ -497,10 +597,15 @@
   "voiceAIParticipating": "AI will participate in the conversation",
   "voiceNormalCall": "Normal call without AI",
   "voiceCallConfirm": "Make a call?",
-
   "chatAlreadyInCall": "Already in a call",
   "chatCallError": "Call error: {error}",
-  "@chatCallError": { "placeholders": { "error": { "type": "String" } } },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "chatPhotoVideo": "Photo / Video",
   "chatCamera": "Camera",
   "chatFile": "File",
@@ -510,7 +615,13 @@
   "chatUser": "User",
   "chatFileAttachment": "📎 File",
   "chatFileUploadError": "File upload error: {error}",
-  "@chatFileUploadError": { "placeholders": { "error": { "type": "String" } } },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "chatVoiceMessage": "🎤 Voice message",
   "chatGroup": "Group",
   "chatDialog": "Dialog",
@@ -519,12 +630,30 @@
   "chatYou": "You",
   "chatIsTyping": "is typing...",
   "chatUserIsTyping": "{name} is typing...",
-  "@chatUserIsTyping": { "placeholders": { "name": { "type": "String" } } },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "chatUsersAreTyping": "{names} are typing...",
-  "@chatUsersAreTyping": { "placeholders": { "names": { "type": "String" } } },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "chatPreparingFile": "Preparing file…",
   "chatUploading": "Uploading… {progress}%",
-  "@chatUploading": { "placeholders": { "progress": { "type": "int" } } },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
   "chatEdited": "Edited",
   "chatReply": "Reply",
   "chatEdit": "Edit",
@@ -551,7 +680,6 @@
   "chatVoiceMessageShort": "Voice message",
   "chatVideoSavedToGallery": "Video saved to gallery",
   "chatSavingError": "Saving error",
-
   "convSetNickname": "Set a nickname",
   "convNicknameRequired": "A nickname is required to use the messenger. Other users can find you by it.",
   "convNicknameRules": "3–30 characters: letters, digits, _",
@@ -562,16 +690,20 @@
   "convNoDialogs": "No conversations",
   "convFindUserToChat": "Find a user to start chatting",
   "convDefaultContact": "Contact",
-
   "dashboardUser": "User",
   "dashboardIncomingCall": "Incoming call",
   "dashboardDecline": "Decline",
   "dashboardAccept": "Accept",
   "dashboardActiveCall": "Active call — tap to return",
   "dashboardUpdateAvailable": "Update available {version}",
-  "@dashboardUpdateAvailable": { "placeholders": { "version": { "type": "String" } } },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "dashboardUpdate": "Update",
-
   "contactRequestsTitle": "Contacts",
   "contactRequestsSearch": "Search",
   "contactRequestsIncoming": "Incoming",
@@ -583,19 +715,23 @@
   "contactRequestsSendTooltip": "Send request",
   "contactRequestTitle": "Contact request",
   "contactRequestConfirm": "Send contact request to {name}?",
-  "@contactRequestConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "contactRequestSend": "Send",
   "contactRequestsNoIncoming": "No incoming requests",
   "contactRequestsNoSent": "No sent requests",
   "contactRequestStatusPending": "Awaiting response",
   "contactRequestStatusAccepted": "Accepted",
   "contactRequestStatusRejected": "Rejected",
-
   "userSearchTitle": "Find user",
   "userSearchHint": "Nickname, phone or email",
   "userSearchHelper": "Enter @nickname, email or name to search",
   "userSearchNoUsers": "No users found",
-
   "userProfileShareContact": "Share contact",
   "userProfileShareContactDesc": "Send contact link",
   "userProfileCopyLink": "Copy link",
@@ -620,7 +756,6 @@
   "userProfileNoSummaries": "No summaries",
   "userProfileMeetingSummary": "Meeting summary",
   "userProfileFailedOpenChat": "Failed to open chat",
-
   "sharedMediaTitle": "Media and files",
   "sharedMediaTab": "Media",
   "sharedFilesTab": "Files",
@@ -628,13 +763,17 @@
   "sharedNoMedia": "No media files",
   "sharedNoFiles": "No files",
   "sharedNoLinks": "No links",
-
   "shareToChat": "Forward to chat",
   "shareSelectChat": "Select chat",
   "shareNoChats": "No chats",
   "shareFilesCount": "{count} files",
-  "@shareFilesCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "contactsTitle": "Contacts",
   "contactsAddTooltip": "Add contact",
   "contactsSearchHint": "Search contacts...",
@@ -647,7 +786,6 @@
   "contactsResend": "Resend request",
   "contactsResendTimeout": "Retry in 24h",
   "contactsResent": "Request resent",
-
   "notesTitle": "Notes",
   "notesAssistantSpeaking": "Assistant speaking...",
   "notesListening": "Listening...",
@@ -658,7 +796,6 @@
   "notesEdit": "Edit",
   "notesTitleHint": "Title",
   "notesContentHint": "Write your thoughts...",
-
   "calendarTitle": "Calendar",
   "calendarStop": "Stop",
   "calendarVoiceInput": "Voice input",
@@ -666,7 +803,13 @@
   "calendarAssistantSpeaking": "Assistant speaking...",
   "calendarListening": "Listening...",
   "calendarInvitations": "Invitations ({count})",
-  "@calendarInvitations": { "placeholders": { "count": { "type": "int" } } },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "calendarNoEvents": "No events",
   "calendarDayMon": "Mon",
   "calendarDayTue": "Tue",
@@ -678,7 +821,13 @@
   "calendarEnterRoom": "Enter room",
   "calendarMeeting": "Meeting",
   "calendarLocationPrefix": "Location: {location}",
-  "@calendarLocationPrefix": { "placeholders": { "location": { "type": "String" } } },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
   "calendarEditEvent": "Edit",
   "calendarTitleHint": "Title",
   "calendarDescriptionHint": "Description",
@@ -703,7 +852,6 @@
   "calendarStatusDeclined": "Declined",
   "calendarStatusMaybe": "Maybe",
   "calendarStatusPending": "Pending",
-
   "callHistoryTitle": "Calls",
   "callHistoryTab": "Call history",
   "callHistoryTempMeeting": "Temporary meeting",
@@ -725,15 +873,33 @@
   "callHistorySummary": "Summary",
   "callHistoryCallAgain": "Call again",
   "callHistoryTodayTime": "Today, {time}",
-  "@callHistoryTodayTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryYesterdayTime": "Yesterday, {time}",
-  "@callHistoryYesterdayTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryUnknown": "Unknown",
   "callHistoryDetails": "Call details",
   "callHistoryOutgoing": "Outgoing call",
   "callHistoryIncoming": "Incoming call",
   "callHistoryDuration": "Duration: {duration}",
-  "@callHistoryDuration": { "placeholders": { "duration": { "type": "String" } } },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryWithAI": "With AI assistant",
   "callHistoryParticipants": "Participants",
   "callHistoryMeetingSummary": "Meeting summary",
@@ -745,26 +911,49 @@
   "callHistoryNoSummaries": "No summaries",
   "callHistoryRecordDuringCall": "Press \"Record\" during a call",
   "callHistoryMeetingTime": "Meeting {time}",
-  "@callHistoryMeetingTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryTranscribing": "Transcribing and summarizing...",
   "callHistoryTranscriptCreated": "Transcript created",
   "callHistoryNoRecordings": "No recordings",
   "callHistoryRecordingDate": "Recording {date}",
-  "@callHistoryRecordingDate": { "placeholders": { "date": { "type": "String" } } },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryRecordingUnavailable": "Recording unavailable",
   "callHistoryTranscriptReady": "Transcript ready",
   "callHistoryTranscript": "Transcript",
   "callHistoryKeyPoints": "Key points",
   "callHistoryTasks": "Tasks",
   "callHistoryAssignedTo": "Assigned to: {assignee}",
-  "@callHistoryAssignedTo": { "placeholders": { "assignee": { "type": "String" } } },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryDecisions": "Decisions",
   "callHistoryShowTranscript": "Show full transcript",
-
   "profileScanQr": "Scan QR",
   "profileMyQrCode": "My QR code",
   "profileAddMeShare": "Add me in Taler ID!\ntalerid://user/{userId}",
-  "@profileAddMeShare": { "placeholders": { "userId": { "type": "String" } } },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
   "profileShowCode": "Show this code to add you",
   "profileEditDesc": "Name, surname, patronymic, date of birth",
   "profileAboutMe": "About me",
@@ -781,10 +970,8 @@
   "profilePointCamera": "Point camera at QR code",
   "profilePhotoCamera": "Take photo",
   "profilePhotoGallery": "Choose from gallery",
-
   "editProfilePatronymic": "Patronymic (optional)",
   "editProfileDateFormat": "DD.MM.YYYY",
-
   "aboutMeTitle": "About me",
   "aboutMeClickToFill": "Click to fill",
   "aboutMeCoreValues": "Values",
@@ -798,7 +985,13 @@
   "aboutMeDeleteSection": "Delete section?",
   "aboutMeDeleteConfirm": "All data in this section will be deleted.",
   "aboutMeConnectionError": "Connection error: {error}",
-  "@aboutMeConnectionError": { "placeholders": { "error": { "type": "String" } } },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "aboutMeVisibility": "Visibility",
   "aboutMeTags": "Tags",
   "aboutMeAddTag": "Add tag...",
@@ -807,16 +1000,13 @@
   "aboutMeVisibilityEveryone": "Everyone",
   "aboutMeVisibilityContacts": "Contacts",
   "aboutMeVisibilityOnlyMe": "Only me",
-
   "settingsProfileSubtitle": "Profile",
   "settingsAccount": "Account",
   "settingsKycVerification": "Identity Verification (KYC)",
   "settingsOrganizations": "Organizations",
-
   "incomingCallLabel": "Incoming call",
   "incomingCallDecline": "Decline",
   "incomingCallAccept": "Accept",
-
   "groupCamera": "Camera",
   "groupGallery": "Gallery",
   "groupAvatarUpdated": "Group avatar updated",
@@ -833,7 +1023,6 @@
   "groupMuteNotifications": "Mute notifications",
   "groupMuted": "Muted",
   "groupNoResults": "No results",
-
   "authInvalidCode": "Invalid code. Try again.",
   "loginSubtitle": "Use email and password",
   "emailRequired": "Enter email",
@@ -845,21 +1034,24 @@
   "usernameMaxLength": "Maximum 30 characters",
   "usernameInvalid": "Only letters, digits and _",
   "biometricLoginReason": "Sign in to Taler ID",
-
   "docTypePassport": "Passport",
   "docTypeIdCard": "ID Card",
   "docTypeDriverLicense": "Driver's License",
   "docTypeResidencePermit": "Residence Permit",
   "addressApartment": "apt. {number}",
-  "@addressApartment": { "placeholders": { "number": { "type": "String" } } },
-
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "failedToUpdateProfile": "Failed to update profile",
   "failedToStartKyb": "Failed to start KYB verification",
   "orgUpdated": "Organization updated",
   "failedToUpdateOrg": "Failed to update organization",
   "failedToChangeRole": "Failed to change role",
   "failedToRemoveMember": "Failed to remove member",
-
   "capabilityMessagesTitle": "Messages",
   "capabilityMessagesDesc": "Check messages or write to someone. For example: \"Write to Viktor: will be there in an hour\"",
   "capabilityCallsTitle": "Calls",
@@ -874,5 +1066,19 @@
   "capabilityCalendarDesc": "Schedule a meeting or set a reminder. For example: \"Schedule a meeting with Viktor for tomorrow at 15:00\"",
   "capabilityNotesTitle": "Notes",
   "capabilityNotesDesc": "Save a thought or read recent notes. For example: \"Write down an idea...\" or \"Read recent notes\"",
-  "assistantCallConfirm": "Make a call?"
+  "assistantCallConfirm": "Make a call?",
+  "callNoAnswer": "No answer",
+  "contactDelete": "Remove contact",
+  "contactDeleteTitle": "Remove contact",
+  "contactDeleteConfirm": "Are you sure? This contact will be removed.",
+  "contactBlock": "Block",
+  "contactBlockTitle": "Block user",
+  "contactBlockConfirm": "This user will not be able to message or call you.",
+  "contactUnblock": "Unblock",
+  "contactBlocked": "Blocked",
+  "contactYouAreBlocked": "This user has blocked you",
+  "chatBlockedByYou": "You have blocked this user",
+  "chatYouAreBlocked": "You have been blocked by this user",
+  "chatNotContacts": "Add this user to contacts to message them",
+  "contactRevokeRequest": "Revoke request"
 }

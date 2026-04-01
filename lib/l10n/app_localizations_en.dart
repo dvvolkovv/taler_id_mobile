@@ -2476,4 +2476,48 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get assistantCallConfirm => 'Make a call?';
+
+  @override
+  String get callNoAnswer => 'No answer';
+
+  @override
+  String get contactDelete => 'Remove contact';
+
+  @override
+  String get contactDeleteTitle => 'Remove contact';
+
+  @override
+  String get contactDeleteConfirm =>
+      'Are you sure? This contact will be removed.';
+
+  @override
+  String get contactBlock => 'Block';
+
+  @override
+  String get contactBlockTitle => 'Block user';
+
+  @override
+  String get contactBlockConfirm =>
+      'This user will not be able to message or call you.';
+
+  @override
+  String get contactUnblock => 'Unblock';
+
+  @override
+  String get contactBlocked => 'Blocked';
+
+  @override
+  String get contactYouAreBlocked => 'This user has blocked you';
+
+  @override
+  String get chatBlockedByYou => 'You have blocked this user';
+
+  @override
+  String get chatYouAreBlocked => 'You have been blocked by this user';
+
+  @override
+  String get chatNotContacts => 'Add this user to contacts to message them';
+
+  @override
+  String get contactRevokeRequest => 'Revoke request';
 }
