@@ -24,8 +24,6 @@ class MessengerState extends Equatable {
   final int missedCallsCount;
   final int pendingCalendarInvites;
   final int pendingContactRequests;
-  final bool callsBadgeSeen;
-  final bool calendarBadgeSeen;
 
   const MessengerState({
     this.conversations = const [],
@@ -47,8 +45,6 @@ class MessengerState extends Equatable {
     this.missedCallsCount = 0,
     this.pendingCalendarInvites = 0,
     this.pendingContactRequests = 0,
-    this.callsBadgeSeen = false,
-    this.calendarBadgeSeen = false,
   });
 
   MessengerState copyWith({
@@ -71,8 +67,6 @@ class MessengerState extends Equatable {
     int? missedCallsCount,
     int? pendingCalendarInvites,
     int? pendingContactRequests,
-    bool? callsBadgeSeen,
-    bool? calendarBadgeSeen,
     bool clearError = false,
     bool clearNewConversation = false,
     bool clearCallInvite = false,
@@ -101,8 +95,6 @@ class MessengerState extends Equatable {
       missedCallsCount: missedCallsCount ?? this.missedCallsCount,
       pendingCalendarInvites: pendingCalendarInvites ?? this.pendingCalendarInvites,
       pendingContactRequests: pendingContactRequests ?? this.pendingContactRequests,
-      callsBadgeSeen: callsBadgeSeen ?? this.callsBadgeSeen,
-      calendarBadgeSeen: calendarBadgeSeen ?? this.calendarBadgeSeen,
     );
   }
 
@@ -127,7 +119,5 @@ class MessengerState extends Equatable {
         missedCallsCount,
         pendingCalendarInvites,
         pendingContactRequests,
-        callsBadgeSeen,
-        calendarBadgeSeen,
       ];
 }

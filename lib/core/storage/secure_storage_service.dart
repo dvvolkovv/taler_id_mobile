@@ -181,4 +181,31 @@ class SecureStorageService {
       await _storage.write(key: ApiConstants.onboardingSeenKey, value: 'true');
     }
   }
+
+  // Badge seen counts — persist across app restarts
+  Future<int> getSeenMissedCalls() async {
+    final v = kIsWeb ? _webBox?.get('seen_missed_calls') as String? : await _storage.read(key: 'seen_missed_calls');
+    return int.tryParse(v ?? '') ?? 0;
+  }
+
+  Future<void> setSeenMissedCalls(int count) async {
+    if (kIsWeb) {
+      await _webBox?.put('seen_missed_calls', '$count');
+    } else {
+      await _storage.write(key: 'seen_missed_calls', value: '$count');
+    }
+  }
+
+  Future<int> getSeenCalendarInvites() async {
+    final v = kIsWeb ? _webBox?.get('seen_calendar_invites') as String? : await _storage.read(key: 'seen_calendar_invites');
+    return int.tryParse(v ?? '') ?? 0;
+  }
+
+  Future<void> setSeenCalendarInvites(int count) async {
+    if (kIsWeb) {
+      await _webBox?.put('seen_calendar_invites', '$count');
+    } else {
+      await _storage.write(key: 'seen_calendar_invites', value: '$count');
+    }
+  }
 }
