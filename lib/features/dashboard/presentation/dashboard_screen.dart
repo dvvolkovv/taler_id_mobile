@@ -198,6 +198,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // Re-register FCM token now that the user is authenticated.
       // NotificationService.init() runs before login so the initial save fails with 401.
       NotificationService.refreshToken();
+      NotificationService.setMissedCallCallback(() {
+        if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
+      });
       _connectMessenger();
       _listenForDisconnect();
       _listenForCallEnded();
@@ -218,7 +221,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
       // Always dismiss a pending incoming call invite from the UI.
       debugPrint('[Dashboard] dismissing call invite, wasInCallRoom=$wasInCallRoom, isOurCall=$isOurCall, showingDialog=$_showingCallDialogRoom');
-      if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
+      if (mounted) {
+        context.read<MessengerBloc>().add(DismissCallInvite());
+        // Refresh badge counts after missed call
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
+        });
+      }
       // Close the in-app incoming call modal dialog if it's showing
       if (mounted && _showingCallDialogRoom != null) {
         _showingCallDialogRoom = null;
@@ -414,6 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
+    NotificationService.setMissedCallCallback(null);
     super.dispose();
   }
 
