@@ -875,5 +875,15 @@
   "capabilityNotesTitle": "Заметки",
   "capabilityNotesDesc": "Сохрани мысль или прочитай последние заметки. Например: \"Запиши идею...\" или \"Прочитай последние заметки\"",
   "assistantCallConfirm": "Позвонить?",
-  "callNoAnswer": "Нет ответа"
+  "callNoAnswer": "Нет ответа",
+  "contactDelete": "Удалить контакт",
+  "contactDeleteTitle": "Удалить контакт",
+  "contactDeleteConfirm": "Вы уверены? Контакт будет удалён.",
+  "contactBlock": "Заблокировать",
+  "contactBlockTitle": "Заблокировать пользователя",
+  "contactBlockConfirm": "Пользователь не сможет писать вам и звонить.",
+  "contactUnblock": "Разблокировать",
+  "contactBlocked": "Вы заблокировали этого пользователя",
+  "contactYouAreBlocked": "Этот пользователь вас заблокировал",
+  "cancel": "Отмена"
 }

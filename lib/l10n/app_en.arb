@@ -875,5 +875,15 @@
   "capabilityNotesTitle": "Notes",
   "capabilityNotesDesc": "Save a thought or read recent notes. For example: \"Write down an idea...\" or \"Read recent notes\"",
   "assistantCallConfirm": "Make a call?",
-  "callNoAnswer": "No answer"
+  "callNoAnswer": "No answer",
+  "contactDelete": "Remove contact",
+  "contactDeleteTitle": "Remove contact",
+  "contactDeleteConfirm": "Are you sure? This contact will be removed.",
+  "contactBlock": "Block",
+  "contactBlockTitle": "Block user",
+  "contactBlockConfirm": "This user will not be able to message or call you.",
+  "contactUnblock": "Unblock",
+  "contactBlocked": "You have blocked this user",
+  "contactYouAreBlocked": "This user has blocked you",
+  "cancel": "Cancel"
 }

@@ -602,7 +602,8 @@ class _ConversationTile extends StatelessWidget {
         final isMissedCall = conversation.lastMessageIsSystem &&
             lastMsg != null &&
             (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call')) &&
-            conversation.lastMessageSenderId != currentUserId;
+            conversation.lastMessageSenderId != currentUserId &&
+            conversation.unreadCount > 0;
         if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
           return null;
         }
