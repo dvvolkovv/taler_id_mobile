@@ -35,6 +35,7 @@ class MessengerRemoteDataSource {
   final _contactAcceptedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _reactionUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectCtrl = StreamController<void>.broadcast();
+  final _socketErrorCtrl = StreamController<String>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -132,6 +133,10 @@ class MessengerRemoteDataSource {
       try { _contactAcceptedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
     // Re-join all conversation rooms after reconnect
+    _socket!.on('error', (d) {
+      final msg = (d is Map) ? (d['message'] ?? 'Ошибка') : d.toString();
+      _socketErrorCtrl.add(msg.toString());
+    });
     _socket!.on('connect', (_) {
       _reconnectCtrl.add(null);
       for (final id in _joinedConversations) {
@@ -150,6 +155,7 @@ class MessengerRemoteDataSource {
   Stream<String> get callAnsweredStream => _callAnsweredCtrl.stream;
   Stream<String> get disconnectStream => _disconnectCtrl.stream;
   Stream<void> get reconnectStream => _reconnectCtrl.stream;
+  Stream<String> get socketErrorStream => _socketErrorCtrl.stream;
   Stream<Map<String, dynamic>> get messageUpdatedStream => _messageUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get messagesReadStream => _messagesReadCtrl.stream;
   // Group streams

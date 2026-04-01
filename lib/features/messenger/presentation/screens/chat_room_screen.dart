@@ -65,9 +65,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   late final MessengerBloc _messengerBloc;
   // Pending attachments (inline preview before send)
   final List<_PendingFile> _pendingFiles = [];
-  // Block status for DIRECT conversations
+  // Block/contact status for DIRECT conversations
   bool _iBlockedThem = false;
   bool _theyBlockedMe = false;
+  bool _isContact = true; // assume contact until loaded
 
   @override
   void initState() {
@@ -280,6 +281,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         setState(() {
           _iBlockedThem = cs['iBlockedThem'] as bool? ?? false;
           _theyBlockedMe = cs['isBlocked'] as bool? ?? false;
+          _isContact = cs['isContact'] as bool? ?? false;
         });
       }
     } catch (_) {}
@@ -895,9 +897,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         listenWhen: (prev, curr) {
           final prevCount = prev.messages[widget.conversationId]?.length ?? 0;
           final currCount = curr.messages[widget.conversationId]?.length ?? 0;
-          return currCount > prevCount;
+          return currCount > prevCount || curr.socketError != prev.socketError;
         },
         listener: (context, state) {
+          if (state.socketError != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.socketError!), backgroundColor: AppColors.of(context).error),
+            );
+            context.read<MessengerBloc>().add(const ClearSocketError());
+            return;
+          }
           // Mark new incoming messages as read immediately since chat is open
           context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
           // With reverse:true the list starts at bottom — only scroll if user scrolled up
@@ -952,7 +961,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         itemBuilder: (context, index) {
                           final msg = messages[messages.length - 1 - index];
                           final isMe = _isMyMessage(msg, state);
-                          final sName = isMe ? null : (msg.senderName ?? otherUserName);
+                          // For DIRECT chats prefer current alias (otherUserName) over stored senderName
+                          final sName = isMe ? null : (!isGroup ? otherUserName : (msg.senderName ?? otherUserName));
                           // Show date separator above this message if it's the first
                           // message of its day (i.e. previous message in chronological
                           // order is from a different day, or this is the very first message).
@@ -1211,6 +1221,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             ? AppLocalizations.of(context)!.chatBlockedByYou
                             : AppLocalizations.of(context)!.chatYouAreBlocked,
                         style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              else if (!_isContact)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_add_disabled_rounded, size: 16, color: AppColors.of(context).textSecondary),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          AppLocalizations.of(context)!.chatNotContacts,
+                          style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

@@ -53,6 +53,7 @@ abstract class IMessengerRepository {
   // Reaction methods
   void reactToMessage(String conversationId, String messageId, String emoji);
   Stream<Map<String, dynamic>> get reactionUpdatedStream;
+  Stream<String> get socketErrorStream;
   // Mute methods
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes});
   Future<void> unmuteConversation(String conversationId);

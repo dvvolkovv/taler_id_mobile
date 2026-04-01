@@ -4801,6 +4801,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Make a call?'**
   String get assistantCallConfirm;
+
+  /// No description provided for @callNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get callNoAnswer;
+
+  /// No description provided for @contactDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove contact'**
+  String get contactDelete;
+
+  /// No description provided for @contactDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove contact'**
+  String get contactDeleteTitle;
+
+  /// No description provided for @contactDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure? This contact will be removed.'**
+  String get contactDeleteConfirm;
+
+  /// No description provided for @contactBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Block'**
+  String get contactBlock;
+
+  /// No description provided for @contactBlockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Block user'**
+  String get contactBlockTitle;
+
+  /// No description provided for @contactBlockConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This user will not be able to message or call you.'**
+  String get contactBlockConfirm;
+
+  /// No description provided for @contactUnblock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unblock'**
+  String get contactUnblock;
+
+  /// No description provided for @contactBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Blocked'**
+  String get contactBlocked;
+
+  /// No description provided for @contactYouAreBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This user has blocked you'**
+  String get contactYouAreBlocked;
+
+  /// No description provided for @chatBlockedByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You have blocked this user'**
+  String get chatBlockedByYou;
+
+  /// No description provided for @chatYouAreBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'You have been blocked by this user'**
+  String get chatYouAreBlocked;
+
+  /// No description provided for @chatNotContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this user to contacts to message them'**
+  String get chatNotContacts;
+
+  /// No description provided for @contactRevokeRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke request'**
+  String get contactRevokeRequest;
 }
 
 class _AppLocalizationsDelegate

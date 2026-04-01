@@ -321,7 +321,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     return BlocListener<MessengerBloc, MessengerState>(
       listenWhen: (prev, cur) =>
           prev.contactRequests.length != cur.contactRequests.length ||
-          prev.conversations.length != cur.conversations.length,
+          prev.conversations.length != cur.conversations.length ||
+          prev.sentContactRequests.length != cur.sentContactRequests.length ||
+          prev.contactRequestSent != cur.contactRequestSent,
       listener: (_, __) => _loadAll(),
       child: Scaffold(
       backgroundColor: AppColors.of(context).background,
@@ -504,7 +506,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     try {
       setState(() => _contactActionLoading = true);
       await sl<DioClient>().delete('/messenger/contacts/${widget.userId}/block');
-      if (mounted) await _loadAll();
+      if (mounted) {
+        await _loadAll();
+        setState(() => _contactActionLoading = false);
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _contactActionLoading = false);

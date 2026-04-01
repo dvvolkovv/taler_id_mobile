@@ -32,6 +32,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _contactReqSub;
   StreamSubscription? _contactAccSub;
   StreamSubscription? _reactionSub;
+  StreamSubscription? _socketErrorSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   MessengerBloc({required IMessengerRepository repo})
@@ -85,6 +86,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<ReactionUpdated>(_onReactionUpdated);
     on<LoadBadgeCounts>(_onLoadBadgeCounts);
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
+    on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
+    on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
   }
 
   Future<void> _onConnect(
@@ -185,6 +188,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub = _repo.contactAcceptedStream.listen((data) {
       add(ContactRequestAccepted(data));
     });
+    _socketErrorSub?.cancel();
+    _socketErrorSub = _repo.socketErrorStream.listen((msg) => add(SocketErrorReceived(msg)));
     _reactionSub?.cancel();
     _reactionSub = _repo.reactionUpdatedStream.listen((data) {
       final msgId = data['messageId'] as String?;
@@ -639,8 +644,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   void _onContactRequestAccepted(ContactRequestAccepted event, Emitter<MessengerState> emit) {
-    // Refresh conversations to show the new chat
+    // Refresh conversations and sent requests to update profile screen state
     add(LoadConversations());
+    add(LoadSentContactRequests());
     emit(state.copyWith(clearContactRequestSent: true));
   }
 

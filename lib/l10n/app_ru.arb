@@ -1079,5 +1079,6 @@
   "contactYouAreBlocked": "Этот пользователь вас заблокировал",
   "chatBlockedByYou": "Вы заблокировали этого пользователя",
   "chatYouAreBlocked": "Вы заблокированы этим пользователем",
+  "chatNotContacts": "Добавьте пользователя в контакты, чтобы писать",
   "contactRevokeRequest": "Отозвать запрос"
 }

@@ -1079,5 +1079,6 @@
   "contactYouAreBlocked": "This user has blocked you",
   "chatBlockedByYou": "You have blocked this user",
   "chatYouAreBlocked": "You have been blocked by this user",
+  "chatNotContacts": "Add this user to contacts to message them",
   "contactRevokeRequest": "Revoke request"
 }
