@@ -1877,10 +1877,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
     final colors = AppColors.of(context);
 
     if (isMissedCall) {
+      final timeStr = DateFormat('HH:mm').format(widget.message.sentAt.toLocal());
       // senderId = initiator (caller). isMe=true means current user is the caller.
-      // Only the callee (isMe=false) sees missed call with callback button.
       if (widget.isMe) {
-        // Caller sees "no answer" in neutral style
         return Center(
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 6),
@@ -1898,6 +1897,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   AppLocalizations.of(context)!.callNoAnswer,
                   style: TextStyle(color: colors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
                 ),
+                const SizedBox(width: 6),
+                Text(timeStr, style: TextStyle(color: colors.textSecondary, fontSize: 11)),
               ],
             ),
           ),
@@ -1921,6 +1922,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 Icon(Icons.phone_missed_rounded, color: colors.error, size: 16),
                 const SizedBox(width: 8),
                 Text(text, style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 6),
+                Text(timeStr, style: TextStyle(color: colors.error.withValues(alpha: 0.7), fontSize: 11)),
                 const SizedBox(width: 8),
                 Icon(Icons.call_rounded, color: colors.primary, size: 16),
               ],
