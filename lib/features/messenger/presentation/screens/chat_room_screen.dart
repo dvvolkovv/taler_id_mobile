@@ -1870,18 +1870,56 @@ class _MessageBubbleState extends State<_MessageBubble> {
       text = widget.message.content;
     }
 
+    final isMissedCall = text.contains('Пропущенный звонок') || text.contains('Missed call');
+    final colors = AppColors.of(context);
+
+    if (isMissedCall) {
+      return Center(
+        child: GestureDetector(
+          onTap: () {
+            // Initiate call to sender
+            final senderId = widget.message.senderId;
+            final convId = widget.message.conversationId;
+            if (convId != null) {
+              final roomName = 'call-${DateTime.now().millisecondsSinceEpoch}';
+              context.push('/dashboard/voice?room=$roomName&convId=$convId&calleeId=$senderId');
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colors.error.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone_missed_rounded, color: colors.error, size: 16),
+                const SizedBox(width: 8),
+                Text(text, style: TextStyle(color: colors.error, fontSize: 12, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 8),
+                Icon(Icons.call_rounded, color: colors.primary, size: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Center(
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.of(context).card.withValues(alpha: 0.6),
+          color: colors.card.withValues(alpha: 0.6),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           text,
           style: TextStyle(
-            color: AppColors.of(context).textSecondary,
+            color: colors.textSecondary,
             fontSize: 12,
             fontStyle: FontStyle.italic,
           ),
