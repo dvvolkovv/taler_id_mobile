@@ -844,6 +844,12 @@
   "calendarReminder15min": "За 15 мин",
   "calendarReminder30min": "За 30 мин",
   "calendarReminder1hour": "За 1 час",
+  "calendarRepeatLabel": "Повторение",
+  "calendarRepeatNone": "Не повторять",
+  "calendarRepeatDaily": "Каждый день",
+  "calendarRepeatWeekly": "Каждую неделю",
+  "calendarRepeatMonthly": "Каждый месяц",
+  "calendarRepeatYearly": "Каждый год",
   "calendarParticipants": "Участники",
   "calendarAddParticipant": "Добавить",
   "calendarSearchContacts": "Поиск контактов...",
@@ -852,6 +858,18 @@
   "calendarStatusDeclined": "Отказался",
   "calendarStatusMaybe": "Под вопросом",
   "calendarStatusPending": "Ожидает",
+  "calendarEndTime": "Окончание",
+  "calendarYourAnswer": "Ваш ответ:",
+  "calendarOrganizer": "Организатор",
+  "calendarDeleteError": "Не удалось удалить: {error}",
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "calendarRsvpAccept": "Принять",
+  "calendarRsvpMaybe": "Возможно",
+  "calendarRsvpDecline": "Отказ",
   "callHistoryTitle": "Звонки",
   "callHistoryTab": "История звонков",
   "callHistoryTempMeeting": "Временная встреча",

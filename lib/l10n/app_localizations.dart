@@ -3842,6 +3842,42 @@ abstract class AppLocalizations {
   /// **'1 hour before'**
   String get calendarReminder1hour;
 
+  /// No description provided for @calendarRepeatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get calendarRepeatLabel;
+
+  /// No description provided for @calendarRepeatNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeat'**
+  String get calendarRepeatNone;
+
+  /// No description provided for @calendarRepeatDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get calendarRepeatDaily;
+
+  /// No description provided for @calendarRepeatWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every week'**
+  String get calendarRepeatWeekly;
+
+  /// No description provided for @calendarRepeatMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every month'**
+  String get calendarRepeatMonthly;
+
+  /// No description provided for @calendarRepeatYearly.
+  ///
+  /// In en, this message translates to:
+  /// **'Every year'**
+  String get calendarRepeatYearly;
+
   /// No description provided for @calendarParticipants.
   ///
   /// In en, this message translates to:
@@ -3889,6 +3925,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pending'**
   String get calendarStatusPending;
+
+  /// No description provided for @calendarEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get calendarEndTime;
+
+  /// No description provided for @calendarYourAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'Your answer:'**
+  String get calendarYourAnswer;
+
+  /// No description provided for @calendarOrganizer.
+  ///
+  /// In en, this message translates to:
+  /// **'Organizer'**
+  String get calendarOrganizer;
+
+  /// No description provided for @calendarDeleteError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete: {error}'**
+  String calendarDeleteError(String error);
+
+  /// No description provided for @calendarRsvpAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get calendarRsvpAccept;
+
+  /// No description provided for @calendarRsvpMaybe.
+  ///
+  /// In en, this message translates to:
+  /// **'Maybe'**
+  String get calendarRsvpMaybe;
+
+  /// No description provided for @calendarRsvpDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline'**
+  String get calendarRsvpDecline;
 
   /// No description provided for @callHistoryTitle.
   ///

@@ -844,6 +844,12 @@
   "calendarReminder15min": "15 min before",
   "calendarReminder30min": "30 min before",
   "calendarReminder1hour": "1 hour before",
+  "calendarRepeatLabel": "Repeat",
+  "calendarRepeatNone": "No repeat",
+  "calendarRepeatDaily": "Every day",
+  "calendarRepeatWeekly": "Every week",
+  "calendarRepeatMonthly": "Every month",
+  "calendarRepeatYearly": "Every year",
   "calendarParticipants": "Participants",
   "calendarAddParticipant": "Add",
   "calendarSearchContacts": "Search contacts...",
@@ -852,6 +858,18 @@
   "calendarStatusDeclined": "Declined",
   "calendarStatusMaybe": "Maybe",
   "calendarStatusPending": "Pending",
+  "calendarEndTime": "End time",
+  "calendarYourAnswer": "Your answer:",
+  "calendarOrganizer": "Organizer",
+  "calendarDeleteError": "Failed to delete: {error}",
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "calendarRsvpAccept": "Accept",
+  "calendarRsvpMaybe": "Maybe",
+  "calendarRsvpDecline": "Decline",
   "callHistoryTitle": "Calls",
   "callHistoryTab": "Call history",
   "callHistoryTempMeeting": "Temporary meeting",

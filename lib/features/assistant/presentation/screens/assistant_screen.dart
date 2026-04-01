@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
@@ -16,6 +17,9 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../messenger/presentation/bloc/messenger_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_event.dart';
+import '../../../messenger/presentation/bloc/messenger_state.dart';
 import 'package:go_router/go_router.dart';
 
 enum _CallState { idle, connecting, connected, error }
@@ -47,14 +51,12 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
-
-  // Orbit animation
   late AnimationController _orbitCtrl;
-  int? _selectedOrbitIndex;
+
 
   VideoPlayerController? _logoVideo;
   bool _logoVideoReady = false;
-  bool _logoVideoInitialized = false;
+  bool? _logoVideoDark; // tracks which theme the current video was loaded for
 
   static const _audioChannel = MethodChannel('taler_id/audio');
 
@@ -78,7 +80,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
     _orbitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 30),
+      duration: const Duration(seconds: 90),
     )..repeat();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
@@ -95,20 +97,22 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_logoVideoInitialized) {
-      _logoVideoInitialized = true;
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final asset = isDark ? 'assets/video.mp4' : 'assets/video_light.mp4';
-      _logoVideo = VideoPlayerController.asset(asset)
-        ..setLooping(true)
-        ..setVolume(0)
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() => _logoVideoReady = true);
-            _logoVideo!.play();
-          }
-        });
-    }
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (_logoVideoDark == isDark) return; // theme unchanged, skip
+    _logoVideoDark = isDark;
+    final asset = isDark ? 'assets/video.mp4' : 'assets/video_light.mp4';
+    final oldVideo = _logoVideo;
+    setState(() => _logoVideoReady = false);
+    _logoVideo = VideoPlayerController.asset(asset)
+      ..setLooping(true)
+      ..setVolume(0)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() => _logoVideoReady = true);
+          _logoVideo!.play();
+        }
+        oldVideo?.dispose();
+      });
   }
 
   @override
@@ -977,7 +981,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(centerTitle: true, title: Text(l10n.tabAssistant)),
       body: switch (_state) {
         _CallState.idle => _buildIdle(l10n),
         _CallState.connecting => _buildConnecting(l10n),
@@ -987,251 +990,231 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  static List<_CapabilityData> _getCapabilities(AppLocalizations l10n) => [
-    _CapabilityData(
-      icon: Icons.message_outlined,
-      title: l10n.capabilityMessagesTitle,
-      description: l10n.capabilityMessagesDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.call_outlined,
-      title: l10n.capabilityCallsTitle,
-      description: l10n.capabilityCallsDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.history_outlined,
-      title: l10n.capabilityChatTitle,
-      description: l10n.capabilityChatDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.person_outline,
-      title: l10n.capabilityProfileTitle,
-      description: l10n.capabilityProfileDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.psychology_outlined,
-      title: l10n.capabilityCoachingTitle,
-      description: l10n.capabilityCoachingDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.calendar_month_outlined,
-      title: l10n.capabilityCalendarTitle,
-      description: l10n.capabilityCalendarDesc,
-    ),
-    _CapabilityData(
-      icon: Icons.sticky_note_2_outlined,
-      title: l10n.capabilityNotesTitle,
-      description: l10n.capabilityNotesDesc,
-    ),
-  ];
-
   Widget _buildIdle(AppLocalizations l10n) {
     final colors = AppColors.of(context);
     final screenSize = MediaQuery.of(context).size;
-    final orbitRadius = screenSize.width * 0.32;
-    final capabilities = _getCapabilities(l10n);
+    final orbitRadius = screenSize.width * 0.33;
 
-    return Stack(
-      children: [
-        // Center assistant button (strictly centered)
-        Center(
-          child: GestureDetector(
-            onTap: _connect,
-            child: ScaleTransition(
-              scale: _pulseAnim,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.card,
-                  border: Border.all(color: colors.primary, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withValues(alpha: 0.25),
-                      blurRadius: 32,
-                      spreadRadius: 6,
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: _logoVideoReady && _logoVideo != null
-                      ? SizedBox(
-                          width: 90,
-                          height: 90,
-                          child: FittedBox(
-                            fit: BoxFit.cover,
-                            child: SizedBox(
-                              width: _logoVideo!.value.size.width,
-                              height: _logoVideo!.value.size.height,
-                              child: VideoPlayer(_logoVideo!),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          width: 90,
-                          height: 90,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Image.asset(
-                              Theme.of(context).brightness == Brightness.dark
-                                  ? 'assets/app_icon_dark.png'
-                                  : 'assets/app_icon_light.png',
-                              fit: BoxFit.contain,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-            ),
+    return BlocBuilder<MessengerBloc, MessengerState>(
+      builder: (context, msState) {
+        final unreadMessages = msState.conversations.fold<int>(0, (s, c) => s + c.unreadCount);
+        final missedCalls = msState.missedCallsCount;
+        final pendingCalendar = msState.pendingCalendarInvites;
+        final pendingContacts = msState.pendingContactRequests;
+
+        final navCircles = [
+          _NavCircle(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: l10n.tabMessenger,
+            route: RouteConstants.messenger,
+            badge: unreadMessages,
           ),
-        ),
-
-        // Orbiting icons (same center as logo)
-        Center(
-          child: AnimatedBuilder(
-            animation: _orbitCtrl,
-            builder: (context, _) {
-              return SizedBox(
-                width: orbitRadius * 2 + 60,
-                height: orbitRadius * 2 + 60,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: List.generate(capabilities.length, (i) {
-                    final angle = (2 * math.pi * i / capabilities.length) +
-                        (_orbitCtrl.value * 2 * math.pi);
-                    final x = orbitRadius * math.cos(angle);
-                    final y = orbitRadius * math.sin(angle);
-                    final cap = capabilities[i];
-                    final isSelected = _selectedOrbitIndex == i;
-
-                    return Positioned(
-                      left: orbitRadius + 30 + x - 24,
-                      top: orbitRadius + 30 + y - 24,
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedOrbitIndex = isSelected ? null : i;
-                          });
-                        },
-                        child: AnimatedScale(
-                          scale: isSelected ? 1.3 : 1.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isSelected
-                                  ? colors.primary
-                                  : colors.primary.withValues(alpha: 0.15),
-                              border: Border.all(
-                                color: colors.primary.withValues(alpha: isSelected ? 1.0 : 0.4),
-                                width: 1.5,
-                              ),
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: colors.primary.withValues(alpha: 0.4),
-                                        blurRadius: 12,
-                                        spreadRadius: 2,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Icon(
-                              cap.icon,
-                              size: 22,
-                              color: isSelected ? Colors.white : colors.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-              );
-            },
+          _NavCircle(
+            icon: Icons.call_outlined,
+            label: l10n.tabCalls,
+            route: RouteConstants.callHistory,
+            badge: missedCalls,
+            onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(missedCallsCount: 0)),
           ),
-        ),
+          _NavCircle(
+            icon: Icons.calendar_month_outlined,
+            label: l10n.tabCalendar,
+            route: RouteConstants.calendar,
+            badge: pendingCalendar,
+            onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(pendingCalendarInvites: 0)),
+          ),
+          _NavCircle(
+            icon: Icons.sticky_note_2_outlined,
+            label: l10n.notesTitle,
+            route: RouteConstants.notes,
+            badge: 0,
+          ),
+          _NavCircle(
+            icon: Icons.people_outline,
+            label: l10n.contacts,
+            route: RouteConstants.contacts,
+            badge: pendingContacts,
+          ),
+          _NavCircle(
+            icon: Icons.person_outline,
+            label: l10n.tabProfile,
+            route: RouteConstants.profile,
+            badge: 0,
+          ),
+          _NavCircle(
+            icon: Icons.settings_outlined,
+            label: l10n.tabSettings,
+            route: RouteConstants.settings,
+            badge: 0,
+          ),
+        ];
 
-        // Selected capability description (bottom)
-        if (_selectedOrbitIndex != null)
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 40,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: Container(
-                key: ValueKey(_selectedOrbitIndex),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: colors.card,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          capabilities[_selectedOrbitIndex!].icon,
-                          color: colors.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          capabilities[_selectedOrbitIndex!].title,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
+        return Stack(
+          children: [
+            // Center assistant button
+            Center(
+              child: GestureDetector(
+                onTap: _connect,
+                child: ScaleTransition(
+                  scale: _pulseAnim,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.card,
+                      border: Border.all(color: colors.primary, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primary.withValues(alpha: 0.25),
+                          blurRadius: 32,
+                          spreadRadius: 6,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      capabilities[_selectedOrbitIndex!].description,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
+                    child: ClipOval(
+                      child: _logoVideoReady && _logoVideo != null
+                          ? SizedBox(
+                              width: 90,
+                              height: 90,
+                              child: FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: _logoVideo!.value.size.width,
+                                  height: _logoVideo!.value.size.height,
+                                  child: VideoPlayer(_logoVideo!),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 90,
+                              height: 90,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-        // Text hint at the bottom
-        if (_selectedOrbitIndex == null)
-          Positioned(
-            left: 24,
-            right: 24,
-            bottom: 40,
-            child: Text(
-              l10n.assistantTapToTalk,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+            // Orbiting nav circles (slow planetary motion)
+            Center(
+              child: AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  return SizedBox(
+                    width: orbitRadius * 2 + 80,
+                    height: orbitRadius * 2 + 80,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: List.generate(navCircles.length, (i) {
+                        final baseAngle = 2 * math.pi * i / navCircles.length;
+                        final angle = baseAngle + (_orbitCtrl.value * 2 * math.pi);
+                        final x = orbitRadius * math.cos(angle);
+                        final y = orbitRadius * math.sin(angle);
+                        final nav = navCircles[i];
+                        return Positioned(
+                          left: orbitRadius + 40 + x - 30,
+                          top: orbitRadius + 40 + y - 30,
+                          child: _buildNavCircle(nav, colors),
+                        );
+                      }),
+                    ),
+                  );
+                },
               ),
             ),
+
+            // "Tap to talk" hint at bottom
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 40,
+              child: Text(
+                l10n.assistantTapToTalk,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildNavCircle(_NavCircle nav, AppColorsExtension colors) {
+    return GestureDetector(
+      onTap: () {
+        nav.onTap?.call();
+        context.push(nav.route);
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.primary.withValues(alpha: 0.15),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(nav.icon, size: 24, color: colors.primary),
+              ),
+              if (nav.badge > 0)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: colors.error,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    child: Text(
+                      nav.badge > 99 ? '99+' : '${nav.badge}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
-      ],
+          const SizedBox(height: 5),
+          Text(
+            nav.label,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1495,14 +1478,18 @@ class _CallButton extends StatelessWidget {
   }
 }
 
-class _CapabilityData {
+class _NavCircle {
   final IconData icon;
-  final String title;
-  final String description;
+  final String label;
+  final String route;
+  final int badge;
+  final VoidCallback? onTap;
 
-  const _CapabilityData({
+  const _NavCircle({
     required this.icon,
-    required this.title,
-    required this.description,
+    required this.label,
+    required this.route,
+    required this.badge,
+    this.onTap,
   });
 }
