@@ -92,6 +92,7 @@ void main() {
     when(() => repo.contactRequestStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.contactAcceptedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.reactionUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.socketErrorStream).thenAnswer((_) => emptyStream<String>());
   }
 
   MessengerBloc buildBloc() => MessengerBloc(repo: repo);
