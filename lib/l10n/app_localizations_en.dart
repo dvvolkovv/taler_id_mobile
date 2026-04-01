@@ -1971,6 +1971,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarReminder1hour => '1 hour before';
 
   @override
+  String get calendarRepeatLabel => 'Repeat';
+
+  @override
+  String get calendarRepeatNone => 'No repeat';
+
+  @override
+  String get calendarRepeatDaily => 'Every day';
+
+  @override
+  String get calendarRepeatWeekly => 'Every week';
+
+  @override
+  String get calendarRepeatMonthly => 'Every month';
+
+  @override
+  String get calendarRepeatYearly => 'Every year';
+
+  @override
   String get calendarParticipants => 'Participants';
 
   @override
@@ -1993,6 +2011,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get calendarStatusPending => 'Pending';
+
+  @override
+  String get calendarEndTime => 'End time';
+
+  @override
+  String get calendarYourAnswer => 'Your answer:';
+
+  @override
+  String get calendarOrganizer => 'Organizer';
+
+  @override
+  String calendarDeleteError(String error) {
+    return 'Failed to delete: $error';
+  }
+
+  @override
+  String get calendarRsvpAccept => 'Accept';
+
+  @override
+  String get calendarRsvpMaybe => 'Maybe';
+
+  @override
+  String get calendarRsvpDecline => 'Decline';
 
   @override
   String get callHistoryTitle => 'Calls';

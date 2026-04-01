@@ -252,6 +252,8 @@ class NotificationService {
   static String? _currentToken;
   static VoidCallback? _onCalendarUpdated;
   static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
+  static VoidCallback? _onCalendarInvite;
+  static void setCalendarInviteCallback(VoidCallback? cb) => _onCalendarInvite = cb;
   static VoidCallback? _onMissedCall;
   static void setMissedCallCallback(VoidCallback? cb) => _onMissedCall = cb;
 
@@ -400,6 +402,9 @@ class NotificationService {
       }
       if (type == 'calendar_updated' || type == 'calendar_invite' || type == 'calendar_reminder') {
         _onCalendarUpdated?.call();
+      }
+      if (type == 'calendar_invite') {
+        _onCalendarInvite?.call();
       }
       // call_invite is intentionally ignored here — socket handles it.
       if (type == 'call_cancelled') {
