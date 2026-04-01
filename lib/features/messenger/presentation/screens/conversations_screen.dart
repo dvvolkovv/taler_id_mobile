@@ -597,44 +597,67 @@ class _ConversationTile extends StatelessWidget {
                   style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
                 )
               : null,
-      trailing: (timeStr.isNotEmpty || conversation.unreadCount > 0 || conversation.isMuted)
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (timeStr.isNotEmpty)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(timeStr,
-                          style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                      if (conversation.isMuted) ...[
-                        const SizedBox(width: 4),
-                        Icon(Icons.volume_off, size: 14, color: AppColors.of(context).textSecondary),
-                      ],
-                    ],
-                  ),
-                if (conversation.unreadCount > 0) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: conversation.isMuted
-                          ? AppColors.of(context).textSecondary
-                          : AppColors.of(context).error,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${conversation.unreadCount}',
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+      trailing: () {
+        final isMissedCall = conversation.lastMessageIsSystem &&
+            lastMsg != null &&
+            (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call'));
+        if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
+          return null;
+        }
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (timeStr.isNotEmpty)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(timeStr,
+                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  if (conversation.isMuted) ...[
+                    const SizedBox(width: 4),
+                    Icon(Icons.volume_off, size: 14, color: AppColors.of(context).textSecondary),
+                  ],
                 ],
-              ],
-            )
-          : null,
+              ),
+            if (isMissedCall) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.of(context).error,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.phone_missed_rounded, color: Colors.white, size: 11),
+                    const SizedBox(width: 3),
+                    const Text('1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ] else if (conversation.unreadCount > 0) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: conversation.isMuted
+                      ? AppColors.of(context).textSecondary
+                      : AppColors.of(context).error,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '${conversation.unreadCount}',
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ],
+        );
+      }(),
       onTap: () => context.push('/dashboard/messenger/${conversation.id}'),
     );
   }

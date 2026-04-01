@@ -963,6 +963,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ));
                                 },
                                 currentUserId: state.currentUserId,
+                                onStartCall: (msg.isSystem && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call'))) ? _startCall : null,
                               ),
                             ],
                           );
@@ -1312,6 +1313,7 @@ class _MessageBubble extends StatefulWidget {
   final void Function(String emoji)? onReact;
   final String? currentUserId;
   final List<MessageEntity> allMessages;
+  final VoidCallback? onStartCall;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -1322,6 +1324,7 @@ class _MessageBubble extends StatefulWidget {
     this.onReact,
     this.currentUserId,
     this.allMessages = const [],
+    this.onStartCall,
   });
 
   @override
@@ -1876,15 +1879,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
     if (isMissedCall) {
       return Center(
         child: GestureDetector(
-          onTap: () {
-            // Initiate call to sender
-            final senderId = widget.message.senderId;
-            final convId = widget.message.conversationId;
-            if (convId != null) {
-              final roomName = 'call-${DateTime.now().millisecondsSinceEpoch}';
-              context.push('/dashboard/voice?room=$roomName&convId=$convId&calleeId=$senderId');
-            }
-          },
+          onTap: widget.onStartCall,
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 6),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
