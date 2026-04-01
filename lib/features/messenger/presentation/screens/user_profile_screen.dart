@@ -14,6 +14,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
+import '../bloc/messenger_state.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -317,7 +318,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    return BlocListener<MessengerBloc, MessengerState>(
+      listenWhen: (prev, cur) =>
+          prev.contactRequests.length != cur.contactRequests.length ||
+          prev.conversations.length != cur.conversations.length,
+      listener: (_, __) => _loadAll(),
+      child: Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         title: Text(_customName ?? (fullName.isNotEmpty ? fullName : l10n.userProfileTitle)),
@@ -424,6 +430,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                       _InlineSharedMedia(conversationId: _conversationId!, tabController: _mediaTabCtrl),
                   ],
                 ),
+      ),
     );
   }
 
