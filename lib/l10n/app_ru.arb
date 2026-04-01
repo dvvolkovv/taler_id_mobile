@@ -1076,5 +1076,8 @@
   "contactBlockConfirm": "Пользователь не сможет писать вам и звонить.",
   "contactUnblock": "Разблокировать",
   "contactBlocked": "Заблокирован",
-  "contactYouAreBlocked": "Этот пользователь вас заблокировал"
+  "contactYouAreBlocked": "Этот пользователь вас заблокировал",
+  "chatBlockedByYou": "Вы заблокировали этого пользователя",
+  "chatYouAreBlocked": "Вы заблокированы этим пользователем",
+  "contactRevokeRequest": "Отозвать запрос"
 }

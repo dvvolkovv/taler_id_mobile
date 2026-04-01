@@ -1076,5 +1076,8 @@
   "contactBlockConfirm": "This user will not be able to message or call you.",
   "contactUnblock": "Unblock",
   "contactBlocked": "Blocked",
-  "contactYouAreBlocked": "This user has blocked you"
+  "contactYouAreBlocked": "This user has blocked you",
+  "chatBlockedByYou": "You have blocked this user",
+  "chatYouAreBlocked": "You have been blocked by this user",
+  "contactRevokeRequest": "Revoke request"
 }

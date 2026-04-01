@@ -65,6 +65,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   late final MessengerBloc _messengerBloc;
   // Pending attachments (inline preview before send)
   final List<_PendingFile> _pendingFiles = [];
+  // Block status for DIRECT conversations
+  bool _iBlockedThem = false;
+  bool _theyBlockedMe = false;
 
   @override
   void initState() {
@@ -76,6 +79,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
+    _loadBlockStatus();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -259,6 +263,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           : '';
       context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
     }
+  }
+
+  Future<void> _loadBlockStatus() async {
+    try {
+      final conv = context.read<MessengerBloc>().state.conversations
+          .where((c) => c.id == widget.conversationId)
+          .firstOrNull;
+      final otherUserId = conv?.otherUserId;
+      if (otherUserId == null || conv?.type != 'DIRECT') return;
+      final cs = await sl<DioClient>().get(
+        '/messenger/contacts/check/$otherUserId',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      if (mounted) {
+        setState(() {
+          _iBlockedThem = cs['iBlockedThem'] as bool? ?? false;
+          _theyBlockedMe = cs['isBlocked'] as bool? ?? false;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _startCall() async {
@@ -1173,14 +1197,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ],
                   ),
                 ),
-              _InputBar(
-                controller: _ctrl,
-                onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
-                onAttach: _showAttachMenu,
-                isRecording: _isRecording,
-                onRecordStart: _startRecording,
-                onRecordStop: _stopRecordingAndSend,
-              ),
+              if (_iBlockedThem || _theyBlockedMe)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.block_rounded, size: 16, color: AppColors.of(context).textSecondary),
+                      const SizedBox(width: 8),
+                      Text(
+                        _iBlockedThem
+                            ? AppLocalizations.of(context)!.chatBlockedByYou
+                            : AppLocalizations.of(context)!.chatYouAreBlocked,
+                        style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                _InputBar(
+                  controller: _ctrl,
+                  onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+                  onAttach: _showAttachMenu,
+                  isRecording: _isRecording,
+                  onRecordStart: _startRecording,
+                  onRecordStop: _stopRecordingAndSend,
+                ),
             ],
           );
         },

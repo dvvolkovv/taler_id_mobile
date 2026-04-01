@@ -513,6 +513,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     }
   }
 
+  Future<void> _revokeRequest() async {
+    if (_requestId == null) return;
+    try {
+      setState(() => _contactActionLoading = true);
+      await sl<DioClient>().patch('/messenger/contacts/requests/$_requestId/reject');
+      if (mounted) setState(() { _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.of(context).error));
+      }
+    }
+  }
+
   void _showMoreMenu() {
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
@@ -529,6 +543,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                 leading: Icon(Icons.person_remove_outlined, color: colors.error),
                 title: Text(l10n.contactDelete, style: TextStyle(color: colors.error)),
                 onTap: () { Navigator.pop(ctx); _deleteContact(); },
+              ),
+            if (_pendingRequest == 'sent' && _requestId != null)
+              ListTile(
+                leading: Icon(Icons.cancel_outlined, color: colors.textSecondary),
+                title: Text(l10n.contactRevokeRequest, style: TextStyle(color: colors.textSecondary)),
+                onTap: () { Navigator.pop(ctx); _revokeRequest(); },
               ),
             if (_iBlockedThem)
               ListTile(
