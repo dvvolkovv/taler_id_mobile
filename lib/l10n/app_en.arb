@@ -874,5 +874,6 @@
   "capabilityCalendarDesc": "Schedule a meeting or set a reminder. For example: \"Schedule a meeting with Viktor for tomorrow at 15:00\"",
   "capabilityNotesTitle": "Notes",
   "capabilityNotesDesc": "Save a thought or read recent notes. For example: \"Write down an idea...\" or \"Read recent notes\"",
-  "assistantCallConfirm": "Make a call?"
+  "assistantCallConfirm": "Make a call?",
+  "callNoAnswer": "No answer"
 }

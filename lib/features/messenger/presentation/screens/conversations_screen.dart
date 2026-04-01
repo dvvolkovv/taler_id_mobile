@@ -435,7 +435,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       final conv = filtered[index];
                       return Column(
                         children: [
-                          _ConversationTile(conversation: conv),
+                          _ConversationTile(conversation: conv, currentUserId: state.currentUserId),
                           if (index < filtered.length - 1)
                             Divider(color: colors.border, height: 1),
                         ],
@@ -504,7 +504,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
 
 class _ConversationTile extends StatelessWidget {
   final ConversationEntity conversation;
-  const _ConversationTile({required this.conversation});
+  final String? currentUserId;
+  const _ConversationTile({required this.conversation, this.currentUserId});
 
   @override
   Widget build(BuildContext context) {
@@ -600,7 +601,8 @@ class _ConversationTile extends StatelessWidget {
       trailing: () {
         final isMissedCall = conversation.lastMessageIsSystem &&
             lastMsg != null &&
-            (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call'));
+            (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call')) &&
+            conversation.lastMessageSenderId != currentUserId;
         if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
           return null;
         }

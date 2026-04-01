@@ -963,7 +963,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ));
                                 },
                                 currentUserId: state.currentUserId,
-                                onStartCall: (msg.isSystem && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call'))) ? _startCall : null,
+                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call'))) ? _startCall : null,
                               ),
                             ],
                           );
@@ -1877,6 +1877,33 @@ class _MessageBubbleState extends State<_MessageBubble> {
     final colors = AppColors.of(context);
 
     if (isMissedCall) {
+      // senderId = initiator (caller). isMe=true means current user is the caller.
+      // Only the callee (isMe=false) sees missed call with callback button.
+      if (widget.isMe) {
+        // Caller sees "no answer" in neutral style
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: colors.card.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.phone_forwarded_rounded, color: colors.textSecondary, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  AppLocalizations.of(context)!.callNoAnswer,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      // Callee sees missed call with callback button
       return Center(
         child: GestureDetector(
           onTap: widget.onStartCall,
