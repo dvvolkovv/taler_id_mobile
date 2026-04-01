@@ -740,7 +740,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Не удалось удалить: $e'), backgroundColor: Colors.red),
+              SnackBar(content: Text(AppLocalizations.of(context)!.calendarDeleteError(e.toString())), backgroundColor: Colors.red),
             );
           }
           return false;
@@ -784,6 +784,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           Icon(icon, size: 16, color: colors.textSecondary),
                           const SizedBox(width: 6),
                           Expanded(child: Text(event['title'] as String? ?? '', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          if (event['recurrence'] != null) ...[
+                            const SizedBox(width: 4),
+                            Icon(Icons.repeat_rounded, size: 14, color: colors.textSecondary),
+                          ],
                         ],
                       ),
                       if (descClean.isNotEmpty) ...[
@@ -883,6 +887,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   TimeOfDay? _endTime; // null = no end time
   String _type = 'CALL';
   int _reminderMinutes = -1; // -1 = off, 15, 30, 60
+  String _recurrenceFrequency = 'none';
   bool _saving = false;
   List<Map<String, dynamic>> _contacts = [];
   List<String> _selectedContactIds = [];
@@ -930,6 +935,11 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         final diff = startDt.difference(reminderDt).inMinutes;
         _reminderMinutes = [15, 30, 60].contains(diff) ? diff : 15;
       }
+    }
+
+    if (e != null && e['recurrence'] != null) {
+      final rec = e['recurrence'] as Map<String, dynamic>;
+      _recurrenceFrequency = rec['frequency'] as String? ?? 'none';
     }
 
     if (e != null && e['contactIds'] != null) {
@@ -1036,6 +1046,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         if (reminderAt != null) 'reminderAt': reminderAt.toUtc().toIso8601String(),
         if (_selectedContactIds.isNotEmpty) 'contactIds': _selectedContactIds,
         'displayTime': displayTime,
+        'recurrence': _recurrenceFrequency != 'none' ? {'frequency': _recurrenceFrequency, 'interval': 1} : null,
       };
       final ds = CalendarRemoteDataSource(sl<DioClient>());
       if (widget.event != null) {
@@ -1096,13 +1107,16 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     final colors = AppColors.of(context);
     final today = DateTime.now();
     final l10n = AppLocalizations.of(context)!;
+    final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+    final eventUserId = widget.event?['userId'] as String?;
+    final isOrganizer = widget.event == null || currentUserId == eventUserId;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
         centerTitle: true,
         title: Text(widget.event == null ? l10n.calendarNewEvent : l10n.calendarEditEvent),
         actions: [
-          TextButton(
+          if (isOrganizer) TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
@@ -1186,7 +1200,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           ),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text('Окончание', style: TextStyle(color: colors.textSecondary)),
+            title: Text(l10n.calendarEndTime, style: TextStyle(color: colors.textSecondary)),
             trailing: Text(
               _endTime != null ? '${_endTime!.hour.toString().padLeft(2, '0')}:${_endTime!.minute.toString().padLeft(2, '0')}' : '—',
               style: TextStyle(color: colors.textPrimary),
@@ -1212,6 +1226,29 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                 DropdownMenuItem(value: 60, child: Text(l10n.calendarReminder1hour)),
               ],
               onChanged: (v) => setState(() => _reminderMinutes = v ?? -1),
+            ),
+          ),
+          // Recurrence selector
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.calendarRepeatLabel, style: TextStyle(color: colors.textPrimary)),
+            trailing: SizedBox(
+              width: 160,
+              child: DropdownButton<String>(
+                value: _recurrenceFrequency,
+                dropdownColor: colors.card,
+                underline: const SizedBox(),
+                isExpanded: true,
+                style: TextStyle(color: colors.primary, fontSize: 14),
+                items: [
+                  DropdownMenuItem(value: 'none', child: Text(l10n.calendarRepeatNone, style: TextStyle(color: colors.primary))),
+                  DropdownMenuItem(value: 'daily', child: Text(l10n.calendarRepeatDaily, style: TextStyle(color: colors.primary))),
+                  DropdownMenuItem(value: 'weekly', child: Text(l10n.calendarRepeatWeekly, style: TextStyle(color: colors.primary))),
+                  DropdownMenuItem(value: 'monthly', child: Text(l10n.calendarRepeatMonthly, style: TextStyle(color: colors.primary))),
+                  DropdownMenuItem(value: 'yearly', child: Text(l10n.calendarRepeatYearly, style: TextStyle(color: colors.primary))),
+                ],
+                onChanged: isOrganizer ? (v) => setState(() => _recurrenceFrequency = v ?? 'none') : null,
+              ),
             ),
           ),
           const Divider(),
@@ -1243,19 +1280,19 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    Text('Ваш ответ:', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    Text(l10n.calendarYourAnswer, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                     const Spacer(),
-                    _RsvpButton(label: 'Принять', icon: Icons.check, color: Colors.green, active: myStatus == 'ACCEPTED', onTap: () async {
+                    _RsvpButton(label: l10n.calendarRsvpAccept, icon: Icons.check, color: Colors.green, active: myStatus == 'ACCEPTED', onTap: () async {
                       await CalendarRemoteDataSource(sl<DioClient>()).acceptInvite(inviteId);
                       if (mounted) Navigator.pop(context, true);
                     }),
                     const SizedBox(width: 8),
-                    _RsvpButton(label: 'Возможно', icon: Icons.help_outline, color: Colors.orange, active: myStatus == 'MAYBE', onTap: () async {
+                    _RsvpButton(label: l10n.calendarRsvpMaybe, icon: Icons.help_outline, color: Colors.orange, active: myStatus == 'MAYBE', onTap: () async {
                       await CalendarRemoteDataSource(sl<DioClient>()).maybeInvite(inviteId);
                       if (mounted) Navigator.pop(context, true);
                     }),
                     const SizedBox(width: 8),
-                    _RsvpButton(label: 'Отказ', icon: Icons.close, color: colors.error, active: myStatus == 'DECLINED', onTap: () async {
+                    _RsvpButton(label: l10n.calendarRsvpDecline, icon: Icons.close, color: colors.error, active: myStatus == 'DECLINED', onTap: () async {
                       await CalendarRemoteDataSource(sl<DioClient>()).declineInvite(inviteId);
                       if (mounted) Navigator.pop(context, true);
                     }),
@@ -1276,7 +1313,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                 return Text(name.isNotEmpty ? name : (ou['username'] as String? ?? '?'),
                     style: TextStyle(color: colors.textPrimary));
               }(),
-              subtitle: Text('Организатор', style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+              subtitle: Text(l10n.calendarOrganizer, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
             ),
           ],
           if (_selectedContactIds.isNotEmpty)

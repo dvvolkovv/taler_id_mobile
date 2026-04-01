@@ -172,4 +172,24 @@ void main() {
           )).called(1);
     });
   });
+
+  // ── maybeInvite ─────────────────────────────────────────────────────────
+
+  group('maybeInvite', () {
+    test('sets maybe status by invite id', () async {
+      when(() => http.patch<dynamic>(
+            '/calendar/invites/inv-1/maybe',
+            data: {},
+            fromJson: any(named: 'fromJson'),
+          )).thenAnswer((_) async => {});
+
+      await ds.maybeInvite('inv-1');
+
+      verify(() => http.patch<dynamic>(
+            '/calendar/invites/inv-1/maybe',
+            data: {},
+            fromJson: any(named: 'fromJson'),
+          )).called(1);
+    });
+  });
 }

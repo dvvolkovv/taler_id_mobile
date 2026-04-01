@@ -116,39 +116,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Profile section
-            _sectionHeader(l10n.profile),
-            AppCard(
-              child: FutureBuilder<Map<String, dynamic>?>(
-                future: sl<ProfileRemoteDataSource>().getProfile(),
-                builder: (context, snap) {
-                  final avatar = snap.data?['avatarUrl'] as String?;
-                  final firstName = snap.data?['firstName'] as String? ?? '';
-                  final lastName = snap.data?['lastName'] as String? ?? '';
-                  final name = '$firstName $lastName'.trim();
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    leading: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                      backgroundImage: avatar != null && avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                      child: avatar == null || avatar.isEmpty
-                          ? Icon(Icons.person, color: AppColors.of(context).primary, size: 22)
-                          : null,
-                    ),
-                    title: Text(
-                      name.isNotEmpty ? name : l10n.profile,
-                      style: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(l10n.settingsProfileSubtitle, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                    trailing: Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
-                    onTap: () => context.push(RouteConstants.profile),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // Identity & Organizations section
             _sectionHeader(l10n.settingsAccount),
             AppCard(

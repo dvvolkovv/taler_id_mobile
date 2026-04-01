@@ -21,6 +21,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
@@ -69,6 +70,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _iBlockedThem = false;
   bool _theyBlockedMe = false;
   bool _isContact = true; // assume contact until loaded
+  // Search in chat
+  bool _searchMode = false;
+  String _searchText = '';
+  List<int> _searchMatchChronIndices = [];
+  int _searchCurrentMatchIdx = -1;
+  final TextEditingController _searchCtrl = TextEditingController();
+  final Map<String, GlobalKey> _messageKeys = {};
+  // Scroll-to-bottom button
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
@@ -77,6 +87,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl = TextEditingController();
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
+    _scrollCtrl.addListener(_onScrollChanged);
     _messengerBloc.add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
@@ -769,6 +780,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _typingTimer?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
+    _searchCtrl.dispose();
     _scrollCtrl.dispose();
     _recorder.dispose();
     _disconnectSub?.cancel();
@@ -776,23 +788,123 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.dispose();
   }
 
+  void _onScrollChanged() {
+    if (!_scrollCtrl.hasClients) return;
+    final show = _scrollCtrl.offset > 200;
+    if (show != _showScrollToBottom) setState(() => _showScrollToBottom = show);
+  }
+
+  void _enterSearchMode() => setState(() {
+        _searchMode = true;
+        _searchText = '';
+        _searchMatchChronIndices = [];
+        _searchCurrentMatchIdx = -1;
+      });
+
+  void _exitSearchMode() {
+    _searchCtrl.clear();
+    setState(() {
+      _searchMode = false;
+      _searchText = '';
+      _searchMatchChronIndices = [];
+      _searchCurrentMatchIdx = -1;
+    });
+  }
+
+  void _performSearch(String query) {
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    final q = query.toLowerCase().trim();
+    if (q.isEmpty) {
+      setState(() {
+        _searchText = '';
+        _searchMatchChronIndices = [];
+        _searchCurrentMatchIdx = -1;
+      });
+      return;
+    }
+    final indices = <int>[];
+    for (int i = 0; i < messages.length; i++) {
+      if (!messages[i].isSystem &&
+          messages[i].content.toLowerCase().contains(q)) {
+        indices.add(i);
+      }
+    }
+    setState(() {
+      _searchText = query;
+      _searchMatchChronIndices = indices;
+      _searchCurrentMatchIdx = indices.isNotEmpty ? indices.length - 1 : -1;
+    });
+    if (indices.isNotEmpty) _scrollToChronIndex(indices.last);
+  }
+
+  void _scrollToChronIndex(int chronIdx) {
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    if (chronIdx < 0 || chronIdx >= messages.length) return;
+    final key = _messageKeys[messages[chronIdx].id];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(key!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut);
+    }
+  }
+
+  void _goToOlderMatch() {
+    if (_searchMatchChronIndices.isEmpty || _searchCurrentMatchIdx <= 0) return;
+    final newIdx = _searchCurrentMatchIdx - 1;
+    setState(() => _searchCurrentMatchIdx = newIdx);
+    _scrollToChronIndex(_searchMatchChronIndices[newIdx]);
+  }
+
+  void _goToNewerMatch() {
+    if (_searchMatchChronIndices.isEmpty ||
+        _searchCurrentMatchIdx >= _searchMatchChronIndices.length - 1) return;
+    final newIdx = _searchCurrentMatchIdx + 1;
+    setState(() => _searchCurrentMatchIdx = newIdx);
+    _scrollToChronIndex(_searchMatchChronIndices[newIdx]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: BlocBuilder<MessengerBloc, MessengerState>(
-          buildWhen: (prev, curr) => prev.conversations != curr.conversations,
-          builder: (context, state) {
-            final conv = state.conversations
-                .where((c) => c.id == widget.conversationId)
-                .firstOrNull;
-            final l10n = AppLocalizations.of(context)!;
-            final isGroup = conv?.type == 'GROUP';
-            final name = isGroup ? (conv?.name ?? l10n.chatGroup) : conv?.otherUserName;
-            final avatarUrl = isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
-            final otherUserId = conv?.otherUserId;
-            return GestureDetector(
+        leading: _searchMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSearchMode,
+              )
+            : null,
+        automaticallyImplyLeading: !_searchMode,
+        title: _searchMode
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                style: TextStyle(
+                    color: AppColors.of(context).textPrimary, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'Поиск в чате...',
+                  hintStyle:
+                      TextStyle(color: AppColors.of(context).textSecondary),
+                  border: InputBorder.none,
+                ),
+                onChanged: _performSearch,
+              )
+            : BlocBuilder<MessengerBloc, MessengerState>(
+                buildWhen: (prev, curr) =>
+                    prev.conversations != curr.conversations,
+                builder: (context, state) {
+                  final conv = state.conversations
+                      .where((c) => c.id == widget.conversationId)
+                      .firstOrNull;
+                  final l10n = AppLocalizations.of(context)!;
+                  final isGroup = conv?.type == 'GROUP';
+                  final name = isGroup
+                      ? (conv?.name ?? l10n.chatGroup)
+                      : conv?.otherUserName;
+                  final avatarUrl =
+                      isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
+                  final otherUserId = conv?.otherUserId;
+                  return GestureDetector(
               onTap: isGroup
                   ? () => context.push('/dashboard/messenger/${widget.conversationId}/settings')
                   : otherUserId != null
@@ -849,49 +961,82 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ),
             );
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone_outlined),
-            onPressed: _startCall,
-            tooltip: AppLocalizations.of(context)!.chatCall,
-          ),
-          BlocBuilder<MessengerBloc, MessengerState>(
-            buildWhen: (prev, curr) => prev.conversations != curr.conversations,
-            builder: (context, state) {
-              final conv = state.conversations
-                  .where((c) => c.id == widget.conversationId)
-                  .firstOrNull;
-              final isMuted = conv?.isMuted ?? false;
-              return PopupMenuButton<String>(
-                icon: Icon(
-                  isMuted ? Icons.volume_off : Icons.more_vert,
-                  color: isMuted ? AppColors.of(context).textSecondary : null,
-                ),
-                onSelected: (value) => _handleMenuAction(value, isMuted),
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isMuted ? Icons.volume_up : Icons.volume_off,
-                          size: 20,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(isMuted
-                            ? AppLocalizations.of(context)!.unmuteNotifications
-                            : AppLocalizations.of(context)!.muteNotifications),
-                      ],
+                },
+              ),
+        actions: _searchMode
+            ? [
+                if (_searchMatchChronIndices.isNotEmpty) ...[
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '${_searchMatchChronIndices.length - _searchCurrentMatchIdx}/${_searchMatchChronIndices.length}',
+                        style: TextStyle(
+                            color: AppColors.of(context).textSecondary,
+                            fontSize: 13),
+                      ),
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_up),
+                    onPressed: _goToOlderMatch,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down),
+                    onPressed: _goToNewerMatch,
+                  ),
                 ],
-              );
-            },
-          ),
-        ],
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _enterSearchMode,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.phone_outlined),
+                  onPressed: _startCall,
+                  tooltip: AppLocalizations.of(context)!.chatCall,
+                ),
+                BlocBuilder<MessengerBloc, MessengerState>(
+                  buildWhen: (prev, curr) =>
+                      prev.conversations != curr.conversations,
+                  builder: (context, state) {
+                    final conv = state.conversations
+                        .where((c) => c.id == widget.conversationId)
+                        .firstOrNull;
+                    final isMuted = conv?.isMuted ?? false;
+                    return PopupMenuButton<String>(
+                      icon: Icon(
+                        isMuted ? Icons.volume_off : Icons.more_vert,
+                        color: isMuted
+                            ? AppColors.of(context).textSecondary
+                            : null,
+                      ),
+                      onSelected: (value) => _handleMenuAction(value, isMuted),
+                      itemBuilder: (ctx) => [
+                        PopupMenuItem(
+                          value: 'mute',
+                          child: Row(
+                            children: [
+                              Icon(
+                                isMuted ? Icons.volume_up : Icons.volume_off,
+                                size: 20,
+                                color: AppColors.of(context).textPrimary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(isMuted
+                                  ? AppLocalizations.of(context)!
+                                      .unmuteNotifications
+                                  : AppLocalizations.of(context)!
+                                      .muteNotifications),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
       ),
       body: BlocListener<MessengerBloc, MessengerState>(
         listenWhen: (prev, curr) {
@@ -941,7 +1086,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   onJoin: () => _joinActiveCall(activeRoomName),
                 ),
               Expanded(
-                child: GestureDetector(
+                child: Stack(
+                  children: [
+                GestureDetector(
                   onTap: () => FocusScope.of(context).unfocus(),
                   behavior: HitTestBehavior.translucent,
                   child: messages.isEmpty
@@ -959,25 +1106,57 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         padding: const EdgeInsets.all(16),
                         itemCount: messages.length,
                         itemBuilder: (context, index) {
-                          final msg = messages[messages.length - 1 - index];
+                          // messages[] is chronological (index 0 = oldest).
+                          // reversed list: index 0 = newest (displayed at bottom).
+                          final chronIdx = messages.length - 1 - index;
+                          final msg = messages[chronIdx];
                           final isMe = _isMyMessage(msg, state);
-                          // For DIRECT chats prefer current alias (otherUserName) over stored senderName
-                          final sName = isMe ? null : (!isGroup ? otherUserName : (msg.senderName ?? otherUserName));
-                          // Show date separator above this message if it's the first
-                          // message of its day (i.e. previous message in chronological
-                          // order is from a different day, or this is the very first message).
-                          // Since the list is reversed, "previous chronological" = index+1.
+
+                          // Adjacent messages for grouping
+                          final prevChron = chronIdx > 0 ? messages[chronIdx - 1] : null; // visually above
+                          final nextChron = chronIdx < messages.length - 1 ? messages[chronIdx + 1] : null; // visually below
+
+                          // Date separator logic (same as before)
                           final msgDate = DateTime(msg.sentAt.year, msg.sentAt.month, msg.sentAt.day);
                           bool showDate = false;
                           if (index == messages.length - 1) {
-                            // oldest message — always show date
                             showDate = true;
                           } else {
-                            final prevMsg = messages[messages.length - 2 - index];
-                            final prevDate = DateTime(prevMsg.sentAt.year, prevMsg.sentAt.month, prevMsg.sentAt.day);
+                            final prevDate = DateTime(prevChron!.sentAt.year, prevChron.sentAt.month, prevChron.sentAt.day);
                             showDate = msgDate != prevDate;
                           }
+
+                          // Group context: consecutive messages from same sender
+                          final isFirstInGroup = showDate ||
+                              prevChron == null ||
+                              prevChron.isSystem ||
+                              msg.isSystem ||
+                              prevChron.senderId != msg.senderId;
+                          final isLastInGroup = nextChron == null ||
+                              nextChron.isSystem ||
+                              msg.isSystem ||
+                              nextChron.senderId != msg.senderId ||
+                              DateTime(nextChron.sentAt.year, nextChron.sentAt.month, nextChron.sentAt.day) != msgDate;
+
+                          // Show sender name only on first message of a group (incoming group chats)
+                          final sName = isMe
+                              ? null
+                              : (!isGroup
+                                  ? otherUserName
+                                  : (isFirstInGroup ? (msg.senderName ?? otherUserName) : null));
+
+                          // GlobalKey for search scroll-to
+                          final msgKey = _messageKeys.putIfAbsent(msg.id, () => GlobalKey());
+                          // Search highlight state
+                          final isCurrentMatch = _searchMatchChronIndices.isNotEmpty &&
+                              _searchCurrentMatchIdx >= 0 &&
+                              _searchMatchChronIndices[_searchCurrentMatchIdx] == chronIdx;
+                          final isAnyMatch = _searchText.isNotEmpty &&
+                              !msg.isSystem &&
+                              msg.content.toLowerCase().contains(_searchText.toLowerCase());
+
                           return Column(
+                            key: msgKey,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
@@ -986,6 +1165,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 isMe: isMe,
                                 isGroup: isGroup,
                                 senderName: sName,
+                                isFirstInGroup: isFirstInGroup,
+                                isLastInGroup: isLastInGroup,
+                                isSearchMatch: isAnyMatch,
+                                isCurrentSearchMatch: isCurrentMatch,
                                 allMessages: messages,
                                 onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? AppLocalizations.of(context)!.chatYou : sName),
                                 onEdit: (isMe && !msg.isSystem && msg.fileUrl == null) ? () => _startEditing(msg) : null,
@@ -1003,6 +1186,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           );
                         },
                       ),
+                ),
+                    // Scroll-to-bottom button
+                    if (_showScrollToBottom)
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: Material(
+                          color: AppColors.of(context).card,
+                          shape: const CircleBorder(),
+                          elevation: 4,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => _scrollCtrl.animateTo(0,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              child: Icon(Icons.keyboard_arrow_down_rounded,
+                                  color: AppColors.of(context).primary),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (_editingMessage != null)
@@ -1380,6 +1589,10 @@ class _MessageBubble extends StatefulWidget {
   final bool isMe;
   final String? senderName;
   final bool isGroup;
+  final bool isFirstInGroup;
+  final bool isLastInGroup;
+  final bool isSearchMatch;
+  final bool isCurrentSearchMatch;
   final VoidCallback? onReply;
   final VoidCallback? onEdit;
   final void Function(String emoji)? onReact;
@@ -1391,6 +1604,10 @@ class _MessageBubble extends StatefulWidget {
     required this.isMe,
     this.senderName,
     this.isGroup = false,
+    this.isFirstInGroup = true,
+    this.isLastInGroup = true,
+    this.isSearchMatch = false,
+    this.isCurrentSearchMatch = false,
     this.onReply,
     this.onEdit,
     this.onReact,
@@ -1486,13 +1703,42 @@ class _MessageBubbleState extends State<_MessageBubble> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: AppColors.of(context).card,
-          borderRadius: BorderRadius.circular(16),
+          color: widget.isCurrentSearchMatch
+              ? (widget.isMe
+                  ? AppColors.of(context).primary.withValues(alpha: 0.7)
+                  : Colors.amber.withValues(alpha: 0.15))
+              : (widget.isMe
+                  ? AppColors.of(context).primary
+                  : AppColors.of(context).card),
+          borderRadius: widget.isMe
+              ? (widget.isLastInGroup
+                  ? const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(4),
+                    )
+                  : BorderRadius.circular(18))
+              : (widget.isLastInGroup
+                  ? const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(18),
+                    )
+                  : BorderRadius.circular(18)),
+          border: widget.isCurrentSearchMatch
+              ? Border.all(
+                  color: Colors.amber.withValues(alpha: 0.8), width: 1.5)
+              : widget.isSearchMatch
+                  ? Border.all(
+                      color: Colors.amber.withValues(alpha: 0.4), width: 1)
+                  : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!widget.isMe && widget.senderName != null && widget.senderName!.isNotEmpty && (widget.isGroup || widget.senderName != null))
+            if (!widget.isMe && widget.senderName != null && widget.senderName!.isNotEmpty && widget.isFirstInGroup)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
@@ -1511,30 +1757,39 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       .where((m) => m.fileUrl != null && _effectiveFileType(m) == 'image')
                       .toList();
                   final idx = imageMessages.indexWhere((m) => m.id == widget.message.id);
-                  Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => _FullScreenImageGallery(
+                  Navigator.of(context).push(PageRouteBuilder(
+                    opaque: false,
+                    barrierColor: Colors.black,
+                    transitionDuration: const Duration(milliseconds: 280),
+                    pageBuilder: (_, __, ___) => _FullScreenImageGallery(
                       imageUrls: imageMessages.map((m) => m.fileUrl!).toList(),
+                      heroTags: imageMessages.map((m) => 'img_${m.id}').toList(),
                       initialIndex: idx >= 0 ? idx : 0,
                     ),
+                    transitionsBuilder: (_, anim, __, child) =>
+                        FadeTransition(opacity: anim, child: child),
                   ));
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 220,
-                      height: 160,
-                      child: CachedNetworkImage(
-                        imageUrl: widget.message.thumbnailLargeUrl ?? widget.message.fileUrl!,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.of(context).primary,
+                  child: Hero(
+                    tag: 'img_${widget.message.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 220,
+                        height: 160,
+                        child: CachedNetworkImage(
+                          imageUrl: widget.message.thumbnailLargeUrl ?? widget.message.fileUrl!,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.of(context).primary,
+                            ),
                           ),
+                          errorWidget: (_, __, ___) => Icon(Icons.broken_image, color: AppColors.of(context).textSecondary),
                         ),
-                        errorWidget: (_, __, ___) => Icon(Icons.broken_image, color: AppColors.of(context).textSecondary),
                       ),
                     ),
                   ),
@@ -1585,11 +1840,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _LinkifiedText(
                 text: widget.message.content,
                 style: TextStyle(
-                  color: AppColors.of(context).textPrimary,
+                  color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
                   fontSize: 14,
                 ),
                 linkStyle: TextStyle(
-                  color: AppColors.of(context).primary,
+                  color: widget.isMe
+                      ? Colors.white.withValues(alpha: 0.85)
+                      : AppColors.of(context).primary,
                   fontSize: 14,
                   decoration: TextDecoration.underline,
                 ),
@@ -1603,7 +1860,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   widget.message.content,
-                  style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14),
+                  style: TextStyle(
+                    color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             const SizedBox(height: 4),
@@ -1614,7 +1874,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   Text(
                     AppLocalizations.of(context)!.chatEdited,
                     style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
                     ),
@@ -1624,7 +1886,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 Text(
                   DateFormat('HH:mm').format(widget.message.sentAt.toLocal()),
                   style: TextStyle(
-                    color: AppColors.of(context).textSecondary,
+                    color: widget.isMe
+                        ? Colors.white.withValues(alpha: 0.6)
+                        : AppColors.of(context).textSecondary,
                     fontSize: 11,
                   ),
                 ),
@@ -1638,8 +1902,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                             : Icons.done_rounded,
                     size: 14,
                     color: widget.message.isRead
-                        ? AppColors.of(context).primary
-                        : AppColors.of(context).textSecondary,
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.6),
                   ),
                 ],
               ],
@@ -1653,8 +1917,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
           currentUserId: widget.currentUserId,
           onTap: widget.onReact,
         ),
-      if (widget.message.reactions.isEmpty)
-        const SizedBox(height: 8),
+      SizedBox(height: widget.isLastInGroup ? 8 : 2),
         ],
       ),
           ),
@@ -2731,11 +2994,45 @@ class _AudioMessagePlayer extends StatefulWidget {
 class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
   final _player = AudioPlayer();
   bool _playing = false;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  double _speed = 1.0;
+  late final List<double> _waveform;
+
+  @override
+  void initState() {
+    super.initState();
+    _waveform = _buildWaveform(widget.fileUrl);
+    _player.onPositionChanged.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    _player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() { _playing = false; _position = Duration.zero; });
+    });
+  }
 
   @override
   void dispose() {
     _player.dispose();
     super.dispose();
+  }
+
+  /// Deterministic pseudo-random waveform from URL hash.
+  static List<double> _buildWaveform(String url) {
+    var h = url.hashCode;
+    return List.generate(28, (_) {
+      h = ((h * 1664525 + 1013904223) & 0x7FFFFFFF);
+      return 0.15 + (h & 0xFF) / 255.0 * 0.85;
+    });
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   Future<void> _toggle() async {
@@ -2749,37 +3046,150 @@ class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
       } catch (_) {
         await _player.play(UrlSource(widget.fileUrl));
       }
+      await _player.setPlaybackRate(_speed);
       setState(() => _playing = true);
-      _player.onPlayerComplete.listen((_) {
-        if (mounted) setState(() => _playing = false);
-      });
     }
+  }
+
+  Future<void> _toggleSpeed() async {
+    final newSpeed = _speed == 1.0 ? 2.0 : 1.0;
+    setState(() => _speed = newSpeed);
+    if (_playing) await _player.setPlaybackRate(newSpeed);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _toggle,
+    final colors = AppColors.of(context);
+    final onBubble = widget.isMe;
+    final waveActive = onBubble ? Colors.white : colors.primary;
+    final waveInactive = onBubble
+        ? Colors.white.withValues(alpha: 0.35)
+        : colors.primary.withValues(alpha: 0.3);
+    final timeColor = onBubble
+        ? Colors.white.withValues(alpha: 0.65)
+        : colors.textSecondary;
+
+    final progress = _duration.inMilliseconds > 0
+        ? (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    final displayTime =
+        _duration > Duration.zero ? _fmt(_playing ? _position : _duration) : '0:00';
+
+    return SizedBox(
+      width: 200,
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Icon(
-            _playing ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded,
-            color: AppColors.of(context).primary,
-            size: 32,
+          GestureDetector(
+            onTap: _toggle,
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: waveActive.withValues(alpha: onBubble ? 0.25 : 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: waveActive,
+                size: 22,
+              ),
+            ),
           ),
           const SizedBox(width: 8),
-          Text(
-            AppLocalizations.of(context)!.chatVoiceMessageShort,
-            style: TextStyle(
-              color: AppColors.of(context).textPrimary,
-              fontSize: 13,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 28,
+                  child: CustomPaint(
+                    painter: _WaveformPainter(
+                      bars: _waveform,
+                      progress: progress,
+                      activeColor: waveActive,
+                      inactiveColor: waveInactive,
+                    ),
+                    size: const Size(double.infinity, 28),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(displayTime,
+                        style: TextStyle(color: timeColor, fontSize: 11)),
+                    GestureDetector(
+                      onTap: _toggleSpeed,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: waveActive.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _speed == 1.0 ? '1×' : '2×',
+                          style: TextStyle(
+                              color: waveActive,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _WaveformPainter extends CustomPainter {
+  final List<double> bars;
+  final double progress;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  const _WaveformPainter({
+    required this.bars,
+    required this.progress,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final n = bars.length;
+    if (n == 0) return;
+    final totalBarWidth = size.width / n;
+    final barW = totalBarWidth * 0.55;
+    final gap = totalBarWidth * 0.45;
+
+    for (int i = 0; i < n; i++) {
+      final x = i * (barW + gap);
+      final barH = bars[i] * size.height;
+      final y = (size.height - barH) / 2;
+      final isPast = i / n <= progress;
+      final paint = Paint()
+        ..color = isPast ? activeColor : inactiveColor
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(x, y, barW, barH), const Radius.circular(2)),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WaveformPainter old) =>
+      old.progress != progress ||
+      old.activeColor != activeColor ||
+      old.inactiveColor != inactiveColor;
 }
 
 class _TypingDots extends StatefulWidget {
@@ -2903,8 +3313,9 @@ class _ReactionsRow extends StatelessWidget {
 
 class _FullScreenImageGallery extends StatefulWidget {
   final List<String> imageUrls;
+  final List<String>? heroTags;
   final int initialIndex;
-  const _FullScreenImageGallery({required this.imageUrls, this.initialIndex = 0});
+  const _FullScreenImageGallery({required this.imageUrls, this.heroTags, this.initialIndex = 0});
 
   @override
   State<_FullScreenImageGallery> createState() => _FullScreenImageGalleryState();
@@ -2937,18 +3348,26 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
             controller: _pageCtrl,
             itemCount: widget.imageUrls.length,
             onPageChanged: (i) => setState(() => _currentIndex = i),
-            itemBuilder: (_, i) => InteractiveViewer(
-              minScale: 1.0,
-              maxScale: 5.0,
-              child: Center(
-                child: CachedNetworkImage(
-                  imageUrl: widget.imageUrls[i],
-                  fit: BoxFit.contain,
-                  placeholder: (_, __) => const CircularProgressIndicator(color: Colors.white),
-                  errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+            itemBuilder: (_, i) {
+              final heroTag = widget.heroTags != null && i < widget.heroTags!.length
+                  ? widget.heroTags![i]
+                  : null;
+              final img = CachedNetworkImage(
+                imageUrl: widget.imageUrls[i],
+                fit: BoxFit.contain,
+                placeholder: (_, __) => const CircularProgressIndicator(color: Colors.white),
+                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white54, size: 48),
+              );
+              return InteractiveViewer(
+                minScale: 1.0,
+                maxScale: 5.0,
+                child: Center(
+                  child: heroTag != null
+                      ? Hero(tag: heroTag, child: img)
+                      : img,
                 ),
-              ),
-            ),
+              );
+            },
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
@@ -2960,10 +3379,19 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
           ),
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 28),
-              onPressed: _saving ? null : _saveCurrentImage,
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.share_rounded, color: Colors.white, size: 26),
+                  onPressed: _sharing ? null : _shareCurrentImage,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.download_rounded, color: Colors.white, size: 26),
+                  onPressed: _saving ? null : _saveCurrentImage,
+                ),
+              ],
             ),
           ),
           if (widget.imageUrls.length > 1)
@@ -2991,6 +3419,19 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
   }
 
   bool _saving = false;
+  bool _sharing = false;
+
+  Future<void> _shareCurrentImage() async {
+    setState(() => _sharing = true);
+    try {
+      final dir = await getTemporaryDirectory();
+      final filePath = '${dir.path}/share_img_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      await Dio().download(widget.imageUrls[_currentIndex], filePath);
+      await Share.shareXFiles([XFile(filePath)]);
+      try { await File(filePath).delete(); } catch (_) {}
+    } catch (_) {}
+    if (mounted) setState(() => _sharing = false);
+  }
 
   Future<void> _saveCurrentImage() async {
     setState(() => _saving = true);

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
@@ -15,6 +16,8 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+
+enum _FilterTab { all, unread }
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -170,10 +173,128 @@ class _ConversationsView extends StatefulWidget {
 }
 
 class _ConversationsViewState extends State<_ConversationsView> {
+  static const _prefsBox = 'messenger_prefs';
+
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
   List<Map<String, dynamic>> _messageSearchResults = [];
   bool _messageSearching = false;
+
+  _FilterTab _activeFilter = _FilterTab.all;
+  Set<String> _pinnedIds = {};
+  Set<String> _archivedIds = {};
+  bool _showArchived = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    Box box;
+    try {
+      box = Hive.isBoxOpen(_prefsBox)
+          ? Hive.box(_prefsBox)
+          : await Hive.openBox(_prefsBox);
+    } catch (_) {
+      await Hive.deleteBoxFromDisk(_prefsBox);
+      box = await Hive.openBox(_prefsBox);
+    }
+    final pinned = box.get('pinned');
+    final archived = box.get('archived');
+    if (mounted) {
+      setState(() {
+        if (pinned != null) _pinnedIds = Set<String>.from(pinned as List);
+        if (archived != null) _archivedIds = Set<String>.from(archived as List);
+      });
+    }
+  }
+
+  Future<void> _savePrefs() async {
+    final box = Hive.isBoxOpen(_prefsBox)
+        ? Hive.box(_prefsBox)
+        : await Hive.openBox(_prefsBox);
+    await box.put('pinned', _pinnedIds.toList());
+    await box.put('archived', _archivedIds.toList());
+  }
+
+  void _togglePin(String id) {
+    setState(() {
+      if (_pinnedIds.contains(id)) {
+        _pinnedIds = {..._pinnedIds}..remove(id);
+      } else {
+        _pinnedIds = {..._pinnedIds, id};
+      }
+    });
+    _savePrefs();
+  }
+
+  void _toggleArchive(String id) {
+    setState(() {
+      if (_archivedIds.contains(id)) {
+        _archivedIds = {..._archivedIds}..remove(id);
+      } else {
+        _archivedIds = {..._archivedIds, id};
+        _pinnedIds = {..._pinnedIds}..remove(id);
+      }
+    });
+    _savePrefs();
+  }
+
+  void _showConversationActions(BuildContext context, ConversationEntity conv) {
+    final colors = AppColors.of(context);
+    final isPinned = _pinnedIds.contains(conv.id);
+    final isArchived = _archivedIds.contains(conv.id);
+    final isGroup = conv.type == 'GROUP';
+    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Text(
+                name,
+                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
+            if (!isArchived)
+              ListTile(
+                leading: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                    color: colors.primary),
+                title: Text(isPinned ? 'Открепить' : 'Закрепить',
+                    style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _togglePin(conv.id); },
+              ),
+            ListTile(
+              leading: Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                  color: colors.textSecondary),
+              title: Text(isArchived ? 'Разархивировать' : 'Архивировать',
+                  style: TextStyle(color: colors.textPrimary)),
+              onTap: () { Navigator.pop(ctx); _toggleArchive(conv.id); },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -307,13 +428,38 @@ class _ConversationsViewState extends State<_ConversationsView> {
     });
   }
 
-  List<ConversationEntity> _filterConversations(List<ConversationEntity> convs) {
-    if (_searchQuery.isEmpty) return convs;
-    final q = _searchQuery.toLowerCase();
-    return convs.where((c) {
-      final name = (c.type == 'GROUP' ? (c.name ?? '') : (c.otherUserName ?? '')).toLowerCase();
-      return name.contains(q);
+  List<ConversationEntity> _filterConversations(
+    List<ConversationEntity> convs, {
+    bool archivedOnly = false,
+  }) {
+    var result = convs.where((c) {
+      return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
     }).toList();
+
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result.where((c) {
+        final name = (c.type == 'GROUP' ? (c.name ?? '') : (c.otherUserName ?? '')).toLowerCase();
+        return name.contains(q);
+      }).toList();
+    }
+
+    if (!archivedOnly && _activeFilter == _FilterTab.unread) {
+      result = result.where((c) => c.unreadCount > 0).toList();
+    }
+
+    if (!archivedOnly) {
+      result.sort((a, b) {
+        final aPinned = _pinnedIds.contains(a.id) ? 0 : 1;
+        final bPinned = _pinnedIds.contains(b.id) ? 0 : 1;
+        if (aPinned != bPinned) return aPinned.compareTo(bPinned);
+        final aTime = a.lastMessageAt ?? DateTime(0);
+        final bTime = b.lastMessageAt ?? DateTime(0);
+        return bTime.compareTo(aTime);
+      });
+    }
+
+    return result;
   }
 
   @override
@@ -325,16 +471,32 @@ class _ConversationsViewState extends State<_ConversationsView> {
       body: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
           final filtered = _filterConversations(state.conversations);
+          final archived = _filterConversations(state.conversations, archivedOnly: true);
+          final totalUnread = state.conversations
+              .where((c) => !_archivedIds.contains(c.id))
+              .fold(0, (sum, c) => sum + c.unreadCount);
+
+          Widget buildTile(ConversationEntity conv) => Column(
+            children: [
+              _ConversationTile(
+                conversation: conv,
+                currentUserId: state.currentUserId,
+                isPinned: _pinnedIds.contains(conv.id),
+                onLongPress: () => _showConversationActions(context, conv),
+              ),
+              Divider(color: colors.border, height: 1),
+            ],
+          );
+
           return CustomScrollView(
             slivers: [
               SliverAppBar(
                 centerTitle: true,
                 floating: true,
                 snap: true,
-                leadingWidth: 72,
-                leading: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: _ProfileAvatar(),
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  onPressed: () => context.go('/dashboard/assistant'),
                 ),
                 title: Text(l10n.tabMessenger),
                 actions: [
@@ -407,11 +569,33 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 ),
               ),
+              // Filter chips
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Row(
+                    children: [
+                      _TabChip(
+                        label: 'Все',
+                        selected: _activeFilter == _FilterTab.all,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.all),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Непрочитанные',
+                        selected: _activeFilter == _FilterTab.unread,
+                        badge: _activeFilter == _FilterTab.all && totalUnread > 0 ? totalUnread : null,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.unread),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               if (state.isLoading && state.conversations.isEmpty)
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else if (state.conversations.isEmpty)
+              else if (filtered.isEmpty && _activeFilter == _FilterTab.all && _searchQuery.isEmpty)
                 SliverFillRemaining(
                   child: Center(
                     child: Column(
@@ -428,22 +612,67 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     ),
                   ),
                 )
-              else
+              else ...[
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final conv = filtered[index];
-                      return Column(
-                        children: [
-                          _ConversationTile(conversation: conv, currentUserId: state.currentUserId),
-                          if (index < filtered.length - 1)
-                            Divider(color: colors.border, height: 1),
-                        ],
-                      );
-                    },
+                    (context, index) => buildTile(filtered[index]),
                     childCount: filtered.length,
                   ),
                 ),
+                // Archived section
+                if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all) ...[
+                  SliverToBoxAdapter(
+                    child: InkWell(
+                      onTap: () => setState(() => _showArchived = !_showArchived),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 40, height: 40,
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Архивировано',
+                                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colors.surface,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                '${archived.length}',
+                                style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _showArchived ? Icons.expand_less : Icons.chevron_right,
+                              color: colors.textSecondary, size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_showArchived)
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => buildTile(archived[index]),
+                        childCount: archived.length,
+                      ),
+                    ),
+                ],
+              ],
               // Message search results
               if (_searchQuery.length >= 2) ...[
                 SliverToBoxAdapter(
@@ -502,10 +731,72 @@ class _ConversationsViewState extends State<_ConversationsView> {
   }
 }
 
+class _TabChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final int? badge;
+  final VoidCallback onTap;
+  const _TabChip({required this.label, required this.selected, required this.onTap, this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? colors.primary : colors.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.black : colors.textPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+            if (badge != null && badge! > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.black26 : colors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$badge',
+                  style: TextStyle(
+                    color: selected ? Colors.black : Colors.black,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ConversationTile extends StatelessWidget {
   final ConversationEntity conversation;
   final String? currentUserId;
-  const _ConversationTile({required this.conversation, this.currentUserId});
+  final bool isPinned;
+  final VoidCallback? onLongPress;
+  const _ConversationTile({
+    required this.conversation,
+    this.currentUserId,
+    this.isPinned = false,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -539,7 +830,10 @@ class _ConversationTile extends StatelessWidget {
             displayMsg = '👤 ${l10n.convDefaultContact}';
           }
         }
-        if (isGroup && conversation.lastMessageSenderName != null) {
+        if (conversation.lastMessageSenderId != null &&
+            conversation.lastMessageSenderId == currentUserId) {
+          subtitleText = 'Вы: $displayMsg';
+        } else if (isGroup && conversation.lastMessageSenderName != null) {
           subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
         } else {
           subtitleText = displayMsg;
@@ -616,6 +910,10 @@ class _ConversationTile extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (isPinned) ...[
+                    Icon(Icons.push_pin, size: 12, color: AppColors.of(context).textSecondary),
+                    const SizedBox(width: 4),
+                  ],
                   Text(timeStr,
                       style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
                   if (conversation.isMuted) ...[
@@ -662,6 +960,7 @@ class _ConversationTile extends StatelessWidget {
         );
       }(),
       onTap: () => context.push('/dashboard/messenger/${conversation.id}'),
+      onLongPress: onLongPress,
     );
   }
 

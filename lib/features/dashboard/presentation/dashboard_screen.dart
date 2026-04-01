@@ -201,6 +201,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       NotificationService.setMissedCallCallback(() {
         if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
       });
+      NotificationService.setCalendarInviteCallback(() {
+        if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
+      });
       _connectMessenger();
       _listenForDisconnect();
       _listenForCallEnded();
@@ -424,6 +427,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
     NotificationService.setMissedCallCallback(null);
+    NotificationService.setCalendarInviteCallback(null);
     super.dispose();
   }
 
@@ -763,7 +767,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
-    final currentIndex = _currentIndex(location);
+    final isOnAssistant = location == RouteConstants.assistant;
 
     return BlocListener<MessengerBloc, MessengerState>(
       listenWhen: (prev, curr) =>
@@ -776,6 +780,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       },
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
+        floatingActionButton: isOnAssistant
+            ? null
+            : FloatingActionButton.small(
+                onPressed: () => context.go(RouteConstants.assistant),
+                backgroundColor: AppColors.of(context).primary,
+                tooltip: 'Home',
+                child: const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+              ),
         body: Column(
           children: [
             // Active call banner — visible on all tabs
@@ -858,112 +870,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               ),
             Expanded(child: widget.child),
           ],
-        ),
-        floatingActionButton: null,
-        bottomNavigationBar: ClipRRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.of(context).surface.withOpacity(0.60),
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors.of(context).glassColor.withOpacity(0.15),
-                    width: 0.5,
-                  ),
-                ),
-              ),
-              child: BottomNavigationBar(
-                currentIndex: currentIndex,
-                onTap: (i) {
-                  context.go(_tabs[i]);
-                  // Clear badge when entering the tab
-                  if (i == 1) {
-                    // Calls tab — clear missed calls badge
-                    context.read<MessengerBloc>().add(UpdateBadgeCounts(missedCallsCount: 0));
-                  } else if (i == 3) {
-                    // Calendar tab — clear pending invites badge
-                    context.read<MessengerBloc>().add(UpdateBadgeCounts(pendingCalendarInvites: 0));
-                  }
-                },
-                backgroundColor: Colors.transparent,
-                selectedItemColor: AppColors.of(context).accent,
-                unselectedItemColor: AppColors.of(context).textSecondary,
-                type: BottomNavigationBarType.fixed,
-                elevation: 0,
-                iconSize: 28,
-                selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                unselectedLabelStyle: const TextStyle(fontSize: 11),
-                items: [
-                  BottomNavigationBarItem(
-                    icon: BlocBuilder<MessengerBloc, MessengerState>(
-                      buildWhen: (p, c) =>
-                          p.conversations.fold<int>(0, (s, e) => s + e.unreadCount) !=
-                          c.conversations.fold<int>(0, (s, e) => s + e.unreadCount),
-                      builder: (ctx, state) {
-                        final total =
-                            state.conversations.fold<int>(0, (s, c) => s + c.unreadCount);
-                        if (total == 0) {
-                          return const Icon(Icons.chat_bubble_outline_rounded);
-                        }
-                        return Badge(
-                          label: Text('$total'),
-                          backgroundColor: AppColors.of(context).error,
-                          child: const Icon(Icons.chat_bubble_outline_rounded),
-                        );
-                      },
-                    ),
-                    activeIcon: const Icon(Icons.chat_bubble_rounded),
-                    label: l10n.tabMessenger,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: BlocBuilder<MessengerBloc, MessengerState>(
-                      buildWhen: (p, c) => p.missedCallsCount != c.missedCallsCount,
-                      builder: (ctx, state) {
-                        if (state.missedCallsCount == 0) {
-                          return const Icon(Icons.call_outlined);
-                        }
-                        return Badge(
-                          label: Text('${state.missedCallsCount}'),
-                          backgroundColor: AppColors.of(context).error,
-                          child: const Icon(Icons.call_outlined),
-                        );
-                      },
-                    ),
-                    activeIcon: const Icon(Icons.call),
-                    label: l10n.tabCalls,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.headset_mic_outlined),
-                    activeIcon: const Icon(Icons.headset_mic),
-                    label: l10n.tabAssistant,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: BlocBuilder<MessengerBloc, MessengerState>(
-                      buildWhen: (p, c) => p.pendingCalendarInvites != c.pendingCalendarInvites,
-                      builder: (ctx, state) {
-                        if (state.pendingCalendarInvites == 0) {
-                          return const Icon(Icons.calendar_month_outlined);
-                        }
-                        return Badge(
-                          label: Text('${state.pendingCalendarInvites}'),
-                          backgroundColor: AppColors.of(context).error,
-                          child: const Icon(Icons.calendar_month_outlined),
-                        );
-                      },
-                    ),
-                    activeIcon: const Icon(Icons.calendar_month),
-                    label: l10n.tabCalendar,
-                  ),
-                  BottomNavigationBarItem(
-                    icon: const Icon(Icons.settings_outlined),
-                    activeIcon: const Icon(Icons.settings),
-                    label: l10n.tabSettings,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
       ),
     );

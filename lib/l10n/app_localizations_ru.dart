@@ -1977,6 +1977,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarReminder1hour => 'За 1 час';
 
   @override
+  String get calendarRepeatLabel => 'Повторение';
+
+  @override
+  String get calendarRepeatNone => 'Не повторять';
+
+  @override
+  String get calendarRepeatDaily => 'Каждый день';
+
+  @override
+  String get calendarRepeatWeekly => 'Каждую неделю';
+
+  @override
+  String get calendarRepeatMonthly => 'Каждый месяц';
+
+  @override
+  String get calendarRepeatYearly => 'Каждый год';
+
+  @override
   String get calendarParticipants => 'Участники';
 
   @override
@@ -1999,6 +2017,29 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get calendarStatusPending => 'Ожидает';
+
+  @override
+  String get calendarEndTime => 'Окончание';
+
+  @override
+  String get calendarYourAnswer => 'Ваш ответ:';
+
+  @override
+  String get calendarOrganizer => 'Организатор';
+
+  @override
+  String calendarDeleteError(String error) {
+    return 'Не удалось удалить: $error';
+  }
+
+  @override
+  String get calendarRsvpAccept => 'Принять';
+
+  @override
+  String get calendarRsvpMaybe => 'Возможно';
+
+  @override
+  String get calendarRsvpDecline => 'Отказ';
 
   @override
   String get callHistoryTitle => 'Звонки';
