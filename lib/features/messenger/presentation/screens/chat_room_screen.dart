@@ -69,6 +69,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _iBlockedThem = false;
   bool _theyBlockedMe = false;
   bool _isContact = true; // assume contact until loaded
+  // Search in chat
+  bool _searchMode = false;
+  String _searchText = '';
+  List<int> _searchMatchChronIndices = [];
+  int _searchCurrentMatchIdx = -1;
+  final TextEditingController _searchCtrl = TextEditingController();
+  final Map<String, GlobalKey> _messageKeys = {};
+  // Scroll-to-bottom button
+  bool _showScrollToBottom = false;
 
   @override
   void initState() {
@@ -77,6 +86,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl = TextEditingController();
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
+    _scrollCtrl.addListener(_onScrollChanged);
     _messengerBloc.add(OpenConversation(widget.conversationId));
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
@@ -769,6 +779,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _typingTimer?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
+    _searchCtrl.dispose();
     _scrollCtrl.dispose();
     _recorder.dispose();
     _disconnectSub?.cancel();
@@ -776,23 +787,123 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.dispose();
   }
 
+  void _onScrollChanged() {
+    if (!_scrollCtrl.hasClients) return;
+    final show = _scrollCtrl.offset > 200;
+    if (show != _showScrollToBottom) setState(() => _showScrollToBottom = show);
+  }
+
+  void _enterSearchMode() => setState(() {
+        _searchMode = true;
+        _searchText = '';
+        _searchMatchChronIndices = [];
+        _searchCurrentMatchIdx = -1;
+      });
+
+  void _exitSearchMode() {
+    _searchCtrl.clear();
+    setState(() {
+      _searchMode = false;
+      _searchText = '';
+      _searchMatchChronIndices = [];
+      _searchCurrentMatchIdx = -1;
+    });
+  }
+
+  void _performSearch(String query) {
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    final q = query.toLowerCase().trim();
+    if (q.isEmpty) {
+      setState(() {
+        _searchText = '';
+        _searchMatchChronIndices = [];
+        _searchCurrentMatchIdx = -1;
+      });
+      return;
+    }
+    final indices = <int>[];
+    for (int i = 0; i < messages.length; i++) {
+      if (!messages[i].isSystem &&
+          messages[i].content.toLowerCase().contains(q)) {
+        indices.add(i);
+      }
+    }
+    setState(() {
+      _searchText = query;
+      _searchMatchChronIndices = indices;
+      _searchCurrentMatchIdx = indices.isNotEmpty ? indices.length - 1 : -1;
+    });
+    if (indices.isNotEmpty) _scrollToChronIndex(indices.last);
+  }
+
+  void _scrollToChronIndex(int chronIdx) {
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    if (chronIdx < 0 || chronIdx >= messages.length) return;
+    final key = _messageKeys[messages[chronIdx].id];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(key!.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut);
+    }
+  }
+
+  void _goToOlderMatch() {
+    if (_searchMatchChronIndices.isEmpty || _searchCurrentMatchIdx <= 0) return;
+    final newIdx = _searchCurrentMatchIdx - 1;
+    setState(() => _searchCurrentMatchIdx = newIdx);
+    _scrollToChronIndex(_searchMatchChronIndices[newIdx]);
+  }
+
+  void _goToNewerMatch() {
+    if (_searchMatchChronIndices.isEmpty ||
+        _searchCurrentMatchIdx >= _searchMatchChronIndices.length - 1) return;
+    final newIdx = _searchCurrentMatchIdx + 1;
+    setState(() => _searchCurrentMatchIdx = newIdx);
+    _scrollToChronIndex(_searchMatchChronIndices[newIdx]);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
-        title: BlocBuilder<MessengerBloc, MessengerState>(
-          buildWhen: (prev, curr) => prev.conversations != curr.conversations,
-          builder: (context, state) {
-            final conv = state.conversations
-                .where((c) => c.id == widget.conversationId)
-                .firstOrNull;
-            final l10n = AppLocalizations.of(context)!;
-            final isGroup = conv?.type == 'GROUP';
-            final name = isGroup ? (conv?.name ?? l10n.chatGroup) : conv?.otherUserName;
-            final avatarUrl = isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
-            final otherUserId = conv?.otherUserId;
-            return GestureDetector(
+        leading: _searchMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSearchMode,
+              )
+            : null,
+        automaticallyImplyLeading: !_searchMode,
+        title: _searchMode
+            ? TextField(
+                controller: _searchCtrl,
+                autofocus: true,
+                style: TextStyle(
+                    color: AppColors.of(context).textPrimary, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: 'Поиск в чате...',
+                  hintStyle:
+                      TextStyle(color: AppColors.of(context).textSecondary),
+                  border: InputBorder.none,
+                ),
+                onChanged: _performSearch,
+              )
+            : BlocBuilder<MessengerBloc, MessengerState>(
+                buildWhen: (prev, curr) =>
+                    prev.conversations != curr.conversations,
+                builder: (context, state) {
+                  final conv = state.conversations
+                      .where((c) => c.id == widget.conversationId)
+                      .firstOrNull;
+                  final l10n = AppLocalizations.of(context)!;
+                  final isGroup = conv?.type == 'GROUP';
+                  final name = isGroup
+                      ? (conv?.name ?? l10n.chatGroup)
+                      : conv?.otherUserName;
+                  final avatarUrl =
+                      isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
+                  final otherUserId = conv?.otherUserId;
+                  return GestureDetector(
               onTap: isGroup
                   ? () => context.push('/dashboard/messenger/${widget.conversationId}/settings')
                   : otherUserId != null
@@ -849,49 +960,82 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ),
             );
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone_outlined),
-            onPressed: _startCall,
-            tooltip: AppLocalizations.of(context)!.chatCall,
-          ),
-          BlocBuilder<MessengerBloc, MessengerState>(
-            buildWhen: (prev, curr) => prev.conversations != curr.conversations,
-            builder: (context, state) {
-              final conv = state.conversations
-                  .where((c) => c.id == widget.conversationId)
-                  .firstOrNull;
-              final isMuted = conv?.isMuted ?? false;
-              return PopupMenuButton<String>(
-                icon: Icon(
-                  isMuted ? Icons.volume_off : Icons.more_vert,
-                  color: isMuted ? AppColors.of(context).textSecondary : null,
-                ),
-                onSelected: (value) => _handleMenuAction(value, isMuted),
-                itemBuilder: (ctx) => [
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Row(
-                      children: [
-                        Icon(
-                          isMuted ? Icons.volume_up : Icons.volume_off,
-                          size: 20,
-                          color: AppColors.of(context).textPrimary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(isMuted
-                            ? AppLocalizations.of(context)!.unmuteNotifications
-                            : AppLocalizations.of(context)!.muteNotifications),
-                      ],
+                },
+              ),
+        actions: _searchMode
+            ? [
+                if (_searchMatchChronIndices.isNotEmpty) ...[
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        '${_searchMatchChronIndices.length - _searchCurrentMatchIdx}/${_searchMatchChronIndices.length}',
+                        style: TextStyle(
+                            color: AppColors.of(context).textSecondary,
+                            fontSize: 13),
+                      ),
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_up),
+                    onPressed: _goToOlderMatch,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down),
+                    onPressed: _goToNewerMatch,
+                  ),
                 ],
-              );
-            },
-          ),
-        ],
+              ]
+            : [
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: _enterSearchMode,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.phone_outlined),
+                  onPressed: _startCall,
+                  tooltip: AppLocalizations.of(context)!.chatCall,
+                ),
+                BlocBuilder<MessengerBloc, MessengerState>(
+                  buildWhen: (prev, curr) =>
+                      prev.conversations != curr.conversations,
+                  builder: (context, state) {
+                    final conv = state.conversations
+                        .where((c) => c.id == widget.conversationId)
+                        .firstOrNull;
+                    final isMuted = conv?.isMuted ?? false;
+                    return PopupMenuButton<String>(
+                      icon: Icon(
+                        isMuted ? Icons.volume_off : Icons.more_vert,
+                        color: isMuted
+                            ? AppColors.of(context).textSecondary
+                            : null,
+                      ),
+                      onSelected: (value) => _handleMenuAction(value, isMuted),
+                      itemBuilder: (ctx) => [
+                        PopupMenuItem(
+                          value: 'mute',
+                          child: Row(
+                            children: [
+                              Icon(
+                                isMuted ? Icons.volume_up : Icons.volume_off,
+                                size: 20,
+                                color: AppColors.of(context).textPrimary,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(isMuted
+                                  ? AppLocalizations.of(context)!
+                                      .unmuteNotifications
+                                  : AppLocalizations.of(context)!
+                                      .muteNotifications),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
       ),
       body: BlocListener<MessengerBloc, MessengerState>(
         listenWhen: (prev, curr) {
@@ -941,7 +1085,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   onJoin: () => _joinActiveCall(activeRoomName),
                 ),
               Expanded(
-                child: GestureDetector(
+                child: Stack(
+                  children: [
+                GestureDetector(
                   onTap: () => FocusScope.of(context).unfocus(),
                   behavior: HitTestBehavior.translucent,
                   child: messages.isEmpty
@@ -998,7 +1144,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ? otherUserName
                                   : (isFirstInGroup ? (msg.senderName ?? otherUserName) : null));
 
+                          // GlobalKey for search scroll-to
+                          final msgKey = _messageKeys.putIfAbsent(msg.id, () => GlobalKey());
+                          // Search highlight state
+                          final isCurrentMatch = _searchMatchChronIndices.isNotEmpty &&
+                              _searchCurrentMatchIdx >= 0 &&
+                              _searchMatchChronIndices[_searchCurrentMatchIdx] == chronIdx;
+                          final isAnyMatch = _searchText.isNotEmpty &&
+                              !msg.isSystem &&
+                              msg.content.toLowerCase().contains(_searchText.toLowerCase());
+
                           return Column(
+                            key: msgKey,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
@@ -1009,6 +1166,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 senderName: sName,
                                 isFirstInGroup: isFirstInGroup,
                                 isLastInGroup: isLastInGroup,
+                                isSearchMatch: isAnyMatch,
+                                isCurrentSearchMatch: isCurrentMatch,
                                 allMessages: messages,
                                 onReply: msg.isSystem ? null : () => _setReply(msg, isMe ? AppLocalizations.of(context)!.chatYou : sName),
                                 onEdit: (isMe && !msg.isSystem && msg.fileUrl == null) ? () => _startEditing(msg) : null,
@@ -1026,6 +1185,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           );
                         },
                       ),
+                ),
+                    // Scroll-to-bottom button
+                    if (_showScrollToBottom)
+                      Positioned(
+                        right: 12,
+                        bottom: 12,
+                        child: Material(
+                          color: AppColors.of(context).card,
+                          shape: const CircleBorder(),
+                          elevation: 4,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () => _scrollCtrl.animateTo(0,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOut),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              child: Icon(Icons.keyboard_arrow_down_rounded,
+                                  color: AppColors.of(context).primary),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               if (_editingMessage != null)
@@ -1405,6 +1590,8 @@ class _MessageBubble extends StatefulWidget {
   final bool isGroup;
   final bool isFirstInGroup;
   final bool isLastInGroup;
+  final bool isSearchMatch;
+  final bool isCurrentSearchMatch;
   final VoidCallback? onReply;
   final VoidCallback? onEdit;
   final void Function(String emoji)? onReact;
@@ -1418,6 +1605,8 @@ class _MessageBubble extends StatefulWidget {
     this.isGroup = false,
     this.isFirstInGroup = true,
     this.isLastInGroup = true,
+    this.isSearchMatch = false,
+    this.isCurrentSearchMatch = false,
     this.onReply,
     this.onEdit,
     this.onReact,
@@ -1513,9 +1702,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: widget.isMe
-              ? AppColors.of(context).primary
-              : AppColors.of(context).card,
+          color: widget.isCurrentSearchMatch
+              ? (widget.isMe
+                  ? AppColors.of(context).primary.withValues(alpha: 0.7)
+                  : Colors.amber.withValues(alpha: 0.15))
+              : (widget.isMe
+                  ? AppColors.of(context).primary
+                  : AppColors.of(context).card),
           borderRadius: widget.isMe
               ? (widget.isLastInGroup
                   ? const BorderRadius.only(
@@ -1533,6 +1726,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       bottomRight: Radius.circular(18),
                     )
                   : BorderRadius.circular(18)),
+          border: widget.isCurrentSearchMatch
+              ? Border.all(
+                  color: Colors.amber.withValues(alpha: 0.8), width: 1.5)
+              : widget.isSearchMatch
+                  ? Border.all(
+                      color: Colors.amber.withValues(alpha: 0.4), width: 1)
+                  : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
