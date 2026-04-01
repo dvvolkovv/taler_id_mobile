@@ -497,7 +497,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     try {
       setState(() => _contactActionLoading = true);
       await sl<DioClient>().delete('/messenger/contacts/${widget.userId}/block');
-      if (mounted) setState(() { _iBlockedThem = false; _contactActionLoading = false; });
+      if (mounted) await _loadAll();
     } catch (e) {
       if (mounted) {
         setState(() => _contactActionLoading = false);
@@ -562,10 +562,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               children: [
                 Icon(Icons.block_rounded, color: colors.error, size: 18),
                 const SizedBox(width: 8),
-                Text(AppLocalizations.of(context)!.contactBlocked, style: TextStyle(color: colors.error, fontSize: 13)),
-                const Spacer(),
+                Flexible(
+                  child: Text(AppLocalizations.of(context)!.contactBlocked, style: TextStyle(color: colors.error, fontSize: 13), overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: _unblockUser,
+                  style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                   child: Text(AppLocalizations.of(context)!.contactUnblock, style: TextStyle(color: colors.primary, fontSize: 13)),
                 ),
               ],

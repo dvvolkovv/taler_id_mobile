@@ -1,10 +1,8 @@
 {
   "@@locale": "ru",
-
   "appTitle": "Taler ID",
   "search": "Поиск",
   "appSubtitle": "Единая идентификация экосистемы",
-
   "login": "Вход в аккаунт",
   "loginButton": "Войти",
   "register": "Создать аккаунт",
@@ -21,17 +19,14 @@
   "passwordMinLength": "Минимум 8 символов",
   "invalidEmail": "Введите корректный email",
   "fieldRequired": "Обязательное поле",
-
   "twoFATitle": "Двухфакторная аутентификация",
   "twoFASubtitle": "Введите 6-значный код из приложения-аутентификатора",
   "twoFACode": "Код 2FA",
   "verify": "Подтвердить",
-
   "tabProfile": "Профиль",
   "tabKyc": "KYC",
   "tabOrganization": "Организация",
   "tabSettings": "Настройки",
-
   "profile": "Профиль",
   "editProfile": "Редактировать профиль",
   "phone": "Телефон",
@@ -48,7 +43,6 @@
   "diploma": "Диплом",
   "nationalId": "Национальный ID",
   "certificate": "Сертификат",
-
   "notSpecified": "Не указан",
   "notSpecifiedFemale": "Не указана",
   "documentType": "Тип документа",
@@ -56,7 +50,6 @@
   "diplomaCertificate": "Диплом / Сертификат",
   "loadError": "Ошибка загрузки",
   "verification": "Верификация",
-
   "countryAustria": "Австрия",
   "countryGermany": "Германия",
   "countryRussia": "Россия",
@@ -64,7 +57,6 @@
   "countryKazakhstan": "Казахстан",
   "countryBelarus": "Беларусь",
   "countryOther": "Другая",
-
   "kycTitle": "Верификация KYC",
   "kycVerified": "Верифицирован",
   "kycPending": "На проверке",
@@ -77,7 +69,13 @@
   "startVerification": "Пройти верификацию",
   "retryVerification": "Пройти повторно",
   "verifiedAt": "Верифицирован: {date}",
-  "@verifiedAt": { "placeholders": { "date": { "type": "String" } } },
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "documentsSubmitted": "Документы отправлены на проверку",
   "documentsSubmittedDesc": "Обычно проверка занимает 1-2 рабочих дня. Вы получите push-уведомление о результате.",
   "securityAes": "Ваши данные защищены AES-256 шифрованием",
@@ -85,8 +83,13 @@
   "pushNotification": "Вы получите push-уведомление о результате",
   "kycWebOnly": "KYC-верификация доступна только в мобильном приложении.",
   "verificationError": "Ошибка верификации: {code}",
-  "@verificationError": { "placeholders": { "code": { "type": "String" } } },
-
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "organizations": "Организации",
   "noOrganizations": "Нет организаций",
   "noOrganizationsDesc": "Создайте организацию или примите приглашение",
@@ -101,12 +104,24 @@
   "organization": "Организация",
   "contacts": "Контакты",
   "members": "Участники ({count})",
-  "@members": { "placeholders": { "count": { "type": "int" } } },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "inviteMember": "Пригласить участника",
   "invite": "Пригласить",
   "sendInvite": "Отправить приглашение",
   "inviteSent": "Приглашение отправлено на {email}",
-  "@inviteSent": { "placeholders": { "email": { "type": "String" } } },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "role": "Роль",
   "roleOwner": "Owner",
   "roleAdmin": "Admin",
@@ -116,7 +131,13 @@
   "editOrganizationTitle": "Редактировать организацию",
   "removeMember": "Удалить участника",
   "removeMemberConfirm": "Удалить {name} из организации?",
-  "@removeMemberConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberRemoved": "Участник удалён",
   "roleChanged": "Роль изменена",
   "kybVerified": "Верифицирована",
@@ -140,13 +161,11 @@
   "currentSessionLabel": "Текущая",
   "endSessionAction": "Завершить",
   "deviceLoggedOut": "Устройство будет выведено из аккаунта.",
-
   "acceptInvitationTitle": "Приглашение в организацию",
   "acceptInvitation": "Принять приглашение",
   "acceptInvitationDesc": "Вас пригласили присоединиться к организации в экосистеме Taler.",
   "accept": "Принять",
   "reject": "Отклонить",
-
   "sessions": "Активные сессии",
   "currentSession": "Текущая сессия",
   "deleteSession": "Завершить сессию",
@@ -154,13 +173,30 @@
   "sessionDeleted": "Сессия завершена",
   "noSessions": "Нет активных сессий",
   "minutesAgo": "{count} мин. назад",
-  "@minutesAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "hoursAgo": "{count} ч. назад",
-  "@hoursAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "daysAgo": "{count} дн. назад",
-  "@daysAgo": { "placeholders": { "count": { "type": "int" } } },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "justNow": "Только что",
-
   "settings": "Настройки",
   "security": "Безопасность",
   "biometrics": "Биометрия",
@@ -190,8 +226,13 @@
   "logoutConfirm": "Выйти из аккаунта?",
   "logoutDesc": "Вы будете выведены из Taler ID на этом устройстве.",
   "version": "Taler ID v{version}",
-  "@version": { "placeholders": { "version": { "type": "String" } } },
-
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "pinCode": "PIN-код",
   "pinCodeDesc": "Быстрый вход по 4-значному коду",
   "setupPin": "Установить PIN-код",
@@ -203,7 +244,6 @@
   "pinIncorrect": "Неверный PIN-код",
   "removePin": "Удалить PIN-код",
   "pinRemoved": "PIN-код удалён",
-
   "cancel": "Отмена",
   "delete": "Удалить",
   "ok": "OK",
@@ -224,7 +264,6 @@
   "failedToDeleteSession": "Не удалось завершить сессию",
   "failedToLoadKyc": "Не удалось загрузить статус верификации",
   "failedToStartKyc": "Не удалось запустить верификацию",
-
   "verifiedPersonalInfo": "Подтверждённые данные",
   "middleName": "Отчество",
   "placeOfBirth": "Место рождения",
@@ -242,14 +281,12 @@
   "sumsubDataLoading": "Загрузка данных верификации...",
   "reviewResultGreen": "Проверка пройдена",
   "reviewResultRed": "Проверка не пройдена",
-
   "chatTitle": "Ассистент",
   "chatHint": "Напишите сообщение...",
   "chatListening": "Слушаю...",
   "chatError": "Ошибка соединения",
   "chatClear": "Очистить чат",
   "chatEmpty": "Задайте вопрос ассистенту",
-
   "tabAssistant": "Ассистент",
   "assistantConnecting": "Подключение…",
   "assistantSpeaking": "Говорит…",
@@ -266,17 +303,14 @@
   "assistantUnmute": "Включить",
   "assistantMicrophone": "Микрофон",
   "assistantConnectionError": "Ошибка подключения",
-
   "tabMessenger": "Сообщения",
   "tabCalls": "Звонки",
   "tabCalendar": "Календарь",
-
   "appearance": "Оформление",
   "appearanceSelect": "Выбор темы",
   "themeLight": "Светлая",
   "themeDark": "Тёмная",
   "themeSystem": "Системная",
-
   "onboardingTitle1": "Единая идентификация",
   "onboardingDesc1": "Taler ID — ваш цифровой паспорт в экосистеме Taler. Один аккаунт для всех сервисов.",
   "onboardingTitle2": "Безопасность данных",
@@ -290,25 +324,35 @@
   "onboardingEnableMicrophone": "Включить микрофон",
   "onboardingStart": "Начать",
   "onboardingSkip": "Пропустить",
-
   "forgotPassword": "Забыли пароль?",
   "forgotPasswordTitle": "Восстановление пароля",
   "forgotPasswordSubtitle": "Введите email для получения кода",
   "resetCodeSent": "Код отправлен на {email}",
-  "@resetCodeSent": { "placeholders": { "email": { "type": "String" } } },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
   "enterResetCode": "Введите код",
   "resetPasswordButton": "Сбросить пароль",
   "passwordResetSuccess": "Пароль успешно изменён",
   "sendCode": "Отправить код",
   "resendCode": "Отправить повторно",
-
   "newGroup": "Новая группа",
   "newChat": "Новый чат",
   "groupName": "Название группы",
   "createGroup": "Создать группу",
   "groupInfo": "О группе",
   "groupMembers": "Участники ({count})",
-  "@groupMembers": { "placeholders": { "count": { "type": "int" } } },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "addMembers": "Добавить участников",
   "leaveGroup": "Покинуть группу",
   "leaveGroupConfirm": "Покинуть эту группу?",
@@ -319,21 +363,59 @@
   "groupRoleMember": "Участник",
   "selectParticipants": "Выберите участников",
   "selectedCount": "Выбрано: {count}",
-  "@selectedCount": { "placeholders": { "count": { "type": "int" } } },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "changeRole": "Изменить роль",
   "groupCreated": "Группа создана",
   "memberJoined": "{name} присоединился",
-  "@memberJoined": { "placeholders": { "name": { "type": "String" } } },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberLeftGroup": "{name} покинул группу",
-  "@memberLeftGroup": { "placeholders": { "name": { "type": "String" } } },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "memberWasRemoved": "{name} удалён",
-  "@memberWasRemoved": { "placeholders": { "name": { "type": "String" } } },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "roleChangedTo": "{name} теперь {role}",
-  "@roleChangedTo": { "placeholders": { "name": { "type": "String" }, "role": { "type": "String" } } },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
   "participantsCount": "{count} участников",
-  "@participantsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "enterGroupName": "Введите название группы",
-
   "muteNotifications": "Отключить уведомления",
   "unmuteNotifications": "Включить уведомления",
   "muteFor1Hour": "На 1 час",
@@ -341,7 +423,6 @@
   "muteFor2Days": "На 2 дня",
   "muteForever": "Навсегда",
   "muted": "Без звука",
-
   "tabTranslator": "Перевод",
   "translatorTitle": "Переводчик",
   "translatorSelectLanguage": "Выберите язык",
@@ -387,7 +468,6 @@
   "translatorLangMs": "Малайский",
   "translatorLangHe": "Иврит",
   "translatorLangFa": "Фарси",
-
   "callInProgress": "Идёт звонок",
   "joinCall": "Присоединиться",
   "createCallLink": "Ссылка на звонок",
@@ -396,13 +476,17 @@
   "connectionUnstable": "Соединение нестабильно — проверьте интернет",
   "today": "Сегодня",
   "yesterday": "Вчера",
-
   "errorTimeout": "Превышено время ожидания. Проверьте подключение к интернету.",
   "errorNoConnection": "Нет подключения к интернету.",
   "errorGeneral": "Произошла ошибка. Попробуйте ещё раз.",
   "errorWithMessage": "Ошибка: {message}",
-  "@errorWithMessage": { "placeholders": { "message": { "type": "String" } } },
-
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "notifChannelMessages": "Сообщения",
   "notifChannelMessagesDesc": "Уведомления о новых сообщениях",
   "notifChannelMissedCalls": "Пропущенные звонки",
@@ -414,7 +498,6 @@
   "notifIncomingCallChannel": "Входящий звонок",
   "notifMissedCallChannel": "Пропущенный звонок",
   "notifUnknown": "Неизвестный",
-
   "effectNone": "Без фона",
   "effectBlur": "Размытие",
   "effectOffice": "Офис",
@@ -423,7 +506,6 @@
   "effectLibrary": "Библиотека",
   "effectCity": "Город",
   "effectMinimalism": "Минимализм",
-
   "voiceParticipant": "Участник",
   "voiceInvitesToRoom": "приглашает вас в комнату",
   "voiceRoom": "Комната",
@@ -433,12 +515,24 @@
   "voiceJoinRoom": "Войти в комнату",
   "voiceYourName": "Ваше имя",
   "voiceInvitationSent": "Приглашение отправлено {name}",
-  "@voiceInvitationSent": { "placeholders": { "name": { "type": "String" } } },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "voiceNoActiveRoom": "Нет активной комнаты",
   "voiceCameraPermission": "Разрешите доступ к камере в Настройках → Конфиденциальность → Камера → TalerID",
   "voiceOpenSettings": "Открыть",
   "voiceCameraError": "Не удалось включить камеру: {error}",
-  "@voiceCameraError": { "placeholders": { "error": { "type": "String" } } },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "voiceAllAgreedRecording": "Все согласились. Запись начата.",
   "voiceNewParticipantAgreed": "Новый участник согласился на запись.",
   "voiceDeclinedRecording": "Вы отклонили запись. Покидаете звонок.",
@@ -457,7 +551,13 @@
   "voiceTranslateTo": "Переводить на",
   "voiceSearchLanguage": "Поиск языка...",
   "voiceRoomWithCreator": "Комната {name}",
-  "@voiceRoomWithCreator": { "placeholders": { "name": { "type": "String" } } },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "voiceVoiceCall": "Голосовой звонок",
   "voiceCopyLink": "Скопировать ссылку",
   "voiceAddParticipant": "Добавить участника",
@@ -497,10 +597,15 @@
   "voiceAIParticipating": "AI будет участвовать в разговоре",
   "voiceNormalCall": "Обычный звонок без AI",
   "voiceCallConfirm": "Позвонить?",
-
   "chatAlreadyInCall": "Уже идёт звонок",
   "chatCallError": "Ошибка звонка: {error}",
-  "@chatCallError": { "placeholders": { "error": { "type": "String" } } },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "chatPhotoVideo": "Фото / Видео",
   "chatCamera": "Камера",
   "chatFile": "Файл",
@@ -510,7 +615,13 @@
   "chatUser": "Пользователь",
   "chatFileAttachment": "📎 Файл",
   "chatFileUploadError": "Ошибка загрузки файла: {error}",
-  "@chatFileUploadError": { "placeholders": { "error": { "type": "String" } } },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "chatVoiceMessage": "🎤 Голосовое сообщение",
   "chatGroup": "Группа",
   "chatDialog": "Диалог",
@@ -519,12 +630,30 @@
   "chatYou": "Вы",
   "chatIsTyping": "печатает...",
   "chatUserIsTyping": "{name} печатает...",
-  "@chatUserIsTyping": { "placeholders": { "name": { "type": "String" } } },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "chatUsersAreTyping": "{names} печатают...",
-  "@chatUsersAreTyping": { "placeholders": { "names": { "type": "String" } } },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "chatPreparingFile": "Подготовка файла…",
   "chatUploading": "Загрузка… {progress}%",
-  "@chatUploading": { "placeholders": { "progress": { "type": "int" } } },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
   "chatEdited": "Отредактировано",
   "chatReply": "Ответить",
   "chatEdit": "Редактировать",
@@ -551,7 +680,6 @@
   "chatVoiceMessageShort": "Голосовое сообщение",
   "chatVideoSavedToGallery": "Видео сохранено в галерею",
   "chatSavingError": "Ошибка сохранения",
-
   "convSetNickname": "Задайте никнейм",
   "convNicknameRequired": "Никнейм обязателен для использования мессенджера. Другие пользователи смогут найти вас по нему.",
   "convNicknameRules": "3–30 символов: буквы, цифры, _",
@@ -562,16 +690,20 @@
   "convNoDialogs": "Нет диалогов",
   "convFindUserToChat": "Найдите пользователя чтобы начать переписку",
   "convDefaultContact": "Контакт",
-
   "dashboardUser": "Пользователь",
   "dashboardIncomingCall": "Входящий звонок",
   "dashboardDecline": "Отклонить",
   "dashboardAccept": "Принять",
   "dashboardActiveCall": "Активный звонок — нажмите, чтобы вернуться",
   "dashboardUpdateAvailable": "Доступно обновление {version}",
-  "@dashboardUpdateAvailable": { "placeholders": { "version": { "type": "String" } } },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "dashboardUpdate": "Обновить",
-
   "contactRequestsTitle": "Контакты",
   "contactRequestsSearch": "Поиск",
   "contactRequestsIncoming": "Входящие",
@@ -583,19 +715,23 @@
   "contactRequestsSendTooltip": "Отправить запрос",
   "contactRequestTitle": "Запрос на общение",
   "contactRequestConfirm": "Отправить запрос на общение пользователю {name}?",
-  "@contactRequestConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "contactRequestSend": "Отправить",
   "contactRequestsNoIncoming": "Нет входящих запросов",
   "contactRequestsNoSent": "Нет отправленных запросов",
   "contactRequestStatusPending": "Ожидает ответа",
   "contactRequestStatusAccepted": "Принят",
   "contactRequestStatusRejected": "Отклонён",
-
   "userSearchTitle": "Найти пользователя",
   "userSearchHint": "Никнейм, телефон или email",
   "userSearchHelper": "Введите @никнейм, email или имя для поиска",
   "userSearchNoUsers": "Пользователи не найдены",
-
   "userProfileShareContact": "Поделиться контактом",
   "userProfileShareContactDesc": "Отправить ссылку на контакт",
   "userProfileCopyLink": "Скопировать ссылку",
@@ -620,7 +756,6 @@
   "userProfileNoSummaries": "Нет резюме",
   "userProfileMeetingSummary": "Резюме встречи",
   "userProfileFailedOpenChat": "Не удалось открыть чат",
-
   "sharedMediaTitle": "Медиа и файлы",
   "sharedMediaTab": "Медиа",
   "sharedFilesTab": "Файлы",
@@ -628,13 +763,17 @@
   "sharedNoMedia": "Нет медиафайлов",
   "sharedNoFiles": "Нет файлов",
   "sharedNoLinks": "Нет ссылок",
-
   "shareToChat": "Переслать в чат",
   "shareSelectChat": "Выберите чат",
   "shareNoChats": "Нет чатов",
   "shareFilesCount": "{count} файлов",
-  "@shareFilesCount": { "placeholders": { "count": { "type": "int" } } },
-
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "contactsTitle": "Контакты",
   "contactsAddTooltip": "Добавить контакт",
   "contactsSearchHint": "Поиск контактов...",
@@ -647,7 +786,6 @@
   "contactsResend": "Отправить повторно",
   "contactsResendTimeout": "Повтор через 24ч",
   "contactsResent": "Запрос отправлен повторно",
-
   "notesTitle": "Заметки",
   "notesAssistantSpeaking": "Ассистент говорит...",
   "notesListening": "Слушаю...",
@@ -658,7 +796,6 @@
   "notesEdit": "Редактировать",
   "notesTitleHint": "Заголовок",
   "notesContentHint": "Запишите свои мысли...",
-
   "calendarTitle": "Календарь",
   "calendarStop": "Остановить",
   "calendarVoiceInput": "Голосовой ввод",
@@ -666,7 +803,13 @@
   "calendarAssistantSpeaking": "Ассистент говорит...",
   "calendarListening": "Слушаю...",
   "calendarInvitations": "Приглашения ({count})",
-  "@calendarInvitations": { "placeholders": { "count": { "type": "int" } } },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "calendarNoEvents": "Нет событий",
   "calendarDayMon": "Пн",
   "calendarDayTue": "Вт",
@@ -678,7 +821,13 @@
   "calendarEnterRoom": "Войти в комнату",
   "calendarMeeting": "Встреча",
   "calendarLocationPrefix": "Место: {location}",
-  "@calendarLocationPrefix": { "placeholders": { "location": { "type": "String" } } },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
   "calendarEditEvent": "Редактировать",
   "calendarTitleHint": "Название",
   "calendarDescriptionHint": "Описание",
@@ -703,7 +852,6 @@
   "calendarStatusDeclined": "Отказался",
   "calendarStatusMaybe": "Под вопросом",
   "calendarStatusPending": "Ожидает",
-
   "callHistoryTitle": "Звонки",
   "callHistoryTab": "История звонков",
   "callHistoryTempMeeting": "Временная встреча",
@@ -725,15 +873,33 @@
   "callHistorySummary": "Резюме",
   "callHistoryCallAgain": "Позвонить снова",
   "callHistoryTodayTime": "Сегодня, {time}",
-  "@callHistoryTodayTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryYesterdayTime": "Вчера, {time}",
-  "@callHistoryYesterdayTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryUnknown": "Неизвестный",
   "callHistoryDetails": "Детали звонка",
   "callHistoryOutgoing": "Исходящий звонок",
   "callHistoryIncoming": "Входящий звонок",
   "callHistoryDuration": "Длительность: {duration}",
-  "@callHistoryDuration": { "placeholders": { "duration": { "type": "String" } } },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryWithAI": "С AI-ассистентом",
   "callHistoryParticipants": "Участники",
   "callHistoryMeetingSummary": "Резюме встречи",
@@ -745,26 +911,49 @@
   "callHistoryNoSummaries": "Нет резюме",
   "callHistoryRecordDuringCall": "Нажмите \"Запись\" во время звонка",
   "callHistoryMeetingTime": "Встреча {time}",
-  "@callHistoryMeetingTime": { "placeholders": { "time": { "type": "String" } } },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryTranscribing": "Транскрибация и суммаризация...",
   "callHistoryTranscriptCreated": "Протокол создан",
   "callHistoryNoRecordings": "Нет записей",
   "callHistoryRecordingDate": "Запись {date}",
-  "@callHistoryRecordingDate": { "placeholders": { "date": { "type": "String" } } },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryRecordingUnavailable": "Запись недоступна",
   "callHistoryTranscriptReady": "Протокол готов",
   "callHistoryTranscript": "Протокол",
   "callHistoryKeyPoints": "Ключевые моменты",
   "callHistoryTasks": "Задачи",
   "callHistoryAssignedTo": "Ответственный: {assignee}",
-  "@callHistoryAssignedTo": { "placeholders": { "assignee": { "type": "String" } } },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
   "callHistoryDecisions": "Принятые решения",
   "callHistoryShowTranscript": "Показать полный транскрипт",
-
   "profileScanQr": "Сканировать QR",
   "profileMyQrCode": "Мой QR код",
   "profileAddMeShare": "Добавь меня в Taler ID!\ntalerid://user/{userId}",
-  "@profileAddMeShare": { "placeholders": { "userId": { "type": "String" } } },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
   "profileShowCode": "Покажи этот код, чтобы добавить тебя",
   "profileEditDesc": "Имя, фамилия, отчество, дата рождения",
   "profileAboutMe": "О себе",
@@ -781,10 +970,8 @@
   "profilePointCamera": "Наведите камеру на QR код",
   "profilePhotoCamera": "Сделать фото",
   "profilePhotoGallery": "Выбрать из галереи",
-
   "editProfilePatronymic": "Отчество (опционально)",
   "editProfileDateFormat": "DD.MM.YYYY",
-
   "aboutMeTitle": "О себе",
   "aboutMeClickToFill": "Нажмите, чтобы заполнить",
   "aboutMeCoreValues": "Ценности",
@@ -798,7 +985,13 @@
   "aboutMeDeleteSection": "Удалить раздел?",
   "aboutMeDeleteConfirm": "Все данные этого раздела будут удалены.",
   "aboutMeConnectionError": "Ошибка подключения: {error}",
-  "@aboutMeConnectionError": { "placeholders": { "error": { "type": "String" } } },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "aboutMeVisibility": "Видимость",
   "aboutMeTags": "Теги",
   "aboutMeAddTag": "Добавить тег...",
@@ -807,16 +1000,13 @@
   "aboutMeVisibilityEveryone": "Все",
   "aboutMeVisibilityContacts": "Контакты",
   "aboutMeVisibilityOnlyMe": "Только я",
-
   "settingsProfileSubtitle": "Профиль",
   "settingsAccount": "Аккаунт",
   "settingsKycVerification": "Верификация личности (KYC)",
   "settingsOrganizations": "Организации",
-
   "incomingCallLabel": "Входящий звонок",
   "incomingCallDecline": "Отклонить",
   "incomingCallAccept": "Принять",
-
   "groupCamera": "Камера",
   "groupGallery": "Галерея",
   "groupAvatarUpdated": "Аватар группы обновлён",
@@ -833,7 +1023,6 @@
   "groupMuteNotifications": "Отключить уведомления",
   "groupMuted": "Отключено",
   "groupNoResults": "Нет результатов",
-
   "authInvalidCode": "Неверный код. Попробуйте ещё раз.",
   "loginSubtitle": "Используйте email и пароль",
   "emailRequired": "Введите email",
@@ -845,21 +1034,24 @@
   "usernameMaxLength": "Максимум 30 символов",
   "usernameInvalid": "Только буквы, цифры и _",
   "biometricLoginReason": "Войдите в Taler ID",
-
   "docTypePassport": "Паспорт",
   "docTypeIdCard": "ID-карта",
   "docTypeDriverLicense": "Водительское удостоверение",
   "docTypeResidencePermit": "Вид на жительство",
   "addressApartment": "кв. {number}",
-  "@addressApartment": { "placeholders": { "number": { "type": "String" } } },
-
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
   "failedToUpdateProfile": "Не удалось обновить профиль",
   "failedToStartKyb": "Не удалось запустить KYB-верификацию",
   "orgUpdated": "Организация обновлена",
   "failedToUpdateOrg": "Не удалось обновить организацию",
   "failedToChangeRole": "Не удалось изменить роль",
   "failedToRemoveMember": "Не удалось удалить участника",
-
   "capabilityMessagesTitle": "Сообщения",
   "capabilityMessagesDesc": "Проверь сообщения или напиши кому-нибудь. Например: \"Напиши Виктору: буду через час\"",
   "capabilityCallsTitle": "Звонки",
@@ -883,7 +1075,6 @@
   "contactBlockTitle": "Заблокировать пользователя",
   "contactBlockConfirm": "Пользователь не сможет писать вам и звонить.",
   "contactUnblock": "Разблокировать",
-  "contactBlocked": "Вы заблокировали этого пользователя",
-  "contactYouAreBlocked": "Этот пользователь вас заблокировал",
-  "cancel": "Отмена"
+  "contactBlocked": "Заблокирован",
+  "contactYouAreBlocked": "Этот пользователь вас заблокировал"
 }
