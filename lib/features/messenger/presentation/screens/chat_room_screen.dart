@@ -1157,6 +1157,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             AppLocalizations.of(context)!.participantsCount(conv.participantCount),
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                           ),
+                        if (!isGroup! && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
+                          Text(
+                            conv.otherUserStatus!,
+                            style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                       ],
                     ),
                   ),
