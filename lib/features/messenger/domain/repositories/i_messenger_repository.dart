@@ -27,7 +27,7 @@ abstract class IMessengerRepository {
   Future<void> addGroupMembers(String conversationId, List<String> userIds);
   Future<void> removeGroupMember(String conversationId, String userId);
   Future<void> changeGroupMemberRole(String conversationId, String userId, String role);
-  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description});
+  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description, bool? slowMode, bool? topicsEnabled, int? autoDeleteDays});
   Future<void> leaveGroup(String conversationId);
   Future<void> deleteGroup(String conversationId);
   // Group streams

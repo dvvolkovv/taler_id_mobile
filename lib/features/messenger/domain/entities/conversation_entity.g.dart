@@ -39,6 +39,9 @@ _$ConversationEntityImpl _$$ConversationEntityImplFromJson(
           ? null
           : DateTime.parse(json['mutedUntil'] as String),
       activeCallRoomName: json['activeCallRoomName'] as String?,
+      slowMode: json['slowMode'] as bool? ?? false,
+      topicsEnabled: json['topicsEnabled'] as bool? ?? false,
+      autoDeleteDays: (json['autoDeleteDays'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$ConversationEntityImplToJson(
@@ -66,4 +69,7 @@ Map<String, dynamic> _$$ConversationEntityImplToJson(
       'isMuted': instance.isMuted,
       'mutedUntil': instance.mutedUntil?.toIso8601String(),
       'activeCallRoomName': instance.activeCallRoomName,
+      'slowMode': instance.slowMode,
+      'topicsEnabled': instance.topicsEnabled,
+      'autoDeleteDays': instance.autoDeleteDays,
     };

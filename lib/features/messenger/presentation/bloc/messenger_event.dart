@@ -210,6 +210,21 @@ class DeleteGroup extends MessengerEvent {
   List<Object?> get props => [conversationId];
 }
 
+class UpdateGroupSettings extends MessengerEvent {
+  final String conversationId;
+  final bool? slowMode;
+  final bool? topicsEnabled;
+  final int? autoDeleteDays;
+  const UpdateGroupSettings({
+    required this.conversationId,
+    this.slowMode,
+    this.topicsEnabled,
+    this.autoDeleteDays,
+  });
+  @override
+  List<Object?> get props => [conversationId, slowMode, topicsEnabled, autoDeleteDays];
+}
+
 class ForwardMessage extends MessengerEvent {
   final MessageEntity message;
   final String targetConversationId;

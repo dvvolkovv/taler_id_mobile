@@ -295,6 +295,45 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
     );
   }
 
+  void _showAutoDeletePicker(BuildContext context) {
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text('Авто-удаление сообщений', style: TextStyle(
+              color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            for (final option in [
+              (null, 'Выключено'),
+              (7, '7 дней'),
+              (30, '30 дней'),
+              (90, '90 дней'),
+            ])
+              ListTile(
+                title: Text(option.$2, style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.read<MessengerBloc>().add(UpdateGroupSettings(
+                    conversationId: widget.conversationId,
+                    autoDeleteDays: option.$1 ?? 0,
+                  ));
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmLeaveGroup() {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
@@ -546,29 +585,36 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                   secondary: Icon(Icons.admin_panel_settings_outlined, color: AppColors.of(context).textPrimary),
                   title: Text('Только админы пишут', style: TextStyle(color: AppColors.of(context).textPrimary)),
                   subtitle: Text('Участники могут только читать', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                  value: false, // TODO: bind to conv.slowMode when ConversationEntity gets the field
+                  value: conv?.slowMode ?? false,
                   activeColor: AppColors.of(context).primary,
                   onChanged: (val) {
-                    // TODO: dispatch UpdateGroupSettings event
+                    context.read<MessengerBloc>().add(UpdateGroupSettings(
+                      conversationId: widget.conversationId,
+                      slowMode: val,
+                    ));
                   },
                 ),
                 SwitchListTile(
                   secondary: Icon(Icons.forum_outlined, color: AppColors.of(context).textPrimary),
                   title: Text('Темы', style: TextStyle(color: AppColors.of(context).textPrimary)),
                   subtitle: Text('Разделить чат на темы', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                  value: false, // TODO: bind to conv.topicsEnabled
+                  value: conv?.topicsEnabled ?? false,
                   activeColor: AppColors.of(context).primary,
                   onChanged: (val) {
-                    // TODO: dispatch UpdateGroupSettings event
+                    context.read<MessengerBloc>().add(UpdateGroupSettings(
+                      conversationId: widget.conversationId,
+                      topicsEnabled: val,
+                    ));
                   },
                 ),
                 ListTile(
                   leading: Icon(Icons.timer_outlined, color: AppColors.of(context).textPrimary),
                   title: Text('Авто-удаление сообщений', style: TextStyle(color: AppColors.of(context).textPrimary)),
-                  subtitle: Text('Выключено', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                  onTap: () {
-                    // TODO: show picker for 7/30/90 days
-                  },
+                  subtitle: Text(
+                    conv?.autoDeleteDays != null ? '${conv!.autoDeleteDays} дней' : 'Выключено',
+                    style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                  ),
+                  onTap: () => _showAutoDeletePicker(context),
                 ),
               ],
               const Divider(height: 32),

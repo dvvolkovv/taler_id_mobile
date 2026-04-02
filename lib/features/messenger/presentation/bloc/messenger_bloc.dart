@@ -64,6 +64,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<UpdateGroupInfo>(_onUpdateGroupInfo);
     on<LeaveGroup>(_onLeaveGroup);
     on<DeleteGroup>(_onDeleteGroup);
+    on<UpdateGroupSettings>(_onUpdateGroupSettings);
     on<GroupEventReceived>(_onGroupEventReceived);
     on<MuteConversation>(_onMuteConversation);
     on<UnmuteConversation>(_onUnmuteConversation);
@@ -542,6 +543,18 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   Future<void> _onDeleteGroup(DeleteGroup event, Emitter<MessengerState> emit) async {
     try {
       await _repo.deleteGroup(event.conversationId);
+      add(LoadConversations());
+    } catch (_) {}
+  }
+
+  Future<void> _onUpdateGroupSettings(UpdateGroupSettings event, Emitter<MessengerState> emit) async {
+    try {
+      await _repo.updateGroupInfo(
+        event.conversationId,
+        slowMode: event.slowMode,
+        topicsEnabled: event.topicsEnabled,
+        autoDeleteDays: event.autoDeleteDays,
+      );
       add(LoadConversations());
     } catch (_) {}
   }
