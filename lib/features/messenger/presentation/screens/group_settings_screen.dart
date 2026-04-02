@@ -534,6 +534,43 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                   }
                 },
               ),
+              // Group settings (OWNER/ADMIN only)
+              if (myRole == 'OWNER' || myRole == 'ADMIN') ...[
+                const Divider(height: 32),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Text('Настройки', style: TextStyle(
+                    color: AppColors.of(context).textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+                SwitchListTile(
+                  secondary: Icon(Icons.admin_panel_settings_outlined, color: AppColors.of(context).textPrimary),
+                  title: Text('Только админы пишут', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  subtitle: Text('Участники могут только читать', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  value: false, // TODO: bind to conv.slowMode when ConversationEntity gets the field
+                  activeColor: AppColors.of(context).primary,
+                  onChanged: (val) {
+                    // TODO: dispatch UpdateGroupSettings event
+                  },
+                ),
+                SwitchListTile(
+                  secondary: Icon(Icons.forum_outlined, color: AppColors.of(context).textPrimary),
+                  title: Text('Темы', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  subtitle: Text('Разделить чат на темы', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  value: false, // TODO: bind to conv.topicsEnabled
+                  activeColor: AppColors.of(context).primary,
+                  onChanged: (val) {
+                    // TODO: dispatch UpdateGroupSettings event
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.timer_outlined, color: AppColors.of(context).textPrimary),
+                  title: Text('Авто-удаление сообщений', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  subtitle: Text('Выключено', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  onTap: () {
+                    // TODO: show picker for 7/30/90 days
+                  },
+                ),
+              ],
               const Divider(height: 32),
               // Leave group
               ListTile(
