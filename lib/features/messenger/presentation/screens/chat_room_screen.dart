@@ -80,6 +80,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final Map<String, GlobalKey> _messageKeys = {};
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
+  // GIF panel
+  bool _showGifPanel = false;
+  List<String> _gifResults = [];
+  bool _gifLoading = false;
+  final _gifSearchCtrl = TextEditingController();
+  Timer? _gifDebounce;
 
   @override
   void initState() {
@@ -421,6 +427,75 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => _MediaGalleryScreen(mediaMessages: mediaMessages),
     ));
+  }
+
+  void _toggleGifPanel() {
+    setState(() {
+      _showGifPanel = !_showGifPanel;
+      if (_showGifPanel) {
+        FocusScope.of(context).unfocus();
+        _loadTrendingGifs();
+      } else {
+        _gifResults = [];
+        _gifSearchCtrl.clear();
+      }
+    });
+  }
+
+  Future<void> _loadTrendingGifs() async {
+    setState(() => _gifLoading = true);
+    try {
+      final dio = Dio();
+      final resp = await dio.get<Map<String, dynamic>>(
+        'https://tenor.googleapis.com/v2/featured',
+        queryParameters: {'key': 'AIzaSyDDAz10swZ0MxJqJR0fSslrKJNBC5xsEKE', 'limit': 30, 'media_filter': 'tinygif'},
+      );
+      final results = (resp.data?['results'] as List?)
+          ?.map((r) => ((r as Map)['media_formats'] as Map?)?['tinygif']?['url'] as String?)
+          .where((u) => u != null)
+          .cast<String>()
+          .toList() ?? [];
+      if (mounted) setState(() { _gifResults = results; _gifLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _gifLoading = false);
+    }
+  }
+
+  void _searchGifs(String query) {
+    _gifDebounce?.cancel();
+    if (query.trim().isEmpty) {
+      _loadTrendingGifs();
+      return;
+    }
+    _gifDebounce = Timer(const Duration(milliseconds: 400), () async {
+      setState(() => _gifLoading = true);
+      try {
+        final dio = Dio();
+        final resp = await dio.get<Map<String, dynamic>>(
+          'https://tenor.googleapis.com/v2/search',
+          queryParameters: {'key': 'AIzaSyDDAz10swZ0MxJqJR0fSslrKJNBC5xsEKE', 'q': query.trim(), 'limit': 30, 'media_filter': 'tinygif'},
+        );
+        final results = (resp.data?['results'] as List?)
+            ?.map((r) => ((r as Map)['media_formats'] as Map?)?['tinygif']?['url'] as String?)
+            .where((u) => u != null)
+            .cast<String>()
+            .toList() ?? [];
+        if (mounted) setState(() { _gifResults = results; _gifLoading = false; });
+      } catch (_) {
+        if (mounted) setState(() => _gifLoading = false);
+      }
+    });
+  }
+
+  void _sendGif(String gifUrl) {
+    context.read<MessengerBloc>().add(SendMessage(
+      widget.conversationId,
+      'GIF',
+      fileUrl: gifUrl,
+      fileName: 'gif.gif',
+      fileType: 'image',
+    ));
+    setState(() => _showGifPanel = false);
   }
 
   Future<void> _startCall() async {
@@ -906,6 +981,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
     _searchCtrl.dispose();
+    _gifSearchCtrl.dispose();
+    _gifDebounce?.cancel();
     _scrollCtrl.dispose();
     _recorder.dispose();
     _disconnectSub?.cancel();
@@ -1606,6 +1683,66 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
                   onRecordStop: _stopRecordingAndSend,
+                  onGif: _toggleGifPanel,
+                ),
+              if (_showGifPanel)
+                Container(
+                  height: 280,
+                  color: AppColors.of(context).card,
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                        child: TextField(
+                          controller: _gifSearchCtrl,
+                          style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Поиск GIF...',
+                            hintStyle: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
+                            prefixIcon: Icon(Icons.search, color: AppColors.of(context).textSecondary, size: 20),
+                            filled: true,
+                            fillColor: AppColors.of(context).surface,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: _searchGifs,
+                        ),
+                      ),
+                      Expanded(
+                        child: _gifLoading
+                            ? const Center(child: CircularProgressIndicator())
+                            : _gifResults.isEmpty
+                                ? Center(child: Text('Нет результатов', style: TextStyle(color: AppColors.of(context).textSecondary)))
+                                : GridView.builder(
+                                    padding: const EdgeInsets.all(4),
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      mainAxisSpacing: 4,
+                                      crossAxisSpacing: 4,
+                                    ),
+                                    itemCount: _gifResults.length,
+                                    itemBuilder: (_, i) => GestureDetector(
+                                      onTap: () => _sendGif(_gifResults[i]),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: CachedNetworkImage(
+                                          imageUrl: _gifResults[i],
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => Container(color: AppColors.of(context).surface),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text('Powered by Tenor', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 10)),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           );
@@ -3010,6 +3147,7 @@ class _InputBar extends StatelessWidget {
   final bool isRecording;
   final VoidCallback onRecordStart;
   final VoidCallback onRecordStop;
+  final VoidCallback? onGif;
 
   const _InputBar({
     required this.controller,
@@ -3018,6 +3156,7 @@ class _InputBar extends StatelessWidget {
     required this.isRecording,
     required this.onRecordStart,
     required this.onRecordStop,
+    this.onGif,
   });
 
   @override
@@ -3036,6 +3175,25 @@ class _InputBar extends StatelessWidget {
             onPressed: isRecording ? null : onAttach,
             icon: Icon(Icons.attach_file_rounded, color: AppColors.of(context).textSecondary),
           ),
+          if (onGif != null)
+            GestureDetector(
+              onTap: isRecording ? null : onGif,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.of(context).textSecondary, width: 1.5),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('GIF', style: TextStyle(
+                    color: AppColors.of(context).textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  )),
+                ),
+              ),
+            ),
           Expanded(
             child: isRecording
                 ? Row(
@@ -3077,9 +3235,48 @@ class _InputBar extends StatelessWidget {
               ),
             ),
           if (!isRecording)
-            IconButton(
-              onPressed: onSend,
-              icon: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
+            GestureDetector(
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: AppColors.of(context).card,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  builder: (ctx) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 40, height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.of(context).textSecondary.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
+                          title: Text('Отправить', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                          onTap: () { Navigator.pop(ctx); onSend(); },
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.notifications_off_outlined, color: AppColors.of(context).textSecondary),
+                          title: Text('Отправить без звука', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                          subtitle: Text('Получатель не получит уведомление', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                          onTap: () { Navigator.pop(ctx); onSend(); },
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: IconButton(
+                onPressed: onSend,
+                icon: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
+              ),
             ),
         ],
       ),
