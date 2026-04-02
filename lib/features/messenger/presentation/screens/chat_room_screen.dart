@@ -403,7 +403,141 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 title: Text(l10n.chatContact, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _pickContact(); },
               ),
+              ListTile(
+                leading: Icon(Icons.poll_rounded, color: colors.primary),
+                title: Text('Опрос', style: TextStyle(color: colors.textPrimary)),
+                onTap: () { Navigator.pop(ctx); _showCreatePoll(); },
+              ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCreatePoll() {
+    final colors = AppColors.of(context);
+    final questionCtrl = TextEditingController();
+    final optionCtrls = [TextEditingController(), TextEditingController()];
+    bool isAnonymous = false;
+    bool isMultiple = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 16, right: 16, top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(color: colors.textSecondary.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Создать опрос', style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: questionCtrl,
+                  autofocus: true,
+                  style: TextStyle(color: colors.textPrimary),
+                  decoration: InputDecoration(
+                    labelText: 'Вопрос',
+                    border: const OutlineInputBorder(),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...List.generate(optionCtrls.length, (i) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: optionCtrls[i],
+                          style: TextStyle(color: colors.textPrimary),
+                          decoration: InputDecoration(
+                            labelText: 'Вариант ${i + 1}',
+                            border: const OutlineInputBorder(),
+                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+                          ),
+                        ),
+                      ),
+                      if (optionCtrls.length > 2)
+                        IconButton(
+                          icon: Icon(Icons.remove_circle_outline, color: colors.error),
+                          onPressed: () => setSheetState(() => optionCtrls.removeAt(i)),
+                        ),
+                    ],
+                  ),
+                )),
+                if (optionCtrls.length < 10)
+                  TextButton.icon(
+                    onPressed: () => setSheetState(() => optionCtrls.add(TextEditingController())),
+                    icon: Icon(Icons.add, color: colors.primary),
+                    label: Text('Добавить вариант', style: TextStyle(color: colors.primary)),
+                  ),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Анонимное голосование', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                  value: isAnonymous,
+                  activeColor: colors.primary,
+                  onChanged: (v) => setSheetState(() => isAnonymous = v),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Несколько вариантов', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                  value: isMultiple,
+                  activeColor: colors.primary,
+                  onChanged: (v) => setSheetState(() => isMultiple = v),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.black),
+                    onPressed: () async {
+                      final question = questionCtrl.text.trim();
+                      final options = optionCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
+                      if (question.isEmpty || options.length < 2) return;
+                      Navigator.pop(ctx);
+                      try {
+                        await sl<DioClient>().post(
+                          '/messenger/conversations/${widget.conversationId}/poll',
+                          data: {
+                            'question': question,
+                            'options': options,
+                            'isAnonymous': isAnonymous,
+                            'isMultiple': isMultiple,
+                          },
+                          fromJson: (d) => d,
+                        );
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Ошибка создания опроса'), backgroundColor: colors.error),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Создать', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1842,6 +1976,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 fileName: widget.message.fileName ?? widget.message.content,
                 fileSize: widget.message.fileSize,
               )
+            else if (widget.message.content.startsWith('[POLL]'))
+              _PollWidget(message: widget.message, isMe: widget.isMe)
             else if (widget.message.content.startsWith('[CONTACT]'))
               _ContactCardWidget(content: widget.message.content)
             else
@@ -3734,6 +3870,133 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PollWidget extends StatefulWidget {
+  final MessageEntity message;
+  final bool isMe;
+  const _PollWidget({required this.message, required this.isMe});
+
+  @override
+  State<_PollWidget> createState() => _PollWidgetState();
+}
+
+class _PollWidgetState extends State<_PollWidget> {
+  Map<String, dynamic>? _pollData;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPoll();
+  }
+
+  Future<void> _loadPoll() async {
+    try {
+      final data = await sl<DioClient>().get(
+        '/messenger/messages/${widget.message.id}/poll',
+        fromJson: (d) => d as Map<String, dynamic>,
+      );
+      if (mounted) setState(() { _pollData = data; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _vote(String optionId) async {
+    try {
+      final data = await sl<DioClient>().post(
+        '/messenger/polls/$optionId/vote',
+        fromJson: (d) => d as Map<String, dynamic>,
+      );
+      if (mounted) setState(() => _pollData = data);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    if (_loading) return const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2));
+    if (_pollData == null) return Text('Опрос недоступен', style: TextStyle(color: colors.textSecondary));
+
+    final question = _pollData!['question'] as String? ?? '';
+    final options = (_pollData!['options'] as List?) ?? [];
+    final isMultiple = _pollData!['isMultiple'] as bool? ?? false;
+    final totalVotes = options.fold<int>(0, (sum, o) => sum + ((o['votes'] as List?)?.length ?? 0));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.poll_rounded, size: 16, color: widget.isMe ? Colors.white70 : colors.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(question, style: TextStyle(
+                color: widget.isMe ? Colors.white : colors.textPrimary,
+                fontSize: 14, fontWeight: FontWeight.w600,
+              )),
+            ),
+          ],
+        ),
+        if (isMultiple)
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text('Можно выбрать несколько', style: TextStyle(
+              color: widget.isMe ? Colors.white54 : colors.textSecondary, fontSize: 11)),
+          ),
+        const SizedBox(height: 8),
+        ...options.map<Widget>((o) {
+          final optionId = o['id'] as String;
+          final text = o['text'] as String? ?? '';
+          final votes = (o['votes'] as List?) ?? [];
+          final voteCount = votes.length;
+          final fraction = totalVotes > 0 ? voteCount / totalVotes : 0.0;
+          final myVote = votes.any((v) => v['userId'] == context.read<MessengerBloc>().state.currentUserId);
+
+          return GestureDetector(
+            onTap: () => _vote(optionId),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 4),
+              child: Stack(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (widget.isMe ? Colors.white : colors.primary).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: myVote ? Border.all(color: widget.isMe ? Colors.white : colors.primary, width: 1.5) : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(text, style: TextStyle(
+                          color: widget.isMe ? Colors.white : colors.textPrimary, fontSize: 13))),
+                        Text('$voteCount', style: TextStyle(
+                          color: widget.isMe ? Colors.white70 : colors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 0, top: 0, bottom: 0,
+                    child: Container(
+                      width: (MediaQuery.of(context).size.width * 0.6) * fraction,
+                      decoration: BoxDecoration(
+                        color: (widget.isMe ? Colors.white : colors.primary).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        Text('$totalVotes голосов', style: TextStyle(
+          color: widget.isMe ? Colors.white54 : colors.textSecondary, fontSize: 11)),
+      ],
     );
   }
 }
