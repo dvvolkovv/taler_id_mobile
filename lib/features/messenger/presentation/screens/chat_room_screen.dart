@@ -298,6 +298,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     } catch (_) {}
   }
 
+  void _openMediaGallery(BuildContext context) {
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    final mediaMessages = messages.where((m) {
+      if (m.fileUrl == null) return false;
+      final ft = m.fileType;
+      if (ft == 'image' || ft == 'video') return true;
+      final name = (m.fileName ?? m.fileUrl ?? '').split('?').first.toLowerCase();
+      final ext = name.contains('.') ? name.split('.').last : '';
+      return {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov'}.contains(ext);
+    }).toList()
+      ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
+
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => _MediaGalleryScreen(mediaMessages: mediaMessages),
+    ));
+  }
+
   Future<void> _startCall() async {
     // Guard: only block when max lines reached
     if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
@@ -991,6 +1008,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.photo_library_outlined),
+                  onPressed: () => _openMediaGallery(context),
+                  tooltip: 'Медиа',
                 ),
                 IconButton(
                   icon: const Icon(Icons.phone_outlined),
@@ -3794,6 +3816,104 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MediaGalleryScreen extends StatelessWidget {
+  final List<MessageEntity> mediaMessages;
+  const _MediaGalleryScreen({required this.mediaMessages});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: Text('Медиа (${mediaMessages.length})'),
+        backgroundColor: colors.background,
+      ),
+      body: mediaMessages.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.photo_library_outlined, size: 64, color: colors.textSecondary),
+                  const SizedBox(height: 16),
+                  Text('Нет медиафайлов', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                ],
+              ),
+            )
+          : GridView.builder(
+              padding: const EdgeInsets.all(2),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisSpacing: 2,
+                crossAxisSpacing: 2,
+              ),
+              itemCount: mediaMessages.length,
+              itemBuilder: (context, index) {
+                final msg = mediaMessages[index];
+                final isVideo = msg.fileType == 'video' ||
+                    (msg.fileName ?? msg.fileUrl ?? '').toLowerCase().contains(RegExp(r'\.(mp4|mov|avi|mkv)').pattern);
+                final thumbUrl = msg.thumbnailSmallUrl ?? msg.thumbnailMediumUrl ?? msg.fileUrl!;
+                return GestureDetector(
+                  onTap: () {
+                    if (isVideo) {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => _FullScreenVideoPlayer(videoUrl: msg.fileUrl!),
+                      ));
+                    } else {
+                      final imageOnly = mediaMessages.where((m) {
+                        final ft = m.fileType;
+                        if (ft == 'video') return false;
+                        final name = (m.fileName ?? m.fileUrl ?? '').split('?').first.toLowerCase();
+                        final ext = name.contains('.') ? name.split('.').last : '';
+                        return !{'mp4', 'mov', 'avi', 'mkv'}.contains(ext);
+                      }).toList();
+                      final imgIdx = imageOnly.indexWhere((m) => m.id == msg.id);
+                      Navigator.of(context).push(PageRouteBuilder(
+                        opaque: false,
+                        barrierColor: Colors.black,
+                        transitionDuration: const Duration(milliseconds: 280),
+                        pageBuilder: (_, __, ___) => _FullScreenImageGallery(
+                          imageUrls: imageOnly.map((m) => m.fileUrl!).toList(),
+                          heroTags: imageOnly.map((m) => 'gallery_${m.id}').toList(),
+                          initialIndex: imgIdx >= 0 ? imgIdx : 0,
+                        ),
+                        transitionsBuilder: (_, anim, __, child) =>
+                            FadeTransition(opacity: anim, child: child),
+                      ));
+                    }
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedNetworkImage(
+                        imageUrl: thumbUrl,
+                        fit: BoxFit.cover,
+                        placeholder: (_, __) => Container(color: colors.surface),
+                        errorWidget: (_, __, ___) => Container(
+                          color: colors.surface,
+                          child: Icon(Icons.broken_image, color: colors.textSecondary),
+                        ),
+                      ),
+                      if (isVideo)
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            ),
     );
   }
 }
