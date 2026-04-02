@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -16,8 +17,9 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+import 'saved_messages_screen.dart';
 
-enum _FilterTab { all, unread }
+enum _FilterTab { all, unread, personal, groups }
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -289,9 +291,47 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   style: TextStyle(color: colors.textPrimary)),
               onTap: () { Navigator.pop(ctx); _toggleArchive(conv.id); },
             ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
+              title: Text('Удалить чат', style: TextStyle(color: Colors.red.shade400)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteChat(context, conv);
+              },
+            ),
             const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteChat(BuildContext context, ConversationEntity conv) {
+    final colors = AppColors.of(context);
+    final isGroup = conv.type == 'GROUP';
+    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text('Удалить чат?', style: TextStyle(color: colors.textPrimary)),
+        content: Text(
+          'Удалить чат с $name? Это действие нельзя отменить.',
+          style: TextStyle(color: colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<MessengerBloc>().add(DeleteGroup(conv.id));
+            },
+            child: Text('Удалить', style: TextStyle(color: Colors.red.shade400)),
+          ),
+        ],
       ),
     );
   }
@@ -444,8 +484,20 @@ class _ConversationsViewState extends State<_ConversationsView> {
       }).toList();
     }
 
-    if (!archivedOnly && _activeFilter == _FilterTab.unread) {
-      result = result.where((c) => c.unreadCount > 0).toList();
+    if (!archivedOnly) {
+      switch (_activeFilter) {
+        case _FilterTab.unread:
+          result = result.where((c) => c.unreadCount > 0).toList();
+          break;
+        case _FilterTab.personal:
+          result = result.where((c) => c.type == 'DIRECT').toList();
+          break;
+        case _FilterTab.groups:
+          result = result.where((c) => c.type == 'GROUP').toList();
+          break;
+        case _FilterTab.all:
+          break;
+      }
     }
 
     if (!archivedOnly) {
@@ -476,17 +528,68 @@ class _ConversationsViewState extends State<_ConversationsView> {
               .where((c) => !_archivedIds.contains(c.id))
               .fold(0, (sum, c) => sum + c.unreadCount);
 
-          Widget buildTile(ConversationEntity conv) => Column(
-            children: [
-              _ConversationTile(
-                conversation: conv,
-                currentUserId: state.currentUserId,
-                isPinned: _pinnedIds.contains(conv.id),
-                onLongPress: () => _showConversationActions(context, conv),
+          Widget buildTile(ConversationEntity conv) {
+            final isPinned = _pinnedIds.contains(conv.id);
+            final isArchived = _archivedIds.contains(conv.id);
+            return Dismissible(
+              key: ValueKey('dismiss_${conv.id}'),
+              confirmDismiss: (direction) async {
+                HapticFeedback.mediumImpact();
+                if (direction == DismissDirection.endToStart) {
+                  _toggleArchive(conv.id);
+                } else {
+                  _togglePin(conv.id);
+                }
+                return false; // don't remove from list
+              },
+              background: Container(
+                color: colors.primary.withValues(alpha: 0.15),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                        color: colors.primary),
+                    const SizedBox(width: 8),
+                    Text(isPinned ? 'Открепить' : 'Закрепить',
+                        style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
-              Divider(color: colors.border, height: 1),
-            ],
-          );
+              secondaryBackground: Container(
+                color: isArchived
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : Colors.orange.withValues(alpha: 0.15),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(isArchived ? 'Разархивировать' : 'Архивировать',
+                        style: TextStyle(
+                          color: isArchived ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    const SizedBox(width: 8),
+                    Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                        color: isArchived ? Colors.green : Colors.orange),
+                  ],
+                ),
+              ),
+              child: Column(
+                children: [
+                  _ConversationTile(
+                    conversation: conv,
+                    currentUserId: state.currentUserId,
+                    isPinned: isPinned,
+                    onLongPress: () => _showConversationActions(context, conv),
+                  ),
+                  Divider(color: colors.border, height: 1),
+                ],
+              ),
+            );
+          }
 
           return CustomScrollView(
             slivers: [
@@ -500,6 +603,13 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 title: Text(l10n.tabMessenger),
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.bookmark_outline_rounded),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                    ),
+                    tooltip: 'Избранное',
+                  ),
                   BlocBuilder<MessengerBloc, MessengerState>(
                     buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
                     builder: (context, state) {
@@ -571,9 +681,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
               ),
               // Filter chips
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Row(
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     children: [
                       _TabChip(
                         label: 'Все',
@@ -584,8 +696,20 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       _TabChip(
                         label: 'Непрочитанные',
                         selected: _activeFilter == _FilterTab.unread,
-                        badge: _activeFilter == _FilterTab.all && totalUnread > 0 ? totalUnread : null,
+                        badge: _activeFilter != _FilterTab.unread && totalUnread > 0 ? totalUnread : null,
                         onTap: () => setState(() => _activeFilter = _FilterTab.unread),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Личные',
+                        selected: _activeFilter == _FilterTab.personal,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.personal),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Группы',
+                        selected: _activeFilter == _FilterTab.groups,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.groups),
                       ),
                     ],
                   ),

@@ -87,7 +87,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
     _orbitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1), // tick driver
+      duration: const Duration(seconds: 1),
     )..repeat();
     _orbitCtrl.addListener(_tickOrbit);
     _lastOrbitTick = Duration.zero;
@@ -1201,21 +1201,6 @@ class _AssistantScreenState extends State<AssistantScreen>
               ),
             ),
 
-            // "Tap to talk" hint at bottom
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 40,
-              child: Text(
-                l10n.assistantTapToTalk,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
           ],
         );
       },

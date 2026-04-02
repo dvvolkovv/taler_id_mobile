@@ -18,7 +18,7 @@
 ///     --dart-define=BASE_URL=https://staging.id.taler.tirol \
 ///     -d 00008101-000E21100202001E
 ///
-/// Тест проходит: логин → все вкладки → подэкраны → проверка данных.
+/// Тест проходит: логин → все экраны через орбитальную навигацию → подэкраны → проверка данных.
 library;
 
 import 'package:flutter/material.dart';
@@ -72,6 +72,26 @@ extension PumpHelper on WidgetTester {
     }
     return false;
   }
+
+  /// Возвращает на ассистента через home FAB или back arrow.
+  Future<void> goHome() async {
+    // Try home FAB first (visible on all non-assistant routes)
+    if (find.byIcon(Icons.home_rounded).evaluate().isNotEmpty) {
+      await tap(find.byIcon(Icons.home_rounded).first, warnIfMissed: false);
+      await pumpFor(const Duration(seconds: 2));
+      return;
+    }
+    // Fallback: back arrow
+    if (find.byIcon(Icons.arrow_back_ios_new_rounded).evaluate().isNotEmpty) {
+      await tap(find.byIcon(Icons.arrow_back_ios_new_rounded).first, warnIfMissed: false);
+      await pumpFor(const Duration(seconds: 2));
+      return;
+    }
+    if (find.byIcon(Icons.arrow_back).evaluate().isNotEmpty) {
+      await tap(find.byIcon(Icons.arrow_back).first, warnIfMissed: false);
+      await pumpFor(const Duration(seconds: 2));
+    }
+  }
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
@@ -80,13 +100,12 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Full App Smoke Test', () {
-    testWidgets('Login → Dashboard → All tabs → Sub-screens', (tester) async {
+    testWidgets('Login → Dashboard → All screens → Sub-screens', (tester) async {
       // ── 1. Launch app ──────────────────────────────────────────────
       app.main();
       await tester.pumpFor(const Duration(seconds: 6)); // splash + DI + Firebase
 
       // ── 2. Handle Splash → Onboarding or Login ─────────────────────
-      // Wait for EITHER onboarding or login to appear
       bool hasLogin = false;
       final deadline = DateTime.now().add(const Duration(seconds: 20));
       while (DateTime.now().isBefore(deadline)) {
@@ -116,9 +135,9 @@ void main() {
           hasLogin = true;
           break;
         }
-        // Check if already on dashboard (returning user)
-        if (find.byType(BottomNavigationBar).evaluate().isNotEmpty) {
-          debugPrint('[TEST] Already on dashboard');
+        // Check if already on assistant screen (orbital nav)
+        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) {
+          debugPrint('[TEST] Already on dashboard (orbital nav)');
           break;
         }
       }
@@ -165,65 +184,60 @@ void main() {
         debugPrint('[TEST] Login screen not found — maybe already authenticated');
       }
 
-      // ── 4. Wait for dashboard ──────────────────────────────────────
+      // ── 4. Wait for dashboard (orbital nav assistant screen) ────────
+      // The new design has orbital circles — detect Messages circle icon
       final hasDashboard = await tester.waitFor(
-        find.byType(BottomNavigationBar),
+        find.byIcon(Icons.chat_bubble_outline_rounded),
         timeout: const Duration(seconds: 20),
       );
-      expect(hasDashboard, isTrue, reason: 'Dashboard (BottomNavigationBar) should appear after login');
+      expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
+      debugPrint('[TEST] Dashboard loaded with orbital navigation');
 
-      final bottomNav = tester.widget<BottomNavigationBar>(find.byType(BottomNavigationBar));
-      expect(bottomNav.items.length, 5, reason: 'Expected 5 bottom nav tabs');
-      debugPrint('[TEST] Dashboard loaded with ${bottomNav.items.length} tabs');
-
-      // ── 5. Tab: Messenger ──────────────────────────────────────────
+      // ── 5. Screen: Messages ────────────────────────────────────────
       await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
       await tester.pumpFor(const Duration(seconds: 2));
-      expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger tab crashed');
-      debugPrint('[TEST] ✓ Messenger tab OK');
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed');
+      debugPrint('[TEST] ✓ Messenger screen OK');
+      await tester.goHome();
 
-      // ── 6. Tab: Call History ────────────────────────────────────────
+      // ── 6. Screen: Calls ───────────────────────────────────────────
       await tester.safeTap(find.byIcon(Icons.call_outlined));
       await tester.pumpFor(const Duration(seconds: 2));
-      expect(find.byType(ErrorWidget), findsNothing, reason: 'Calls tab crashed');
-      debugPrint('[TEST] ✓ Calls tab OK');
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Calls screen crashed');
+      debugPrint('[TEST] ✓ Calls screen OK');
+      await tester.goHome();
 
-      // ── 7. Tab: Assistant ──────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.headset_mic_outlined));
-      await tester.pumpFor(const Duration(seconds: 2));
-      expect(find.byType(ErrorWidget), findsNothing, reason: 'Assistant tab crashed');
-      debugPrint('[TEST] ✓ Assistant tab OK');
-
-      // ── 8. Tab: Calendar ───────────────────────────────────────────
+      // ── 7. Screen: Calendar ────────────────────────────────────────
       await tester.safeTap(find.byIcon(Icons.calendar_month_outlined));
       await tester.pumpFor(const Duration(seconds: 2));
-      expect(find.byType(ErrorWidget), findsNothing, reason: 'Calendar tab crashed');
-      debugPrint('[TEST] ✓ Calendar tab OK');
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Calendar screen crashed');
+      debugPrint('[TEST] ✓ Calendar screen OK');
+      await tester.goHome();
 
-      // ── 9. Tab: Settings ───────────────────────────────────────────
+      // ── 8. Screen: Profile ─────────────────────────────────────────
+      await tester.safeTap(find.byIcon(Icons.person_outline));
+      await tester.pumpFor(const Duration(seconds: 2));
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Profile screen crashed');
+      debugPrint('[TEST] ✓ Profile screen OK');
+      await tester.goHome();
+
+      // ── 9. Screen: Settings ────────────────────────────────────────
       await tester.safeTap(find.byIcon(Icons.settings_outlined));
       await tester.pumpFor(const Duration(seconds: 2));
-      expect(find.byType(ErrorWidget), findsNothing, reason: 'Settings tab crashed');
-      debugPrint('[TEST] ✓ Settings tab OK');
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Settings screen crashed');
+      debugPrint('[TEST] ✓ Settings screen OK');
 
-      // ── 10. Settings → sub-screens ─────────────────────────────────
-      // Try opening Profile
-      if (await tester.safeTap(find.byIcon(Icons.person_outline))) {
-        await tester.pumpFor(const Duration(seconds: 2));
-        expect(find.byType(ErrorWidget), findsNothing, reason: 'Profile screen crashed');
-        debugPrint('[TEST] ✓ Profile screen OK');
-        await tester.safeTap(find.byIcon(Icons.arrow_back));
-      }
-
-      // Try opening Sessions
+      // ── 10. Settings → Sessions sub-screen ─────────────────────────
       if (await tester.safeTap(find.text('Sessions'))) {
         await tester.pumpFor(const Duration(seconds: 2));
         expect(find.byType(ErrorWidget), findsNothing, reason: 'Sessions screen crashed');
         debugPrint('[TEST] ✓ Sessions screen OK');
         await tester.safeTap(find.byIcon(Icons.arrow_back));
+        await tester.pumpFor(const Duration(seconds: 1));
       }
+      await tester.goHome();
 
-      // ── 11. Messenger → open conversation ──────────────────────────
+      // ── 11. Messages → open conversation ───────────────────────────
       await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
       await tester.pumpFor(const Duration(seconds: 3));
 
@@ -235,6 +249,7 @@ void main() {
         debugPrint('[TEST] ✓ Chat room OK');
         await tester.safeTap(find.byIcon(Icons.arrow_back));
       }
+      await tester.goHome();
 
       // ── 12. Calendar → Create event ────────────────────────────────
       await tester.safeTap(find.byIcon(Icons.calendar_month_outlined));
@@ -246,6 +261,7 @@ void main() {
         debugPrint('[TEST] ✓ New event screen OK');
         await tester.safeTap(find.byIcon(Icons.arrow_back));
       }
+      await tester.goHome();
 
       // ── 13. Final check ────────────────────────────────────────────
       expect(find.byType(ErrorWidget), findsNothing, reason: 'App has ErrorWidget at the end');

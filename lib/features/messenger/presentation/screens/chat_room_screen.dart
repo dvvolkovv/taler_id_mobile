@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/gestures.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -38,6 +39,7 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import 'thread_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -1923,6 +1925,35 @@ class _MessageBubbleState extends State<_MessageBubble> {
           currentUserId: widget.currentUserId,
           onTap: widget.onReact,
         ),
+      if (widget.message.threadReplyCount > 0)
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => BlocProvider.value(
+                value: context.read<MessengerBloc>(),
+                child: ThreadScreen(
+                  parentMessage: widget.message,
+                  parentSenderName: widget.senderName,
+                  conversationId: widget.message.conversationId,
+                ),
+              ),
+            ));
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.forum_outlined, size: 14, color: AppColors.of(context).primary),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.message.threadReplyCount} ${widget.message.threadReplyCount == 1 ? 'ответ' : 'ответов'}',
+                  style: TextStyle(color: AppColors.of(context).primary, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+        ),
       SizedBox(height: widget.isLastInGroup ? 8 : 2),
         ],
       ),
@@ -2033,6 +2064,31 @@ class _MessageBubbleState extends State<_MessageBubble> {
               onTap: () {
                 Navigator.pop(ctx);
                 _showForwardPicker(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.forum_outlined, color: colors.textSecondary),
+              title: Text('Ответить в треде', style: TextStyle(color: colors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<MessengerBloc>(),
+                    child: ThreadScreen(
+                      parentMessage: widget.message,
+                      parentSenderName: widget.senderName,
+                      conversationId: widget.message.conversationId,
+                    ),
+                  ),
+                ));
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.bookmark_add_outlined, color: colors.textSecondary),
+              title: Text('В избранное', style: TextStyle(color: colors.textPrimary)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _saveToFavorites(context);
               },
             ),
             ListTile(
@@ -2166,6 +2222,36 @@ class _MessageBubbleState extends State<_MessageBubble> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveToFavorites(BuildContext context) async {
+    try {
+      Box box;
+      const boxName = 'saved_messages';
+      try {
+        box = Hive.isBoxOpen(boxName) ? Hive.box(boxName) : await Hive.openBox(boxName);
+      } catch (_) {
+        await Hive.deleteBoxFromDisk(boxName);
+        box = await Hive.openBox(boxName);
+      }
+      final msg = widget.message;
+      await box.put(msg.id, {
+        'id': msg.id,
+        'content': msg.content,
+        'senderId': msg.senderId,
+        'senderName': msg.senderName ?? widget.senderName,
+        'sentAt': msg.sentAt.toIso8601String(),
+        'fileUrl': msg.fileUrl,
+        'fileName': msg.fileName,
+        'fileType': msg.fileType,
+        'conversationId': msg.conversationId,
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сохранено в избранное'), duration: Duration(seconds: 2)),
+        );
+      }
+    } catch (_) {}
   }
 
   void _showForwardPicker(BuildContext context) {

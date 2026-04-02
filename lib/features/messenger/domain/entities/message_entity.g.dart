@@ -31,6 +31,12 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as Map<String, dynamic>)
               .toList() ??
           const [],
+      threadParentId: json['threadParentId'] as String?,
+      threadReplyCount: (json['threadReplyCount'] as num?)?.toInt() ?? 0,
+      threadLastReplierAvatars:
+          (json['threadLastReplierAvatars'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList(),
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -55,4 +61,7 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'isSystem': instance.isSystem,
       'isEdited': instance.isEdited,
       'reactions': instance.reactions,
+      'threadParentId': instance.threadParentId,
+      'threadReplyCount': instance.threadReplyCount,
+      'threadLastReplierAvatars': instance.threadLastReplierAvatars,
     };
