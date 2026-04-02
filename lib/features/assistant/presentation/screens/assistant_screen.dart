@@ -1201,21 +1201,6 @@ class _AssistantScreenState extends State<AssistantScreen>
               ),
             ),
 
-            // "Tap to talk" hint at bottom
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 40,
-              child: Text(
-                l10n.assistantTapToTalk,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
           ],
         );
       },
