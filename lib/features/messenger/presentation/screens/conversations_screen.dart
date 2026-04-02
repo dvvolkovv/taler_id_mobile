@@ -19,7 +19,7 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
 import 'saved_messages_screen.dart';
 
-enum _FilterTab { all, unread, personal, groups }
+enum _FilterTab { all, unread, personal, groups, channels }
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -342,6 +342,75 @@ class _ConversationsViewState extends State<_ConversationsView> {
     super.dispose();
   }
 
+  void _showCreateChannel(BuildContext context) {
+    final colors = AppColors.of(context);
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text('Создать канал', style: TextStyle(color: colors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              style: TextStyle(color: colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: 'Название',
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descCtrl,
+              style: TextStyle(color: colors.textPrimary),
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Описание (необязательно)',
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.black),
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await sl<DioClient>().post(
+                  '/messenger/channels',
+                  data: {'name': name, 'description': descCtrl.text.trim()},
+                  fromJson: (d) => d,
+                );
+                context.read<MessengerBloc>().add(LoadConversations());
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: const Text('Ошибка создания канала'), backgroundColor: colors.error),
+                  );
+                }
+              }
+            },
+            child: const Text('Создать'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNewChatSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -391,6 +460,17 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   onTap: () {
                     Navigator.pop(ctx);
                     context.push('/dashboard/messenger/create-group');
+                  },
+                ),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
+                    child: Icon(Icons.campaign_rounded, color: AppColors.of(context).primary),
+                  ),
+                  title: Text('Создать канал', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showCreateChannel(context);
                   },
                 ),
                 if (contacts.isNotEmpty) ...[
@@ -494,6 +574,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
           break;
         case _FilterTab.groups:
           result = result.where((c) => c.type == 'GROUP').toList();
+          break;
+        case _FilterTab.channels:
+          result = result.where((c) => c.type == 'CHANNEL').toList();
           break;
         case _FilterTab.all:
           break;
@@ -710,6 +793,12 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         label: 'Группы',
                         selected: _activeFilter == _FilterTab.groups,
                         onTap: () => setState(() => _activeFilter = _FilterTab.groups),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Каналы',
+                        selected: _activeFilter == _FilterTab.channels,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.channels),
                       ),
                     ],
                   ),

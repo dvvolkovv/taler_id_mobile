@@ -889,6 +889,41 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  Future<void> _recordVideoNote() async {
+    try {
+      final picker = ImagePicker();
+      final video = await picker.pickVideo(
+        source: ImageSource.camera,
+        preferredCameraDevice: CameraDevice.front,
+        maxDuration: const Duration(seconds: 60),
+      );
+      if (video == null || !mounted) return;
+      final client = sl<DioClient>();
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(video.path, filename: 'video_note.mp4'),
+      });
+      final res = await client.post(
+        '/messenger/files',
+        data: formData,
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      if (!mounted) return;
+      context.read<MessengerBloc>().add(SendMessage(
+        widget.conversationId,
+        'Видеосообщение',
+        fileUrl: res['fileUrl'] as String,
+        fileName: res['fileName'] as String,
+        fileSize: res['fileSize'] as int?,
+        fileType: 'video_note',
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка записи видео'), backgroundColor: AppColors.of(context).error),
+      );
+    }
+  }
+
   void _onTextChanged() {
     final bloc = context.read<MessengerBloc>();
     if (_ctrl.text.isNotEmpty && !_isTypingSent) {
@@ -1603,6 +1638,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
                   onRecordStop: _stopRecordingAndSend,
+                  onVideoNote: _recordVideoNote,
                 ),
             ],
           );
@@ -1892,7 +1928,53 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                 ),
               ),
-            if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'image')
+            if (widget.message.fileUrl != null && widget.message.fileType == 'video_note')
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => _FullScreenVideoPlayer(videoUrl: widget.message.fileUrl!),
+                  ));
+                },
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: ClipOval(
+                    child: SizedBox(
+                      width: 200, height: 200,
+                      child: widget.message.thumbnailMediumUrl != null
+                          ? Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CachedNetworkImage(
+                                  imageUrl: widget.message.thumbnailMediumUrl!,
+                                  fit: BoxFit.cover,
+                                ),
+                                Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                                    child: const Icon(Icons.play_arrow, color: Colors.white, size: 32),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(
+                              color: AppColors.of(context).surface,
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.play_circle_outline, size: 48, color: Colors.white70),
+                                    const SizedBox(height: 4),
+                                    Text('Видеосообщение', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              )
+            else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'image')
               GestureDetector(
                 onTap: () {
                   final imageMessages = widget.allMessages
@@ -2854,6 +2936,7 @@ class _InputBar extends StatelessWidget {
   final bool isRecording;
   final VoidCallback onRecordStart;
   final VoidCallback onRecordStop;
+  final VoidCallback? onVideoNote;
 
   const _InputBar({
     required this.controller,
@@ -2862,6 +2945,7 @@ class _InputBar extends StatelessWidget {
     required this.isRecording,
     required this.onRecordStart,
     required this.onRecordStop,
+    this.onVideoNote,
   });
 
   @override
@@ -2908,6 +2992,12 @@ class _InputBar extends StatelessWidget {
             icon: Icon(Icons.keyboard_hide_rounded, color: AppColors.of(context).textSecondary),
             tooltip: AppLocalizations.of(context)!.chatHideKeyboard,
           ),
+          // Video note button
+          if (!isRecording && onVideoNote != null)
+            IconButton(
+              onPressed: onVideoNote,
+              icon: Icon(Icons.videocam_rounded, color: AppColors.of(context).textSecondary, size: 22),
+            ),
           // Voice button: hold to record voice message
           GestureDetector(
               onLongPressStart: (_) => onRecordStart(),
