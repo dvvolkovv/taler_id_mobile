@@ -33,6 +33,7 @@ mixin _$UserEntity {
   KycStatus get kycStatus => throw _privateConstructorUsedError;
   String? get fcmToken => throw _privateConstructorUsedError;
   String? get username => throw _privateConstructorUsedError;
+  String? get status => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -59,7 +60,8 @@ abstract class $UserEntityCopyWith<$Res> {
       String? dateOfBirth,
       KycStatus kycStatus,
       String? fcmToken,
-      String? username});
+      String? username,
+      String? status});
 }
 
 /// @nodoc
@@ -88,6 +90,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? kycStatus = null,
     Object? fcmToken = freezed,
     Object? username = freezed,
+    Object? status = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -142,6 +145,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
           ? _value.username
           : username // ignore: cast_nullable_to_non_nullable
               as String?,
+      status: freezed == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -167,7 +174,8 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       String? dateOfBirth,
       KycStatus kycStatus,
       String? fcmToken,
-      String? username});
+      String? username,
+      String? status});
 }
 
 /// @nodoc
@@ -194,6 +202,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? kycStatus = null,
     Object? fcmToken = freezed,
     Object? username = freezed,
+    Object? status = freezed,
   }) {
     return _then(_$UserEntityImpl(
       id: null == id
@@ -248,6 +257,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
           ? _value.username
           : username // ignore: cast_nullable_to_non_nullable
               as String?,
+      status: freezed == status
+          ? _value.status
+          : status // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -268,7 +281,8 @@ class _$UserEntityImpl implements _UserEntity {
       this.dateOfBirth,
       this.kycStatus = KycStatus.unverified,
       this.fcmToken,
-      this.username});
+      this.username,
+      this.status});
 
   factory _$UserEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserEntityImplFromJson(json);
@@ -300,10 +314,12 @@ class _$UserEntityImpl implements _UserEntity {
   final String? fcmToken;
   @override
   final String? username;
+  @override
+  final String? status;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status)';
   }
 
   @override
@@ -332,7 +348,8 @@ class _$UserEntityImpl implements _UserEntity {
             (identical(other.fcmToken, fcmToken) ||
                 other.fcmToken == fcmToken) &&
             (identical(other.username, username) ||
-                other.username == username));
+                other.username == username) &&
+            (identical(other.status, status) || other.status == status));
   }
 
   @JsonKey(ignore: true)
@@ -351,7 +368,8 @@ class _$UserEntityImpl implements _UserEntity {
       dateOfBirth,
       kycStatus,
       fcmToken,
-      username);
+      username,
+      status);
 
   @JsonKey(ignore: true)
   @override
@@ -381,7 +399,8 @@ abstract class _UserEntity implements UserEntity {
       final String? dateOfBirth,
       final KycStatus kycStatus,
       final String? fcmToken,
-      final String? username}) = _$UserEntityImpl;
+      final String? username,
+      final String? status}) = _$UserEntityImpl;
 
   factory _UserEntity.fromJson(Map<String, dynamic> json) =
       _$UserEntityImpl.fromJson;
@@ -412,6 +431,8 @@ abstract class _UserEntity implements UserEntity {
   String? get fcmToken;
   @override
   String? get username;
+  @override
+  String? get status;
   @override
   @JsonKey(ignore: true)
   _$$UserEntityImplCopyWith<_$UserEntityImpl> get copyWith =>

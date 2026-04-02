@@ -29,6 +29,7 @@ _$ConversationEntityImpl _$$ConversationEntityImplFromJson(
       otherUserName: json['otherUserName'] as String?,
       otherUserId: json['otherUserId'] as String?,
       otherUserAvatar: json['otherUserAvatar'] as String?,
+      otherUserStatus: json['otherUserStatus'] as String?,
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
       isMuted: json['isMuted'] as bool? ?? false,
       mutedUntil: json['mutedUntil'] == null
@@ -56,6 +57,7 @@ Map<String, dynamic> _$$ConversationEntityImplToJson(
       'otherUserName': instance.otherUserName,
       'otherUserId': instance.otherUserId,
       'otherUserAvatar': instance.otherUserAvatar,
+      'otherUserStatus': instance.otherUserStatus,
       'unreadCount': instance.unreadCount,
       'isMuted': instance.isMuted,
       'mutedUntil': instance.mutedUntil?.toIso8601String(),

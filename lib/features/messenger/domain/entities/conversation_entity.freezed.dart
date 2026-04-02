@@ -36,6 +36,7 @@ mixin _$ConversationEntity {
   String? get otherUserName => throw _privateConstructorUsedError;
   String? get otherUserId => throw _privateConstructorUsedError;
   String? get otherUserAvatar => throw _privateConstructorUsedError;
+  String? get otherUserStatus => throw _privateConstructorUsedError;
   int get unreadCount => throw _privateConstructorUsedError;
   bool get isMuted => throw _privateConstructorUsedError;
   DateTime? get mutedUntil => throw _privateConstructorUsedError;
@@ -70,6 +71,7 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? otherUserName,
       String? otherUserId,
       String? otherUserAvatar,
+      String? otherUserStatus,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
@@ -105,6 +107,7 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? otherUserName = freezed,
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
+    Object? otherUserStatus = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
@@ -175,6 +178,10 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.otherUserAvatar
           : otherUserAvatar // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserStatus: freezed == otherUserStatus
+          ? _value.otherUserStatus
+          : otherUserStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -220,6 +227,7 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? otherUserName,
       String? otherUserId,
       String? otherUserAvatar,
+      String? otherUserStatus,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
@@ -253,6 +261,7 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? otherUserName = freezed,
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
+    Object? otherUserStatus = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
@@ -323,6 +332,10 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.otherUserAvatar
           : otherUserAvatar // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserStatus: freezed == otherUserStatus
+          ? _value.otherUserStatus
+          : otherUserStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -363,6 +376,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.otherUserName,
       this.otherUserId,
       this.otherUserAvatar,
+      this.otherUserStatus,
       this.unreadCount = 0,
       this.isMuted = false,
       this.mutedUntil,
@@ -414,6 +428,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   final String? otherUserAvatar;
   @override
+  final String? otherUserStatus;
+  @override
   @JsonKey()
   final int unreadCount;
   @override
@@ -426,7 +442,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName)';
   }
 
   @override
@@ -462,6 +478,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
                 other.otherUserId == otherUserId) &&
             (identical(other.otherUserAvatar, otherUserAvatar) ||
                 other.otherUserAvatar == otherUserAvatar) &&
+            (identical(other.otherUserStatus, otherUserStatus) ||
+                other.otherUserStatus == otherUserStatus) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
@@ -491,6 +509,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         otherUserName,
         otherUserId,
         otherUserAvatar,
+        otherUserStatus,
         unreadCount,
         isMuted,
         mutedUntil,
@@ -530,6 +549,7 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? otherUserName,
       final String? otherUserId,
       final String? otherUserAvatar,
+      final String? otherUserStatus,
       final int unreadCount,
       final bool isMuted,
       final DateTime? mutedUntil,
@@ -570,6 +590,8 @@ abstract class _ConversationEntity implements ConversationEntity {
   String? get otherUserId;
   @override
   String? get otherUserAvatar;
+  @override
+  String? get otherUserStatus;
   @override
   int get unreadCount;
   @override
