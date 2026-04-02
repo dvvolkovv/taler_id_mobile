@@ -53,6 +53,13 @@ class _AssistantScreenState extends State<AssistantScreen>
   late Animation<double> _pulseAnim;
   late AnimationController _orbitCtrl;
 
+  // Manual orbit drag + fling
+  double _orbitAngle = 0; // current angle in radians
+  double _orbitVelocity = 0.2; // radians per second (default slow spin)
+  bool _isDragging = false;
+  Duration _lastOrbitTick = Duration.zero;
+  static const double _defaultOrbitSpeed = 0.07; // ~90s per revolution
+  static const double _friction = 0.97; // velocity decay per tick
 
   VideoPlayerController? _logoVideo;
   bool _logoVideoReady = false;
@@ -80,8 +87,10 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
     _orbitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 90),
+      duration: const Duration(seconds: 1), // tick driver, not used for value
     )..repeat();
+    _orbitCtrl.addListener(_tickOrbit);
+    _lastOrbitTick = Duration.zero;
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       // Restart recording after playback completes.
@@ -115,8 +124,59 @@ class _AssistantScreenState extends State<AssistantScreen>
       });
   }
 
+  void _tickOrbit() {
+    if (!mounted) return;
+    final now = _orbitCtrl.lastElapsedDuration ?? Duration.zero;
+    final dt = _lastOrbitTick == Duration.zero
+        ? 1 / 60
+        : (now - _lastOrbitTick).inMicroseconds / 1e6;
+    _lastOrbitTick = now;
+    if (dt <= 0 || dt > 0.5) return; // skip glitches
+
+    if (!_isDragging) {
+      _orbitAngle += _orbitVelocity * dt;
+      // Decay towards default speed
+      if (_orbitVelocity.abs() > _defaultOrbitSpeed * 2) {
+        _orbitVelocity *= _friction;
+      } else {
+        // Smoothly return to default
+        _orbitVelocity += (_defaultOrbitSpeed - _orbitVelocity) * 0.02;
+      }
+    }
+    setState(() {});
+  }
+
+  void _onOrbitPanStart(DragStartDetails details) {
+    _isDragging = true;
+    HapticFeedback.selectionClick();
+  }
+
+  void _onOrbitPanUpdate(DragUpdateDetails details, Offset center, double radius) {
+    final pos = details.localPosition - center;
+    final prev = pos - details.delta;
+    // Compute angular change from cross product
+    final cross = prev.dx * pos.dy - prev.dy * pos.dx;
+    final dot = prev.dx * pos.dx + prev.dy * pos.dy;
+    final dAngle = math.atan2(cross, dot);
+    _orbitAngle += dAngle;
+    // Store velocity for fling
+    _orbitVelocity = dAngle / (1 / 60); // approximate: assume 60fps ticks
+  }
+
+  void _onOrbitPanEnd(DragEndDetails details) {
+    _isDragging = false;
+    // Amplify fling velocity for satisfying spin
+    _orbitVelocity *= 1.5;
+    if (_orbitVelocity.abs() > 0.5) {
+      HapticFeedback.mediumImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
+  }
+
   @override
   void dispose() {
+    _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
     _orbitCtrl.dispose();
     _logoVideo?.dispose();
@@ -1106,49 +1166,41 @@ class _AssistantScreenState extends State<AssistantScreen>
               ),
             ),
 
-            // Orbiting nav circles (slow planetary motion)
+            // Orbiting nav circles (interactive drag + fling + slow auto-spin)
             Center(
-              child: AnimatedBuilder(
-                animation: _orbitCtrl,
-                builder: (context, _) {
-                  return SizedBox(
-                    width: orbitRadius * 2 + 80,
-                    height: orbitRadius * 2 + 80,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: List.generate(navCircles.length, (i) {
-                        final baseAngle = 2 * math.pi * i / navCircles.length;
-                        final angle = baseAngle + (_orbitCtrl.value * 2 * math.pi);
-                        final x = orbitRadius * math.cos(angle);
-                        final y = orbitRadius * math.sin(angle);
-                        final nav = navCircles[i];
-                        return Positioned(
-                          left: orbitRadius + 40 + x - 30,
-                          top: orbitRadius + 40 + y - 30,
-                          child: _buildNavCircle(nav, colors),
-                        );
-                      }),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final areaSize = orbitRadius * 2 + 80;
+                  final areaCenter = Offset(areaSize / 2, areaSize / 2);
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onPanStart: _onOrbitPanStart,
+                    onPanUpdate: (d) => _onOrbitPanUpdate(d, areaCenter, orbitRadius),
+                    onPanEnd: _onOrbitPanEnd,
+                    child: SizedBox(
+                      width: areaSize,
+                      height: areaSize,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: List.generate(navCircles.length, (i) {
+                          final baseAngle = 2 * math.pi * i / navCircles.length;
+                          final angle = baseAngle + _orbitAngle;
+                          final x = orbitRadius * math.cos(angle);
+                          final y = orbitRadius * math.sin(angle);
+                          final nav = navCircles[i];
+                          return Positioned(
+                            left: orbitRadius + 40 + x - 30,
+                            top: orbitRadius + 40 + y - 30,
+                            child: _buildNavCircle(nav, colors),
+                          );
+                        }),
+                      ),
                     ),
                   );
                 },
               ),
             ),
 
-            // "Tap to talk" hint at bottom
-            Positioned(
-              left: 24,
-              right: 24,
-              bottom: 40,
-              child: Text(
-                l10n.assistantTapToTalk,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
           ],
         );
       },

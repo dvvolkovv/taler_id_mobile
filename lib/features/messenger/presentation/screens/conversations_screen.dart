@@ -18,7 +18,7 @@ import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
 
-enum _FilterTab { all, unread }
+enum _FilterTab { all, unread, personal, groups }
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -445,8 +445,20 @@ class _ConversationsViewState extends State<_ConversationsView> {
       }).toList();
     }
 
-    if (!archivedOnly && _activeFilter == _FilterTab.unread) {
-      result = result.where((c) => c.unreadCount > 0).toList();
+    if (!archivedOnly) {
+      switch (_activeFilter) {
+        case _FilterTab.unread:
+          result = result.where((c) => c.unreadCount > 0).toList();
+          break;
+        case _FilterTab.personal:
+          result = result.where((c) => c.type == 'DIRECT').toList();
+          break;
+        case _FilterTab.groups:
+          result = result.where((c) => c.type == 'GROUP').toList();
+          break;
+        case _FilterTab.all:
+          break;
+      }
     }
 
     if (!archivedOnly) {
@@ -623,9 +635,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
               ),
               // Filter chips
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Row(
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     children: [
                       _TabChip(
                         label: 'Все',
@@ -636,8 +650,20 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       _TabChip(
                         label: 'Непрочитанные',
                         selected: _activeFilter == _FilterTab.unread,
-                        badge: _activeFilter == _FilterTab.all && totalUnread > 0 ? totalUnread : null,
+                        badge: _activeFilter != _FilterTab.unread && totalUnread > 0 ? totalUnread : null,
                         onTap: () => setState(() => _activeFilter = _FilterTab.unread),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Личные',
+                        selected: _activeFilter == _FilterTab.personal,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.personal),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: 'Группы',
+                        selected: _activeFilter == _FilterTab.groups,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.groups),
                       ),
                     ],
                   ),

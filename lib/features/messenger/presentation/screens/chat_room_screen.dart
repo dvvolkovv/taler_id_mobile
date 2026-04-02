@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/gestures.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -92,6 +93,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _loadBlockStatus();
+    _loadWallpaper();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -157,6 +159,110 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.clear();
   }
 
+  // Chat wallpaper
+  static const _wallpaperBox = 'chat_wallpapers';
+  int? _wallpaperIndex;
+
+  Future<void> _loadWallpaper() async {
+    Box box;
+    try {
+      box = Hive.isBoxOpen(_wallpaperBox)
+          ? Hive.box(_wallpaperBox)
+          : await Hive.openBox(_wallpaperBox);
+    } catch (_) {
+      await Hive.deleteBoxFromDisk(_wallpaperBox);
+      box = await Hive.openBox(_wallpaperBox);
+    }
+    final idx = box.get(widget.conversationId) as int?;
+    if (mounted && idx != null) setState(() => _wallpaperIndex = idx);
+  }
+
+  Future<void> _saveWallpaper(int? index) async {
+    final box = Hive.isBoxOpen(_wallpaperBox)
+        ? Hive.box(_wallpaperBox)
+        : await Hive.openBox(_wallpaperBox);
+    if (index == null) {
+      await box.delete(widget.conversationId);
+    } else {
+      await box.put(widget.conversationId, index);
+    }
+    if (mounted) setState(() => _wallpaperIndex = index);
+  }
+
+  static const _wallpapers = <_WallpaperOption>[
+    _WallpaperOption('По умолчанию', null),
+    _WallpaperOption('Тёмный градиент', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1a1a2e), Color(0xFF16213e)])),
+    _WallpaperOption('Синий', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0d1b2a), Color(0xFF1b263b)])),
+    _WallpaperOption('Фиолетовый', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2d1b69), Color(0xFF11001c)])),
+    _WallpaperOption('Зелёный', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0b3d0b), Color(0xFF1a1a2e)])),
+    _WallpaperOption('Бордовый', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3d0c11), Color(0xFF1a1a2e)])),
+    _WallpaperOption('Тиловый', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0a3d3d), Color(0xFF1a1a2e)])),
+  ];
+
+  void _showWallpaperPicker() {
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('Обои чата', style: TextStyle(
+              fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 80,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: _wallpapers.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (_, i) {
+                  final wp = _wallpapers[i];
+                  final selected = (i == 0 && _wallpaperIndex == null) || _wallpaperIndex == i;
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _saveWallpaper(i == 0 ? null : i);
+                    },
+                    child: Container(
+                      width: 60, height: 80,
+                      decoration: BoxDecoration(
+                        gradient: wp.gradient,
+                        color: wp.gradient == null ? colors.background : null,
+                        borderRadius: BorderRadius.circular(10),
+                        border: selected ? Border.all(color: colors.primary, width: 2) : null,
+                      ),
+                      child: Center(
+                        child: selected
+                            ? Icon(Icons.check_circle, color: colors.primary, size: 22)
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleMenuAction(String action, bool isMuted) {
     if (action == 'mute') {
       if (isMuted) {
@@ -164,6 +270,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       } else {
         _showMuteDurationSheet();
       }
+    } else if (action == 'wallpaper') {
+      _showWallpaperPicker();
     }
   }
 
@@ -1049,6 +1157,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             ],
                           ),
                         ),
+                        PopupMenuItem(
+                          value: 'wallpaper',
+                          child: Row(
+                            children: [
+                              Icon(Icons.wallpaper_rounded, size: 20,
+                                  color: AppColors.of(context).textPrimary),
+                              const SizedBox(width: 12),
+                              const Text('Обои'),
+                            ],
+                          ),
+                        ),
                       ],
                     );
                   },
@@ -1105,6 +1224,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               Expanded(
                 child: Stack(
                   children: [
+                // Chat wallpaper background
+                if (_wallpaperIndex != null && _wallpaperIndex! > 0 && _wallpaperIndex! < _wallpapers.length)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: _wallpapers[_wallpaperIndex!].gradient,
+                      ),
+                    ),
+                  ),
                 GestureDetector(
                   onTap: () => FocusScope.of(context).unfocus(),
                   behavior: HitTestBehavior.translucent,
@@ -4012,4 +4140,10 @@ class _OgData {
   final String? description;
   final String? imageUrl;
   const _OgData({this.title, this.description, this.imageUrl});
+}
+
+class _WallpaperOption {
+  final String name;
+  final LinearGradient? gradient;
+  const _WallpaperOption(this.name, this.gradient);
 }
