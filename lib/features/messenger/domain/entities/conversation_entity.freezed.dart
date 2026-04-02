@@ -37,6 +37,7 @@ mixin _$ConversationEntity {
   String? get otherUserId => throw _privateConstructorUsedError;
   String? get otherUserAvatar => throw _privateConstructorUsedError;
   String? get otherUserStatus => throw _privateConstructorUsedError;
+  DateTime? get otherUserLastSeen => throw _privateConstructorUsedError;
   int get unreadCount => throw _privateConstructorUsedError;
   bool get isMuted => throw _privateConstructorUsedError;
   DateTime? get mutedUntil => throw _privateConstructorUsedError;
@@ -72,6 +73,7 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? otherUserId,
       String? otherUserAvatar,
       String? otherUserStatus,
+      DateTime? otherUserLastSeen,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
@@ -108,6 +110,7 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
     Object? otherUserStatus = freezed,
+    Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
@@ -182,6 +185,10 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.otherUserStatus
           : otherUserStatus // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserLastSeen: freezed == otherUserLastSeen
+          ? _value.otherUserLastSeen
+          : otherUserLastSeen // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -228,6 +235,7 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? otherUserId,
       String? otherUserAvatar,
       String? otherUserStatus,
+      DateTime? otherUserLastSeen,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
@@ -262,6 +270,7 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
     Object? otherUserStatus = freezed,
+    Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
@@ -336,6 +345,10 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.otherUserStatus
           : otherUserStatus // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserLastSeen: freezed == otherUserLastSeen
+          ? _value.otherUserLastSeen
+          : otherUserLastSeen // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -377,6 +390,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.otherUserId,
       this.otherUserAvatar,
       this.otherUserStatus,
+      this.otherUserLastSeen,
       this.unreadCount = 0,
       this.isMuted = false,
       this.mutedUntil,
@@ -430,6 +444,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   final String? otherUserStatus;
   @override
+  final DateTime? otherUserLastSeen;
+  @override
   @JsonKey()
   final int unreadCount;
   @override
@@ -442,7 +458,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName)';
   }
 
   @override
@@ -480,6 +496,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
                 other.otherUserAvatar == otherUserAvatar) &&
             (identical(other.otherUserStatus, otherUserStatus) ||
                 other.otherUserStatus == otherUserStatus) &&
+            (identical(other.otherUserLastSeen, otherUserLastSeen) ||
+                other.otherUserLastSeen == otherUserLastSeen) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
@@ -510,6 +528,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         otherUserId,
         otherUserAvatar,
         otherUserStatus,
+        otherUserLastSeen,
         unreadCount,
         isMuted,
         mutedUntil,
@@ -550,6 +569,7 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? otherUserId,
       final String? otherUserAvatar,
       final String? otherUserStatus,
+      final DateTime? otherUserLastSeen,
       final int unreadCount,
       final bool isMuted,
       final DateTime? mutedUntil,
@@ -592,6 +612,8 @@ abstract class _ConversationEntity implements ConversationEntity {
   String? get otherUserAvatar;
   @override
   String? get otherUserStatus;
+  @override
+  DateTime? get otherUserLastSeen;
   @override
   int get unreadCount;
   @override

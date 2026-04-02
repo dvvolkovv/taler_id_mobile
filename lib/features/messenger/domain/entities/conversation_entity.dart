@@ -23,6 +23,7 @@ class ConversationEntity with _$ConversationEntity {
     String? otherUserId,
     String? otherUserAvatar,
     String? otherUserStatus,
+    DateTime? otherUserLastSeen,
     @Default(0) int unreadCount,
     @Default(false) bool isMuted,
     DateTime? mutedUntil,
