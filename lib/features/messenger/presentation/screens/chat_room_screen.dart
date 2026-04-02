@@ -1010,11 +1010,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   onPressed: _enterSearchMode,
                 ),
                 IconButton(
-                  icon: const Icon(Icons.photo_library_outlined),
-                  onPressed: () => _openMediaGallery(context),
-                  tooltip: 'Медиа',
-                ),
-                IconButton(
                   icon: const Icon(Icons.phone_outlined),
                   onPressed: _startCall,
                   tooltip: AppLocalizations.of(context)!.chatCall,
@@ -1734,6 +1729,18 @@ class _MessageBubbleState extends State<_MessageBubble> {
       .replaceAll('&quot;', '"')
       .replaceAll('&#39;', "'");
 
+  // Emoji-only detection: 1-3 emoji, no other text
+  static final _emojiOnlyRegex = RegExp(
+    r'^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F){1,3}$',
+    unicode: true,
+  );
+
+  bool get _isEmojiOnly =>
+      widget.message.fileUrl == null &&
+      widget.message.content.isNotEmpty &&
+      !widget.message.content.startsWith('↩') &&
+      _emojiOnlyRegex.hasMatch(widget.message.content.trim());
+
   String _effectiveFileType(MessageEntity msg) {
     final ft = msg.fileType;
     if (ft == 'image' || ft == 'video' || ft == 'audio') return ft!;
@@ -1749,6 +1756,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
   Widget build(BuildContext context) {
     if (widget.message.isSystem) {
       return _buildSystemMessage(context);
+    }
+
+    if (_isEmojiOnly) {
+      return _buildEmojiOnlyMessage(context);
     }
 
     return GestureDetector(
@@ -2357,6 +2368,77 @@ class _MessageBubbleState extends State<_MessageBubble> {
             SnackBar(content: Text(AppLocalizations.of(context)!.chatMessageForwarded), duration: const Duration(seconds: 2)),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmojiOnlyMessage(BuildContext context) {
+    final emojiCount = widget.message.content.trim().characters.length;
+    final fontSize = emojiCount == 1 ? 56.0 : emojiCount == 2 ? 44.0 : 36.0;
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(context),
+      child: Align(
+        alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            if (!widget.isMe && widget.senderName != null && widget.isFirstInGroup)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2, left: 4),
+                child: Text(
+                  widget.senderName!,
+                  style: TextStyle(
+                    color: AppColors.of(context).primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                widget.message.content.trim(),
+                style: TextStyle(fontSize: fontSize),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, right: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    DateFormat('HH:mm').format(widget.message.sentAt.toLocal()),
+                    style: TextStyle(
+                      color: AppColors.of(context).textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                  if (widget.isMe) ...[
+                    const SizedBox(width: 4),
+                    Icon(
+                      widget.message.isRead
+                          ? Icons.done_all_rounded
+                          : widget.message.isDelivered
+                              ? Icons.done_all_rounded
+                              : Icons.done_rounded,
+                      size: 14,
+                      color: widget.message.isRead
+                          ? AppColors.of(context).primary
+                          : AppColors.of(context).textSecondary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (widget.message.reactions.isNotEmpty)
+              _ReactionsRow(
+                reactions: widget.message.reactions,
+                currentUserId: widget.currentUserId,
+                onTap: widget.onReact,
+              ),
+            SizedBox(height: widget.isLastInGroup ? 8 : 2),
+          ],
+        ),
       ),
     );
   }
