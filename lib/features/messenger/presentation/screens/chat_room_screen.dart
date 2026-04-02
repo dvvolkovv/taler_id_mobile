@@ -39,7 +39,6 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
-import 'thread_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -2143,35 +2142,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
           currentUserId: widget.currentUserId,
           onTap: widget.onReact,
         ),
-      if (widget.message.threadReplyCount > 0)
-        GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<MessengerBloc>(),
-                child: ThreadScreen(
-                  parentMessage: widget.message,
-                  parentSenderName: widget.senderName,
-                  conversationId: widget.message.conversationId,
-                ),
-              ),
-            ));
-          },
-          child: Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.forum_outlined, size: 14, color: AppColors.of(context).primary),
-                const SizedBox(width: 4),
-                Text(
-                  '${widget.message.threadReplyCount} ${widget.message.threadReplyCount == 1 ? 'ответ' : 'ответов'}',
-                  style: TextStyle(color: AppColors.of(context).primary, fontSize: 12, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          ),
-        ),
       SizedBox(height: widget.isLastInGroup ? 8 : 2),
         ],
       ),
@@ -2282,23 +2252,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
               onTap: () {
                 Navigator.pop(ctx);
                 _showForwardPicker(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.forum_outlined, color: colors.textSecondary),
-              title: Text('Ответить в треде', style: TextStyle(color: colors.textPrimary)),
-              onTap: () {
-                Navigator.pop(ctx);
-                Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<MessengerBloc>(),
-                    child: ThreadScreen(
-                      parentMessage: widget.message,
-                      parentSenderName: widget.senderName,
-                      conversationId: widget.message.conversationId,
-                    ),
-                  ),
-                ));
               },
             ),
             ListTile(
@@ -2987,29 +2940,20 @@ class _InputBar extends StatelessWidget {
                     textInputAction: TextInputAction.newline,
                   ),
           ),
-          IconButton(
-            onPressed: () => FocusScope.of(context).unfocus(),
-            icon: Icon(Icons.keyboard_hide_rounded, color: AppColors.of(context).textSecondary),
-            tooltip: AppLocalizations.of(context)!.chatHideKeyboard,
-          ),
-          // Video note button
-          if (!isRecording && onVideoNote != null)
-            IconButton(
-              onPressed: onVideoNote,
-              icon: Icon(Icons.videocam_rounded, color: AppColors.of(context).textSecondary, size: 22),
-            ),
-          // Voice button: hold to record voice message
+          // Mic/Video button: long press = voice, short tap = video note
           GestureDetector(
-              onLongPressStart: (_) => onRecordStart(),
-              onLongPressEnd: (_) => onRecordStop(),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                child: Icon(
-                  isRecording ? Icons.stop_circle_rounded : Icons.mic_rounded,
-                  color: isRecording ? AppColors.of(context).error : AppColors.of(context).textSecondary,
-                ),
+            onTap: isRecording ? null : onVideoNote,
+            onLongPressStart: (_) => onRecordStart(),
+            onLongPressEnd: (_) => onRecordStop(),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                isRecording ? Icons.stop_circle_rounded : Icons.mic_rounded,
+                color: isRecording ? AppColors.of(context).error : AppColors.of(context).textSecondary,
+                size: 24,
               ),
             ),
+          ),
           if (!isRecording)
             IconButton(
               onPressed: onSend,
