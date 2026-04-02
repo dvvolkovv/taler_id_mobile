@@ -17,6 +17,7 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+import 'saved_messages_screen.dart';
 
 enum _FilterTab { all, unread, personal, groups }
 
@@ -602,6 +603,13 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 title: Text(l10n.tabMessenger),
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.bookmark_outline_rounded),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                    ),
+                    tooltip: 'Избранное',
+                  ),
                   BlocBuilder<MessengerBloc, MessengerState>(
                     buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
                     builder: (context, state) {

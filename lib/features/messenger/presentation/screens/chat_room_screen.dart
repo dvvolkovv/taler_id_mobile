@@ -2486,6 +2486,14 @@ class _MessageBubbleState extends State<_MessageBubble> {
               },
             ),
             ListTile(
+              leading: Icon(Icons.bookmark_add_outlined, color: colors.textSecondary),
+              title: Text('В избранное', style: TextStyle(color: colors.textPrimary)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _saveToFavorites(context);
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
               title: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
               onTap: () {
@@ -2616,6 +2624,36 @@ class _MessageBubbleState extends State<_MessageBubble> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveToFavorites(BuildContext context) async {
+    try {
+      Box box;
+      const boxName = 'saved_messages';
+      try {
+        box = Hive.isBoxOpen(boxName) ? Hive.box(boxName) : await Hive.openBox(boxName);
+      } catch (_) {
+        await Hive.deleteBoxFromDisk(boxName);
+        box = await Hive.openBox(boxName);
+      }
+      final msg = widget.message;
+      await box.put(msg.id, {
+        'id': msg.id,
+        'content': msg.content,
+        'senderId': msg.senderId,
+        'senderName': msg.senderName ?? widget.senderName,
+        'sentAt': msg.sentAt.toIso8601String(),
+        'fileUrl': msg.fileUrl,
+        'fileName': msg.fileName,
+        'fileType': msg.fileType,
+        'conversationId': msg.conversationId,
+      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Сохранено в избранное'), duration: Duration(seconds: 2)),
+        );
+      }
+    } catch (_) {}
   }
 
   void _showForwardPicker(BuildContext context) {
