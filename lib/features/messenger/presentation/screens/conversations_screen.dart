@@ -290,9 +290,47 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   style: TextStyle(color: colors.textPrimary)),
               onTap: () { Navigator.pop(ctx); _toggleArchive(conv.id); },
             ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
+              title: Text('Удалить чат', style: TextStyle(color: Colors.red.shade400)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteChat(context, conv);
+              },
+            ),
             const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteChat(BuildContext context, ConversationEntity conv) {
+    final colors = AppColors.of(context);
+    final isGroup = conv.type == 'GROUP';
+    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text('Удалить чат?', style: TextStyle(color: colors.textPrimary)),
+        content: Text(
+          'Удалить чат с $name? Это действие нельзя отменить.',
+          style: TextStyle(color: colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<MessengerBloc>().add(DeleteGroup(conv.id));
+            },
+            child: Text('Удалить', style: TextStyle(color: Colors.red.shade400)),
+          ),
+        ],
       ),
     );
   }
