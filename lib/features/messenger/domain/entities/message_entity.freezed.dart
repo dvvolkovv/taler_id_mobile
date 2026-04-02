@@ -41,6 +41,10 @@ mixin _$MessageEntity {
   bool get isEdited => throw _privateConstructorUsedError;
   List<Map<String, dynamic>> get reactions =>
       throw _privateConstructorUsedError;
+  String? get threadParentId => throw _privateConstructorUsedError;
+  int get threadReplyCount => throw _privateConstructorUsedError;
+  List<String>? get threadLastReplierAvatars =>
+      throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -74,7 +78,10 @@ abstract class $MessageEntityCopyWith<$Res> {
       bool isRead,
       bool isSystem,
       bool isEdited,
-      List<Map<String, dynamic>> reactions});
+      List<Map<String, dynamic>> reactions,
+      String? threadParentId,
+      int threadReplyCount,
+      List<String>? threadLastReplierAvatars});
 }
 
 /// @nodoc
@@ -110,6 +117,9 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? isSystem = null,
     Object? isEdited = null,
     Object? reactions = null,
+    Object? threadParentId = freezed,
+    Object? threadReplyCount = null,
+    Object? threadLastReplierAvatars = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -192,6 +202,18 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.reactions
           : reactions // ignore: cast_nullable_to_non_nullable
               as List<Map<String, dynamic>>,
+      threadParentId: freezed == threadParentId
+          ? _value.threadParentId
+          : threadParentId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      threadReplyCount: null == threadReplyCount
+          ? _value.threadReplyCount
+          : threadReplyCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      threadLastReplierAvatars: freezed == threadLastReplierAvatars
+          ? _value.threadLastReplierAvatars
+          : threadLastReplierAvatars // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
     ) as $Val);
   }
 }
@@ -224,7 +246,10 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       bool isRead,
       bool isSystem,
       bool isEdited,
-      List<Map<String, dynamic>> reactions});
+      List<Map<String, dynamic>> reactions,
+      String? threadParentId,
+      int threadReplyCount,
+      List<String>? threadLastReplierAvatars});
 }
 
 /// @nodoc
@@ -258,6 +283,9 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? isSystem = null,
     Object? isEdited = null,
     Object? reactions = null,
+    Object? threadParentId = freezed,
+    Object? threadReplyCount = null,
+    Object? threadLastReplierAvatars = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -340,6 +368,18 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value._reactions
           : reactions // ignore: cast_nullable_to_non_nullable
               as List<Map<String, dynamic>>,
+      threadParentId: freezed == threadParentId
+          ? _value.threadParentId
+          : threadParentId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      threadReplyCount: null == threadReplyCount
+          ? _value.threadReplyCount
+          : threadReplyCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      threadLastReplierAvatars: freezed == threadLastReplierAvatars
+          ? _value._threadLastReplierAvatars
+          : threadLastReplierAvatars // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
     ));
   }
 }
@@ -367,8 +407,12 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.isRead = false,
       this.isSystem = false,
       this.isEdited = false,
-      final List<Map<String, dynamic>> reactions = const []})
-      : _reactions = reactions;
+      final List<Map<String, dynamic>> reactions = const [],
+      this.threadParentId,
+      this.threadReplyCount = 0,
+      final List<String>? threadLastReplierAvatars})
+      : _reactions = reactions,
+        _threadLastReplierAvatars = threadLastReplierAvatars;
 
   factory _$MessageEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$MessageEntityImplFromJson(json);
@@ -425,8 +469,24 @@ class _$MessageEntityImpl implements _MessageEntity {
   }
 
   @override
+  final String? threadParentId;
+  @override
+  @JsonKey()
+  final int threadReplyCount;
+  final List<String>? _threadLastReplierAvatars;
+  @override
+  List<String>? get threadLastReplierAvatars {
+    final value = _threadLastReplierAvatars;
+    if (value == null) return null;
+    if (_threadLastReplierAvatars is EqualUnmodifiableListView)
+      return _threadLastReplierAvatars;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
+  @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars)';
   }
 
   @override
@@ -467,7 +527,13 @@ class _$MessageEntityImpl implements _MessageEntity {
             (identical(other.isEdited, isEdited) ||
                 other.isEdited == isEdited) &&
             const DeepCollectionEquality()
-                .equals(other._reactions, _reactions));
+                .equals(other._reactions, _reactions) &&
+            (identical(other.threadParentId, threadParentId) ||
+                other.threadParentId == threadParentId) &&
+            (identical(other.threadReplyCount, threadReplyCount) ||
+                other.threadReplyCount == threadReplyCount) &&
+            const DeepCollectionEquality().equals(
+                other._threadLastReplierAvatars, _threadLastReplierAvatars));
   }
 
   @JsonKey(ignore: true)
@@ -493,7 +559,10 @@ class _$MessageEntityImpl implements _MessageEntity {
         isRead,
         isSystem,
         isEdited,
-        const DeepCollectionEquality().hash(_reactions)
+        const DeepCollectionEquality().hash(_reactions),
+        threadParentId,
+        threadReplyCount,
+        const DeepCollectionEquality().hash(_threadLastReplierAvatars)
       ]);
 
   @JsonKey(ignore: true)
@@ -531,7 +600,10 @@ abstract class _MessageEntity implements MessageEntity {
       final bool isRead,
       final bool isSystem,
       final bool isEdited,
-      final List<Map<String, dynamic>> reactions}) = _$MessageEntityImpl;
+      final List<Map<String, dynamic>> reactions,
+      final String? threadParentId,
+      final int threadReplyCount,
+      final List<String>? threadLastReplierAvatars}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -576,6 +648,12 @@ abstract class _MessageEntity implements MessageEntity {
   bool get isEdited;
   @override
   List<Map<String, dynamic>> get reactions;
+  @override
+  String? get threadParentId;
+  @override
+  int get threadReplyCount;
+  @override
+  List<String>? get threadLastReplierAvatars;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

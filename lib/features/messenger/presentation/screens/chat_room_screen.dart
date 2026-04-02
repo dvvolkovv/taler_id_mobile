@@ -39,6 +39,7 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import 'thread_screen.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -80,12 +81,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final Map<String, GlobalKey> _messageKeys = {};
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
-  // GIF panel
-  bool _showGifPanel = false;
-  List<String> _gifResults = [];
-  bool _gifLoading = false;
-  final _gifSearchCtrl = TextEditingController();
-  Timer? _gifDebounce;
 
   @override
   void initState() {
@@ -99,7 +94,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _loadBlockStatus();
-    _loadWallpaper();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -165,110 +159,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.clear();
   }
 
-  // Chat wallpaper
-  static const _wallpaperBox = 'chat_wallpapers';
-  int? _wallpaperIndex;
-
-  Future<void> _loadWallpaper() async {
-    Box box;
-    try {
-      box = Hive.isBoxOpen(_wallpaperBox)
-          ? Hive.box(_wallpaperBox)
-          : await Hive.openBox(_wallpaperBox);
-    } catch (_) {
-      await Hive.deleteBoxFromDisk(_wallpaperBox);
-      box = await Hive.openBox(_wallpaperBox);
-    }
-    final idx = box.get(widget.conversationId) as int?;
-    if (mounted && idx != null) setState(() => _wallpaperIndex = idx);
-  }
-
-  Future<void> _saveWallpaper(int? index) async {
-    final box = Hive.isBoxOpen(_wallpaperBox)
-        ? Hive.box(_wallpaperBox)
-        : await Hive.openBox(_wallpaperBox);
-    if (index == null) {
-      await box.delete(widget.conversationId);
-    } else {
-      await box.put(widget.conversationId, index);
-    }
-    if (mounted) setState(() => _wallpaperIndex = index);
-  }
-
-  static const _wallpapers = <_WallpaperOption>[
-    _WallpaperOption('По умолчанию', null),
-    _WallpaperOption('Тёмный градиент', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF1a1a2e), Color(0xFF16213e)])),
-    _WallpaperOption('Синий', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0d1b2a), Color(0xFF1b263b)])),
-    _WallpaperOption('Фиолетовый', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF2d1b69), Color(0xFF11001c)])),
-    _WallpaperOption('Зелёный', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0b3d0b), Color(0xFF1a1a2e)])),
-    _WallpaperOption('Бордовый', LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF3d0c11), Color(0xFF1a1a2e)])),
-    _WallpaperOption('Тиловый', LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF0a3d3d), Color(0xFF1a1a2e)])),
-  ];
-
-  void _showWallpaperPicker() {
-    final colors = AppColors.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: colors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40, height: 4,
-              decoration: BoxDecoration(
-                color: colors.textSecondary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text('Обои чата', style: TextStyle(
-              fontSize: 16, fontWeight: FontWeight.bold, color: colors.textPrimary)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _wallpapers.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (_, i) {
-                  final wp = _wallpapers[i];
-                  final selected = (i == 0 && _wallpaperIndex == null) || _wallpaperIndex == i;
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _saveWallpaper(i == 0 ? null : i);
-                    },
-                    child: Container(
-                      width: 60, height: 80,
-                      decoration: BoxDecoration(
-                        gradient: wp.gradient,
-                        color: wp.gradient == null ? colors.background : null,
-                        borderRadius: BorderRadius.circular(10),
-                        border: selected ? Border.all(color: colors.primary, width: 2) : null,
-                      ),
-                      child: Center(
-                        child: selected
-                            ? Icon(Icons.check_circle, color: colors.primary, size: 22)
-                            : null,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _handleMenuAction(String action, bool isMuted) {
     if (action == 'mute') {
       if (isMuted) {
@@ -276,8 +166,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       } else {
         _showMuteDurationSheet();
       }
-    } else if (action == 'wallpaper') {
-      _showWallpaperPicker();
     }
   }
 
@@ -410,92 +298,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         });
       }
     } catch (_) {}
-  }
-
-  void _openMediaGallery(BuildContext context) {
-    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
-    final mediaMessages = messages.where((m) {
-      if (m.fileUrl == null) return false;
-      final ft = m.fileType;
-      if (ft == 'image' || ft == 'video') return true;
-      final name = (m.fileName ?? m.fileUrl ?? '').split('?').first.toLowerCase();
-      final ext = name.contains('.') ? name.split('.').last : '';
-      return {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov'}.contains(ext);
-    }).toList()
-      ..sort((a, b) => b.sentAt.compareTo(a.sentAt));
-
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => _MediaGalleryScreen(mediaMessages: mediaMessages),
-    ));
-  }
-
-  void _toggleGifPanel() {
-    setState(() {
-      _showGifPanel = !_showGifPanel;
-      if (_showGifPanel) {
-        FocusScope.of(context).unfocus();
-        _loadTrendingGifs();
-      } else {
-        _gifResults = [];
-        _gifSearchCtrl.clear();
-      }
-    });
-  }
-
-  Future<void> _loadTrendingGifs() async {
-    setState(() => _gifLoading = true);
-    try {
-      final dio = Dio();
-      final resp = await dio.get<Map<String, dynamic>>(
-        'https://tenor.googleapis.com/v2/featured',
-        queryParameters: {'key': 'AIzaSyDDAz10swZ0MxJqJR0fSslrKJNBC5xsEKE', 'limit': 30, 'media_filter': 'tinygif'},
-      );
-      final results = (resp.data?['results'] as List?)
-          ?.map((r) => ((r as Map)['media_formats'] as Map?)?['tinygif']?['url'] as String?)
-          .where((u) => u != null)
-          .cast<String>()
-          .toList() ?? [];
-      if (mounted) setState(() { _gifResults = results; _gifLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _gifLoading = false);
-    }
-  }
-
-  void _searchGifs(String query) {
-    _gifDebounce?.cancel();
-    if (query.trim().isEmpty) {
-      _loadTrendingGifs();
-      return;
-    }
-    _gifDebounce = Timer(const Duration(milliseconds: 400), () async {
-      setState(() => _gifLoading = true);
-      try {
-        final dio = Dio();
-        final resp = await dio.get<Map<String, dynamic>>(
-          'https://tenor.googleapis.com/v2/search',
-          queryParameters: {'key': 'AIzaSyDDAz10swZ0MxJqJR0fSslrKJNBC5xsEKE', 'q': query.trim(), 'limit': 30, 'media_filter': 'tinygif'},
-        );
-        final results = (resp.data?['results'] as List?)
-            ?.map((r) => ((r as Map)['media_formats'] as Map?)?['tinygif']?['url'] as String?)
-            .where((u) => u != null)
-            .cast<String>()
-            .toList() ?? [];
-        if (mounted) setState(() { _gifResults = results; _gifLoading = false; });
-      } catch (_) {
-        if (mounted) setState(() => _gifLoading = false);
-      }
-    });
-  }
-
-  void _sendGif(String gifUrl) {
-    context.read<MessengerBloc>().add(SendMessage(
-      widget.conversationId,
-      'GIF',
-      fileUrl: gifUrl,
-      fileName: 'gif.gif',
-      fileType: 'image',
-    ));
-    setState(() => _showGifPanel = false);
   }
 
   Future<void> _startCall() async {
@@ -981,8 +783,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
     _searchCtrl.dispose();
-    _gifSearchCtrl.dispose();
-    _gifDebounce?.cancel();
     _scrollCtrl.dispose();
     _recorder.dispose();
     _disconnectSub?.cancel();
@@ -1157,12 +957,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             AppLocalizations.of(context)!.participantsCount(conv.participantCount),
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                           ),
-                        if (!isGroup! && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
-                          Text(
-                            conv.otherUserStatus!,
-                            style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
-                            overflow: TextOverflow.ellipsis,
-                          ),
                       ],
                     ),
                   ),
@@ -1240,17 +1034,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             ],
                           ),
                         ),
-                        PopupMenuItem(
-                          value: 'wallpaper',
-                          child: Row(
-                            children: [
-                              Icon(Icons.wallpaper_rounded, size: 20,
-                                  color: AppColors.of(context).textPrimary),
-                              const SizedBox(width: 12),
-                              const Text('Обои'),
-                            ],
-                          ),
-                        ),
                       ],
                     );
                   },
@@ -1307,15 +1090,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                // Chat wallpaper background
-                if (_wallpaperIndex != null && _wallpaperIndex! > 0 && _wallpaperIndex! < _wallpapers.length)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: _wallpapers[_wallpaperIndex!].gradient,
-                      ),
-                    ),
-                  ),
                 GestureDetector(
                   onTap: () => FocusScope.of(context).unfocus(),
                   behavior: HitTestBehavior.translucent,
@@ -1689,66 +1463,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
                   onRecordStop: _stopRecordingAndSend,
-                  onGif: _toggleGifPanel,
-                ),
-              if (_showGifPanel)
-                Container(
-                  height: 280,
-                  color: AppColors.of(context).card,
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                        child: TextField(
-                          controller: _gifSearchCtrl,
-                          style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: 'Поиск GIF...',
-                            hintStyle: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14),
-                            prefixIcon: Icon(Icons.search, color: AppColors.of(context).textSecondary, size: 20),
-                            filled: true,
-                            fillColor: AppColors.of(context).surface,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          onChanged: _searchGifs,
-                        ),
-                      ),
-                      Expanded(
-                        child: _gifLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : _gifResults.isEmpty
-                                ? Center(child: Text('Нет результатов', style: TextStyle(color: AppColors.of(context).textSecondary)))
-                                : GridView.builder(
-                                    padding: const EdgeInsets.all(4),
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      mainAxisSpacing: 4,
-                                      crossAxisSpacing: 4,
-                                    ),
-                                    itemCount: _gifResults.length,
-                                    itemBuilder: (_, i) => GestureDetector(
-                                      onTap: () => _sendGif(_gifResults[i]),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: CachedNetworkImage(
-                                          imageUrl: _gifResults[i],
-                                          fit: BoxFit.cover,
-                                          placeholder: (_, __) => Container(color: AppColors.of(context).surface),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Text('Powered by Tenor', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 10)),
-                      ),
-                    ],
-                  ),
                 ),
             ],
           );
@@ -1917,101 +1631,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
   static const _imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
   static const _videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
 
-  // URL preview
-  static final _urlRegex = RegExp(r'https?://[^\s<>\]\)]+', caseSensitive: false);
-  static final Map<String, _OgData?> _ogCache = {};
-  _OgData? _ogData;
-  bool _ogLoading = false;
-  String? _detectedUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchOgPreview();
-  }
-
-  void _fetchOgPreview() {
-    if (widget.message.fileUrl != null) return;
-    final match = _urlRegex.firstMatch(widget.message.content);
-    if (match == null) return;
-    final url = match.group(0)!;
-    _detectedUrl = url;
-    if (_ogCache.containsKey(url)) {
-      _ogData = _ogCache[url];
-      return;
-    }
-    _ogLoading = true;
-    _loadOg(url);
-  }
-
-  Future<void> _loadOg(String url) async {
-    try {
-      final dio = Dio();
-      final resp = await dio.get<String>(url,
-          options: Options(
-            headers: {'User-Agent': 'Mozilla/5.0 (compatible; TalerBot/1.0)'},
-            responseType: ResponseType.plain,
-            receiveTimeout: const Duration(seconds: 5),
-            sendTimeout: const Duration(seconds: 5),
-          ));
-      final html = resp.data ?? '';
-      final title = _extractMeta(html, 'og:title') ?? _extractTitle(html);
-      final desc = _extractMeta(html, 'og:description');
-      final image = _extractMeta(html, 'og:image');
-      if (title == null && desc == null && image == null) {
-        _ogCache[url] = null;
-        if (mounted) setState(() => _ogLoading = false);
-        return;
-      }
-      final data = _OgData(title: title, description: desc, imageUrl: image);
-      _ogCache[url] = data;
-      if (mounted) setState(() { _ogData = data; _ogLoading = false; });
-    } catch (_) {
-      _ogCache[url] = null;
-      if (mounted) setState(() => _ogLoading = false);
-    }
-  }
-
-  static String? _extractMeta(String html, String property) {
-    final patterns = [
-      RegExp('<meta[^>]*property=["\']$property["\'][^>]*content=["\'](.*?)["\']', caseSensitive: false),
-      RegExp('<meta[^>]*content=["\'](.*?)["\'][^>]*property=["\']$property["\']', caseSensitive: false),
-    ];
-    for (final p in patterns) {
-      final m = p.firstMatch(html);
-      if (m != null) {
-        final v = m.group(1)?.trim();
-        if (v != null && v.isNotEmpty) return _decodeHtmlEntities(v);
-      }
-    }
-    return null;
-  }
-
-  static String? _extractTitle(String html) {
-    final m = RegExp(r'<title[^>]*>(.*?)</title>', caseSensitive: false, dotAll: true).firstMatch(html);
-    final v = m?.group(1)?.trim();
-    return v != null && v.isNotEmpty ? _decodeHtmlEntities(v) : null;
-  }
-
-  static String _decodeHtmlEntities(String s) => s
-      .replaceAll('&amp;', '&')
-      .replaceAll('&lt;', '<')
-      .replaceAll('&gt;', '>')
-      .replaceAll('&quot;', '"')
-      .replaceAll('&#39;', "'");
-
-  // Emoji-only detection: 1-3 emoji, no other text
-  static final _emojiOnlyRegex = RegExp(
-    r'^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F){1,3}$',
-    unicode: true,
-  );
-
-  bool get _isEmojiOnly =>
-      widget.message.fileUrl == null &&
-      widget.message.content.isNotEmpty &&
-      !widget.message.content.startsWith('↩') &&
-      _emojiOnlyRegex.hasMatch(widget.message.content.trim());
-
   String _effectiveFileType(MessageEntity msg) {
     final ft = msg.fileType;
     if (ft == 'image' || ft == 'video' || ft == 'audio') return ft!;
@@ -2027,10 +1646,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
   Widget build(BuildContext context) {
     if (widget.message.isSystem) {
       return _buildSystemMessage(context);
-    }
-
-    if (_isEmojiOnly) {
-      return _buildEmojiOnlyMessage(context);
     }
 
     return GestureDetector(
@@ -2253,75 +1868,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                 ),
               ),
-            if (_ogData != null && _detectedUrl != null)
-              GestureDetector(
-                onTap: () => launchUrl(Uri.parse(_detectedUrl!), mode: LaunchMode.externalApplication),
-                child: Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  decoration: BoxDecoration(
-                    color: (widget.isMe ? Colors.black : AppColors.of(context).surface)
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_ogData!.imageUrl != null)
-                        CachedNetworkImage(
-                          imageUrl: _ogData!.imageUrl!,
-                          width: double.infinity,
-                          height: 120,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => const SizedBox.shrink(),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_ogData!.title != null)
-                              Text(
-                                _ogData!.title!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            if (_ogData!.description != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _ogData!.description!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: widget.isMe
-                                      ? Colors.white.withValues(alpha: 0.7)
-                                      : AppColors.of(context).textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                            const SizedBox(height: 2),
-                            Text(
-                              Uri.parse(_detectedUrl!).host,
-                              style: TextStyle(
-                                color: widget.isMe
-                                    ? Colors.white.withValues(alpha: 0.5)
-                                    : AppColors.of(context).textSecondary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             const SizedBox(height: 4),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -2372,6 +1918,35 @@ class _MessageBubbleState extends State<_MessageBubble> {
           reactions: widget.message.reactions,
           currentUserId: widget.currentUserId,
           onTap: widget.onReact,
+        ),
+      if (widget.message.threadReplyCount > 0)
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => BlocProvider.value(
+                value: context.read<MessengerBloc>(),
+                child: ThreadScreen(
+                  parentMessage: widget.message,
+                  parentSenderName: widget.senderName,
+                  conversationId: widget.message.conversationId,
+                ),
+              ),
+            ));
+          },
+          child: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.forum_outlined, size: 14, color: AppColors.of(context).primary),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.message.threadReplyCount} ${widget.message.threadReplyCount == 1 ? 'ответ' : 'ответов'}',
+                  style: TextStyle(color: AppColors.of(context).primary, fontSize: 12, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
         ),
       SizedBox(height: widget.isLastInGroup ? 8 : 2),
         ],
@@ -2483,6 +2058,23 @@ class _MessageBubbleState extends State<_MessageBubble> {
               onTap: () {
                 Navigator.pop(ctx);
                 _showForwardPicker(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.forum_outlined, color: colors.textSecondary),
+              title: Text('Ответить в треде', style: TextStyle(color: colors.textPrimary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => BlocProvider.value(
+                    value: context.read<MessengerBloc>(),
+                    child: ThreadScreen(
+                      parentMessage: widget.message,
+                      parentSenderName: widget.senderName,
+                      conversationId: widget.message.conversationId,
+                    ),
+                  ),
+                ));
               },
             ),
             ListTile(
@@ -2677,77 +2269,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
             SnackBar(content: Text(AppLocalizations.of(context)!.chatMessageForwarded), duration: const Duration(seconds: 2)),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildEmojiOnlyMessage(BuildContext context) {
-    final emojiCount = widget.message.content.trim().characters.length;
-    final fontSize = emojiCount == 1 ? 56.0 : emojiCount == 2 ? 44.0 : 36.0;
-    return GestureDetector(
-      onLongPress: () => _showMessageActions(context),
-      child: Align(
-        alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
-        child: Column(
-          crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            if (!widget.isMe && widget.senderName != null && widget.isFirstInGroup)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 2, left: 4),
-                child: Text(
-                  widget.senderName!,
-                  style: TextStyle(
-                    color: AppColors.of(context).primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                widget.message.content.trim(),
-                style: TextStyle(fontSize: fontSize),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 4, right: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    DateFormat('HH:mm').format(widget.message.sentAt.toLocal()),
-                    style: TextStyle(
-                      color: AppColors.of(context).textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                  if (widget.isMe) ...[
-                    const SizedBox(width: 4),
-                    Icon(
-                      widget.message.isRead
-                          ? Icons.done_all_rounded
-                          : widget.message.isDelivered
-                              ? Icons.done_all_rounded
-                              : Icons.done_rounded,
-                      size: 14,
-                      color: widget.message.isRead
-                          ? AppColors.of(context).primary
-                          : AppColors.of(context).textSecondary,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (widget.message.reactions.isNotEmpty)
-              _ReactionsRow(
-                reactions: widget.message.reactions,
-                currentUserId: widget.currentUserId,
-                onTap: widget.onReact,
-              ),
-            SizedBox(height: widget.isLastInGroup ? 8 : 2),
-          ],
-        ),
       ),
     );
   }
@@ -3191,7 +2712,6 @@ class _InputBar extends StatelessWidget {
   final bool isRecording;
   final VoidCallback onRecordStart;
   final VoidCallback onRecordStop;
-  final VoidCallback? onGif;
 
   const _InputBar({
     required this.controller,
@@ -3200,7 +2720,6 @@ class _InputBar extends StatelessWidget {
     required this.isRecording,
     required this.onRecordStart,
     required this.onRecordStop,
-    this.onGif,
   });
 
   @override
@@ -3219,25 +2738,6 @@ class _InputBar extends StatelessWidget {
             onPressed: isRecording ? null : onAttach,
             icon: Icon(Icons.attach_file_rounded, color: AppColors.of(context).textSecondary),
           ),
-          if (onGif != null)
-            GestureDetector(
-              onTap: isRecording ? null : onGif,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.of(context).textSecondary, width: 1.5),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text('GIF', style: TextStyle(
-                    color: AppColors.of(context).textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  )),
-                ),
-              ),
-            ),
           Expanded(
             child: isRecording
                 ? Row(
@@ -3279,48 +2779,9 @@ class _InputBar extends StatelessWidget {
               ),
             ),
           if (!isRecording)
-            GestureDetector(
-              onLongPress: () {
-                HapticFeedback.mediumImpact();
-                showModalBottomSheet(
-                  context: context,
-                  backgroundColor: AppColors.of(context).card,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  builder: (ctx) => SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(height: 8),
-                        Container(
-                          width: 40, height: 4,
-                          decoration: BoxDecoration(
-                            color: AppColors.of(context).textSecondary.withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
-                          title: Text('Отправить', style: TextStyle(color: AppColors.of(context).textPrimary)),
-                          onTap: () { Navigator.pop(ctx); onSend(); },
-                        ),
-                        ListTile(
-                          leading: Icon(Icons.notifications_off_outlined, color: AppColors.of(context).textSecondary),
-                          title: Text('Отправить без звука', style: TextStyle(color: AppColors.of(context).textPrimary)),
-                          subtitle: Text('Получатель не получит уведомление', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-                          onTap: () { Navigator.pop(ctx); onSend(); },
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                    ),
-                  ),
-                );
-              },
-              child: IconButton(
-                onPressed: onSend,
-                icon: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
-              ),
+            IconButton(
+              onPressed: onSend,
+              icon: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
             ),
         ],
       ),
@@ -4271,120 +3732,9 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   }
 }
 
-class _MediaGalleryScreen extends StatelessWidget {
-  final List<MessageEntity> mediaMessages;
-  const _MediaGalleryScreen({required this.mediaMessages});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        title: Text('Медиа (${mediaMessages.length})'),
-        backgroundColor: colors.background,
-      ),
-      body: mediaMessages.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.photo_library_outlined, size: 64, color: colors.textSecondary),
-                  const SizedBox(height: 16),
-                  Text('Нет медиафайлов', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(2),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 2,
-                crossAxisSpacing: 2,
-              ),
-              itemCount: mediaMessages.length,
-              itemBuilder: (context, index) {
-                final msg = mediaMessages[index];
-                final isVideo = msg.fileType == 'video' ||
-                    (msg.fileName ?? msg.fileUrl ?? '').toLowerCase().contains(RegExp(r'\.(mp4|mov|avi|mkv)').pattern);
-                final thumbUrl = msg.thumbnailSmallUrl ?? msg.thumbnailMediumUrl ?? msg.fileUrl!;
-                return GestureDetector(
-                  onTap: () {
-                    if (isVideo) {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => _FullScreenVideoPlayer(videoUrl: msg.fileUrl!),
-                      ));
-                    } else {
-                      final imageOnly = mediaMessages.where((m) {
-                        final ft = m.fileType;
-                        if (ft == 'video') return false;
-                        final name = (m.fileName ?? m.fileUrl ?? '').split('?').first.toLowerCase();
-                        final ext = name.contains('.') ? name.split('.').last : '';
-                        return !{'mp4', 'mov', 'avi', 'mkv'}.contains(ext);
-                      }).toList();
-                      final imgIdx = imageOnly.indexWhere((m) => m.id == msg.id);
-                      Navigator.of(context).push(PageRouteBuilder(
-                        opaque: false,
-                        barrierColor: Colors.black,
-                        transitionDuration: const Duration(milliseconds: 280),
-                        pageBuilder: (_, __, ___) => _FullScreenImageGallery(
-                          imageUrls: imageOnly.map((m) => m.fileUrl!).toList(),
-                          heroTags: imageOnly.map((m) => 'gallery_${m.id}').toList(),
-                          initialIndex: imgIdx >= 0 ? imgIdx : 0,
-                        ),
-                        transitionsBuilder: (_, anim, __, child) =>
-                            FadeTransition(opacity: anim, child: child),
-                      ));
-                    }
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      CachedNetworkImage(
-                        imageUrl: thumbUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(color: colors.surface),
-                        errorWidget: (_, __, ___) => Container(
-                          color: colors.surface,
-                          child: Icon(Icons.broken_image, color: colors.textSecondary),
-                        ),
-                      ),
-                      if (isVideo)
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.play_arrow, color: Colors.white, size: 28),
-                          ),
-                        ),
-                    ],
-                  ),
-                );
-              },
-            ),
-    );
-  }
-}
-
 class _PendingFile {
   final String path;
   final String name;
   final String? type;
   const _PendingFile({required this.path, required this.name, this.type});
-}
-
-class _OgData {
-  final String? title;
-  final String? description;
-  final String? imageUrl;
-  const _OgData({this.title, this.description, this.imageUrl});
-}
-
-class _WallpaperOption {
-  final String name;
-  final LinearGradient? gradient;
-  const _WallpaperOption(this.name, this.gradient);
 }

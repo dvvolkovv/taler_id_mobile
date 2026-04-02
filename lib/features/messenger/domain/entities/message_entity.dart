@@ -26,6 +26,9 @@ class MessageEntity with _$MessageEntity {
     @Default(false) bool isSystem,
     @Default(false) bool isEdited,
     @Default([]) List<Map<String, dynamic>> reactions,
+    String? threadParentId,
+    @Default(0) int threadReplyCount,
+    List<String>? threadLastReplierAvatars,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>
