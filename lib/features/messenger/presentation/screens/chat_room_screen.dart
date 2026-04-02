@@ -1629,6 +1629,89 @@ class _MessageBubbleState extends State<_MessageBubble> {
   static const _imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
   static const _videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
 
+  // URL preview
+  static final _urlRegex = RegExp(r'https?://[^\s<>\]\)]+', caseSensitive: false);
+  static final Map<String, _OgData?> _ogCache = {};
+  _OgData? _ogData;
+  bool _ogLoading = false;
+  String? _detectedUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOgPreview();
+  }
+
+  void _fetchOgPreview() {
+    if (widget.message.fileUrl != null) return;
+    final match = _urlRegex.firstMatch(widget.message.content);
+    if (match == null) return;
+    final url = match.group(0)!;
+    _detectedUrl = url;
+    if (_ogCache.containsKey(url)) {
+      _ogData = _ogCache[url];
+      return;
+    }
+    _ogLoading = true;
+    _loadOg(url);
+  }
+
+  Future<void> _loadOg(String url) async {
+    try {
+      final dio = Dio();
+      final resp = await dio.get<String>(url,
+          options: Options(
+            headers: {'User-Agent': 'Mozilla/5.0 (compatible; TalerBot/1.0)'},
+            responseType: ResponseType.plain,
+            receiveTimeout: const Duration(seconds: 5),
+            sendTimeout: const Duration(seconds: 5),
+          ));
+      final html = resp.data ?? '';
+      final title = _extractMeta(html, 'og:title') ?? _extractTitle(html);
+      final desc = _extractMeta(html, 'og:description');
+      final image = _extractMeta(html, 'og:image');
+      if (title == null && desc == null && image == null) {
+        _ogCache[url] = null;
+        if (mounted) setState(() => _ogLoading = false);
+        return;
+      }
+      final data = _OgData(title: title, description: desc, imageUrl: image);
+      _ogCache[url] = data;
+      if (mounted) setState(() { _ogData = data; _ogLoading = false; });
+    } catch (_) {
+      _ogCache[url] = null;
+      if (mounted) setState(() => _ogLoading = false);
+    }
+  }
+
+  static String? _extractMeta(String html, String property) {
+    final patterns = [
+      RegExp('<meta[^>]*property=["\']$property["\'][^>]*content=["\'](.*?)["\']', caseSensitive: false),
+      RegExp('<meta[^>]*content=["\'](.*?)["\'][^>]*property=["\']$property["\']', caseSensitive: false),
+    ];
+    for (final p in patterns) {
+      final m = p.firstMatch(html);
+      if (m != null) {
+        final v = m.group(1)?.trim();
+        if (v != null && v.isNotEmpty) return _decodeHtmlEntities(v);
+      }
+    }
+    return null;
+  }
+
+  static String? _extractTitle(String html) {
+    final m = RegExp(r'<title[^>]*>(.*?)</title>', caseSensitive: false, dotAll: true).firstMatch(html);
+    final v = m?.group(1)?.trim();
+    return v != null && v.isNotEmpty ? _decodeHtmlEntities(v) : null;
+  }
+
+  static String _decodeHtmlEntities(String s) => s
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'");
+
   String _effectiveFileType(MessageEntity msg) {
     final ft = msg.fileType;
     if (ft == 'image' || ft == 'video' || ft == 'audio') return ft!;
@@ -1863,6 +1946,75 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   style: TextStyle(
                     color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
                     fontSize: 14,
+                  ),
+                ),
+              ),
+            if (_ogData != null && _detectedUrl != null)
+              GestureDetector(
+                onTap: () => launchUrl(Uri.parse(_detectedUrl!), mode: LaunchMode.externalApplication),
+                child: Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  decoration: BoxDecoration(
+                    color: (widget.isMe ? Colors.black : AppColors.of(context).surface)
+                        .withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_ogData!.imageUrl != null)
+                        CachedNetworkImage(
+                          imageUrl: _ogData!.imageUrl!,
+                          width: double.infinity,
+                          height: 120,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_ogData!.title != null)
+                              Text(
+                                _ogData!.title!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: widget.isMe ? Colors.white : AppColors.of(context).textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            if (_ogData!.description != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _ogData!.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: widget.isMe
+                                      ? Colors.white.withValues(alpha: 0.7)
+                                      : AppColors.of(context).textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 2),
+                            Text(
+                              Uri.parse(_detectedUrl!).host,
+                              style: TextStyle(
+                                color: widget.isMe
+                                    ? Colors.white.withValues(alpha: 0.5)
+                                    : AppColors.of(context).textSecondary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -3651,4 +3803,11 @@ class _PendingFile {
   final String name;
   final String? type;
   const _PendingFile({required this.path, required this.name, this.type});
+}
+
+class _OgData {
+  final String? title;
+  final String? description;
+  final String? imageUrl;
+  const _OgData({this.title, this.description, this.imageUrl});
 }

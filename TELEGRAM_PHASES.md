@@ -31,38 +31,27 @@
 - Строка "Архивировано N" внизу (сворачивается/разворачивается)
 - Хранение в Hive (`messenger_prefs`)
 
+## ✅ Phase 5 — Реакции, Reply, Forward, Edit/Delete (ALREADY IMPLEMENTED)
+- **Реакции**: long-press → emoji picker (👍❤️😂😮😢🙏), `_ReactionsRow` под пузырём
+- **Reply**: swipe-to-reply (drag threshold 56px + HapticFeedback), reply preview над input
+- **Forward**: long-press → "Переслать" → `_ForwardPickerSheet`
+- **Edit**: `_startEditing` → заполняет input + `EditMessage` event
+- **Delete**: "Удалить для меня" / "Удалить для всех"
+
+## ✅ Phase 6 — Медиа и файлы (PARTIAL — URL preview added)
+- ✅ **Прогресс загрузки**: LinearProgressIndicator при upload
+- ✅ **URL preview**: OG-метаданные (title, description, image) в карточке под текстом
+- 🔲 **Галерея чата**: кнопка в шапке → все фото/видео чата в сетке
+
+## ✅ Phase 7 — Статусы и присутствие (ALREADY IMPLEMENTED)
+- ✅ **"Печатает..."**: `typingUsers` из BLoC → subtitle в AppBar чата
+- ✅ **Двойные галочки**: ✓ → ✓✓ серые (delivered) → ✓✓ белые (read)
+- 🔲 **"Онлайн / был(а) N мин назад"**: нужна поддержка на бэкенде
+
 ---
 
-## 🔲 Phase 5 — Реакции, Reply, Forward, Edit/Delete
-- **Реакции**: long-press на сообщение → emoji picker (👍❤️😂😮😢🔥)
-  - Показывать счётчики реакций под пузырём
-  - Socket.io: `add_reaction` / `remove_reaction` events
-- **Reply (цитата)**: свайп вправо на пузыре → цитата в поле ввода
-  - Показывать превью цитируемого сообщения над input bar
-  - `replyToId` в теле сообщения
-- **Forward**: long-press → "Переслать" → выбор диалога из списка
-- **Edit/Delete**: long-press → "Редактировать" / "Удалить"
-  - Редактирование: заполнить поле ввода + индикатор режима
-  - Удаление: для всех / только у себя
-
-## 🔲 Phase 6 — Медиа и файлы
-- **Галерея чата**: кнопка в шапке → все фото/видео чата в сетке
-- **Прогресс загрузки**: LinearProgressIndicator внутри пузыря при upload
-- **URL preview**: парсить ссылки → карточка с заголовком/превью
-- **Видео**: автовоспроизведение превью при тапе в чате
-
-## 🔲 Phase 7 — Статусы и присутствие
-- **"Печатает..."**: Socket.io `typing` event → показывать в заголовке чата
-  - Уже приходит с бэкенда, нужно только отобразить
-- **"Онлайн / был(а) N минут назад"**: через Socket.io `online_status` или API
-- **Двойные галочки ✓✓**: в trailing пузыря
-  - ✓ — отправлено (`isDelivered=false`)
-  - ✓✓ серые — доставлено (`isDelivered=true`)
-  - ✓✓ синие — прочитано (`isRead=true`)
-
-## 🔲 Phase 8 — Полировка UX
-- **Swipe-to-reply** прямо в списке сообщений (GestureDetector + анимация)
+## 🔲 Phase 8 — Полировка UX (оставшиеся задачи)
+- **Галерея чата**: кнопка в шапке → grid всех фото/видео чата
 - **Анимация новых сообщений**: slide-up + fade при получении
-- **Haptic feedback**: `HapticFeedback.mediumImpact()` на long-press, реакции
-- **Smooth scroll при отправке**: `animateTo(0)` с curve
-- **Контекстное меню**: replace BottomSheet на кастомный popup над пузырём (как Telegram)
+- **Контекстное меню**: popup над пузырём вместо BottomSheet (как Telegram)
+- **"Онлайн / был(а)"**: добавить на бэкенд `lastSeen` + Socket.io `online_status`
