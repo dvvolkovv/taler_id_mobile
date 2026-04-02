@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -476,17 +477,68 @@ class _ConversationsViewState extends State<_ConversationsView> {
               .where((c) => !_archivedIds.contains(c.id))
               .fold(0, (sum, c) => sum + c.unreadCount);
 
-          Widget buildTile(ConversationEntity conv) => Column(
-            children: [
-              _ConversationTile(
-                conversation: conv,
-                currentUserId: state.currentUserId,
-                isPinned: _pinnedIds.contains(conv.id),
-                onLongPress: () => _showConversationActions(context, conv),
+          Widget buildTile(ConversationEntity conv) {
+            final isPinned = _pinnedIds.contains(conv.id);
+            final isArchived = _archivedIds.contains(conv.id);
+            return Dismissible(
+              key: ValueKey('dismiss_${conv.id}'),
+              confirmDismiss: (direction) async {
+                HapticFeedback.mediumImpact();
+                if (direction == DismissDirection.endToStart) {
+                  _toggleArchive(conv.id);
+                } else {
+                  _togglePin(conv.id);
+                }
+                return false; // don't remove from list
+              },
+              background: Container(
+                color: colors.primary.withValues(alpha: 0.15),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                        color: colors.primary),
+                    const SizedBox(width: 8),
+                    Text(isPinned ? 'Открепить' : 'Закрепить',
+                        style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                  ],
+                ),
               ),
-              Divider(color: colors.border, height: 1),
-            ],
-          );
+              secondaryBackground: Container(
+                color: isArchived
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : Colors.orange.withValues(alpha: 0.15),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(isArchived ? 'Разархивировать' : 'Архивировать',
+                        style: TextStyle(
+                          color: isArchived ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    const SizedBox(width: 8),
+                    Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                        color: isArchived ? Colors.green : Colors.orange),
+                  ],
+                ),
+              ),
+              child: Column(
+                children: [
+                  _ConversationTile(
+                    conversation: conv,
+                    currentUserId: state.currentUserId,
+                    isPinned: isPinned,
+                    onLongPress: () => _showConversationActions(context, conv),
+                  ),
+                  Divider(color: colors.border, height: 1),
+                ],
+              ),
+            );
+          }
 
           return CustomScrollView(
             slivers: [
