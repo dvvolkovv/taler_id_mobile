@@ -261,7 +261,7 @@ class _SharedMediaScreenState extends State<SharedMediaScreen> with SingleTicker
               ),
             ),
             title: Text(
-              item.fileName ?? 'Файл',
+              item.fileName ?? AppLocalizations.of(context)!.messengerDefaultFile,
               style: TextStyle(color: colors.textPrimary, fontSize: 14),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

@@ -226,6 +226,8 @@ final appRouter = GoRouter(
                 return ChatRoomScreen(
                   conversationId: state.pathParameters['id']!,
                   sharedFiles: extra?['sharedFiles'] as List?,
+                  topicId: extra?['topicId'] as String?,
+                  topicTitle: extra?['topicTitle'] as String?,
                 );
               },
               routes: [

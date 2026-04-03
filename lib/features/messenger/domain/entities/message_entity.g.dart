@@ -37,6 +37,7 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
           (json['threadLastReplierAvatars'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList(),
+      topicId: json['topicId'] as String?,
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -64,4 +65,5 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'threadParentId': instance.threadParentId,
       'threadReplyCount': instance.threadReplyCount,
       'threadLastReplierAvatars': instance.threadLastReplierAvatars,
+      'topicId': instance.topicId,
     };

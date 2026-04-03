@@ -1098,5 +1098,165 @@
   "chatBlockedByYou": "Вы заблокировали этого пользователя",
   "chatYouAreBlocked": "Вы заблокированы этим пользователем",
   "chatNotContacts": "Добавьте пользователя в контакты, чтобы писать",
-  "contactRevokeRequest": "Отозвать запрос"
+  "contactRevokeRequest": "Отозвать запрос",
+
+  "messengerPoll": "Опрос",
+  "messengerCreatePoll": "Создать опрос",
+  "messengerPollQuestion": "Вопрос",
+  "messengerPollOption": "Вариант {number}",
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerPollAddOption": "Добавить вариант",
+  "messengerPollAnonymous": "Анонимное голосование",
+  "messengerPollMultiple": "Несколько вариантов",
+  "messengerPollCreateError": "Ошибка создания опроса",
+  "messengerPollUnavailable": "Опрос недоступен",
+  "messengerPollMultipleNote": "Можно выбрать несколько",
+  "messengerPollVotes": "{count} голосов",
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerVideoMessage": "Видеосообщение",
+  "messengerVideoRecordError": "Ошибка записи видео",
+  "messengerVideoPlaybackError": "Не удалось воспроизвести видео",
+  "messengerGalleryAccessError": "Нет доступа к галерее",
+  "messengerSearchInChat": "Поиск в чате...",
+  "messengerSaveToFavorites": "В избранное",
+  "messengerSavedToFavorites": "Сохранено в избранное",
+  "messengerSearchInMessages": "Поиск в сообщениях...",
+  "messengerFoundInMessages": "Найдено в сообщениях ({count})",
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerGroupDefault": "Группа",
+  "messengerUserDefault": "Пользователь",
+  "messengerPin": "Закрепить",
+  "messengerUnpin": "Открепить",
+  "messengerArchive": "Архивировать",
+  "messengerUnarchive": "Разархивировать",
+  "messengerDeleteChat": "Удалить чат",
+  "messengerDeleteChatTitle": "Удалить чат?",
+  "messengerDeleteChatConfirm": "Удалить чат с {name}? Это действие нельзя отменить.",
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerCreateChannel": "Создать канал",
+  "messengerChannelName": "Название",
+  "messengerChannelDescription": "Описание (необязательно)",
+  "messengerChannelCreateError": "Ошибка создания канала",
+  "messengerFilterAll": "Все",
+  "messengerFilterUnread": "Непрочитанные",
+  "messengerFilterPersonal": "Личные",
+  "messengerFilterGroups": "Группы",
+  "messengerFilterChannels": "Каналы",
+  "messengerArchivedSection": "Архивировано",
+  "messengerSavedSection": "Избранное",
+  "messengerArchiveTitle": "Архив ({count})",
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerArchiveEmpty": "Архив пуст",
+  "messengerYouPrefix": "Вы: {message}",
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerMissedCall": "Пропущенный звонок",
+  "messengerSavedTitle": "Избранное",
+  "messengerNoSavedMessages": "Нет сохранённых сообщений",
+  "messengerSavedHint": "Зажмите сообщение → \"В избранное\"",
+  "messengerDefaultFile": "Файл",
+  "messengerTopicDefault": "Общая",
+  "messengerTopicNew": "Новая тема",
+  "messengerTopicNameHint": "Название темы",
+  "messengerTopicIcon": "Иконка",
+  "messengerTopicCount": "{count} тем",
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerNoTopics": "Нет тем",
+  "messengerNoMessages": "Нет сообщений",
+  "you": "Вы",
+  "messengerThread": "Тред",
+  "messengerThreadReply": "ответ",
+  "messengerThreadReplies": "ответов",
+  "messengerThreadReplyCount": "{count} {word}",
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerNoReplies": "Нет ответов",
+  "messengerReplyHint": "Ответить в тред...",
+  "messengerContactName": "Имя контакта",
+  "messengerOriginalName": "Оригинальное имя: {name}",
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerDisplayName": "Отображаемое имя",
+  "messengerShareContact": "Контакт в Taler ID: {name}",
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerAutoDelete": "Авто-удаление сообщений",
+  "messengerAutoDeleteOff": "Выключено",
+  "messengerAutoDelete7d": "7 дней",
+  "messengerAutoDelete30d": "30 дней",
+  "messengerAutoDelete90d": "90 дней",
+  "messengerAutoDeleteDays": "{count} дней",
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerSettingsHeader": "Настройки",
+  "messengerAdminOnly": "Только админы пишут",
+  "messengerAdminOnlyDesc": "Участники могут только читать",
+  "messengerTopics": "Темы",
+  "messengerTopicsDesc": "Разделить чат на темы",
+  "cancel": "Отмена",
+  "create": "Создать"
 }

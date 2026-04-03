@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -16,8 +17,10 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+import 'saved_messages_screen.dart';
+import 'topics_list_screen.dart';
 
-enum _FilterTab { all, unread }
+enum _FilterTab { all, unread, personal, groups, channels }
 
 class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({super.key});
@@ -247,7 +250,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
     final isPinned = _pinnedIds.contains(conv.id);
     final isArchived = _archivedIds.contains(conv.id);
     final isGroup = conv.type == 'GROUP';
-    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    final l10n = AppLocalizations.of(context)!;
+    final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -278,16 +282,24 @@ class _ConversationsViewState extends State<_ConversationsView> {
               ListTile(
                 leading: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                     color: colors.primary),
-                title: Text(isPinned ? 'Открепить' : 'Закрепить',
+                title: Text(isPinned ? l10n.messengerUnpin : l10n.messengerPin,
                     style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _togglePin(conv.id); },
               ),
             ListTile(
               leading: Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
                   color: colors.textSecondary),
-              title: Text(isArchived ? 'Разархивировать' : 'Архивировать',
+              title: Text(isArchived ? l10n.messengerUnarchive : l10n.messengerArchive,
                   style: TextStyle(color: colors.textPrimary)),
               onTap: () { Navigator.pop(ctx); _toggleArchive(conv.id); },
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
+              title: Text(l10n.messengerDeleteChat, style: TextStyle(color: Colors.red.shade400)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDeleteChat(context, conv);
+              },
             ),
             const SizedBox(height: 8),
           ],
@@ -296,10 +308,110 @@ class _ConversationsViewState extends State<_ConversationsView> {
     );
   }
 
+  void _confirmDeleteChat(BuildContext context, ConversationEntity conv) {
+    final colors = AppColors.of(context);
+    final isGroup = conv.type == 'GROUP';
+    final l10n = AppLocalizations.of(context)!;
+    final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text(l10n.messengerDeleteChatTitle, style: TextStyle(color: colors.textPrimary)),
+        content: Text(
+          l10n.messengerDeleteChatConfirm(name),
+          style: TextStyle(color: colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<MessengerBloc>().add(DeleteGroup(conv.id));
+            },
+            child: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _showCreateChannel(BuildContext context) {
+    final colors = AppColors.of(context);
+    final nameCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: colors.textPrimary)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              autofocus: true,
+              style: TextStyle(color: colors.textPrimary),
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.messengerChannelName,
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: descCtrl,
+              style: TextStyle(color: colors.textPrimary),
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: AppLocalizations.of(context)!.messengerChannelDescription,
+                border: const OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.black),
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                await sl<DioClient>().post(
+                  '/messenger/channels',
+                  data: {'name': name, 'description': descCtrl.text.trim()},
+                  fromJson: (d) => d,
+                );
+                context.read<MessengerBloc>().add(LoadConversations());
+              } catch (_) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(AppLocalizations.of(context)!.messengerChannelCreateError), backgroundColor: colors.error),
+                  );
+                }
+              }
+            },
+            child: Text(AppLocalizations.of(context)!.create),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showNewChatSheet(BuildContext context) {
@@ -351,6 +463,17 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   onTap: () {
                     Navigator.pop(ctx);
                     context.push('/dashboard/messenger/create-group');
+                  },
+                ),
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
+                    child: Icon(Icons.campaign_rounded, color: AppColors.of(context).primary),
+                  ),
+                  title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showCreateChannel(context);
                   },
                 ),
                 if (contacts.isNotEmpty) ...[
@@ -444,8 +567,23 @@ class _ConversationsViewState extends State<_ConversationsView> {
       }).toList();
     }
 
-    if (!archivedOnly && _activeFilter == _FilterTab.unread) {
-      result = result.where((c) => c.unreadCount > 0).toList();
+    if (!archivedOnly) {
+      switch (_activeFilter) {
+        case _FilterTab.unread:
+          result = result.where((c) => c.unreadCount > 0).toList();
+          break;
+        case _FilterTab.personal:
+          result = result.where((c) => c.type == 'DIRECT').toList();
+          break;
+        case _FilterTab.groups:
+          result = result.where((c) => c.type == 'GROUP').toList();
+          break;
+        case _FilterTab.channels:
+          result = result.where((c) => c.type == 'CHANNEL').toList();
+          break;
+        case _FilterTab.all:
+          break;
+      }
     }
 
     if (!archivedOnly) {
@@ -476,17 +614,63 @@ class _ConversationsViewState extends State<_ConversationsView> {
               .where((c) => !_archivedIds.contains(c.id))
               .fold(0, (sum, c) => sum + c.unreadCount);
 
-          Widget buildTile(ConversationEntity conv) => Column(
-            children: [
-              _ConversationTile(
+          Widget buildTile(ConversationEntity conv) {
+            final isPinned = _pinnedIds.contains(conv.id);
+            final isArchived = _archivedIds.contains(conv.id);
+            return Dismissible(
+              key: ValueKey('dismiss_${conv.id}'),
+              confirmDismiss: (direction) async {
+                HapticFeedback.mediumImpact();
+                if (direction == DismissDirection.endToStart) {
+                  _toggleArchive(conv.id);
+                } else {
+                  _togglePin(conv.id);
+                }
+                return false; // don't remove from list
+              },
+              background: Container(
+                color: colors.primary.withValues(alpha: 0.15),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.only(left: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                        color: colors.primary),
+                    const SizedBox(width: 8),
+                    Text(isPinned ? AppLocalizations.of(context)!.messengerUnpin : AppLocalizations.of(context)!.messengerPin,
+                        style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              secondaryBackground: Container(
+                color: isArchived
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : Colors.orange.withValues(alpha: 0.15),
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.only(right: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(isArchived ? AppLocalizations.of(context)!.messengerUnarchive : AppLocalizations.of(context)!.messengerArchive,
+                        style: TextStyle(
+                          color: isArchived ? Colors.green : Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    const SizedBox(width: 8),
+                    Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                        color: isArchived ? Colors.green : Colors.orange),
+                  ],
+                ),
+              ),
+              child: _ConversationTile(
                 conversation: conv,
                 currentUserId: state.currentUserId,
-                isPinned: _pinnedIds.contains(conv.id),
+                isPinned: isPinned,
                 onLongPress: () => _showConversationActions(context, conv),
               ),
-              Divider(color: colors.border, height: 1),
-            ],
-          );
+            );
+          }
 
           return CustomScrollView(
             slivers: [
@@ -571,21 +755,41 @@ class _ConversationsViewState extends State<_ConversationsView> {
               ),
               // Filter chips
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: Row(
+                child: SizedBox(
+                  height: 44,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     children: [
                       _TabChip(
-                        label: 'Все',
+                        label: AppLocalizations.of(context)!.messengerFilterAll,
                         selected: _activeFilter == _FilterTab.all,
                         onTap: () => setState(() => _activeFilter = _FilterTab.all),
                       ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Непрочитанные',
+                        label: AppLocalizations.of(context)!.messengerFilterUnread,
                         selected: _activeFilter == _FilterTab.unread,
-                        badge: _activeFilter == _FilterTab.all && totalUnread > 0 ? totalUnread : null,
+                        badge: _activeFilter != _FilterTab.unread && totalUnread > 0 ? totalUnread : null,
                         onTap: () => setState(() => _activeFilter = _FilterTab.unread),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: AppLocalizations.of(context)!.messengerFilterPersonal,
+                        selected: _activeFilter == _FilterTab.personal,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.personal),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: AppLocalizations.of(context)!.messengerFilterGroups,
+                        selected: _activeFilter == _FilterTab.groups,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.groups),
+                      ),
+                      const SizedBox(width: 8),
+                      _TabChip(
+                        label: AppLocalizations.of(context)!.messengerFilterChannels,
+                        selected: _activeFilter == _FilterTab.channels,
+                        onTap: () => setState(() => _activeFilter = _FilterTab.channels),
                       ),
                     ],
                   ),
@@ -613,65 +817,83 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
+                // Archived section — opens separate screen
+                if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.textSecondary, width: 2),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: colors.surface,
+                          child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
+                        ),
+                      ),
+                      title: Text(AppLocalizations.of(context)!.messengerArchivedSection, style: TextStyle(
+                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text('${archived.length}',
+                          style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                      ),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => BlocProvider.value(
+                          value: context.read<MessengerBloc>(),
+                          child: _ArchivedChatsScreen(
+                            archivedIds: _archivedIds,
+                            onUnarchive: _toggleArchive,
+                          ),
+                        )),
+                      ),
+                    ),
+                  ),
+                // Saved Messages (Избранное) — real chat
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.primary, width: 2),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: colors.primary,
+                          child: const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 20),
+                        ),
+                      ),
+                      title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
+                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      onTap: () async {
+                        try {
+                          final res = await sl<DioClient>().post(
+                            '/messenger/saved',
+                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                          );
+                          final convId = res['conversationId'] as String?;
+                          if (convId != null && context.mounted) {
+                            context.push('/dashboard/messenger/$convId');
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                // Regular chats
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => buildTile(filtered[index]),
                     childCount: filtered.length,
                   ),
                 ),
-                // Archived section
-                if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all) ...[
-                  SliverToBoxAdapter(
-                    child: InkWell(
-                      onTap: () => setState(() => _showArchived = !_showArchived),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Архивировано',
-                                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${archived.length}',
-                                style: TextStyle(color: colors.textSecondary, fontSize: 12),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              _showArchived ? Icons.expand_less : Icons.chevron_right,
-                              color: colors.textSecondary, size: 20,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (_showArchived)
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => buildTile(archived[index]),
-                        childCount: archived.length,
-                      ),
-                    ),
-                ],
               ],
               // Message search results
               if (_searchQuery.length >= 2) ...[
@@ -683,7 +905,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         Icon(Icons.message_outlined, size: 16, color: colors.textSecondary),
                         const SizedBox(width: 8),
                         Text(
-                          _messageSearching ? 'Поиск в сообщениях...' : 'Найдено в сообщениях (${_messageSearchResults.length})',
+                          _messageSearching ? AppLocalizations.of(context)!.messengerSearchInMessages : AppLocalizations.of(context)!.messengerFoundInMessages(_messageSearchResults.length),
                           style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -832,7 +1054,7 @@ class _ConversationTile extends StatelessWidget {
         }
         if (conversation.lastMessageSenderId != null &&
             conversation.lastMessageSenderId == currentUserId) {
-          subtitleText = 'Вы: $displayMsg';
+          subtitleText = AppLocalizations.of(context)!.messengerYouPrefix(displayMsg);
         } else if (isGroup && conversation.lastMessageSenderName != null) {
           subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
         } else {
@@ -895,7 +1117,7 @@ class _ConversationTile extends StatelessWidget {
       trailing: () {
         final isMissedCall = conversation.lastMessageIsSystem &&
             lastMsg != null &&
-            (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call')) &&
+            (lastMsg.contains(AppLocalizations.of(context)!.messengerMissedCall) || lastMsg.contains('Missed call') || lastMsg.contains('Пропущенный звонок')) &&
             conversation.lastMessageSenderId != currentUserId &&
             conversation.unreadCount > 0;
         if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
@@ -959,7 +1181,18 @@ class _ConversationTile extends StatelessWidget {
           ],
         );
       }(),
-      onTap: () => context.push('/dashboard/messenger/${conversation.id}'),
+      onTap: () {
+        if (conversation.topicsEnabled && conversation.type == 'GROUP') {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => TopicsListScreen(
+              conversationId: conversation.id,
+              groupName: conversation.name ?? AppLocalizations.of(context)!.messengerGroupDefault,
+            ),
+          ));
+        } else {
+          context.push('/dashboard/messenger/${conversation.id}');
+        }
+      },
       onLongPress: onLongPress,
     );
   }
@@ -993,6 +1226,118 @@ class _ConversationTile extends StatelessWidget {
     } catch (_) {
       return content;
     }
+  }
+}
+
+class _ArchivedChatsScreen extends StatefulWidget {
+  final Set<String> archivedIds;
+  final void Function(String) onUnarchive;
+  const _ArchivedChatsScreen({required this.archivedIds, required this.onUnarchive});
+
+  @override
+  State<_ArchivedChatsScreen> createState() => _ArchivedChatsScreenState();
+}
+
+class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
+  late Set<String> _localArchivedIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _localArchivedIds = Set<String>.from(widget.archivedIds);
+  }
+
+  void _unarchive(String id) {
+    widget.onUnarchive(id);
+    setState(() => _localArchivedIds = {..._localArchivedIds}..remove(id));
+    if (_localArchivedIds.isEmpty) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.messengerArchiveTitle(_localArchivedIds.length)),
+        backgroundColor: colors.background,
+      ),
+      body: BlocBuilder<MessengerBloc, MessengerState>(
+        builder: (context, state) {
+          final archived = state.conversations
+              .where((c) => _localArchivedIds.contains(c.id))
+              .toList();
+          if (archived.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.archive_outlined, size: 64, color: colors.textSecondary),
+                  const SizedBox(height: 16),
+                  Text(AppLocalizations.of(context)!.messengerArchiveEmpty, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                ],
+              ),
+            );
+          }
+          return ListView.builder(
+            itemCount: archived.length,
+            itemBuilder: (context, index) {
+              final conv = archived[index];
+              return Dismissible(
+                key: ValueKey('arch_${conv.id}'),
+                direction: DismissDirection.endToStart,
+                confirmDismiss: (_) async {
+                  _unarchive(conv.id);
+                  return false;
+                },
+                background: Container(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 24),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(AppLocalizations.of(context)!.messengerUnarchive, style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.unarchive_outlined, color: Colors.green),
+                    ],
+                  ),
+                ),
+                child: _ConversationTile(
+                  conversation: conv,
+                  currentUserId: state.currentUserId,
+                  onLongPress: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: colors.card,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (ctx) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading: Icon(Icons.unarchive_outlined, color: Colors.green),
+                              title: Text(AppLocalizations.of(context)!.messengerUnarchive, style: TextStyle(color: colors.textPrimary)),
+                              onTap: () { Navigator.pop(ctx); _unarchive(conv.id); },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 

@@ -10,7 +10,7 @@ abstract class IMessengerRepository {
   Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor});
   Future<List<UserSearchEntity>> searchUsers(String query);
   void joinConversation(String id);
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId});
+  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId});
   void editMessage(String conversationId, String messageId, String newContent);
   void deleteMessage(String conversationId, String messageId, String scope);
   void sendTyping(String conversationId, bool isTyping);
@@ -27,7 +27,7 @@ abstract class IMessengerRepository {
   Future<void> addGroupMembers(String conversationId, List<String> userIds);
   Future<void> removeGroupMember(String conversationId, String userId);
   Future<void> changeGroupMemberRole(String conversationId, String userId, String role);
-  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description});
+  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description, bool? slowMode, bool? topicsEnabled, int? autoDeleteDays});
   Future<void> leaveGroup(String conversationId);
   Future<void> deleteGroup(String conversationId);
   // Group streams

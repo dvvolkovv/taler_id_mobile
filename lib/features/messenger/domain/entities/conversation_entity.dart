@@ -22,10 +22,15 @@ class ConversationEntity with _$ConversationEntity {
     String? otherUserName,
     String? otherUserId,
     String? otherUserAvatar,
+    String? otherUserStatus,
+    DateTime? otherUserLastSeen,
     @Default(0) int unreadCount,
     @Default(false) bool isMuted,
     DateTime? mutedUntil,
     String? activeCallRoomName,
+    @Default(false) bool slowMode,
+    @Default(false) bool topicsEnabled,
+    int? autoDeleteDays,
   }) = _ConversationEntity;
 
   factory ConversationEntity.fromJson(Map<String, dynamic> json) =>

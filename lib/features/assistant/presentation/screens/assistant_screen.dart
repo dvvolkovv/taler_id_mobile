@@ -87,7 +87,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
     _orbitCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1), // tick driver
+      duration: const Duration(seconds: 1),
     )..repeat();
     _orbitCtrl.addListener(_tickOrbit);
     _lastOrbitTick = Duration.zero;

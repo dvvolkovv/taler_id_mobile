@@ -192,8 +192,10 @@ class MessengerRemoteDataSource {
     String? thumbnailMediumUrl,
     String? thumbnailLargeUrl,
     String? fileRecordId,
+    String? topicId,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
+    if (topicId != null) payload['topicId'] = topicId;
     if (fileUrl != null) {
       payload['fileUrl'] = fileUrl;
       payload['fileName'] = fileName;
@@ -345,13 +347,16 @@ class MessengerRemoteDataSource {
     );
   }
 
-  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description}) async {
+  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description, bool? slowMode, bool? topicsEnabled, int? autoDeleteDays}) async {
     await _http.patch(
       '/messenger/conversations/$conversationId',
       data: {
         if (name != null) 'name': name,
         if (avatarUrl != null) 'avatarUrl': avatarUrl,
         if (description != null) 'description': description,
+        if (slowMode != null) 'slowMode': slowMode,
+        if (topicsEnabled != null) 'topicsEnabled': topicsEnabled,
+        if (autoDeleteDays != null) 'autoDeleteDays': autoDeleteDays,
       },
     );
   }

@@ -4963,6 +4963,468 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Revoke request'**
   String get contactRevokeRequest;
+
+  /// No description provided for @messengerPoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll'**
+  String get messengerPoll;
+
+  /// No description provided for @messengerCreatePoll.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Poll'**
+  String get messengerCreatePoll;
+
+  /// No description provided for @messengerPollQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Question'**
+  String get messengerPollQuestion;
+
+  /// No description provided for @messengerPollOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Option {number}'**
+  String messengerPollOption(int number);
+
+  /// No description provided for @messengerPollAddOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Add option'**
+  String get messengerPollAddOption;
+
+  /// No description provided for @messengerPollAnonymous.
+  ///
+  /// In en, this message translates to:
+  /// **'Anonymous voting'**
+  String get messengerPollAnonymous;
+
+  /// No description provided for @messengerPollMultiple.
+  ///
+  /// In en, this message translates to:
+  /// **'Multiple choice'**
+  String get messengerPollMultiple;
+
+  /// No description provided for @messengerPollCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create poll'**
+  String get messengerPollCreateError;
+
+  /// No description provided for @messengerPollUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Poll unavailable'**
+  String get messengerPollUnavailable;
+
+  /// No description provided for @messengerPollMultipleNote.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select multiple'**
+  String get messengerPollMultipleNote;
+
+  /// No description provided for @messengerPollVotes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} votes'**
+  String messengerPollVotes(int count);
+
+  /// No description provided for @messengerVideoMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Video message'**
+  String get messengerVideoMessage;
+
+  /// No description provided for @messengerVideoRecordError.
+  ///
+  /// In en, this message translates to:
+  /// **'Video recording error'**
+  String get messengerVideoRecordError;
+
+  /// No description provided for @messengerVideoPlaybackError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not play video'**
+  String get messengerVideoPlaybackError;
+
+  /// No description provided for @messengerGalleryAccessError.
+  ///
+  /// In en, this message translates to:
+  /// **'No access to gallery'**
+  String get messengerGalleryAccessError;
+
+  /// No description provided for @messengerSearchInChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in chat...'**
+  String get messengerSearchInChat;
+
+  /// No description provided for @messengerSaveToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to favorites'**
+  String get messengerSaveToFavorites;
+
+  /// No description provided for @messengerSavedToFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to favorites'**
+  String get messengerSavedToFavorites;
+
+  /// No description provided for @messengerSearchInMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in messages...'**
+  String get messengerSearchInMessages;
+
+  /// No description provided for @messengerFoundInMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Found in messages ({count})'**
+  String messengerFoundInMessages(int count);
+
+  /// No description provided for @messengerGroupDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Group'**
+  String get messengerGroupDefault;
+
+  /// No description provided for @messengerUserDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get messengerUserDefault;
+
+  /// No description provided for @messengerPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get messengerPin;
+
+  /// No description provided for @messengerUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get messengerUnpin;
+
+  /// No description provided for @messengerArchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get messengerArchive;
+
+  /// No description provided for @messengerUnarchive.
+  ///
+  /// In en, this message translates to:
+  /// **'Unarchive'**
+  String get messengerUnarchive;
+
+  /// No description provided for @messengerDeleteChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete chat'**
+  String get messengerDeleteChat;
+
+  /// No description provided for @messengerDeleteChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete chat?'**
+  String get messengerDeleteChatTitle;
+
+  /// No description provided for @messengerDeleteChatConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete chat with {name}? This cannot be undone.'**
+  String messengerDeleteChatConfirm(String name);
+
+  /// No description provided for @messengerCreateChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Channel'**
+  String get messengerCreateChannel;
+
+  /// No description provided for @messengerChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get messengerChannelName;
+
+  /// No description provided for @messengerChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description (optional)'**
+  String get messengerChannelDescription;
+
+  /// No description provided for @messengerChannelCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create channel'**
+  String get messengerChannelCreateError;
+
+  /// No description provided for @messengerFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get messengerFilterAll;
+
+  /// No description provided for @messengerFilterUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get messengerFilterUnread;
+
+  /// No description provided for @messengerFilterPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal'**
+  String get messengerFilterPersonal;
+
+  /// No description provided for @messengerFilterGroups.
+  ///
+  /// In en, this message translates to:
+  /// **'Groups'**
+  String get messengerFilterGroups;
+
+  /// No description provided for @messengerFilterChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get messengerFilterChannels;
+
+  /// No description provided for @messengerArchivedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get messengerArchivedSection;
+
+  /// No description provided for @messengerSavedSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get messengerSavedSection;
+
+  /// No description provided for @messengerArchiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive ({count})'**
+  String messengerArchiveTitle(int count);
+
+  /// No description provided for @messengerArchiveEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive is empty'**
+  String get messengerArchiveEmpty;
+
+  /// No description provided for @messengerYouPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'You: {message}'**
+  String messengerYouPrefix(String message);
+
+  /// No description provided for @messengerMissedCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed call'**
+  String get messengerMissedCall;
+
+  /// No description provided for @messengerSavedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get messengerSavedTitle;
+
+  /// No description provided for @messengerNoSavedMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved messages'**
+  String get messengerNoSavedMessages;
+
+  /// No description provided for @messengerSavedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Long press a message → \"Save to favorites\"'**
+  String get messengerSavedHint;
+
+  /// No description provided for @messengerDefaultFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get messengerDefaultFile;
+
+  /// No description provided for @messengerTopicDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get messengerTopicDefault;
+
+  /// No description provided for @messengerTopicNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New Topic'**
+  String get messengerTopicNew;
+
+  /// No description provided for @messengerTopicNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Topic name'**
+  String get messengerTopicNameHint;
+
+  /// No description provided for @messengerTopicIcon.
+  ///
+  /// In en, this message translates to:
+  /// **'Icon'**
+  String get messengerTopicIcon;
+
+  /// No description provided for @messengerTopicCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} topics'**
+  String messengerTopicCount(int count);
+
+  /// No description provided for @messengerNoTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'No topics'**
+  String get messengerNoTopics;
+
+  /// No description provided for @messengerNoMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages'**
+  String get messengerNoMessages;
+
+  /// No description provided for @you.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get you;
+
+  /// No description provided for @messengerThread.
+  ///
+  /// In en, this message translates to:
+  /// **'Thread'**
+  String get messengerThread;
+
+  /// No description provided for @messengerThreadReply.
+  ///
+  /// In en, this message translates to:
+  /// **'reply'**
+  String get messengerThreadReply;
+
+  /// No description provided for @messengerThreadReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'replies'**
+  String get messengerThreadReplies;
+
+  /// No description provided for @messengerThreadReplyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {word}'**
+  String messengerThreadReplyCount(int count, String word);
+
+  /// No description provided for @messengerNoReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'No replies'**
+  String get messengerNoReplies;
+
+  /// No description provided for @messengerReplyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply to thread...'**
+  String get messengerReplyHint;
+
+  /// No description provided for @messengerContactName.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact name'**
+  String get messengerContactName;
+
+  /// No description provided for @messengerOriginalName.
+  ///
+  /// In en, this message translates to:
+  /// **'Original name: {name}'**
+  String messengerOriginalName(String name);
+
+  /// No description provided for @messengerDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get messengerDisplayName;
+
+  /// No description provided for @messengerShareContact.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact in Taler ID: {name}'**
+  String messengerShareContact(String name);
+
+  /// No description provided for @messengerAutoDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-delete messages'**
+  String get messengerAutoDelete;
+
+  /// No description provided for @messengerAutoDeleteOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get messengerAutoDeleteOff;
+
+  /// No description provided for @messengerAutoDelete7d.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get messengerAutoDelete7d;
+
+  /// No description provided for @messengerAutoDelete30d.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get messengerAutoDelete30d;
+
+  /// No description provided for @messengerAutoDelete90d.
+  ///
+  /// In en, this message translates to:
+  /// **'90 days'**
+  String get messengerAutoDelete90d;
+
+  /// No description provided for @messengerAutoDeleteDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String messengerAutoDeleteDays(int count);
+
+  /// No description provided for @messengerSettingsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get messengerSettingsHeader;
+
+  /// No description provided for @messengerAdminOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin-only posting'**
+  String get messengerAdminOnly;
+
+  /// No description provided for @messengerAdminOnlyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Members can only read'**
+  String get messengerAdminOnlyDesc;
+
+  /// No description provided for @messengerTopics.
+  ///
+  /// In en, this message translates to:
+  /// **'Topics'**
+  String get messengerTopics;
+
+  /// No description provided for @messengerTopicsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Split chat into topics'**
+  String get messengerTopicsDesc;
 }
 
 class _AppLocalizationsDelegate

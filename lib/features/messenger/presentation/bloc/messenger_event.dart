@@ -38,6 +38,7 @@ class SendMessage extends MessengerEvent {
   final String? thumbnailMediumUrl;
   final String? thumbnailLargeUrl;
   final String? fileRecordId;
+  final String? topicId;
   const SendMessage(
     this.conversationId,
     this.content, {
@@ -50,6 +51,7 @@ class SendMessage extends MessengerEvent {
     this.thumbnailMediumUrl,
     this.thumbnailLargeUrl,
     this.fileRecordId,
+    this.topicId,
   });
   @override
   List<Object?> get props => [conversationId, content, fileUrl, fileName];
@@ -208,6 +210,21 @@ class DeleteGroup extends MessengerEvent {
   const DeleteGroup(this.conversationId);
   @override
   List<Object?> get props => [conversationId];
+}
+
+class UpdateGroupSettings extends MessengerEvent {
+  final String conversationId;
+  final bool? slowMode;
+  final bool? topicsEnabled;
+  final int? autoDeleteDays;
+  const UpdateGroupSettings({
+    required this.conversationId,
+    this.slowMode,
+    this.topicsEnabled,
+    this.autoDeleteDays,
+  });
+  @override
+  List<Object?> get props => [conversationId, slowMode, topicsEnabled, autoDeleteDays];
 }
 
 class ForwardMessage extends MessengerEvent {

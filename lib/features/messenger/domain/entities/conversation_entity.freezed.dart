@@ -36,10 +36,15 @@ mixin _$ConversationEntity {
   String? get otherUserName => throw _privateConstructorUsedError;
   String? get otherUserId => throw _privateConstructorUsedError;
   String? get otherUserAvatar => throw _privateConstructorUsedError;
+  String? get otherUserStatus => throw _privateConstructorUsedError;
+  DateTime? get otherUserLastSeen => throw _privateConstructorUsedError;
   int get unreadCount => throw _privateConstructorUsedError;
   bool get isMuted => throw _privateConstructorUsedError;
   DateTime? get mutedUntil => throw _privateConstructorUsedError;
   String? get activeCallRoomName => throw _privateConstructorUsedError;
+  bool get slowMode => throw _privateConstructorUsedError;
+  bool get topicsEnabled => throw _privateConstructorUsedError;
+  int? get autoDeleteDays => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -70,10 +75,15 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? otherUserName,
       String? otherUserId,
       String? otherUserAvatar,
+      String? otherUserStatus,
+      DateTime? otherUserLastSeen,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
-      String? activeCallRoomName});
+      String? activeCallRoomName,
+      bool slowMode,
+      bool topicsEnabled,
+      int? autoDeleteDays});
 }
 
 /// @nodoc
@@ -105,10 +115,15 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? otherUserName = freezed,
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
+    Object? otherUserStatus = freezed,
+    Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
     Object? activeCallRoomName = freezed,
+    Object? slowMode = null,
+    Object? topicsEnabled = null,
+    Object? autoDeleteDays = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -175,6 +190,14 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.otherUserAvatar
           : otherUserAvatar // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserStatus: freezed == otherUserStatus
+          ? _value.otherUserStatus
+          : otherUserStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      otherUserLastSeen: freezed == otherUserLastSeen
+          ? _value.otherUserLastSeen
+          : otherUserLastSeen // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -191,6 +214,18 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.activeCallRoomName
           : activeCallRoomName // ignore: cast_nullable_to_non_nullable
               as String?,
+      slowMode: null == slowMode
+          ? _value.slowMode
+          : slowMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      topicsEnabled: null == topicsEnabled
+          ? _value.topicsEnabled
+          : topicsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      autoDeleteDays: freezed == autoDeleteDays
+          ? _value.autoDeleteDays
+          : autoDeleteDays // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 }
@@ -220,10 +255,15 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? otherUserName,
       String? otherUserId,
       String? otherUserAvatar,
+      String? otherUserStatus,
+      DateTime? otherUserLastSeen,
       int unreadCount,
       bool isMuted,
       DateTime? mutedUntil,
-      String? activeCallRoomName});
+      String? activeCallRoomName,
+      bool slowMode,
+      bool topicsEnabled,
+      int? autoDeleteDays});
 }
 
 /// @nodoc
@@ -253,10 +293,15 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? otherUserName = freezed,
     Object? otherUserId = freezed,
     Object? otherUserAvatar = freezed,
+    Object? otherUserStatus = freezed,
+    Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
     Object? activeCallRoomName = freezed,
+    Object? slowMode = null,
+    Object? topicsEnabled = null,
+    Object? autoDeleteDays = freezed,
   }) {
     return _then(_$ConversationEntityImpl(
       id: null == id
@@ -323,6 +368,14 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.otherUserAvatar
           : otherUserAvatar // ignore: cast_nullable_to_non_nullable
               as String?,
+      otherUserStatus: freezed == otherUserStatus
+          ? _value.otherUserStatus
+          : otherUserStatus // ignore: cast_nullable_to_non_nullable
+              as String?,
+      otherUserLastSeen: freezed == otherUserLastSeen
+          ? _value.otherUserLastSeen
+          : otherUserLastSeen // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
       unreadCount: null == unreadCount
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
@@ -339,6 +392,18 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.activeCallRoomName
           : activeCallRoomName // ignore: cast_nullable_to_non_nullable
               as String?,
+      slowMode: null == slowMode
+          ? _value.slowMode
+          : slowMode // ignore: cast_nullable_to_non_nullable
+              as bool,
+      topicsEnabled: null == topicsEnabled
+          ? _value.topicsEnabled
+          : topicsEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      autoDeleteDays: freezed == autoDeleteDays
+          ? _value.autoDeleteDays
+          : autoDeleteDays // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -363,10 +428,15 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.otherUserName,
       this.otherUserId,
       this.otherUserAvatar,
+      this.otherUserStatus,
+      this.otherUserLastSeen,
       this.unreadCount = 0,
       this.isMuted = false,
       this.mutedUntil,
-      this.activeCallRoomName})
+      this.activeCallRoomName,
+      this.slowMode = false,
+      this.topicsEnabled = false,
+      this.autoDeleteDays})
       : _participantIds = participantIds;
 
   factory _$ConversationEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -414,6 +484,10 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   final String? otherUserAvatar;
   @override
+  final String? otherUserStatus;
+  @override
+  final DateTime? otherUserLastSeen;
+  @override
   @JsonKey()
   final int unreadCount;
   @override
@@ -423,10 +497,18 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   final DateTime? mutedUntil;
   @override
   final String? activeCallRoomName;
+  @override
+  @JsonKey()
+  final bool slowMode;
+  @override
+  @JsonKey()
+  final bool topicsEnabled;
+  @override
+  final int? autoDeleteDays;
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays)';
   }
 
   @override
@@ -462,13 +544,23 @@ class _$ConversationEntityImpl implements _ConversationEntity {
                 other.otherUserId == otherUserId) &&
             (identical(other.otherUserAvatar, otherUserAvatar) ||
                 other.otherUserAvatar == otherUserAvatar) &&
+            (identical(other.otherUserStatus, otherUserStatus) ||
+                other.otherUserStatus == otherUserStatus) &&
+            (identical(other.otherUserLastSeen, otherUserLastSeen) ||
+                other.otherUserLastSeen == otherUserLastSeen) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
             (identical(other.mutedUntil, mutedUntil) ||
                 other.mutedUntil == mutedUntil) &&
             (identical(other.activeCallRoomName, activeCallRoomName) ||
-                other.activeCallRoomName == activeCallRoomName));
+                other.activeCallRoomName == activeCallRoomName) &&
+            (identical(other.slowMode, slowMode) ||
+                other.slowMode == slowMode) &&
+            (identical(other.topicsEnabled, topicsEnabled) ||
+                other.topicsEnabled == topicsEnabled) &&
+            (identical(other.autoDeleteDays, autoDeleteDays) ||
+                other.autoDeleteDays == autoDeleteDays));
   }
 
   @JsonKey(ignore: true)
@@ -491,10 +583,15 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         otherUserName,
         otherUserId,
         otherUserAvatar,
+        otherUserStatus,
+        otherUserLastSeen,
         unreadCount,
         isMuted,
         mutedUntil,
-        activeCallRoomName
+        activeCallRoomName,
+        slowMode,
+        topicsEnabled,
+        autoDeleteDays
       ]);
 
   @JsonKey(ignore: true)
@@ -530,10 +627,15 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? otherUserName,
       final String? otherUserId,
       final String? otherUserAvatar,
+      final String? otherUserStatus,
+      final DateTime? otherUserLastSeen,
       final int unreadCount,
       final bool isMuted,
       final DateTime? mutedUntil,
-      final String? activeCallRoomName}) = _$ConversationEntityImpl;
+      final String? activeCallRoomName,
+      final bool slowMode,
+      final bool topicsEnabled,
+      final int? autoDeleteDays}) = _$ConversationEntityImpl;
 
   factory _ConversationEntity.fromJson(Map<String, dynamic> json) =
       _$ConversationEntityImpl.fromJson;
@@ -571,6 +673,10 @@ abstract class _ConversationEntity implements ConversationEntity {
   @override
   String? get otherUserAvatar;
   @override
+  String? get otherUserStatus;
+  @override
+  DateTime? get otherUserLastSeen;
+  @override
   int get unreadCount;
   @override
   bool get isMuted;
@@ -578,6 +684,12 @@ abstract class _ConversationEntity implements ConversationEntity {
   DateTime? get mutedUntil;
   @override
   String? get activeCallRoomName;
+  @override
+  bool get slowMode;
+  @override
+  bool get topicsEnabled;
+  @override
+  int? get autoDeleteDays;
   @override
   @JsonKey(ignore: true)
   _$$ConversationEntityImplCopyWith<_$ConversationEntityImpl> get copyWith =>

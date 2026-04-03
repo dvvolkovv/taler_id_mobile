@@ -25,6 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _phoneCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
+  final _statusCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _selectedCountry;
   DateTime? _dateOfBirth;
@@ -38,6 +39,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneCtrl.dispose();
     _dateCtrl.dispose();
     _countryCtrl.dispose();
+    _statusCtrl.dispose();
     super.dispose();
   }
 
@@ -58,6 +60,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _dateCtrl.text = _formatDate(_dateOfBirth!);
       }
     }
+    _statusCtrl.text = user.status ?? '';
     _initialized = true;
   }
 
@@ -288,6 +291,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _statusCtrl,
+                    style: TextStyle(color: AppColors.of(context).textPrimary),
+                    maxLength: 70,
+                    decoration: InputDecoration(
+                      labelText: 'Статус',
+                      hintText: 'Что у вас нового?',
+                      hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
+                      prefixIcon: Icon(Icons.mood_outlined, color: AppColors.of(context).textSecondary),
+                      counterStyle: TextStyle(color: AppColors.of(context).textSecondary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   GestureDetector(
                     onTap: _showCountryPicker,
                     child: AbsorbPointer(
@@ -312,6 +328,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'firstName': _firstNameCtrl.text.trim(),
                           'lastName': _lastNameCtrl.text.trim(),
                           'middleName': _middleNameCtrl.text.trim(),
+                          'status': _statusCtrl.text.trim(),
                           if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
                           if (_selectedCountry != null) 'country': _selectedCountry,
                           if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().split('T').first,

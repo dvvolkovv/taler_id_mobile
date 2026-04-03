@@ -167,6 +167,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               const SizedBox(height: 2),
                               Text('@${user.username}', style: TextStyle(color: AppColors.of(context).primary, fontSize: 12)),
                             ],
+                            if (user.status != null && user.status!.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(user.status!, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13, fontStyle: FontStyle.italic)),
+                            ],
                             const SizedBox(height: 8),
                             StatusBadge(
                               label: _kycLabel(user.kycStatus, l10n),

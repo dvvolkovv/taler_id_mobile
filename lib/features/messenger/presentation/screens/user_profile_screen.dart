@@ -281,8 +281,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               onTap: () {
                 Navigator.pop(ctx);
                 final shareText = username != null
-                    ? 'Контакт в Taler ID: $fullName (@$username)\nhttps://id.taler.tirol/u/$username'
-                    : 'Контакт в Taler ID: $fullName';
+                    ? '${AppLocalizations.of(context)!.messengerShareContact(fullName)} (@$username)\nhttps://id.taler.tirol/u/$username'
+                    : AppLocalizations.of(context)!.messengerShareContact(fullName);
                 Share.share(shareText);
               },
             ),
@@ -919,7 +919,7 @@ class _InlineSharedMediaState extends State<_InlineSharedMedia> {
                   style: TextStyle(color: colors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
             ),
           ),
-          title: Text(item.fileName ?? 'Файл',
+          title: Text(item.fileName ?? AppLocalizations.of(context)!.messengerDefaultFile,
               style: TextStyle(color: colors.textPrimary, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
         );
       },
@@ -1269,13 +1269,13 @@ class _EditAliasScreenState extends State<_EditAliasScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Имя контакта'),
+        title: Text(AppLocalizations.of(context)!.messengerContactName),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : Text('Сохранить', style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                : Text(AppLocalizations.of(context)!.save, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1284,14 +1284,14 @@ class _EditAliasScreenState extends State<_EditAliasScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Оригинальное имя: ${widget.originalName}', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+            Text(AppLocalizations.of(context)!.messengerOriginalName(widget.originalName), style: TextStyle(color: colors.textSecondary, fontSize: 13)),
             const SizedBox(height: 16),
             TextField(
               controller: _ctrl,
               autofocus: true,
               style: TextStyle(color: colors.textPrimary, fontSize: 18),
               decoration: InputDecoration(
-                labelText: 'Отображаемое имя',
+                labelText: AppLocalizations.of(context)!.messengerDisplayName,
                 labelStyle: TextStyle(color: colors.textSecondary),
               ),
             ),

@@ -31,8 +31,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   void joinConversation(String id) => _remote.joinConversation(id);
 
   @override
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId}) =>
-      _remote.sendMessage(conversationId, content, fileUrl: fileUrl, fileName: fileName, fileSize: fileSize, fileType: fileType, s3Key: s3Key, thumbnailSmallUrl: thumbnailSmallUrl, thumbnailMediumUrl: thumbnailMediumUrl, thumbnailLargeUrl: thumbnailLargeUrl, fileRecordId: fileRecordId);
+  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId}) =>
+      _remote.sendMessage(conversationId, content, fileUrl: fileUrl, fileName: fileName, fileSize: fileSize, fileType: fileType, s3Key: s3Key, thumbnailSmallUrl: thumbnailSmallUrl, thumbnailMediumUrl: thumbnailMediumUrl, thumbnailLargeUrl: thumbnailLargeUrl, fileRecordId: fileRecordId, topicId: topicId);
 
   @override
   void editMessage(String conversationId, String messageId, String newContent) =>
@@ -90,8 +90,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       _remote.changeGroupMemberRole(conversationId, userId, role);
 
   @override
-  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description}) =>
-      _remote.updateGroupInfo(conversationId, name: name, avatarUrl: avatarUrl, description: description);
+  Future<void> updateGroupInfo(String conversationId, {String? name, String? avatarUrl, String? description, bool? slowMode, bool? topicsEnabled, int? autoDeleteDays}) =>
+      _remote.updateGroupInfo(conversationId, name: name, avatarUrl: avatarUrl, description: description, slowMode: slowMode, topicsEnabled: topicsEnabled, autoDeleteDays: autoDeleteDays);
 
   @override
   Future<void> leaveGroup(String conversationId) => _remote.leaveGroup(conversationId);
