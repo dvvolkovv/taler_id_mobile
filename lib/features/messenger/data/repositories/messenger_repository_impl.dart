@@ -31,8 +31,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   void joinConversation(String id) => _remote.joinConversation(id);
 
   @override
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId}) =>
-      _remote.sendMessage(conversationId, content, fileUrl: fileUrl, fileName: fileName, fileSize: fileSize, fileType: fileType, s3Key: s3Key, thumbnailSmallUrl: thumbnailSmallUrl, thumbnailMediumUrl: thumbnailMediumUrl, thumbnailLargeUrl: thumbnailLargeUrl, fileRecordId: fileRecordId);
+  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId}) =>
+      _remote.sendMessage(conversationId, content, fileUrl: fileUrl, fileName: fileName, fileSize: fileSize, fileType: fileType, s3Key: s3Key, thumbnailSmallUrl: thumbnailSmallUrl, thumbnailMediumUrl: thumbnailMediumUrl, thumbnailLargeUrl: thumbnailLargeUrl, fileRecordId: fileRecordId, topicId: topicId);
 
   @override
   void editMessage(String conversationId, String messageId, String newContent) =>

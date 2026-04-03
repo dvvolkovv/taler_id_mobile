@@ -5294,6 +5294,12 @@ abstract class AppLocalizations {
   /// **'No messages'**
   String get messengerNoMessages;
 
+  /// No description provided for @you.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get you;
+
   /// No description provided for @messengerThread.
   ///
   /// In en, this message translates to:

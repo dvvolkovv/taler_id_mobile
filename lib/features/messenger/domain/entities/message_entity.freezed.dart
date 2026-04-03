@@ -45,6 +45,7 @@ mixin _$MessageEntity {
   int get threadReplyCount => throw _privateConstructorUsedError;
   List<String>? get threadLastReplierAvatars =>
       throw _privateConstructorUsedError;
+  String? get topicId => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -81,7 +82,8 @@ abstract class $MessageEntityCopyWith<$Res> {
       List<Map<String, dynamic>> reactions,
       String? threadParentId,
       int threadReplyCount,
-      List<String>? threadLastReplierAvatars});
+      List<String>? threadLastReplierAvatars,
+      String? topicId});
 }
 
 /// @nodoc
@@ -120,6 +122,7 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? threadParentId = freezed,
     Object? threadReplyCount = null,
     Object? threadLastReplierAvatars = freezed,
+    Object? topicId = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -214,6 +217,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.threadLastReplierAvatars
           : threadLastReplierAvatars // ignore: cast_nullable_to_non_nullable
               as List<String>?,
+      topicId: freezed == topicId
+          ? _value.topicId
+          : topicId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -249,7 +256,8 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       List<Map<String, dynamic>> reactions,
       String? threadParentId,
       int threadReplyCount,
-      List<String>? threadLastReplierAvatars});
+      List<String>? threadLastReplierAvatars,
+      String? topicId});
 }
 
 /// @nodoc
@@ -286,6 +294,7 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? threadParentId = freezed,
     Object? threadReplyCount = null,
     Object? threadLastReplierAvatars = freezed,
+    Object? topicId = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -380,6 +389,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value._threadLastReplierAvatars
           : threadLastReplierAvatars // ignore: cast_nullable_to_non_nullable
               as List<String>?,
+      topicId: freezed == topicId
+          ? _value.topicId
+          : topicId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -410,7 +423,8 @@ class _$MessageEntityImpl implements _MessageEntity {
       final List<Map<String, dynamic>> reactions = const [],
       this.threadParentId,
       this.threadReplyCount = 0,
-      final List<String>? threadLastReplierAvatars})
+      final List<String>? threadLastReplierAvatars,
+      this.topicId})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars;
 
@@ -485,8 +499,11 @@ class _$MessageEntityImpl implements _MessageEntity {
   }
 
   @override
+  final String? topicId;
+
+  @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId)';
   }
 
   @override
@@ -533,7 +550,8 @@ class _$MessageEntityImpl implements _MessageEntity {
             (identical(other.threadReplyCount, threadReplyCount) ||
                 other.threadReplyCount == threadReplyCount) &&
             const DeepCollectionEquality().equals(
-                other._threadLastReplierAvatars, _threadLastReplierAvatars));
+                other._threadLastReplierAvatars, _threadLastReplierAvatars) &&
+            (identical(other.topicId, topicId) || other.topicId == topicId));
   }
 
   @JsonKey(ignore: true)
@@ -562,7 +580,8 @@ class _$MessageEntityImpl implements _MessageEntity {
         const DeepCollectionEquality().hash(_reactions),
         threadParentId,
         threadReplyCount,
-        const DeepCollectionEquality().hash(_threadLastReplierAvatars)
+        const DeepCollectionEquality().hash(_threadLastReplierAvatars),
+        topicId
       ]);
 
   @JsonKey(ignore: true)
@@ -603,7 +622,8 @@ abstract class _MessageEntity implements MessageEntity {
       final List<Map<String, dynamic>> reactions,
       final String? threadParentId,
       final int threadReplyCount,
-      final List<String>? threadLastReplierAvatars}) = _$MessageEntityImpl;
+      final List<String>? threadLastReplierAvatars,
+      final String? topicId}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -654,6 +674,8 @@ abstract class _MessageEntity implements MessageEntity {
   int get threadReplyCount;
   @override
   List<String>? get threadLastReplierAvatars;
+  @override
+  String? get topicId;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

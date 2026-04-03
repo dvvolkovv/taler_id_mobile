@@ -2748,6 +2748,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get messengerNoMessages => 'Нет сообщений';
 
   @override
+  String get you => 'Вы';
+
+  @override
   String get messengerThread => 'Тред';
 
   @override

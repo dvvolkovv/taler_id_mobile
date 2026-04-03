@@ -192,8 +192,10 @@ class MessengerRemoteDataSource {
     String? thumbnailMediumUrl,
     String? thumbnailLargeUrl,
     String? fileRecordId,
+    String? topicId,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
+    if (topicId != null) payload['topicId'] = topicId;
     if (fileUrl != null) {
       payload['fileUrl'] = fileUrl;
       payload['fileName'] = fileName;

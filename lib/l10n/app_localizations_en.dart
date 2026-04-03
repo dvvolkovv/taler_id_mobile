@@ -2743,6 +2743,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messengerNoMessages => 'No messages';
 
   @override
+  String get you => 'You';
+
+  @override
   String get messengerThread => 'Thread';
 
   @override

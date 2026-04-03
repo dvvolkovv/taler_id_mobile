@@ -1074,10 +1074,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       .where((c) => c.id == widget.conversationId)
                       .firstOrNull;
                   final l10n = AppLocalizations.of(context)!;
+                  final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
-                  final name = isGroup
-                      ? (conv?.name ?? l10n.chatGroup)
-                      : conv?.otherUserName;
+                  final name = isSaved
+                      ? l10n.messengerSavedSection
+                      : isGroup
+                          ? (conv?.name ?? l10n.chatGroup)
+                          : conv?.otherUserName;
                   final avatarUrl =
                       isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
@@ -1093,30 +1096,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: rainbowColorFor(name ?? 'chat'), width: 2),
+                      border: Border.all(color: AppColors.of(context).primary, width: 2),
                     ),
                     child: CircleAvatar(
                       radius: 18,
-                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isGroup ? 0.4 : 0.2),
-                      child: avatarUrl != null && avatarUrl.isNotEmpty
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: avatarUrl,
-                                width: 36, height: 36, fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => isGroup
-                                    ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
-                                    : Text(
-                                        name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                        style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
-                                      ),
-                              ),
-                            )
-                          : isGroup
-                            ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
-                            : Text(
-                                name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
-                              ),
+                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isSaved ? 1.0 : isGroup ? 0.4 : 0.2),
+                      child: isSaved
+                          ? const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 18)
+                          : avatarUrl != null && avatarUrl.isNotEmpty
+                              ? ClipOval(
+                                  child: CachedNetworkImage(
+                                    imageUrl: avatarUrl,
+                                    width: 36, height: 36, fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => isGroup
+                                        ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
+                                        : Text(
+                                            name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                            style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                  ),
+                                )
+                              : isGroup
+                                  ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
+                                  : Text(
+                                      name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                      style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
+                                    ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1142,7 +1147,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             AppLocalizations.of(context)!.participantsCount(conv.participantCount),
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                           ),
-                        if (!isGroup! && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
+                        if (!isGroup && !isSaved && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
                           Text(
                             conv.otherUserStatus!,
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
@@ -1902,10 +1907,10 @@ class _MessageBubbleState extends State<_MessageBubble> {
         decoration: BoxDecoration(
           color: widget.isCurrentSearchMatch
               ? (widget.isMe
-                  ? AppColors.of(context).primary.withValues(alpha: 0.7)
+                  ? const Color(0xFF1E3A5F).withValues(alpha: 0.7)
                   : Colors.amber.withValues(alpha: 0.15))
               : (widget.isMe
-                  ? AppColors.of(context).primary
+                  ? const Color(0xFF1E3A5F)
                   : AppColors.of(context).card),
           borderRadius: widget.isMe
               ? (widget.isLastInGroup

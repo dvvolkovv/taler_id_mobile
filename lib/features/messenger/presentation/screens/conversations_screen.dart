@@ -868,7 +868,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         ),
                         child: CircleAvatar(
                           backgroundColor: colors.primary,
-                          child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 20),
+                          child: const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 20),
                         ),
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
