@@ -18,6 +18,7 @@ import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
 import 'saved_messages_screen.dart';
+import 'topics_list_screen.dart';
 
 enum _FilterTab { all, unread, personal, groups, channels }
 
@@ -814,59 +815,44 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
-                // Archived section — top of list
-                if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all) ...[
+                // Archived section — opens separate screen
+                if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
                   SliverToBoxAdapter(
-                    child: InkWell(
-                      onTap: () => setState(() => _showArchived = !_showArchived),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Архивировано',
-                                style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: colors.surface,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${archived.length}',
-                                style: TextStyle(color: colors.textSecondary, fontSize: 12),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              _showArchived ? Icons.expand_less : Icons.chevron_right,
-                              color: colors.textSecondary, size: 20,
-                            ),
-                          ],
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.textSecondary, width: 2),
                         ),
+                        child: CircleAvatar(
+                          backgroundColor: colors.surface,
+                          child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
+                        ),
+                      ),
+                      title: Text('Архивировано', style: TextStyle(
+                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text('${archived.length}',
+                          style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                      ),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => BlocProvider.value(
+                          value: context.read<MessengerBloc>(),
+                          child: _ArchivedChatsScreen(
+                            archivedIds: _archivedIds,
+                            onUnarchive: _toggleArchive,
+                          ),
+                        )),
                       ),
                     ),
                   ),
-                  if (_showArchived)
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => buildTile(archived[index]),
-                        childCount: archived.length,
-                      ),
-                    ),
-                ],
                 // Saved Messages (Избранное)
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
@@ -1184,7 +1170,18 @@ class _ConversationTile extends StatelessWidget {
           ],
         );
       }(),
-      onTap: () => context.push('/dashboard/messenger/${conversation.id}'),
+      onTap: () {
+        if (conversation.topicsEnabled && conversation.type == 'GROUP') {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => TopicsListScreen(
+              conversationId: conversation.id,
+              groupName: conversation.name ?? 'Группа',
+            ),
+          ));
+        } else {
+          context.push('/dashboard/messenger/${conversation.id}');
+        }
+      },
       onLongPress: onLongPress,
     );
   }
@@ -1218,6 +1215,97 @@ class _ConversationTile extends StatelessWidget {
     } catch (_) {
       return content;
     }
+  }
+}
+
+class _ArchivedChatsScreen extends StatelessWidget {
+  final Set<String> archivedIds;
+  final void Function(String) onUnarchive;
+  const _ArchivedChatsScreen({required this.archivedIds, required this.onUnarchive});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: const Text('Архив'),
+        backgroundColor: colors.background,
+      ),
+      body: BlocBuilder<MessengerBloc, MessengerState>(
+        builder: (context, state) {
+          final archived = state.conversations
+              .where((c) => archivedIds.contains(c.id))
+              .toList();
+          if (archived.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.archive_outlined, size: 64, color: colors.textSecondary),
+                  const SizedBox(height: 16),
+                  Text('Архив пуст', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                ],
+              ),
+            );
+          }
+          return ListView.builder(
+            itemCount: archived.length,
+            itemBuilder: (context, index) {
+              final conv = archived[index];
+              return Dismissible(
+                key: ValueKey('arch_${conv.id}'),
+                direction: DismissDirection.endToStart,
+                confirmDismiss: (_) async {
+                  onUnarchive(conv.id);
+                  return false;
+                },
+                background: Container(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 24),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Разархивировать', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.unarchive_outlined, color: Colors.green),
+                    ],
+                  ),
+                ),
+                child: _ConversationTile(
+                  conversation: conv,
+                  currentUserId: state.currentUserId,
+                  onLongPress: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: colors.card,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (ctx) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading: Icon(Icons.unarchive_outlined, color: Colors.green),
+                              title: Text('Разархивировать', style: TextStyle(color: colors.textPrimary)),
+                              onTap: () { Navigator.pop(ctx); onUnarchive(conv.id); },
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
