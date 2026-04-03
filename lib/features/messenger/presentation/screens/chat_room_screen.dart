@@ -3740,29 +3740,39 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
   }
 
   Future<void> _initVideo() async {
+    // Use network URL directly — more reliable on iOS than cache manager for videos
     try {
-      final file = await DefaultCacheManager().getSingleFile(widget.videoUrl);
+      _ctrl = vp.VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl),
+        httpHeaders: const {'User-Agent': 'TalerID/1.0'},
+      );
+      await _ctrl!.initialize();
       if (!mounted) return;
-      _ctrl = vp.VideoPlayerController.file(file)
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() => _initialized = true);
-            _ctrl!.play();
-            _scheduleHideControls();
-          }
-        });
+      setState(() => _initialized = true);
+      _ctrl!.play();
       _ctrl!.addListener(_onVideoUpdate);
-    } catch (_) {
-      if (!mounted) return;
-      _ctrl = vp.VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() => _initialized = true);
-            _ctrl!.play();
-            _scheduleHideControls();
-          }
-        });
-      _ctrl!.addListener(_onVideoUpdate);
+      _scheduleHideControls();
+    } catch (e) {
+      // Fallback: try via cache
+      try {
+        final file = await DefaultCacheManager().getSingleFile(widget.videoUrl);
+        if (!mounted) return;
+        _ctrl?.dispose();
+        _ctrl = vp.VideoPlayerController.file(file);
+        await _ctrl!.initialize();
+        if (!mounted) return;
+        setState(() => _initialized = true);
+        _ctrl!.play();
+        _ctrl!.addListener(_onVideoUpdate);
+        _scheduleHideControls();
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось воспроизвести видео')),
+          );
+          Navigator.of(context).pop();
+        }
+      }
     }
   }
 
@@ -3793,17 +3803,30 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
     setState(() => _savingVideo = true);
     final messenger = ScaffoldMessenger.of(context);
     try {
+      // Request permission first
+      final hasAccess = await Gal.hasAccess(toAlbum: true);
+      if (!hasAccess) {
+        final granted = await Gal.requestAccess(toAlbum: true);
+        if (!granted) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Нет доступа к галерее')),
+          );
+          if (mounted) setState(() => _savingVideo = false);
+          return;
+        }
+      }
       final dir = await getTemporaryDirectory();
-      final filePath = '${dir.path}/save_vid_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final ext = widget.videoUrl.split('?').first.split('.').last;
+      final filePath = '${dir.path}/save_vid_${DateTime.now().millisecondsSinceEpoch}.${ext.isNotEmpty ? ext : 'mp4'}';
       await Dio().download(widget.videoUrl, filePath);
       await Gal.putVideo(filePath);
       try { await File(filePath).delete(); } catch (_) {}
       messenger.showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.chatVideoSavedToGallery), duration: const Duration(seconds: 2)),
       );
-    } catch (_) {
+    } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.chatSavingError), duration: const Duration(seconds: 2)),
+        SnackBar(content: Text('${AppLocalizations.of(context)!.chatSavingError}: $e'), duration: const Duration(seconds: 3)),
       );
     }
     if (mounted) setState(() => _savingVideo = false);
