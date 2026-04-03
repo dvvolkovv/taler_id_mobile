@@ -814,30 +814,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
-                // Saved Messages (Избранное) — always first, styled like regular chat
-                if (_searchQuery.isEmpty)
-                  SliverToBoxAdapter(
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: colors.primary, width: 2),
-                        ),
-                        child: CircleAvatar(
-                          backgroundColor: colors.primary,
-                          child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 20),
-                        ),
-                      ),
-                      title: Text('Избранное', style: TextStyle(
-                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
-                      ),
-                    ),
-                  ),
-                // Archived section — above all chats
+                // Archived section — top of list
                 if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all) ...[
                   SliverToBoxAdapter(
                     child: InkWell(
@@ -890,6 +867,29 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                     ),
                 ],
+                // Saved Messages (Избранное)
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.primary, width: 2),
+                        ),
+                        child: CircleAvatar(
+                          backgroundColor: colors.primary,
+                          child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 20),
+                        ),
+                      ),
+                      title: Text('Избранное', style: TextStyle(
+                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                      ),
+                    ),
+                  ),
                 // Regular chats
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
