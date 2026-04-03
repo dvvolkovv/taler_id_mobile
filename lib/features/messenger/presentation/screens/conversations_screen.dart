@@ -814,30 +814,27 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
-                // Saved Messages (Избранное) — always first
+                // Saved Messages (Избранное) — always first, styled like regular chat
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              color: colors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 22),
-                          ),
-                          title: Text('Избранное', style: TextStyle(
-                            color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                          subtitle: Text('Сохранённые сообщения', style: TextStyle(
-                            color: colors.textSecondary, fontSize: 13)),
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
-                          ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.primary, width: 2),
                         ),
-                      ],
+                        child: CircleAvatar(
+                          backgroundColor: colors.primary,
+                          child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 20),
+                        ),
+                      ),
+                      title: Text('Избранное', style: TextStyle(
+                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                      ),
                     ),
                   ),
                 // Archived section — above all chats
@@ -893,6 +890,13 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                     ),
                 ],
+                // Regular chats
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => buildTile(filtered[index]),
+                    childCount: filtered.length,
+                  ),
+                ),
               ],
               // Message search results
               if (_searchQuery.length >= 2) ...[
