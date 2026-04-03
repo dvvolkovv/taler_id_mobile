@@ -853,7 +853,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                     ),
                   ),
-                // Saved Messages (Избранное)
+                // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
                     child: ListTile(
@@ -871,9 +871,18 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                       title: Text('Избранное', style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
-                      ),
+                      onTap: () async {
+                        try {
+                          final res = await sl<DioClient>().post(
+                            '/messenger/saved',
+                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                          );
+                          final convId = res['conversationId'] as String?;
+                          if (convId != null && context.mounted) {
+                            context.push('/dashboard/messenger/$convId');
+                          }
+                        } catch (_) {}
+                      },
                     ),
                   ),
                 // Regular chats
@@ -1218,10 +1227,31 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
-class _ArchivedChatsScreen extends StatelessWidget {
+class _ArchivedChatsScreen extends StatefulWidget {
   final Set<String> archivedIds;
   final void Function(String) onUnarchive;
   const _ArchivedChatsScreen({required this.archivedIds, required this.onUnarchive});
+
+  @override
+  State<_ArchivedChatsScreen> createState() => _ArchivedChatsScreenState();
+}
+
+class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
+  late Set<String> _localArchivedIds;
+
+  @override
+  void initState() {
+    super.initState();
+    _localArchivedIds = Set<String>.from(widget.archivedIds);
+  }
+
+  void _unarchive(String id) {
+    widget.onUnarchive(id);
+    setState(() => _localArchivedIds = {..._localArchivedIds}..remove(id));
+    if (_localArchivedIds.isEmpty) {
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1229,13 +1259,13 @@ class _ArchivedChatsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Архив'),
+        title: Text('Архив (${_localArchivedIds.length})'),
         backgroundColor: colors.background,
       ),
       body: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
           final archived = state.conversations
-              .where((c) => archivedIds.contains(c.id))
+              .where((c) => _localArchivedIds.contains(c.id))
               .toList();
           if (archived.isEmpty) {
             return Center(
@@ -1257,7 +1287,7 @@ class _ArchivedChatsScreen extends StatelessWidget {
                 key: ValueKey('arch_${conv.id}'),
                 direction: DismissDirection.endToStart,
                 confirmDismiss: (_) async {
-                  onUnarchive(conv.id);
+                  _unarchive(conv.id);
                   return false;
                 },
                 background: Container(
@@ -1291,7 +1321,7 @@ class _ArchivedChatsScreen extends StatelessWidget {
                             ListTile(
                               leading: Icon(Icons.unarchive_outlined, color: Colors.green),
                               title: Text('Разархивировать', style: TextStyle(color: colors.textPrimary)),
-                              onTap: () { Navigator.pop(ctx); onUnarchive(conv.id); },
+                              onTap: () { Navigator.pop(ctx); _unarchive(conv.id); },
                             ),
                             const SizedBox(height: 8),
                           ],
