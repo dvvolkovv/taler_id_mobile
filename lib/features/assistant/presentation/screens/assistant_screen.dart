@@ -404,7 +404,32 @@ class _AssistantScreenState extends State<AssistantScreen>
         'If says "meeting with [name]" — set type="CALL", find contact via get_conversations (match by otherUserName which includes aliases), pass contactIds.\n'
         'Types: CALL=meeting with link, EVENT=event, REMINDER=reminder.\n'
         'If asks "what do I have planned", "meetings today", "what\'s today" — call get_events with from=start of today (YYYY-MM-DDT00:00:00) and to=end of day (YYYY-MM-DDT23:59:59) and tell them.\n'
-        'For "this week" — from=today, to=7 days from now.';
+        'For "this week" — from=today, to=7 days from now.\n\n'
+        'CONTACTS MANAGEMENT:\n'
+        'If user asks "who are my contacts", "show contacts" — call get_contacts.\n'
+        'If user says "add [name] as contact", "send contact request to [name]":\n'
+        '1. Find userId via search_contacts\n'
+        '2. Send request via send_contact_request\n'
+        'If user asks "any contact requests?", "incoming requests" — call get_contact_requests.\n'
+        'If user says "accept request from [name]" or "reject request from [name]" — call respond_contact_request.\n'
+        'If user says "remove [name] from contacts" — call delete_contact (get userId from get_contacts).\n'
+        'If user says "block [name]" or "unblock [name]" — call block_contact.\n\n'
+        'CALL HISTORY:\n'
+        'If user asks "show call history", "recent calls", "missed calls" — call get_call_history.\n\n'
+        'SESSIONS:\n'
+        'If user asks "active sessions", "where am I logged in", "connected devices" — call get_sessions.\n'
+        'If user says "log out from [device]", "terminate session" — call terminate_session with sessionId.\n\n'
+        'GROUPS:\n'
+        'If user says "create a group with [names]" — use search_contacts to find userIds, then call create_group.\n'
+        'If user says "add [name] to group [groupName]" or "remove [name] from group" — call manage_group_members.\n\n'
+        'ORGANIZATIONS:\n'
+        'If user asks "my organizations", "which companies am I in" — call get_tenants.\n\n'
+        'KYC:\n'
+        'If user asks "my verification status", "is KYC complete", "identity verification" — call get_kyc_status.\n\n'
+        'REACTIONS:\n'
+        'If user says "react with [emoji] to [name]\'s message" — find conversation, get messageId from get_messages, then call react_to_message.\n\n'
+        'FORWARDING:\n'
+        'If user says "forward this message to [name]" — use forward_message with targetConversationId.';
   }
 
   void _onChannelOpen() {
@@ -628,6 +653,167 @@ class _AssistantScreenState extends State<AssistantScreen>
                 'eventId': {'type': 'string'},
               },
               'required': ['eventId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_contacts',
+            'description': 'Get list of accepted contacts (people the user has added). Returns name, userId, conversationId.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'send_contact_request',
+            'description': 'Send a contact request to a user by userId (find userId via search_contacts first).',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'userId': {'type': 'string', 'description': 'Target user ID'},
+              },
+              'required': ['userId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_contact_requests',
+            'description': 'Get incoming pending contact requests from other users.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'respond_contact_request',
+            'description': 'Accept or reject an incoming contact request.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'requestId': {'type': 'string'},
+                'action': {'type': 'string', 'enum': ['accept', 'reject']},
+              },
+              'required': ['requestId', 'action'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'delete_contact',
+            'description': 'Remove a contact by userId.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'userId': {'type': 'string'},
+              },
+              'required': ['userId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'block_contact',
+            'description': 'Block or unblock a user by userId.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'userId': {'type': 'string'},
+                'action': {'type': 'string', 'enum': ['block', 'unblock']},
+              },
+              'required': ['userId', 'action'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_call_history',
+            'description': 'Get recent call history (incoming and outgoing calls) with duration, status, caller/callee names.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'limit': {'type': 'integer', 'description': 'Number of calls to return (default 20)'},
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_sessions',
+            'description': 'Get list of active user sessions (devices logged in). Returns device, IP, last activity.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'terminate_session',
+            'description': 'Terminate (logout) a specific session by sessionId.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'sessionId': {'type': 'string'},
+              },
+              'required': ['sessionId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'create_group',
+            'description': 'Create a new group chat with specified members.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'name': {'type': 'string', 'description': 'Group name'},
+                'memberIds': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'description': 'Array of userIds to add to the group',
+                },
+              },
+              'required': ['name', 'memberIds'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'manage_group_members',
+            'description': 'Add or remove a member from a group conversation.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'userId': {'type': 'string'},
+                'action': {'type': 'string', 'enum': ['add', 'remove']},
+              },
+              'required': ['conversationId', 'userId', 'action'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_tenants',
+            'description': 'Get list of organizations/tenants the user belongs to.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'get_kyc_status',
+            'description': 'Get current KYC (identity verification) status of the user.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'react_to_message',
+            'description': 'Add an emoji reaction to a message in a conversation.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'messageId': {'type': 'string'},
+                'emoji': {'type': 'string', 'description': 'Emoji character, e.g. 👍 ❤️ 😂'},
+              },
+              'required': ['conversationId', 'messageId', 'emoji'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'forward_message',
+            'description': 'Forward a message content to another conversation.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'targetConversationId': {'type': 'string', 'description': 'Destination conversation ID'},
+                'content': {'type': 'string', 'description': 'Message text to forward'},
+              },
+              'required': ['targetConversationId', 'content'],
             },
           },
         ],
@@ -988,6 +1174,140 @@ class _AssistantScreenState extends State<AssistantScreen>
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         await client.delete('/calendar/${args['eventId']}');
         output = jsonEncode({'ok': true});
+      } else if (name == 'get_contacts') {
+        final data = await client.get<List<dynamic>>(
+          '/messenger/conversations',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        final contacts = (data ?? [])
+            .where((c) => (c as Map<String, dynamic>)['type'] == 'DIRECT')
+            .map((c) {
+          final m = c as Map<String, dynamic>;
+          return {
+            'userId': m['otherUserId'],
+            'name': m['otherUserName'],
+            'conversationId': m['id'],
+          };
+        }).toList();
+        output = jsonEncode(contacts);
+      } else if (name == 'send_contact_request') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final data = await client.post(
+          '/messenger/contacts/request',
+          data: {'receiverId': args['userId']},
+          fromJson: (d) => d,
+        );
+        output = jsonEncode({'ok': true, 'data': data});
+      } else if (name == 'get_contact_requests') {
+        final data = await client.get<List<dynamic>>(
+          '/messenger/contacts/requests',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'respond_contact_request') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final requestId = args['requestId'] as String;
+        final action = args['action'] as String;
+        await client.patch(
+          '/messenger/contacts/requests/$requestId/$action',
+          data: {},
+          fromJson: (d) => d,
+        );
+        output = jsonEncode({'ok': true, 'action': action});
+      } else if (name == 'delete_contact') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        await client.delete('/messenger/contacts/${args['userId']}');
+        output = jsonEncode({'ok': true});
+      } else if (name == 'block_contact') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final userId = args['userId'] as String;
+        final action = args['action'] as String;
+        if (action == 'block') {
+          await client.post('/messenger/contacts/$userId/block', data: {}, fromJson: (d) => d);
+        } else {
+          await client.delete('/messenger/contacts/$userId/block');
+        }
+        output = jsonEncode({'ok': true, 'action': action});
+      } else if (name == 'get_call_history') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final limit = args['limit'] as int? ?? 20;
+        final data = await client.get<dynamic>(
+          '/voice/call-history?limit=$limit',
+          fromJson: (d) => d,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'get_sessions') {
+        final data = await client.get<List<dynamic>>(
+          '/auth/sessions',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'terminate_session') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        await client.delete('/auth/sessions/${args['sessionId']}');
+        output = jsonEncode({'ok': true});
+      } else if (name == 'create_group') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final data = await client.post(
+          '/messenger/conversations/group',
+          data: {
+            'name': args['name'],
+            'memberIds': args['memberIds'],
+          },
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        output = jsonEncode(data);
+      } else if (name == 'manage_group_members') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final convId = args['conversationId'] as String;
+        final userId = args['userId'] as String;
+        final action = args['action'] as String;
+        if (action == 'add') {
+          await client.post(
+            '/messenger/conversations/$convId/members',
+            data: {'userId': userId},
+            fromJson: (d) => d,
+          );
+        } else {
+          await client.delete('/messenger/conversations/$convId/members/$userId');
+        }
+        output = jsonEncode({'ok': true, 'action': action});
+      } else if (name == 'get_tenants') {
+        final data = await client.get<List<dynamic>>(
+          '/tenant',
+          fromJson: (d) => d as List<dynamic>,
+        );
+        final slim = (data ?? []).map((t) {
+          final m = t as Map<String, dynamic>;
+          return {
+            'id': m['id'],
+            'name': m['name'],
+            'role': m['role'],
+            'membersCount': m['membersCount'],
+          };
+        }).toList();
+        output = jsonEncode(slim);
+      } else if (name == 'get_kyc_status') {
+        final data = await client.get(
+          '/kyc/status',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        output = jsonEncode(data);
+      } else if (name == 'react_to_message') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        sl<MessengerRemoteDataSource>().reactToMessage(
+          args['conversationId'] as String,
+          args['messageId'] as String,
+          args['emoji'] as String,
+        );
+        output = jsonEncode({'ok': true});
+      } else if (name == 'forward_message') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        sl<MessengerRemoteDataSource>().sendMessage(
+          args['targetConversationId'] as String,
+          args['content'] as String,
+        );
+        output = jsonEncode({'ok': true, 'message': 'forwarded'});
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
