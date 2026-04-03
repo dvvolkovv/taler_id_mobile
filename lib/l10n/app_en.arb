@@ -1098,5 +1098,164 @@
   "chatBlockedByYou": "You have blocked this user",
   "chatYouAreBlocked": "You have been blocked by this user",
   "chatNotContacts": "Add this user to contacts to message them",
-  "contactRevokeRequest": "Revoke request"
+  "contactRevokeRequest": "Revoke request",
+
+  "messengerPoll": "Poll",
+  "messengerCreatePoll": "Create Poll",
+  "messengerPollQuestion": "Question",
+  "messengerPollOption": "Option {number}",
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerPollAddOption": "Add option",
+  "messengerPollAnonymous": "Anonymous voting",
+  "messengerPollMultiple": "Multiple choice",
+  "messengerPollCreateError": "Failed to create poll",
+  "messengerPollUnavailable": "Poll unavailable",
+  "messengerPollMultipleNote": "You can select multiple",
+  "messengerPollVotes": "{count} votes",
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerVideoMessage": "Video message",
+  "messengerVideoRecordError": "Video recording error",
+  "messengerVideoPlaybackError": "Could not play video",
+  "messengerGalleryAccessError": "No access to gallery",
+  "messengerSearchInChat": "Search in chat...",
+  "messengerSaveToFavorites": "Save to favorites",
+  "messengerSavedToFavorites": "Saved to favorites",
+  "messengerSearchInMessages": "Search in messages...",
+  "messengerFoundInMessages": "Found in messages ({count})",
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerGroupDefault": "Group",
+  "messengerUserDefault": "User",
+  "messengerPin": "Pin",
+  "messengerUnpin": "Unpin",
+  "messengerArchive": "Archive",
+  "messengerUnarchive": "Unarchive",
+  "messengerDeleteChat": "Delete chat",
+  "messengerDeleteChatTitle": "Delete chat?",
+  "messengerDeleteChatConfirm": "Delete chat with {name}? This cannot be undone.",
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerCreateChannel": "Create Channel",
+  "messengerChannelName": "Name",
+  "messengerChannelDescription": "Description (optional)",
+  "messengerChannelCreateError": "Failed to create channel",
+  "messengerFilterAll": "All",
+  "messengerFilterUnread": "Unread",
+  "messengerFilterPersonal": "Personal",
+  "messengerFilterGroups": "Groups",
+  "messengerFilterChannels": "Channels",
+  "messengerArchivedSection": "Archived",
+  "messengerSavedSection": "Favorites",
+  "messengerArchiveTitle": "Archive ({count})",
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerArchiveEmpty": "Archive is empty",
+  "messengerYouPrefix": "You: {message}",
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerMissedCall": "Missed call",
+  "messengerSavedTitle": "Favorites",
+  "messengerNoSavedMessages": "No saved messages",
+  "messengerSavedHint": "Long press a message → \"Save to favorites\"",
+  "messengerDefaultFile": "File",
+  "messengerTopicDefault": "General",
+  "messengerTopicNew": "New Topic",
+  "messengerTopicNameHint": "Topic name",
+  "messengerTopicIcon": "Icon",
+  "messengerTopicCount": "{count} topics",
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerNoTopics": "No topics",
+  "messengerNoMessages": "No messages",
+  "messengerThread": "Thread",
+  "messengerThreadReply": "reply",
+  "messengerThreadReplies": "replies",
+  "messengerThreadReplyCount": "{count} {word}",
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerNoReplies": "No replies",
+  "messengerReplyHint": "Reply to thread...",
+  "messengerContactName": "Contact name",
+  "messengerOriginalName": "Original name: {name}",
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerDisplayName": "Display name",
+  "messengerShareContact": "Contact in Taler ID: {name}",
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "messengerAutoDelete": "Auto-delete messages",
+  "messengerAutoDeleteOff": "Off",
+  "messengerAutoDelete7d": "7 days",
+  "messengerAutoDelete30d": "30 days",
+  "messengerAutoDelete90d": "90 days",
+  "messengerAutoDeleteDays": "{count} days",
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "messengerSettingsHeader": "Settings",
+  "messengerAdminOnly": "Admin-only posting",
+  "messengerAdminOnlyDesc": "Members can only read",
+  "messengerTopics": "Topics",
+  "messengerTopicsDesc": "Split chat into topics",
+  "cancel": "Cancel",
+  "create": "Create"
 }

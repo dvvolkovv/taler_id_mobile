@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class _Topic {
   final String id;
@@ -80,7 +82,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       if (mounted) setState(() => _topics = list);
     } else {
       // Create default "General" topic
-      final general = _Topic(id: 'general', title: 'Общая', icon: '💬');
+      final general = _Topic(id: 'general', title: AppLocalizations.of(context)!.messengerTopicDefault, icon: '💬');
       setState(() => _topics = [general]);
       _saveTopics();
     }
@@ -102,7 +104,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: colors.card,
-          title: Text('Новая тема', style: TextStyle(color: colors.textPrimary)),
+          title: Text(AppLocalizations.of(context)!.messengerTopicNew, style: TextStyle(color: colors.textPrimary)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -111,7 +113,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 autofocus: true,
                 style: TextStyle(color: colors.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Название темы',
+                  hintText: AppLocalizations.of(context)!.messengerTopicNameHint,
                   hintStyle: TextStyle(color: colors.textSecondary),
                   border: const OutlineInputBorder(),
                   focusedBorder: OutlineInputBorder(
@@ -120,7 +122,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Иконка', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+              Text(AppLocalizations.of(context)!.messengerTopicIcon, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -144,7 +146,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+              child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -163,7 +165,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 _saveTopics();
                 Navigator.pop(ctx);
               },
-              child: const Text('Создать'),
+              child: Text(AppLocalizations.of(context)!.create),
             ),
           ],
         ),
@@ -181,14 +183,14 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.groupName, style: const TextStyle(fontSize: 16)),
-            Text('${_topics.length} тем', style: TextStyle(fontSize: 12, color: colors.textSecondary, fontWeight: FontWeight.normal)),
+            Text(AppLocalizations.of(context)!.messengerTopicCount(_topics.length), style: TextStyle(fontSize: 12, color: colors.textSecondary, fontWeight: FontWeight.normal)),
           ],
         ),
         backgroundColor: colors.background,
       ),
       body: _topics.isEmpty
           ? Center(
-              child: Text('Нет тем', style: TextStyle(color: colors.textSecondary)),
+              child: Text(AppLocalizations.of(context)!.messengerNoTopics, style: TextStyle(color: colors.textSecondary)),
             )
           : ListView.separated(
               padding: const EdgeInsets.all(16),
@@ -217,7 +219,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   subtitle: topic.lastMessage != null
                       ? Text(topic.lastMessage!, maxLines: 1, overflow: TextOverflow.ellipsis,
                           style: TextStyle(color: colors.textSecondary, fontSize: 13))
-                      : Text('Нет сообщений', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                      : Text(AppLocalizations.of(context)!.messengerNoMessages, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                   trailing: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -239,12 +241,9 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                     ],
                   ),
                   onTap: () {
-                    // TODO: Navigate to ChatRoomScreen with topicId filter
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Тема "${topic.title}" — нужна поддержка бэкенда'),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    context.push(
+                      '/dashboard/messenger/${widget.conversationId}',
+                      extra: {'topicId': topic.id, 'topicTitle': '${topic.icon} ${topic.title}'},
                     );
                   },
                 );

@@ -43,7 +43,9 @@ import '../../data/datasources/messenger_remote_datasource.dart';
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
   final List? sharedFiles;
-  const ChatRoomScreen({super.key, required this.conversationId, this.sharedFiles});
+  final String? topicId;
+  final String? topicTitle;
+  const ChatRoomScreen({super.key, required this.conversationId, this.sharedFiles, this.topicId, this.topicTitle});
 
   @override
   State<ChatRoomScreen> createState() => _ChatRoomScreenState();
@@ -404,7 +406,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
               ListTile(
                 leading: Icon(Icons.poll_rounded, color: colors.primary),
-                title: Text('Опрос', style: TextStyle(color: colors.textPrimary)),
+                title: Text(AppLocalizations.of(context)!.messengerPoll, style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _showCreatePoll(); },
               ),
             ],
@@ -446,14 +448,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('Создать опрос', style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(AppLocalizations.of(context)!.messengerCreatePoll, style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 TextField(
                   controller: questionCtrl,
                   autofocus: true,
                   style: TextStyle(color: colors.textPrimary),
                   decoration: InputDecoration(
-                    labelText: 'Вопрос',
+                    labelText: AppLocalizations.of(context)!.messengerPollQuestion,
                     border: const OutlineInputBorder(),
                     focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
                   ),
@@ -468,7 +470,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           controller: optionCtrls[i],
                           style: TextStyle(color: colors.textPrimary),
                           decoration: InputDecoration(
-                            labelText: 'Вариант ${i + 1}',
+                            labelText: AppLocalizations.of(context)!.messengerPollOption(i + 1),
                             border: const OutlineInputBorder(),
                             focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
                           ),
@@ -486,19 +488,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   TextButton.icon(
                     onPressed: () => setSheetState(() => optionCtrls.add(TextEditingController())),
                     icon: Icon(Icons.add, color: colors.primary),
-                    label: Text('Добавить вариант', style: TextStyle(color: colors.primary)),
+                    label: Text(AppLocalizations.of(context)!.messengerPollAddOption, style: TextStyle(color: colors.primary)),
                   ),
                 const SizedBox(height: 8),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('Анонимное голосование', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                  title: Text(AppLocalizations.of(context)!.messengerPollAnonymous, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                   value: isAnonymous,
                   activeColor: colors.primary,
                   onChanged: (v) => setSheetState(() => isAnonymous = v),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text('Несколько вариантов', style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                  title: Text(AppLocalizations.of(context)!.messengerPollMultiple, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
                   value: isMultiple,
                   activeColor: colors.primary,
                   onChanged: (v) => setSheetState(() => isMultiple = v),
@@ -527,12 +529,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Ошибка создания опроса'), backgroundColor: colors.error),
+                            SnackBar(content: Text(AppLocalizations.of(context)!.messengerPollCreateError), backgroundColor: colors.error),
                           );
                         }
                       }
                     },
-                    child: const Text('Создать', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(AppLocalizations.of(context)!.create, style: const TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -787,6 +789,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         thumbnailMediumUrl: result.thumbnailMediumUrl,
         thumbnailLargeUrl: result.thumbnailLargeUrl,
         fileRecordId: result.fileRecordId,
+        topicId: widget.topicId,
       ));
       _cancelReply();
     } catch (e) {
@@ -824,7 +827,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       final who = _replyToSenderName != null ? '$_replyToSenderName: ' : '';
       content = '↩ $who«$q»\n$text';
     }
-    context.read<MessengerBloc>().add(SendMessage(widget.conversationId, content));
+    context.read<MessengerBloc>().add(SendMessage(widget.conversationId, content, topicId: widget.topicId));
     // Stop typing indicator on send
     if (_isTypingSent) {
       _isTypingSent = false;
@@ -878,6 +881,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fileName: res['fileName'] as String,
         fileSize: res['fileSize'] as int?,
         fileType: 'audio',
+        topicId: widget.topicId,
       ));
       file.deleteSync();
     } catch (e) {
@@ -909,16 +913,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       if (!mounted) return;
       context.read<MessengerBloc>().add(SendMessage(
         widget.conversationId,
-        'Видеосообщение',
+        AppLocalizations.of(context)!.messengerVideoMessage,
         fileUrl: res['fileUrl'] as String,
         fileName: res['fileName'] as String,
         fileSize: res['fileSize'] as int?,
         fileType: 'video_note',
+        thumbnailSmallUrl: res['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: res['thumbnailMediumUrl'] as String?,
+        topicId: widget.topicId,
       ));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка записи видео'), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(AppLocalizations.of(context)!.messengerVideoRecordError), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -1052,7 +1059,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 style: TextStyle(
                     color: AppColors.of(context).textPrimary, fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: 'Поиск в чате...',
+                  hintText: AppLocalizations.of(context)!.messengerSearchInChat,
                   hintStyle:
                       TextStyle(color: AppColors.of(context).textSecondary),
                   border: InputBorder.none,
@@ -1118,9 +1125,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(name != null && name.isNotEmpty ? name : l10n.chatDialog,
-                            overflow: TextOverflow.ellipsis),
-                        if (isGroup && conv != null)
+                        Text(
+                          widget.topicTitle != null
+                              ? widget.topicTitle!
+                              : (name != null && name.isNotEmpty ? name : l10n.chatDialog),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (widget.topicTitle != null && name != null)
+                          Text(
+                            name,
+                            style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        else if (isGroup && conv != null)
                           Text(
                             AppLocalizations.of(context)!.participantsCount(conv.participantCount),
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
@@ -1244,7 +1261,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         },
         child: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
-          final messages = state.messages[widget.conversationId] ?? [];
+          final allMsgs = state.messages[widget.conversationId] ?? [];
+          final messages = widget.topicId != null
+              ? allMsgs.where((m) => m.topicId == widget.topicId).toList()
+              : allMsgs;
           final conv = state.conversations
               .where((c) => c.id == widget.conversationId)
               .firstOrNull;
@@ -1356,7 +1376,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ));
                                 },
                                 currentUserId: state.currentUserId,
-                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call'))) ? _startCall : null,
+                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startCall : null,
                               ),
                             ],
                           );
@@ -1964,7 +1984,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                                   children: [
                                     const Icon(Icons.play_circle_outline, size: 48, color: Colors.white70),
                                     const SizedBox(height: 4),
-                                    Text('Видеосообщение', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                    Text(AppLocalizations.of(context)!.messengerVideoMessage, style: TextStyle(color: Colors.white70, fontSize: 11)),
                                   ],
                                 ),
                               ),
@@ -2256,7 +2276,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             ),
             ListTile(
               leading: Icon(Icons.bookmark_add_outlined, color: colors.textSecondary),
-              title: Text('В избранное', style: TextStyle(color: colors.textPrimary)),
+              title: Text(AppLocalizations.of(context)!.messengerSaveToFavorites, style: TextStyle(color: colors.textPrimary)),
               onTap: () async {
                 Navigator.pop(ctx);
                 await _saveToFavorites(context);
@@ -2419,7 +2439,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
       });
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Сохранено в избранное'), duration: Duration(seconds: 2)),
+          SnackBar(content: Text(AppLocalizations.of(context)!.messengerSavedToFavorites), duration: const Duration(seconds: 2)),
         );
       }
     } catch (_) {}
@@ -2471,7 +2491,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
       text = widget.message.content;
     }
 
-    final isMissedCall = text.contains('Пропущенный звонок') || text.contains('Missed call');
+    final isMissedCall = text.contains('Пропущенный звонок') || text.contains('Missed call') || text.contains(AppLocalizations.of(context)!.messengerMissedCall);
     final colors = AppColors.of(context);
 
     if (isMissedCall) {
@@ -3768,7 +3788,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Не удалось воспроизвести видео')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.messengerVideoPlaybackError)),
           );
           Navigator.of(context).pop();
         }
@@ -3809,7 +3829,7 @@ class _FullScreenVideoPlayerState extends State<_FullScreenVideoPlayer> {
         final granted = await Gal.requestAccess(toAlbum: true);
         if (!granted) {
           messenger.showSnackBar(
-            const SnackBar(content: Text('Нет доступа к галерее')),
+            SnackBar(content: Text(AppLocalizations.of(context)!.messengerGalleryAccessError)),
           );
           if (mounted) setState(() => _savingVideo = false);
           return;
@@ -3976,7 +3996,7 @@ class _PollWidgetState extends State<_PollWidget> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     if (_loading) return const Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2));
-    if (_pollData == null) return Text('Опрос недоступен', style: TextStyle(color: colors.textSecondary));
+    if (_pollData == null) return Text(AppLocalizations.of(context)!.messengerPollUnavailable, style: TextStyle(color: colors.textSecondary));
 
     final question = _pollData!['question'] as String? ?? '';
     final options = (_pollData!['options'] as List?) ?? [];
@@ -4001,7 +4021,7 @@ class _PollWidgetState extends State<_PollWidget> {
         if (isMultiple)
           Padding(
             padding: const EdgeInsets.only(top: 2),
-            child: Text('Можно выбрать несколько', style: TextStyle(
+            child: Text(AppLocalizations.of(context)!.messengerPollMultipleNote, style: TextStyle(
               color: widget.isMe ? Colors.white54 : colors.textSecondary, fontSize: 11)),
           ),
         const SizedBox(height: 8),
@@ -4051,7 +4071,7 @@ class _PollWidgetState extends State<_PollWidget> {
             ),
           );
         }),
-        Text('$totalVotes голосов', style: TextStyle(
+        Text(AppLocalizations.of(context)!.messengerPollVotes(totalVotes), style: TextStyle(
           color: widget.isMe ? Colors.white54 : colors.textSecondary, fontSize: 11)),
       ],
     );

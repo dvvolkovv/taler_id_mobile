@@ -65,7 +65,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Тред'),
+        title: Text(AppLocalizations.of(context)!.messengerThread),
         backgroundColor: colors.background,
       ),
       body: Column(
@@ -102,7 +102,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                         Icon(Icons.attach_file, size: 14, color: colors.textSecondary),
                         const SizedBox(width: 4),
                         Flexible(
-                          child: Text(msg.fileName ?? 'Файл',
+                          child: Text(msg.fileName ?? AppLocalizations.of(context)!.messengerDefaultFile,
                               style: TextStyle(color: colors.textSecondary, fontSize: 13),
                               overflow: TextOverflow.ellipsis),
                         ),
@@ -123,7 +123,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                   Icon(Icons.subdirectory_arrow_right_rounded, size: 16, color: colors.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    '${threadReplies.length} ${threadReplies.length == 1 ? 'ответ' : 'ответов'}',
+                    AppLocalizations.of(context)!.messengerThreadReplyCount(threadReplies.length, threadReplies.length == 1 ? AppLocalizations.of(context)!.messengerThreadReply : AppLocalizations.of(context)!.messengerThreadReplies),
                     style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 ],
@@ -169,7 +169,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
           ] else
             Expanded(
               child: Center(
-                child: Text('Нет ответов', style: TextStyle(color: colors.textSecondary)),
+                child: Text(AppLocalizations.of(context)!.messengerNoReplies, style: TextStyle(color: colors.textSecondary)),
               ),
             ),
 
@@ -188,7 +188,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                       controller: _ctrl,
                       style: TextStyle(color: colors.textPrimary),
                       decoration: InputDecoration(
-                        hintText: 'Ответить в тред...',
+                        hintText: AppLocalizations.of(context)!.messengerReplyHint,
                         hintStyle: TextStyle(color: colors.textSecondary),
                         border: InputBorder.none,
                       ),

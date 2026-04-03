@@ -2567,4 +2567,254 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get contactRevokeRequest => 'Отозвать запрос';
+
+  @override
+  String get messengerPoll => 'Опрос';
+
+  @override
+  String get messengerCreatePoll => 'Создать опрос';
+
+  @override
+  String get messengerPollQuestion => 'Вопрос';
+
+  @override
+  String messengerPollOption(int number) {
+    return 'Вариант $number';
+  }
+
+  @override
+  String get messengerPollAddOption => 'Добавить вариант';
+
+  @override
+  String get messengerPollAnonymous => 'Анонимное голосование';
+
+  @override
+  String get messengerPollMultiple => 'Несколько вариантов';
+
+  @override
+  String get messengerPollCreateError => 'Ошибка создания опроса';
+
+  @override
+  String get messengerPollUnavailable => 'Опрос недоступен';
+
+  @override
+  String get messengerPollMultipleNote => 'Можно выбрать несколько';
+
+  @override
+  String messengerPollVotes(int count) {
+    return '$count голосов';
+  }
+
+  @override
+  String get messengerVideoMessage => 'Видеосообщение';
+
+  @override
+  String get messengerVideoRecordError => 'Ошибка записи видео';
+
+  @override
+  String get messengerVideoPlaybackError => 'Не удалось воспроизвести видео';
+
+  @override
+  String get messengerGalleryAccessError => 'Нет доступа к галерее';
+
+  @override
+  String get messengerSearchInChat => 'Поиск в чате...';
+
+  @override
+  String get messengerSaveToFavorites => 'В избранное';
+
+  @override
+  String get messengerSavedToFavorites => 'Сохранено в избранное';
+
+  @override
+  String get messengerSearchInMessages => 'Поиск в сообщениях...';
+
+  @override
+  String messengerFoundInMessages(int count) {
+    return 'Найдено в сообщениях ($count)';
+  }
+
+  @override
+  String get messengerGroupDefault => 'Группа';
+
+  @override
+  String get messengerUserDefault => 'Пользователь';
+
+  @override
+  String get messengerPin => 'Закрепить';
+
+  @override
+  String get messengerUnpin => 'Открепить';
+
+  @override
+  String get messengerArchive => 'Архивировать';
+
+  @override
+  String get messengerUnarchive => 'Разархивировать';
+
+  @override
+  String get messengerDeleteChat => 'Удалить чат';
+
+  @override
+  String get messengerDeleteChatTitle => 'Удалить чат?';
+
+  @override
+  String messengerDeleteChatConfirm(String name) {
+    return 'Удалить чат с $name? Это действие нельзя отменить.';
+  }
+
+  @override
+  String get messengerCreateChannel => 'Создать канал';
+
+  @override
+  String get messengerChannelName => 'Название';
+
+  @override
+  String get messengerChannelDescription => 'Описание (необязательно)';
+
+  @override
+  String get messengerChannelCreateError => 'Ошибка создания канала';
+
+  @override
+  String get messengerFilterAll => 'Все';
+
+  @override
+  String get messengerFilterUnread => 'Непрочитанные';
+
+  @override
+  String get messengerFilterPersonal => 'Личные';
+
+  @override
+  String get messengerFilterGroups => 'Группы';
+
+  @override
+  String get messengerFilterChannels => 'Каналы';
+
+  @override
+  String get messengerArchivedSection => 'Архивировано';
+
+  @override
+  String get messengerSavedSection => 'Избранное';
+
+  @override
+  String messengerArchiveTitle(int count) {
+    return 'Архив ($count)';
+  }
+
+  @override
+  String get messengerArchiveEmpty => 'Архив пуст';
+
+  @override
+  String messengerYouPrefix(String message) {
+    return 'Вы: $message';
+  }
+
+  @override
+  String get messengerMissedCall => 'Пропущенный звонок';
+
+  @override
+  String get messengerSavedTitle => 'Избранное';
+
+  @override
+  String get messengerNoSavedMessages => 'Нет сохранённых сообщений';
+
+  @override
+  String get messengerSavedHint => 'Зажмите сообщение → \"В избранное\"';
+
+  @override
+  String get messengerDefaultFile => 'Файл';
+
+  @override
+  String get messengerTopicDefault => 'Общая';
+
+  @override
+  String get messengerTopicNew => 'Новая тема';
+
+  @override
+  String get messengerTopicNameHint => 'Название темы';
+
+  @override
+  String get messengerTopicIcon => 'Иконка';
+
+  @override
+  String messengerTopicCount(int count) {
+    return '$count тем';
+  }
+
+  @override
+  String get messengerNoTopics => 'Нет тем';
+
+  @override
+  String get messengerNoMessages => 'Нет сообщений';
+
+  @override
+  String get messengerThread => 'Тред';
+
+  @override
+  String get messengerThreadReply => 'ответ';
+
+  @override
+  String get messengerThreadReplies => 'ответов';
+
+  @override
+  String messengerThreadReplyCount(int count, String word) {
+    return '$count $word';
+  }
+
+  @override
+  String get messengerNoReplies => 'Нет ответов';
+
+  @override
+  String get messengerReplyHint => 'Ответить в тред...';
+
+  @override
+  String get messengerContactName => 'Имя контакта';
+
+  @override
+  String messengerOriginalName(String name) {
+    return 'Оригинальное имя: $name';
+  }
+
+  @override
+  String get messengerDisplayName => 'Отображаемое имя';
+
+  @override
+  String messengerShareContact(String name) {
+    return 'Контакт в Taler ID: $name';
+  }
+
+  @override
+  String get messengerAutoDelete => 'Авто-удаление сообщений';
+
+  @override
+  String get messengerAutoDeleteOff => 'Выключено';
+
+  @override
+  String get messengerAutoDelete7d => '7 дней';
+
+  @override
+  String get messengerAutoDelete30d => '30 дней';
+
+  @override
+  String get messengerAutoDelete90d => '90 дней';
+
+  @override
+  String messengerAutoDeleteDays(int count) {
+    return '$count дней';
+  }
+
+  @override
+  String get messengerSettingsHeader => 'Настройки';
+
+  @override
+  String get messengerAdminOnly => 'Только админы пишут';
+
+  @override
+  String get messengerAdminOnlyDesc => 'Участники могут только читать';
+
+  @override
+  String get messengerTopics => 'Темы';
+
+  @override
+  String get messengerTopicsDesc => 'Разделить чат на темы';
 }

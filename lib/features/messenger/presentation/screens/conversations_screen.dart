@@ -250,7 +250,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
     final isPinned = _pinnedIds.contains(conv.id);
     final isArchived = _archivedIds.contains(conv.id);
     final isGroup = conv.type == 'GROUP';
-    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    final l10n = AppLocalizations.of(context)!;
+    final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -281,20 +282,20 @@ class _ConversationsViewState extends State<_ConversationsView> {
               ListTile(
                 leading: Icon(isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                     color: colors.primary),
-                title: Text(isPinned ? 'Открепить' : 'Закрепить',
+                title: Text(isPinned ? l10n.messengerUnpin : l10n.messengerPin,
                     style: TextStyle(color: colors.textPrimary)),
                 onTap: () { Navigator.pop(ctx); _togglePin(conv.id); },
               ),
             ListTile(
               leading: Icon(isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
                   color: colors.textSecondary),
-              title: Text(isArchived ? 'Разархивировать' : 'Архивировать',
+              title: Text(isArchived ? l10n.messengerUnarchive : l10n.messengerArchive,
                   style: TextStyle(color: colors.textPrimary)),
               onTap: () { Navigator.pop(ctx); _toggleArchive(conv.id); },
             ),
             ListTile(
               leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
-              title: Text('Удалить чат', style: TextStyle(color: Colors.red.shade400)),
+              title: Text(l10n.messengerDeleteChat, style: TextStyle(color: Colors.red.shade400)),
               onTap: () {
                 Navigator.pop(ctx);
                 _confirmDeleteChat(context, conv);
@@ -310,27 +311,28 @@ class _ConversationsViewState extends State<_ConversationsView> {
   void _confirmDeleteChat(BuildContext context, ConversationEntity conv) {
     final colors = AppColors.of(context);
     final isGroup = conv.type == 'GROUP';
-    final name = isGroup ? (conv.name ?? 'Группа') : (conv.otherUserName ?? 'Пользователь');
+    final l10n = AppLocalizations.of(context)!;
+    final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.card,
-        title: Text('Удалить чат?', style: TextStyle(color: colors.textPrimary)),
+        title: Text(l10n.messengerDeleteChatTitle, style: TextStyle(color: colors.textPrimary)),
         content: Text(
-          'Удалить чат с $name? Это действие нельзя отменить.',
+          l10n.messengerDeleteChatConfirm(name),
           style: TextStyle(color: colors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               context.read<MessengerBloc>().add(DeleteGroup(conv.id));
             },
-            child: Text('Удалить', style: TextStyle(color: Colors.red.shade400)),
+            child: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
           ),
         ],
       ),
@@ -352,7 +354,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colors.card,
-        title: Text('Создать канал', style: TextStyle(color: colors.textPrimary)),
+        title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: colors.textPrimary)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -361,7 +363,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
               autofocus: true,
               style: TextStyle(color: colors.textPrimary),
               decoration: InputDecoration(
-                labelText: 'Название',
+                labelText: AppLocalizations.of(context)!.messengerChannelName,
                 border: const OutlineInputBorder(),
                 focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
               ),
@@ -372,7 +374,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
               style: TextStyle(color: colors.textPrimary),
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Описание (необязательно)',
+                labelText: AppLocalizations.of(context)!.messengerChannelDescription,
                 border: const OutlineInputBorder(),
                 focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: colors.primary)),
               ),
@@ -382,7 +384,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Отмена', style: TextStyle(color: colors.textSecondary)),
+            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: colors.primary, foregroundColor: Colors.black),
@@ -400,12 +402,12 @@ class _ConversationsViewState extends State<_ConversationsView> {
               } catch (_) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: const Text('Ошибка создания канала'), backgroundColor: colors.error),
+                    SnackBar(content: Text(AppLocalizations.of(context)!.messengerChannelCreateError), backgroundColor: colors.error),
                   );
                 }
               }
             },
-            child: const Text('Создать'),
+            child: Text(AppLocalizations.of(context)!.create),
           ),
         ],
       ),
@@ -468,7 +470,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
                     child: Icon(Icons.campaign_rounded, color: AppColors.of(context).primary),
                   ),
-                  title: Text('Создать канал', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _showCreateChannel(context);
@@ -636,7 +638,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     Icon(isPinned ? Icons.push_pin_outlined : Icons.push_pin,
                         color: colors.primary),
                     const SizedBox(width: 8),
-                    Text(isPinned ? 'Открепить' : 'Закрепить',
+                    Text(isPinned ? AppLocalizations.of(context)!.messengerUnpin : AppLocalizations.of(context)!.messengerPin,
                         style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -650,7 +652,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(isArchived ? 'Разархивировать' : 'Архивировать',
+                    Text(isArchived ? AppLocalizations.of(context)!.messengerUnarchive : AppLocalizations.of(context)!.messengerArchive,
                         style: TextStyle(
                           color: isArchived ? Colors.green : Colors.orange,
                           fontWeight: FontWeight.w600,
@@ -760,32 +762,32 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                     children: [
                       _TabChip(
-                        label: 'Все',
+                        label: AppLocalizations.of(context)!.messengerFilterAll,
                         selected: _activeFilter == _FilterTab.all,
                         onTap: () => setState(() => _activeFilter = _FilterTab.all),
                       ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Непрочитанные',
+                        label: AppLocalizations.of(context)!.messengerFilterUnread,
                         selected: _activeFilter == _FilterTab.unread,
                         badge: _activeFilter != _FilterTab.unread && totalUnread > 0 ? totalUnread : null,
                         onTap: () => setState(() => _activeFilter = _FilterTab.unread),
                       ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Личные',
+                        label: AppLocalizations.of(context)!.messengerFilterPersonal,
                         selected: _activeFilter == _FilterTab.personal,
                         onTap: () => setState(() => _activeFilter = _FilterTab.personal),
                       ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Группы',
+                        label: AppLocalizations.of(context)!.messengerFilterGroups,
                         selected: _activeFilter == _FilterTab.groups,
                         onTap: () => setState(() => _activeFilter = _FilterTab.groups),
                       ),
                       const SizedBox(width: 8),
                       _TabChip(
-                        label: 'Каналы',
+                        label: AppLocalizations.of(context)!.messengerFilterChannels,
                         selected: _activeFilter == _FilterTab.channels,
                         onTap: () => setState(() => _activeFilter = _FilterTab.channels),
                       ),
@@ -831,7 +833,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                           child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
                         ),
                       ),
-                      title: Text('Архивировано', style: TextStyle(
+                      title: Text(AppLocalizations.of(context)!.messengerArchivedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -869,7 +871,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                           child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 20),
                         ),
                       ),
-                      title: Text('Избранное', style: TextStyle(
+                      title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
                       onTap: () async {
                         try {
@@ -903,7 +905,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         Icon(Icons.message_outlined, size: 16, color: colors.textSecondary),
                         const SizedBox(width: 8),
                         Text(
-                          _messageSearching ? 'Поиск в сообщениях...' : 'Найдено в сообщениях (${_messageSearchResults.length})',
+                          _messageSearching ? AppLocalizations.of(context)!.messengerSearchInMessages : AppLocalizations.of(context)!.messengerFoundInMessages(_messageSearchResults.length),
                           style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ],
@@ -1052,7 +1054,7 @@ class _ConversationTile extends StatelessWidget {
         }
         if (conversation.lastMessageSenderId != null &&
             conversation.lastMessageSenderId == currentUserId) {
-          subtitleText = 'Вы: $displayMsg';
+          subtitleText = AppLocalizations.of(context)!.messengerYouPrefix(displayMsg);
         } else if (isGroup && conversation.lastMessageSenderName != null) {
           subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
         } else {
@@ -1115,7 +1117,7 @@ class _ConversationTile extends StatelessWidget {
       trailing: () {
         final isMissedCall = conversation.lastMessageIsSystem &&
             lastMsg != null &&
-            (lastMsg.contains('Пропущенный звонок') || lastMsg.contains('Missed call')) &&
+            (lastMsg.contains(AppLocalizations.of(context)!.messengerMissedCall) || lastMsg.contains('Missed call') || lastMsg.contains('Пропущенный звонок')) &&
             conversation.lastMessageSenderId != currentUserId &&
             conversation.unreadCount > 0;
         if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
@@ -1184,7 +1186,7 @@ class _ConversationTile extends StatelessWidget {
           Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => TopicsListScreen(
               conversationId: conversation.id,
-              groupName: conversation.name ?? 'Группа',
+              groupName: conversation.name ?? AppLocalizations.of(context)!.messengerGroupDefault,
             ),
           ));
         } else {
@@ -1259,7 +1261,7 @@ class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text('Архив (${_localArchivedIds.length})'),
+        title: Text(AppLocalizations.of(context)!.messengerArchiveTitle(_localArchivedIds.length)),
         backgroundColor: colors.background,
       ),
       body: BlocBuilder<MessengerBloc, MessengerState>(
@@ -1274,7 +1276,7 @@ class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
                 children: [
                   Icon(Icons.archive_outlined, size: 64, color: colors.textSecondary),
                   const SizedBox(height: 16),
-                  Text('Архив пуст', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                  Text(AppLocalizations.of(context)!.messengerArchiveEmpty, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
                 ],
               ),
             );
@@ -1297,7 +1299,7 @@ class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('Разархивировать', style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                      Text(AppLocalizations.of(context)!.messengerUnarchive, style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
                       const SizedBox(width: 8),
                       const Icon(Icons.unarchive_outlined, color: Colors.green),
                     ],
@@ -1320,7 +1322,7 @@ class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
                             const SizedBox(height: 12),
                             ListTile(
                               leading: Icon(Icons.unarchive_outlined, color: Colors.green),
-                              title: Text('Разархивировать', style: TextStyle(color: colors.textPrimary)),
+                              title: Text(AppLocalizations.of(context)!.messengerUnarchive, style: TextStyle(color: colors.textPrimary)),
                               onTap: () { Navigator.pop(ctx); _unarchive(conv.id); },
                             ),
                             const SizedBox(height: 8),

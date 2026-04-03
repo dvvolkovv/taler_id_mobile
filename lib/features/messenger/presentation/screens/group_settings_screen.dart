@@ -308,14 +308,14 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
-            Text('Авто-удаление сообщений', style: TextStyle(
+            Text(AppLocalizations.of(context)!.messengerAutoDelete, style: TextStyle(
               color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             for (final option in [
-              (null, 'Выключено'),
-              (7, '7 дней'),
-              (30, '30 дней'),
-              (90, '90 дней'),
+              (null, AppLocalizations.of(context)!.messengerAutoDeleteOff),
+              (7, AppLocalizations.of(context)!.messengerAutoDelete7d),
+              (30, AppLocalizations.of(context)!.messengerAutoDelete30d),
+              (90, AppLocalizations.of(context)!.messengerAutoDelete90d),
             ])
               ListTile(
                 title: Text(option.$2, style: TextStyle(color: colors.textPrimary)),
@@ -578,13 +578,13 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                 const Divider(height: 32),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Text('Настройки', style: TextStyle(
+                  child: Text(AppLocalizations.of(context)!.messengerSettingsHeader, style: TextStyle(
                     color: AppColors.of(context).textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
                 SwitchListTile(
                   secondary: Icon(Icons.admin_panel_settings_outlined, color: AppColors.of(context).textPrimary),
-                  title: Text('Только админы пишут', style: TextStyle(color: AppColors.of(context).textPrimary)),
-                  subtitle: Text('Участники могут только читать', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  title: Text(AppLocalizations.of(context)!.messengerAdminOnly, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.messengerAdminOnlyDesc, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
                   value: conv?.slowMode ?? false,
                   activeColor: AppColors.of(context).primary,
                   onChanged: (val) {
@@ -596,8 +596,8 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                 ),
                 SwitchListTile(
                   secondary: Icon(Icons.forum_outlined, color: AppColors.of(context).textPrimary),
-                  title: Text('Темы', style: TextStyle(color: AppColors.of(context).textPrimary)),
-                  subtitle: Text('Разделить чат на темы', style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
+                  title: Text(AppLocalizations.of(context)!.messengerTopics, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  subtitle: Text(AppLocalizations.of(context)!.messengerTopicsDesc, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
                   value: conv?.topicsEnabled ?? false,
                   activeColor: AppColors.of(context).primary,
                   onChanged: (val) {
@@ -609,9 +609,9 @@ class _GroupSettingsScreenState extends State<GroupSettingsScreen> {
                 ),
                 ListTile(
                   leading: Icon(Icons.timer_outlined, color: AppColors.of(context).textPrimary),
-                  title: Text('Авто-удаление сообщений', style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  title: Text(AppLocalizations.of(context)!.messengerAutoDelete, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   subtitle: Text(
-                    conv?.autoDeleteDays != null ? '${conv!.autoDeleteDays} дней' : 'Выключено',
+                    conv?.autoDeleteDays != null ? AppLocalizations.of(context)!.messengerAutoDeleteDays(conv!.autoDeleteDays!) : AppLocalizations.of(context)!.messengerAutoDeleteOff,
                     style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
                   ),
                   onTap: () => _showAutoDeletePicker(context),

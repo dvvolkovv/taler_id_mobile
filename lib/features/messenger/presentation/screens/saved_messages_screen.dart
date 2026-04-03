@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class SavedMessagesScreen extends StatefulWidget {
   const SavedMessagesScreen({super.key});
@@ -51,7 +52,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Избранное'),
+        title: Text(AppLocalizations.of(context)!.messengerSavedTitle),
         backgroundColor: colors.background,
       ),
       body: _messages.isEmpty
@@ -61,9 +62,9 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
                 children: [
                   Icon(Icons.bookmark_border_rounded, size: 64, color: colors.textSecondary),
                   const SizedBox(height: 16),
-                  Text('Нет сохранённых сообщений', style: TextStyle(color: colors.textSecondary, fontSize: 16)),
+                  Text(AppLocalizations.of(context)!.messengerNoSavedMessages, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
                   const SizedBox(height: 8),
-                  Text('Зажмите сообщение → "В избранное"',
+                  Text(AppLocalizations.of(context)!.messengerSavedHint,
                       style: TextStyle(color: colors.textSecondary, fontSize: 13)),
                 ],
               ),
@@ -120,7 +121,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  fileName ?? 'Файл',
+                                  fileName ?? AppLocalizations.of(context)!.messengerDefaultFile,
                                   style: TextStyle(color: colors.textSecondary, fontSize: 13),
                                   overflow: TextOverflow.ellipsis,
                                 ),

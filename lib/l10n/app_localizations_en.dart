@@ -2561,4 +2561,255 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactRevokeRequest => 'Revoke request';
+
+  @override
+  String get messengerPoll => 'Poll';
+
+  @override
+  String get messengerCreatePoll => 'Create Poll';
+
+  @override
+  String get messengerPollQuestion => 'Question';
+
+  @override
+  String messengerPollOption(int number) {
+    return 'Option $number';
+  }
+
+  @override
+  String get messengerPollAddOption => 'Add option';
+
+  @override
+  String get messengerPollAnonymous => 'Anonymous voting';
+
+  @override
+  String get messengerPollMultiple => 'Multiple choice';
+
+  @override
+  String get messengerPollCreateError => 'Failed to create poll';
+
+  @override
+  String get messengerPollUnavailable => 'Poll unavailable';
+
+  @override
+  String get messengerPollMultipleNote => 'You can select multiple';
+
+  @override
+  String messengerPollVotes(int count) {
+    return '$count votes';
+  }
+
+  @override
+  String get messengerVideoMessage => 'Video message';
+
+  @override
+  String get messengerVideoRecordError => 'Video recording error';
+
+  @override
+  String get messengerVideoPlaybackError => 'Could not play video';
+
+  @override
+  String get messengerGalleryAccessError => 'No access to gallery';
+
+  @override
+  String get messengerSearchInChat => 'Search in chat...';
+
+  @override
+  String get messengerSaveToFavorites => 'Save to favorites';
+
+  @override
+  String get messengerSavedToFavorites => 'Saved to favorites';
+
+  @override
+  String get messengerSearchInMessages => 'Search in messages...';
+
+  @override
+  String messengerFoundInMessages(int count) {
+    return 'Found in messages ($count)';
+  }
+
+  @override
+  String get messengerGroupDefault => 'Group';
+
+  @override
+  String get messengerUserDefault => 'User';
+
+  @override
+  String get messengerPin => 'Pin';
+
+  @override
+  String get messengerUnpin => 'Unpin';
+
+  @override
+  String get messengerArchive => 'Archive';
+
+  @override
+  String get messengerUnarchive => 'Unarchive';
+
+  @override
+  String get messengerDeleteChat => 'Delete chat';
+
+  @override
+  String get messengerDeleteChatTitle => 'Delete chat?';
+
+  @override
+  String messengerDeleteChatConfirm(String name) {
+    return 'Delete chat with $name? This cannot be undone.';
+  }
+
+  @override
+  String get messengerCreateChannel => 'Create Channel';
+
+  @override
+  String get messengerChannelName => 'Name';
+
+  @override
+  String get messengerChannelDescription => 'Description (optional)';
+
+  @override
+  String get messengerChannelCreateError => 'Failed to create channel';
+
+  @override
+  String get messengerFilterAll => 'All';
+
+  @override
+  String get messengerFilterUnread => 'Unread';
+
+  @override
+  String get messengerFilterPersonal => 'Personal';
+
+  @override
+  String get messengerFilterGroups => 'Groups';
+
+  @override
+  String get messengerFilterChannels => 'Channels';
+
+  @override
+  String get messengerArchivedSection => 'Archived';
+
+  @override
+  String get messengerSavedSection => 'Favorites';
+
+  @override
+  String messengerArchiveTitle(int count) {
+    return 'Archive ($count)';
+  }
+
+  @override
+  String get messengerArchiveEmpty => 'Archive is empty';
+
+  @override
+  String messengerYouPrefix(String message) {
+    return 'You: $message';
+  }
+
+  @override
+  String get messengerMissedCall => 'Missed call';
+
+  @override
+  String get messengerSavedTitle => 'Favorites';
+
+  @override
+  String get messengerNoSavedMessages => 'No saved messages';
+
+  @override
+  String get messengerSavedHint =>
+      'Long press a message → \"Save to favorites\"';
+
+  @override
+  String get messengerDefaultFile => 'File';
+
+  @override
+  String get messengerTopicDefault => 'General';
+
+  @override
+  String get messengerTopicNew => 'New Topic';
+
+  @override
+  String get messengerTopicNameHint => 'Topic name';
+
+  @override
+  String get messengerTopicIcon => 'Icon';
+
+  @override
+  String messengerTopicCount(int count) {
+    return '$count topics';
+  }
+
+  @override
+  String get messengerNoTopics => 'No topics';
+
+  @override
+  String get messengerNoMessages => 'No messages';
+
+  @override
+  String get messengerThread => 'Thread';
+
+  @override
+  String get messengerThreadReply => 'reply';
+
+  @override
+  String get messengerThreadReplies => 'replies';
+
+  @override
+  String messengerThreadReplyCount(int count, String word) {
+    return '$count $word';
+  }
+
+  @override
+  String get messengerNoReplies => 'No replies';
+
+  @override
+  String get messengerReplyHint => 'Reply to thread...';
+
+  @override
+  String get messengerContactName => 'Contact name';
+
+  @override
+  String messengerOriginalName(String name) {
+    return 'Original name: $name';
+  }
+
+  @override
+  String get messengerDisplayName => 'Display name';
+
+  @override
+  String messengerShareContact(String name) {
+    return 'Contact in Taler ID: $name';
+  }
+
+  @override
+  String get messengerAutoDelete => 'Auto-delete messages';
+
+  @override
+  String get messengerAutoDeleteOff => 'Off';
+
+  @override
+  String get messengerAutoDelete7d => '7 days';
+
+  @override
+  String get messengerAutoDelete30d => '30 days';
+
+  @override
+  String get messengerAutoDelete90d => '90 days';
+
+  @override
+  String messengerAutoDeleteDays(int count) {
+    return '$count days';
+  }
+
+  @override
+  String get messengerSettingsHeader => 'Settings';
+
+  @override
+  String get messengerAdminOnly => 'Admin-only posting';
+
+  @override
+  String get messengerAdminOnlyDesc => 'Members can only read';
+
+  @override
+  String get messengerTopics => 'Topics';
+
+  @override
+  String get messengerTopicsDesc => 'Split chat into topics';
 }
