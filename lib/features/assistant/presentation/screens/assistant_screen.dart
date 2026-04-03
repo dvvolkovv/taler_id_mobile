@@ -21,6 +21,7 @@ import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../main.dart';
 
 enum _CallState { idle, connecting, connected, error }
 
@@ -429,7 +430,16 @@ class _AssistantScreenState extends State<AssistantScreen>
         'REACTIONS:\n'
         'If user says "react with [emoji] to [name]\'s message" — find conversation, get messageId from get_messages, then call react_to_message.\n\n'
         'FORWARDING:\n'
-        'If user says "forward this message to [name]" — use forward_message with targetConversationId.';
+        'If user says "forward this message to [name]" — use forward_message with targetConversationId.\n\n'
+        'SETTINGS:\n'
+        'If user asks "what are my settings", "current settings" — call get_settings.\n'
+        'THEME: If user says "switch to dark mode", "enable light theme", "use system theme" — call set_theme with light/dark/system.\n'
+        'LANGUAGE: If user says "switch to English", "switch to Russian", "change language" — call set_language with en/ru.\n'
+        'BIOMETRICS: If user says "disable fingerprint", "turn off Face ID", "disable biometrics" — call set_biometric with enabled=false. '
+        'Enabling biometrics requires device authentication — tell the user to go to Settings.\n'
+        'PIN: If user says "disable PIN", "turn off PIN code" — call disable_pin. '
+        'Enabling PIN requires a setup screen — tell the user to go to Settings.\n'
+        'After applying any setting change — confirm the action by voice.';
   }
 
   void _onChannelOpen() {
@@ -815,6 +825,54 @@ class _AssistantScreenState extends State<AssistantScreen>
               },
               'required': ['targetConversationId', 'content'],
             },
+          },
+          {
+            'type': 'function',
+            'name': 'get_settings',
+            'description': 'Get current app settings: theme (light/dark/system), language (ru/en), biometric enabled, PIN enabled.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'set_theme',
+            'description': 'Change the app theme.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'theme': {'type': 'string', 'enum': ['light', 'dark', 'system']},
+              },
+              'required': ['theme'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'set_language',
+            'description': 'Change the app language.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'language': {'type': 'string', 'enum': ['ru', 'en']},
+              },
+              'required': ['language'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'set_biometric',
+            'description': 'Enable or disable biometric authentication (fingerprint/Face ID). Disabling does not require authentication.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'enabled': {'type': 'boolean'},
+              },
+              'required': ['enabled'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'disable_pin',
+            'description': 'Disable PIN code lock. To enable PIN a setup flow is required — tell the user to go to Settings.',
+            'parameters': {'type': 'object', 'properties': {}},
           },
         ],
         'tool_choice': 'auto',
@@ -1308,6 +1366,54 @@ class _AssistantScreenState extends State<AssistantScreen>
           args['content'] as String,
         );
         output = jsonEncode({'ok': true, 'message': 'forwarded'});
+      } else if (name == 'get_settings') {
+        final storage = sl<SecureStorageService>();
+        final theme = await storage.getThemeMode() ?? 'light';
+        final lang = await storage.getLanguage() ?? 'ru';
+        final biometric = await storage.isBiometricEnabled;
+        final pin = await storage.isPinEnabled;
+        output = jsonEncode({
+          'theme': theme,
+          'language': lang,
+          'biometricEnabled': biometric,
+          'pinEnabled': pin,
+        });
+      } else if (name == 'set_theme') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final theme = args['theme'] as String;
+        final storage = sl<SecureStorageService>();
+        await storage.saveThemeMode(theme);
+        if (mounted) {
+          final mode = switch (theme) {
+            'dark' => ThemeMode.dark,
+            'system' => ThemeMode.system,
+            _ => ThemeMode.light,
+          };
+          TalerIdApp.setThemeMode(context, mode);
+        }
+        output = jsonEncode({'ok': true, 'theme': theme});
+      } else if (name == 'set_language') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final lang = args['language'] as String;
+        final storage = sl<SecureStorageService>();
+        await storage.saveLanguage(lang);
+        if (mounted) {
+          TalerIdApp.setLocale(context, Locale(lang));
+        }
+        output = jsonEncode({'ok': true, 'language': lang});
+      } else if (name == 'set_biometric') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final enabled = args['enabled'] as bool;
+        if (enabled) {
+          // Enabling requires device authentication — not safe to do from assistant
+          output = jsonEncode({'ok': false, 'error': 'Enabling biometrics requires user authentication. Please go to Settings to enable it.'});
+        } else {
+          await sl<SecureStorageService>().setBiometricEnabled(false);
+          output = jsonEncode({'ok': true, 'biometricEnabled': false});
+        }
+      } else if (name == 'disable_pin') {
+        await sl<SecureStorageService>().clearPin();
+        output = jsonEncode({'ok': true, 'pinEnabled': false});
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
