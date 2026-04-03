@@ -878,6 +878,35 @@ class _AssistantScreenState extends State<AssistantScreen>
         'tool_choice': 'auto',
       },
     });
+
+    // Auto-briefing on session start: check unread messages, missed calls, upcoming events
+    final briefingPrompt = locale == 'ru'
+        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Проверь незавершённые дела пользователя прямо сейчас:\n'
+          '1. Вызови get_conversations — найди диалоги с unreadCount > 0 (непрочитанные сообщения)\n'
+          '2. Вызови get_call_history — найди пропущенные звонки за последние 24 часа\n'
+          '3. Вызови get_events — получи события на сегодня (от начала до конца дня)\n'
+          '4. Вызови get_contact_requests — проверь входящие заявки в контакты\n'
+          'На основе результатов дай краткую голосовую сводку: что нового, что требует внимания. '
+          'Если всё чисто — скажи об этом коротко. Не задавай вопросов — просто озвучь сводку.'
+        : 'AUTO-START: Check user\'s pending items right now:\n'
+          '1. Call get_conversations — find chats with unreadCount > 0 (unread messages)\n'
+          '2. Call get_call_history — find missed calls in the last 24 hours\n'
+          '3. Call get_events — get today\'s events (from start to end of day)\n'
+          '4. Call get_contact_requests — check incoming contact requests\n'
+          'Based on the results, give a brief voice summary: what\'s new, what needs attention. '
+          'If everything is clear — say so briefly. Don\'t ask questions — just deliver the briefing.';
+
+    _sendEvent({
+      'type': 'conversation.item.create',
+      'item': {
+        'type': 'message',
+        'role': 'user',
+        'content': [
+          {'type': 'input_text', 'text': briefingPrompt},
+        ],
+      },
+    });
+    _sendEvent({'type': 'response.create'});
   }
 
   Future<void> _startRecording() async {
