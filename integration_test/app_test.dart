@@ -219,6 +219,49 @@ void main() {
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Profile screen crashed');
       debugPrint('[TEST] ✓ Profile screen OK');
+
+      // ── 8a. Edit Profile → change firstName → save ─────────────────
+      if (await tester.safeTap(find.byIcon(Icons.edit_outlined))) {
+        await tester.pumpFor(const Duration(seconds: 2));
+        expect(find.byType(ErrorWidget), findsNothing, reason: 'Edit profile screen crashed');
+        debugPrint('[TEST] Edit profile screen opened');
+
+        // Find firstName field and update it
+        final fields = find.byType(TextFormField);
+        if (fields.evaluate().isNotEmpty) {
+          // Clear and re-enter firstName
+          await tester.tap(fields.first, warnIfMissed: false);
+          await tester.pump();
+          await tester.enterText(fields.first, 'Integration');
+          await tester.pump();
+          FocusManager.instance.primaryFocus?.unfocus();
+          await tester.pumpFor(const Duration(seconds: 1));
+          debugPrint('[TEST] firstName set to "Integration"');
+
+          // Scroll down to find save button
+          if (find.byType(SingleChildScrollView).evaluate().isNotEmpty) {
+            await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -300));
+            await tester.pumpFor(const Duration(seconds: 1));
+          }
+
+          // Tap save (ElevatedButton or the save text button in AppBar)
+          final saveBtn = find.byType(ElevatedButton);
+          final saveText = find.text('Сохранить').or(find.text('Save'));
+          if (saveBtn.evaluate().isNotEmpty) {
+            await tester.tap(saveBtn.first, warnIfMissed: false);
+          } else if (saveText.evaluate().isNotEmpty) {
+            await tester.tap(saveText.first, warnIfMissed: false);
+          }
+          await tester.pumpFor(const Duration(seconds: 4));
+          expect(find.byType(ErrorWidget), findsNothing, reason: 'Profile save crashed');
+          debugPrint('[TEST] ✓ Profile saved');
+        }
+
+        // Navigate back if still on edit screen
+        await tester.goHome();
+        await tester.pumpFor(const Duration(seconds: 1));
+      }
+
       await tester.goHome();
 
       // ── 9. Screen: Settings ────────────────────────────────────────
