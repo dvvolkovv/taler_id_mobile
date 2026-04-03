@@ -400,6 +400,11 @@ class NotificationService {
           _showLocalNotification(title: title, body: body, conversationId: convId);
         }
       }
+      if (type == 'contact_request') {
+        final title = message.notification?.title ?? 'Запрос на общение';
+        final body = message.notification?.body ?? 'Новый запрос на добавление в контакты';
+        _showLocalNotification(title: title, body: body, conversationId: '');
+      }
       if (type == 'calendar_updated' || type == 'calendar_invite' || type == 'calendar_reminder') {
         _onCalendarUpdated?.call();
       }

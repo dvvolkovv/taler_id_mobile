@@ -660,16 +660,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ],
                 ),
               ),
-              child: Column(
-                children: [
-                  _ConversationTile(
-                    conversation: conv,
-                    currentUserId: state.currentUserId,
-                    isPinned: isPinned,
-                    onLongPress: () => _showConversationActions(context, conv),
-                  ),
-                  Divider(color: colors.border, height: 1),
-                ],
+              child: _ConversationTile(
+                conversation: conv,
+                currentUserId: state.currentUserId,
+                isPinned: isPinned,
+                onLongPress: () => _showConversationActions(context, conv),
               ),
             );
           }
@@ -686,13 +681,6 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 title: Text(l10n.tabMessenger),
                 actions: [
-                  IconButton(
-                    icon: const Icon(Icons.bookmark_outline_rounded),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
-                    ),
-                    tooltip: 'Избранное',
-                  ),
                   BlocBuilder<MessengerBloc, MessengerState>(
                     buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
                     builder: (context, state) {
@@ -826,13 +814,33 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => buildTile(filtered[index]),
-                    childCount: filtered.length,
+                // Saved Messages (Избранное) — always first
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: colors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.bookmark_rounded, color: Colors.black, size: 22),
+                          ),
+                          title: Text('Избранное', style: TextStyle(
+                            color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                          subtitle: Text('Сохранённые сообщения', style: TextStyle(
+                            color: colors.textSecondary, fontSize: 13)),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const SavedMessagesScreen()),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                // Archived section
+                // Archived section — above all chats
                 if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all) ...[
                   SliverToBoxAdapter(
                     child: InkWell(
