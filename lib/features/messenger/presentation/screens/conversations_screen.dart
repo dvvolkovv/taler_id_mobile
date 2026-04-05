@@ -1244,11 +1244,11 @@ class _ConversationTile extends StatelessWidget {
                 ],
               ),
             if (isMissedCall) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               PulsingBadge(
                 glowColor: AppColors.of(context).error,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFEF4444), Color(0xFFF97316)],
@@ -1268,14 +1268,14 @@ class _ConversationTile extends StatelessWidget {
                 ),
               ),
             ] else if (conversation.unreadCount > 0) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               PulsingBadge(
                 glowColor: conversation.isMuted
                     ? AppColors.of(context).textSecondary
                     : AppColors.of(context).primary,
                 enabled: !conversation.isMuted,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
                     gradient: conversation.isMuted
                         ? null

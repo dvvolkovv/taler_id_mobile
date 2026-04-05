@@ -667,6 +667,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final sectionColor = _SectionCard.colorForType(widget.type);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -678,7 +679,18 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       child: Scaffold(
         backgroundColor: colors.background,
         appBar: AppBar(
-          title: Text(_SectionCard.titleForType(widget.type, context)),
+          title: ShaderMask(
+            shaderCallback: (rect) => LinearGradient(
+              colors: [
+                sectionColor,
+                Color.lerp(sectionColor, Colors.white, 0.4)!,
+              ],
+            ).createShader(rect),
+            child: Text(
+              _SectionCard.titleForType(widget.type, context),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ),
           backgroundColor: colors.background,
           surfaceTintColor: Colors.transparent,
           actions: [
@@ -746,23 +758,28 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: _aiSpeaking
-                    ? colors.primary.withOpacity(0.15)
-                    : colors.card,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      sectionColor.withOpacity(_aiSpeaking ? 0.25 : 0.08),
+                      sectionColor.withOpacity(_aiSpeaking ? 0.08 : 0.02),
+                    ],
+                  ),
+                ),
                 child: Row(
                   children: [
                     Icon(
-                      _aiSpeaking ? Icons.volume_up : Icons.hearing,
+                      _aiSpeaking ? Icons.volume_up_rounded : Icons.hearing_rounded,
                       size: 18,
-                      color: _aiSpeaking ? colors.primary : colors.textSecondary,
+                      color: _aiSpeaking ? sectionColor : colors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       _aiSpeaking ? 'Ассистент говорит...' : 'Слушаю...',
                       style: TextStyle(
                         fontSize: 13,
-                        color: _aiSpeaking ? colors.primary : colors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                        color: _aiSpeaking ? sectionColor : colors.textSecondary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -790,26 +807,45 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(vertical: 10),
                                     decoration: BoxDecoration(
-                                      color: selected ? colors.primary.withOpacity(0.2) : colors.card,
+                                      gradient: selected
+                                          ? LinearGradient(
+                                              colors: [
+                                                sectionColor.withOpacity(0.25),
+                                                sectionColor.withOpacity(0.08),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : null,
+                                      color: selected ? null : colors.card,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: selected ? colors.primary : colors.textSecondary.withOpacity(0.2),
+                                        color: selected ? sectionColor : colors.textSecondary.withOpacity(0.2),
+                                        width: selected ? 1.5 : 1,
                                       ),
+                                      boxShadow: selected
+                                          ? [
+                                              BoxShadow(
+                                                color: sectionColor.withOpacity(0.3),
+                                                blurRadius: 8,
+                                              ),
+                                            ]
+                                          : null,
                                     ),
                                     child: Column(
                                       children: [
                                         Icon(
                                           _SectionCard._visibilityIcon(v),
                                           size: 20,
-                                          color: selected ? colors.primary : colors.textSecondary,
+                                          color: selected ? sectionColor : colors.textSecondary,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           _visibilityLabel(v),
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: selected ? colors.primary : colors.textSecondary,
-                                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                            color: selected ? sectionColor : colors.textSecondary,
+                                            fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
                                           ),
                                         ),
                                       ],
@@ -836,11 +872,14 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                           runSpacing: 8,
                           children: [
                             ..._items.map((item) => Chip(
-                              label: Text(item, style: TextStyle(fontSize: 13, color: colors.textPrimary)),
-                              deleteIcon: Icon(Icons.close, size: 16, color: colors.textSecondary),
+                              label: Text(
+                                item,
+                                style: TextStyle(fontSize: 13, color: sectionColor, fontWeight: FontWeight.w600),
+                              ),
+                              deleteIcon: Icon(Icons.close_rounded, size: 16, color: sectionColor.withOpacity(0.7)),
                               onDeleted: () => _removeTag(item),
-                              backgroundColor: colors.card,
-                              side: BorderSide(color: colors.textSecondary.withOpacity(0.2)),
+                              backgroundColor: sectionColor.withOpacity(0.12),
+                              side: BorderSide(color: sectionColor.withOpacity(0.35)),
                             )),
                           ],
                         ),
@@ -862,9 +901,30 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: _addTag,
-                              icon: Icon(Icons.add_circle_outline, color: colors.primary),
+                            GestureDetector(
+                              onTap: _addTag,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      sectionColor,
+                                      Color.lerp(sectionColor, Colors.black, 0.25)!,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: sectionColor.withOpacity(0.45),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                              ),
                             ),
                           ],
                         ),
