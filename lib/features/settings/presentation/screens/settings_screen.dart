@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -22,19 +25,95 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
   bool _pinEnabled = false;
   String _currentLang = 'ru';
   String _currentTheme = 'light';
   String _appVersion = '';
+  bool _permNotifications = false;
+  bool _permMicrophone = false;
+  bool _permCamera = false;
+  bool _permLocation = false;
   final _storage = sl<SecureStorageService>();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadSettings();
+    _loadPermissions();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadPermissions();
+    }
+  }
+
+  Future<void> _loadPermissions() async {
+    if (kIsWeb) return;
+    bool notif = false;
+    try {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      notif = settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } catch (_) {}
+    final mic = await Permission.microphone.status;
+    final cam = await Permission.camera.status;
+    final loc = await Permission.locationWhenInUse.status;
+    if (!mounted) return;
+    setState(() {
+      _permNotifications = notif;
+      _permMicrophone = mic.isGranted || mic.isLimited;
+      _permCamera = cam.isGranted || cam.isLimited;
+      _permLocation = loc.isGranted || loc.isLimited;
+    });
+  }
+
+  Future<void> _togglePermission(bool currentlyGranted, Future<PermissionStatus> Function() requestFn) async {
+    if (currentlyGranted) {
+      // Can't revoke programmatically — open system settings
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.permissionOpenSettings),
+          backgroundColor: AppColors.of(context).primary,
+        ),
+      );
+      await openAppSettings();
+    } else {
+      await requestFn();
+    }
+    await _loadPermissions();
+  }
+
+  Future<void> _toggleNotifications(bool currentlyGranted) async {
+    if (currentlyGranted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.permissionOpenSettings),
+          backgroundColor: AppColors.of(context).primary,
+        ),
+      );
+      await openAppSettings();
+    } else {
+      try {
+        await FirebaseMessaging.instance.requestPermission(
+          alert: true, badge: true, sound: true,
+        );
+      } catch (_) {}
+    }
+    await _loadPermissions();
   }
 
   Future<void> _loadSettings() async {
@@ -171,17 +250,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
-                    icon: Icons.security_outlined,
-                    iconColor: AppColors.of(context).secondary,
-                    title: l10n.twoFactorAuth,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Coming soon'), backgroundColor: AppColors.of(context).warning),
-                      );
-                    },
-                  ),
-                  Divider(color: AppColors.of(context).border, height: 1),
-                  _navTile(
                     icon: Icons.devices_outlined,
                     iconColor: AppColors.of(context).secondary,
                     title: l10n.sessions,
@@ -192,27 +260,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Notifications section
-            _sectionHeader(l10n.notifications),
+            // Permissions section
+            _sectionHeader(l10n.permissions),
             AppCard(
               child: Column(
                 children: [
                   _switchTile(
-                    icon: Icons.notifications_outlined,
+                    icon: Icons.notifications_active_outlined,
                     iconColor: AppColors.of(context).warning,
-                    title: l10n.pushKycStatus,
-                    subtitle: l10n.pushKycStatusDesc,
-                    value: true,
-                    onChanged: (v) {},
+                    title: l10n.permissionNotifications,
+                    subtitle: l10n.permissionNotificationsDesc,
+                    value: _permNotifications,
+                    onChanged: (_) => _toggleNotifications(_permNotifications),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _switchTile(
-                    icon: Icons.login_outlined,
-                    iconColor: AppColors.of(context).warning,
-                    title: l10n.pushLogins,
-                    subtitle: l10n.pushLoginsDesc,
-                    value: true,
-                    onChanged: (v) {},
+                    icon: Icons.mic_outlined,
+                    iconColor: AppColors.of(context).primary,
+                    title: l10n.permissionMicrophone,
+                    subtitle: l10n.permissionMicrophoneDesc,
+                    value: _permMicrophone,
+                    onChanged: (_) => _togglePermission(
+                      _permMicrophone,
+                      () => Permission.microphone.request(),
+                    ),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _switchTile(
+                    icon: Icons.camera_alt_outlined,
+                    iconColor: AppColors.of(context).primary,
+                    title: l10n.permissionCamera,
+                    subtitle: l10n.permissionCameraDesc,
+                    value: _permCamera,
+                    onChanged: (_) => _togglePermission(
+                      _permCamera,
+                      () => Permission.camera.request(),
+                    ),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _switchTile(
+                    icon: Icons.location_on_outlined,
+                    iconColor: AppColors.of(context).secondary,
+                    title: l10n.permissionLocation,
+                    subtitle: l10n.permissionLocationDesc,
+                    value: _permLocation,
+                    onChanged: (_) => _togglePermission(
+                      _permLocation,
+                      () => Permission.locationWhenInUse.request(),
+                    ),
                   ),
                 ],
               ),
@@ -253,17 +348,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 16),
 
             // Logout
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: Icon(Icons.logout, color: AppColors.of(context).error),
-                label: Text(l10n.logout, style: TextStyle(color: AppColors.of(context).error, fontSize: 16)),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 52),
-                  side: BorderSide(color: AppColors.of(context).error),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            GestureDetector(
+              onTap: () => _confirmLogout(context),
+              child: Container(
+                width: double.infinity,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFB91C1C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.of(context).error.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                onPressed: () => _confirmLogout(context),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.logout, color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      l10n.logout,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -284,9 +405,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _sectionHeader(String title) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8),
-        child: Text(title,
-            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12,
-                fontWeight: FontWeight.w500, letterSpacing: 0.5)),
+        child: Row(
+          children: [
+            Container(
+              width: 3,
+              height: 14,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.of(context).primary,
+                    AppColors.of(context).accent,
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(title,
+                style: TextStyle(
+                  color: AppColors.of(context).textPrimary.withValues(alpha: 0.85),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                )),
+          ],
+        ),
+      );
+
+  BoxDecoration _iconDecoration(Color c) => BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(c, Colors.white, 0.15)!,
+            c,
+            Color.lerp(c, Colors.black, 0.25)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(9),
+        boxShadow: [
+          BoxShadow(
+            color: c.withValues(alpha: 0.45),
+            blurRadius: 8,
+            spreadRadius: 0,
+          ),
+        ],
       );
 
   Widget _switchTile({
@@ -303,8 +469,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Container(
               width: 36, height: 36,
-              decoration: BoxDecoration(color: iconColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-              child: Icon(icon, color: iconColor, size: 18),
+              decoration: _iconDecoration(iconColor),
+              child: Icon(icon, color: Colors.white, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -342,8 +508,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Container(
                 width: 36, height: 36,
-                decoration: BoxDecoration(color: iconColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, color: iconColor, size: 18),
+                decoration: _iconDecoration(iconColor),
+                child: Icon(icon, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(

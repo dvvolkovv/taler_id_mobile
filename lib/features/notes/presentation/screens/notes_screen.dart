@@ -13,6 +13,8 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/notes_remote_datasource.dart';
@@ -100,16 +102,22 @@ class _NotesScreenState extends State<NotesScreen> {
         'session': {
           'modalities': ['text', 'audio'],
           'instructions': Localizations.localeOf(context).languageCode == 'ru'
-              ? 'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
+              ? 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
+                'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
                 'Для заметок: внимательно выслушай, сформулируй краткий заголовок (title) и подробное содержание (content), '
                 'сохрани через create_note. Подтверди голосом что заметка сохранена. '
+                'Если пользователь спрашивает "какие у меня заметки", "прочитай мои заметки", "что я записал" — вызови get_notes и перескажи. '
+                'Если просит резюме или обзор заметок — вызови get_notes, проанализируй и дай краткое резюме. '
                 'Для календаря: если пользователь говорит "напомни", "поставь встречу", "запланируй" — '
                 'уточни дату/время и создай через create_event. '
                 'Часовой пояс: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
                 'Текущая дата: ${DateTime.now().toIso8601String()}. '
                 'Начни с: "Слушаю, какую заметку хотите записать?"'
-              : 'You are an assistant for taking notes and managing the calendar. The user will dictate thoughts or schedule meetings. '
+              : 'ALWAYS reply ONLY in English, even if you think the user said something in another language — that is a transcription error, reply in English anyway.\n\n'
+                'You are an assistant for taking notes and managing the calendar. The user will dictate thoughts or schedule meetings. '
                 'For notes: listen carefully, formulate a brief title and detailed content, save via create_note. Confirm by voice that the note is saved. '
+                'If user asks "what notes do I have", "read my notes", "what did I write down" — call get_notes and summarize. '
+                'If asks for notes overview or summary — call get_notes, analyze and give a brief summary. '
                 'For calendar: if user says "remind me", "schedule a meeting", "plan" — clarify date/time and create via create_event. '
                 'Timezone: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
                 'Current date: ${DateTime.now().toIso8601String()}. '
@@ -117,7 +125,7 @@ class _NotesScreenState extends State<NotesScreen> {
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
           'output_audio_format': 'pcm16',
-          'input_audio_transcription': {'model': 'whisper-1'},
+          'input_audio_transcription': {'model': 'whisper-1', 'language': Localizations.localeOf(context).languageCode},
           'turn_detection': {'type': 'server_vad', 'threshold': 0.5, 'prefix_padding_ms': 300, 'silence_duration_ms': 700},
           'tools': [
             {
@@ -129,6 +137,12 @@ class _NotesScreenState extends State<NotesScreen> {
                 'properties': {'title': {'type': 'string'}, 'content': {'type': 'string'}},
                 'required': ['title', 'content'],
               },
+            },
+            {
+              'type': 'function',
+              'name': 'get_notes',
+              'description': 'Read all notes the user has saved, with their title, content, and creation date. Use when the user asks what notes they have or wants a summary.',
+              'parameters': {'type': 'object', 'properties': {}},
             },
             {
               'type': 'function',
@@ -264,6 +278,9 @@ class _NotesScreenState extends State<NotesScreen> {
         await sl<DioClient>().post('/notes', data: {'title': args['title'], 'content': args['content'], 'source': 'ASSISTANT'}, fromJson: (d) => d);
         _load(); // Refresh list immediately
         output = jsonEncode({'ok': true});
+      } else if (name == 'get_notes') {
+        final data = await sl<DioClient>().get<dynamic>('/notes');
+        output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         String startUtc = args['startAt'] as String? ?? '';
@@ -310,18 +327,21 @@ class _NotesScreenState extends State<NotesScreen> {
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FloatingActionButton(
+                _GradientFab(
                   heroTag: 'voice',
-                  backgroundColor: _voiceActive ? colors.error : colors.primary,
                   onPressed: _voiceActive ? _stopVoice : _startVoice,
-                  child: Icon(_voiceActive ? Icons.stop : Icons.mic, color: Colors.white),
+                  icon: _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                  gradient: _voiceActive
+                      ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                      : const [Color(0xFF22D3EE), Color(0xFFA855F7)],
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
+                const SizedBox(height: 10),
+                _GradientFab(
                   heroTag: 'add',
-                  backgroundColor: colors.card,
                   onPressed: () => _openEditor(),
-                  child: Icon(Icons.add, color: colors.primary, size: 20),
+                  icon: Icons.add_rounded,
+                  gradient: const [Color(0xFFFB7185), Color(0xFFA855F7)],
+                  small: true,
                 ),
               ],
             ),
@@ -344,17 +364,11 @@ class _NotesScreenState extends State<NotesScreen> {
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
                 : _notes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.sticky_note_2_outlined, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
-                            const SizedBox(height: 12),
-                            Text(l10n.notesEmpty, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
-                            const SizedBox(height: 8),
-                            Text(l10n.notesEmptyHint, textAlign: TextAlign.center, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
-                          ],
-                        ),
+                    ? EmptyStateView(
+                        icon: Icons.sticky_note_2_rounded,
+                        title: l10n.notesEmpty,
+                        subtitle: l10n.notesEmptyHint,
+                        gradient: const [Color(0xFFFB7185), Color(0xFFA855F7)],
                       )
                     : RefreshIndicator(
                         onRefresh: _load,
@@ -375,32 +389,75 @@ class _NotesScreenState extends State<NotesScreen> {
     final date = DateTime.tryParse(note['createdAt'] as String? ?? '');
     final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date.toLocal()) : '';
     final source = note['source'] as String? ?? 'MANUAL';
+    final title = note['title'] as String? ?? '';
+    final accentColor = rainbowColorFor(title.isNotEmpty ? title : (note['id'] as String? ?? 'note'));
 
-    return Card(
-      color: colors.card,
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _openEditor(note: note),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (source == 'ASSISTANT')
-                    Padding(padding: const EdgeInsets.only(right: 6), child: Icon(Icons.headset_mic_rounded, size: 14, color: colors.primary)),
-                  Expanded(child: Text(note['title'] as String? ?? '', style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note['id'] as String), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(note['content'] as String? ?? '', style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 8),
-              Text(dateStr, style: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6), fontSize: 11)),
-            ],
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(colors.card, accentColor, 0.06)!,
+            colors.card,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border(
+          left: BorderSide(color: accentColor, width: 4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => _openEditor(note: note),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (source == 'ASSISTANT')
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF22D3EE).withValues(alpha: 0.45),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.headset_mic_rounded, size: 12, color: Colors.white),
+                        ),
+                      ),
+                    Expanded(child: Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), softWrap: true)),
+                    IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note['id'] as String), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(note['content'] as String? ?? '', style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 8),
+                Text(dateStr, style: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6), fontSize: 11)),
+              ],
+            ),
           ),
         ),
       ),
@@ -468,6 +525,12 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final title = _titleCtrl.text.trim();
+    final accent = rainbowColorFor(
+      title.isNotEmpty
+          ? title
+          : (widget.note?['id'] as String? ?? 'note-new'),
+    );
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
@@ -478,20 +541,60 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : Text(l10n.save, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                : Text(l10n.save, style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
+      body: Column(
+        children: [
+          // Top accent strip — color encodes the note's identity
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  accent,
+                  Color.lerp(accent, Colors.white, 0.3)!,
+                  accent,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.6),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
             TextField(
               controller: _titleCtrl,
-              style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: colors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
               decoration: InputDecoration(hintText: l10n.notesTitleHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
             ),
-            const Divider(height: 1),
+            const SizedBox(height: 6),
+            Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: 0.0),
+                    accent.withValues(alpha: 0.45),
+                    accent.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: TextField(
                 controller: _contentCtrl,
@@ -502,7 +605,62 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
                 decoration: InputDecoration(hintText: l10n.notesContentHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
               ),
             ),
-          ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// FloatingActionButton with a gradient fill and matching colored glow.
+class _GradientFab extends StatelessWidget {
+  final Object heroTag;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final List<Color> gradient;
+  final bool small;
+
+  const _GradientFab({
+    required this.heroTag,
+    required this.onPressed,
+    required this.icon,
+    required this.gradient,
+    this.small = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = small ? 44.0 : 56.0;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Hero(
+        tag: heroTag,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient.first.withValues(alpha: 0.5),
+                  blurRadius: small ? 12 : 18,
+                  spreadRadius: small ? 0 : 1,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: small ? 20 : 26),
+          ),
         ),
       ),
     );

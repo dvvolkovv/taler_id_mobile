@@ -182,6 +182,14 @@ class SecureStorageService {
     }
   }
 
+  Future<void> clearOnboardingSeen() async {
+    if (kIsWeb) {
+      await _webBox?.delete(ApiConstants.onboardingSeenKey);
+    } else {
+      await _storage.delete(key: ApiConstants.onboardingSeenKey);
+    }
+  }
+
   // Badge seen counts — persist across app restarts
   Future<int> getSeenMissedCalls() async {
     final v = kIsWeb ? _webBox?.get('seen_missed_calls') as String? : await _storage.read(key: 'seen_missed_calls');

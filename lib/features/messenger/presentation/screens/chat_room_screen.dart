@@ -27,6 +27,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/message_draft_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/api/dio_client.dart';
@@ -83,11 +84,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
 
+  // Stable key for persisting unsent drafts (topics get their own draft).
+  String get _draftKey => widget.topicId != null
+      ? '${widget.conversationId}:${widget.topicId}'
+      : widget.conversationId;
+
   @override
   void initState() {
     super.initState();
     _messengerBloc = context.read<MessengerBloc>();
-    _ctrl = TextEditingController();
+    // Restore unsent draft for this conversation/topic
+    final draft = sl<MessageDraftService>().getDraft(_draftKey);
+    _ctrl = TextEditingController(text: draft ?? '');
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
@@ -931,6 +939,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   void _onTextChanged() {
+    // Persist draft so the user can resume typing later or on another session
+    sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
     final bloc = context.read<MessengerBloc>();
     if (_ctrl.text.isNotEmpty && !_isTypingSent) {
       _isTypingSent = true;
@@ -1905,13 +1915,31 @@ class _MessageBubbleState extends State<_MessageBubble> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
+          gradient: widget.isCurrentSearchMatch
+              ? null
+              : (widget.isMe
+                  ? const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF1E3A5F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null),
           color: widget.isCurrentSearchMatch
               ? (widget.isMe
                   ? const Color(0xFF1E3A5F).withValues(alpha: 0.7)
                   : Colors.amber.withValues(alpha: 0.15))
               : (widget.isMe
-                  ? const Color(0xFF1E3A5F)
+                  ? null
                   : AppColors.of(context).card),
+          boxShadow: [
+            BoxShadow(
+              color: widget.isMe
+                  ? const Color(0xFF2563EB).withValues(alpha: 0.25)
+                  : Colors.black.withValues(alpha: 0.15),
+              blurRadius: widget.isMe ? 10 : 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
           borderRadius: widget.isMe
               ? (widget.isLastInGroup
                   ? const BorderRadius.only(
@@ -1946,7 +1974,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 child: Text(
                   widget.senderName!,
                   style: TextStyle(
-                    color: AppColors.of(context).primary,
+                    color: rainbowColorFor(widget.senderName!),
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -2144,17 +2172,21 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 ),
                 if (widget.isMe) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    widget.message.isRead
-                        ? Icons.done_all_rounded
-                        : widget.message.isDelivered
-                            ? Icons.done_all_rounded
-                            : Icons.done_rounded,
-                    size: 14,
-                    color: widget.message.isRead
+                  Builder(builder: (_) {
+                    final isPending = widget.message.id.startsWith('temp_');
+                    final IconData icon;
+                    if (isPending) {
+                      icon = Icons.access_time_rounded; // clock — not yet sent
+                    } else if (widget.message.isRead) {
+                      icon = Icons.done_all_rounded; // two ticks — read
+                    } else {
+                      icon = Icons.done_rounded; // one tick — delivered to server
+                    }
+                    final color = widget.message.isRead
                         ? Colors.white
-                        : Colors.white.withValues(alpha: 0.6),
-                  ),
+                        : Colors.white.withValues(alpha: 0.6);
+                    return Icon(icon, size: 14, color: color);
+                  }),
                 ],
               ],
             ),
@@ -2453,6 +2485,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
   void _showForwardPicker(BuildContext context) {
     final bloc = context.read<MessengerBloc>();
     final conversations = bloc.state.conversations;
+    final rootContext = context;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.of(context).card,
@@ -2463,13 +2496,32 @@ class _MessageBubbleState extends State<_MessageBubble> {
       builder: (_) => _ForwardPickerSheet(
         conversations: conversations,
         onSelected: (targetConversationId) {
+          // Forward the message, then open the destination chat so the user
+          // lands right on it and can add a caption or follow-up.
           bloc.add(ForwardMessage(
             message: widget.message,
             targetConversationId: targetConversationId,
           ));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.chatMessageForwarded), duration: const Duration(seconds: 2)),
-          );
+          if (rootContext.mounted) {
+            rootContext.push('/dashboard/messenger/$targetConversationId');
+          }
+        },
+        onSelectSaved: () async {
+          try {
+            final res = await sl<DioClient>().post(
+              '/messenger/saved',
+              fromJson: (d) => Map<String, dynamic>.from(d as Map),
+            );
+            final convId = res['conversationId'] as String?;
+            if (convId == null) return;
+            bloc.add(ForwardMessage(
+              message: widget.message,
+              targetConversationId: convId,
+            ));
+            if (rootContext.mounted) {
+              rootContext.push('/dashboard/messenger/$convId');
+            }
+          } catch (_) {}
         },
       ),
     );
@@ -2797,10 +2849,12 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
 class _ForwardPickerSheet extends StatefulWidget {
   final List<ConversationEntity> conversations;
   final void Function(String conversationId) onSelected;
+  final VoidCallback? onSelectSaved;
 
   const _ForwardPickerSheet({
     required this.conversations,
     required this.onSelected,
+    this.onSelectSaved,
   });
 
   @override
@@ -2875,22 +2929,94 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
           Expanded(
             child: ListView.builder(
               controller: scrollController,
-              itemCount: filtered.length,
+              // +1 for the Saved/Favorites entry at the top (hide while searching).
+              itemCount: filtered.length + ((widget.onSelectSaved != null && _query.isEmpty) ? 1 : 0),
               itemBuilder: (_, i) {
-                final conv = filtered[i];
+                final hasSaved = widget.onSelectSaved != null && _query.isEmpty;
+                if (hasSaved && i == 0) {
+                  return ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFA855F7), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                          ),
+                        ),
+                        child: const Icon(Icons.cloud_done_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                    title: Text(l10n.messengerSavedSection, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                    subtitle: Text(l10n.messengerSavedSubtitle, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onSelectSaved?.call();
+                    },
+                  );
+                }
+                final idx = hasSaved ? i - 1 : i;
+                final conv = filtered[idx];
                 final name = conv.name ?? conv.otherUserName ?? l10n.chatDialog;
                 final avatarUrl = conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
+                final ringColor = rainbowColorFor(name.isNotEmpty ? name : conv.id);
                 return ListTile(
-                  leading: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: colors.primary.withValues(alpha: 0.2),
-                    backgroundImage: avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
-                    child: avatarUrl == null
-                        ? Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold),
-                          )
-                        : null,
+                  leading: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ringColor, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: ringColor.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: avatarUrl != null
+                            ? null
+                            : RadialGradient(
+                                center: const Alignment(-0.3, -0.4),
+                                radius: 1.1,
+                                colors: [
+                                  Color.lerp(ringColor, Colors.white, 0.28)!,
+                                  ringColor,
+                                  Color.lerp(ringColor, Colors.black, 0.38)!,
+                                ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                      ),
+                      child: avatarUrl != null
+                          ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: avatarUrl,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                            ),
+                    ),
                   ),
                   title: Text(name, style: TextStyle(color: colors.textPrimary)),
                   onTap: () {

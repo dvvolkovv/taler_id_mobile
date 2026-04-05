@@ -6,7 +6,11 @@ import '../config/app_config.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
+import '../services/call_history_cache_service.dart';
+import '../services/contacts_cache_service.dart';
+import '../services/message_draft_service.dart';
 import '../services/messenger_cache_service.dart';
+import '../services/pending_message_service.dart';
 import '../services/video_effects_service.dart';
 
 // Auth
@@ -71,6 +75,26 @@ Future<void> setupDependencies() async {
   // Messenger cache (Hive)
   await MessengerCacheService.init();
   sl.registerSingleton<MessengerCacheService>(MessengerCacheService());
+
+  // Message drafts (Hive) — persisted unsent text per conversation
+  final drafts = MessageDraftService();
+  await drafts.init();
+  sl.registerSingleton<MessageDraftService>(drafts);
+
+  // Pending message queue (Hive) — messages sent offline
+  final pending = PendingMessageService();
+  await pending.init();
+  sl.registerSingleton<PendingMessageService>(pending);
+
+  // Call history cache (Hive) — stale-while-revalidate for Calls screen
+  final callCache = CallHistoryCacheService();
+  await callCache.init();
+  sl.registerSingleton<CallHistoryCacheService>(callCache);
+
+  // Contacts cache (Hive) — stale-while-revalidate for Contacts screen
+  final contactsCache = ContactsCacheService();
+  await contactsCache.init();
+  sl.registerSingleton<ContactsCacheService>(contactsCache);
 
   // Dio (raw, for auth interceptor use)
   final rawDio = Dio(

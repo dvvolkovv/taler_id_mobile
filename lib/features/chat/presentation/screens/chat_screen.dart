@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
@@ -82,25 +83,10 @@ class _ChatViewState extends State<_ChatView> {
               },
               builder: (context, state) {
                 if (state.messages.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.smart_toy_outlined,
-                          size: 64,
-                          color: AppColors.of(context).primary.withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.chatEmpty,
-                          style: TextStyle(
-                            color: AppColors.of(context).textSecondary,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
+                  return EmptyStateView(
+                    icon: Icons.smart_toy_rounded,
+                    title: l10n.chatEmpty,
+                    gradient: const [Color(0xFF22D3EE), Color(0xFFA855F7)],
                   );
                 }
 

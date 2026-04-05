@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/share_intent_service.dart';
 import '../bloc/messenger_bloc.dart';
@@ -193,12 +194,42 @@ class _ConversationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = displayName(context);
+    final ringColor = rainbowColorFor(name.isNotEmpty ? name : conversation.id);
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: AppColors.of(context).primary,
-        child: Text(
-          name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+      leading: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: ringColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: ringColor.withValues(alpha: 0.35),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              center: const Alignment(-0.3, -0.4),
+              radius: 1.1,
+              colors: [
+                Color.lerp(ringColor, Colors.white, 0.28)!,
+                ringColor,
+                Color.lerp(ringColor, Colors.black, 0.38)!,
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ),
+          ),
+          child: Center(
+            child: Text(
+              name.isNotEmpty ? name[0].toUpperCase() : '?',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ),
         ),
       ),
       title: Text(
@@ -219,10 +250,24 @@ class _ConversationTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             )
           : null,
-      trailing: Icon(
-        Icons.send,
-        color: AppColors.of(context).primary,
-        size: 20,
+      trailing: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            colors: [AppColors.of(context).primary, AppColors.of(context).primaryDark],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.of(context).primary.withValues(alpha: 0.4),
+              blurRadius: 6,
+            ),
+          ],
+        ),
+        child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
       ),
       onTap: onTap,
     );

@@ -8,5 +8,9 @@
 	<array>
 		<string>applinks:id.taler.tirol</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.tirol.taler.talerIdMobile</string>
+	</array>
 </dict>
 </plist>

@@ -767,7 +767,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
-    final isOnAssistant = location == RouteConstants.assistant;
 
     return BlocListener<MessengerBloc, MessengerState>(
       listenWhen: (prev, curr) =>
@@ -780,14 +779,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       },
       child: Scaffold(
         backgroundColor: AppColors.of(context).background,
-        floatingActionButton: isOnAssistant
-            ? null
-            : FloatingActionButton.small(
-                onPressed: () => context.go(RouteConstants.assistant),
-                backgroundColor: AppColors.of(context).primary,
-                tooltip: 'Home',
-                child: const Icon(Icons.home_rounded, color: Colors.white, size: 20),
-              ),
         body: Column(
           children: [
             // Active call banner — visible on all tabs

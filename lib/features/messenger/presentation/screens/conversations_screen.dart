@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
@@ -414,6 +415,34 @@ class _ConversationsViewState extends State<_ConversationsView> {
     );
   }
 
+  /// 40x40 gradient circular icon for ListTile leading slots.
+  Widget _gradientLeading(IconData icon, Color color) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.15)!,
+            color,
+            Color.lerp(color, Colors.black, 0.25)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: Colors.white, size: 20),
+    );
+  }
+
   void _showNewChatSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -444,10 +473,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.person_add_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.person_add_rounded, const Color(0xFF22D3EE)),
                   title: Text(l10n.newChat, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -455,10 +481,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   },
                 ),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.group_add_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.group_add_rounded, const Color(0xFF34D399)),
                   title: Text(l10n.newGroup, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -466,10 +489,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   },
                 ),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.campaign_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.campaign_rounded, const Color(0xFFA855F7)),
                   title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -821,28 +841,42 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
                   SliverToBoxAdapter(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                       leading: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: colors.textSecondary, width: 2),
+                          border: Border.all(color: const Color(0xFFFBBF24), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFBBF24).withValues(alpha: 0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                        child: CircleAvatar(
-                          backgroundColor: colors.surface,
-                          child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
                         ),
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerArchivedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text('${archived.length}',
-                          style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                      subtitle: Text(
+                        '${archived.length}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
                       ),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => BlocProvider.value(
@@ -859,20 +893,43 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                       leading: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: colors.primary, width: 2),
+                          border: Border.all(color: const Color(0xFFA855F7), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFA855F7).withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                        child: CircleAvatar(
-                          backgroundColor: colors.primary,
-                          child: const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 20),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 20),
                         ),
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        AppLocalizations.of(context)!.messengerSavedSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
                       onTap: () async {
                         try {
                           final res = await sl<DioClient>().post(
@@ -944,10 +1001,29 @@ class _ConversationsViewState extends State<_ConversationsView> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showNewChatSheet(context),
-        backgroundColor: colors.primary,
-        child: const Icon(Icons.edit_rounded, color: Colors.black),
+      floatingActionButton: GestureDetector(
+        onTap: () => _showNewChatSheet(context),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF22D3EE).withValues(alpha: 0.5),
+                blurRadius: 18,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 26),
+        ),
       ),
     );
   }
@@ -1065,27 +1141,50 @@ class _ConversationTile extends StatelessWidget {
 
     final avatar = isGroup ? conversation.avatarUrl : conversation.otherUserAvatar;
 
+    final rainbowColor = rainbowColorFor(displayName);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: rainbowColorFor(displayName), width: 2),
+          border: Border.all(color: rainbowColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: rainbowColor.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 0,
+            ),
+          ],
         ),
-        child: CircleAvatar(
-          backgroundColor: isGroup
-              ? AppColors.of(context).primary.withValues(alpha: 0.7)
-              : AppColors.of(context).primary,
-          child: avatar != null
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: avatar,
-                    width: 40, height: 40, fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
-                  ),
-                )
-              : _avatarLetter(context, displayName, isGroup),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              center: const Alignment(-0.3, -0.4),
+              radius: 1.1,
+              colors: [
+                Color.lerp(rainbowColor, Colors.white, 0.25)!,
+                rainbowColor,
+                Color.lerp(rainbowColor, Colors.black, 0.35)!,
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ),
+          ),
+          child: CircleAvatar(
+            backgroundColor: Colors.transparent,
+            child: avatar != null
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: avatar,
+                      width: 40, height: 40, fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
+                    ),
+                  )
+                : _avatarLetter(context, displayName, isGroup),
+          ),
         ),
       ),
       title: Row(
@@ -1145,36 +1244,59 @@ class _ConversationTile extends StatelessWidget {
                 ],
               ),
             if (isMissedCall) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.of(context).error,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.phone_missed_rounded, color: Colors.white, size: 11),
-                    const SizedBox(width: 3),
-                    const Text('1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
+              const SizedBox(height: 2),
+              PulsingBadge(
+                glowColor: AppColors.of(context).error,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone_missed_rounded, color: Colors.white, size: 11),
+                      SizedBox(width: 3),
+                      Text('1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
             ] else if (conversation.unreadCount > 0) ...[
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: conversation.isMuted
-                      ? AppColors.of(context).textSecondary
-                      : AppColors.of(context).error,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${conversation.unreadCount}',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              const SizedBox(height: 2),
+              PulsingBadge(
+                glowColor: conversation.isMuted
+                    ? AppColors.of(context).textSecondary
+                    : AppColors.of(context).primary,
+                enabled: !conversation.isMuted,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    gradient: conversation.isMuted
+                        ? null
+                        : LinearGradient(
+                            colors: [
+                              AppColors.of(context).primary,
+                              AppColors.of(context).primaryDark,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: conversation.isMuted
+                        ? AppColors.of(context).textSecondary
+                        : null,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${conversation.unreadCount}',
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -1377,3 +1499,4 @@ class _ProfileAvatar extends StatelessWidget {
     );
   }
 }
+

@@ -10,9 +10,31 @@ import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_b
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_event.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_state.dart';
 import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
+import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
+import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_remote_datasource.dart';
+
+class _FakeMessengerRemoteDataSource implements MessengerRemoteDataSource {
+  final _reconnectCtrl = StreamController<void>.broadcast();
+  @override
+  Stream<void> get reconnectStream => _reconnectCtrl.stream;
+  @override
+  noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
 
 class MockMessengerRepository extends Mock implements IMessengerRepository {}
+
+/// Fake without Hive — acts as a no-op pending-message queue for tests.
+class FakePendingMessageService extends PendingMessageService {
+  @override
+  Future<void> init() async {}
+  @override
+  Future<void> save(String tempId, Map<String, dynamic> message) async {}
+  @override
+  Future<void> remove(String tempId) async {}
+  @override
+  List<Map<String, dynamic>> getAll() => const [];
+}
 
 /// Fake без Hive — возвращает пустые данные, игнорирует записи
 class FakeMessengerCacheService extends MessengerCacheService {
@@ -107,11 +129,21 @@ void main() {
     when(() => repo.connect(any())).thenAnswer((_) async {});
     when(() => repo.dispose()).thenReturn(null);
 
-    // Register fake cache service in GetIt (no Hive dependency)
+    // Register fake services in GetIt (no Hive dependency)
     if (sl.isRegistered<MessengerCacheService>()) {
       sl.unregister<MessengerCacheService>();
     }
     sl.registerSingleton<MessengerCacheService>(FakeMessengerCacheService());
+
+    if (sl.isRegistered<PendingMessageService>()) {
+      sl.unregister<PendingMessageService>();
+    }
+    sl.registerSingleton<PendingMessageService>(FakePendingMessageService());
+
+    if (sl.isRegistered<MessengerRemoteDataSource>()) {
+      sl.unregister<MessengerRemoteDataSource>();
+    }
+    sl.registerSingleton<MessengerRemoteDataSource>(_FakeMessengerRemoteDataSource());
   });
 
   // ── Connect ───────────────────────────────────────────────────────────────

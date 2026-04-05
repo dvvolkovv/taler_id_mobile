@@ -16,7 +16,10 @@ class _RetryInterceptor extends Interceptor {
         err.type == DioExceptionType.receiveTimeout ||
         err.type == DioExceptionType.connectionError;
 
-    if (isNetworkError && retryCount < maxRetries) {
+    // Don't retry logout — it's fire-and-forget; local cleanup runs regardless.
+    final isLogout = err.requestOptions.path.contains('/auth/logout');
+
+    if (isNetworkError && !isLogout && retryCount < maxRetries) {
       await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1)));
       final opts = err.requestOptions;
       opts.extra['retryCount'] = retryCount + 1;

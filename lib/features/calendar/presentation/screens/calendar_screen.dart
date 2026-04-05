@@ -451,10 +451,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
           if (_voiceConnecting)
             const Padding(padding: EdgeInsets.only(right: 12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
           else
-            IconButton(
-              icon: Icon(_voiceActive ? Icons.stop : Icons.mic, color: _voiceActive ? colors.error : colors.primary),
-              onPressed: _voiceActive ? _stopVoice : _startVoice,
-              tooltip: _voiceActive ? l10n.calendarStop : l10n.calendarVoiceInput,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: GestureDetector(
+                onTap: _voiceActive ? _stopVoice : _startVoice,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _voiceActive
+                          ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                          : const [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_voiceActive ? const Color(0xFFEF4444) : const Color(0xFF22D3EE))
+                            .withValues(alpha: 0.5),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
             ),
           IconButton(
             icon: Icon(Icons.add, color: colors.primary),
@@ -689,17 +716,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final type = event['type'] as String? ?? 'EVENT';
 
     IconData icon;
+    List<Color> typeGradient;
     switch (type) {
-      case 'CALL': icon = Icons.call_rounded; break;
-      case 'REMINDER': icon = Icons.notifications_active_rounded; break;
-      default: icon = Icons.event_rounded;
+      case 'CALL':
+        icon = Icons.call_rounded;
+        typeGradient = const [Color(0xFF3B82F6), Color(0xFFA855F7)]; // blue → purple
+        break;
+      case 'REMINDER':
+        icon = Icons.notifications_active_rounded;
+        typeGradient = const [Color(0xFFF59E0B), Color(0xFFEF4444)]; // amber → red
+        break;
+      default:
+        icon = Icons.event_rounded;
+        typeGradient = const [Color(0xFF10B981), Color(0xFF22D3EE)]; // emerald → cyan
     }
+    final typeColor = typeGradient.first;
 
     final desc = event['description'] as String? ?? '';
     // Extract room link from description
-    final linkMatch = RegExp(r'https://id\.taler\.tirol/room/[\w-]+').firstMatch(desc);
+    final linkMatch = RegExp(r'https://(?:staging\.)?id\.taler\.tirol/room/[\w-]+').firstMatch(desc);
     final roomLink = linkMatch?.group(0);
-    final descClean = desc.replaceAll(RegExp(r'\n?https://id\.taler\.tirol/room/[\w-]+'), '').replaceAll(RegExp(r'Место: '), '').trim();
+    final descClean = desc.replaceAll(RegExp(r'\n?https://(?:staging\.)?id\.taler\.tirol/room/[\w-]+'), '').replaceAll(RegExp(r'Место: '), '').trim();
     final invites = (event['invites'] as List?)?.cast<Map<String, dynamic>>() ?? [];
 
     final eventId = event['id'] as String;
@@ -765,14 +802,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // Time column
                 SizedBox(
                   width: 50,
-                  child: Text(timeStr, style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text(timeStr, style: TextStyle(color: typeColor, fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
                 Container(
-                  width: 3, height: 40,
+                  width: 4, height: 44,
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: type == 'CALL' ? colors.primary : type == 'REMINDER' ? Colors.orange : colors.textSecondary,
+                    gradient: LinearGradient(
+                      colors: typeGradient,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                     borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: typeColor.withValues(alpha: 0.55),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -781,8 +829,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(icon, size: 16, color: colors.textSecondary),
-                          const SizedBox(width: 6),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: typeGradient,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: typeColor.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Icon(icon, size: 14, color: Colors.white),
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(child: Text(event['title'] as String? ?? '', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis)),
                           if (event['recurrence'] != null) ...[
                             const SizedBox(width: 4),
@@ -903,11 +969,15 @@ class _EventEditScreenState extends State<_EventEditScreen> {
 
     // Parse description — extract meeting link if present
     final rawDesc = e?['description'] as String? ?? '';
-    final linkMatch = RegExp(r'https://id\.taler\.tirol/room/[\w-]+').firstMatch(rawDesc);
+    final linkMatch = RegExp(r'https://(?:staging\.)?id\.taler\.tirol/room/[\w-]+').firstMatch(rawDesc);
     _meetingLink = linkMatch?.group(0);
-    final cleanDesc = rawDesc.replaceAll(RegExp(r'\n?https://id\.taler\.tirol/room/[\w-]+'), '').trim();
+    final cleanDesc = rawDesc.replaceAll(RegExp(r'\n?https://(?:staging\.)?id\.taler\.tirol/room/[\w-]+'), '').trim();
     _descCtrl = TextEditingController(text: cleanDesc);
     _locationCtrl = TextEditingController(text: _meetingLink ?? '');
+    _locationCtrl.addListener(() {
+      // Rebuild so Copy/Join buttons appear/disappear as the link text changes.
+      if (mounted) setState(() {});
+    });
 
     if (e != null && e['startAt'] != null) {
       final dt = DateTime.parse(e['startAt'] as String).toLocal();
@@ -964,6 +1034,33 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     }
   }
 
+  bool _hasMeetingLink() {
+    final text = _locationCtrl.text.trim();
+    return RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/[\w-]+').hasMatch(text);
+  }
+
+  Future<void> _copyMeetingLink() async {
+    final text = _locationCtrl.text.trim();
+    if (text.isEmpty) return;
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(AppLocalizations.of(context)!.callLinkCopied),
+        backgroundColor: AppColors.of(context).primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _joinMeeting() {
+    final text = _locationCtrl.text.trim();
+    final match = RegExp(r'/room/([\w-]+)').firstMatch(text);
+    final code = match?.group(1);
+    if (code == null || code.isEmpty) return;
+    context.push('/dashboard/voice?publicCode=$code');
+  }
+
   Future<void> _generateMeetingLink() async {
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
@@ -971,11 +1068,17 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         data: {'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting},
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
-      final code = room?['code'] as String? ?? '';
-      if (code.isNotEmpty && mounted) {
+      // Prefer the full URL from the server (honours current flavor/host),
+      // fall back to building it from the code.
+      String? link = room?['link'] as String?;
+      if (link == null || link.isEmpty) {
+        final code = room?['code'] as String? ?? '';
+        if (code.isNotEmpty) link = '${ApiConstants.baseUrl}/room/$code';
+      }
+      if (link != null && link.isNotEmpty && mounted) {
         setState(() {
-          _meetingLink = 'https://id.taler.tirol/room/$code';
-          _locationCtrl.text = _meetingLink!;
+          _meetingLink = link;
+          _locationCtrl.text = link!;
         });
       }
     } catch (_) {}
@@ -1016,7 +1119,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       // Build description with location/link
       String description = _descCtrl.text.trim();
       final loc = _locationCtrl.text.trim();
-      if (loc.isNotEmpty && loc.startsWith('https://id.taler.tirol/room/')) {
+      if (loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc)) {
         description = description.isNotEmpty ? '$description\n$loc' : loc;
       } else if (loc.isNotEmpty) {
         final locPrefix = AppLocalizations.of(context)!.calendarLocationPrefix(loc);
@@ -1167,6 +1270,39 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               border: InputBorder.none,
             ),
           ),
+          if (_type == 'CALL' && _hasMeetingLink()) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _copyMeetingLink,
+                    icon: Icon(Icons.copy_rounded, size: 18, color: colors.primary),
+                    label: Text(l10n.chatCopy, style: TextStyle(color: colors.primary)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: colors.primary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _joinMeeting,
+                    icon: const Icon(Icons.videocam_rounded, size: 18, color: Colors.white),
+                    label: Text(l10n.joinCall, style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           const Divider(),
           ListTile(
             contentPadding: EdgeInsets.zero,

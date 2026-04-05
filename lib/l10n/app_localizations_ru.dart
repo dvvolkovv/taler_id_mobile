@@ -499,6 +499,37 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notifications => 'Уведомления';
 
   @override
+  String get permissions => 'Разрешения';
+
+  @override
+  String get permissionNotifications => 'Push-уведомления';
+
+  @override
+  String get permissionNotificationsDesc => 'Звонки, сообщения, статусы';
+
+  @override
+  String get permissionMicrophone => 'Микрофон';
+
+  @override
+  String get permissionMicrophoneDesc => 'Звонки и голосовой ассистент';
+
+  @override
+  String get permissionCamera => 'Камера';
+
+  @override
+  String get permissionCameraDesc => 'Видеозвонки и верификация';
+
+  @override
+  String get permissionLocation => 'Геолокация';
+
+  @override
+  String get permissionLocationDesc => 'Используется для верификации';
+
+  @override
+  String get permissionOpenSettings =>
+      'Чтобы отозвать разрешение, откройте настройки системы';
+
+  @override
   String get pushKycStatus => 'Push о KYC-статусе';
 
   @override
@@ -2695,6 +2726,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get messengerSavedSection => 'Избранное';
+
+  @override
+  String get messengerSavedSubtitle => 'Сохранить в память';
 
   @override
   String messengerArchiveTitle(int count) {

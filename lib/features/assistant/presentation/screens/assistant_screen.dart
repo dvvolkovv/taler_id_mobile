@@ -263,9 +263,10 @@ class _AssistantScreenState extends State<AssistantScreen>
     final nowStr = DateTime.now().toIso8601String();
 
     if (locale == 'ru') {
-      return 'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
+      return 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
+          'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
           'статусе KYC-верификации и данных профиля. Отвечай кратко и по делу. '
-          'Говори на том же языке, на котором говорит пользователь. Не начинай разговор первым — жди когда пользователь заговорит. '
+          'Не начинай разговор первым — жди когда пользователь заговорит. '
           'Отвечай кратко и по делу. '
           'При необходимости вызывай инструменты для чтения или обновления профиля. '
           'Ты также умеешь работать с разделами "О себе" — это личная информация пользователя: ценности, видение мира, '
@@ -292,6 +293,15 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Активируется если пользователь говорит "HR консультация", "помоги с карьерой", "подготовка к собеседованию" и т.п.\n'
           '- Карьерные консультации, подготовка к собеседованиям, разрешение рабочих конфликтов, развитие карьеры\n'
           '- Можешь использовать get_profile и get_sections для понимания фона пользователя\n\n'
+          'РЕЖИМ "СОБЕСЕДНИК":\n'
+          'Активируется если пользователь говорит "поболтаем", "давай просто поговорим", "хочу поговорить о…", "обсудим" и т.п., либо задаёт вопрос на свободную тему, не связанную с Taler ID.\n'
+          '- Это дружеский открытый разговор на любые темы: новости, идеи, хобби, философия, история, наука, искусство, спорт, путешествия и всё остальное\n'
+          '- Говори живо, естественно, можно с юмором, как хороший собеседник за чашкой кофе\n'
+          '- Можешь делиться фактами, мыслями, рассуждениями, предлагать свою точку зрения\n'
+          '- Задавай встречные вопросы, поддерживай диалог, развивай тему\n'
+          '- НЕ превращай каждую фразу в совет; просто разговаривай\n'
+          '- В этом режиме НЕ вызывай инструменты профиля/KYC/контактов, если пользователь явно об этом не просит\n'
+          '- Если пользователь переключается на тему продукта (профиль, звонки, заметки) — плавно выйди из режима и выполни запрос\n\n'
           'ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ:\n'
           '- При входе в режим — подтверди голосом какой режим активирован\n'
           '- "Сменить роль" / "выйди из роли" / "хватит" → вернись в обычный режим ассистента\n'
@@ -336,9 +346,10 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Для запросов "на эту неделю" — from=сегодня, to=через 7 дней.';
     }
 
-    return 'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
+    return 'ALWAYS reply ONLY in English, even if you think the user said something in another language — that is a transcription error, reply in English anyway.\n\n'
+        'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
         'KYC verification status, and profile data. Be concise and to the point. '
-        'Speak in the same language as the user. Don\'t start the conversation — wait for the user to speak. '
+        'Don\'t start the conversation — wait for the user to speak. '
         'When needed, call tools to read or update the profile. '
         'You can also work with "About me" sections — personal information: values, worldview, '
         'skills, interests, desires, profile, likes/dislikes. You can ask the user about themselves, '
@@ -364,6 +375,15 @@ class _AssistantScreenState extends State<AssistantScreen>
         'Activated when the user says "HR consultation", "help with career", "interview preparation", etc.\n'
         '- Career consultations, interview preparation, resolving work conflicts, career development\n'
         '- Can use get_profile and get_sections to understand user\'s background\n\n'
+        '"CASUAL CHAT" MODE:\n'
+        'Activated when the user says "let\'s chat", "just talk", "let\'s discuss…", "what do you think about…" or asks any free-form question unrelated to Taler ID.\n'
+        '- This is a friendly open-ended conversation on any topic: news, ideas, hobbies, philosophy, history, science, art, sports, travel, anything.\n'
+        '- Speak naturally, lively, with a touch of humour — like a good companion over coffee.\n'
+        '- Feel free to share facts, thoughts, reasoning, offer your own opinion.\n'
+        '- Ask follow-up questions, keep the dialogue going, develop the topic.\n'
+        '- Don\'t turn every reply into advice; just talk.\n'
+        '- In this mode, do NOT call profile/KYC/contact tools unless the user explicitly asks.\n'
+        '- If the user switches to a product topic (profile, calls, notes) — smoothly exit the mode and handle the request.\n\n'
         'MODE SWITCHING:\n'
         '- When entering a mode — confirm by voice which mode is activated\n'
         '- "Switch role" / "exit role" / "enough" → return to normal assistant mode\n'
@@ -454,7 +474,9 @@ class _AssistantScreenState extends State<AssistantScreen>
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
-        'input_audio_transcription': {'model': 'whisper-1'},
+        // Pin Whisper to the app's locale so transcription doesn't drift into
+        // Spanish/German when the first utterance is ambiguous.
+        'input_audio_transcription': {'model': 'whisper-1', 'language': locale},
         'turn_detection': {
           'type': 'server_vad',
           'threshold': 0.5,
@@ -1523,12 +1545,14 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.tabMessenger,
             route: RouteConstants.messenger,
             badge: unreadMessages,
+            color: const Color(0xFF22D3EE), // cyan
           ),
           _NavCircle(
             icon: Icons.call_outlined,
             label: l10n.tabCalls,
             route: RouteConstants.callHistory,
             badge: missedCalls,
+            color: const Color(0xFF34D399), // emerald
             onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(missedCallsCount: 0)),
           ),
           _NavCircle(
@@ -1536,6 +1560,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.tabCalendar,
             route: RouteConstants.calendar,
             badge: pendingCalendar,
+            color: const Color(0xFFA78BFA), // violet
             onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(pendingCalendarInvites: 0)),
           ),
           _NavCircle(
@@ -1543,29 +1568,88 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.notesTitle,
             route: RouteConstants.notes,
             badge: 0,
+            color: const Color(0xFFFB7185), // rose
           ),
           _NavCircle(
             icon: Icons.people_outline,
             label: l10n.contacts,
             route: RouteConstants.contacts,
             badge: pendingContacts,
+            color: const Color(0xFF38BDF8), // sky
           ),
           _NavCircle(
             icon: Icons.person_outline,
             label: l10n.tabProfile,
             route: RouteConstants.profile,
             badge: 0,
+            color: const Color(0xFFFBBF24), // amber
           ),
           _NavCircle(
             icon: Icons.settings_outlined,
             label: l10n.tabSettings,
             route: RouteConstants.settings,
             badge: 0,
+            color: const Color(0xFF818CF8), // indigo-lavender
           ),
         ];
 
         return Stack(
           children: [
+            // Ambient floating color blobs (animated background)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _orbitCtrl,
+                  builder: (context, _) {
+                    final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                    return CustomPaint(
+                      painter: _AmbientBlobsPainter(time: t, colors: navCircles.map((n) => n.color).toList()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Orbital trajectory ring (subtle dotted path)
+            Center(
+              child: AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: Size.square(orbitRadius * 2 + 80),
+                    painter: _OrbitRingPainter(
+                      radius: orbitRadius,
+                      time: t,
+                      baseColor: colors.primary,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Multi-color aura blobs rotating around the center button
+            Center(
+              child: AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: const Size(240, 240),
+                    painter: _CenterAuraPainter(
+                      time: t,
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA78BFA),
+                        Color(0xFFFBBF24),
+                        Color(0xFFFB7185),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
             // Center assistant button
             Center(
               child: GestureDetector(
@@ -1578,12 +1662,25 @@ class _AssistantScreenState extends State<AssistantScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.card,
-                      border: Border.all(color: colors.primary, width: 2),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: colors.primary.withValues(alpha: 0.25),
-                          blurRadius: 32,
-                          spreadRadius: 6,
+                          color: colors.primary.withValues(alpha: 0.4),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFFA78BFA).withValues(alpha: 0.25),
+                          blurRadius: 60,
+                          spreadRadius: 8,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -1646,7 +1743,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                           return Positioned(
                             left: orbitRadius + 40 + x - 30,
                             top: orbitRadius + 40 + y - 30,
-                            child: _buildNavCircle(nav, colors),
+                            child: _buildNavCircle(nav, colors, i),
                           );
                         }),
                       ),
@@ -1662,66 +1759,142 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  Widget _buildNavCircle(_NavCircle nav, AppColorsExtension colors) {
-    return GestureDetector(
-      onTap: () {
-        nav.onTap?.call();
-        context.push(nav.route);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
+  Widget _buildNavCircle(_NavCircle nav, AppColorsExtension colors, int index) {
+    // Individual breathing phase based on index so each circle pulses
+    // independently (creates a "living cluster" feel).
+    return AnimatedBuilder(
+      animation: _orbitCtrl,
+      builder: (context, _) {
+        final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+        final phase = t * 1.6 + index * 0.9;
+        final breath = 1.0 + 0.06 * math.sin(phase);
+        final glow = 0.55 + 0.3 * (0.5 + 0.5 * math.sin(phase * 0.7));
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            nav.onTap?.call();
+            context.push(nav.route);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.primary.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(nav.icon, size: 24, color: colors.primary),
-              ),
-              if (nav.badge > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colors.error,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text(
-                      nav.badge > 99 ? '99+' : '${nav.badge}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+              Transform.scale(
+                scale: breath,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer colored glow aura
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            nav.color.withValues(alpha: glow * 0.45),
+                            nav.color.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.2, 1.0],
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    // Main circle body with radial gradient
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.3, -0.4),
+                          radius: 1.1,
+                          colors: [
+                            Color.lerp(nav.color, Colors.white, 0.35)!,
+                            nav.color,
+                            Color.lerp(nav.color, Colors.black, 0.35)!,
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          // Strong colored glow
+                          BoxShadow(
+                            color: nav.color.withValues(alpha: glow * 0.55),
+                            blurRadius: 18,
+                            spreadRadius: 1,
+                          ),
+                          // Depth shadow
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        nav.icon,
+                        size: 24,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Badge
+                    if (nav.badge > 0)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colors.error,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.error.withValues(alpha: 0.6),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                          child: Text(
+                            nav.badge > 99 ? '99+' : '${nav.badge}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                nav.label,
+                style: TextStyle(
+                  color: colors.textPrimary.withValues(alpha: 0.85),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 5),
-          Text(
-            nav.label,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1730,10 +1903,32 @@ class _AssistantScreenState extends State<AssistantScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.of(context).primary),
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: AnimatedBuilder(
+              animation: _orbitCtrl,
+              builder: (context, _) {
+                final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                return Transform.rotate(
+                  angle: t * 2 * math.pi * 0.7,
+                  child: CustomPaint(
+                    painter: _ConnectingRingPainter(
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA855F7),
+                        Color(0xFFFBBF24),
+                        Color(0xFF22D3EE),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 24),
           Text(l10n.assistantConnectingToAssistant,
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16)),
+              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -1745,72 +1940,137 @@ class _AssistantScreenState extends State<AssistantScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        AnimatedBuilder(
-          animation: _pulseCtrl,
-          builder: (_, child) {
-            final scale =
-                speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.8 : 1.0;
-            return Transform.scale(scale: scale, child: child);
-          },
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.of(context).primary.withValues(alpha: 0.15),
-              border: Border.all(
-                color: speaking ? AppColors.of(context).primary : AppColors.of(context).border,
-                width: speaking ? 2 : 1,
-              ),
-              boxShadow: speaking
-                  ? [
-                      BoxShadow(
-                        color: AppColors.of(context).primary.withValues(alpha: 0.3),
-                        blurRadius: 24,
-                        spreadRadius: 4,
-                      )
-                    ]
-                  : null,
-            ),
-            child: ClipOval(
-              child: _logoVideoReady && _logoVideo != null
-                  ? SizedBox(
-                      width: 90,
-                      height: 90,
-                      child: FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _logoVideo!.value.size.width,
-                          height: _logoVideo!.value.size.height,
-                          child: VideoPlayer(_logoVideo!),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      width: 90,
-                      height: 90,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? 'assets/app_icon_dark.png'
-                              : 'assets/app_icon_light.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+        SizedBox(
+          width: 260,
+          height: 260,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Expanding waveform rings when speaking
+              AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: const Size(260, 260),
+                    painter: _AssistantWavePainter(
+                      time: t,
+                      active: speaking,
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA855F7),
+                        Color(0xFFFBBF24),
+                      ],
                     ),
-            ),
+                  );
+                },
+              ),
+              // Breathing central container with video logo
+              AnimatedBuilder(
+                animation: _pulseCtrl,
+                builder: (_, child) {
+                  final scale =
+                      speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.8 : 1.0;
+                  return Transform.scale(scale: scale, child: child);
+                },
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: speaking
+                        ? const LinearGradient(
+                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: speaking
+                        ? null
+                        : AppColors.of(context).card,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: speaking ? 0.3 : 0.1),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (speaking ? const Color(0xFF22D3EE) : AppColors.of(context).primary)
+                            .withValues(alpha: speaking ? 0.55 : 0.3),
+                        blurRadius: speaking ? 40 : 24,
+                        spreadRadius: speaking ? 8 : 4,
+                      ),
+                      if (speaking)
+                        BoxShadow(
+                          color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                          blurRadius: 60,
+                          spreadRadius: 12,
+                        ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: ClipOval(
+                      child: _logoVideoReady && _logoVideo != null
+                          ? SizedBox(
+                              width: 90,
+                              height: 90,
+                              child: FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: _logoVideo!.value.size.width,
+                                  height: _logoVideo!.value.size.height,
+                                  child: VideoPlayer(_logoVideo!),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 90,
+                              height: 90,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 20),
-        Text(
-          speaking ? l10n.assistantAiSpeaking : l10n.assistantAiListening,
-          style: TextStyle(
-            color: speaking ? AppColors.of(context).primary : AppColors.of(context).textSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: speaking
+              ? ShaderMask(
+                  key: const ValueKey('speaking'),
+                  shaderCallback: (rect) => const LinearGradient(
+                    colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                  ).createShader(rect),
+                  child: Text(
+                    l10n.assistantAiSpeaking,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              : Text(
+                  l10n.assistantAiListening,
+                  key: const ValueKey('listening'),
+                  style: TextStyle(
+                    color: AppColors.of(context).textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         ),
         const Spacer(),
         Padding(
@@ -1965,6 +2225,7 @@ class _CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isColoredAction = color.opacity >= 0.9;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -1972,7 +2233,37 @@ class _CallButton extends StatelessWidget {
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              gradient: isColoredAction
+                  ? RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: [
+                        Color.lerp(color, Colors.white, 0.18)!,
+                        color,
+                        Color.lerp(color, Colors.black, 0.3)!,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
+                    )
+                  : null,
+              color: isColoredAction ? null : color,
+              shape: BoxShape.circle,
+              boxShadow: isColoredAction
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: size >= 72 ? 22 : 14,
+                        spreadRadius: size >= 72 ? 2 : 0,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+            ),
             child: Icon(icon, color: iconColor, size: size * 0.45),
           ),
           const SizedBox(height: 8),
@@ -1985,11 +2276,90 @@ class _CallButton extends StatelessWidget {
   }
 }
 
+/// Rotating conic-gradient ring shown while the assistant is connecting.
+class _ConnectingRingPainter extends CustomPainter {
+  final List<Color> colors;
+  _ConnectingRingPainter({required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 4;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final bgPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = Colors.white.withValues(alpha: 0.06);
+    canvas.drawCircle(center, radius, bgPaint);
+
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..shader = SweepGradient(colors: colors).createShader(rect);
+    canvas.drawArc(rect, 0, math.pi * 1.5, false, arcPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectingRingPainter old) => false;
+}
+
+/// Expanding colored rings emanating from the center while the
+/// assistant is speaking. Goes quiet (just a soft breathing aura) when
+/// it's listening.
+class _AssistantWavePainter extends CustomPainter {
+  final double time;
+  final bool active;
+  final List<Color> colors;
+  _AssistantWavePainter({
+    required this.time,
+    required this.active,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = size.width / 2;
+
+    if (active) {
+      // Three outward-expanding rings, phase-offset
+      for (var i = 0; i < 3; i++) {
+        final phase = ((time * 0.9) + i * 0.33) % 1.0;
+        final r = 60 + phase * (maxRadius - 60);
+        final alpha = (1.0 - phase) * 0.45;
+        final paint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..color = colors[i % colors.length].withValues(alpha: alpha);
+        canvas.drawCircle(center, r, paint);
+      }
+    } else {
+      // Idle: soft breathing halo
+      final breath = 0.5 + 0.5 * math.sin(time * 1.2);
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            colors[0].withValues(alpha: 0.12 + 0.08 * breath),
+            colors[0].withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: center, radius: 90));
+      canvas.drawCircle(center, 90, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AssistantWavePainter old) =>
+      old.time != time || old.active != active;
+}
+
 class _NavCircle {
   final IconData icon;
   final String label;
   final String route;
   final int badge;
+  final Color color;
   final VoidCallback? onTap;
 
   const _NavCircle({
@@ -1997,6 +2367,121 @@ class _NavCircle {
     required this.label,
     required this.route,
     required this.badge,
+    required this.color,
     this.onTap,
   });
+}
+
+/// Animated ambient background — soft floating color blobs that slowly
+/// drift, giving the idle screen a "living" feel.
+class _AmbientBlobsPainter extends CustomPainter {
+  final double time;
+  final List<Color> colors;
+  _AmbientBlobsPainter({required this.time, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    // Use a subset of palette colors to avoid chaos
+    final palette = [
+      colors.isNotEmpty ? colors[0] : const Color(0xFF22D3EE),
+      colors.length > 2 ? colors[2] : const Color(0xFFA78BFA),
+      colors.length > 5 ? colors[5] : const Color(0xFFFBBF24),
+      colors.length > 3 ? colors[3] : const Color(0xFFFB7185),
+    ];
+    // 4 blobs moving on independent Lissajous paths
+    for (var i = 0; i < palette.length; i++) {
+      final phaseX = time * 0.08 + i * 1.7;
+      final phaseY = time * 0.11 + i * 2.3;
+      final cx = w * (0.5 + 0.35 * math.sin(phaseX));
+      final cy = h * (0.5 + 0.28 * math.cos(phaseY));
+      final radius = w * 0.55;
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            palette[i].withValues(alpha: 0.14),
+            palette[i].withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: radius));
+      canvas.drawCircle(Offset(cx, cy), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AmbientBlobsPainter old) =>
+      old.time != time;
+}
+
+/// Subtle dotted ring showing the orbital trajectory. The dots slowly
+/// rotate in the opposite direction for parallax life.
+class _OrbitRingPainter extends CustomPainter {
+  final double radius;
+  final double time;
+  final Color baseColor;
+  _OrbitRingPainter({
+    required this.radius,
+    required this.time,
+    required this.baseColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    // Base translucent ring
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = baseColor.withValues(alpha: 0.10);
+    canvas.drawCircle(center, radius, ringPaint);
+
+    // Tiny orbiting dots (counter-rotating, slow)
+    const dotCount = 36;
+    final rotation = -time * 0.15;
+    for (var i = 0; i < dotCount; i++) {
+      final angle = rotation + (i / dotCount) * 2 * math.pi;
+      final x = center.dx + radius * math.cos(angle);
+      final y = center.dy + radius * math.sin(angle);
+      final alpha = 0.12 + 0.18 * (0.5 + 0.5 * math.sin(time * 1.2 + i * 0.4));
+      final dotPaint = Paint()
+        ..color = baseColor.withValues(alpha: alpha);
+      canvas.drawCircle(Offset(x, y), 1.6, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OrbitRingPainter old) =>
+      old.time != time || old.radius != radius;
+}
+
+/// Multi-color aura of 4 soft colored blobs slowly rotating around the
+/// center button, layered behind it for a "halo of planets" effect.
+class _CenterAuraPainter extends CustomPainter {
+  final double time;
+  final List<Color> colors;
+  _CenterAuraPainter({required this.time, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final orbitR = size.width * 0.28;
+    final blobR = size.width * 0.32;
+    for (var i = 0; i < colors.length; i++) {
+      final angle = time * 0.35 + (i / colors.length) * 2 * math.pi;
+      final cx = center.dx + orbitR * math.cos(angle);
+      final cy = center.dy + orbitR * math.sin(angle);
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            colors[i].withValues(alpha: 0.38),
+            colors[i].withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 1.0],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: blobR));
+      canvas.drawCircle(Offset(cx, cy), blobR, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CenterAuraPainter old) => old.time != time;
 }

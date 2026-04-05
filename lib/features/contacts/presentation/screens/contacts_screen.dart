@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -16,6 +19,7 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   final _searchCtrl = TextEditingController();
+  final _cache = sl<ContactsCacheService>();
   String _searchQuery = '';
   List<_ContactItem> _items = [];
   bool _loading = true;
@@ -23,6 +27,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   void initState() {
     super.initState();
+    // Hydrate from cache first so the screen renders instantly.
+    final cached = _cache.get();
+    if (cached != null && cached.isNotEmpty) {
+      _items = cached.map(_ContactItem.fromJson).toList();
+      _loading = false;
+    }
     _load();
   }
 
@@ -33,7 +43,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    // Only show the spinner if we have nothing cached to display.
+    if (_items.isEmpty) {
+      setState(() => _loading = true);
+    }
     try {
       final client = sl<DioClient>();
       // Load accepted contacts from conversations
@@ -86,8 +99,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
+      // Persist to cache (fire-and-forget).
+      _cache.save(items.map((e) => e.toJson()).toList());
       if (mounted) setState(() { _items = items; _loading = false; });
     } catch (e) {
+      // Keep the cached list visible on failure; just stop the spinner.
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -172,29 +188,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     if (filtered.isEmpty) {
       return SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.people_outline, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text(
-                _searchQuery.isNotEmpty ? l10n.contactsNotFound : l10n.contactsEmpty,
-                style: TextStyle(color: colors.textSecondary, fontSize: 16),
-              ),
-              if (_searchQuery.isEmpty) ...[
-                const SizedBox(height: 8),
-                TextButton.icon(
+        child: EmptyStateView(
+          icon: _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.people_rounded,
+          title: _searchQuery.isNotEmpty ? l10n.contactsNotFound : l10n.contactsEmpty,
+          gradient: const [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+          action: _searchQuery.isEmpty
+              ? TextButton.icon(
                   onPressed: () async {
                     await context.push('/dashboard/messenger/contacts');
                     _load();
                   },
                   icon: Icon(Icons.person_add, color: colors.primary, size: 18),
                   label: Text(l10n.contactsAdd, style: TextStyle(color: colors.primary)),
-                ),
-              ],
-            ],
-          ),
+                )
+              : null,
         ),
       );
     }
@@ -216,19 +223,50 @@ class _ContactsScreenState extends State<ContactsScreen> {
       padding: const EdgeInsets.only(bottom: 4),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: colors.primary.withValues(alpha: 0.15),
-          backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
-              ? CachedNetworkImageProvider(contact.avatarUrl!)
-              : null,
-          child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
-              ? Text(
-                  contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                  style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontSize: 18),
-                )
-              : null,
-        ),
+        leading: () {
+          final ringColor = rainbowColorFor(contact.name.isNotEmpty ? contact.name : contact.userId);
+          return Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ringColor, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: ringColor.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.3, -0.4),
+                  radius: 1.1,
+                  colors: [
+                    Color.lerp(ringColor, Colors.white, 0.28)!,
+                    ringColor,
+                    Color.lerp(ringColor, Colors.black, 0.38)!,
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: Colors.transparent,
+                backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
+                    ? CachedNetworkImageProvider(contact.avatarUrl!)
+                    : null,
+                child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
+                    ? Text(
+                        contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                      )
+                    : null,
+              ),
+            ),
+          );
+        }(),
         title: Text(
           contact.name,
           style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
@@ -357,4 +395,29 @@ class _ContactItem {
     this.requestId,
     this.requestSentAt,
   });
+
+  Map<String, dynamic> toJson() => {
+        'conversationId': conversationId,
+        'userId': userId,
+        'name': name,
+        'username': username,
+        'avatarUrl': avatarUrl,
+        'status': status.name,
+        'requestId': requestId,
+        'requestSentAt': requestSentAt?.toIso8601String(),
+      };
+
+  factory _ContactItem.fromJson(Map<String, dynamic> j) => _ContactItem(
+        conversationId: j['conversationId'] as String?,
+        userId: j['userId'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        username: j['username'] as String?,
+        avatarUrl: j['avatarUrl'] as String?,
+        status: (j['status'] as String?) == 'pending'
+            ? _ContactStatus.pending
+            : _ContactStatus.accepted,
+        requestId: j['requestId'] as String?,
+        requestSentAt:
+            DateTime.tryParse(j['requestSentAt'] as String? ?? ''),
+      );
 }

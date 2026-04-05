@@ -101,15 +101,33 @@ class _SectionCard extends StatelessWidget {
           },
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(iconForType(type), color: colors.primary, size: 22),
-              ),
+              () {
+                final typeColor = colorForType(type);
+                return Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.lerp(typeColor, Colors.white, 0.15)!,
+                        typeColor,
+                        Color.lerp(typeColor, Colors.black, 0.25)!,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: typeColor.withOpacity(0.45),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(iconForType(type), color: Colors.white, size: 22),
+                );
+              }(),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -172,14 +190,27 @@ class _SectionCard extends StatelessWidget {
 
   static IconData iconForType(SectionType type) {
     switch (type) {
-      case SectionType.coreValues: return Icons.diamond_outlined;
-      case SectionType.worldview: return Icons.public;
-      case SectionType.skills: return Icons.build_outlined;
-      case SectionType.interests: return Icons.interests;
-      case SectionType.desires: return Icons.star_outline;
-      case SectionType.background: return Icons.person_outline;
-      case SectionType.likes: return Icons.thumb_up_alt_outlined;
-      case SectionType.dislikes: return Icons.thumb_down_alt_outlined;
+      case SectionType.coreValues: return Icons.diamond_rounded;
+      case SectionType.worldview: return Icons.public_rounded;
+      case SectionType.skills: return Icons.build_rounded;
+      case SectionType.interests: return Icons.interests_rounded;
+      case SectionType.desires: return Icons.star_rounded;
+      case SectionType.background: return Icons.person_rounded;
+      case SectionType.likes: return Icons.thumb_up_alt_rounded;
+      case SectionType.dislikes: return Icons.thumb_down_alt_rounded;
+    }
+  }
+
+  static Color colorForType(SectionType type) {
+    switch (type) {
+      case SectionType.coreValues: return const Color(0xFF22D3EE); // cyan (diamond)
+      case SectionType.worldview: return const Color(0xFF3B82F6); // blue (globe)
+      case SectionType.skills: return const Color(0xFFFBBF24); // amber (tools)
+      case SectionType.interests: return const Color(0xFFA855F7); // violet
+      case SectionType.desires: return const Color(0xFFF59E0B); // gold (star)
+      case SectionType.background: return const Color(0xFF10B981); // emerald
+      case SectionType.likes: return const Color(0xFF34D399); // green (thumbs up)
+      case SectionType.dislikes: return const Color(0xFFFB7185); // rose (thumbs down)
     }
   }
 
@@ -636,6 +667,7 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final sectionColor = _SectionCard.colorForType(widget.type);
 
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -647,7 +679,18 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
       child: Scaffold(
         backgroundColor: colors.background,
         appBar: AppBar(
-          title: Text(_SectionCard.titleForType(widget.type, context)),
+          title: ShaderMask(
+            shaderCallback: (rect) => LinearGradient(
+              colors: [
+                sectionColor,
+                Color.lerp(sectionColor, Colors.white, 0.4)!,
+              ],
+            ).createShader(rect),
+            child: Text(
+              _SectionCard.titleForType(widget.type, context),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ),
           backgroundColor: colors.background,
           surfaceTintColor: Colors.transparent,
           actions: [
@@ -674,14 +717,40 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                 backgroundColor: colors.card,
                 child: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
               )
-            : FloatingActionButton(
-                onPressed: _voiceActive ? _stopVoice : _startVoice,
-                backgroundColor: _voiceActive ? colors.error : colors.primary,
-                child: Icon(
-                  _voiceActive ? Icons.stop : Icons.mic,
-                  color: Colors.white,
-                ),
-              ),
+            : () {
+                final sectionColor = _SectionCard.colorForType(widget.type);
+                final gradient = _voiceActive
+                    ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                    : [sectionColor, Color.lerp(sectionColor, Colors.black, 0.3)!];
+                return GestureDetector(
+                  onTap: _voiceActive ? _stopVoice : _startVoice,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: gradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: gradient.first.withOpacity(0.5),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                );
+              }(),
         body: Column(
           children: [
             // Voice status bar
@@ -689,23 +758,28 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: _aiSpeaking
-                    ? colors.primary.withOpacity(0.15)
-                    : colors.card,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      sectionColor.withOpacity(_aiSpeaking ? 0.25 : 0.08),
+                      sectionColor.withOpacity(_aiSpeaking ? 0.08 : 0.02),
+                    ],
+                  ),
+                ),
                 child: Row(
                   children: [
                     Icon(
-                      _aiSpeaking ? Icons.volume_up : Icons.hearing,
+                      _aiSpeaking ? Icons.volume_up_rounded : Icons.hearing_rounded,
                       size: 18,
-                      color: _aiSpeaking ? colors.primary : colors.textSecondary,
+                      color: _aiSpeaking ? sectionColor : colors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       _aiSpeaking ? 'Ассистент говорит...' : 'Слушаю...',
                       style: TextStyle(
                         fontSize: 13,
-                        color: _aiSpeaking ? colors.primary : colors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                        color: _aiSpeaking ? sectionColor : colors.textSecondary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
@@ -733,26 +807,45 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(vertical: 10),
                                     decoration: BoxDecoration(
-                                      color: selected ? colors.primary.withOpacity(0.2) : colors.card,
+                                      gradient: selected
+                                          ? LinearGradient(
+                                              colors: [
+                                                sectionColor.withOpacity(0.25),
+                                                sectionColor.withOpacity(0.08),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                          : null,
+                                      color: selected ? null : colors.card,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: selected ? colors.primary : colors.textSecondary.withOpacity(0.2),
+                                        color: selected ? sectionColor : colors.textSecondary.withOpacity(0.2),
+                                        width: selected ? 1.5 : 1,
                                       ),
+                                      boxShadow: selected
+                                          ? [
+                                              BoxShadow(
+                                                color: sectionColor.withOpacity(0.3),
+                                                blurRadius: 8,
+                                              ),
+                                            ]
+                                          : null,
                                     ),
                                     child: Column(
                                       children: [
                                         Icon(
                                           _SectionCard._visibilityIcon(v),
                                           size: 20,
-                                          color: selected ? colors.primary : colors.textSecondary,
+                                          color: selected ? sectionColor : colors.textSecondary,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           _visibilityLabel(v),
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: selected ? colors.primary : colors.textSecondary,
-                                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                                            color: selected ? sectionColor : colors.textSecondary,
+                                            fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
                                           ),
                                         ),
                                       ],
@@ -779,11 +872,14 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                           runSpacing: 8,
                           children: [
                             ..._items.map((item) => Chip(
-                              label: Text(item, style: TextStyle(fontSize: 13, color: colors.textPrimary)),
-                              deleteIcon: Icon(Icons.close, size: 16, color: colors.textSecondary),
+                              label: Text(
+                                item,
+                                style: TextStyle(fontSize: 13, color: sectionColor, fontWeight: FontWeight.w600),
+                              ),
+                              deleteIcon: Icon(Icons.close_rounded, size: 16, color: sectionColor.withOpacity(0.7)),
                               onDeleted: () => _removeTag(item),
-                              backgroundColor: colors.card,
-                              side: BorderSide(color: colors.textSecondary.withOpacity(0.2)),
+                              backgroundColor: sectionColor.withOpacity(0.12),
+                              side: BorderSide(color: sectionColor.withOpacity(0.35)),
                             )),
                           ],
                         ),
@@ -805,9 +901,30 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            IconButton(
-                              onPressed: _addTag,
-                              icon: Icon(Icons.add_circle_outline, color: colors.primary),
+                            GestureDetector(
+                              onTap: _addTag,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      sectionColor,
+                                      Color.lerp(sectionColor, Colors.black, 0.25)!,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: sectionColor.withOpacity(0.45),
+                                      blurRadius: 6,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                              ),
                             ),
                           ],
                         ),

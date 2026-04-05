@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../../../core/router/post_login_redirect.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -49,7 +50,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         options: const AuthenticationOptions(biometricOnly: false),
       );
       if (ok && mounted) {
-        context.go(RouteConstants.assistant);
+        await postLoginNavigate(context);
       }
     } catch (_) {}
   }
@@ -79,7 +80,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     final storedHash = await _storage.getPinHash();
 
     if (hash == storedHash) {
-      if (mounted) context.go(RouteConstants.assistant);
+      if (mounted) await postLoginNavigate(context);
     } else {
       _attempts++;
       if (!mounted) return;

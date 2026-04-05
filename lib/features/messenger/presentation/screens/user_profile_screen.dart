@@ -10,6 +10,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
@@ -362,33 +363,69 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                   children: [
                     const SizedBox(height: 24),
                     Center(
-                      child: CircleAvatar(
-                        radius: 52,
-                        backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.2),
-                        child: avatarUrl != null && avatarUrl.isNotEmpty
-                            ? ClipOval(
-                                child: CachedNetworkImage(
-                                  imageUrl: avatarUrl,
-                                  width: 104,
-                                  height: 104,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Text(
-                                    initials,
-                                    style: TextStyle(
-                                        color: AppColors.of(context).primary,
-                                        fontSize: 40,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              )
-                            : Text(
-                                initials,
-                                style: TextStyle(
-                                    color: AppColors.of(context).primary,
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold),
+                      child: () {
+                        final ringColor = rainbowColorFor(
+                          fullName.isNotEmpty
+                              ? fullName
+                              : (username ?? widget.userId),
+                        );
+                        return Container(
+                          width: 124,
+                          height: 124,
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: ringColor, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: ringColor.withValues(alpha: 0.5),
+                                blurRadius: 22,
+                                spreadRadius: 2,
                               ),
-                      ),
+                            ],
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                center: const Alignment(-0.3, -0.4),
+                                radius: 1.1,
+                                colors: [
+                                  Color.lerp(ringColor, Colors.white, 0.3)!,
+                                  ringColor,
+                                  Color.lerp(ringColor, Colors.black, 0.4)!,
+                                ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                            ),
+                            child: avatarUrl != null && avatarUrl.isNotEmpty
+                                ? ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: avatarUrl,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Center(
+                                        child: Text(
+                                          initials,
+                                          style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 40,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      initials,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 40,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      }(),
                     ),
                     const SizedBox(height: 20),
                     if (fullName.isNotEmpty)
@@ -573,6 +610,52 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     );
   }
 
+  /// Full-width gradient action button with icon + label and a colored
+  /// glow drop-shadow.
+  Widget _gradientActionButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    required String label,
+    required List<Color> gradient,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: 0.45),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildActionButtons(AppColorsExtension colors) {
     final l10n = AppLocalizations.of(context)!;
     if (_contactActionLoading) {
@@ -633,28 +716,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       return Row(
         children: [
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _openChat,
-              icon: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.black),
-              label: Text(l10n.userProfileMessage, style: const TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            child: _gradientActionButton(
+              onTap: _openChat,
+              icon: Icons.chat_bubble_rounded,
+              label: l10n.userProfileMessage,
+              gradient: const [Color(0xFF22D3EE), Color(0xFF3B82F6)],
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _startDirectCall,
-              icon: const Icon(Icons.call_outlined, color: Colors.black),
-              label: Text(l10n.userProfileCall, style: const TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            child: _gradientActionButton(
+              onTap: _startDirectCall,
+              icon: Icons.call_rounded,
+              label: l10n.userProfileCall,
+              gradient: const [Color(0xFF34D399), Color(0xFF10B981)],
             ),
           ),
         ],
@@ -681,15 +756,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       return Row(
         children: [
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _acceptContactRequest,
-              icon: const Icon(Icons.check_rounded, color: Colors.black),
-              label: Text(l10n.userProfileAccept, style: const TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            child: _gradientActionButton(
+              onTap: _acceptContactRequest,
+              icon: Icons.check_rounded,
+              label: l10n.userProfileAccept,
+              gradient: const [Color(0xFF34D399), Color(0xFF10B981)],
             ),
           ),
           const SizedBox(width: 12),
@@ -710,18 +781,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     }
 
     // No contact — show Add button
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _sendContactRequest,
-        icon: const Icon(Icons.person_add_outlined, color: Colors.black),
-        label: Text(l10n.userProfileAddToContacts, style: const TextStyle(color: Colors.black)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colors.primary,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+    return _gradientActionButton(
+      onTap: _sendContactRequest,
+      icon: Icons.person_add_rounded,
+      label: l10n.userProfileAddToContacts,
+      gradient: const [Color(0xFF22D3EE), Color(0xFFA855F7)],
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/call_history_cache_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -27,8 +28,11 @@ class CallHistoryScreen extends StatefulWidget {
 }
 
 class _CallHistoryScreenState extends State<CallHistoryScreen> {
-  late Future<List<_CallEntry>> _historyFuture;
-  Future<_PersonalRoom?>? _personalRoomFuture;
+  final _cache = sl<CallHistoryCacheService>();
+  List<_CallEntry>? _history; // null = nothing cached yet
+  bool _historyError = false;
+  _PersonalRoom? _personalRoom;
+  bool _personalRoomLoaded = false;
   bool _calling = false;
   bool _creatingTemp = false;
   final _searchCtrl = TextEditingController();
@@ -37,8 +41,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    _historyFuture = _loadHistory();
-    _personalRoomFuture = _loadPersonalRoom();
+    _hydrateFromCache();
+    _refreshHistory();
+    _refreshPersonalRoom();
   }
 
   @override
@@ -47,27 +52,64 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     super.dispose();
   }
 
-  Future<List<_CallEntry>> _loadHistory() async {
-    final data = await sl<DioClient>().get<dynamic>(
-      '/voice/call-history',
-      queryParameters: {'page': 0, 'limit': 50},
-    );
-    final items = data as List? ?? [];
-    return items.map((e) => _CallEntry.fromJson(e as Map<String, dynamic>)).toList();
+  void _hydrateFromCache() {
+    final hist = _cache.getHistory();
+    if (hist != null) {
+      _history = hist.map((e) => _CallEntry.fromJson(e)).toList();
+    }
+    final room = _cache.getPersonalRoom();
+    if (room != null) {
+      _personalRoom = _PersonalRoom(
+        code: room['code'] as String? ?? '',
+        link: room['link'] as String? ?? '',
+      );
+      _personalRoomLoaded = true;
+    }
   }
 
-  Future<_PersonalRoom?> _loadPersonalRoom() async {
+  Future<void> _refreshHistory() async {
+    try {
+      final data = await sl<DioClient>().get<dynamic>(
+        '/voice/call-history',
+        queryParameters: {'page': 0, 'limit': 50},
+      );
+      final items = (data as List? ?? []).cast<dynamic>();
+      final raw = items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      await _cache.saveHistory(raw);
+      if (!mounted) return;
+      setState(() {
+        _history = raw.map(_CallEntry.fromJson).toList();
+        _historyError = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      // Only show error if we have nothing to show at all.
+      if (_history == null) {
+        setState(() => _historyError = true);
+      }
+    }
+  }
+
+  Future<void> _refreshPersonalRoom() async {
     try {
       final data = await sl<DioClient>().get<Map<String, dynamic>>(
         '/voice/rooms/my',
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
-      return _PersonalRoom(
-        code: data['code'] as String,
-        link: data['link'] as String,
-      );
+      await _cache.savePersonalRoom(data);
+      if (!mounted) return;
+      setState(() {
+        _personalRoom = _PersonalRoom(
+          code: data['code'] as String? ?? '',
+          link: data['link'] as String? ?? '',
+        );
+        _personalRoomLoaded = true;
+      });
     } catch (_) {
-      return null;
+      if (!mounted) return;
+      if (_personalRoom == null) {
+        setState(() => _personalRoomLoaded = true);
+      }
     }
   }
 
@@ -132,6 +174,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   child: _ActionButton(
                     icon: Icons.copy_rounded,
                     label: l10n.callHistoryCopy,
+                    accent: const Color(0xFF22D3EE),
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -149,6 +192,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   child: _ActionButton(
                     icon: Icons.share_rounded,
                     label: l10n.callHistoryShare,
+                    accent: const Color(0xFFA855F7),
                     onTap: () => Share.share(link),
                   ),
                 ),
@@ -245,6 +289,35 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     }
   }
 
+  /// 36x36 gradient icon tile with colored glow — used for row-leading
+  /// icons in list cards.
+  Widget _iconTile(IconData icon, Color color, {Widget? child}) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.15)!,
+            color,
+            Color.lerp(color, Colors.black, 0.25)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.45),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: child ?? Icon(icon, color: Colors.white, size: 20),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -254,10 +327,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
-          setState(() {
-            _historyFuture = _loadHistory();
-            _personalRoomFuture = _loadPersonalRoom();
-          });
+          await Future.wait([_refreshHistory(), _refreshPersonalRoom()]);
         },
         child: CustomScrollView(
           slivers: [
@@ -290,9 +360,31 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   const SizedBox(height: 8),
                   _buildMeetingRecordingsButton(colors),
                   const SizedBox(height: 24),
-                  Text(
-                    l10n.callHistoryTab,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  Row(
+                    children: [
+                      Container(
+                        width: 3,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [colors.primary, colors.accent],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        l10n.callHistoryTab,
+                        style: TextStyle(
+                          color: colors.textPrimary.withOpacity(0.85),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
                   _buildHistoryList(colors),
@@ -307,52 +399,42 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   Widget _buildPersonalRoomSection(AppColorsExtension colors) {
     final l10n = AppLocalizations.of(context)!;
-    return FutureBuilder<_PersonalRoom?>(
-      future: _personalRoomFuture,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return AppCard(
-            child: SizedBox(
-              height: 60,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
-            ),
-          );
-        }
-        final room = snap.data;
-        if (room == null) {
-          return AppCard(
-            child: Row(
-              children: [
-                Icon(Icons.link_off_rounded, color: colors.textSecondary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    l10n.callHistoryFailedLoadRoom,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () { final f = _loadPersonalRoom(); setState(() { _personalRoomFuture = f; }); },
-                  child: Text(l10n.retry, style: TextStyle(color: colors.primary, fontSize: 13)),
-                ),
-              ],
-            ),
-          );
-        }
+    final room = _personalRoom;
+    if (room == null) {
+      if (!_personalRoomLoaded) {
         return AppCard(
+          child: SizedBox(
+            height: 60,
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary)),
+          ),
+        );
+      }
+      return AppCard(
+        child: Row(
+          children: [
+            Icon(Icons.link_off_rounded, color: colors.textSecondary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.callHistoryFailedLoadRoom,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+              ),
+            ),
+            TextButton(
+              onPressed: _refreshPersonalRoom,
+              child: Text(l10n.retry, style: TextStyle(color: colors.primary, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+    }
+    return AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: colors.primary.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.videocam_rounded, color: colors.primary, size: 20),
-                  ),
+                  _iconTile(Icons.videocam_rounded, colors.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -375,6 +457,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     child: _ActionButton(
                       icon: Icons.copy_rounded,
                       label: l10n.callHistoryCopy,
+                      accent: const Color(0xFF22D3EE),
                       onTap: () => _copyLink(room.link),
                     ),
                   ),
@@ -383,6 +466,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     child: _ActionButton(
                       icon: Icons.share_rounded,
                       label: l10n.callHistoryShare,
+                      accent: const Color(0xFFA855F7),
                       onTap: () => Share.share(room.link),
                     ),
                   ),
@@ -400,8 +484,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             ],
           ),
         );
-      },
-    );
   }
 
   Widget _buildCreateMeetingButton(AppColorsExtension colors) {
@@ -411,18 +493,15 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
         child: Row(
           children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: colors.accent.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
+            _iconTile(
+              Icons.add_rounded,
+              const Color(0xFFFBBF24),
               child: _creatingTemp
-                  ? Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.accent),
+                  ? const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : Icon(Icons.add_rounded, color: colors.accent, size: 20),
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -451,14 +530,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
         child: Row(
           children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: colors.primary.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20),
-            ),
+            _iconTile(Icons.smart_toy_rounded, const Color(0xFFA855F7)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -486,14 +558,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
         child: Row(
           children: [
-            Container(
-              width: 36, height: 36,
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.fiber_manual_record_rounded, color: Colors.red, size: 20),
-            ),
+            _iconTile(Icons.fiber_manual_record_rounded, const Color(0xFFEF4444)),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -514,52 +579,50 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   Widget _buildHistoryList(AppColorsExtension colors) {
     final l10n = AppLocalizations.of(context)!;
-    return FutureBuilder<List<_CallEntry>>(
-      future: _historyFuture,
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
-            ),
-          );
-        }
-        if (snap.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Icon(Icons.error_outline, color: colors.error, size: 36),
-                const SizedBox(height: 8),
-                Text(l10n.loadError, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
-                TextButton(
-                  onPressed: () { final f = _loadHistory(); setState(() { _historyFuture = f; }); },
-                  child: Text(l10n.retry, style: TextStyle(color: colors.primary)),
-                ),
-              ],
-            ),
-          );
-        }
-        final entries = snap.data ?? [];
-        if (entries.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Text(
-                l10n.callHistoryNoCalls,
-                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+    final entries = _history;
+    // First-ever open, nothing cached yet — show spinner.
+    if (entries == null) {
+      if (_historyError) {
+        return Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Icon(Icons.error_outline, color: colors.error, size: 36),
+              const SizedBox(height: 8),
+              Text(l10n.loadError, style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+              TextButton(
+                onPressed: _refreshHistory,
+                child: Text(l10n.retry, style: TextStyle(color: colors.primary)),
               ),
-            ),
-          );
-        }
-        return Column(
-          children: entries.map((e) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: _buildCallCard(e, colors),
-          )).toList(),
+            ],
+          ),
         );
-      },
+      }
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+        ),
+      );
+    }
+    if (entries.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(
+            l10n.callHistoryNoCalls,
+            style: TextStyle(color: colors.textSecondary, fontSize: 14),
+          ),
+        ),
+      );
+    }
+    return Column(
+      children: entries
+          .map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildCallCard(e, colors),
+              ))
+          .toList(),
     );
   }
 
@@ -572,37 +635,60 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id), width: 2),
-            ),
-            child: e.otherPartyAvatar != null
-                ? CircleAvatar(
-                    radius: 22,
-                    backgroundColor: colors.primary.withOpacity(0.12),
-                    backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
-                  )
-                : CircleAvatar(
-                    radius: 22,
-                    backgroundColor: isMissed
-                        ? colors.error.withOpacity(0.12)
-                        : e.isOutgoing
-                            ? colors.primary.withOpacity(0.12)
-                            : _kIncomingColor.withOpacity(0.12),
-                    child: e.withAi
-                        ? Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20)
-                        : Text(
-                            e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+          () {
+            final ringColor = isMissed
+                ? colors.error
+                : rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id);
+            return Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
+                    blurRadius: isMissed ? 12 : 8,
+                    spreadRadius: isMissed ? 1 : 0,
                   ),
-          ),
+                ],
+              ),
+              child: e.otherPartyAvatar != null
+                  ? CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.primary.withOpacity(0.12),
+                      backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+                    )
+                  : Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.3, -0.4),
+                          radius: 1.1,
+                          colors: [
+                            Color.lerp(ringColor, Colors.white, 0.3)!,
+                            ringColor,
+                            Color.lerp(ringColor, Colors.black, 0.4)!,
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                      ),
+                      child: Center(
+                        child: e.withAi
+                            ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
+                            : Text(
+                                e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                      ),
+                    ),
+            );
+          }(),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -634,9 +720,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     spacing: 6,
                     children: [
                       if (e.hasRecording)
-                        _CallBadge(icon: Icons.mic_rounded, label: AppLocalizations.of(context)!.callHistoryRecording, color: Colors.red),
+                        _CallBadge(
+                          icon: Icons.mic_rounded,
+                          label: AppLocalizations.of(context)!.callHistoryRecording,
+                          gradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
+                        ),
                       if (e.hasSummary)
-                        _CallBadge(icon: Icons.description_rounded, label: AppLocalizations.of(context)!.callHistorySummary, color: colors.primary),
+                        _CallBadge(
+                          icon: Icons.description_rounded,
+                          label: AppLocalizations.of(context)!.callHistorySummary,
+                          gradient: const [Color(0xFF3B82F6), Color(0xFFA855F7)],
+                        ),
                     ],
                   ),
                 ],
@@ -700,23 +794,46 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 class _CallBadge extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
-  const _CallBadge({required this.icon, required this.label, required this.color});
+  final List<Color> gradient;
+  const _CallBadge({
+    required this.icon,
+    required this.label,
+    required this.gradient,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(6),
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withOpacity(0.4),
+            blurRadius: 6,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 3),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          Icon(icon, size: 11, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
         ],
       ),
     );
@@ -752,36 +869,70 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool filled;
+  final Color? accent;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
     this.filled = false,
+    this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final base = accent ?? colors.primary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: filled ? colors.primary : colors.primary.withOpacity(0.08),
+          gradient: filled
+              ? LinearGradient(
+                  colors: [base, Color.lerp(base, Colors.black, 0.3)!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : LinearGradient(
+                  colors: [
+                    base.withOpacity(0.18),
+                    base.withOpacity(0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
           borderRadius: BorderRadius.circular(10),
+          border: filled
+              ? null
+              : Border.all(color: base.withOpacity(0.25), width: 1),
+          boxShadow: filled
+              ? [
+                  BoxShadow(
+                    color: base.withOpacity(0.45),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: base.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: filled ? Colors.white : colors.primary, size: 20),
+            Icon(icon, color: filled ? Colors.white : base, size: 20),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: filled ? Colors.white : colors.primary,
+                color: filled ? Colors.white : base,
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
@@ -1382,20 +1533,12 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
             if (items.isEmpty) {
               return ListView(
                 children: [
-                  const SizedBox(height: 80),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.smart_toy_outlined, size: 48, color: colors.textSecondary),
-                        const SizedBox(height: 12),
-                        Text(l10n.callHistoryNoSummaries, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.callHistoryRecordDuringCall,
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 40),
+                  EmptyStateView(
+                    icon: Icons.smart_toy_rounded,
+                    title: l10n.callHistoryNoSummaries,
+                    subtitle: l10n.callHistoryRecordDuringCall,
+                    gradient: const [Color(0xFFA855F7), Color(0xFF7C3AED)],
                   ),
                 ],
               );
@@ -1433,8 +1576,26 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.smart_toy, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFA855F7).withOpacity(0.45),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.smart_toy_rounded, size: 16, color: Colors.white),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.callHistoryMeetingTime(timeStr),
@@ -1800,20 +1961,12 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
             if (items.isEmpty) {
               return ListView(
                 children: [
-                  const SizedBox(height: 80),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.fiber_manual_record_rounded, size: 48, color: colors.textSecondary),
-                        const SizedBox(height: 12),
-                        Text(l10n.callHistoryNoRecordings, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.callHistoryRecordDuringCall,
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 40),
+                  EmptyStateView(
+                    icon: Icons.fiber_manual_record_rounded,
+                    title: l10n.callHistoryNoRecordings,
+                    subtitle: l10n.callHistoryRecordDuringCall,
+                    gradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
                   ),
                 ],
               );
@@ -1851,8 +2004,26 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.fiber_manual_record_rounded, size: 18, color: Colors.red),
-              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF4444).withOpacity(0.45),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.fiber_manual_record_rounded, size: 14, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   l10n.callHistoryRecordingDate(_formatDate(createdAt)),
