@@ -302,27 +302,62 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (call.method == 'audioInterrupted') {
       _playInterruptionBeeps();
     } else if (call.method == 'audioResumed') {
-      // Reactivate audio focus so LiveKit resumes after parallel call ends
+      await _restoreAudioAfterInterruption();
+    }
+    return null;
+  }
+
+  /// Aggressively restore audio after an external phone call interruption.
+  /// The key insight: simply calling setMicrophoneEnabled(true) does nothing
+  /// if the track already thinks it's enabled. We must toggle off→on to force
+  /// WebRTC to reconfigure its audio unit. Same for remote tracks — unsubscribe
+  /// then resubscribe to force the audio pipeline to restart.
+  Future<void> _restoreAudioAfterInterruption() async {
+    debugPrint('[VoiceCall] _restoreAudioAfterInterruption: starting');
+    // Retry with increasing delays — iOS audio session timing is unpredictable
+    for (final delay in [0, 500, 1200, 2500]) {
+      if (delay > 0) {
+        await Future.delayed(Duration(milliseconds: delay));
+        if (!mounted || _navigatedAway) return;
+      }
+      // 1. Reactivate native audio session
       try {
         await _audioChannel.invokeMethod('requestAudioFocus');
       } catch (_) {}
-      // Re-enable microphone — OS may have disabled it during interruption
+      // 2. Toggle microphone off→on to force WebRTC audio unit restart.
+      //    Just setMicrophoneEnabled(true) is a no-op if already enabled.
       try {
-        await _room?.localParticipant?.setMicrophoneEnabled(true);
+        await _room?.localParticipant?.setMicrophoneEnabled(false);
+        await Future.delayed(const Duration(milliseconds: 100));
+        await _room?.localParticipant?.setMicrophoneEnabled(!_muted);
       } catch (_) {}
-      // Re-subscribe to remote audio tracks that may have been paused
+      // 3. Force re-subscribe remote audio tracks by toggling subscription.
+      //    This makes WebRTC recreate the audio renderer for each track.
       if (_room != null) {
         for (final p in _room!.remoteParticipants.values) {
           for (final pub in p.audioTrackPublications) {
-            if (!pub.subscribed) {
-              try { pub.subscribe(); } catch (_) {}
-            }
+            try {
+              pub.unsubscribe();
+              await Future.delayed(const Duration(milliseconds: 50));
+              pub.subscribe();
+            } catch (_) {}
           }
         }
       }
-      if (mounted) setState(() {});
     }
-    return null;
+    // Restore audio output to what user had selected
+    if (mounted && !_navigatedAway) {
+      try {
+        await _audioChannel.invokeMethod('setAudioOutput', _audioOutputType);
+      } catch (_) {}
+      if (_audioOutputType == 'earpiece') {
+        try { await lk.Hardware.instance.setSpeakerphoneOn(false); } catch (_) {}
+      } else if (_audioOutputType == 'speaker') {
+        try { await lk.Hardware.instance.setSpeakerphoneOn(true); } catch (_) {}
+      }
+      setState(() {});
+    }
+    debugPrint('[VoiceCall] _restoreAudioAfterInterruption: complete');
   }
 
   Future<void> _playInterruptionBeeps() async {
@@ -4077,6 +4112,7 @@ class _ControlButton extends StatelessWidget {
         : (color.computeLuminance() > 0.4
             ? AppColors.of(context).textPrimary
             : Colors.white));
+    final isColoredAction = color.opacity >= 0.9;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -4085,15 +4121,42 @@ class _ControlButton extends StatelessWidget {
             width: large ? 72 : 56,
             height: large ? 72 : 56,
             decoration: BoxDecoration(
-              color: color,
+              gradient: isColoredAction
+                  ? RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: [
+                        Color.lerp(color, Colors.white, 0.18)!,
+                        color,
+                        Color.lerp(color, Colors.black, 0.3)!,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
+                    )
+                  : null,
+              color: isColoredAction ? null : color,
               shape: BoxShape.circle,
               border: active ? Border.all(color: Colors.white, width: 2.5) : null,
+              boxShadow: isColoredAction
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: large ? 22 : 14,
+                        spreadRadius: large ? 2 : 0,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
             ),
             child: Icon(
               icon,
               color: onTap == null
                   ? AppColors.of(context).textSecondary.withValues(alpha: 0.4)
-                  : resolvedIconColor,
+                  : (isColoredAction ? Colors.white : resolvedIconColor),
               size: large ? 32 : 24,
             ),
           ),
