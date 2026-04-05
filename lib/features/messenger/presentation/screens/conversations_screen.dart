@@ -837,48 +837,16 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
-                // Contact requests — tappable row that opens the requests screen
-                if (state.contactRequests.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
-                  SliverToBoxAdapter(
-                    child: ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                      leading: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: colors.error, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors.error.withValues(alpha: 0.45),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [colors.error, colors.error.withValues(alpha: 0.7)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 22),
-                        ),
-                      ),
-                      title: Text(l10n.messengerContactRequestsSection,
-                          style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                        l10n.messengerContactRequestsCount(state.contactRequests.length),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                      ),
-                      onTap: () => context.push('/dashboard/messenger/contacts'),
+                // Contact requests — one row per incoming request with inline
+                // Accept / Reject buttons and tap-to-open the sender profile.
+                if (_searchQuery.isEmpty && _activeFilter == _FilterTab.all)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) {
+                        final req = state.contactRequests[i];
+                        return _ContactRequestTile(request: req);
+                      },
+                      childCount: state.contactRequests.length,
                     ),
                   ),
                 // Archived section — opens separate screen
@@ -1392,6 +1360,120 @@ class _ConversationTile extends StatelessWidget {
     } catch (_) {
       return content;
     }
+  }
+}
+
+class _ContactRequestTile extends StatelessWidget {
+  final Map<String, dynamic> request;
+  const _ContactRequestTile({required this.request});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final requestId = request['id'] as String? ?? '';
+    final senderId = request['senderId'] as String? ?? '';
+    final name = (request['senderName'] as String?) ?? l10n.convDefaultUser;
+    final avatar = request['senderAvatar'] as String?;
+    final username = request['senderUsername'] as String?;
+    final ring = rainbowColorFor(name.isNotEmpty ? name : requestId);
+
+    void accept() {
+      context.read<MessengerBloc>().add(AcceptContactRequest(requestId));
+    }
+
+    void reject() {
+      context.read<MessengerBloc>().add(RejectContactRequest(requestId));
+    }
+
+    void open() {
+      if (senderId.isNotEmpty) {
+        context.push('/dashboard/user/$senderId');
+      }
+    }
+
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      onTap: open,
+      leading: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: ring, width: 2),
+          boxShadow: [BoxShadow(color: ring.withValues(alpha: 0.35), blurRadius: 10)],
+        ),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: avatar != null
+                ? null
+                : RadialGradient(
+                    center: const Alignment(-0.3, -0.4),
+                    radius: 1.1,
+                    colors: [
+                      Color.lerp(ring, Colors.white, 0.25)!,
+                      ring,
+                      Color.lerp(ring, Colors.black, 0.35)!,
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                  ),
+          ),
+          child: CircleAvatar(
+            backgroundColor: Colors.transparent,
+            child: avatar != null
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: avatar,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  )
+                : Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+          ),
+        ),
+      ),
+      title: Text(name,
+          style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(
+        username != null && username.isNotEmpty
+            ? '@$username · ${l10n.messengerContactRequestsSection.toLowerCase()}'
+            : l10n.messengerContactRequestsSection,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.check_circle_rounded, color: colors.primary, size: 28),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: accept,
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: Icon(Icons.cancel_rounded, color: colors.error, size: 28),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: reject,
+          ),
+        ],
+      ),
+    );
   }
 }
 
