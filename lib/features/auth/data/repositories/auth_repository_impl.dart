@@ -118,11 +118,15 @@ class AuthRepositoryImpl implements IAuthRepository {
           voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
         }
       } catch (_) {}
-      await remote.logout(fcmToken: fcmToken, voipToken: voipToken?.isNotEmpty == true ? voipToken : null);
+      await remote
+          .logout(fcmToken: fcmToken, voipToken: voipToken?.isNotEmpty == true ? voipToken : null)
+          .timeout(const Duration(seconds: 3));
     } catch (_) {
-      // Server call may fail (expired token, network error) — ignore
+      // Server call may fail/hang (expired token, network error, slow server) — ignore
     }
     await storage.clearTokens();
+    // Reset onboarding flag so the next user sees permission prompts
+    await storage.clearOnboardingSeen();
     // Clear cached profile so the next login gets fresh data
     try {
       await sl<CacheService>().clearAll();
