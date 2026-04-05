@@ -159,6 +159,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(_totalPages, (i) {
                       final active = i == _currentPage;
+                      final inactiveColor = colors.textSecondary.withValues(alpha: 0.3);
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 260),
                         curve: Curves.easeOutBack,
@@ -166,22 +167,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         width: active ? 28 : 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          gradient: active
-                              ? LinearGradient(colors: _pageGradients[i])
-                              : null,
-                          color: active
-                              ? null
-                              : colors.textSecondary.withValues(alpha: 0.3),
+                          // Use color (not gradient) to keep the decoration
+                          // type consistent across animation frames — lerping
+                          // between gradient and non-gradient BoxDecoration
+                          // can throw.
+                          color: active ? _pageGradients[i].first : inactiveColor,
                           borderRadius: BorderRadius.circular(4),
-                          boxShadow: active
-                              ? [
-                                  BoxShadow(
-                                    color: _pageGradients[i].first
-                                        .withValues(alpha: 0.5),
-                                    blurRadius: 8,
-                                  ),
-                                ]
-                              : null,
                         ),
                       );
                     }),
