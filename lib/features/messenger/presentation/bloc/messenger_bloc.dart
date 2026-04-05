@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/message_entity.dart';
@@ -52,10 +53,17 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<StartConversationWith>(_onStartConversationWith);
     on<ClearNewConversation>((_, emit) =>
         emit(state.copyWith(clearNewConversation: true)));
-    on<CallInviteReceived>(
-        (event, emit) => emit(state.copyWith(pendingCallInvite: event.data)));
-    on<DismissCallInvite>(
-        (_, emit) => emit(state.copyWith(clearCallInvite: true)));
+    on<CallInviteReceived>(_onCallInviteReceived);
+    on<DismissCallInvite>((_, emit) {
+      // Also remove any locally-injected call_invite_* system rows from
+      // conversation histories — the user has acted on them (accepted,
+      // rejected, or timed out).
+      final cleaned = <String, List<MessageEntity>>{};
+      state.messages.forEach((convId, msgs) {
+        cleaned[convId] = msgs.where((m) => !m.id.startsWith('call_invite_')).toList();
+      });
+      emit(state.copyWith(clearCallInvite: true, messages: cleaned));
+    });
     on<MessageUpdated>(_onMessageUpdated);
     on<MessagesRead>(_onMessagesRead);
     on<MarkConversationRead>(_onMarkConversationRead);
@@ -312,6 +320,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       final newMessages =
           Map<String, List<MessageEntity>>.from(state.messages);
       final serverList = msgs.reversed.toList();
+      // Preserve any locally-injected live call invite cards — they aren't
+      // persisted server-side but should stay visible until the invite is
+      // handled.
+      for (final m in state.messages[event.conversationId] ?? <MessageEntity>[]) {
+        if (m.id.startsWith('call_invite_') && m.isSystem) {
+          serverList.add(m);
+        }
+      }
       // Re-append any unsent pending messages for this conversation so the
       // user sees them with a clock icon.
       final pendingMaps = _pending.getForConversation(event.conversationId);
@@ -383,6 +399,45 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         topicId: m['topicId'] as String?,
       );
     }
+  }
+
+  void _onCallInviteReceived(CallInviteReceived event, Emitter<MessengerState> emit) {
+    // Keep the existing standard incoming-call flow (CallKit / dialog).
+    emit(state.copyWith(pendingCallInvite: event.data));
+
+    // Additionally inject a local "call invite" message into the conversation
+    // so the user can accept/reject it from the chat as well. The message is
+    // not persisted to the server — it disappears on next server sync once
+    // the real missed/accepted-call system message arrives.
+    final convId = event.data['conversationId'] as String?;
+    if (convId == null || convId.isEmpty) return;
+    final roomName = event.data['roomName'] as String? ?? '';
+    final fromName = event.data['fromUserName'] as String? ?? '';
+    final fromId = event.data['fromUserId'] as String? ?? '';
+    final e2eeKey = event.data['e2eeKey'] as String?;
+    final tempId = 'call_invite_$roomName';
+    final payload = {
+      'action': 'call_invite',
+      'roomName': roomName,
+      'fromUserId': fromId,
+      'fromUserName': fromName,
+      if (e2eeKey != null) 'e2eeKey': e2eeKey,
+    };
+    final msg = MessageEntity(
+      id: tempId,
+      conversationId: convId,
+      senderId: fromId,
+      senderName: fromName.isNotEmpty ? fromName : null,
+      content: jsonEncode(payload),
+      sentAt: DateTime.now(),
+      isSystem: true,
+    );
+    final existing = List<MessageEntity>.from(state.messages[convId] ?? []);
+    existing.removeWhere((m) => m.id == tempId);
+    existing.add(msg);
+    final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
+    newMessages[convId] = existing;
+    emit(state.copyWith(messages: newMessages));
   }
 
   void _onSendMessage(SendMessage event, Emitter<MessengerState> emit) {

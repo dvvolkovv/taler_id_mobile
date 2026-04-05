@@ -1106,14 +1106,37 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.of(context).primary, width: 2),
+                      border: Border.all(
+                        color: isSaved ? const Color(0xFFA855F7) : AppColors.of(context).primary,
+                        width: 2,
+                      ),
+                      boxShadow: isSaved
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFA855F7).withValues(alpha: 0.4),
+                                blurRadius: 8,
+                              ),
+                            ]
+                          : null,
                     ),
-                    child: CircleAvatar(
+                    child: isSaved
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 18),
+                          )
+                        : CircleAvatar(
                       radius: 18,
-                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isSaved ? 1.0 : isGroup ? 0.4 : 0.2),
-                      child: isSaved
-                          ? const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 18)
-                          : avatarUrl != null && avatarUrl.isNotEmpty
+                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isGroup ? 0.4 : 0.2),
+                      child: avatarUrl != null && avatarUrl.isNotEmpty
                               ? ClipOval(
                                   child: CachedNetworkImage(
                                     imageUrl: avatarUrl,
@@ -2529,8 +2552,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
   Widget _buildSystemMessage(BuildContext context) {
     String text;
+    Map<String, dynamic>? data;
     try {
-      final data = jsonDecode(widget.message.content) as Map<String, dynamic>;
+      data = jsonDecode(widget.message.content) as Map<String, dynamic>;
       final action = data['action'] as String?;
       final actor = data['actor'] as String? ?? '';
       final target = data['target'] as String? ?? '';
@@ -2542,6 +2566,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
         case 'member_left': text = l10n.memberLeftGroup(actor); break;
         case 'member_removed': text = l10n.memberWasRemoved(target); break;
         case 'role_changed': text = l10n.roleChangedTo(target, role); break;
+        case 'call_invite':
+          return _buildCallInviteCard(context, data);
         default: text = widget.message.content;
       }
     } catch (_) {
@@ -2624,6 +2650,95 @@ class _MessageBubbleState extends State<_MessageBubble> {
             fontStyle: FontStyle.italic,
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCallInviteCard(BuildContext context, Map<String, dynamic> data) {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final fromName = data['fromUserName'] as String? ?? '';
+    final roomName = data['roomName'] as String? ?? '';
+    final e2eeKey = data['e2eeKey'] as String?;
+
+    void accept() {
+      final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
+      final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
+      context.read<MessengerBloc>().add(DismissCallInvite());
+      context.push(
+        '/dashboard/voice?room=$roomName&convId=${widget.message.conversationId}&incoming=1$e2eeParam$calleeParam',
+      );
+    }
+
+    void reject() {
+      context.read<MessengerBloc>().add(DismissCallInvite());
+    }
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [colors.primary.withValues(alpha: 0.18), colors.accent.withValues(alpha: 0.12)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: colors.primary.withValues(alpha: 0.35)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.call_rounded, color: colors.primary, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    fromName.isNotEmpty
+                        ? '${l10n.dashboardIncomingCall} · $fromName'
+                        : l10n.dashboardIncomingCall,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: reject,
+                  icon: Icon(Icons.call_end_rounded, size: 16, color: colors.error),
+                  label: Text(l10n.reject, style: TextStyle(color: colors.error, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: colors.error.withValues(alpha: 0.5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: accept,
+                  icon: const Icon(Icons.call_rounded, size: 16, color: Colors.white),
+                  label: Text(l10n.accept, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
