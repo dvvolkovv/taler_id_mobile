@@ -689,11 +689,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final type = event['type'] as String? ?? 'EVENT';
 
     IconData icon;
+    List<Color> typeGradient;
     switch (type) {
-      case 'CALL': icon = Icons.call_rounded; break;
-      case 'REMINDER': icon = Icons.notifications_active_rounded; break;
-      default: icon = Icons.event_rounded;
+      case 'CALL':
+        icon = Icons.call_rounded;
+        typeGradient = const [Color(0xFF3B82F6), Color(0xFFA855F7)]; // blue → purple
+        break;
+      case 'REMINDER':
+        icon = Icons.notifications_active_rounded;
+        typeGradient = const [Color(0xFFF59E0B), Color(0xFFEF4444)]; // amber → red
+        break;
+      default:
+        icon = Icons.event_rounded;
+        typeGradient = const [Color(0xFF10B981), Color(0xFF22D3EE)]; // emerald → cyan
     }
+    final typeColor = typeGradient.first;
 
     final desc = event['description'] as String? ?? '';
     // Extract room link from description
@@ -765,14 +775,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 // Time column
                 SizedBox(
                   width: 50,
-                  child: Text(timeStr, style: TextStyle(color: colors.primary, fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: Text(timeStr, style: TextStyle(color: typeColor, fontSize: 15, fontWeight: FontWeight.w700)),
                 ),
                 Container(
-                  width: 3, height: 40,
+                  width: 4, height: 44,
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: type == 'CALL' ? colors.primary : type == 'REMINDER' ? Colors.orange : colors.textSecondary,
+                    gradient: LinearGradient(
+                      colors: typeGradient,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                     borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: typeColor.withValues(alpha: 0.55),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                      ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -781,8 +802,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(icon, size: 16, color: colors.textSecondary),
-                          const SizedBox(width: 6),
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: typeGradient,
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: typeColor.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                            child: Icon(icon, size: 14, color: Colors.white),
+                          ),
+                          const SizedBox(width: 10),
                           Expanded(child: Text(event['title'] as String? ?? '', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15), maxLines: 1, overflow: TextOverflow.ellipsis)),
                           if (event['recurrence'] != null) ...[
                             const SizedBox(width: 4),
