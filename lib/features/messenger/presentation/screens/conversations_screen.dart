@@ -838,14 +838,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerArchivedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text('${archived.length}',
-                          style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                      subtitle: Text(
+                        '${archived.length}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
                       ),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(builder: (_) => BlocProvider.value(
@@ -878,6 +875,12 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        AppLocalizations.of(context)!.messengerSavedHint,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
                       onTap: () async {
                         try {
                           final res = await sl<DioClient>().post(
