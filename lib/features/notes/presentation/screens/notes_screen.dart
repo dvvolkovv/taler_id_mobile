@@ -507,6 +507,12 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
+    final title = _titleCtrl.text.trim();
+    final accent = rainbowColorFor(
+      title.isNotEmpty
+          ? title
+          : (widget.note?['id'] as String? ?? 'note-new'),
+    );
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
@@ -517,20 +523,57 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
             onPressed: _saving ? null : _save,
             child: _saving
                 ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : Text(l10n.save, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+                : Text(l10n.save, style: TextStyle(color: accent, fontWeight: FontWeight.w700, fontSize: 15)),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
+      body: Column(
+        children: [
+          // Top accent strip — color encodes the note's identity
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  accent,
+                  Color.lerp(accent, Colors.white, 0.3)!,
+                  accent,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: accent.withValues(alpha: 0.6),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
             TextField(
               controller: _titleCtrl,
-              style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: colors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
               decoration: InputDecoration(hintText: l10n.notesTitleHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
             ),
-            const Divider(height: 1),
+            const SizedBox(height: 6),
+            Container(
+              height: 1,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: 0.0),
+                    accent.withValues(alpha: 0.45),
+                    accent.withValues(alpha: 0.0),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: TextField(
                 controller: _contentCtrl,
@@ -541,8 +584,11 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
                 decoration: InputDecoration(hintText: l10n.notesContentHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
               ),
             ),
-          ],
-        ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

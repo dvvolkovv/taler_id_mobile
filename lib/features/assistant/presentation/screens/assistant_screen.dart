@@ -1881,10 +1881,32 @@ class _AssistantScreenState extends State<AssistantScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: AppColors.of(context).primary),
+          SizedBox(
+            width: 72,
+            height: 72,
+            child: AnimatedBuilder(
+              animation: _orbitCtrl,
+              builder: (context, _) {
+                final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                return Transform.rotate(
+                  angle: t * 2 * math.pi * 0.7,
+                  child: CustomPaint(
+                    painter: _ConnectingRingPainter(
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA855F7),
+                        Color(0xFFFBBF24),
+                        Color(0xFF22D3EE),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
           const SizedBox(height: 24),
           Text(l10n.assistantConnectingToAssistant,
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16)),
+              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -1896,72 +1918,137 @@ class _AssistantScreenState extends State<AssistantScreen>
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Spacer(),
-        AnimatedBuilder(
-          animation: _pulseCtrl,
-          builder: (_, child) {
-            final scale =
-                speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.8 : 1.0;
-            return Transform.scale(scale: scale, child: child);
-          },
-          child: Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.of(context).primary.withValues(alpha: 0.15),
-              border: Border.all(
-                color: speaking ? AppColors.of(context).primary : AppColors.of(context).border,
-                width: speaking ? 2 : 1,
-              ),
-              boxShadow: speaking
-                  ? [
-                      BoxShadow(
-                        color: AppColors.of(context).primary.withValues(alpha: 0.3),
-                        blurRadius: 24,
-                        spreadRadius: 4,
-                      )
-                    ]
-                  : null,
-            ),
-            child: ClipOval(
-              child: _logoVideoReady && _logoVideo != null
-                  ? SizedBox(
-                      width: 90,
-                      height: 90,
-                      child: FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _logoVideo!.value.size.width,
-                          height: _logoVideo!.value.size.height,
-                          child: VideoPlayer(_logoVideo!),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      width: 90,
-                      height: 90,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Image.asset(
-                          Theme.of(context).brightness == Brightness.dark
-                              ? 'assets/app_icon_dark.png'
-                              : 'assets/app_icon_light.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+        SizedBox(
+          width: 260,
+          height: 260,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Expanding waveform rings when speaking
+              AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: const Size(260, 260),
+                    painter: _AssistantWavePainter(
+                      time: t,
+                      active: speaking,
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA855F7),
+                        Color(0xFFFBBF24),
+                      ],
                     ),
-            ),
+                  );
+                },
+              ),
+              // Breathing central container with video logo
+              AnimatedBuilder(
+                animation: _pulseCtrl,
+                builder: (_, child) {
+                  final scale =
+                      speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.8 : 1.0;
+                  return Transform.scale(scale: scale, child: child);
+                },
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: speaking
+                        ? const LinearGradient(
+                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          )
+                        : null,
+                    color: speaking
+                        ? null
+                        : AppColors.of(context).card,
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: speaking ? 0.3 : 0.1),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (speaking ? const Color(0xFF22D3EE) : AppColors.of(context).primary)
+                            .withValues(alpha: speaking ? 0.55 : 0.3),
+                        blurRadius: speaking ? 40 : 24,
+                        spreadRadius: speaking ? 8 : 4,
+                      ),
+                      if (speaking)
+                        BoxShadow(
+                          color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                          blurRadius: 60,
+                          spreadRadius: 12,
+                        ),
+                    ],
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: ClipOval(
+                      child: _logoVideoReady && _logoVideo != null
+                          ? SizedBox(
+                              width: 90,
+                              height: 90,
+                              child: FittedBox(
+                                fit: BoxFit.cover,
+                                child: SizedBox(
+                                  width: _logoVideo!.value.size.width,
+                                  height: _logoVideo!.value.size.height,
+                                  child: VideoPlayer(_logoVideo!),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              width: 90,
+                              height: 90,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 20),
-        Text(
-          speaking ? l10n.assistantAiSpeaking : l10n.assistantAiListening,
-          style: TextStyle(
-            color: speaking ? AppColors.of(context).primary : AppColors.of(context).textSecondary,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 220),
+          child: speaking
+              ? ShaderMask(
+                  key: const ValueKey('speaking'),
+                  shaderCallback: (rect) => const LinearGradient(
+                    colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                  ).createShader(rect),
+                  child: Text(
+                    l10n.assistantAiSpeaking,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              : Text(
+                  l10n.assistantAiListening,
+                  key: const ValueKey('listening'),
+                  style: TextStyle(
+                    color: AppColors.of(context).textSecondary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
         ),
         const Spacer(),
         Padding(
@@ -2116,6 +2203,7 @@ class _CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isColoredAction = color.opacity >= 0.9;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -2123,7 +2211,37 @@ class _CallButton extends StatelessWidget {
           Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              gradient: isColoredAction
+                  ? RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: [
+                        Color.lerp(color, Colors.white, 0.18)!,
+                        color,
+                        Color.lerp(color, Colors.black, 0.3)!,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
+                    )
+                  : null,
+              color: isColoredAction ? null : color,
+              shape: BoxShape.circle,
+              boxShadow: isColoredAction
+                  ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.5),
+                        blurRadius: size >= 72 ? 22 : 14,
+                        spreadRadius: size >= 72 ? 2 : 0,
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+            ),
             child: Icon(icon, color: iconColor, size: size * 0.45),
           ),
           const SizedBox(height: 8),
@@ -2134,6 +2252,84 @@ class _CallButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Rotating conic-gradient ring shown while the assistant is connecting.
+class _ConnectingRingPainter extends CustomPainter {
+  final List<Color> colors;
+  _ConnectingRingPainter({required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.width / 2 - 4;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final bgPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = Colors.white.withValues(alpha: 0.06);
+    canvas.drawCircle(center, radius, bgPaint);
+
+    final arcPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round
+      ..shader = SweepGradient(colors: colors).createShader(rect);
+    canvas.drawArc(rect, 0, math.pi * 1.5, false, arcPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConnectingRingPainter old) => false;
+}
+
+/// Expanding colored rings emanating from the center while the
+/// assistant is speaking. Goes quiet (just a soft breathing aura) when
+/// it's listening.
+class _AssistantWavePainter extends CustomPainter {
+  final double time;
+  final bool active;
+  final List<Color> colors;
+  _AssistantWavePainter({
+    required this.time,
+    required this.active,
+    required this.colors,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final maxRadius = size.width / 2;
+
+    if (active) {
+      // Three outward-expanding rings, phase-offset
+      for (var i = 0; i < 3; i++) {
+        final phase = ((time * 0.9) + i * 0.33) % 1.0;
+        final r = 60 + phase * (maxRadius - 60);
+        final alpha = (1.0 - phase) * 0.45;
+        final paint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..color = colors[i % colors.length].withValues(alpha: alpha);
+        canvas.drawCircle(center, r, paint);
+      }
+    } else {
+      // Idle: soft breathing halo
+      final breath = 0.5 + 0.5 * math.sin(time * 1.2);
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            colors[0].withValues(alpha: 0.12 + 0.08 * breath),
+            colors[0].withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: center, radius: 90));
+      canvas.drawCircle(center, 90, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AssistantWavePainter old) =>
+      old.time != time || old.active != active;
 }
 
 class _NavCircle {
