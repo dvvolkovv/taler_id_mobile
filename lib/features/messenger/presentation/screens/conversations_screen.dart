@@ -1068,7 +1068,9 @@ class _ConversationTile extends StatelessWidget {
 
     final rainbowColor = rainbowColorFor(displayName);
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
