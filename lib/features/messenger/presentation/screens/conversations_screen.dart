@@ -1232,7 +1232,9 @@ class _ConversationTile extends StatelessWidget {
             conversation.lastMessageSenderId != currentUserId &&
             conversation.unreadCount > 0;
         if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
-          return null;
+          // Keep a same-height spacer so rows without a trailing time/badge
+          // align vertically with the ones that do.
+          return const SizedBox(width: 1, height: 44);
         }
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
