@@ -87,6 +87,16 @@ class LoadingButton extends StatelessWidget {
         color: enabled ? null : colors.primary.withOpacity(0.3),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.glassColor.withOpacity(0.08)),
+        boxShadow: enabled
+            ? [
+                BoxShadow(
+                  color: colors.primary.withOpacity(0.45),
+                  blurRadius: 16,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : null,
       ),
       child: ElevatedButton(
         onPressed: loading ? null : onPressed,
