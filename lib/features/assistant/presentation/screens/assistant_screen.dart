@@ -2225,7 +2225,10 @@ class _CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isColoredAction = color.opacity >= 0.9;
+    final appColors = AppColors.of(context);
+    final isNeutral = color.value == appColors.card.value ||
+        color.opacity < 0.9;
+    final isColoredAction = !isNeutral;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -2248,6 +2251,12 @@ class _CallButton extends StatelessWidget {
                   : null,
               color: isColoredAction ? null : color,
               shape: BoxShape.circle,
+              border: isNeutral
+                  ? Border.all(
+                      color: appColors.primary.withValues(alpha: 0.2),
+                      width: 1,
+                    )
+                  : null,
               boxShadow: isColoredAction
                   ? [
                       BoxShadow(
@@ -2258,7 +2267,7 @@ class _CallButton extends StatelessWidget {
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
+                        color: appColors.primary.withValues(alpha: 0.15),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
