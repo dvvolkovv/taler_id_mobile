@@ -14,13 +14,22 @@ class ProfileBloc extends Bloc<ProfileEvent, ProfileState> {
   }
 
   Future<void> _onLoad(ProfileLoadRequested event, Emitter<ProfileState> emit) async {
-    emit(ProfileLoading());
+    // Show cached data instantly (stale-while-revalidate) so the profile
+    // screen doesn't flash a spinner on every open.
+    final cached = repo.getCachedProfile();
+    if (cached != null) {
+      emit(ProfileLoaded(cached));
+    } else {
+      emit(ProfileLoading());
+    }
     try {
       final user = await repo.getProfile();
       emit(ProfileLoaded(user));
     } on ApiException catch (e) {
+      if (cached != null) return; // keep stale cache visible
       emit(ProfileError(message: e.message));
     } catch (e) {
+      if (cached != null) return;
       emit(ProfileError(message: ErrorKeys.failedToLoadProfile));
     }
   }

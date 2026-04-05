@@ -11,6 +11,7 @@ import '../services/contacts_cache_service.dart';
 import '../services/message_draft_service.dart';
 import '../services/messenger_cache_service.dart';
 import '../services/pending_message_service.dart';
+import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 
 // Auth
@@ -95,6 +96,16 @@ Future<void> setupDependencies() async {
   final contactsCache = ContactsCacheService();
   await contactsCache.init();
   sl.registerSingleton<ContactsCacheService>(contactsCache);
+
+  // Notes cache (Hive)
+  final notesCache = SimpleListCache('notes_cache');
+  await notesCache.init();
+  sl.registerSingleton<SimpleListCache>(notesCache, instanceName: 'notes');
+
+  // Calendar cache (Hive)
+  final calendarCache = SimpleListCache('calendar_cache');
+  await calendarCache.init();
+  sl.registerSingleton<SimpleListCache>(calendarCache, instanceName: 'calendar');
 
   // Dio (raw, for auth interceptor use)
   final rawDio = Dio(

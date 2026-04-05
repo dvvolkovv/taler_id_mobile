@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/simple_list_cache.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
@@ -27,6 +28,7 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
+  final _cache = sl<SimpleListCache>(instanceName: 'notes');
   List<Map<String, dynamic>> _notes = [];
   bool _loading = true;
 
@@ -45,6 +47,12 @@ class _NotesScreenState extends State<NotesScreen> {
   @override
   void initState() {
     super.initState();
+    // Hydrate from cache instantly, then refresh.
+    final cached = _cache.get();
+    if (cached != null && cached.isNotEmpty) {
+      _notes = cached;
+      _loading = false;
+    }
     _load();
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
@@ -65,9 +73,11 @@ class _NotesScreenState extends State<NotesScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    if (_notes.isEmpty) setState(() => _loading = true);
     try {
-      _notes = await NotesRemoteDataSource(sl<DioClient>()).getAll();
+      final fresh = await NotesRemoteDataSource(sl<DioClient>()).getAll();
+      _notes = fresh;
+      _cache.save(fresh); // fire-and-forget persist
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
   }
@@ -76,6 +86,7 @@ class _NotesScreenState extends State<NotesScreen> {
     try {
       await NotesRemoteDataSource(sl<DioClient>()).delete(id);
       _notes.removeWhere((n) => n['id'] == id);
+      _cache.remove(id);
       if (mounted) setState(() {});
     } catch (_) {}
   }

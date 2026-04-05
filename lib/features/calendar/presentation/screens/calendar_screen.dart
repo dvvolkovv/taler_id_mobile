@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/simple_list_cache.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -29,6 +30,7 @@ class CalendarScreen extends StatefulWidget {
 }
 
 class _CalendarScreenState extends State<CalendarScreen> {
+  final _cache = sl<SimpleListCache>(instanceName: 'calendar');
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedMonth = DateTime.now();
   List<Map<String, dynamic>> _events = [];
@@ -52,6 +54,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
+    // Hydrate from cache instantly, then refresh.
+    final cached = _cache.get();
+    if (cached != null && cached.isNotEmpty) {
+      _events = cached;
+      _loading = false;
+    }
     _loadEvents();
     NotificationService.setCalendarUpdateCallback(_loadEvents);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -80,13 +88,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Future<void> _loadEvents() async {
-    setState(() => _loading = true);
+    if (_events.isEmpty) setState(() => _loading = true);
     try {
       final from = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
       final to = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
       final ds = CalendarRemoteDataSource(sl<DioClient>());
       _events = await ds.getEvents(from: from.toIso8601String(), to: to.toIso8601String());
       _invites = await ds.getMyInvites();
+      _cache.save(_events); // fire-and-forget persist
     } catch (_) {}
     if (mounted) setState(() => _loading = false);
     // Open event detail if deep-linked from notification
@@ -131,6 +140,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     try {
       await CalendarRemoteDataSource(sl<DioClient>()).delete(id);
       _events.removeWhere((e) => e['id'] == id);
+      _cache.remove(id);
       if (mounted) setState(() {});
     } catch (_) {}
   }
