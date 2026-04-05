@@ -142,6 +142,15 @@ import flutter_callkit_incoming
       object: nil
     )
 
+    // Register for audio route changes — more reliable than interruption.ended
+    // for detecting when an external phone call ends and our audio can resume.
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(handleRouteChange(_:)),
+      name: AVAudioSession.routeChangeNotification,
+      object: nil
+    )
+
     // Register for VoIP push notifications via PushKit.
     // Store as instance property so the registry is not deallocated after this method returns.
     let registry = PKPushRegistry(queue: .main)
@@ -152,24 +161,73 @@ import flutter_callkit_incoming
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  /// Tracks whether we are currently interrupted by an external call.
+  private var audioInterrupted = false
+
   @objc private func handleAudioInterruption(_ notification: Notification) {
     guard let info = notification.userInfo,
           let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
           let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
     DispatchQueue.main.async {
       if type == .began {
+        self.audioInterrupted = true
         self.audioChannel?.invokeMethod("audioInterrupted", arguments: nil)
       } else if type == .ended {
-        // Fully restore audio session with voiceChat mode after external call ends
-        let session = AVAudioSession.sharedInstance()
-        do {
-          try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-          try session.setActive(true, options: .notifyOthersOnDeactivation)
-        } catch {
-          NSLog("[Audio] Failed to restore session after interruption: %@", error.localizedDescription)
+        self.audioInterrupted = false
+        // Check shouldResume hint from iOS
+        let shouldResume: Bool
+        if let optionsValue = info[AVAudioSessionInterruptionOptionKey] as? UInt {
+          shouldResume = AVAudioSession.InterruptionOptions(rawValue: optionsValue).contains(.shouldResume)
+        } else {
+          shouldResume = true // Default to resuming if flag is absent
         }
-        self.audioChannel?.invokeMethod("audioResumed", arguments: nil)
+        if shouldResume {
+          self.restoreAudioSessionAfterInterruption()
+        } else {
+          NSLog("[Audio] iOS indicated shouldResume=false, attempting restore anyway")
+          // Still try — our call is more important than the hint
+          self.restoreAudioSessionAfterInterruption()
+        }
       }
+    }
+  }
+
+  @objc private func handleRouteChange(_ notification: Notification) {
+    guard let info = notification.userInfo,
+          let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
+          let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
+    // When an old device (phone call audio) is removed, restore our session
+    if reason == .oldDeviceUnavailable && self.audioInterrupted {
+      NSLog("[Audio] Route change: old device unavailable while interrupted — restoring")
+      DispatchQueue.main.async {
+        self.audioInterrupted = false
+        self.restoreAudioSessionAfterInterruption()
+      }
+    }
+  }
+
+  /// Restores the audio session after an external interruption (phone call).
+  /// Retries with increasing delays because iOS audio deactivation timing is unpredictable.
+  private func restoreAudioSessionAfterInterruption() {
+    let session = AVAudioSession.sharedInstance()
+    // First attempt immediately
+    self.doRestoreAudioSession(session)
+    self.audioChannel?.invokeMethod("audioResumed", arguments: nil)
+    // Retry after delays to handle iOS timing issues
+    for delay in [300, 800, 1500] {
+      DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(delay)) { [weak self] in
+        guard let self = self, !self.audioInterrupted else { return }
+        self.doRestoreAudioSession(session)
+      }
+    }
+  }
+
+  private func doRestoreAudioSession(_ session: AVAudioSession) {
+    do {
+      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+      try session.setActive(true, options: .notifyOthersOnDeactivation)
+    } catch {
+      NSLog("[Audio] Failed to restore session: %@", error.localizedDescription)
     }
   }
 }
