@@ -7,6 +7,7 @@ import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
 import '../services/call_history_cache_service.dart';
+import '../services/contacts_cache_service.dart';
 import '../services/message_draft_service.dart';
 import '../services/messenger_cache_service.dart';
 import '../services/pending_message_service.dart';
@@ -89,6 +90,11 @@ Future<void> setupDependencies() async {
   final callCache = CallHistoryCacheService();
   await callCache.init();
   sl.registerSingleton<CallHistoryCacheService>(callCache);
+
+  // Contacts cache (Hive) — stale-while-revalidate for Contacts screen
+  final contactsCache = ContactsCacheService();
+  await contactsCache.init();
+  sl.registerSingleton<ContactsCacheService>(contactsCache);
 
   // Dio (raw, for auth interceptor use)
   final rawDio = Dio(

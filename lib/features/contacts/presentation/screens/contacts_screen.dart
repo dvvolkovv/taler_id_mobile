@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -18,6 +19,7 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   final _searchCtrl = TextEditingController();
+  final _cache = sl<ContactsCacheService>();
   String _searchQuery = '';
   List<_ContactItem> _items = [];
   bool _loading = true;
@@ -25,6 +27,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   void initState() {
     super.initState();
+    // Hydrate from cache first so the screen renders instantly.
+    final cached = _cache.get();
+    if (cached != null && cached.isNotEmpty) {
+      _items = cached.map(_ContactItem.fromJson).toList();
+      _loading = false;
+    }
     _load();
   }
 
@@ -35,7 +43,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    // Only show the spinner if we have nothing cached to display.
+    if (_items.isEmpty) {
+      setState(() => _loading = true);
+    }
     try {
       final client = sl<DioClient>();
       // Load accepted contacts from conversations
@@ -88,8 +99,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
 
+      // Persist to cache (fire-and-forget).
+      _cache.save(items.map((e) => e.toJson()).toList());
       if (mounted) setState(() { _items = items; _loading = false; });
     } catch (e) {
+      // Keep the cached list visible on failure; just stop the spinner.
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -381,4 +395,29 @@ class _ContactItem {
     this.requestId,
     this.requestSentAt,
   });
+
+  Map<String, dynamic> toJson() => {
+        'conversationId': conversationId,
+        'userId': userId,
+        'name': name,
+        'username': username,
+        'avatarUrl': avatarUrl,
+        'status': status.name,
+        'requestId': requestId,
+        'requestSentAt': requestSentAt?.toIso8601String(),
+      };
+
+  factory _ContactItem.fromJson(Map<String, dynamic> j) => _ContactItem(
+        conversationId: j['conversationId'] as String?,
+        userId: j['userId'] as String? ?? '',
+        name: j['name'] as String? ?? '',
+        username: j['username'] as String?,
+        avatarUrl: j['avatarUrl'] as String?,
+        status: (j['status'] as String?) == 'pending'
+            ? _ContactStatus.pending
+            : _ContactStatus.accepted,
+        requestId: j['requestId'] as String?,
+        requestSentAt:
+            DateTime.tryParse(j['requestSentAt'] as String? ?? ''),
+      );
 }
