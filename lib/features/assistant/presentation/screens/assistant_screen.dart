@@ -1523,12 +1523,14 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.tabMessenger,
             route: RouteConstants.messenger,
             badge: unreadMessages,
+            color: const Color(0xFF22D3EE), // cyan
           ),
           _NavCircle(
             icon: Icons.call_outlined,
             label: l10n.tabCalls,
             route: RouteConstants.callHistory,
             badge: missedCalls,
+            color: const Color(0xFF34D399), // emerald
             onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(missedCallsCount: 0)),
           ),
           _NavCircle(
@@ -1536,6 +1538,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.tabCalendar,
             route: RouteConstants.calendar,
             badge: pendingCalendar,
+            color: const Color(0xFFA78BFA), // violet
             onTap: () => context.read<MessengerBloc>().add(const UpdateBadgeCounts(pendingCalendarInvites: 0)),
           ),
           _NavCircle(
@@ -1543,29 +1546,88 @@ class _AssistantScreenState extends State<AssistantScreen>
             label: l10n.notesTitle,
             route: RouteConstants.notes,
             badge: 0,
+            color: const Color(0xFFFB7185), // rose
           ),
           _NavCircle(
             icon: Icons.people_outline,
             label: l10n.contacts,
             route: RouteConstants.contacts,
             badge: pendingContacts,
+            color: const Color(0xFF38BDF8), // sky
           ),
           _NavCircle(
             icon: Icons.person_outline,
             label: l10n.tabProfile,
             route: RouteConstants.profile,
             badge: 0,
+            color: const Color(0xFFFBBF24), // amber
           ),
           _NavCircle(
             icon: Icons.settings_outlined,
             label: l10n.tabSettings,
             route: RouteConstants.settings,
             badge: 0,
+            color: const Color(0xFF818CF8), // indigo-lavender
           ),
         ];
 
         return Stack(
           children: [
+            // Ambient floating color blobs (animated background)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: _orbitCtrl,
+                  builder: (context, _) {
+                    final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                    return CustomPaint(
+                      painter: _AmbientBlobsPainter(time: t, colors: navCircles.map((n) => n.color).toList()),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            // Orbital trajectory ring (subtle dotted path)
+            Center(
+              child: AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: Size.square(orbitRadius * 2 + 80),
+                    painter: _OrbitRingPainter(
+                      radius: orbitRadius,
+                      time: t,
+                      baseColor: colors.primary,
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Multi-color aura blobs rotating around the center button
+            Center(
+              child: AnimatedBuilder(
+                animation: _orbitCtrl,
+                builder: (context, _) {
+                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                  return CustomPaint(
+                    size: const Size(240, 240),
+                    painter: _CenterAuraPainter(
+                      time: t,
+                      colors: const [
+                        Color(0xFF22D3EE),
+                        Color(0xFFA78BFA),
+                        Color(0xFFFBBF24),
+                        Color(0xFFFB7185),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
             // Center assistant button
             Center(
               child: GestureDetector(
@@ -1578,12 +1640,25 @@ class _AssistantScreenState extends State<AssistantScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.card,
-                      border: Border.all(color: colors.primary, width: 2),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: colors.primary.withValues(alpha: 0.25),
-                          blurRadius: 32,
-                          spreadRadius: 6,
+                          color: colors.primary.withValues(alpha: 0.4),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFFA78BFA).withValues(alpha: 0.25),
+                          blurRadius: 60,
+                          spreadRadius: 8,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -1646,7 +1721,7 @@ class _AssistantScreenState extends State<AssistantScreen>
                           return Positioned(
                             left: orbitRadius + 40 + x - 30,
                             top: orbitRadius + 40 + y - 30,
-                            child: _buildNavCircle(nav, colors),
+                            child: _buildNavCircle(nav, colors, i),
                           );
                         }),
                       ),
@@ -1662,66 +1737,142 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  Widget _buildNavCircle(_NavCircle nav, AppColorsExtension colors) {
-    return GestureDetector(
-      onTap: () {
-        nav.onTap?.call();
-        context.push(nav.route);
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
+  Widget _buildNavCircle(_NavCircle nav, AppColorsExtension colors, int index) {
+    // Individual breathing phase based on index so each circle pulses
+    // independently (creates a "living cluster" feel).
+    return AnimatedBuilder(
+      animation: _orbitCtrl,
+      builder: (context, _) {
+        final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+        final phase = t * 1.6 + index * 0.9;
+        final breath = 1.0 + 0.06 * math.sin(phase);
+        final glow = 0.55 + 0.3 * (0.5 + 0.5 * math.sin(phase * 0.7));
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            nav.onTap?.call();
+            context.push(nav.route);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.primary.withValues(alpha: 0.15),
-                  border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(nav.icon, size: 24, color: colors.primary),
-              ),
-              if (nav.badge > 0)
-                Positioned(
-                  top: -4,
-                  right: -4,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: colors.error,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text(
-                      nav.badge > 99 ? '99+' : '${nav.badge}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+              Transform.scale(
+                scale: breath,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    // Outer colored glow aura
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            nav.color.withValues(alpha: glow * 0.45),
+                            nav.color.withValues(alpha: 0.0),
+                          ],
+                          stops: const [0.2, 1.0],
+                        ),
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    // Main circle body with radial gradient
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.3, -0.4),
+                          radius: 1.1,
+                          colors: [
+                            Color.lerp(nav.color, Colors.white, 0.35)!,
+                            nav.color,
+                            Color.lerp(nav.color, Colors.black, 0.35)!,
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          // Strong colored glow
+                          BoxShadow(
+                            color: nav.color.withValues(alpha: glow * 0.55),
+                            blurRadius: 18,
+                            spreadRadius: 1,
+                          ),
+                          // Depth shadow
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        nav.icon,
+                        size: 24,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Badge
+                    if (nav.badge > 0)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: colors.error,
+                            border: Border.all(color: Colors.white, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.error.withValues(alpha: 0.6),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                          child: Text(
+                            nav.badge > 99 ? '99+' : '${nav.badge}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                nav.label,
+                style: TextStyle(
+                  color: colors.textPrimary.withValues(alpha: 0.85),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 5),
-          Text(
-            nav.label,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1990,6 +2141,7 @@ class _NavCircle {
   final String label;
   final String route;
   final int badge;
+  final Color color;
   final VoidCallback? onTap;
 
   const _NavCircle({
@@ -1997,6 +2149,121 @@ class _NavCircle {
     required this.label,
     required this.route,
     required this.badge,
+    required this.color,
     this.onTap,
   });
+}
+
+/// Animated ambient background — soft floating color blobs that slowly
+/// drift, giving the idle screen a "living" feel.
+class _AmbientBlobsPainter extends CustomPainter {
+  final double time;
+  final List<Color> colors;
+  _AmbientBlobsPainter({required this.time, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    // Use a subset of palette colors to avoid chaos
+    final palette = [
+      colors.isNotEmpty ? colors[0] : const Color(0xFF22D3EE),
+      colors.length > 2 ? colors[2] : const Color(0xFFA78BFA),
+      colors.length > 5 ? colors[5] : const Color(0xFFFBBF24),
+      colors.length > 3 ? colors[3] : const Color(0xFFFB7185),
+    ];
+    // 4 blobs moving on independent Lissajous paths
+    for (var i = 0; i < palette.length; i++) {
+      final phaseX = time * 0.08 + i * 1.7;
+      final phaseY = time * 0.11 + i * 2.3;
+      final cx = w * (0.5 + 0.35 * math.sin(phaseX));
+      final cy = h * (0.5 + 0.28 * math.cos(phaseY));
+      final radius = w * 0.55;
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            palette[i].withValues(alpha: 0.14),
+            palette[i].withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: radius));
+      canvas.drawCircle(Offset(cx, cy), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _AmbientBlobsPainter old) =>
+      old.time != time;
+}
+
+/// Subtle dotted ring showing the orbital trajectory. The dots slowly
+/// rotate in the opposite direction for parallax life.
+class _OrbitRingPainter extends CustomPainter {
+  final double radius;
+  final double time;
+  final Color baseColor;
+  _OrbitRingPainter({
+    required this.radius,
+    required this.time,
+    required this.baseColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    // Base translucent ring
+    final ringPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = baseColor.withValues(alpha: 0.10);
+    canvas.drawCircle(center, radius, ringPaint);
+
+    // Tiny orbiting dots (counter-rotating, slow)
+    const dotCount = 36;
+    final rotation = -time * 0.15;
+    for (var i = 0; i < dotCount; i++) {
+      final angle = rotation + (i / dotCount) * 2 * math.pi;
+      final x = center.dx + radius * math.cos(angle);
+      final y = center.dy + radius * math.sin(angle);
+      final alpha = 0.12 + 0.18 * (0.5 + 0.5 * math.sin(time * 1.2 + i * 0.4));
+      final dotPaint = Paint()
+        ..color = baseColor.withValues(alpha: alpha);
+      canvas.drawCircle(Offset(x, y), 1.6, dotPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _OrbitRingPainter old) =>
+      old.time != time || old.radius != radius;
+}
+
+/// Multi-color aura of 4 soft colored blobs slowly rotating around the
+/// center button, layered behind it for a "halo of planets" effect.
+class _CenterAuraPainter extends CustomPainter {
+  final double time;
+  final List<Color> colors;
+  _CenterAuraPainter({required this.time, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final orbitR = size.width * 0.28;
+    final blobR = size.width * 0.32;
+    for (var i = 0; i < colors.length; i++) {
+      final angle = time * 0.35 + (i / colors.length) * 2 * math.pi;
+      final cx = center.dx + orbitR * math.cos(angle);
+      final cy = center.dy + orbitR * math.sin(angle);
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            colors[i].withValues(alpha: 0.38),
+            colors[i].withValues(alpha: 0.0),
+          ],
+          stops: const [0.0, 1.0],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: blobR));
+      canvas.drawCircle(Offset(cx, cy), blobR, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CenterAuraPainter old) => old.time != time;
 }
