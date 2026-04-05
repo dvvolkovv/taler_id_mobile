@@ -263,9 +263,10 @@ class _AssistantScreenState extends State<AssistantScreen>
     final nowStr = DateTime.now().toIso8601String();
 
     if (locale == 'ru') {
-      return 'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
+      return 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
+          'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
           'статусе KYC-верификации и данных профиля. Отвечай кратко и по делу. '
-          'Говори на том же языке, на котором говорит пользователь. Не начинай разговор первым — жди когда пользователь заговорит. '
+          'Не начинай разговор первым — жди когда пользователь заговорит. '
           'Отвечай кратко и по делу. '
           'При необходимости вызывай инструменты для чтения или обновления профиля. '
           'Ты также умеешь работать с разделами "О себе" — это личная информация пользователя: ценности, видение мира, '
@@ -345,9 +346,10 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Для запросов "на эту неделю" — from=сегодня, to=через 7 дней.';
     }
 
-    return 'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
+    return 'ALWAYS reply ONLY in English, even if you think the user said something in another language — that is a transcription error, reply in English anyway.\n\n'
+        'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
         'KYC verification status, and profile data. Be concise and to the point. '
-        'Speak in the same language as the user. Don\'t start the conversation — wait for the user to speak. '
+        'Don\'t start the conversation — wait for the user to speak. '
         'When needed, call tools to read or update the profile. '
         'You can also work with "About me" sections — personal information: values, worldview, '
         'skills, interests, desires, profile, likes/dislikes. You can ask the user about themselves, '
@@ -472,7 +474,9 @@ class _AssistantScreenState extends State<AssistantScreen>
         'voice': 'alloy',
         'input_audio_format': 'pcm16',
         'output_audio_format': 'pcm16',
-        'input_audio_transcription': {'model': 'whisper-1'},
+        // Pin Whisper to the app's locale so transcription doesn't drift into
+        // Spanish/German when the first utterance is ambiguous.
+        'input_audio_transcription': {'model': 'whisper-1', 'language': locale},
         'turn_detection': {
           'type': 'server_vad',
           'threshold': 0.5,
