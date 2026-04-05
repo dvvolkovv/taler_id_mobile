@@ -572,37 +572,60 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       child: AppCard(
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id), width: 2),
-            ),
-            child: e.otherPartyAvatar != null
-                ? CircleAvatar(
-                    radius: 22,
-                    backgroundColor: colors.primary.withOpacity(0.12),
-                    backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
-                  )
-                : CircleAvatar(
-                    radius: 22,
-                    backgroundColor: isMissed
-                        ? colors.error.withOpacity(0.12)
-                        : e.isOutgoing
-                            ? colors.primary.withOpacity(0.12)
-                            : _kIncomingColor.withOpacity(0.12),
-                    child: e.withAi
-                        ? Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20)
-                        : Text(
-                            e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: isMissed ? colors.error : e.isOutgoing ? colors.primary : _kIncomingColor,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+          () {
+            final ringColor = isMissed
+                ? colors.error
+                : rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id);
+            return Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
+                    blurRadius: isMissed ? 12 : 8,
+                    spreadRadius: isMissed ? 1 : 0,
                   ),
-          ),
+                ],
+              ),
+              child: e.otherPartyAvatar != null
+                  ? CircleAvatar(
+                      radius: 22,
+                      backgroundColor: colors.primary.withOpacity(0.12),
+                      backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+                    )
+                  : Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          center: const Alignment(-0.3, -0.4),
+                          radius: 1.1,
+                          colors: [
+                            Color.lerp(ringColor, Colors.white, 0.3)!,
+                            ringColor,
+                            Color.lerp(ringColor, Colors.black, 0.4)!,
+                          ],
+                          stops: const [0.0, 0.55, 1.0],
+                        ),
+                      ),
+                      child: Center(
+                        child: e.withAi
+                            ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
+                            : Text(
+                                e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                      ),
+                    ),
+            );
+          }(),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -634,9 +657,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     spacing: 6,
                     children: [
                       if (e.hasRecording)
-                        _CallBadge(icon: Icons.mic_rounded, label: AppLocalizations.of(context)!.callHistoryRecording, color: Colors.red),
+                        _CallBadge(
+                          icon: Icons.mic_rounded,
+                          label: AppLocalizations.of(context)!.callHistoryRecording,
+                          gradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
+                        ),
                       if (e.hasSummary)
-                        _CallBadge(icon: Icons.description_rounded, label: AppLocalizations.of(context)!.callHistorySummary, color: colors.primary),
+                        _CallBadge(
+                          icon: Icons.description_rounded,
+                          label: AppLocalizations.of(context)!.callHistorySummary,
+                          gradient: const [Color(0xFF3B82F6), Color(0xFFA855F7)],
+                        ),
                     ],
                   ),
                 ],
@@ -700,23 +731,46 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 class _CallBadge extends StatelessWidget {
   final IconData icon;
   final String label;
-  final Color color;
-  const _CallBadge({required this.icon, required this.label, required this.color});
+  final List<Color> gradient;
+  const _CallBadge({
+    required this.icon,
+    required this.label,
+    required this.gradient,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(6),
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withOpacity(0.4),
+            blurRadius: 6,
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 3),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
+          Icon(icon, size: 11, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
         ],
       ),
     );
