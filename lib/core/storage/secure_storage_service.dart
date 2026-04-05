@@ -166,6 +166,29 @@ class SecureStorageService {
     }
   }
 
+  Future<String?> getWallpaper() async {
+    if (kIsWeb) {
+      return _webBox?.get(ApiConstants.wallpaperKey) as String?;
+    }
+    return _storage.read(key: ApiConstants.wallpaperKey);
+  }
+
+  Future<void> saveWallpaper(String? id) async {
+    if (kIsWeb) {
+      if (id == null) {
+        await _webBox?.delete(ApiConstants.wallpaperKey);
+      } else {
+        await _webBox?.put(ApiConstants.wallpaperKey, id);
+      }
+    } else {
+      if (id == null) {
+        await _storage.delete(key: ApiConstants.wallpaperKey);
+      } else {
+        await _storage.write(key: ApiConstants.wallpaperKey, value: id);
+      }
+    }
+  }
+
   Future<bool> get isOnboardingSeen async {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.onboardingSeenKey) == 'true';

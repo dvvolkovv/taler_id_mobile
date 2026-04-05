@@ -26,6 +26,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
+import '../../../../core/services/wallpaper_service.dart';
+import '../../../../core/theme/chat_wallpaper_painters.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/message_draft_service.dart';
 import '../../../../core/storage/cache_service.dart';
@@ -1052,8 +1054,55 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.of(context).background,
+    return Stack(
+      children: [
+        // Per-chat wallpaper (app-wide selection from Settings)
+        Positioned.fill(
+          child: ValueListenableBuilder<String?>(
+            valueListenable: WallpaperService.instance.current,
+            builder: (context, wp, _) {
+              if (wp == null || wp.isEmpty) {
+                return ColoredBox(color: AppColors.of(context).background);
+              }
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              // Procedural telegram-style pattern
+              if (WallpaperService.isPatternId(wp)) {
+                final palette = paletteById(wp);
+                if (palette == null) {
+                  return ColoredBox(color: AppColors.of(context).background);
+                }
+                return CustomPaint(
+                  painter: ChatWallpaperPainter(
+                    palette: palette,
+                    isDark: isDark,
+                  ),
+                );
+              }
+              // Photo wallpaper
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    WallpaperService.assetFor(wp),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => ColoredBox(
+                      color: AppColors.of(context).background,
+                    ),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.of(context).background.withValues(
+                        alpha: isDark ? 0.55 : 0.35,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+        Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         leading: _searchMode
             ? IconButton(
@@ -1702,6 +1751,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         },
         ),
       ),
+    ),
+      ],
     );
   }
 

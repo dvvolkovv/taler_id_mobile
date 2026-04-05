@@ -16,6 +16,7 @@ import 'firebase_options.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
+import 'core/services/wallpaper_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'features/kyc/presentation/bloc/kyc_bloc.dart';
@@ -200,6 +201,9 @@ Future<void> main() async {
   } catch (_) {
     // Corrupted storage — use defaults
   }
+
+  // Load persisted wallpaper choice
+  await WallpaperService.instance.loadFromStorage();
 
   // Initialize share intent listener (receive files from other apps)
   if (!kIsWeb) {

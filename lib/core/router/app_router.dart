@@ -23,6 +23,7 @@ import '../../features/tenant/presentation/screens/organization_detail_screen.da
 import '../../features/tenant/presentation/screens/invite_screen.dart';
 import '../../features/sessions/presentation/screens/sessions_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/wallpaper_picker_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/messenger/presentation/screens/conversations_screen.dart';
 import '../../features/messenger/presentation/screens/chat_room_screen.dart';
@@ -191,6 +192,12 @@ final appRouter = GoRouter(
         GoRoute(
           path: RouteConstants.settings,
           builder: (_, __) => const SettingsScreen(),
+          routes: [
+            GoRoute(
+              path: 'wallpaper',
+              builder: (_, __) => const WallpaperPickerScreen(),
+            ),
+          ],
         ),
         // User profile
         GoRoute(
