@@ -925,8 +925,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
                         color: colors.textPrimary, fontWeight: FontWeight.w600)),
                       subtitle: Text(
-                        ' ',
+                        AppLocalizations.of(context)!.messengerSavedSubtitle,
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: colors.textSecondary, fontSize: 13),
                       ),
                       onTap: () async {

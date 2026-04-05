@@ -5264,6 +5264,12 @@ abstract class AppLocalizations {
   /// **'Favorites'**
   String get messengerSavedSection;
 
+  /// No description provided for @messengerSavedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to memory'**
+  String get messengerSavedSubtitle;
+
   /// No description provided for @messengerArchiveTitle.
   ///
   /// In en, this message translates to:

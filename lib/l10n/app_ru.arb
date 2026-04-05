@@ -1178,6 +1178,7 @@
   "messengerFilterChannels": "Каналы",
   "messengerArchivedSection": "Архивировано",
   "messengerSavedSection": "Избранное",
+  "messengerSavedSubtitle": "Сохранить в память",
   "messengerArchiveTitle": "Архив ({count})",
   "@messengerArchiveTitle": {
     "placeholders": {

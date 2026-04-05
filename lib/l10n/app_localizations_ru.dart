@@ -2728,6 +2728,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get messengerSavedSection => 'Избранное';
 
   @override
+  String get messengerSavedSubtitle => 'Сохранить в память';
+
+  @override
   String messengerArchiveTitle(int count) {
     return 'Архив ($count)';
   }

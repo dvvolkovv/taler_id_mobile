@@ -2722,6 +2722,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messengerSavedSection => 'Favorites';
 
   @override
+  String get messengerSavedSubtitle => 'Save to memory';
+
+  @override
   String messengerArchiveTitle(int count) {
     return 'Archive ($count)';
   }

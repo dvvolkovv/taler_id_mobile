@@ -1178,6 +1178,7 @@
   "messengerFilterChannels": "Channels",
   "messengerArchivedSection": "Archived",
   "messengerSavedSection": "Favorites",
+  "messengerSavedSubtitle": "Save to memory",
   "messengerArchiveTitle": "Archive ({count})",
   "@messengerArchiveTitle": {
     "placeholders": {
