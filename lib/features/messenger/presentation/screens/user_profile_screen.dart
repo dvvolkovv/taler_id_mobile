@@ -168,6 +168,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     }
   }
 
+  Future<void> _declineContactRequest() async {
+    if (_requestId == null || _contactActionLoading) return;
+    setState(() => _contactActionLoading = true);
+    try {
+      final client = sl<DioClient>();
+      await client.patch(
+        '/messenger/contacts/requests/$_requestId/reject',
+        fromJson: (d) => d,
+      );
+      if (mounted) setState(() { _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _contactActionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
+        );
+      }
+    }
+  }
+
   Future<String?> _getOrCreateConversation() async {
     // If we already know the conversation ID, return it
     if (_conversationId != null) return _conversationId;
@@ -766,7 +786,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
           const SizedBox(width: 12),
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: null,
+              onPressed: _contactActionLoading ? null : _declineContactRequest,
               icon: Icon(Icons.close_rounded, color: colors.textSecondary),
               label: Text(l10n.userProfileDecline, style: TextStyle(color: colors.textSecondary)),
               style: OutlinedButton.styleFrom(
