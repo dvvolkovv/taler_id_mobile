@@ -1544,7 +1544,9 @@ class _AssistantScreenState extends State<AssistantScreen>
             icon: Icons.chat_bubble_outline_rounded,
             label: l10n.tabMessenger,
             route: RouteConstants.messenger,
-            badge: unreadMessages,
+            // Include incoming contact requests — they now live inline in
+            // the chats list, so the Messenger badge should count them too.
+            badge: unreadMessages + pendingContacts,
             color: const Color(0xFF22D3EE), // cyan
           ),
           _NavCircle(

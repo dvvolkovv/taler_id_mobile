@@ -773,7 +773,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   Future<void> _onLoadContactRequests(LoadContactRequests event, Emitter<MessengerState> emit) async {
     try {
       final requests = await _repo.getContactRequests();
-      emit(state.copyWith(contactRequests: requests));
+      final pending = requests.where((r) =>
+          (r['status'] as String? ?? 'PENDING') == 'PENDING').length;
+      emit(state.copyWith(
+        contactRequests: requests,
+        pendingContactRequests: pending,
+      ));
     } catch (e) {
       debugPrint('[MessengerBloc] LoadContactRequests error: $e');
     }
@@ -783,7 +788,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     // Optimistic: drop the row immediately so the UI reacts without waiting
     // for the server round-trip.
     final optimistic = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
-    emit(state.copyWith(contactRequests: optimistic));
+    final pending = optimistic.where((r) =>
+        (r['status'] as String? ?? 'PENDING') == 'PENDING').length;
+    emit(state.copyWith(contactRequests: optimistic, pendingContactRequests: pending));
     try {
       final result = await _repo.acceptContactRequest(event.requestId);
       final convId = result['conversationId'] as String?;
@@ -800,15 +807,26 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
 
   Future<void> _onRejectContactRequest(RejectContactRequest event, Emitter<MessengerState> emit) async {
     final optimistic = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
-    emit(state.copyWith(contactRequests: optimistic));
+    final pending = optimistic.where((r) =>
+        (r['status'] as String? ?? 'PENDING') == 'PENDING').length;
+    emit(state.copyWith(contactRequests: optimistic, pendingContactRequests: pending));
     try {
       await _repo.rejectContactRequest(event.requestId);
     } catch (_) {}
   }
 
   void _onContactRequestReceived(ContactRequestReceived event, Emitter<MessengerState> emit) {
-    final updated = [event.data, ...state.contactRequests];
-    emit(state.copyWith(contactRequests: updated));
+    // Avoid duplicates if the same request arrives via both socket and a
+    // subsequent LoadContactRequests refresh.
+    final id = event.data['id'];
+    final filtered = state.contactRequests.where((r) => r['id'] != id).toList();
+    final updated = [event.data, ...filtered];
+    final pending = updated.where((r) =>
+        (r['status'] as String? ?? 'PENDING') == 'PENDING').length;
+    emit(state.copyWith(
+      contactRequests: updated,
+      pendingContactRequests: pending,
+    ));
   }
 
   void _onContactRequestAccepted(ContactRequestAccepted event, Emitter<MessengerState> emit) {
