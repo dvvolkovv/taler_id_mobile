@@ -253,11 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Row(
                       children: [
-                        Container(
-                          width: 40, height: 40,
-                          decoration: BoxDecoration(color: AppColors.of(context).primary.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-                          child: Icon(Icons.edit_outlined, color: AppColors.of(context).primary, size: 22),
-                        ),
+                        _navIconTile(Icons.edit_rounded, AppColors.of(context).primary),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -281,15 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: () => context.push(RouteConstants.profileSections),
                     child: Row(
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.of(context).primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.person_pin_outlined, color: AppColors.of(context).primary, size: 22),
-                        ),
+                        _navIconTile(Icons.person_pin_rounded, const Color(0xFFA855F7)),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -317,15 +305,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(16),
                     child: Row(
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.of(context).primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(Icons.sticky_note_2_outlined, color: AppColors.of(context).primary, size: 22),
-                        ),
+                        _navIconTile(Icons.sticky_note_2_rounded, const Color(0xFFFB7185)),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -424,6 +404,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
       );
     }
+  }
+
+  /// 40x40 gradient icon tile with colored glow for profile nav cards.
+  Widget _navIconTile(IconData icon, Color color) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.15)!,
+            color,
+            Color.lerp(color, Colors.black, 0.25)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.45),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: Colors.white, size: 22),
+    );
   }
 
   Widget _buildAvatar(UserEntity user) {

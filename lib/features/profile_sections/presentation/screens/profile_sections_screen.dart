@@ -101,15 +101,33 @@ class _SectionCard extends StatelessWidget {
           },
           child: Row(
             children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: colors.primary.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(iconForType(type), color: colors.primary, size: 22),
-              ),
+              () {
+                final typeColor = colorForType(type);
+                return Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.lerp(typeColor, Colors.white, 0.15)!,
+                        typeColor,
+                        Color.lerp(typeColor, Colors.black, 0.25)!,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: const [0.0, 0.5, 1.0],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: typeColor.withOpacity(0.45),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(iconForType(type), color: Colors.white, size: 22),
+                );
+              }(),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -172,14 +190,27 @@ class _SectionCard extends StatelessWidget {
 
   static IconData iconForType(SectionType type) {
     switch (type) {
-      case SectionType.coreValues: return Icons.diamond_outlined;
-      case SectionType.worldview: return Icons.public;
-      case SectionType.skills: return Icons.build_outlined;
-      case SectionType.interests: return Icons.interests;
-      case SectionType.desires: return Icons.star_outline;
-      case SectionType.background: return Icons.person_outline;
-      case SectionType.likes: return Icons.thumb_up_alt_outlined;
-      case SectionType.dislikes: return Icons.thumb_down_alt_outlined;
+      case SectionType.coreValues: return Icons.diamond_rounded;
+      case SectionType.worldview: return Icons.public_rounded;
+      case SectionType.skills: return Icons.build_rounded;
+      case SectionType.interests: return Icons.interests_rounded;
+      case SectionType.desires: return Icons.star_rounded;
+      case SectionType.background: return Icons.person_rounded;
+      case SectionType.likes: return Icons.thumb_up_alt_rounded;
+      case SectionType.dislikes: return Icons.thumb_down_alt_rounded;
+    }
+  }
+
+  static Color colorForType(SectionType type) {
+    switch (type) {
+      case SectionType.coreValues: return const Color(0xFF22D3EE); // cyan (diamond)
+      case SectionType.worldview: return const Color(0xFF3B82F6); // blue (globe)
+      case SectionType.skills: return const Color(0xFFFBBF24); // amber (tools)
+      case SectionType.interests: return const Color(0xFFA855F7); // violet
+      case SectionType.desires: return const Color(0xFFF59E0B); // gold (star)
+      case SectionType.background: return const Color(0xFF10B981); // emerald
+      case SectionType.likes: return const Color(0xFF34D399); // green (thumbs up)
+      case SectionType.dislikes: return const Color(0xFFFB7185); // rose (thumbs down)
     }
   }
 
