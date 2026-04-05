@@ -822,7 +822,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
                   SliverToBoxAdapter(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                       leading: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
@@ -860,7 +862,9 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                       leading: Container(
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
