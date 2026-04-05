@@ -13,6 +13,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -345,17 +346,11 @@ class _NotesScreenState extends State<NotesScreen> {
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
                 : _notes.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.sticky_note_2_outlined, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
-                            const SizedBox(height: 12),
-                            Text(l10n.notesEmpty, style: TextStyle(color: colors.textSecondary, fontSize: 16)),
-                            const SizedBox(height: 8),
-                            Text(l10n.notesEmptyHint, textAlign: TextAlign.center, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
-                          ],
-                        ),
+                    ? EmptyStateView(
+                        icon: Icons.sticky_note_2_rounded,
+                        title: l10n.notesEmpty,
+                        subtitle: l10n.notesEmptyHint,
+                        gradient: const [Color(0xFFFB7185), Color(0xFFA855F7)],
                       )
                     : RefreshIndicator(
                         onRefresh: _load,

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
@@ -216,6 +217,125 @@ class _PulsingBadgeState extends State<PulsingBadge>
         );
       },
       child: widget.child,
+    );
+  }
+}
+
+/// Empty-state placeholder with a gradient circular icon, title, subtitle,
+/// and optional action button. Used for "no items yet" screens.
+class EmptyStateView extends StatefulWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? action;
+  final List<Color> gradient;
+
+  const EmptyStateView({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.action,
+    this.gradient = const [Color(0xFF3B82F6), Color(0xFFA855F7)],
+  });
+
+  @override
+  State<EmptyStateView> createState() => _EmptyStateViewState();
+}
+
+class _EmptyStateViewState extends State<EmptyStateView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final accent = widget.gradient.first;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedBuilder(
+              animation: _ctrl,
+              builder: (context, _) {
+                final t = _ctrl.value;
+                final scale = 1.0 + 0.05 * math.sin(t * math.pi);
+                final glow = 0.35 + 0.25 * t;
+                return Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: widget.gradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accent.withValues(alpha: glow),
+                          blurRadius: 28,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Icon(widget.icon, size: 42, color: Colors.white),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (widget.subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.subtitle!,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+            if (widget.action != null) ...[
+              const SizedBox(height: 20),
+              widget.action!,
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

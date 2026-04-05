@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
@@ -173,29 +174,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     if (filtered.isEmpty) {
       return SliverFillRemaining(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.people_outline, size: 48, color: colors.textSecondary.withValues(alpha: 0.5)),
-              const SizedBox(height: 12),
-              Text(
-                _searchQuery.isNotEmpty ? l10n.contactsNotFound : l10n.contactsEmpty,
-                style: TextStyle(color: colors.textSecondary, fontSize: 16),
-              ),
-              if (_searchQuery.isEmpty) ...[
-                const SizedBox(height: 8),
-                TextButton.icon(
+        child: EmptyStateView(
+          icon: _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.people_rounded,
+          title: _searchQuery.isNotEmpty ? l10n.contactsNotFound : l10n.contactsEmpty,
+          gradient: const [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+          action: _searchQuery.isEmpty
+              ? TextButton.icon(
                   onPressed: () async {
                     await context.push('/dashboard/messenger/contacts');
                     _load();
                   },
                   icon: Icon(Icons.person_add, color: colors.primary, size: 18),
                   label: Text(l10n.contactsAdd, style: TextStyle(color: colors.primary)),
-                ),
-              ],
-            ],
-          ),
+                )
+              : null,
         ),
       );
     }
