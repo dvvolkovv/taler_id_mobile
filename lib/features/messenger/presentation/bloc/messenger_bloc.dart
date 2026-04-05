@@ -780,25 +780,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   Future<void> _onAcceptContactRequest(AcceptContactRequest event, Emitter<MessengerState> emit) async {
+    // Optimistic: drop the row immediately so the UI reacts without waiting
+    // for the server round-trip.
+    final optimistic = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
+    emit(state.copyWith(contactRequests: optimistic));
     try {
       final result = await _repo.acceptContactRequest(event.requestId);
-      // Remove from pending list
-      final updated = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
-      emit(state.copyWith(contactRequests: updated));
-      // Navigate to the new conversation
       final convId = result['conversationId'] as String?;
       if (convId != null) {
         emit(state.copyWith(newConversationId: convId));
         add(LoadConversations());
       }
-    } catch (_) {}
+    } catch (_) {
+      // If the server rejects the accept, leave the optimistic update in
+      // place — user will see the entry disappear regardless. A later
+      // LoadContactRequests sync would restore it if still pending.
+    }
   }
 
   Future<void> _onRejectContactRequest(RejectContactRequest event, Emitter<MessengerState> emit) async {
+    final optimistic = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
+    emit(state.copyWith(contactRequests: optimistic));
     try {
       await _repo.rejectContactRequest(event.requestId);
-      final updated = state.contactRequests.where((r) => r['id'] != event.requestId).toList();
-      emit(state.copyWith(contactRequests: updated));
     } catch (_) {}
   }
 
