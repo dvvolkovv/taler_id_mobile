@@ -6,6 +6,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -216,19 +217,50 @@ class _ContactsScreenState extends State<ContactsScreen> {
       padding: const EdgeInsets.only(bottom: 4),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        leading: CircleAvatar(
-          radius: 24,
-          backgroundColor: colors.primary.withValues(alpha: 0.15),
-          backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
-              ? CachedNetworkImageProvider(contact.avatarUrl!)
-              : null,
-          child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
-              ? Text(
-                  contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
-                  style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontSize: 18),
-                )
-              : null,
-        ),
+        leading: () {
+          final ringColor = rainbowColorFor(contact.name.isNotEmpty ? contact.name : contact.userId);
+          return Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ringColor, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: ringColor.withValues(alpha: 0.35),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.3, -0.4),
+                  radius: 1.1,
+                  colors: [
+                    Color.lerp(ringColor, Colors.white, 0.28)!,
+                    ringColor,
+                    Color.lerp(ringColor, Colors.black, 0.38)!,
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: Colors.transparent,
+                backgroundImage: contact.avatarUrl != null && contact.avatarUrl!.isNotEmpty
+                    ? CachedNetworkImageProvider(contact.avatarUrl!)
+                    : null,
+                child: contact.avatarUrl == null || contact.avatarUrl!.isEmpty
+                    ? Text(
+                        contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                      )
+                    : null,
+              ),
+            ),
+          );
+        }(),
         title: Text(
           contact.name,
           style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),

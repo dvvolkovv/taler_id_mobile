@@ -13,6 +13,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/notes_remote_datasource.dart';
@@ -375,32 +376,75 @@ class _NotesScreenState extends State<NotesScreen> {
     final date = DateTime.tryParse(note['createdAt'] as String? ?? '');
     final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date.toLocal()) : '';
     final source = note['source'] as String? ?? 'MANUAL';
+    final title = note['title'] as String? ?? '';
+    final accentColor = rainbowColorFor(title.isNotEmpty ? title : (note['id'] as String? ?? 'note'));
 
-    return Card(
-      color: colors.card,
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
+      decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => _openEditor(note: note),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (source == 'ASSISTANT')
-                    Padding(padding: const EdgeInsets.only(right: 6), child: Icon(Icons.headset_mic_rounded, size: 14, color: colors.primary)),
-                  Expanded(child: Text(note['title'] as String? ?? '', style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                  IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note['id'] as String), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(note['content'] as String? ?? '', style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 8),
-              Text(dateStr, style: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6), fontSize: 11)),
-            ],
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(colors.card, accentColor, 0.06)!,
+            colors.card,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border(
+          left: BorderSide(color: accentColor, width: 4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => _openEditor(note: note),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    if (source == 'ASSISTANT')
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF22D3EE).withValues(alpha: 0.45),
+                                blurRadius: 6,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.headset_mic_rounded, size: 12, color: Colors.white),
+                        ),
+                      ),
+                    Expanded(child: Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), softWrap: true)),
+                    IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note['id'] as String), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(note['content'] as String? ?? '', style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 8),
+                Text(dateStr, style: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6), fontSize: 11)),
+              ],
+            ),
           ),
         ),
       ),
