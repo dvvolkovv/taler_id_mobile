@@ -2485,6 +2485,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
   void _showForwardPicker(BuildContext context) {
     final bloc = context.read<MessengerBloc>();
     final conversations = bloc.state.conversations;
+    final rootContext = context;
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.of(context).card,
@@ -2495,13 +2496,32 @@ class _MessageBubbleState extends State<_MessageBubble> {
       builder: (_) => _ForwardPickerSheet(
         conversations: conversations,
         onSelected: (targetConversationId) {
+          // Forward the message, then open the destination chat so the user
+          // lands right on it and can add a caption or follow-up.
           bloc.add(ForwardMessage(
             message: widget.message,
             targetConversationId: targetConversationId,
           ));
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(AppLocalizations.of(context)!.chatMessageForwarded), duration: const Duration(seconds: 2)),
-          );
+          if (rootContext.mounted) {
+            rootContext.push('/dashboard/messenger/$targetConversationId');
+          }
+        },
+        onSelectSaved: () async {
+          try {
+            final res = await sl<DioClient>().post(
+              '/messenger/saved',
+              fromJson: (d) => Map<String, dynamic>.from(d as Map),
+            );
+            final convId = res['conversationId'] as String?;
+            if (convId == null) return;
+            bloc.add(ForwardMessage(
+              message: widget.message,
+              targetConversationId: convId,
+            ));
+            if (rootContext.mounted) {
+              rootContext.push('/dashboard/messenger/$convId');
+            }
+          } catch (_) {}
         },
       ),
     );
@@ -2829,10 +2849,12 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
 class _ForwardPickerSheet extends StatefulWidget {
   final List<ConversationEntity> conversations;
   final void Function(String conversationId) onSelected;
+  final VoidCallback? onSelectSaved;
 
   const _ForwardPickerSheet({
     required this.conversations,
     required this.onSelected,
+    this.onSelectSaved,
   });
 
   @override
@@ -2907,22 +2929,94 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
           Expanded(
             child: ListView.builder(
               controller: scrollController,
-              itemCount: filtered.length,
+              // +1 for the Saved/Favorites entry at the top (hide while searching).
+              itemCount: filtered.length + ((widget.onSelectSaved != null && _query.isEmpty) ? 1 : 0),
               itemBuilder: (_, i) {
-                final conv = filtered[i];
+                final hasSaved = widget.onSelectSaved != null && _query.isEmpty;
+                if (hasSaved && i == 0) {
+                  return ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFA855F7), width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                          ),
+                        ),
+                        child: const Icon(Icons.cloud_done_rounded, color: Colors.white, size: 22),
+                      ),
+                    ),
+                    title: Text(l10n.messengerSavedSection, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                    subtitle: Text(l10n.messengerSavedSubtitle, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    onTap: () {
+                      Navigator.pop(context);
+                      widget.onSelectSaved?.call();
+                    },
+                  );
+                }
+                final idx = hasSaved ? i - 1 : i;
+                final conv = filtered[idx];
                 final name = conv.name ?? conv.otherUserName ?? l10n.chatDialog;
                 final avatarUrl = conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
+                final ringColor = rainbowColorFor(name.isNotEmpty ? name : conv.id);
                 return ListTile(
-                  leading: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: colors.primary.withValues(alpha: 0.2),
-                    backgroundImage: avatarUrl != null ? CachedNetworkImageProvider(avatarUrl) : null,
-                    child: avatarUrl == null
-                        ? Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold),
-                          )
-                        : null,
+                  leading: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: ringColor, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: ringColor.withValues(alpha: 0.35),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: avatarUrl != null
+                            ? null
+                            : RadialGradient(
+                                center: const Alignment(-0.3, -0.4),
+                                radius: 1.1,
+                                colors: [
+                                  Color.lerp(ringColor, Colors.white, 0.28)!,
+                                  ringColor,
+                                  Color.lerp(ringColor, Colors.black, 0.38)!,
+                                ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                      ),
+                      child: avatarUrl != null
+                          ? ClipOval(
+                              child: CachedNetworkImage(
+                                imageUrl: avatarUrl,
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
+                            ),
+                    ),
                   ),
                   title: Text(name, style: TextStyle(color: colors.textPrimary)),
                   onTap: () {

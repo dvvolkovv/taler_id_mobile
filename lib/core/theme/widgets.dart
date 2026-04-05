@@ -193,27 +193,24 @@ class _PulsingBadgeState extends State<PulsingBadge>
   @override
   Widget build(BuildContext context) {
     if (!widget.enabled) return widget.child;
-    final scaleRange = widget.maxScale - 1.0;
+    // Pulse the glow (box-shadow) only — avoid Transform.scale since it
+    // can cause 1-pixel BOTTOM OVERFLOWED warnings inside tight parents
+    // like ListTile trailing columns.
     return AnimatedBuilder(
       animation: _ctrl,
       builder: (context, child) {
-        final scale = 1.0 + scaleRange * _ctrl.value;
-        final glow = 0.35 + 0.35 * _ctrl.value;
-        return Transform.scale(
-          scale: scale,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: widget.borderRadius,
-              boxShadow: [
-                BoxShadow(
-                  color: widget.glowColor.withOpacity(glow),
-                  blurRadius: 8 + 6 * _ctrl.value,
-                  spreadRadius: 0.5,
-                ),
-              ],
-            ),
-            child: child,
+        final glow = 0.35 + 0.4 * _ctrl.value;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: widget.borderRadius,
+            boxShadow: [
+              BoxShadow(
+                color: widget.glowColor.withOpacity(glow),
+                blurRadius: 6 + 8 * _ctrl.value,
+              ),
+            ],
           ),
+          child: child,
         );
       },
       child: widget.child,
