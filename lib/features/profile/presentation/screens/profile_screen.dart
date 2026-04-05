@@ -216,17 +216,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 16),
                       Center(
                         child: Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF22D3EE), Color(0xFFA855F7), Color(0xFFFB7185)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFA855F7).withValues(alpha: 0.35),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
-                          child: QrImageView(
-                            data: 'talerid://user/${user.id}',
-                            version: QrVersions.auto,
-                            size: 180,
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: QrImageView(
+                              data: 'talerid://user/${user.id}',
+                              version: QrVersions.auto,
+                              size: 180,
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              errorCorrectionLevel: QrErrorCorrectLevel.H,
+                              embeddedImage: const AssetImage('assets/app_icon_light.png'),
+                              embeddedImageStyle: const QrEmbeddedImageStyle(
+                                size: Size(44, 44),
+                              ),
+                            ),
                           ),
                         ),
                       ),
