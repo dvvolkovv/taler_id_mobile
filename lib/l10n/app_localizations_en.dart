@@ -1660,6 +1660,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactRequestsTitle => 'Contacts';
 
   @override
+  String get messengerContactRequestsSection => 'Contact requests';
+
+  @override
+  String messengerContactRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count new requests',
+      one: '1 new request',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get contactRequestsSearch => 'Search';
 
   @override
@@ -2362,6 +2376,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsProfileSubtitle => 'Profile';
+
+  @override
+  String get settingsWallpaper => 'Wallpaper';
+
+  @override
+  String get settingsWallpaperDesc => 'Background image for the whole app';
+
+  @override
+  String get settingsWallpaperNone => 'None';
 
   @override
   String get settingsAccount => 'Account';

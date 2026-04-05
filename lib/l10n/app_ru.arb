@@ -715,6 +715,11 @@
   },
   "dashboardUpdate": "Обновить",
   "contactRequestsTitle": "Контакты",
+  "messengerContactRequestsSection": "Заявки в контакты",
+  "messengerContactRequestsCount": "{count, plural, =1{1 новая заявка} few{{count} новые заявки} many{{count} новых заявок} other{{count} новых заявок}}",
+  "@messengerContactRequestsCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "contactRequestsSearch": "Поиск",
   "contactRequestsIncoming": "Входящие",
   "contactRequestsSent": "Отправленные",
@@ -1029,6 +1034,9 @@
   "aboutMeVisibilityContacts": "Контакты",
   "aboutMeVisibilityOnlyMe": "Только я",
   "settingsProfileSubtitle": "Профиль",
+  "settingsWallpaper": "Обои",
+  "settingsWallpaperDesc": "Фоновое изображение для всего приложения",
+  "settingsWallpaperNone": "Без обоев",
   "settingsAccount": "Аккаунт",
   "settingsKycVerification": "Верификация личности (KYC)",
   "settingsOrganizations": "Организации",

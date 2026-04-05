@@ -715,6 +715,11 @@
   },
   "dashboardUpdate": "Update",
   "contactRequestsTitle": "Contacts",
+  "messengerContactRequestsSection": "Contact requests",
+  "messengerContactRequestsCount": "{count, plural, =1{1 new request} other{{count} new requests}}",
+  "@messengerContactRequestsCount": {
+    "placeholders": {"count": {"type": "int"}}
+  },
   "contactRequestsSearch": "Search",
   "contactRequestsIncoming": "Incoming",
   "contactRequestsSent": "Sent",
@@ -1029,6 +1034,9 @@
   "aboutMeVisibilityContacts": "Contacts",
   "aboutMeVisibilityOnlyMe": "Only me",
   "settingsProfileSubtitle": "Profile",
+  "settingsWallpaper": "Wallpaper",
+  "settingsWallpaperDesc": "Background image for the whole app",
+  "settingsWallpaperNone": "None",
   "settingsAccount": "Account",
   "settingsKycVerification": "Identity Verification (KYC)",
   "settingsOrganizations": "Organizations",

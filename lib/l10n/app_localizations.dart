@@ -3236,6 +3236,18 @@ abstract class AppLocalizations {
   /// **'Contacts'**
   String get contactRequestsTitle;
 
+  /// No description provided for @messengerContactRequestsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact requests'**
+  String get messengerContactRequestsSection;
+
+  /// No description provided for @messengerContactRequestsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new request} other{{count} new requests}}'**
+  String messengerContactRequestsCount(int count);
+
   /// No description provided for @contactRequestsSearch.
   ///
   /// In en, this message translates to:
@@ -4585,6 +4597,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Profile'**
   String get settingsProfileSubtitle;
+
+  /// No description provided for @settingsWallpaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallpaper'**
+  String get settingsWallpaper;
+
+  /// No description provided for @settingsWallpaperDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Background image for the whole app'**
+  String get settingsWallpaperDesc;
+
+  /// No description provided for @settingsWallpaperNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get settingsWallpaperNone;
 
   /// No description provided for @settingsAccount.
   ///

@@ -2344,7 +2344,10 @@ Answer briefly — the user is in the middle of a conversation.''';
       if (context.canPop()) {
         context.pop();
       } else {
-        context.go(RouteConstants.messenger);
+        // No prior route to pop to (incoming call launched us directly);
+        // fall back to the assistant home tab which also shows the active
+        // call banner so the user can re-enter the call.
+        context.go(RouteConstants.assistant);
       }
     } catch (e) {
       debugPrint('[VoiceCall] _minimizeCall error (ignored): $e');
@@ -4107,12 +4110,18 @@ class _ControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedIconColor = iconColor ?? (color.opacity < 0.9
-        ? AppColors.of(context).primary
+    final appColors = AppColors.of(context);
+    // A button is "neutral" (card-background) whenever its color matches the
+    // theme's card surface — this happens in both light (white) and dark
+    // (navy) themes. Neutral buttons get a subtle surface, not a gradient.
+    final isNeutral = color.value == appColors.card.value ||
+        color.opacity < 0.9;
+    final isColoredAction = !isNeutral;
+    final resolvedIconColor = iconColor ?? (isNeutral
+        ? appColors.primary
         : (color.computeLuminance() > 0.4
-            ? AppColors.of(context).textPrimary
+            ? appColors.textPrimary
             : Colors.white));
-    final isColoredAction = color.opacity >= 0.9;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -4135,7 +4144,14 @@ class _ControlButton extends StatelessWidget {
                   : null,
               color: isColoredAction ? null : color,
               shape: BoxShape.circle,
-              border: active ? Border.all(color: Colors.white, width: 2.5) : null,
+              border: active
+                  ? Border.all(color: Colors.white, width: 2.5)
+                  : (isNeutral
+                      ? Border.all(
+                          color: appColors.primary.withValues(alpha: 0.2),
+                          width: 1,
+                        )
+                      : null),
               boxShadow: isColoredAction
                   ? [
                       BoxShadow(
@@ -4146,7 +4162,7 @@ class _ControlButton extends StatelessWidget {
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.3),
+                        color: appColors.primary.withValues(alpha: 0.15),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),
@@ -4155,7 +4171,7 @@ class _ControlButton extends StatelessWidget {
             child: Icon(
               icon,
               color: onTap == null
-                  ? AppColors.of(context).textSecondary.withValues(alpha: 0.4)
+                  ? appColors.textSecondary.withValues(alpha: 0.4)
                   : (isColoredAction ? Colors.white : resolvedIconColor),
               size: large ? 32 : 24,
             ),

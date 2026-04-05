@@ -1544,7 +1544,9 @@ class _AssistantScreenState extends State<AssistantScreen>
             icon: Icons.chat_bubble_outline_rounded,
             label: l10n.tabMessenger,
             route: RouteConstants.messenger,
-            badge: unreadMessages,
+            // Include incoming contact requests — they now live inline in
+            // the chats list, so the Messenger badge should count them too.
+            badge: unreadMessages + pendingContacts,
             color: const Color(0xFF22D3EE), // cyan
           ),
           _NavCircle(
@@ -2225,7 +2227,10 @@ class _CallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isColoredAction = color.opacity >= 0.9;
+    final appColors = AppColors.of(context);
+    final isNeutral = color.value == appColors.card.value ||
+        color.opacity < 0.9;
+    final isColoredAction = !isNeutral;
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -2248,6 +2253,12 @@ class _CallButton extends StatelessWidget {
                   : null,
               color: isColoredAction ? null : color,
               shape: BoxShape.circle,
+              border: isNeutral
+                  ? Border.all(
+                      color: appColors.primary.withValues(alpha: 0.2),
+                      width: 1,
+                    )
+                  : null,
               boxShadow: isColoredAction
                   ? [
                       BoxShadow(
@@ -2258,7 +2269,7 @@ class _CallButton extends StatelessWidget {
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
+                        color: appColors.primary.withValues(alpha: 0.15),
                         blurRadius: 8,
                         offset: const Offset(0, 3),
                       ),

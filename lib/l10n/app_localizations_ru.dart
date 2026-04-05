@@ -1665,6 +1665,22 @@ class AppLocalizationsRu extends AppLocalizations {
   String get contactRequestsTitle => 'Контакты';
 
   @override
+  String get messengerContactRequestsSection => 'Заявки в контакты';
+
+  @override
+  String messengerContactRequestsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count новых заявок',
+      many: '$count новых заявок',
+      few: '$count новые заявки',
+      one: '1 новая заявка',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get contactRequestsSearch => 'Поиск';
 
   @override
@@ -2368,6 +2384,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get settingsProfileSubtitle => 'Профиль';
+
+  @override
+  String get settingsWallpaper => 'Обои';
+
+  @override
+  String get settingsWallpaperDesc =>
+      'Фоновое изображение для всего приложения';
+
+  @override
+  String get settingsWallpaperNone => 'Без обоев';
 
   @override
   String get settingsAccount => 'Аккаунт';

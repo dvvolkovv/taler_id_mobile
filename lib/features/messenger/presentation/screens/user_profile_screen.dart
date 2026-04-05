@@ -150,22 +150,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
 
   Future<void> _acceptContactRequest() async {
     if (_requestId == null || _contactActionLoading) return;
-    setState(() => _contactActionLoading = true);
-    try {
-      final client = sl<DioClient>();
-      await client.patch(
-        '/messenger/contacts/requests/$_requestId/accept',
-        fromJson: (d) => d,
-      );
-      if (mounted) setState(() { _isContact = true; _pendingRequest = null; _requestId = null; _contactActionLoading = false; });
-    } catch (e) {
-      if (mounted) {
-        setState(() => _contactActionLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: AppColors.of(context).error),
-        );
-      }
-    }
+    final reqId = _requestId!;
+    setState(() {
+      _contactActionLoading = true;
+      _isContact = true;
+      _pendingRequest = null;
+      _requestId = null;
+    });
+    // Delegate to the bloc so the global messenger state (chats list) updates
+    // immediately; bloc calls the API, drops the row, reloads conversations.
+    context.read<MessengerBloc>().add(AcceptContactRequest(reqId));
+    if (mounted) setState(() => _contactActionLoading = false);
+  }
+
+  Future<void> _declineContactRequest() async {
+    if (_requestId == null || _contactActionLoading) return;
+    final reqId = _requestId!;
+    setState(() {
+      _contactActionLoading = true;
+      _pendingRequest = null;
+      _requestId = null;
+    });
+    context.read<MessengerBloc>().add(RejectContactRequest(reqId));
+    if (mounted) setState(() => _contactActionLoading = false);
   }
 
   Future<String?> _getOrCreateConversation() async {
@@ -766,7 +773,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
           const SizedBox(width: 12),
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: null,
+              onPressed: _contactActionLoading ? null : _declineContactRequest,
               icon: Icon(Icons.close_rounded, color: colors.textSecondary),
               label: Text(l10n.userProfileDecline, style: TextStyle(color: colors.textSecondary)),
               style: OutlinedButton.styleFrom(

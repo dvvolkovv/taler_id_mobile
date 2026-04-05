@@ -336,6 +336,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
+                    icon: Icons.wallpaper_rounded,
+                    iconColor: const Color(0xFFA855F7),
+                    title: l10n.settingsWallpaper,
+                    onTap: () => context.push(RouteConstants.wallpaper),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _navTile(
                     icon: Icons.delete_forever_outlined,
                     iconColor: AppColors.of(context).error,
                     title: l10n.deleteAccount,

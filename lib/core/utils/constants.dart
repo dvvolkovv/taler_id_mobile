@@ -10,6 +10,7 @@ class ApiConstants {
   static const pinEnabledKey = 'pin_enabled';
   static const languageKey = 'app_language';
   static const themeKey = 'app_theme';
+  static const wallpaperKey = 'app_wallpaper';
   static const onboardingSeenKey = 'onboarding_seen';
 }
 
@@ -29,6 +30,7 @@ class RouteConstants {
   static const organizationMembers = '/dashboard/organization/:id/members';
   static const sessions = '/dashboard/sessions';
   static const settings = '/dashboard/settings';
+  static const wallpaper = '/dashboard/settings/wallpaper';
   static const invite = '/invite';
   static const pinSetup = '/auth/pin-setup';
   static const pinEntry = '/auth/pin-entry';
