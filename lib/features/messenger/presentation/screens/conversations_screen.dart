@@ -1065,27 +1065,48 @@ class _ConversationTile extends StatelessWidget {
 
     final avatar = isGroup ? conversation.avatarUrl : conversation.otherUserAvatar;
 
+    final rainbowColor = rainbowColorFor(displayName);
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          border: Border.all(color: rainbowColorFor(displayName), width: 2),
+          border: Border.all(color: rainbowColor, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: rainbowColor.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 0,
+            ),
+          ],
         ),
-        child: CircleAvatar(
-          backgroundColor: isGroup
-              ? AppColors.of(context).primary.withValues(alpha: 0.7)
-              : AppColors.of(context).primary,
-          child: avatar != null
-              ? ClipOval(
-                  child: CachedNetworkImage(
-                    imageUrl: avatar,
-                    width: 40, height: 40, fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
-                  ),
-                )
-              : _avatarLetter(context, displayName, isGroup),
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              center: const Alignment(-0.3, -0.4),
+              radius: 1.1,
+              colors: [
+                Color.lerp(rainbowColor, Colors.white, 0.25)!,
+                rainbowColor,
+                Color.lerp(rainbowColor, Colors.black, 0.35)!,
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ),
+          ),
+          child: CircleAvatar(
+            backgroundColor: Colors.transparent,
+            child: avatar != null
+                ? ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: avatar,
+                      width: 40, height: 40, fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
+                    ),
+                  )
+                : _avatarLetter(context, displayName, isGroup),
+          ),
         ),
       ),
       title: Row(
@@ -1146,35 +1167,58 @@ class _ConversationTile extends StatelessWidget {
               ),
             if (isMissedCall) ...[
               const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.of(context).error,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.phone_missed_rounded, color: Colors.white, size: 11),
-                    const SizedBox(width: 3),
-                    const Text('1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
+              _PulsingBadge(
+                glowColor: AppColors.of(context).error,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.phone_missed_rounded, color: Colors.white, size: 11),
+                      SizedBox(width: 3),
+                      Text('1', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
             ] else if (conversation.unreadCount > 0) ...[
               const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: conversation.isMuted
-                      ? AppColors.of(context).textSecondary
-                      : AppColors.of(context).error,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  '${conversation.unreadCount}',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              _PulsingBadge(
+                glowColor: conversation.isMuted
+                    ? AppColors.of(context).textSecondary
+                    : AppColors.of(context).primary,
+                enabled: !conversation.isMuted,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    gradient: conversation.isMuted
+                        ? null
+                        : LinearGradient(
+                            colors: [
+                              AppColors.of(context).primary,
+                              AppColors.of(context).primaryDark,
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: conversation.isMuted
+                        ? AppColors.of(context).textSecondary
+                        : null,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${conversation.unreadCount}',
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -1374,6 +1418,85 @@ class _ProfileAvatar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Wraps a child with a slow scale + glow pulse, used to draw the eye to
+/// unread / missed-call badges.
+class _PulsingBadge extends StatefulWidget {
+  final Widget child;
+  final Color glowColor;
+  final bool enabled;
+  const _PulsingBadge({
+    required this.child,
+    required this.glowColor,
+    this.enabled = true,
+  });
+
+  @override
+  State<_PulsingBadge> createState() => _PulsingBadgeState();
+}
+
+class _PulsingBadgeState extends State<_PulsingBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+    if (widget.enabled) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PulsingBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled != oldWidget.enabled) {
+      if (widget.enabled) {
+        _ctrl.repeat(reverse: true);
+      } else {
+        _ctrl.stop();
+        _ctrl.value = 0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        final scale = 1.0 + 0.08 * _ctrl.value;
+        final glow = 0.35 + 0.35 * _ctrl.value;
+        return Transform.scale(
+          scale: scale,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.glowColor.withValues(alpha: glow),
+                  blurRadius: 8 + 6 * _ctrl.value,
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
     );
   }
 }
