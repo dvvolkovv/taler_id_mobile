@@ -27,6 +27,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/message_draft_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/api/dio_client.dart';
@@ -83,11 +84,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
 
+  // Stable key for persisting unsent drafts (topics get their own draft).
+  String get _draftKey => widget.topicId != null
+      ? '${widget.conversationId}:${widget.topicId}'
+      : widget.conversationId;
+
   @override
   void initState() {
     super.initState();
     _messengerBloc = context.read<MessengerBloc>();
-    _ctrl = TextEditingController();
+    // Restore unsent draft for this conversation/topic
+    final draft = sl<MessageDraftService>().getDraft(_draftKey);
+    _ctrl = TextEditingController(text: draft ?? '');
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
@@ -931,6 +939,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   void _onTextChanged() {
+    // Persist draft so the user can resume typing later or on another session
+    sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
     final bloc = context.read<MessengerBloc>();
     if (_ctrl.text.isNotEmpty && !_isTypingSent) {
       _isTypingSent = true;
@@ -1905,13 +1915,31 @@ class _MessageBubbleState extends State<_MessageBubble> {
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
+          gradient: widget.isCurrentSearchMatch
+              ? null
+              : (widget.isMe
+                  ? const LinearGradient(
+                      colors: [Color(0xFF2563EB), Color(0xFF1E3A5F)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null),
           color: widget.isCurrentSearchMatch
               ? (widget.isMe
                   ? const Color(0xFF1E3A5F).withValues(alpha: 0.7)
                   : Colors.amber.withValues(alpha: 0.15))
               : (widget.isMe
-                  ? const Color(0xFF1E3A5F)
+                  ? null
                   : AppColors.of(context).card),
+          boxShadow: [
+            BoxShadow(
+              color: widget.isMe
+                  ? const Color(0xFF2563EB).withValues(alpha: 0.25)
+                  : Colors.black.withValues(alpha: 0.15),
+              blurRadius: widget.isMe ? 10 : 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
           borderRadius: widget.isMe
               ? (widget.isLastInGroup
                   ? const BorderRadius.only(
@@ -1946,7 +1974,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 child: Text(
                   widget.senderName!,
                   style: TextStyle(
-                    color: AppColors.of(context).primary,
+                    color: rainbowColorFor(widget.senderName!),
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
