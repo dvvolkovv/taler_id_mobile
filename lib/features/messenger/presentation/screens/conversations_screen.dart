@@ -837,6 +837,50 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 )
               else ...[
+                // Contact requests — tappable row that opens the requests screen
+                if (state.contactRequests.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.error, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.error.withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [colors.error, colors.error.withValues(alpha: 0.7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 22),
+                        ),
+                      ),
+                      title: Text(l10n.messengerContactRequestsSection,
+                          style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        l10n.messengerContactRequestsCount(state.contactRequests.length),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
+                      onTap: () => context.push('/dashboard/messenger/contacts'),
+                    ),
+                  ),
                 // Archived section — opens separate screen
                 if (archived.isNotEmpty && _searchQuery.isEmpty && _activeFilter == _FilterTab.all)
                   SliverToBoxAdapter(
