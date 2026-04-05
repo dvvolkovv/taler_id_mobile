@@ -829,11 +829,26 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: colors.textSecondary, width: 2),
+                          border: Border.all(color: const Color(0xFFFBBF24), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFFBBF24).withValues(alpha: 0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                        child: CircleAvatar(
-                          backgroundColor: colors.surface,
-                          child: Icon(Icons.archive_outlined, color: colors.primary, size: 20),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFFBBF24), Color(0xFFF59E0B)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 20),
                         ),
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerArchivedSection, style: TextStyle(
@@ -866,11 +881,26 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         padding: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: colors.primary, width: 2),
+                          border: Border.all(color: const Color(0xFFA855F7), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFA855F7).withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
                         ),
-                        child: CircleAvatar(
-                          backgroundColor: colors.primary,
-                          child: const Icon(Icons.cloud_done_rounded, color: Colors.black, size: 20),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 20),
                         ),
                       ),
                       title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(

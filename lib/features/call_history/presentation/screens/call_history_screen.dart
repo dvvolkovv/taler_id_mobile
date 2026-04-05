@@ -174,6 +174,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   child: _ActionButton(
                     icon: Icons.copy_rounded,
                     label: l10n.callHistoryCopy,
+                    accent: const Color(0xFF22D3EE),
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,6 +192,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   child: _ActionButton(
                     icon: Icons.share_rounded,
                     label: l10n.callHistoryShare,
+                    accent: const Color(0xFFA855F7),
                     onTap: () => Share.share(link),
                   ),
                 ),
@@ -455,6 +457,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     child: _ActionButton(
                       icon: Icons.copy_rounded,
                       label: l10n.callHistoryCopy,
+                      accent: const Color(0xFF22D3EE),
                       onTap: () => _copyLink(room.link),
                     ),
                   ),
@@ -463,6 +466,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     child: _ActionButton(
                       icon: Icons.share_rounded,
                       label: l10n.callHistoryShare,
+                      accent: const Color(0xFFA855F7),
                       onTap: () => Share.share(room.link),
                     ),
                   ),
@@ -865,17 +869,20 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final bool filled;
+  final Color? accent;
 
   const _ActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
     this.filled = false,
+    this.accent,
   });
 
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final base = accent ?? colors.primary;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -883,32 +890,47 @@ class _ActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: filled
               ? LinearGradient(
-                  colors: [colors.primary, colors.primaryDark],
+                  colors: [base, Color.lerp(base, Colors.black, 0.3)!],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
-              : null,
-          color: filled ? null : colors.primary.withOpacity(0.08),
+              : LinearGradient(
+                  colors: [
+                    base.withOpacity(0.18),
+                    base.withOpacity(0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
           borderRadius: BorderRadius.circular(10),
+          border: filled
+              ? null
+              : Border.all(color: base.withOpacity(0.25), width: 1),
           boxShadow: filled
               ? [
                   BoxShadow(
-                    color: colors.primary.withOpacity(0.45),
+                    color: base.withOpacity(0.45),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
                 ]
-              : null,
+              : [
+                  BoxShadow(
+                    color: base.withOpacity(0.15),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: filled ? Colors.white : colors.primary, size: 20),
+            Icon(icon, color: filled ? Colors.white : base, size: 20),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
-                color: filled ? Colors.white : colors.primary,
+                color: filled ? Colors.white : base,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -1511,20 +1533,12 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
             if (items.isEmpty) {
               return ListView(
                 children: [
-                  const SizedBox(height: 80),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.smart_toy_outlined, size: 48, color: colors.textSecondary),
-                        const SizedBox(height: 12),
-                        Text(l10n.callHistoryNoSummaries, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.callHistoryRecordDuringCall,
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 40),
+                  EmptyStateView(
+                    icon: Icons.smart_toy_rounded,
+                    title: l10n.callHistoryNoSummaries,
+                    subtitle: l10n.callHistoryRecordDuringCall,
+                    gradient: const [Color(0xFFA855F7), Color(0xFF7C3AED)],
                   ),
                 ],
               );
@@ -1562,8 +1576,26 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
           children: [
             Row(
               children: [
-                Icon(Icons.smart_toy, size: 18, color: colors.primary),
-                const SizedBox(width: 8),
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFA855F7).withOpacity(0.45),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.smart_toy_rounded, size: 16, color: Colors.white),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     l10n.callHistoryMeetingTime(timeStr),
@@ -1929,20 +1961,12 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
             if (items.isEmpty) {
               return ListView(
                 children: [
-                  const SizedBox(height: 80),
-                  Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.fiber_manual_record_rounded, size: 48, color: colors.textSecondary),
-                        const SizedBox(height: 12),
-                        Text(l10n.callHistoryNoRecordings, style: TextStyle(color: colors.textSecondary, fontSize: 15)),
-                        const SizedBox(height: 6),
-                        Text(
-                          l10n.callHistoryRecordDuringCall,
-                          style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 40),
+                  EmptyStateView(
+                    icon: Icons.fiber_manual_record_rounded,
+                    title: l10n.callHistoryNoRecordings,
+                    subtitle: l10n.callHistoryRecordDuringCall,
+                    gradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
                   ),
                 ],
               );
@@ -1980,8 +2004,26 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.fiber_manual_record_rounded, size: 18, color: Colors.red),
-              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFF97316)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFEF4444).withOpacity(0.45),
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.fiber_manual_record_rounded, size: 14, color: Colors.white),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   l10n.callHistoryRecordingDate(_formatDate(createdAt)),
