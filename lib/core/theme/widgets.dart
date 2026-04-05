@@ -124,3 +124,88 @@ class SkeletonBox extends StatelessWidget {
         ),
       );
 }
+
+/// Wraps a child with a slow scale + glow pulse, used to draw the eye to
+/// status indicators (unread badges, verified KYC, missed calls, etc).
+class PulsingBadge extends StatefulWidget {
+  final Widget child;
+  final Color glowColor;
+  final bool enabled;
+  final double maxScale;
+  final Duration period;
+  final BorderRadius borderRadius;
+
+  const PulsingBadge({
+    super.key,
+    required this.child,
+    required this.glowColor,
+    this.enabled = true,
+    this.maxScale = 1.08,
+    this.period = const Duration(milliseconds: 1400),
+    this.borderRadius = const BorderRadius.all(Radius.circular(10)),
+  });
+
+  @override
+  State<PulsingBadge> createState() => _PulsingBadgeState();
+}
+
+class _PulsingBadgeState extends State<PulsingBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: widget.period);
+    if (widget.enabled) _ctrl.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant PulsingBadge oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.enabled != oldWidget.enabled) {
+      if (widget.enabled) {
+        _ctrl.repeat(reverse: true);
+      } else {
+        _ctrl.stop();
+        _ctrl.value = 0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return widget.child;
+    final scaleRange = widget.maxScale - 1.0;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        final scale = 1.0 + scaleRange * _ctrl.value;
+        final glow = 0.35 + 0.35 * _ctrl.value;
+        return Transform.scale(
+          scale: scale,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: widget.borderRadius,
+              boxShadow: [
+                BoxShadow(
+                  color: widget.glowColor.withOpacity(glow),
+                  blurRadius: 8 + 6 * _ctrl.value,
+                  spreadRadius: 0.5,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}

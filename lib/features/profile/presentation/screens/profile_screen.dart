@@ -18,6 +18,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/profile_bloc.dart';
+import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
 
@@ -172,9 +173,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Text(user.status!, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13, fontStyle: FontStyle.italic)),
                             ],
                             const SizedBox(height: 8),
-                            StatusBadge(
-                              label: _kycLabel(user.kycStatus, l10n),
-                              color: _kycColor(user.kycStatus),
+                            PulsingBadge(
+                              glowColor: _kycColor(user.kycStatus),
+                              enabled: user.kycStatus == KycStatus.verified,
+                              borderRadius: BorderRadius.circular(20),
+                              maxScale: 1.04,
+                              child: StatusBadge(
+                                label: _kycLabel(user.kycStatus, l10n),
+                                color: _kycColor(user.kycStatus),
+                              ),
                             ),
                           ],
                         ),
@@ -420,42 +427,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatar(UserEntity user) {
+    final ringColor = rainbowColorFor(
+      (user.firstName?.isNotEmpty == true ? user.firstName! : user.email),
+    );
     return GestureDetector(
       onTap: () => _uploadAvatar(context),
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.2),
-            child: user.avatarUrl != null
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: user.avatarUrl!,
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Text(
+          // Outer ring + colored glow halo
+          Container(
+            width: 72,
+            height: 72,
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: ringColor, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: ringColor.withValues(alpha: 0.45),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  center: const Alignment(-0.3, -0.4),
+                  radius: 1.1,
+                  colors: [
+                    Color.lerp(ringColor, Colors.white, 0.3)!,
+                    ringColor,
+                    Color.lerp(ringColor, Colors.black, 0.4)!,
+                  ],
+                  stops: const [0.0, 0.55, 1.0],
+                ),
+              ),
+              child: user.avatarUrl != null
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: user.avatarUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Center(
+                          child: Text(
+                            _initials(user),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
                         _initials(user),
-                        style: TextStyle(color: AppColors.of(context).primary, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  )
-                : Text(
-                    _initials(user),
-                    style: TextStyle(color: AppColors.of(context).primary, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+            ),
           ),
           Positioned(
-            bottom: 0,
-            right: 0,
+            bottom: -2,
+            right: -2,
             child: Container(
-              width: 20,
-              height: 20,
+              width: 24,
+              height: 24,
               decoration: BoxDecoration(
-                color: AppColors.of(context).primary,
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.of(context).primary,
+                    AppColors.of(context).primaryDark,
+                  ],
+                ),
                 shape: BoxShape.circle,
+                border: Border.all(color: AppColors.of(context).card, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.of(context).primary.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
-              child: const Icon(Icons.camera_alt, size: 12, color: Colors.black),
+              child: const Icon(Icons.camera_alt, size: 12, color: Colors.white),
             ),
           ),
         ],

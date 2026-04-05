@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
@@ -1167,7 +1168,7 @@ class _ConversationTile extends StatelessWidget {
               ),
             if (isMissedCall) ...[
               const SizedBox(height: 4),
-              _PulsingBadge(
+              PulsingBadge(
                 glowColor: AppColors.of(context).error,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1191,7 +1192,7 @@ class _ConversationTile extends StatelessWidget {
               ),
             ] else if (conversation.unreadCount > 0) ...[
               const SizedBox(height: 4),
-              _PulsingBadge(
+              PulsingBadge(
                 glowColor: conversation.isMuted
                     ? AppColors.of(context).textSecondary
                     : AppColors.of(context).primary,
@@ -1422,81 +1423,3 @@ class _ProfileAvatar extends StatelessWidget {
   }
 }
 
-/// Wraps a child with a slow scale + glow pulse, used to draw the eye to
-/// unread / missed-call badges.
-class _PulsingBadge extends StatefulWidget {
-  final Widget child;
-  final Color glowColor;
-  final bool enabled;
-  const _PulsingBadge({
-    required this.child,
-    required this.glowColor,
-    this.enabled = true,
-  });
-
-  @override
-  State<_PulsingBadge> createState() => _PulsingBadgeState();
-}
-
-class _PulsingBadgeState extends State<_PulsingBadge>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    );
-    if (widget.enabled) _ctrl.repeat(reverse: true);
-  }
-
-  @override
-  void didUpdateWidget(covariant _PulsingBadge oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.enabled != oldWidget.enabled) {
-      if (widget.enabled) {
-        _ctrl.repeat(reverse: true);
-      } else {
-        _ctrl.stop();
-        _ctrl.value = 0;
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.enabled) return widget.child;
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (context, child) {
-        final scale = 1.0 + 0.08 * _ctrl.value;
-        final glow = 0.35 + 0.35 * _ctrl.value;
-        return Transform.scale(
-          scale: scale,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: widget.glowColor.withValues(alpha: glow),
-                  blurRadius: 8 + 6 * _ctrl.value,
-                  spreadRadius: 0.5,
-                ),
-              ],
-            ),
-            child: child,
-          ),
-        );
-      },
-      child: widget.child,
-    );
-  }
-}
