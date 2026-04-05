@@ -102,16 +102,22 @@ class _NotesScreenState extends State<NotesScreen> {
         'session': {
           'modalities': ['text', 'audio'],
           'instructions': Localizations.localeOf(context).languageCode == 'ru'
-              ? 'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
+              ? 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
+                'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
                 'Для заметок: внимательно выслушай, сформулируй краткий заголовок (title) и подробное содержание (content), '
                 'сохрани через create_note. Подтверди голосом что заметка сохранена. '
+                'Если пользователь спрашивает "какие у меня заметки", "прочитай мои заметки", "что я записал" — вызови get_notes и перескажи. '
+                'Если просит резюме или обзор заметок — вызови get_notes, проанализируй и дай краткое резюме. '
                 'Для календаря: если пользователь говорит "напомни", "поставь встречу", "запланируй" — '
                 'уточни дату/время и создай через create_event. '
                 'Часовой пояс: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
                 'Текущая дата: ${DateTime.now().toIso8601String()}. '
                 'Начни с: "Слушаю, какую заметку хотите записать?"'
-              : 'You are an assistant for taking notes and managing the calendar. The user will dictate thoughts or schedule meetings. '
+              : 'ALWAYS reply ONLY in English, even if you think the user said something in another language — that is a transcription error, reply in English anyway.\n\n'
+                'You are an assistant for taking notes and managing the calendar. The user will dictate thoughts or schedule meetings. '
                 'For notes: listen carefully, formulate a brief title and detailed content, save via create_note. Confirm by voice that the note is saved. '
+                'If user asks "what notes do I have", "read my notes", "what did I write down" — call get_notes and summarize. '
+                'If asks for notes overview or summary — call get_notes, analyze and give a brief summary. '
                 'For calendar: if user says "remind me", "schedule a meeting", "plan" — clarify date/time and create via create_event. '
                 'Timezone: ${DateTime.now().timeZoneName} (UTC${DateTime.now().timeZoneOffset.isNegative ? "" : "+"}${DateTime.now().timeZoneOffset.inHours}). '
                 'Current date: ${DateTime.now().toIso8601String()}. '
@@ -119,7 +125,7 @@ class _NotesScreenState extends State<NotesScreen> {
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
           'output_audio_format': 'pcm16',
-          'input_audio_transcription': {'model': 'whisper-1'},
+          'input_audio_transcription': {'model': 'whisper-1', 'language': Localizations.localeOf(context).languageCode},
           'turn_detection': {'type': 'server_vad', 'threshold': 0.5, 'prefix_padding_ms': 300, 'silence_duration_ms': 700},
           'tools': [
             {
@@ -131,6 +137,12 @@ class _NotesScreenState extends State<NotesScreen> {
                 'properties': {'title': {'type': 'string'}, 'content': {'type': 'string'}},
                 'required': ['title', 'content'],
               },
+            },
+            {
+              'type': 'function',
+              'name': 'get_notes',
+              'description': 'Read all notes the user has saved, with their title, content, and creation date. Use when the user asks what notes they have or wants a summary.',
+              'parameters': {'type': 'object', 'properties': {}},
             },
             {
               'type': 'function',
@@ -266,6 +278,9 @@ class _NotesScreenState extends State<NotesScreen> {
         await sl<DioClient>().post('/notes', data: {'title': args['title'], 'content': args['content'], 'source': 'ASSISTANT'}, fromJson: (d) => d);
         _load(); // Refresh list immediately
         output = jsonEncode({'ok': true});
+      } else if (name == 'get_notes') {
+        final data = await sl<DioClient>().get<dynamic>('/notes');
+        output = jsonEncode(data);
       } else if (name == 'create_event') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         String startUtc = args['startAt'] as String? ?? '';
