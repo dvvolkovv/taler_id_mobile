@@ -2172,17 +2172,21 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 ),
                 if (widget.isMe) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    widget.message.isRead
-                        ? Icons.done_all_rounded
-                        : widget.message.isDelivered
-                            ? Icons.done_all_rounded
-                            : Icons.done_rounded,
-                    size: 14,
-                    color: widget.message.isRead
+                  Builder(builder: (_) {
+                    final isPending = widget.message.id.startsWith('temp_');
+                    final IconData icon;
+                    if (isPending) {
+                      icon = Icons.access_time_rounded; // clock — not yet sent
+                    } else if (widget.message.isRead) {
+                      icon = Icons.done_all_rounded; // two ticks — read
+                    } else {
+                      icon = Icons.done_rounded; // one tick — delivered to server
+                    }
+                    final color = widget.message.isRead
                         ? Colors.white
-                        : Colors.white.withValues(alpha: 0.6),
-                  ),
+                        : Colors.white.withValues(alpha: 0.6);
+                    return Icon(icon, size: 14, color: color);
+                  }),
                 ],
               ],
             ),

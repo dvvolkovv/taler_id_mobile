@@ -4,8 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
+import '../../data/datasources/messenger_remote_datasource.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../../../../core/services/messenger_cache_service.dart';
+import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -15,6 +17,7 @@ import 'messenger_state.dart';
 class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   final IMessengerRepository _repo;
   final MessengerCacheService _cache = sl<MessengerCacheService>();
+  final PendingMessageService _pending = sl<PendingMessageService>();
   StreamSubscription? _msgSub;
   StreamSubscription? _callSub;
   StreamSubscription? _msgUpdatedSub;
@@ -33,6 +36,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _contactAccSub;
   StreamSubscription? _reactionSub;
   StreamSubscription? _socketErrorSub;
+  StreamSubscription? _reconnectSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   MessengerBloc({required IMessengerRepository repo})
@@ -94,6 +98,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   Future<void> _onConnect(
       ConnectMessenger event, Emitter<MessengerState> emit) async {
     await _repo.connect(event.accessToken);
+    // Flush any pending messages (queued while offline) now that we're connected.
+    _resendPending();
+    // Re-send on each reconnect too.
+    _reconnectSub?.cancel();
+    _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
+      _resendPending();
+    });
     _msgSub?.cancel();
     _msgSub = _repo.messageStream.listen((msg) => add(MessageReceived(msg)));
     _callSub?.cancel();
@@ -300,7 +311,37 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       final nextCursor = result['nextCursor'] as String?;
       final newMessages =
           Map<String, List<MessageEntity>>.from(state.messages);
-      newMessages[event.conversationId] = msgs.reversed.toList();
+      final serverList = msgs.reversed.toList();
+      // Re-append any unsent pending messages for this conversation so the
+      // user sees them with a clock icon.
+      final pendingMaps = _pending.getForConversation(event.conversationId);
+      for (final p in pendingMaps) {
+        final tempId = p['id'] as String? ?? '';
+        if (tempId.isEmpty) continue;
+        // Skip if the server already returned a message with the same content.
+        final dup = serverList.any((m) =>
+            m.senderId == (p['senderId'] as String? ?? '') &&
+            m.content == (p['content'] as String? ?? ''));
+        if (dup) continue;
+        serverList.add(MessageEntity(
+          id: tempId,
+          conversationId: event.conversationId,
+          senderId: p['senderId'] as String? ?? state.currentUserId ?? 'me',
+          content: p['content'] as String? ?? '',
+          sentAt: DateTime.tryParse(p['sentAt'] as String? ?? '') ?? DateTime.now(),
+          fileUrl: p['fileUrl'] as String?,
+          fileName: p['fileName'] as String?,
+          fileSize: p['fileSize'] as int?,
+          fileType: p['fileType'] as String?,
+          s3Key: p['s3Key'] as String?,
+          thumbnailSmallUrl: p['thumbnailSmallUrl'] as String?,
+          thumbnailMediumUrl: p['thumbnailMediumUrl'] as String?,
+          thumbnailLargeUrl: p['thumbnailLargeUrl'] as String?,
+          fileRecordId: p['fileRecordId'] as String?,
+          topicId: p['topicId'] as String?,
+        ));
+      }
+      newMessages[event.conversationId] = serverList;
       final newCursors = Map<String, String?>.from(state.nextCursors);
       newCursors[event.conversationId] = nextCursor;
       emit(state.copyWith(
@@ -315,6 +356,32 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       } else {
         emit(state.copyWith(isLoading: false, error: e.toString()));
       }
+    }
+  }
+
+  /// Re-emit all persisted pending messages over the socket. Safe to call
+  /// multiple times — if the server has already received a duplicate, the
+  /// `MessageReceived` handler will clear the temp row regardless.
+  void _resendPending() {
+    final items = _pending.getAll();
+    for (final m in items) {
+      final convId = m['conversationId'] as String?;
+      final content = m['content'] as String?;
+      if (convId == null || content == null) continue;
+      _repo.sendMessage(
+        convId,
+        content,
+        fileUrl: m['fileUrl'] as String?,
+        fileName: m['fileName'] as String?,
+        fileSize: m['fileSize'] as int?,
+        fileType: m['fileType'] as String?,
+        s3Key: m['s3Key'] as String?,
+        thumbnailSmallUrl: m['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: m['thumbnailMediumUrl'] as String?,
+        thumbnailLargeUrl: m['thumbnailLargeUrl'] as String?,
+        fileRecordId: m['fileRecordId'] as String?,
+        topicId: m['topicId'] as String?,
+      );
     }
   }
 
@@ -344,6 +411,25 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         Map<String, List<MessageEntity>>.from(state.messages);
     newMessages[event.conversationId] = existing;
     emit(state.copyWith(messages: newMessages));
+
+    // Persist to local pending queue so it survives app restarts / offline.
+    _pending.save(tempId, {
+      'conversationId': event.conversationId,
+      'content': event.content,
+      'fileUrl': event.fileUrl,
+      'fileName': event.fileName,
+      'fileSize': event.fileSize,
+      'fileType': event.fileType,
+      's3Key': event.s3Key,
+      'thumbnailSmallUrl': event.thumbnailSmallUrl,
+      'thumbnailMediumUrl': event.thumbnailMediumUrl,
+      'thumbnailLargeUrl': event.thumbnailLargeUrl,
+      'fileRecordId': event.fileRecordId,
+      'topicId': event.topicId,
+      'sentAt': tempMsg.sentAt.toIso8601String(),
+      'senderId': tempMsg.senderId,
+    });
+
     _repo.sendMessage(
       event.conversationId,
       event.content,
@@ -370,10 +456,18 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       debugPrint('[MessengerBloc] Duplicate message, skipping');
       return;
     }
-    existing.removeWhere((m) =>
-        m.id.startsWith('temp_') &&
-        m.senderId == msg.senderId &&
-        m.content == msg.content);
+    final removed = <String>[];
+    existing.removeWhere((m) {
+      final match = m.id.startsWith('temp_') &&
+          m.senderId == msg.senderId &&
+          m.content == msg.content;
+      if (match) removed.add(m.id);
+      return match;
+    });
+    // Clear these from the persistent pending queue — server has acknowledged.
+    for (final tempId in removed) {
+      _pending.remove(tempId);
+    }
     existing.add(msg);
     final newMessages =
         Map<String, List<MessageEntity>>.from(state.messages);
@@ -691,6 +785,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactReqSub?.cancel();
     _contactAccSub?.cancel();
     _reactionSub?.cancel();
+    _reconnectSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }
     _repo.dispose();
     return super.close();
