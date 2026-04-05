@@ -1211,22 +1211,49 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     final summary = data['summary'] as Map<String, dynamic>?;
     final recordingUrl = summary?['recordingUrl'] as String?;
 
+    final headerGradient = isOutgoing
+        ? const [Color(0xFF3B82F6), Color(0xFFA855F7)]
+        : const [Color(0xFF34D399), Color(0xFF10B981)];
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Header card
+        // Header card with gradient hero icon
         AppCard(
           child: Column(
             children: [
-              Icon(
-                isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
-                size: 40,
-                color: isOutgoing ? colors.primary : _kIncomingColor,
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: headerGradient,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: headerGradient.first.withOpacity(0.45),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  isOutgoing ? Icons.call_made_rounded : Icons.call_received_rounded,
+                  size: 34,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 isOutgoing ? l10n.callHistoryOutgoing : l10n.callHistoryIncoming,
-                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+                style: TextStyle(
+                  color: headerGradient.first,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -1234,28 +1261,49 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                 style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               if (durationSec != null && durationSec > 0) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: colors.primary.withOpacity(0.1),
+                    gradient: LinearGradient(
+                      colors: [
+                        headerGradient.first.withOpacity(0.22),
+                        headerGradient.first.withOpacity(0.08),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: headerGradient.first.withOpacity(0.3)),
                   ),
                   child: Text(
                     l10n.callHistoryDuration(_fmtDuration(durationSec)),
-                    style: TextStyle(color: colors.primary, fontSize: 14, fontWeight: FontWeight.w500),
+                    style: TextStyle(color: headerGradient.first, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
               if (withAi) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.smart_toy_rounded, size: 16, color: colors.primary),
-                    const SizedBox(width: 4),
-                    Text(l10n.callHistoryWithAI, style: TextStyle(color: colors.primary, fontSize: 13)),
-                  ],
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFA855F7).withOpacity(0.4),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.smart_toy_rounded, size: 14, color: Colors.white),
+                      const SizedBox(width: 5),
+                      Text(l10n.callHistoryWithAI, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -1265,7 +1313,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
         // Participants
         if (participants.isNotEmpty) ...[
-          _SectionHeader(icon: Icons.people_rounded, title: l10n.callHistoryParticipants, colors: colors),
+          _SectionHeader(
+            icon: Icons.people_rounded,
+            title: l10n.callHistoryParticipants,
+            colors: colors,
+            gradient: const [Color(0xFF22D3EE), Color(0xFF3B82F6)],
+          ),
           const SizedBox(height: 8),
           AppCard(
             child: Column(
@@ -1275,14 +1328,42 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Row(
                     children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: colors.primary.withOpacity(0.15),
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ),
+                      () {
+                        final ringColor = rainbowColorFor(name.isNotEmpty ? name : '$p');
+                        return Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: ringColor, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(color: ringColor.withOpacity(0.35), blurRadius: 6),
+                            ],
+                          ),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                center: const Alignment(-0.3, -0.4),
+                                radius: 1.1,
+                                colors: [
+                                  Color.lerp(ringColor, Colors.white, 0.3)!,
+                                  ringColor,
+                                  Color.lerp(ringColor, Colors.black, 0.4)!,
+                                ],
+                                stops: const [0.0, 0.55, 1.0],
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        );
+                      }(),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(name, style: TextStyle(color: colors.textPrimary, fontSize: 15)),
@@ -1299,7 +1380,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
         // Meeting summary (first, before recording)
         if (summary != null && summary['status'] != 'processing') ...[
           if ((summary['summary'] as String? ?? '').isNotEmpty) ...[
-            _SectionHeader(icon: Icons.smart_toy_rounded, title: l10n.callHistoryMeetingSummary, colors: colors),
+            _SectionHeader(
+              icon: Icons.smart_toy_rounded,
+              title: l10n.callHistoryMeetingSummary,
+              colors: colors,
+              gradient: const [Color(0xFFA855F7), Color(0xFF7C3AED)],
+            ),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => Navigator.of(context).push(
@@ -1358,7 +1444,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
         // Recording
         if (recordingUrl != null && recordingUrl.isNotEmpty) ...[
-          _SectionHeader(icon: Icons.fiber_manual_record_rounded, title: l10n.callHistoryMeetingRecording, colors: colors),
+          _SectionHeader(
+            icon: Icons.fiber_manual_record_rounded,
+            title: l10n.callHistoryMeetingRecording,
+            colors: colors,
+            gradient: const [Color(0xFFEF4444), Color(0xFFF97316)],
+          ),
           const SizedBox(height: 8),
           AppCard(
             child: Row(
@@ -1429,19 +1520,48 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
         // Protocol button — show when recording exists but no transcript yet
         if (recordingUrl != null && recordingUrl.isNotEmpty && summary != null) ...[
           if ((summary['transcript'] as String? ?? '').isEmpty && summary['status'] != 'processing') ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _transcribing ? null : () => _requestTranscription(summary['id'] as String),
-                icon: _transcribing
-                    ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: colors.textPrimary))
-                    : const Icon(Icons.description_rounded),
-                label: Text(_transcribing ? l10n.callHistoryProcessing : l10n.callHistoryCreateTranscript),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            GestureDetector(
+              onTap: _transcribing ? null : () => _requestTranscription(summary['id'] as String),
+              child: Container(
+                width: double.infinity,
+                height: 52,
+                decoration: BoxDecoration(
+                  gradient: _transcribing
+                      ? null
+                      : const LinearGradient(
+                          colors: [Color(0xFF3B82F6), Color(0xFFA855F7)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                  color: _transcribing ? colors.primary.withOpacity(0.3) : null,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: _transcribing
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: const Color(0xFF3B82F6).withOpacity(0.45),
+                            blurRadius: 14,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _transcribing
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.description_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      _transcribing ? l10n.callHistoryProcessing : l10n.callHistoryCreateTranscript,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1457,15 +1577,37 @@ class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String title;
   final AppColorsExtension colors;
-  const _SectionHeader({required this.icon, required this.title, required this.colors});
+  final List<Color>? gradient;
+  const _SectionHeader({
+    required this.icon,
+    required this.title,
+    required this.colors,
+    this.gradient,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final grad = gradient ?? [colors.primary, colors.primaryDark];
     return Row(
       children: [
-        Icon(icon, size: 18, color: colors.primary),
-        const SizedBox(width: 8),
-        Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: grad,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(color: grad.first.withOpacity(0.4), blurRadius: 6),
+            ],
+          ),
+          child: Icon(icon, size: 16, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
       ],
     );
   }
