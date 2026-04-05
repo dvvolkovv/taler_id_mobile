@@ -1016,6 +1016,66 @@ abstract class AppLocalizations {
   /// **'Notifications'**
   String get notifications;
 
+  /// No description provided for @permissions.
+  ///
+  /// In en, this message translates to:
+  /// **'Permissions'**
+  String get permissions;
+
+  /// No description provided for @permissionNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notifications'**
+  String get permissionNotifications;
+
+  /// No description provided for @permissionNotificationsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls, messages, statuses'**
+  String get permissionNotificationsDesc;
+
+  /// No description provided for @permissionMicrophone.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone'**
+  String get permissionMicrophone;
+
+  /// No description provided for @permissionMicrophoneDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Calls and voice assistant'**
+  String get permissionMicrophoneDesc;
+
+  /// No description provided for @permissionCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get permissionCamera;
+
+  /// No description provided for @permissionCameraDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Video calls and verification'**
+  String get permissionCameraDesc;
+
+  /// No description provided for @permissionLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Location'**
+  String get permissionLocation;
+
+  /// No description provided for @permissionLocationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for verification'**
+  String get permissionLocationDesc;
+
+  /// No description provided for @permissionOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'To revoke a permission, open system settings'**
+  String get permissionOpenSettings;
+
   /// No description provided for @pushKycStatus.
   ///
   /// In en, this message translates to:

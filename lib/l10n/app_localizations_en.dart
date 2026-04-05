@@ -498,6 +498,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifications => 'Notifications';
 
   @override
+  String get permissions => 'Permissions';
+
+  @override
+  String get permissionNotifications => 'Push Notifications';
+
+  @override
+  String get permissionNotificationsDesc => 'Calls, messages, statuses';
+
+  @override
+  String get permissionMicrophone => 'Microphone';
+
+  @override
+  String get permissionMicrophoneDesc => 'Calls and voice assistant';
+
+  @override
+  String get permissionCamera => 'Camera';
+
+  @override
+  String get permissionCameraDesc => 'Video calls and verification';
+
+  @override
+  String get permissionLocation => 'Location';
+
+  @override
+  String get permissionLocationDesc => 'Used for verification';
+
+  @override
+  String get permissionOpenSettings =>
+      'To revoke a permission, open system settings';
+
+  @override
   String get pushKycStatus => 'KYC Status Push';
 
   @override
