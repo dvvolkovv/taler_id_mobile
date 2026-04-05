@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -16,24 +18,47 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with TickerProviderStateMixin {
   final _pageController = PageController();
   int _currentPage = 0;
   bool _notificationsRequested = false;
   bool _microphoneRequested = false;
 
-  static const _totalPages = 4;
+  static const _totalPages = 2;
+
+  // Per-page accent color gradients
+  static const _pageGradients = [
+    [Color(0xFF3B82F6), Color(0xFFA855F7)], // notifications: blue → purple
+    [Color(0xFF10B981), Color(0xFF22D3EE)], // microphone: emerald → cyan
+  ];
+
+  late final AnimationController _bgCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _bgCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+  }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _bgCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _finish() async {
     final storage = sl<SecureStorageService>();
     await storage.setOnboardingSeen();
-    if (mounted) context.go(RouteConstants.login);
+    if (!mounted) return;
+    // If the user has a session, go to the app; otherwise to login.
+    final hasToken = await storage.hasRefreshToken;
+    if (!mounted) return;
+    context.go(hasToken ? RouteConstants.assistant : RouteConstants.login);
   }
 
   Future<void> _requestNotifications() async {
@@ -66,100 +91,123 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     final pages = [
       _OnboardingPage(
-        icon: Icons.shield_outlined,
-        title: l10n.onboardingTitle1,
-        description: l10n.onboardingDesc1,
-        colors: colors,
-      ),
-      _OnboardingPage(
-        icon: Icons.lock_outline,
-        title: l10n.onboardingTitle2,
-        description: l10n.onboardingDesc2,
-        colors: colors,
-      ),
-      _OnboardingPage(
-        icon: Icons.notifications_active_outlined,
+        icon: Icons.notifications_active_rounded,
         title: l10n.onboardingTitle3,
         description: l10n.onboardingDesc3,
-        colors: colors,
+        gradient: _pageGradients[0],
       ),
       _OnboardingPage(
         icon: Icons.mic_rounded,
         title: l10n.onboardingTitle4,
         description: l10n.onboardingDesc4,
-        colors: colors,
+        gradient: _pageGradients[1],
       ),
     ];
 
+    final currentGradient = _pageGradients[_currentPage];
+
     return Scaffold(
       backgroundColor: colors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Skip button
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12, right: 16),
-                child: TextButton(
-                  onPressed: _finish,
-                  child: Text(
-                    l10n.onboardingSkip,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 14),
+      body: Stack(
+        children: [
+          // Animated background blobs tinted by current page's accent
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _bgCtrl,
+                builder: (context, _) => CustomPaint(
+                  painter: _BackgroundBlobsPainter(
+                    time: _bgCtrl.value * 2 * math.pi,
+                    colors: currentGradient,
                   ),
                 ),
               ),
             ),
+          ),
 
-            // Pages
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                onPageChanged: (i) => setState(() => _currentPage = i),
-                children: pages,
-              ),
-            ),
-
-            // Dots indicator
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_totalPages, (i) {
-                  final active = i == _currentPage;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: active ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: active ? colors.primary : colors.textSecondary.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(4),
+          SafeArea(
+            child: Column(
+              children: [
+                // Skip button
+                Align(
+                  alignment: Alignment.topRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 12, right: 16),
+                    child: TextButton(
+                      onPressed: _finish,
+                      child: Text(
+                        l10n.onboardingSkip,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 14),
+                      ),
                     ),
-                  );
-                }),
-              ),
-            ),
+                  ),
+                ),
 
-            // Bottom buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: _buildBottomButtons(l10n, colors),
+                // Pages
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    onPageChanged: (i) => setState(() => _currentPage = i),
+                    children: pages,
+                  ),
+                ),
+
+                // Dots indicator
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_totalPages, (i) {
+                      final active = i == _currentPage;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOutBack,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: active ? 28 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          gradient: active
+                              ? LinearGradient(colors: _pageGradients[i])
+                              : null,
+                          color: active
+                              ? null
+                              : colors.textSecondary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: active
+                              ? [
+                                  BoxShadow(
+                                    color: _pageGradients[i].first
+                                        .withValues(alpha: 0.5),
+                                    blurRadius: 8,
+                                  ),
+                                ]
+                              : null,
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+
+                // Bottom buttons
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                  child: _buildBottomButtons(l10n, colors, currentGradient),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBottomButtons(AppLocalizations l10n, AppColorsExtension colors) {
-    // Pages 0-1: simple Next button
-    if (_currentPage < 2) {
-      return _buildNextButton(l10n, colors);
-    }
-
-    // Page 2: Notifications
-    if (_currentPage == 2) {
+  Widget _buildBottomButtons(
+    AppLocalizations l10n,
+    AppColorsExtension colors,
+    List<Color> gradient,
+  ) {
+    // Page 0: Notifications
+    if (_currentPage == 0) {
       return _buildPermissionPage(
         requested: _notificationsRequested,
         onRequest: _requestNotifications,
@@ -168,10 +216,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         afterLabel: l10n.onboardingNext,
         onAfter: _nextPage,
         colors: colors,
+        gradient: gradient,
       );
     }
 
-    // Page 3: Microphone (last page)
+    // Page 1: Microphone (last page)
     return _buildPermissionPage(
       requested: _microphoneRequested,
       onRequest: _requestMicrophone,
@@ -180,17 +229,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       afterLabel: l10n.onboardingStart,
       onAfter: _finish,
       colors: colors,
-    );
-  }
-
-  Widget _buildNextButton(AppLocalizations l10n, AppColorsExtension colors) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: _nextPage,
-        child: Text(l10n.onboardingNext),
-      ),
+      gradient: gradient,
     );
   }
 
@@ -202,18 +241,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required String afterLabel,
     required VoidCallback onAfter,
     required AppColorsExtension colors,
+    required List<Color> gradient,
   }) {
     if (!requested) {
       return Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              onPressed: onRequest,
-              icon: Icon(icon, color: Colors.white),
-              label: Text(enableLabel),
-            ),
+          _GradientButton(
+            onTap: onRequest,
+            icon: icon,
+            label: enableLabel,
+            gradient: gradient,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -228,59 +265,124 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       );
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: onAfter,
-        child: Text(afterLabel),
-      ),
+    return _GradientButton(
+      onTap: onAfter,
+      label: afterLabel,
+      gradient: gradient,
     );
   }
 }
 
-class _OnboardingPage extends StatelessWidget {
+class _OnboardingPage extends StatefulWidget {
   final IconData icon;
   final String title;
   final String description;
-  final AppColorsExtension colors;
+  final List<Color> gradient;
 
   const _OnboardingPage({
     required this.icon,
     required this.title,
     required this.description,
-    required this.colors,
+    required this.gradient,
   });
 
   @override
+  State<_OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<_OnboardingPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final accent = widget.gradient.first;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: colors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Icon(icon, color: colors.primary, size: 48),
+          // Hero icon with breathing pulse, gradient ring, and colored glow
+          AnimatedBuilder(
+            animation: _pulseCtrl,
+            builder: (context, _) {
+              final t = _pulseCtrl.value;
+              final scale = 1.0 + 0.06 * t;
+              final glow = 0.45 + 0.25 * t;
+              return Transform.scale(
+                scale: scale,
+                child: Container(
+                  width: 140,
+                  height: 140,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: widget.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.22),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: accent.withValues(alpha: glow),
+                        blurRadius: 40,
+                        spreadRadius: 6,
+                      ),
+                      BoxShadow(
+                        color: widget.gradient.last.withValues(alpha: 0.3),
+                        blurRadius: 60,
+                        spreadRadius: 10,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    widget.icon,
+                    color: Colors.white,
+                    size: 64,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 48),
           Text(
-            title,
+            widget.title,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.textPrimary,
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
+              height: 1.2,
             ),
           ),
           const SizedBox(height: 16),
           Text(
-            description,
+            widget.description,
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.textSecondary,
@@ -292,4 +394,95 @@ class _OnboardingPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Filled button with a gradient fill, colored glow, and optional leading icon.
+class _GradientButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final String label;
+  final IconData? icon;
+  final List<Color> gradient;
+
+  const _GradientButton({
+    required this.onTap,
+    required this.label,
+    required this.gradient,
+    this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: 0.45),
+              blurRadius: 16,
+              spreadRadius: 0,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+            ],
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Soft drifting color blobs that tint the background with the current
+/// page's accent colors. They animate on a slow Lissajous path.
+class _BackgroundBlobsPainter extends CustomPainter {
+  final double time;
+  final List<Color> colors;
+  _BackgroundBlobsPainter({required this.time, required this.colors});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var i = 0; i < colors.length; i++) {
+      final phaseX = time * 0.4 + i * 1.9;
+      final phaseY = time * 0.3 + i * 2.5;
+      final cx = size.width * (0.5 + 0.38 * math.sin(phaseX));
+      final cy = size.height * (0.3 + 0.30 * math.cos(phaseY));
+      final radius = size.width * 0.7;
+      final paint = Paint()
+        ..shader = RadialGradient(
+          colors: [
+            colors[i].withValues(alpha: 0.22),
+            colors[i].withValues(alpha: 0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: radius));
+      canvas.drawCircle(Offset(cx, cy), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundBlobsPainter old) =>
+      old.time != time || old.colors != colors;
 }
