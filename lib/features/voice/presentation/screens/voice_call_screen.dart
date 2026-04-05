@@ -2344,7 +2344,10 @@ Answer briefly — the user is in the middle of a conversation.''';
       if (context.canPop()) {
         context.pop();
       } else {
-        context.go(RouteConstants.messenger);
+        // No prior route to pop to (incoming call launched us directly);
+        // fall back to the assistant home tab which also shows the active
+        // call banner so the user can re-enter the call.
+        context.go(RouteConstants.assistant);
       }
     } catch (e) {
       debugPrint('[VoiceCall] _minimizeCall error (ignored): $e');

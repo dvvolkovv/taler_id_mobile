@@ -40,7 +40,13 @@ class CallStateService {
   Completer<bool>? _bgCompleter;
 
   final _stateCtrl = StreamController<bool>.broadcast();
-  Stream<bool> get stateStream => _stateCtrl.stream;
+  // Re-emit the current state to every new subscriber so the dashboard's
+  // "active call" banner reappears correctly after the voice screen is
+  // closed and the dashboard is rebuilt.
+  Stream<bool> get stateStream async* {
+    yield isInCall;
+    yield* _stateCtrl.stream;
+  }
 
   // ── Legacy single-room API (backward compatible) ─────────────────
 
