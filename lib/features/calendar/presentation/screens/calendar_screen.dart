@@ -451,10 +451,37 @@ class _CalendarScreenState extends State<CalendarScreen> {
           if (_voiceConnecting)
             const Padding(padding: EdgeInsets.only(right: 12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
           else
-            IconButton(
-              icon: Icon(_voiceActive ? Icons.stop : Icons.mic, color: _voiceActive ? colors.error : colors.primary),
-              onPressed: _voiceActive ? _stopVoice : _startVoice,
-              tooltip: _voiceActive ? l10n.calendarStop : l10n.calendarVoiceInput,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: GestureDetector(
+                onTap: _voiceActive ? _stopVoice : _startVoice,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: _voiceActive
+                          ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                          : const [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (_voiceActive ? const Color(0xFFEF4444) : const Color(0xFF22D3EE))
+                            .withValues(alpha: 0.5),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                ),
+              ),
             ),
           IconButton(
             icon: Icon(Icons.add, color: colors.primary),

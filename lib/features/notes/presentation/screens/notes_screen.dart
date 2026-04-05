@@ -312,18 +312,21 @@ class _NotesScreenState extends State<NotesScreen> {
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                FloatingActionButton(
+                _GradientFab(
                   heroTag: 'voice',
-                  backgroundColor: _voiceActive ? colors.error : colors.primary,
                   onPressed: _voiceActive ? _stopVoice : _startVoice,
-                  child: Icon(_voiceActive ? Icons.stop : Icons.mic, color: Colors.white),
+                  icon: _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                  gradient: _voiceActive
+                      ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                      : const [Color(0xFF22D3EE), Color(0xFFA855F7)],
                 ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
+                const SizedBox(height: 10),
+                _GradientFab(
                   heroTag: 'add',
-                  backgroundColor: colors.card,
                   onPressed: () => _openEditor(),
-                  child: Icon(Icons.add, color: colors.primary, size: 20),
+                  icon: Icons.add_rounded,
+                  gradient: const [Color(0xFFFB7185), Color(0xFFA855F7)],
+                  small: true,
                 ),
               ],
             ),
@@ -592,6 +595,58 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// FloatingActionButton with a gradient fill and matching colored glow.
+class _GradientFab extends StatelessWidget {
+  final Object heroTag;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final List<Color> gradient;
+  final bool small;
+
+  const _GradientFab({
+    required this.heroTag,
+    required this.onPressed,
+    required this.icon,
+    required this.gradient,
+    this.small = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final size = small ? 44.0 : 56.0;
+    return GestureDetector(
+      onTap: onPressed,
+      child: Hero(
+        tag: heroTag,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient.first.withValues(alpha: 0.5),
+                  blurRadius: small ? 12 : 18,
+                  spreadRadius: small ? 0 : 1,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: small ? 20 : 26),
+          ),
+        ),
       ),
     );
   }

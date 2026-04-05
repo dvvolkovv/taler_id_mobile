@@ -756,15 +756,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       return Row(
         children: [
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _acceptContactRequest,
-              icon: const Icon(Icons.check_rounded, color: Colors.black),
-              label: Text(l10n.userProfileAccept, style: const TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            child: _gradientActionButton(
+              onTap: _acceptContactRequest,
+              icon: Icons.check_rounded,
+              label: l10n.userProfileAccept,
+              gradient: const [Color(0xFF34D399), Color(0xFF10B981)],
             ),
           ),
           const SizedBox(width: 12),
@@ -785,18 +781,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     }
 
     // No contact — show Add button
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _sendContactRequest,
-        icon: const Icon(Icons.person_add_outlined, color: Colors.black),
-        label: Text(l10n.userProfileAddToContacts, style: const TextStyle(color: Colors.black)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colors.primary,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
+    return _gradientActionButton(
+      onTap: _sendContactRequest,
+      icon: Icons.person_add_rounded,
+      label: l10n.userProfileAddToContacts,
+      gradient: const [Color(0xFF22D3EE), Color(0xFFA855F7)],
     );
   }
 }

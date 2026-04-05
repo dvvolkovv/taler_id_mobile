@@ -415,6 +415,34 @@ class _ConversationsViewState extends State<_ConversationsView> {
     );
   }
 
+  /// 40x40 gradient circular icon for ListTile leading slots.
+  Widget _gradientLeading(IconData icon, Color color) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(color, Colors.white, 0.15)!,
+            color,
+            Color.lerp(color, Colors.black, 0.25)!,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: const [0.0, 0.5, 1.0],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.45),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      child: Icon(icon, color: Colors.white, size: 20),
+    );
+  }
+
   void _showNewChatSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -445,10 +473,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.person_add_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.person_add_rounded, const Color(0xFF22D3EE)),
                   title: Text(l10n.newChat, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -456,10 +481,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   },
                 ),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.group_add_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.group_add_rounded, const Color(0xFF34D399)),
                   title: Text(l10n.newGroup, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -467,10 +489,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   },
                 ),
                 ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.of(context).primary.withValues(alpha: 0.15),
-                    child: Icon(Icons.campaign_rounded, color: AppColors.of(context).primary),
-                  ),
+                  leading: _gradientLeading(Icons.campaign_rounded, const Color(0xFFA855F7)),
                   title: Text(AppLocalizations.of(context)!.messengerCreateChannel, style: TextStyle(color: AppColors.of(context).textPrimary)),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -981,10 +1000,29 @@ class _ConversationsViewState extends State<_ConversationsView> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showNewChatSheet(context),
-        backgroundColor: colors.primary,
-        child: const Icon(Icons.edit_rounded, color: Colors.black),
+      floatingActionButton: GestureDetector(
+        onTap: () => _showNewChatSheet(context),
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF22D3EE).withValues(alpha: 0.5),
+                blurRadius: 18,
+                spreadRadius: 1,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.edit_rounded, color: Colors.white, size: 26),
+        ),
       ),
     );
   }

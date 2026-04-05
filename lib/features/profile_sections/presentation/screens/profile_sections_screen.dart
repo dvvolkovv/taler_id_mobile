@@ -705,14 +705,40 @@ class _EditSectionScreenState extends State<_EditSectionScreen> {
                 backgroundColor: colors.card,
                 child: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)),
               )
-            : FloatingActionButton(
-                onPressed: _voiceActive ? _stopVoice : _startVoice,
-                backgroundColor: _voiceActive ? colors.error : colors.primary,
-                child: Icon(
-                  _voiceActive ? Icons.stop : Icons.mic,
-                  color: Colors.white,
-                ),
-              ),
+            : () {
+                final sectionColor = _SectionCard.colorForType(widget.type);
+                final gradient = _voiceActive
+                    ? const [Color(0xFFEF4444), Color(0xFFB91C1C)]
+                    : [sectionColor, Color.lerp(sectionColor, Colors.black, 0.3)!];
+                return GestureDetector(
+                  onTap: _voiceActive ? _stopVoice : _startVoice,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: gradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: gradient.first.withOpacity(0.5),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _voiceActive ? Icons.stop_rounded : Icons.mic_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                  ),
+                );
+              }(),
         body: Column(
           children: [
             // Voice status bar
