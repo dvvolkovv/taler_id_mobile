@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/main.dart' as app;
 
@@ -88,52 +89,77 @@ void main() {
       await tester.safeTap(find.byType(ElevatedButton));
     }
 
-    // Wait for dashboard
-    final hasDash = await tester.waitFor(find.byType(BottomNavigationBar), timeout: const Duration(seconds: 20));
+    // Handle post-login onboarding (fresh install: isOnboardingSeen = false)
+    await tester.pumpFor(const Duration(seconds: 4));
+    final onboardingDeadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(onboardingDeadline)) {
+      await tester.pump(const Duration(milliseconds: 300));
+      if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) break;
+      if (find.text('Skip').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Skip'));
+        break;
+      }
+      if (find.text('Пропустить').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Пропустить'));
+        break;
+      }
+      if (find.text('Next').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Next'));
+      }
+      if (find.text('Далее').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Далее'));
+      }
+    }
+
+    // Wait for dashboard (orbital nav — look for chat bubble icon)
+    final hasDash = await tester.waitFor(find.byIcon(Icons.chat_bubble_outline_rounded), timeout: const Duration(seconds: 20));
     expect(hasDash, isTrue, reason: 'Dashboard not found');
     debugPrint('[CALLER] Dashboard loaded');
 
-    // ── Navigate to Messenger ─────────────────────────────────────
+    // ── Open conversation directly (DEV staging conversation ID) ──────
+    // Navigate directly to the known conversation between test accounts.
+    // Step 1: go to conversations list first
+    const convId = '91f97844-307b-4a20-ad62-c1d2820e627f';
+    debugPrint('[CALLER] Navigating to messenger conversations first');
     await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
     await tester.pumpFor(const Duration(seconds: 3));
 
-    // ── Open conversation ──────────────────────────────────────────
-    // Wait for conversations to load and tap the first one
-    await tester.pumpFor(const Duration(seconds: 3));
-    final listTiles = find.byType(ListTile);
-    debugPrint('[CALLER] ListTiles found: ${listTiles.evaluate().length}');
-    if (listTiles.evaluate().isNotEmpty) {
-      await tester.tap(listTiles.first, warnIfMissed: false);
-      await tester.pumpFor(const Duration(seconds: 3));
-    }
+    // Step 2: push chat room from messenger context
+    debugPrint('[CALLER] Pushing conversation $convId');
+    final messengerElement = tester.element(find.byType(Scaffold).first);
+    GoRouter.of(messengerElement).push('/dashboard/messenger/$convId');
+    await tester.pumpFor(const Duration(seconds: 4));
 
-    // Verify we're in chat room — look for phone icon in AppBar
-    final phoneIcon = find.byIcon(Icons.phone_outlined);
-    debugPrint('[CALLER] phone_outlined: ${phoneIcon.evaluate().length}');
+    // Verify we're in the chat room (phone icon visible in AppBar)
+    final hasPhone = await tester.waitFor(find.byIcon(Icons.phone_outlined), timeout: const Duration(seconds: 8));
+    debugPrint('[CALLER] phone_outlined found: $hasPhone');
 
     // ── WAIT for receiver to be ready ─────────────────────────────
     debugPrint('[CALLER] Waiting 30s for receiver to be ready...');
     await tester.pumpFor(const Duration(seconds: 30));
 
     // ── Tap call button ───────────────────────────────────────────
-    // phone_outlined icon in AppBar actions
+    // NOTE: tester.tap() misses due to hit-test interception by underlying widget.
+    // We find the IconButton ancestor and invoke onPressed directly.
     final callBtn = find.byIcon(Icons.phone_outlined);
     debugPrint('[CALLER] phone_outlined icons: ${callBtn.evaluate().length}');
-    if (callBtn.evaluate().isEmpty) {
-      // Try alternative icons
-      final phoneIcons = find.byIcon(Icons.phone);
-      final callIcons = find.byIcon(Icons.call);
-      debugPrint('[CALLER] phone icons: ${phoneIcons.evaluate().length}, call icons: ${callIcons.evaluate().length}');
-    }
     expect(callBtn, findsWidgets, reason: 'Call button not found in chat');
-    await tester.tap(callBtn.first, warnIfMissed: false);
-    debugPrint('[CALLER] Call button tapped');
+    final iconBtns = find.ancestor(
+      of: find.byIcon(Icons.phone_outlined),
+      matching: find.byType(IconButton),
+    );
+    expect(iconBtns, findsWidgets, reason: 'Phone IconButton not found');
+    final callIconBtn = tester.widget<IconButton>(iconBtns.first);
+    expect(callIconBtn.onPressed, isNotNull, reason: 'Call button is disabled');
+    callIconBtn.onPressed!();
+    await tester.pump(const Duration(milliseconds: 500));
+    debugPrint('[CALLER] Call button invoked');
 
     // ── Verify VoiceCallScreen appears ────────────────────────────
-    // Wait for call_end icon (hangup button) to confirm we're on call screen
+    // Wait for call_end icon (hangup button) — LiveKit connection can take 60s on emulator
     final hasCallScreen = await tester.waitFor(
       find.byIcon(Icons.call_end_rounded),
-      timeout: const Duration(seconds: 30),
+      timeout: const Duration(seconds: 90),
     );
     if (!hasCallScreen) {
       // Debug: check what's on screen

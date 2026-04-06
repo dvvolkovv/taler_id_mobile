@@ -34,11 +34,13 @@ class _KycScreenState extends State<KycScreen> {
       body: BlocConsumer<KycBloc, KycState>(
         listener: (context, state) {
           if (state is KycSdkReady) {
-            // Launch Sumsub SDK
             _launchSumsub(context, state.sdkToken);
           } else if (state is KycError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(resolveErrorMessage(AppLocalizations.of(context)!, state.message)), backgroundColor: AppColors.of(context).error),
+              SnackBar(
+                content: Text(resolveErrorMessage(AppLocalizations.of(context)!, state.message)),
+                backgroundColor: AppColors.of(context).error,
+              ),
             );
           }
         },
@@ -46,121 +48,171 @@ class _KycScreenState extends State<KycScreen> {
           if (state is KycLoading) {
             return Center(child: CircularProgressIndicator(color: AppColors.of(context).primary));
           }
-
-          if (state is KycSdkDone) {
-            return _buildWaiting(l10n);
-          }
-
-          if (state is KycApplicantDataLoading) {
-            return _buildStatusWithLoading(context, state, l10n);
-          }
-
-          if (state is KycStatusLoaded) {
-            return _buildStatus(context, state, l10n);
-          }
-
-          if (state is KycError) {
-            return _buildError(context, resolveErrorMessage(l10n, state.message), l10n);
-          }
-
+          if (state is KycSdkDone) return _buildWaiting(l10n);
+          if (state is KycApplicantDataLoading) return _buildStatusBody(context, state.status, state.verifiedAt, null, l10n, loading: true);
+          if (state is KycStatusLoaded) return _buildStatusBody(context, state.status, state.verifiedAt, state, l10n);
+          if (state is KycError) return _buildError(context, resolveErrorMessage(l10n, state.message), l10n);
           return const SizedBox.shrink();
         },
       ),
     );
   }
 
-  Widget _buildStatus(BuildContext context, KycStatusLoaded state, AppLocalizations l10n) {
-    final statusConfig = _getStatusConfig(state.status, l10n);
+  Widget _buildStatusBody(
+    BuildContext context,
+    String status,
+    String? verifiedAt,
+    KycStatusLoaded? loaded,
+    AppLocalizations l10n, {
+    bool loading = false,
+  }) {
+    final cfg = _getStatusConfig(status, l10n);
+    final colors = AppColors.of(context);
 
     return RefreshIndicator(
-      color: AppColors.of(context).primary,
+      color: colors.primary,
       onRefresh: () async => context.read<KycBloc>().add(KycStatusRequested()),
       child: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.zero,
         children: [
-          const SizedBox(height: 32),
-          // Status icon
-          Center(
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: statusConfig.color.withOpacity(0.15),
-                shape: BoxShape.circle,
-                border: Border.all(color: statusConfig.color.withOpacity(0.4), width: 2),
-              ),
-              child: Icon(statusConfig.icon, color: statusConfig.color, size: 48),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Center(
-            child: StatusBadge(label: statusConfig.label, color: statusConfig.color),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: Text(
-              statusConfig.description,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14, height: 1.5),
-            ),
-          ),
-          if (state.verifiedAt != null) ...[
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                l10n.verifiedAt(_formatDate(state.verifiedAt!)),
-                style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+          // ── Hero header ──
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  cfg.color.withValues(alpha: 0.18),
+                  cfg.color.withValues(alpha: 0.04),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          ],
-          if (state.rejectionReason != null) ...[
-            const SizedBox(height: 16),
-            AppCard(
-              child: Row(
-                children: [
-                  Icon(Icons.info_outlined, color: AppColors.of(context).warning, size: 18),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      state.rejectionReason!,
-                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+            child: Column(
+              children: [
+                // Big icon ring
+                Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: cfg.color.withValues(alpha: 0.12),
+                    border: Border.all(color: cfg.color.withValues(alpha: 0.35), width: 2),
+                    boxShadow: [BoxShadow(color: cfg.color.withValues(alpha: 0.2), blurRadius: 20, spreadRadius: 2)],
+                  ),
+                  child: Icon(cfg.icon, color: cfg.color, size: 44),
+                ),
+                const SizedBox(height: 20),
+                // Status pill
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: cfg.color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: cfg.color.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 7, height: 7, decoration: BoxDecoration(color: cfg.color, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text(cfg.label, style: TextStyle(color: cfg.color, fontSize: 13, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  cfg.description,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.5),
+                ),
+                if (verifiedAt != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.verifiedAt(_formatDate(verifiedAt)),
+                    style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Steps progress
+                _buildStepsCard(status, l10n, colors),
+                const SizedBox(height: 16),
+
+                // Rejection reason
+                if (loaded?.rejectionReason != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: colors.error.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: colors.error.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: colors.error, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            loaded!.rejectionReason!,
+                            style: TextStyle(color: colors.textSecondary, fontSize: 13, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Action button
+                if (status == 'UNVERIFIED' || status == 'REJECTED')
+                  _ActionButton(
+                    label: status == 'REJECTED' ? l10n.retryVerification : l10n.startVerification,
+                    icon: status == 'REJECTED' ? Icons.refresh_rounded : Icons.verified_user_outlined,
+                    color: cfg.color,
+                    onTap: () => context.read<KycBloc>().add(KycStartRequested()),
+                  ),
+
+                // Loading spinner (applicant data)
+                if (loading) ...[
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Column(
+                      children: [
+                        CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        const SizedBox(height: 12),
+                        Text(l10n.sumsubDataLoading, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ),
-          ],
-          const SizedBox(height: 40),
-          if (state.status == 'UNVERIFIED' || state.status == 'REJECTED') ...[
-            LoadingButton(
-              text: state.status == 'REJECTED' ? l10n.retryVerification : l10n.startVerification,
-              loading: false,
-              onPressed: () => context.read<KycBloc>().add(KycStartRequested()),
-            ),
-          ],
-          const SizedBox(height: 16),
-          // Verified applicant data
-          if (state.status == 'VERIFIED' && state.applicantData != null) ...[
-            SumsubDataCard(data: state.applicantData!),
-            const SizedBox(height: 12),
-            Center(
-              child: TextButton.icon(
-                onPressed: () => context.read<KycBloc>().add(KycApplicantDataRequested()),
-                icon: Icon(Icons.refresh, size: 18, color: AppColors.of(context).textSecondary),
-                label: Text(l10n.refreshData, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13)),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-          // Info card
-          AppCard(
-            child: Column(
-              children: [
-                _infoRow(Icons.security_outlined, l10n.securityAes),
-                Divider(color: AppColors.of(context).border, height: 1),
-                _infoRow(Icons.schedule_outlined, l10n.verificationTime),
-                Divider(color: AppColors.of(context).border, height: 1),
-                _infoRow(Icons.notifications_outlined, l10n.pushNotification),
+
+                // Verified data
+                if (loaded?.status == 'VERIFIED' && loaded?.applicantData != null) ...[
+                  const SizedBox(height: 8),
+                  SumsubDataCard(data: loaded!.applicantData!),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () => context.read<KycBloc>().add(KycApplicantDataRequested()),
+                      icon: Icon(Icons.refresh, size: 16, color: colors.textSecondary),
+                      label: Text(l10n.refreshData, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+                    ),
+                  ),
+                ],
+
+                // Info rows
+                const SizedBox(height: 16),
+                _buildInfoCard(l10n, colors),
               ],
             ),
           ),
@@ -169,145 +221,169 @@ class _KycScreenState extends State<KycScreen> {
     );
   }
 
-  Widget _buildStatusWithLoading(BuildContext context, KycApplicantDataLoading state, AppLocalizations l10n) {
-    final statusConfig = _getStatusConfig(state.status, l10n);
+  Widget _buildStepsCard(String status, AppLocalizations l10n, AppColorsExtension colors) {
+    final steps = [
+      _StepData('Документы', status != 'UNVERIFIED'),
+      _StepData('Проверка', status == 'VERIFIED' || status == 'PENDING'),
+      _StepData('Готово', status == 'VERIFIED'),
+    ];
 
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        const SizedBox(height: 32),
-        Center(
-          child: Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: statusConfig.color.withOpacity(0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: statusConfig.color.withOpacity(0.4), width: 2),
-            ),
-            child: Icon(statusConfig.icon, color: statusConfig.color, size: 48),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Center(child: StatusBadge(label: statusConfig.label, color: statusConfig.color)),
-        const SizedBox(height: 16),
-        Center(
-          child: Text(
-            statusConfig.description,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14, height: 1.5),
-          ),
-        ),
-        if (state.verifiedAt != null) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              l10n.verifiedAt(_formatDate(state.verifiedAt!)),
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
-            ),
-          ),
-        ],
-        const SizedBox(height: 40),
-        Center(
-          child: Column(
-            children: [
-              CircularProgressIndicator(color: AppColors.of(context).primary),
-              const SizedBox(height: 12),
-              Text(
-                l10n.sumsubDataLoading,
-                style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: List.generate(steps.length * 2 - 1, (i) {
+          if (i.isOdd) {
+            final prevDone = steps[i ~/ 2].done;
+            return Expanded(
+              child: Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: prevDone ? colors.primary : colors.border,
+                  borderRadius: BorderRadius.circular(1),
+                ),
               ),
+            );
+          }
+          final step = steps[i ~/ 2];
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: step.done ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+                  border: Border.all(
+                    color: step.done ? colors.primary : colors.border,
+                    width: step.done ? 1.5 : 1,
+                  ),
+                ),
+                child: Icon(
+                  step.done ? Icons.check_rounded : Icons.circle_outlined,
+                  size: 16,
+                  color: step.done ? colors.primary : colors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(step.label, style: TextStyle(color: step.done ? colors.textPrimary : colors.textSecondary, fontSize: 10, fontWeight: step.done ? FontWeight.w600 : FontWeight.normal)),
             ],
-          ),
-        ),
-      ],
+          );
+        }),
+      ),
     );
   }
 
-  Widget _buildWaiting(AppLocalizations l10n) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(color: AppColors.of(context).primary),
-              const SizedBox(height: 24),
-              Text(
-                l10n.documentsSubmitted,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                l10n.documentsSubmittedDesc,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 14, height: 1.5),
-              ),
-            ],
-          ),
-        ),
-      );
+  Widget _buildInfoCard(AppLocalizations l10n, AppColorsExtension colors) {
+    final rows = [
+      _InfoRowData(Icons.security_outlined, const Color(0xFF2563EB), l10n.securityAes),
+      _InfoRowData(Icons.schedule_outlined, const Color(0xFFD97706), l10n.verificationTime),
+      _InfoRowData(Icons.notifications_outlined, const Color(0xFF7C3AED), l10n.pushNotification),
+    ];
 
-  Widget _buildError(BuildContext context, String message, AppLocalizations l10n) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, color: AppColors.of(context).error, size: 48),
-              const SizedBox(height: 16),
-              Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppColors.of(context).textSecondary)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => context.read<KycBloc>().add(KycStatusRequested()),
-                child: Text(l10n.retry),
-              ),
-            ],
-          ),
-        ),
-      );
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        children: List.generate(rows.length * 2 - 1, (i) {
+          if (i.isOdd) return Divider(color: colors.border, height: 1, indent: 56);
+          final row = rows[i ~/ 2];
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: row.color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(row.icon, color: row.color, size: 18),
+                ),
+                const SizedBox(width: 14),
+                Expanded(child: Text(row.label, style: TextStyle(color: colors.textSecondary, fontSize: 13, height: 1.4))),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
 
-  Widget _infoRow(IconData icon, String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
+  Widget _buildWaiting(AppLocalizations l10n) {
+    final colors = AppColors.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: AppColors.of(context).secondary, size: 18),
-            const SizedBox(width: 12),
-            Expanded(child: Text(text, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13))),
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colors.primary.withValues(alpha: 0.1),
+                border: Border.all(color: colors.primary.withValues(alpha: 0.3), width: 2),
+              ),
+              child: Icon(Icons.hourglass_top_rounded, color: colors.primary, size: 40),
+            ),
+            const SizedBox(height: 24),
+            Text(l10n.documentsSubmitted, textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Text(l10n.documentsSubmittedDesc, textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.5)),
           ],
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildError(BuildContext context, String message, AppLocalizations l10n) {
+    final colors = AppColors.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: colors.error.withValues(alpha: 0.1)),
+              child: Icon(Icons.error_outline, color: colors.error, size: 36),
+            ),
+            const SizedBox(height: 16),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: colors.textSecondary, fontSize: 14)),
+            const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: () => context.read<KycBloc>().add(KycStatusRequested()),
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(l10n.retry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   _StatusConfig _getStatusConfig(String status, AppLocalizations l10n) {
     switch (status) {
       case 'VERIFIED':
-        return _StatusConfig(
-          icon: Icons.verified_outlined,
-          color: AppColors.of(context).primary,
-          label: l10n.kycVerified,
-          description: l10n.kycVerifiedDesc,
-        );
+        return _StatusConfig(icon: Icons.verified_rounded, color: const Color(0xFF22C55E), label: l10n.kycVerified, description: l10n.kycVerifiedDesc);
       case 'PENDING':
-        return _StatusConfig(
-          icon: Icons.hourglass_empty_outlined,
-          color: AppColors.of(context).warning,
-          label: l10n.kycPending,
-          description: l10n.kycPendingDesc,
-        );
+        return _StatusConfig(icon: Icons.hourglass_empty_rounded, color: const Color(0xFFF59E0B), label: l10n.kycPending, description: l10n.kycPendingDesc);
       case 'REJECTED':
-        return _StatusConfig(
-          icon: Icons.cancel_outlined,
-          color: AppColors.of(context).error,
-          label: l10n.kycRejected,
-          description: l10n.kycRejectedDesc,
-        );
+        return _StatusConfig(icon: Icons.cancel_rounded, color: const Color(0xFFEF4444), label: l10n.kycRejected, description: l10n.kycRejectedDesc);
       default:
-        return _StatusConfig(
-          icon: Icons.person_outlined,
-          color: AppColors.of(context).textSecondary,
-          label: l10n.kycUnverified,
-          description: l10n.kycUnverifiedDesc,
-        );
+        return _StatusConfig(icon: Icons.person_outline_rounded, color: const Color(0xFF64748B), label: l10n.kycUnverified, description: l10n.kycUnverifiedDesc);
     }
   }
 
@@ -321,7 +397,6 @@ class _KycScreenState extends State<KycScreen> {
   }
 
   void _launchSumsub(BuildContext context, String sdkToken) async {
-    // Sumsub SDK is native-only, show stub on web
     if (kIsWeb) {
       final l10n = AppLocalizations.of(context)!;
       showDialog(
@@ -329,10 +404,7 @@ class _KycScreenState extends State<KycScreen> {
         builder: (_) => AlertDialog(
           backgroundColor: AppColors.of(context).card,
           title: Text(l10n.verification, style: TextStyle(color: AppColors.of(context).textPrimary)),
-          content: Text(
-            l10n.kycWebOnly,
-            style: TextStyle(color: AppColors.of(context).textSecondary),
-          ),
+          content: Text(l10n.kycWebOnly, style: TextStyle(color: AppColors.of(context).textSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -345,29 +417,56 @@ class _KycScreenState extends State<KycScreen> {
     }
 
     final bloc = context.read<KycBloc>();
-
-    final onTokenExpiration = () async {
-      return await bloc.repo.startKyc();
-    };
-
+    final onTokenExpiration = () async => await bloc.repo.startKyc();
     final snsMobileSDK = SNSMobileSDK.init(sdkToken, onTokenExpiration)
         .withLocale(const Locale('ru'))
         .withDebug(true)
         .build();
-
     final SNSMobileSDKResult result = await snsMobileSDK.launch();
-
     if (!mounted) return;
-
     if (result.success) {
       bloc.add(KycSdkCompleted());
     } else if (result.errorMsg != null) {
       bloc.add(KycSdkFailed(result.errorType?.toString() ?? 'unknown'));
     }
-    // Refresh status after SDK closes
     bloc.add(KycStatusRequested());
   }
 }
+
+// ── Helper widgets ───────────────────────────────────────────────
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionButton({required this.label, required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [color, Color.lerp(color, Colors.black, 0.2)!], begin: Alignment.topLeft, end: Alignment.bottomRight),
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.35), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Data classes ─────────────────────────────────────────────────
 
 class _StatusConfig {
   final IconData icon;
@@ -375,4 +474,17 @@ class _StatusConfig {
   final String label;
   final String description;
   const _StatusConfig({required this.icon, required this.color, required this.label, required this.description});
+}
+
+class _StepData {
+  final String label;
+  final bool done;
+  const _StepData(this.label, this.done);
+}
+
+class _InfoRowData {
+  final IconData icon;
+  final Color color;
+  final String label;
+  const _InfoRowData(this.icon, this.color, this.label);
 }

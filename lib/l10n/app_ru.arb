@@ -569,6 +569,10 @@
     }
   },
   "voiceVoiceCall": "Голосовой звонок",
+  "voiceOnHold": "На удержании",
+  "voiceActiveCall": "Активный",
+  "voiceEndAllCalls": "Завершить все",
+  "voiceEndThisCall": "Завершить этот звонок",
   "voiceCopyLink": "Скопировать ссылку",
   "voiceAddParticipant": "Добавить участника",
   "voiceReconnecting": "Переподключение...",

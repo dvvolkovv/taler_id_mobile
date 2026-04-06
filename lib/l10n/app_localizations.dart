@@ -2612,6 +2612,30 @@ abstract class AppLocalizations {
   /// **'Voice call'**
   String get voiceVoiceCall;
 
+  /// No description provided for @voiceOnHold.
+  ///
+  /// In en, this message translates to:
+  /// **'On hold'**
+  String get voiceOnHold;
+
+  /// No description provided for @voiceActiveCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get voiceActiveCall;
+
+  /// No description provided for @voiceEndAllCalls.
+  ///
+  /// In en, this message translates to:
+  /// **'End all calls'**
+  String get voiceEndAllCalls;
+
+  /// No description provided for @voiceEndThisCall.
+  ///
+  /// In en, this message translates to:
+  /// **'End this call'**
+  String get voiceEndThisCall;
+
   /// No description provided for @voiceCopyLink.
   ///
   /// In en, this message translates to:

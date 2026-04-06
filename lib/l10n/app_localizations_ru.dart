@@ -1337,6 +1337,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceVoiceCall => 'Голосовой звонок';
 
   @override
+  String get voiceOnHold => 'На удержании';
+
+  @override
+  String get voiceActiveCall => 'Активный';
+
+  @override
+  String get voiceEndAllCalls => 'Завершить все';
+
+  @override
+  String get voiceEndThisCall => 'Завершить этот звонок';
+
+  @override
   String get voiceCopyLink => 'Скопировать ссылку';
 
   @override

@@ -13,7 +13,12 @@ class CallLine {
   final String? conversationId;
   final String? e2eeKey;
   String? calleeName;
+  String? calleeAvatar;
   bool isOnHold;
+  /// Mic state before the line was put on hold.
+  bool wasMuted = false;
+  /// When the call was connected (for duration display).
+  DateTime? connectedAt;
 
   CallLine({
     required this.room,
@@ -21,6 +26,7 @@ class CallLine {
     this.conversationId,
     this.e2eeKey,
     this.calleeName,
+    this.calleeAvatar,
     this.isOnHold = false,
   });
 }
@@ -48,6 +54,12 @@ class CallStateService {
     yield* _stateCtrl.stream;
   }
 
+  /// Emits the active roomName whenever the active line changes externally
+  /// (e.g. CallKit accept of a second call). VoiceCallScreen subscribes to
+  /// this to detect switches it didn't initiate.
+  final _activeRoomCtrl = StreamController<String?>.broadcast();
+  Stream<String?> get activeRoomStream => _activeRoomCtrl.stream;
+
   // ── Legacy single-room API (backward compatible) ─────────────────
 
   lk.Room? get room => activeLine?.room;
@@ -71,24 +83,28 @@ class CallStateService {
     return _bgCompleter!.future;
   }
 
-  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? calleeName}) {
+  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? calleeName, String? calleeAvatar}) {
     final line = CallLine(
       room: r,
       roomName: name,
       conversationId: convId,
       e2eeKey: e2eeKeyValue,
       calleeName: calleeName,
+      calleeAvatar: calleeAvatar,
     );
+    line.connectedAt = DateTime.now();
     _lines[name] = line;
     _activeRoomName = name;
     _stateCtrl.add(true);
+    _activeRoomCtrl.add(name);
   }
 
   /// Put the active call on hold and switch to another line.
   Future<void> holdAndSwitch(String targetRoomName) async {
     final current = activeLine;
     if (current != null && current.roomName != targetRoomName) {
-      // Mute current line
+      // Save mic state before hold so it can be restored later.
+      current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
       current.isOnHold = true;
       try {
         await current.room.localParticipant?.setMicrophoneEnabled(false);
@@ -101,9 +117,11 @@ class CallStateService {
       target.isOnHold = false;
       _activeRoomName = targetRoomName;
       try {
-        await target.room.localParticipant?.setMicrophoneEnabled(true);
+        // Restore the mic state the user had before this line was held.
+        await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
       } catch (_) {}
       _stateCtrl.add(true);
+      _activeRoomCtrl.add(targetRoomName);
     }
   }
 
@@ -119,9 +137,13 @@ class CallStateService {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
         next.isOnHold = false;
-        try { await next.room.localParticipant?.setMicrophoneEnabled(true); } catch (_) {}
+        try {
+          await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
+        } catch (_) {}
+        _activeRoomCtrl.add(next.roomName);
       } else {
         _activeRoomName = null;
+        _activeRoomCtrl.add(null);
       }
     }
     _stateCtrl.add(_lines.isNotEmpty);
@@ -133,6 +155,7 @@ class CallStateService {
     _activeRoomName = null;
     _bgConnecting = false;
     _stateCtrl.add(false);
+    _activeRoomCtrl.add(null);
     for (final line in lines) {
       try { await line.room.disconnect(); } catch (_) {}
     }
@@ -164,9 +187,10 @@ class CallStateService {
     _bgConnecting = true;
     _bgCompleter = Completer<bool>();
     try {
-      // Hold current active line
+      // Hold current active line, preserving mic state
       final current = activeLine;
       if (current != null) {
+        current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
         current.isOnHold = true;
         try {
           await current.room.localParticipant?.setMicrophoneEnabled(false);

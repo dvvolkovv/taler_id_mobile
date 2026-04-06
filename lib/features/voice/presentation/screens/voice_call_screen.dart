@@ -125,7 +125,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   lk.EventsListener<lk.RoomEvent>? _eventsListener;
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callkitEndedSub;
+  StreamSubscription<String?>? _activeRoomSub;
   Timer? _emptyRoomTimer;
+
+  // Dynamic callee info (updated on line switch)
+  String? _currentCalleeName;
+  String? _currentCalleeAvatar;
 
   // In-call assistant state
   bool _assistantActive = false;
@@ -227,6 +232,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           debugPrint('[VoiceCall] CallKit actionCallEnded — calling _hangUp()');
           _hangUp();
         }
+      }
+    });
+    _currentCalleeName = widget.calleeName;
+    _currentCalleeAvatar = widget.calleeAvatar;
+    // Listen for external line switches (e.g. accepting second call via CallKit)
+    _activeRoomSub = CallStateService.instance.activeRoomStream.listen((newRoom) {
+      if (!mounted || _navigatedAway || newRoom == null) return;
+      if (newRoom != _roomName) {
+        final line = CallStateService.instance.activeLine;
+        if (line != null) _switchToLine(line);
       }
     });
     _initCall();
@@ -614,12 +629,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Request audio focus BEFORE enabling microphone — ensures the audio session
       // is active (critical after endAllCalls() deactivated it for incoming calls).
       try {
-        await _audioChannel.invokeMethod('requestAudioFocus');
+        await _audioChannel.invokeMethod('requestAudioFocus')
+            .timeout(const Duration(seconds: 8));
       } catch (_) {}
 
       // Enable microphone; may fail on iOS simulator — don't treat as fatal
       try {
-        await _room!.localParticipant?.setMicrophoneEnabled(true);
+        await _room!.localParticipant?.setMicrophoneEnabled(true)
+            .timeout(const Duration(seconds: 8));
       } catch (_) {}
 
       _settingUp = false;
@@ -2337,6 +2354,84 @@ Answer briefly — the user is in the middle of a conversation.''';
     } catch (_) {}
   }
 
+  /// Switch the screen in-place to show a different call line.
+  /// Tears down listeners for the old room and sets up the new one.
+  void _switchToLine(CallLine line) {
+    // Save current mute state to the outgoing line
+    final cs = CallStateService.instance;
+    final oldLine = cs.allLines.where((l) => l.roomName == _roomName).firstOrNull;
+    if (oldLine != null) {
+      oldLine.wasMuted = _muted;
+    }
+
+    // Dispose old room listeners
+    _eventsListener?.dispose();
+    _eventsListener = null;
+    _room?.removeListener(_onRoomChanged);
+
+    // Switch to new room
+    _room = line.room;
+    _roomName = line.roomName;
+    _currentCalleeName = line.calleeName;
+    _currentCalleeAvatar = line.calleeAvatar;
+
+    // Sync participants from new room
+    _participants
+      ..clear()
+      ..addAll(_room!.remoteParticipants.values);
+    _speakingIdentities.clear();
+
+    // Restore per-line state
+    _muted = line.wasMuted;
+    _onHold = false;
+    _connecting = false;
+    _error = null;
+    _ringing = false;
+    _reconnecting = false;
+    _manualReconnecting = false;
+
+    // Reset recording/transcription state (will be re-detected from room data)
+    _isRecording = false;
+    _recordingInitiatorId = null;
+    _consentPending = false;
+    _recordingApproved = false;
+    _transcriptionActive = false;
+    _transcriptionInitiatorId = null;
+
+    // Detect if recorder is already in the new room
+    if (_participants.any((p) => p.identity == 'meeting-recorder')) {
+      _transcriptionActive = true;
+    }
+
+    // Stop assistant if active (it's per-room)
+    if (_assistantActive) {
+      _assistantSessionConfigured = false;
+      _assistantRecordSub?.cancel();
+      _assistantRecordSub = null;
+      try { _assistantRecorder.stop(); } catch (_) {}
+      try { _assistantWs?.close(); } catch (_) {}
+      _assistantWs = null;
+      _assistantActive = false;
+    }
+
+    // Re-subscribe to new room events
+    _room!.addListener(_onRoomChanged);
+    _subscribeRoomEvents();
+
+    // Subscribe to tracks
+    for (final p in _room!.remoteParticipants.values) {
+      for (final pub in [...p.audioTrackPublications, ...p.videoTrackPublications]) {
+        if (!pub.subscribed) {
+          try { pub.subscribe(); } catch (_) {}
+        }
+      }
+    }
+
+    _hangingUp = false;
+    if (mounted) setState(() {});
+    debugPrint('[VoiceCall] switched to line: ${line.roomName}, callee: ${line.calleeName}');
+  }
+
   void _minimizeCall() {
     if (_navigatedAway || !mounted) return;
     _navigatedAway = true;
@@ -2355,11 +2450,37 @@ Answer briefly — the user is in the middle of a conversation.''';
   }
 
   bool _hangingUp = false;
+
+  /// End all calls and close the screen.
+  Future<void> _hangUpAll() async {
+    _hangingUp = true;
+    // End every line via CallStateService
+    final cs = CallStateService.instance;
+    for (final line in List<CallLine>.from(cs.allLines)) {
+      final convId = line.conversationId;
+      if (convId != null) {
+        try { sl<MessengerRemoteDataSource>().sendCallEnded(convId, line.roomName); } catch (_) {}
+        try { sl<DioClient>().post('/messenger/call-ended', data: {'conversationId': convId, 'roomName': line.roomName}, fromJson: (d) => d); } catch (_) {}
+      }
+    }
+    await cs.endCall();
+    _room = null;
+    _navigatedAway = true;
+    // Release audio & navigate
+    try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
+    try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
+    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+    if (!mounted) return;
+    try {
+      if (context.canPop()) { context.pop(); } else { context.go(RouteConstants.messenger); }
+    } catch (_) {}
+  }
+
   Future<void> _hangUp() async {
     if (_hangingUp) return;
     _hangingUp = true;
-    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, connectionState=${_room?.connectionState}');
-    _navigatedAway = true;
+    final cs = CallStateService.instance;
+    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}');
     _emptyRoomTimer?.cancel();
     _stopRingback();
     // Stop in-call assistant if active
@@ -2397,50 +2518,36 @@ Answer briefly — the user is in the middle of a conversation.''';
       debugPrint('[VoiceCall] mic disable error: $e');
     }
     // Notify the other party that the call ended
-    final convId = widget.conversationId ?? CallStateService.instance.conversationId;
-    final rName = _roomName ?? CallStateService.instance.roomName;
+    final convId = widget.conversationId ?? cs.conversationId;
+    final rName = _roomName ?? cs.roomName;
     debugPrint('[VoiceCall] sendCallEnded convId=$convId, rName=$rName');
     if (convId != null && rName != null) {
-      // Socket (best-effort)
-      try {
-        sl<MessengerRemoteDataSource>().sendCallEnded(convId, rName);
-      } catch (_) {}
-      // HTTP (reliable fallback)
-      try {
-        sl<DioClient>().post(
-          '/messenger/call-ended',
-          data: {'conversationId': convId, 'roomName': rName},
-          fromJson: (d) => d,
-        );
-      } catch (_) {}
+      try { sl<MessengerRemoteDataSource>().sendCallEnded(convId, rName); } catch (_) {}
+      try { sl<DioClient>().post('/messenger/call-ended', data: {'conversationId': convId, 'roomName': rName}, fromJson: (d) => d); } catch (_) {}
       debugPrint('[VoiceCall] sendCallEnded sent (socket+http)');
     }
     // Remove room listeners BEFORE disconnect
     _eventsListener?.dispose();
     _eventsListener = null;
     _room?.removeListener(_onRoomChanged);
-    // Disconnect from LiveKit
-    final roomRef = _room;
     _room = null;
-    CallStateService.instance.notifyEnded();
-    if (roomRef != null) {
-      debugPrint('[VoiceCall] disconnecting room...');
-      try {
-        await roomRef.disconnect().timeout(const Duration(seconds: 3));
-        debugPrint('[VoiceCall] room.disconnect() completed');
-      } catch (e) {
-        debugPrint('[VoiceCall] room.disconnect() error/timeout: $e');
-      }
-      try {
-        roomRef.dispose();
-        debugPrint('[VoiceCall] room.dispose() completed');
-      } catch (e) {
-        debugPrint('[VoiceCall] room.dispose() error: $e');
-      }
+
+    // End only this line — CallStateService will auto-switch to next held line
+    if (rName != null) {
+      await cs.endLine(rName);
     } else {
-      debugPrint('[VoiceCall] roomRef is null — no room to disconnect');
+      cs.notifyEnded();
     }
-    // Release audio
+
+    // If other lines remain, switch to the next active line in-place
+    if (cs.isInCall && cs.activeLine != null) {
+      debugPrint('[VoiceCall] other lines remain (${cs.lineCount}), switching to ${cs.activeLine!.roomName}');
+      _switchToLine(cs.activeLine!);
+      return;
+    }
+
+    // No more lines — full cleanup and navigate away
+    _navigatedAway = true;
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
     try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
     try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
@@ -2763,6 +2870,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     WidgetsBinding.instance.removeObserver(this);
     _callEndedSub?.cancel();
     _callkitEndedSub?.cancel();
+    _activeRoomSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
@@ -2798,7 +2906,7 @@ Answer briefly — the user is in the middle of a conversation.''';
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
             return Text(
-              widget.calleeName ??
+              _currentCalleeName ?? widget.calleeName ??
               (widget.publicCode != null && _publicRoomCreatorName != null
                   ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
                   : l10n.voiceVoiceCall),
@@ -2908,6 +3016,88 @@ Answer briefly — the user is in the middle of a conversation.''';
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Future<void> _switchLine(String targetRoomName) async {
+    if (targetRoomName == _roomName) return;
+    // Save current mute state
+    final cs = CallStateService.instance;
+    final oldLine = cs.allLines.where((l) => l.roomName == _roomName).firstOrNull;
+    if (oldLine != null) oldLine.wasMuted = _muted;
+    await cs.holdAndSwitch(targetRoomName);
+    final line = cs.activeLine;
+    if (line != null) _switchToLine(line);
+  }
+
+  Widget _buildLineSwitcher() {
+    final cs = CallStateService.instance;
+    final lines = cs.allLines;
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: colors.card,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: lines.map((line) {
+            final isActive = line.roomName == _roomName;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: isActive ? null : () => _switchLine(line.roomName),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? colors.primary.withValues(alpha: 0.15)
+                        : colors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isActive ? colors.primary : colors.textSecondary.withValues(alpha: 0.3),
+                      width: isActive ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: isActive ? Colors.green : Colors.orange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        line.calleeName ?? line.roomName.substring(0, 8),
+                        style: TextStyle(
+                          color: isActive ? colors.primary : colors.textSecondary,
+                          fontSize: 13,
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                      if (!isActive) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          l10n.voiceOnHold,
+                          style: TextStyle(
+                            color: colors.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -3041,6 +3231,9 @@ Answer briefly — the user is in the middle of a conversation.''';
             ],
           ),
         ),
+        // Line switcher chips (visible only when multiple lines are active)
+        if (CallStateService.instance.lineCount > 1)
+          _buildLineSwitcher(),
         // Participants list or video grid (with screen share support)
         Expanded(
           child: _screenShareFullscreen
@@ -3189,14 +3382,55 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ],
               ),
               const SizedBox(height: 16),
-              // End call button — centered
+              // End call button — centered.
+              // Long-press shows menu to end all calls when multiple lines are active.
               Center(
-                child: _ControlButton(
-                  icon: Icons.call_end_rounded,
-                  label: AppLocalizations.of(context)!.voiceEndCall,
-                  color: AppColors.of(context).error,
-                  onTap: _hangUp,
-                  large: true,
+                child: GestureDetector(
+                  onLongPress: CallStateService.instance.lineCount > 1 ? () {
+                    final l10n = AppLocalizations.of(context)!;
+                    final colors = AppColors.of(context);
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: colors.card,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (ctx) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 8),
+                            Container(
+                              width: 40, height: 4,
+                              decoration: BoxDecoration(
+                                color: colors.textSecondary.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ListTile(
+                              leading: Icon(Icons.call_end_rounded, color: colors.error),
+                              title: Text(l10n.voiceEndThisCall, style: TextStyle(color: colors.textPrimary)),
+                              onTap: () { Navigator.pop(ctx); _hangUp(); },
+                            ),
+                            ListTile(
+                              leading: Icon(Icons.call_end_rounded, color: colors.error),
+                              title: Text(l10n.voiceEndAllCalls, style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+                              onTap: () { Navigator.pop(ctx); _hangUpAll(); },
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                        ),
+                      ),
+                    );
+                  } : null,
+                  child: _ControlButton(
+                    icon: Icons.call_end_rounded,
+                    label: AppLocalizations.of(context)!.voiceEndCall,
+                    color: AppColors.of(context).error,
+                    onTap: _hangUp,
+                    large: true,
+                  ),
                 ),
               ),
             ],

@@ -569,6 +569,10 @@
     }
   },
   "voiceVoiceCall": "Voice call",
+  "voiceOnHold": "On hold",
+  "voiceActiveCall": "Active",
+  "voiceEndAllCalls": "End all calls",
+  "voiceEndThisCall": "End this call",
   "voiceCopyLink": "Copy link",
   "voiceAddParticipant": "Add participant",
   "voiceReconnecting": "Reconnecting...",

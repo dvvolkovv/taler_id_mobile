@@ -99,8 +99,30 @@ void main() {
       await tester.safeTap(find.byType(ElevatedButton));
     }
 
-    // Wait for dashboard
-    final hasDash = await tester.waitFor(find.byType(BottomNavigationBar), timeout: const Duration(seconds: 20));
+    // Handle post-login onboarding (fresh install: isOnboardingSeen = false)
+    await tester.pumpFor(const Duration(seconds: 4));
+    final onboardingDeadline = DateTime.now().add(const Duration(seconds: 20));
+    while (DateTime.now().isBefore(onboardingDeadline)) {
+      await tester.pump(const Duration(milliseconds: 300));
+      if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) break;
+      if (find.text('Skip').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Skip'));
+        break;
+      }
+      if (find.text('Пропустить').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Пропустить'));
+        break;
+      }
+      if (find.text('Next').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Next'));
+      }
+      if (find.text('Далее').evaluate().isNotEmpty) {
+        await tester.safeTap(find.text('Далее'));
+      }
+    }
+
+    // Wait for dashboard (orbital nav — look for chat bubble icon)
+    final hasDash = await tester.waitFor(find.byIcon(Icons.chat_bubble_outline_rounded), timeout: const Duration(seconds: 20));
     expect(hasDash, isTrue, reason: 'Dashboard not found');
     debugPrint('[RECEIVER] Dashboard loaded — waiting for incoming call...');
 
@@ -132,9 +154,10 @@ void main() {
     expect(callReceived, isTrue, reason: 'No incoming call received within 90s');
 
     // ── Verify VoiceCallScreen ────────────────────────────────────
+    // LiveKit connection can take 60s on emulator
     final hasCallScreen = await tester.waitFor(
       find.byIcon(Icons.call_end_rounded),
-      timeout: const Duration(seconds: 15),
+      timeout: const Duration(seconds: 90),
     );
     expect(hasCallScreen, isTrue, reason: 'VoiceCallScreen not found after accepting call');
     debugPrint('[RECEIVER] Voice call screen loaded');
@@ -158,7 +181,8 @@ void main() {
 
     // ── Wait for caller to hangup, or hangup ourselves ────────────
     if (stillInCall) {
-      await tester.pumpFor(const Duration(seconds: 15));
+      // Wait 60s to give the caller time to detect the active call
+      await tester.pumpFor(const Duration(seconds: 60));
 
       // If still in call screen, hangup
       final hangup = find.byIcon(Icons.call_end_rounded);

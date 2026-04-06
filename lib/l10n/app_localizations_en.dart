@@ -1335,6 +1335,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceVoiceCall => 'Voice call';
 
   @override
+  String get voiceOnHold => 'On hold';
+
+  @override
+  String get voiceActiveCall => 'Active';
+
+  @override
+  String get voiceEndAllCalls => 'End all calls';
+
+  @override
+  String get voiceEndThisCall => 'End this call';
+
+  @override
   String get voiceCopyLink => 'Copy link';
 
   @override

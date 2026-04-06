@@ -175,9 +175,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
               title: Text(l10n.contactsTitle),
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.person_search_rounded),
+                  icon: const Icon(Icons.person_add_alt_1_rounded),
                   onPressed: () async {
-                    await context.push('/dashboard/messenger/search');
+                    await context.push('/dashboard/messenger/contacts');
                     _load();
                   },
                   tooltip: l10n.contactsSearchPeople,
