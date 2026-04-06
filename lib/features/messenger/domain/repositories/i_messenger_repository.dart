@@ -10,7 +10,7 @@ abstract class IMessengerRepository {
   Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor});
   Future<List<UserSearchEntity>> searchUsers(String query);
   void joinConversation(String id);
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId});
+  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId});
   void editMessage(String conversationId, String messageId, String newContent);
   void deleteMessage(String conversationId, String messageId, String scope);
   void sendTyping(String conversationId, bool isTyping);

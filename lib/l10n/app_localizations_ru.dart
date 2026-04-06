@@ -1337,6 +1337,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceVoiceCall => 'Голосовой звонок';
 
   @override
+  String get voiceOnHold => 'На удержании';
+
+  @override
+  String get voiceActiveCall => 'Активный';
+
+  @override
+  String get voiceEndAllCalls => 'Завершить все';
+
+  @override
+  String get voiceEndThisCall => 'Завершить этот звонок';
+
+  @override
   String get voiceCopyLink => 'Скопировать ссылку';
 
   @override
@@ -1885,6 +1897,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get contactsResent => 'Запрос отправлен повторно';
+
+  @override
+  String get contactsWantsToConnect => 'Хочет добавить вас в контакты';
+
+  @override
+  String get contactsSearchPeople => 'Найти людей';
 
   @override
   String get notesTitle => 'Заметки';

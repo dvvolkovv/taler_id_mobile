@@ -1335,6 +1335,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceVoiceCall => 'Voice call';
 
   @override
+  String get voiceOnHold => 'On hold';
+
+  @override
+  String get voiceActiveCall => 'Active';
+
+  @override
+  String get voiceEndAllCalls => 'End all calls';
+
+  @override
+  String get voiceEndThisCall => 'End this call';
+
+  @override
   String get voiceCopyLink => 'Copy link';
 
   @override
@@ -1878,6 +1890,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactsResent => 'Request resent';
+
+  @override
+  String get contactsWantsToConnect => 'Wants to connect with you';
+
+  @override
+  String get contactsSearchPeople => 'Find people';
 
   @override
   String get notesTitle => 'Notes';

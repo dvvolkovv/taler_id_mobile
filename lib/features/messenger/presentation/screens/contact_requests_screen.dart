@@ -44,7 +44,6 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
     final query = q.startsWith('@') ? q.substring(1) : q;
     setState(() => _searching = true);
     context.read<MessengerBloc>().add(SearchUsers(query));
-    // Reset flag after short delay
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _searching = false);
     });
@@ -124,7 +123,8 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                 (curr.error != null && curr.error != prev.error),
             buildWhen: (prev, curr) =>
                 prev.searchResults != curr.searchResults ||
-                prev.isLoading != curr.isLoading,
+                prev.isLoading != curr.isLoading ||
+                prev.sentContactRequests != curr.sentContactRequests,
             listener: (context, state) {
               if (state.contactRequestSent != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -170,33 +170,54 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                   final displayName = name.isNotEmpty
                       ? name
                       : (user.username != null ? '@${user.username}' : user.email);
+
+                  // Check if request already sent to this user
+                  final sentReq = state.sentContactRequests.where(
+                    (r) => r['receiverId'] == user.id && (r['status'] as String? ?? 'PENDING') == 'PENDING',
+                  ).firstOrNull;
+                  final alreadySent = sentReq != null;
+                  DateTime? sentAt;
+                  if (alreadySent) {
+                    sentAt = DateTime.tryParse(sentReq['createdAt'] as String? ?? '') ??
+                        DateTime.tryParse(sentReq['updatedAt'] as String? ?? '');
+                  }
+                  final cooldownDone = sentAt == null ||
+                      DateTime.now().difference(sentAt).inHours >= 3;
+                  final nextAllowed = sentAt != null
+                      ? sentAt.add(const Duration(hours: 3))
+                      : null;
+
                   return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: colors.primary,
-                      backgroundImage: user.avatarUrl != null
-                          ? NetworkImage(user.avatarUrl!)
-                          : null,
-                      child: user.avatarUrl == null
-                          ? Text(
-                              displayName[0].toUpperCase(),
-                              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                            )
-                          : null,
-                    ),
+                    leading: _avatar(colors, user.avatarUrl, displayName),
                     title: Text(
                       displayName,
                       style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
                     ),
-                    subtitle: Text(
-                      user.username != null ? '@${user.username}\n${user.email}' : user.email,
-                      style: TextStyle(color: colors.textSecondary, fontSize: 12),
-                    ),
-                    isThreeLine: user.username != null,
-                    trailing: IconButton(
-                      icon: Icon(Icons.person_add_rounded, color: colors.primary),
-                      tooltip: l10n.contactRequestsSendTooltip,
-                      onPressed: () => _sendRequest(context, user.id, displayName),
-                    ),
+                    subtitle: alreadySent
+                        ? Text(
+                            cooldownDone
+                                ? l10n.contactRequestsSent
+                                : _cooldownText(nextAllowed),
+                            style: TextStyle(
+                              color: cooldownDone ? colors.primary : colors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          )
+                        : Text(
+                            user.username != null ? '@${user.username}\n${user.email}' : user.email,
+                            style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                          ),
+                    isThreeLine: !alreadySent && user.username != null,
+                    trailing: alreadySent && !cooldownDone
+                        ? Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Icon(Icons.hourglass_top_rounded, color: colors.textSecondary, size: 20),
+                          )
+                        : IconButton(
+                            icon: Icon(Icons.person_add_rounded, color: colors.primary),
+                            tooltip: l10n.contactRequestsSendTooltip,
+                            onPressed: () => _sendRequest(context, user.id, displayName),
+                          ),
                     onTap: () => context.push('/dashboard/user/${user.id}'),
                   );
                 },
@@ -208,34 +229,101 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
     );
   }
 
+  String _cooldownText(DateTime? nextAllowed) {
+    if (nextAllowed == null) return '';
+    final diff = nextAllowed.difference(DateTime.now());
+    if (diff.inMinutes <= 0) return '';
+    final h = diff.inHours;
+    final m = diff.inMinutes % 60;
+    if (h > 0) return 'Следующий запрос через ${h}ч ${m}мин';
+    return 'Следующий запрос через ${m}мин';
+  }
+
   void _sendRequest(BuildContext context, String userId, String name) {
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.of(context).card,
-        title: Text(l10n.contactRequestTitle, style: TextStyle(color: AppColors.of(context).textPrimary)),
-        content: Text(
-          l10n.contactRequestConfirm(name),
-          style: TextStyle(color: AppColors.of(context).textSecondary),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel, style: TextStyle(color: AppColors.of(context).textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.of(context).primary,
-              foregroundColor: Colors.black,
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<MessengerBloc>().add(SendContactRequest(userId));
-            },
-            child: Text(l10n.contactRequestSend),
-          ),
-        ],
+            const SizedBox(height: 24),
+            // Icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.person_add_rounded, color: colors.primary, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              l10n.contactRequestTitle,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.contactRequestConfirm(name),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colors.textSecondary, fontSize: 14),
+            ),
+            const SizedBox(height: 28),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: colors.border),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      context.read<MessengerBloc>().add(SendContactRequest(userId));
+                    },
+                    child: Text(l10n.contactRequestSend, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -261,7 +349,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
             final id = req['id'] as String;
             final senderId = req['senderId'] as String?;
             return ListTile(
-              leading: _avatar(colors, avatar, name),
+              leading: _avatar(colors, avatar, name.isNotEmpty ? name : (username ?? '?')),
               title: Text(
                 name.isNotEmpty ? name : (username != null ? '@$username' : ''),
                 style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
@@ -272,13 +360,16 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: colors.error),
-                    onPressed: () => context.read<MessengerBloc>().add(RejectContactRequest(id)),
+                  _actionButton(
+                    icon: Icons.close_rounded,
+                    color: colors.error,
+                    onTap: () => context.read<MessengerBloc>().add(RejectContactRequest(id)),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.check_rounded, color: Colors.green),
-                    onPressed: () => context.read<MessengerBloc>().add(AcceptContactRequest(id)),
+                  const SizedBox(width: 8),
+                  _actionButton(
+                    icon: Icons.check_rounded,
+                    color: Colors.green,
+                    onTap: () => context.read<MessengerBloc>().add(AcceptContactRequest(id)),
                   ),
                 ],
               ),
@@ -287,6 +378,21 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
           },
         );
       },
+    );
+  }
+
+  Widget _actionButton({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
     );
   }
 
@@ -311,7 +417,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
             final status = req['status'] as String? ?? 'PENDING';
             final receiverId = req['receiverId'] as String?;
             return ListTile(
-              leading: _avatar(colors, avatar, name),
+              leading: _avatar(colors, avatar, name.isNotEmpty ? name : (username ?? '?')),
               title: Text(
                 name.isNotEmpty ? name : (username != null ? '@$username' : ''),
                 style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),
@@ -323,11 +429,41 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
                   fontSize: 12,
                 ),
               ),
+              trailing: _statusBadge(colors, status),
               onTap: receiverId != null ? () => context.push('/dashboard/user/$receiverId') : null,
             );
           },
         );
       },
+    );
+  }
+
+  Widget _statusBadge(AppColorsExtension colors, String status) {
+    Color bg;
+    Color fg;
+    switch (status) {
+      case 'ACCEPTED':
+        bg = Colors.green.withValues(alpha: 0.15);
+        fg = Colors.green;
+        break;
+      case 'REJECTED':
+        bg = colors.error.withValues(alpha: 0.15);
+        fg = colors.error;
+        break;
+      default:
+        bg = colors.textSecondary.withValues(alpha: 0.12);
+        fg = colors.textSecondary;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        _statusText(status),
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w600),
+      ),
     );
   }
 
@@ -360,6 +496,7 @@ class _ContactRequestsScreenState extends State<ContactRequestsScreen>
 
   Widget _avatar(AppColorsExtension colors, String? url, String name) {
     return CircleAvatar(
+      radius: 22,
       backgroundColor: colors.primary,
       backgroundImage: url != null && url.isNotEmpty ? CachedNetworkImageProvider(url) : null,
       child: (url == null || url.isEmpty)

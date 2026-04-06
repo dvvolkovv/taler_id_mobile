@@ -184,11 +184,36 @@ void main() {
         debugPrint('[TEST] Login screen not found — maybe already authenticated');
       }
 
+      // ── 3b. Handle onboarding after login (first time on device) ──────
+      await tester.pumpFor(const Duration(seconds: 3));
+      final onboardingDeadline = DateTime.now().add(const Duration(seconds: 15));
+      while (DateTime.now().isBefore(onboardingDeadline)) {
+        await tester.pump(const Duration(milliseconds: 300));
+        if (find.text('Next').evaluate().isNotEmpty) {
+          debugPrint('[TEST] Post-login onboarding — tapping through');
+          for (var i = 0; i < 5; i++) {
+            if (find.text('Next').evaluate().isNotEmpty) {
+              await tester.tap(find.text('Next').first, warnIfMissed: false);
+              await tester.pumpFor(const Duration(seconds: 1));
+            }
+          }
+          await tester.safeTap(find.text('Get Started'));
+          await tester.safeTap(find.text('Skip'));
+          break;
+        }
+        if (find.text('Skip').evaluate().isNotEmpty) {
+          await tester.tap(find.text('Skip').first, warnIfMissed: false);
+          await tester.pumpFor(const Duration(seconds: 2));
+          break;
+        }
+        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) break;
+      }
+
       // ── 4. Wait for dashboard (orbital nav assistant screen) ────────
       // The new design has orbital circles — detect Messages circle icon
       final hasDashboard = await tester.waitFor(
         find.byIcon(Icons.chat_bubble_outline_rounded),
-        timeout: const Duration(seconds: 20),
+        timeout: const Duration(seconds: 30),
       );
       expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
       debugPrint('[TEST] Dashboard loaded with orbital navigation');
@@ -246,7 +271,9 @@ void main() {
 
           // Tap save (ElevatedButton or the save text button in AppBar)
           final saveBtn = find.byType(ElevatedButton);
-          final saveText = find.text('Сохранить').or(find.text('Save'));
+          final saveText = find.byWidgetPredicate(
+            (w) => w is Text && (w.data == 'Сохранить' || w.data == 'Save'),
+          );
           if (saveBtn.evaluate().isNotEmpty) {
             await tester.tap(saveBtn.first, warnIfMissed: false);
           } else if (saveText.evaluate().isNotEmpty) {
