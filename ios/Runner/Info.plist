@@ -55,6 +55,8 @@
 	<string>Для сохранения фото и видео из чата на устройство</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Геолокация может использоваться для верификации личности</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Геолокация может использоваться для верификации личности</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
