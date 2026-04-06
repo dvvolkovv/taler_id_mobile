@@ -801,6 +801,8 @@
   "contactsResend": "Отправить повторно",
   "contactsResendTimeout": "Повтор через 24ч",
   "contactsResent": "Запрос отправлен повторно",
+  "contactsWantsToConnect": "Хочет добавить вас в контакты",
+  "contactsSearchPeople": "Найти людей",
   "notesTitle": "Заметки",
   "notesAssistantSpeaking": "Ассистент говорит...",
   "notesListening": "Слушаю...",

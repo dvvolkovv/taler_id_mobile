@@ -3650,6 +3650,18 @@ abstract class AppLocalizations {
   /// **'Request resent'**
   String get contactsResent;
 
+  /// No description provided for @contactsWantsToConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Wants to connect with you'**
+  String get contactsWantsToConnect;
+
+  /// No description provided for @contactsSearchPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'Find people'**
+  String get contactsSearchPeople;
+
   /// No description provided for @notesTitle.
   ///
   /// In en, this message translates to:

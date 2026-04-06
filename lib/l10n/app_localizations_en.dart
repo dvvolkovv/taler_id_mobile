@@ -1880,6 +1880,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactsResent => 'Request resent';
 
   @override
+  String get contactsWantsToConnect => 'Wants to connect with you';
+
+  @override
+  String get contactsSearchPeople => 'Find people';
+
+  @override
   String get notesTitle => 'Notes';
 
   @override

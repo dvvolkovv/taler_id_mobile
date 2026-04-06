@@ -1887,6 +1887,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get contactsResent => 'Запрос отправлен повторно';
 
   @override
+  String get contactsWantsToConnect => 'Хочет добавить вас в контакты';
+
+  @override
+  String get contactsSearchPeople => 'Найти людей';
+
+  @override
   String get notesTitle => 'Заметки';
 
   @override

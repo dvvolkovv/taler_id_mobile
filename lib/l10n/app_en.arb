@@ -801,6 +801,8 @@
   "contactsResend": "Resend request",
   "contactsResendTimeout": "Retry in 24h",
   "contactsResent": "Request resent",
+  "contactsWantsToConnect": "Wants to connect with you",
+  "contactsSearchPeople": "Find people",
   "notesTitle": "Notes",
   "notesAssistantSpeaking": "Assistant speaking...",
   "notesListening": "Listening...",
