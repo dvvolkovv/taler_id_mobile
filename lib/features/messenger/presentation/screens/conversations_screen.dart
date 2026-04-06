@@ -72,95 +72,147 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
 
   void _showUsernameDialog() {
     final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
     final ctrl = TextEditingController();
-    String? errorText;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: StatefulBuilder(
-          builder: (ctx, setDialogState) => AlertDialog(
-            backgroundColor: AppColors.of(context).card,
-            title: Text(
-              l10n.convSetNickname,
-              style: TextStyle(color: AppColors.of(context).textPrimary),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.convNicknameRequired,
-                  style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 13),
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        String? errorText;
+        bool loading = false;
+        return PopScope(
+          canPop: false,
+          child: StatefulBuilder(
+            builder: (ctx, setSheetState) => Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colors.card,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: ctrl,
-                  autofocus: true,
-                  style: TextStyle(color: AppColors.of(context).textPrimary),
-                  decoration: InputDecoration(
-                    hintText: 'username',
-                    hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
-                    prefixText: '@',
-                    prefixStyle: TextStyle(color: AppColors.of(context).primary),
-                    errorText: errorText,
-                    border: const OutlineInputBorder(),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.of(context).primary),
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        decoration: BoxDecoration(color: colors.border, borderRadius: BorderRadius.circular(2)),
+                      ),
                     ),
-                  ),
-                  onChanged: (_) {
-                    if (errorText != null) {
-                      setDialogState(() => errorText = null);
-                    }
-                  },
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Container(
+                          width: 44, height: 44,
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.alternate_email_rounded, color: colors.primary, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(l10n.convSetNickname, style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text(l10n.convNicknameRequired, style: TextStyle(color: colors.textSecondary, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: ctrl,
+                      autofocus: true,
+                      style: TextStyle(color: colors.textPrimary, fontSize: 15),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+                      ],
+                      decoration: InputDecoration(
+                        hintText: 'username',
+                        hintStyle: TextStyle(color: colors.textSecondary),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(left: 14, right: 4),
+                          child: Text('@', style: TextStyle(color: colors.primary, fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                        errorText: errorText,
+                        filled: true,
+                        fillColor: colors.surface,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1.5)),
+                        errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.error)),
+                        focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.error, width: 1.5)),
+                      ),
+                      onChanged: (_) {
+                        if (errorText != null) setSheetState(() => errorText = null);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    Text(l10n.convNicknameRules, style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: loading ? null : () async {
+                        final value = ctrl.text.trim();
+                        final regex = RegExp(r'^[a-zA-Z0-9_]{3,30}$');
+                        if (!regex.hasMatch(value)) {
+                          setSheetState(() => errorText = l10n.convNicknameRules);
+                          return;
+                        }
+                        setSheetState(() => loading = true);
+                        try {
+                          final client = sl<DioClient>();
+                          await client.patch('/profile/username', data: {'username': value}, fromJson: (d) => d);
+                          final cache = sl<CacheService>();
+                          final currentProfile = cache.getProfile() ?? {};
+                          await cache.saveProfile({...currentProfile, 'username': value});
+                          if (mounted) setState(() => _myUsername = value);
+                          if (ctx.mounted) Navigator.pop(ctx);
+                        } on Exception catch (e) {
+                          final msg = e.toString();
+                          setSheetState(() {
+                            loading = false;
+                            errorText = msg.contains('409') ? l10n.convNicknameTaken : l10n.convSaveError;
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        decoration: BoxDecoration(
+                          gradient: loading ? null : LinearGradient(
+                            colors: [colors.primary, Color.lerp(colors.primary, Colors.black, 0.15)!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          color: loading ? colors.surface : null,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: loading ? [] : [BoxShadow(color: colors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                        ),
+                        child: Center(
+                          child: loading
+                              ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2))
+                              : Text(l10n.save, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.convNicknameRules,
-                  style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 11),
-                ),
-              ],
-            ),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.of(context).primary,
-                    foregroundColor: Colors.black),
-                onPressed: () async {
-                  final value = ctrl.text.trim();
-                  final regex = RegExp(r'^[a-zA-Z0-9_]{3,30}$');
-                  if (!regex.hasMatch(value)) {
-                    setDialogState(() =>
-                        errorText = l10n.convNicknameRules);
-                    return;
-                  }
-                  try {
-                    final client = sl<DioClient>();
-                    await client.patch(
-                      '/profile/username',
-                      data: {'username': value},
-                      fromJson: (d) => d,
-                    );
-                    final cache = sl<CacheService>();
-                    final currentProfile = cache.getProfile() ?? {};
-                    await cache.saveProfile({...currentProfile, 'username': value});
-                    if (mounted) setState(() => _myUsername = value);
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  } on Exception catch (e) {
-                    final msg = e.toString();
-                    setDialogState(() => errorText =
-                        msg.contains('409') ? l10n.convNicknameTaken : l10n.convSaveError);
-                  }
-                },
-                child: Text(l10n.save),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1171,33 +1223,34 @@ class _ConversationTile extends StatelessWidget {
             ),
           ],
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              center: const Alignment(-0.3, -0.4),
-              radius: 1.1,
-              colors: [
-                Color.lerp(rainbowColor, Colors.white, 0.25)!,
-                rainbowColor,
-                Color.lerp(rainbowColor, Colors.black, 0.35)!,
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
-          ),
-          child: CircleAvatar(
-            backgroundColor: Colors.transparent,
-            child: avatar != null
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: avatar,
-                      width: 40, height: 40, fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => _avatarLetter(context, displayName, isGroup),
+        child: avatar != null
+            ? CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.transparent,
+                backgroundImage: CachedNetworkImageProvider(avatar),
+              )
+            : CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: [
+                        Color.lerp(rainbowColor, Colors.white, 0.25)!,
+                        rainbowColor,
+                        Color.lerp(rainbowColor, Colors.black, 0.35)!,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
                     ),
-                  )
-                : _avatarLetter(context, displayName, isGroup),
-          ),
-        ),
+                  ),
+                  child: Center(child: _avatarLetter(context, displayName, isGroup)),
+                ),
+              ),
       ),
       title: Row(
         children: [
@@ -1406,45 +1459,39 @@ class _ContactRequestTile extends StatelessWidget {
           border: Border.all(color: ring, width: 2),
           boxShadow: [BoxShadow(color: ring.withValues(alpha: 0.35), blurRadius: 10)],
         ),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: avatar != null
-                ? null
-                : RadialGradient(
-                    center: const Alignment(-0.3, -0.4),
-                    radius: 1.1,
-                    colors: [
-                      Color.lerp(ring, Colors.white, 0.25)!,
-                      ring,
-                      Color.lerp(ring, Colors.black, 0.35)!,
-                    ],
-                    stops: const [0.0, 0.55, 1.0],
-                  ),
-          ),
-          child: CircleAvatar(
-            backgroundColor: Colors.transparent,
-            child: avatar != null
-                ? ClipOval(
-                    child: CachedNetworkImage(
-                      imageUrl: avatar,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
+        child: avatar != null
+            ? CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.transparent,
+                backgroundImage: CachedNetworkImageProvider(avatar),
+              )
+            : CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: [
+                        Color.lerp(ring, Colors.white, 0.25)!,
+                        ring,
+                        Color.lerp(ring, Colors.black, 0.35)!,
+                      ],
+                      stops: const [0.0, 0.55, 1.0],
                     ),
-                  )
-                : Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
-          ),
-        ),
+                  child: Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ),
       ),
       title: Text(name,
           style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600),

@@ -26,8 +26,11 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObserver {
+  // Cache across navigations so Security section doesn't jump on re-entry
+  static bool? _cachedBiometricAvailable;
+
   bool _biometricEnabled = false;
-  bool _biometricAvailable = false;
+  bool _biometricAvailable = _cachedBiometricAvailable ?? false;
   bool _pinEnabled = false;
   String _currentLang = 'ru';
   String _currentTheme = 'light';
@@ -134,6 +137,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     } catch (_) {
       available = false;
     }
+    _cachedBiometricAvailable = available;
     if (!mounted) return;
     setState(() {
       _biometricEnabled = biometricEnabled;
@@ -561,59 +565,118 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
 
   void _showChangePasswordSheet(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
     final oldCtrl = TextEditingController();
     final newCtrl = TextEditingController();
     final confirmCtrl = TextEditingController();
+    bool showOld = false;
+    bool showNew = false;
+    bool showConfirm = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.of(context).card,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          left: 24, right: 24, top: 24,
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(l10n.changePassword,
-                style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 20, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 20),
-            TextField(controller: oldCtrl, obscureText: true,
-                style: TextStyle(color: AppColors.of(context).textPrimary),
-                decoration: InputDecoration(labelText: l10n.currentPassword)),
-            const SizedBox(height: 12),
-            TextField(controller: newCtrl, obscureText: true,
-                style: TextStyle(color: AppColors.of(context).textPrimary),
-                decoration: InputDecoration(labelText: l10n.newPassword)),
-            const SizedBox(height: 12),
-            TextField(controller: confirmCtrl, obscureText: true,
-                style: TextStyle(color: AppColors.of(context).textPrimary),
-                decoration: InputDecoration(labelText: l10n.confirmNewPassword)),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                      if (newCtrl.text.isEmpty || confirmCtrl.text.isEmpty || oldCtrl.text.isEmpty) return;
-                      if (newCtrl.text != confirmCtrl.text) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(l10n.pinMismatch), backgroundColor: AppColors.of(context).error),
-                        );
-                        return;
-                      }
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Coming soon'), backgroundColor: AppColors.of(context).warning),
-                      );
-                    },
-                child: Text(l10n.save),
-              ),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) {
+          return Container(
+            decoration: BoxDecoration(
+              color: colors.card,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
-          ],
-        ),
+            padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+            child: SingleChildScrollView(
+              child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40, height: 4,
+                          decoration: BoxDecoration(color: colors.border, borderRadius: BorderRadius.circular(2)),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(Icons.lock_outline_rounded, color: colors.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            l10n.changePassword,
+                            style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _PasswordField(
+                        controller: oldCtrl,
+                        label: l10n.currentPassword,
+                        icon: Icons.lock_person_outlined,
+                        colors: colors,
+                        obscure: !showOld,
+                        onToggle: () => setSheetState(() => showOld = !showOld),
+                      ),
+                      const SizedBox(height: 12),
+                      _PasswordField(
+                        controller: newCtrl,
+                        label: l10n.newPassword,
+                        icon: Icons.lock_reset_rounded,
+                        colors: colors,
+                        obscure: !showNew,
+                        onToggle: () => setSheetState(() => showNew = !showNew),
+                      ),
+                      const SizedBox(height: 12),
+                      _PasswordField(
+                        controller: confirmCtrl,
+                        label: l10n.confirmNewPassword,
+                        icon: Icons.check_circle_outline_rounded,
+                        colors: colors,
+                        obscure: !showConfirm,
+                        onToggle: () => setSheetState(() => showConfirm = !showConfirm),
+                      ),
+                      const SizedBox(height: 24),
+                      GestureDetector(
+                        onTap: () {
+                          if (oldCtrl.text.isEmpty || newCtrl.text.isEmpty || confirmCtrl.text.isEmpty) return;
+                          if (newCtrl.text != confirmCtrl.text) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.pinMismatch), backgroundColor: colors.error),
+                            );
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: const Text('Coming soon'), backgroundColor: colors.warning),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [colors.primary, Color.lerp(colors.primary, Colors.black, 0.15)!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [BoxShadow(color: colors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                          ),
+                          child: Center(
+                            child: Text(l10n.save, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -750,6 +813,52 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             child: Text(l10n.delete, style: TextStyle(color: AppColors.of(context).error)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final IconData icon;
+  final AppColorsExtension colors;
+  final bool obscure;
+  final VoidCallback onToggle;
+
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    required this.colors,
+    required this.obscure,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: TextStyle(color: colors.textPrimary, fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
+        prefixIcon: Icon(icon, color: colors.textSecondary, size: 18),
+        suffixIcon: GestureDetector(
+          onTap: onToggle,
+          child: Icon(
+            obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            color: colors.textSecondary,
+            size: 18,
+          ),
+        ),
+        filled: true,
+        fillColor: colors.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.border)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.primary, width: 1.5)),
       ),
     );
   }

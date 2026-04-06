@@ -397,6 +397,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         thumbnailLargeUrl: m['thumbnailLargeUrl'] as String?,
         fileRecordId: m['fileRecordId'] as String?,
         topicId: m['topicId'] as String?,
+        clientTempId: m['id'] as String?,
       );
     }
   }
@@ -498,6 +499,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       thumbnailLargeUrl: event.thumbnailLargeUrl,
       fileRecordId: event.fileRecordId,
       topicId: event.topicId,
+      clientTempId: tempId,
     );
   }
 

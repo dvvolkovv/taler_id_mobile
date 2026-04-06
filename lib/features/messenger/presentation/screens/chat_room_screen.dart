@@ -312,6 +312,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _startCall() async {
+    debugPrint('[ChatRoom] _startCall called');
     // Guard: only block when max lines reached
     if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
@@ -384,44 +385,107 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
-      backgroundColor: colors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: colors.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: Icon(Icons.photo_library, color: colors.primary),
-                title: Text(l10n.chatPhotoVideo, style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickMediaFromGallery(); },
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              ListTile(
-                leading: Icon(Icons.camera_alt, color: colors.primary),
-                title: Text(l10n.chatCamera, style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickFromCamera(); },
-              ),
-              ListTile(
-                leading: Icon(Icons.insert_drive_file, color: colors.primary),
-                title: Text(l10n.chatFile, style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickFile(); },
-              ),
-              ListTile(
-                leading: Icon(Icons.person_rounded, color: colors.primary),
-                title: Text(l10n.chatContact, style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _pickContact(); },
-              ),
-              ListTile(
-                leading: Icon(Icons.poll_rounded, color: colors.primary),
-                title: Text(AppLocalizations.of(context)!.messengerPoll, style: TextStyle(color: colors.textPrimary)),
-                onTap: () { Navigator.pop(ctx); _showCreatePoll(); },
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _attachItem(
+                    ctx: ctx,
+                    icon: Icons.photo_library_rounded,
+                    color: const Color(0xFF4CAF50),
+                    label: l10n.chatPhotoVideo,
+                    onTap: _pickMediaFromGallery,
+                  ),
+                  _attachItem(
+                    ctx: ctx,
+                    icon: Icons.camera_alt_rounded,
+                    color: const Color(0xFF2196F3),
+                    label: l10n.chatCamera,
+                    onTap: _pickFromCamera,
+                  ),
+                  _attachItem(
+                    ctx: ctx,
+                    icon: Icons.insert_drive_file_rounded,
+                    color: const Color(0xFFFF9800),
+                    label: l10n.chatFile,
+                    onTap: _pickFile,
+                  ),
+                  _attachItem(
+                    ctx: ctx,
+                    icon: Icons.person_rounded,
+                    color: const Color(0xFF9C27B0),
+                    label: l10n.chatContact,
+                    onTap: _pickContact,
+                  ),
+                  _attachItem(
+                    ctx: ctx,
+                    icon: Icons.poll_rounded,
+                    color: const Color(0xFFE91E63),
+                    label: l10n.messengerPoll,
+                    onTap: _showCreatePoll,
+                  ),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _attachItem({
+    required BuildContext ctx,
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(ctx);
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.of(context).textSecondary,
+              fontSize: 11,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -791,7 +855,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         widget.conversationId,
         msgContent,
         fileUrl: fileUrl,
-        fileName: result.fileName,
+        fileName: fileName,
         fileSize: result.fileSize,
         fileType: fileType,
         s3Key: result.s3Key,
@@ -1556,83 +1620,135 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ),
               if (_pendingFiles.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: AppColors.of(context).card,
-                  child: SizedBox(
-                    height: 64,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _pendingFiles.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 8),
-                            itemBuilder: (_, i) {
-                              final f = _pendingFiles[i];
-                              return Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  if (f.type == 'image')
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.file(File(f.path), width: 56, height: 56, fit: BoxFit.cover),
-                                    )
-                                  else if (f.type == 'video')
-                                    Container(
-                                      width: 56, height: 56,
-                                      decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(8)),
-                                      child: const Icon(Icons.videocam_rounded, color: Colors.white54, size: 28),
-                                    )
-                                  else
-                                    Container(
-                                      width: 56, height: 56,
-                                      decoration: BoxDecoration(color: AppColors.of(context).background, borderRadius: BorderRadius.circular(8)),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 22),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            f.name.length > 8 ? '${f.name.substring(0, 6)}...' : f.name,
-                                            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 8),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                      ),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).card,
+                    border: Border(top: BorderSide(color: AppColors.of(context).border, width: 0.5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.attach_file_rounded, size: 14, color: AppColors.of(context).textSecondary),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_pendingFiles.length} ${_pendingFiles.length == 1 ? 'файл' : 'файла'}',
+                            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                          ),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => setState(() => _pendingFiles.clear()),
+                            child: Text(
+                              AppLocalizations.of(context)!.cancel,
+                              style: TextStyle(color: AppColors.of(context).error, fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: 80,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _pendingFiles.length + 1,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (_, i) {
+                            if (i == _pendingFiles.length) {
+                              return GestureDetector(
+                                onTap: _showAttachMenu,
+                                child: Container(
+                                  width: 72, height: 72,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.of(context).primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.of(context).primary.withValues(alpha: 0.3), width: 1.5, strokeAlign: BorderSide.strokeAlignInside),
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_rounded, color: AppColors.of(context).primary, size: 26),
+                                      const SizedBox(height: 2),
+                                      Text('Ещё', style: TextStyle(color: AppColors.of(context).primary, fontSize: 10)),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            final f = _pendingFiles[i];
+                            final isImage = f.type == 'image';
+                            final isVideo = f.type == 'video';
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                if (isImage)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.file(File(f.path), width: 72, height: 72, fit: BoxFit.cover),
+                                  )
+                                else if (isVideo)
+                                  Container(
+                                    width: 72, height: 72,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                  Positioned(
-                                    top: -6, right: -6,
-                                    child: GestureDetector(
-                                      onTap: () => _cancelPendingAttachment(i),
-                                      child: Container(
-                                        width: 20, height: 20,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: AppColors.of(context).error,
+                                    child: const Icon(Icons.videocam_rounded, color: Colors.white70, size: 32),
+                                  )
+                                else
+                                  Container(
+                                    width: 72, height: 72,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.of(context).surface,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: AppColors.of(context).border),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.of(context).primary.withValues(alpha: 0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 20),
                                         ),
-                                        child: const Icon(Icons.close, size: 12, color: Colors.white),
-                                      ),
+                                        const SizedBox(height: 4),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                                          child: Text(
+                                            f.name.length > 10 ? '${f.name.substring(0, 8)}…' : f.name,
+                                            style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 9, fontWeight: FontWeight.w500),
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              );
-                            },
-                          ),
+                                Positioned(
+                                  top: -5, right: -5,
+                                  child: GestureDetector(
+                                    onTap: () => _cancelPendingAttachment(i),
+                                    child: Container(
+                                      width: 22, height: 22,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.of(context).error,
+                                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 4)],
+                                      ),
+                                      child: const Icon(Icons.close_rounded, size: 13, color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _showAttachMenu,
-                          child: Container(
-                            width: 40, height: 40,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.of(context).primary.withOpacity(0.15),
-                            ),
-                            child: Icon(Icons.add, color: AppColors.of(context).primary, size: 22),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               if (_isPreparing)
@@ -3220,7 +3336,9 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SafeArea(
+      top: false,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.of(context).card,
@@ -3278,6 +3396,7 @@ class _InputBar extends StatelessWidget {
             ),
         ],
       ),
+    ),
     );
   }
 }
@@ -3451,41 +3570,117 @@ class _DocumentBubbleState extends State<_DocumentBubble> {
     }
   }
 
+  static Color _extColor(String name) {
+    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    switch (ext) {
+      case 'pdf': return const Color(0xFFE53935);
+      case 'doc': case 'docx': return const Color(0xFF1565C0);
+      case 'xls': case 'xlsx': return const Color(0xFF2E7D32);
+      case 'ppt': case 'pptx': return const Color(0xFFEF6C00);
+      case 'zip': case 'rar': case '7z': return const Color(0xFF6A1B9A);
+      case 'mp3': case 'wav': case 'ogg': return const Color(0xFF00838F);
+      default: return const Color(0xFF455A64);
+    }
+  }
+
+  static IconData _extIcon(String name) {
+    final ext = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+    switch (ext) {
+      case 'pdf': return Icons.picture_as_pdf_rounded;
+      case 'doc': case 'docx': return Icons.description_rounded;
+      case 'xls': case 'xlsx': return Icons.table_chart_rounded;
+      case 'ppt': case 'pptx': return Icons.slideshow_rounded;
+      case 'zip': case 'rar': case '7z': return Icons.folder_zip_rounded;
+      case 'mp3': case 'wav': case 'ogg': return Icons.audio_file_rounded;
+      default: return Icons.insert_drive_file_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final color = _extColor(widget.fileName);
+    final icon = _extIcon(widget.fileName);
+    final colors = AppColors.of(context);
+
     return GestureDetector(
       onTap: _downloading ? null : _openFile,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_downloading)
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: colors.background.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colors.border.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icon with download progress overlay
             SizedBox(
-              width: 20, height: 20,
-              child: CircularProgressIndicator(
-                value: _progress,
-                strokeWidth: 2,
-                color: AppColors.of(context).primary,
+              width: 44,
+              height: 44,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                  if (_downloading)
+                    SizedBox(
+                      width: 44, height: 44,
+                      child: CircularProgressIndicator(
+                        value: _progress,
+                        strokeWidth: 2.5,
+                        color: color,
+                        backgroundColor: color.withValues(alpha: 0.2),
+                      ),
+                    ),
+                ],
               ),
-            )
-          else
-            Icon(Icons.insert_drive_file_rounded, color: AppColors.of(context).primary, size: 20),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.fileName,
-                  style: TextStyle(color: AppColors.of(context).primary, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (_sizeLabel.isNotEmpty)
-                  Text(_sizeLabel, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 11)),
-              ],
             ),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.fileName,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (_sizeLabel.isNotEmpty) ...[
+                        Text(_sizeLabel, style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+                        const SizedBox(width: 6),
+                      ],
+                      if (_downloading)
+                        Text(
+                          '${((_progress ?? 0) * 100).toInt()}%',
+                          style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
+                        )
+                      else
+                        Icon(Icons.download_rounded, size: 13, color: colors.textSecondary),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

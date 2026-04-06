@@ -19,6 +19,10 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import '../../../core/notifications/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
+import 'package:dio/dio.dart' as dio_pkg;
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/services/share_intent_service.dart';
 import '../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -503,8 +507,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final convId = data['conversationId'] as String? ?? '';
     final e2eeKey = data['e2eeKey'] as String?;
 
-    // If already in a call, silently dismiss incoming call invite
-    if (CallStateService.instance.isInCall) {
+    // If at max call lines, silently dismiss incoming call invite
+    if (!CallStateService.instance.canAddLine) {
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
       return;
     }
@@ -528,6 +532,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         roomName: roomName,
         convId: convId,
         fromAvatar: fromAvatar,
+      );
+      _showIncomingCallDialog(
+        context,
+        fromName: fromName,
+        fromAvatar: fromAvatar,
+        roomName: roomName,
+        convId: convId,
+        e2eeKey: e2eeKey,
       );
     } else {
       // App is backgrounded/paused: use native CallKit UI
@@ -716,7 +728,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   ),
                 ),
                 subtitle: Text(
-                  isActive ? 'Active' : 'On hold',
+                  isActive ? AppLocalizations.of(context)!.voiceActiveCall : AppLocalizations.of(context)!.voiceOnHold,
                   style: TextStyle(color: isActive ? colors.primary : colors.textSecondary, fontSize: 12),
                 ),
                 trailing: Row(
@@ -729,7 +741,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                           Navigator.pop(ctx);
                           await CallStateService.instance.holdAndSwitch(line.roomName);
                           if (context.mounted) {
-                            context.push(
+                            context.go(
                               '/dashboard/voice?room=${line.roomName}${line.conversationId != null ? '&convId=${line.conversationId}' : ''}',
                             );
                           }
@@ -740,7 +752,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                         icon: Icon(Icons.open_in_new_rounded, color: colors.primary),
                         onPressed: () {
                           Navigator.pop(ctx);
-                          context.push(
+                          context.go(
                             '/dashboard/voice?room=${line.roomName}${line.conversationId != null ? '&convId=${line.conversationId}' : ''}',
                           );
                         },
@@ -799,7 +811,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       final room = cs.roomName;
                       final convId = cs.conversationId;
                       if (room != null) {
-                        context.push(
+                        context.go(
                           '/dashboard/voice?room=$room${convId != null ? '&convId=$convId' : ''}',
                         );
                       }
@@ -820,7 +832,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                             Flexible(
                               child: Text(
                                 heldCount > 0
-                                    ? '${l10n.dashboardActiveCall} · $heldCount on hold'
+                                    ? '${l10n.dashboardActiveCall} · $heldCount ${l10n.voiceOnHold.toLowerCase()}'
                                     : l10n.dashboardActiveCall,
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -867,7 +879,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 }
 
-class _UpdateBanner extends StatelessWidget {
+class _UpdateBanner extends StatefulWidget {
   final String version;
   final String downloadUrl;
   final VoidCallback onDismiss;
@@ -879,54 +891,114 @@ class _UpdateBanner extends StatelessWidget {
   });
 
   @override
+  State<_UpdateBanner> createState() => _UpdateBannerState();
+}
+
+class _UpdateBannerState extends State<_UpdateBanner> {
+  double? _progress; // null = idle, 0..1 = downloading
+  bool _installing = false;
+
+  Future<void> _downloadAndInstall() async {
+    if (_progress != null || _installing) return;
+
+    // Android-only: download APK and install
+    if (!Platform.isAndroid) {
+      final uri = Uri.parse(widget.downloadUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+
+    setState(() => _progress = 0);
+    try {
+      final dir = await getTemporaryDirectory();
+      final apkPath = '${dir.path}/taler_id_update.apk';
+
+      await dio_pkg.Dio().download(
+        widget.downloadUrl,
+        apkPath,
+        onReceiveProgress: (received, total) {
+          if (total > 0 && mounted) {
+            setState(() => _progress = received / total);
+          }
+        },
+      );
+
+      if (!mounted) return;
+      setState(() { _progress = null; _installing = true; });
+
+      await OpenFilex.open(apkPath, type: 'application/vnd.android.package-archive');
+    } catch (_) {
+      if (mounted) setState(() { _progress = null; _installing = false; });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isDownloading = _progress != null;
+
     return Container(
       width: double.infinity,
-      color: const Color(0xFFE65100),
+      color: const Color(0xFF1565C0),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  AppLocalizations.of(context)!.dashboardUpdateAvailable(version),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isDownloading
+                          ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
+                          : _installing
+                              ? 'Устанавливается...'
+                              : l10n.dashboardUpdateAvailable(widget.version),
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
                   ),
-                ),
+                  if (!isDownloading && !_installing) ...[
+                    TextButton(
+                      onPressed: _downloadAndInstall,
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        minimumSize: Size.zero,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: Text(l10n.dashboardUpdate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: widget.onDismiss,
+                      child: const Padding(
+                        padding: EdgeInsets.all(4),
+                        child: Icon(Icons.close, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ] else if (isDownloading)
+                    const SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    ),
+                ],
               ),
-              TextButton(
-                onPressed: () async {
-                  final uri = Uri.parse(downloadUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  minimumSize: Size.zero,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
-                child: Text(AppLocalizations.of(context)!.dashboardUpdate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+            ),
+            if (isDownloading)
+              LinearProgressIndicator(
+                value: _progress,
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                minHeight: 3,
               ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: onDismiss,
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(Icons.close, color: Colors.white, size: 18),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
