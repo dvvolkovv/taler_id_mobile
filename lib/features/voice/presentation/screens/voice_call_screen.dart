@@ -200,6 +200,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Dismiss any keyboard left over from the previous screen (e.g. chat input)
+    FocusManager.instance.primaryFocus?.unfocus();
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     _initTime = DateTime.now();
@@ -2900,6 +2902,7 @@ Answer briefly — the user is in the middle of a conversation.''';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
       appBar: AppBar(
         title: Builder(

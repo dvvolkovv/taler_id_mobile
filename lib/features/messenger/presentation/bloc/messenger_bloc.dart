@@ -832,9 +832,10 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   void _onContactRequestAccepted(ContactRequestAccepted event, Emitter<MessengerState> emit) {
-    // Refresh conversations and sent requests to update profile screen state
+    // Refresh all lists — another device may have accepted/rejected
     add(LoadConversations());
     add(LoadSentContactRequests());
+    add(LoadContactRequests());
     emit(state.copyWith(clearContactRequestSent: true));
   }
 

@@ -23,6 +23,7 @@ import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:share_plus/share_plus.dart';
+import 'package:camera/camera.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
@@ -58,6 +59,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   late final TextEditingController _ctrl;
   late final ScrollController _scrollCtrl;
   final _recorder = AudioRecorder();
+  /// ID of video note that should auto-play next
+  final ValueNotifier<String?> _autoPlayVideoNote = ValueNotifier(null);
   bool _isRecording = false;
   String? _recordingPath;
   double _prevKeyboardHeight = 0;
@@ -871,8 +874,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       setState(() => _uploadProgress = null);
       _uploadCancelToken = null;
       if (e is DioException && e.type == DioExceptionType.cancel) return;
+      final errMsg = (e is DioException && e.response?.statusCode != null)
+          ? 'Server error (${e.response!.statusCode}). Try again later.'
+          : 'Upload failed. Check your connection.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.chatFileUploadError(e.toString())), backgroundColor: AppColors.of(context).error),
+        SnackBar(content: Text(errMsg), backgroundColor: AppColors.of(context).error),
       );
     }
   }
@@ -966,25 +972,40 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
-  Future<void> _recordVideoNote() async {
+  String? _videoNoteLocalPath; // local path for preview while uploading
+  double? _videoNoteProgress;
+  bool _videoRecording = false; // inline video recorder is active
+  final GlobalKey<_VideoNoteOverlayState> _videoOverlayKey = GlobalKey();
+
+  /// Show inline video recorder overlay (called on long press of video button)
+  void _startVideoRecording() {
+    setState(() => _videoRecording = true);
+  }
+
+  /// Stop recording and send (called on long press release)
+  void _stopVideoRecording() {
+    _videoOverlayKey.currentState?.stopAndSend();
+  }
+
+  /// Called when video recording is done with a file path
+  Future<void> _onVideoRecorded(String path) async {
+    setState(() { _videoRecording = false; _videoNoteLocalPath = path; _videoNoteProgress = 0; });
     try {
-      final picker = ImagePicker();
-      final video = await picker.pickVideo(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.front,
-        maxDuration: const Duration(seconds: 60),
-      );
-      if (video == null || !mounted) return;
       final client = sl<DioClient>();
+      final ext = path.split('.').last;
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(video.path, filename: 'video_note.mp4'),
+        'file': await MultipartFile.fromFile(path, filename: 'video_note.$ext'),
       });
-      final res = await client.post(
+      final res = await client.uploadFile<Map<String, dynamic>>(
         '/messenger/files',
-        data: formData,
+        formData: formData,
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        onProgress: (sent, total) {
+          if (mounted && total > 0) setState(() => _videoNoteProgress = sent / total);
+        },
       );
       if (!mounted) return;
+      setState(() { _videoNoteLocalPath = null; _videoNoteProgress = null; });
       context.read<MessengerBloc>().add(SendMessage(
         widget.conversationId,
         AppLocalizations.of(context)!.messengerVideoMessage,
@@ -996,12 +1017,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         thumbnailMediumUrl: res['thumbnailMediumUrl'] as String?,
         topicId: widget.topicId,
       ));
+      try { File(path).deleteSync(); } catch (_) {}
     } catch (e) {
       if (!mounted) return;
+      setState(() { _videoNoteLocalPath = null; _videoNoteProgress = null; });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.messengerVideoRecordError), backgroundColor: AppColors.of(context).error),
       );
     }
+  }
+
+  void _onVideoCancelled() {
+    setState(() => _videoRecording = false);
   }
 
   void _onTextChanged() {
@@ -1528,6 +1555,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 },
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startCall : null,
+                                autoPlayVideoNote: _autoPlayVideoNote,
                               ),
                             ],
                           );
@@ -1815,6 +1843,46 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ],
                   ),
                 ),
+              if (_videoNoteLocalPath != null && _videoNoteProgress != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: AppColors.of(context).card,
+                  child: Row(
+                    children: [
+                      // Video thumbnail preview
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(28),
+                        child: SizedBox(
+                          width: 56, height: 56,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Container(color: AppColors.of(context).surface, child: const Icon(Icons.videocam_rounded, color: Colors.white38, size: 24)),
+                              Center(
+                                child: SizedBox(
+                                  width: 28, height: 28,
+                                  child: CircularProgressIndicator(
+                                    value: _videoNoteProgress,
+                                    strokeWidth: 3,
+                                    backgroundColor: AppColors.of(context).textSecondary.withValues(alpha: 0.2),
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.of(context).primary),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context)!.chatUploading((_videoNoteProgress! * 100).toInt()),
+                          style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               if (_iBlockedThem || _theyBlockedMe)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1860,7 +1928,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
                   onRecordStop: _stopRecordingAndSend,
-                  onVideoNote: _recordVideoNote,
+                  onVideoNote: _startVideoRecording,
+                  onVideoRecordStart: _startVideoRecording,
+                  onVideoRecordStop: _stopVideoRecording,
                 ),
             ],
           );
@@ -1868,6 +1938,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
       ),
     ),
+        // Video note recorder overlay
+        if (_videoRecording)
+          Positioned.fill(
+            child: _VideoNoteOverlay(
+              key: _videoOverlayKey,
+              onDone: _onVideoRecorded,
+              onSegmentDone: _onVideoRecorded,
+              onCancel: _onVideoCancelled,
+            ),
+          ),
       ],
     );
   }
@@ -2001,6 +2081,7 @@ class _MessageBubble extends StatefulWidget {
   final String? currentUserId;
   final List<MessageEntity> allMessages;
   final VoidCallback? onStartCall;
+  final ValueNotifier<String?>? autoPlayVideoNote;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -2016,6 +2097,7 @@ class _MessageBubble extends StatefulWidget {
     this.currentUserId,
     this.allMessages = const [],
     this.onStartCall,
+    this.autoPlayVideoNote,
   });
 
   @override
@@ -2046,6 +2128,11 @@ class _MessageBubbleState extends State<_MessageBubble> {
   Widget build(BuildContext context) {
     if (widget.message.isSystem) {
       return _buildSystemMessage(context);
+    }
+
+    // Video note: render as bare circle without bubble frame
+    if (widget.message.fileUrl != null && widget.message.fileType == 'video_note') {
+      return _buildVideoNoteMessage(context);
     }
 
     return GestureDetector(
@@ -2717,6 +2804,71 @@ class _MessageBubbleState extends State<_MessageBubble> {
     );
   }
 
+  Widget _buildVideoNoteMessage(BuildContext context) {
+    final colors = AppColors.of(context);
+    const size = 200.0;
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(context),
+      child: Align(
+        alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Column(
+            crossAxisAlignment: widget.isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+            children: [
+              // Sender name for group chats
+              if (!widget.isMe && widget.senderName != null && widget.senderName!.isNotEmpty && widget.isFirstInGroup)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4, left: 4),
+                  child: Text(widget.senderName!, style: TextStyle(color: rainbowColorFor(widget.senderName!), fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              _VideoNoteCirclePlayer(
+                videoUrl: widget.message.fileUrl!,
+                thumbnailUrl: widget.message.thumbnailMediumUrl,
+                size: size,
+                messageId: widget.message.id,
+                autoPlayNotifier: widget.autoPlayVideoNote,
+                onCompleted: () {
+                  // allMessages is newest-first (reversed ListView). Next to play = older = idx+1.
+                  final videoNotes = widget.allMessages
+                      .where((m) => m.fileUrl != null && m.fileType == 'video_note')
+                      .toList();
+                  final idx = videoNotes.indexWhere((m) => m.id == widget.message.id);
+                  if (idx >= 0 && idx + 1 < videoNotes.length) {
+                    widget.autoPlayVideoNote?.value = videoNotes[idx + 1].id;
+                  } else {
+                    widget.autoPlayVideoNote?.value = null;
+                  }
+                },
+              ),
+              // Timestamp
+              Padding(
+                padding: const EdgeInsets.only(top: 2, right: 4, left: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      DateFormat.Hm().format(widget.message.sentAt.toLocal()),
+                      style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                    ),
+                    if (widget.isMe) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        widget.message.id.startsWith('temp_') ? Icons.access_time : Icons.done_all,
+                        size: 14,
+                        color: colors.textSecondary,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSystemMessage(BuildContext context) {
     String text;
     Map<String, dynamic>? data;
@@ -3315,7 +3467,7 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
   }
 }
 
-class _InputBar extends StatelessWidget {
+class _InputBar extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
   final VoidCallback onAttach;
@@ -3323,6 +3475,8 @@ class _InputBar extends StatelessWidget {
   final VoidCallback onRecordStart;
   final VoidCallback onRecordStop;
   final VoidCallback? onVideoNote;
+  final VoidCallback? onVideoRecordStart;
+  final VoidCallback? onVideoRecordStop;
 
   const _InputBar({
     required this.controller,
@@ -3332,67 +3486,113 @@ class _InputBar extends StatelessWidget {
     required this.onRecordStart,
     required this.onRecordStop,
     this.onVideoNote,
+    this.onVideoRecordStart,
+    this.onVideoRecordStop,
   });
 
   @override
+  State<_InputBar> createState() => _InputBarState();
+}
+
+class _InputBarState extends State<_InputBar> {
+  /// true = mic mode (default), false = video mode
+  bool _micMode = true;
+
+  @override
   Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
     return SafeArea(
       top: false,
       child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.of(context).card,
+        color: colors.card,
         border: Border(
-          top: BorderSide(color: AppColors.of(context).border),
+          top: BorderSide(color: colors.border),
         ),
       ),
       child: Row(
         children: [
           IconButton(
-            onPressed: isRecording ? null : onAttach,
-            icon: Icon(Icons.attach_file_rounded, color: AppColors.of(context).textSecondary),
+            onPressed: widget.isRecording ? null : widget.onAttach,
+            icon: Icon(Icons.attach_file_rounded, color: colors.textSecondary),
           ),
           Expanded(
-            child: isRecording
+            child: widget.isRecording
                 ? Row(
                     children: [
-                      Icon(Icons.circle, color: AppColors.of(context).error, size: 12),
-                      SizedBox(width: 8),
-                      Text(AppLocalizations.of(context)!.chatRecording, style: TextStyle(color: AppColors.of(context).error, fontSize: 14)),
+                      Icon(Icons.circle, color: colors.error, size: 12),
+                      const SizedBox(width: 8),
+                      Text(
+                        _micMode
+                            ? AppLocalizations.of(context)!.chatRecording
+                            : AppLocalizations.of(context)!.chatRecording,
+                        style: TextStyle(color: colors.error, fontSize: 14),
+                      ),
                     ],
                   )
                 : TextField(
-                    controller: controller,
-                    style: TextStyle(color: AppColors.of(context).textPrimary),
+                    controller: widget.controller,
+                    style: TextStyle(color: colors.textPrimary),
                     textCapitalization: TextCapitalization.sentences,
                     minLines: 1,
                     maxLines: 5,
                     decoration: InputDecoration(
                       hintText: AppLocalizations.of(context)!.chatMessageHint,
-                      hintStyle: TextStyle(color: AppColors.of(context).textSecondary),
+                      hintStyle: TextStyle(color: colors.textSecondary),
                       border: InputBorder.none,
                     ),
                     textInputAction: TextInputAction.newline,
                   ),
           ),
-          // Mic/Video button: long press = voice, short tap = video note
+          // Mic / Video toggle button:
+          // - Tap: switch between mic ↔ video mode
+          // - Long press mic: record voice (release = send)
+          // - Long press video: record video note (release = stop & send)
           GestureDetector(
-            onTap: isRecording ? null : onVideoNote,
-            onLongPressStart: (_) => onRecordStart(),
-            onLongPressEnd: (_) => onRecordStop(),
+            onTap: () {
+              if (widget.isRecording) return;
+              setState(() => _micMode = !_micMode);
+            },
+            onLongPressStart: (_) {
+              if (_micMode) {
+                widget.onRecordStart();
+              } else {
+                widget.onVideoRecordStart?.call();
+              }
+            },
+            onLongPressEnd: (_) {
+              if (_micMode) {
+                widget.onRecordStop();
+              } else {
+                widget.onVideoRecordStop?.call();
+              }
+            },
             child: Container(
               padding: const EdgeInsets.all(8),
-              child: Icon(
-                isRecording ? Icons.stop_circle_rounded : Icons.mic_rounded,
-                color: isRecording ? AppColors.of(context).error : AppColors.of(context).textSecondary,
-                size: 24,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Icon(
+                  widget.isRecording
+                      ? Icons.stop_circle_rounded
+                      : _micMode
+                          ? Icons.mic_rounded
+                          : Icons.videocam_rounded,
+                  key: ValueKey(widget.isRecording ? 'stop' : _micMode ? 'mic' : 'video'),
+                  color: widget.isRecording
+                      ? colors.error
+                      : _micMode
+                          ? colors.textSecondary
+                          : colors.primary,
+                  size: 24,
+                ),
               ),
             ),
           ),
-          if (!isRecording)
+          if (!widget.isRecording)
             IconButton(
-              onPressed: onSend,
-              icon: Icon(Icons.send_rounded, color: AppColors.of(context).primary),
+              onPressed: widget.onSend,
+              icon: Icon(Icons.send_rounded, color: colors.primary),
             ),
         ],
       ),
@@ -4575,4 +4775,379 @@ class _PendingFile {
   final String name;
   final String? type;
   const _PendingFile({required this.path, required this.name, this.type});
+}
+
+// ── Inline video note recorder (circular camera overlay) ──
+
+class _VideoNoteOverlay extends StatefulWidget {
+  final void Function(String path) onDone;
+  final void Function(String path)? onSegmentDone; // send segment, keep recording
+  final VoidCallback onCancel;
+  const _VideoNoteOverlay({super.key, required this.onDone, this.onSegmentDone, required this.onCancel});
+
+  @override
+  State<_VideoNoteOverlay> createState() => _VideoNoteOverlayState();
+}
+
+class _VideoNoteOverlayState extends State<_VideoNoteOverlay> with SingleTickerProviderStateMixin {
+  CameraController? _cam;
+  bool _initializing = true;
+  bool _recording = false;
+  bool _stopping = false;
+  Timer? _timer;
+  int _seconds = 0;
+  static const _maxSeconds = 60;
+  late AnimationController _ringCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ringCtrl = AnimationController(vsync: this, duration: const Duration(seconds: _maxSeconds));
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) { widget.onCancel(); return; }
+      final front = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+      _cam = CameraController(front, ResolutionPreset.medium, enableAudio: true);
+      await _cam!.initialize();
+      if (!mounted) return;
+      setState(() => _initializing = false);
+      _startRecording();
+    } catch (e) {
+      debugPrint('[VideoNote] Camera init error: $e');
+      if (mounted) widget.onCancel();
+    }
+  }
+
+  Future<void> _startRecording() async {
+    if (_cam == null || !_cam!.value.isInitialized) return;
+    try {
+      await _cam!.startVideoRecording();
+      _stopping = false;
+      setState(() => _recording = true);
+      _ringCtrl.forward(from: 0);
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() => _seconds++);
+        if (_seconds >= _maxSeconds) _autoSegment();
+      });
+    } catch (e) {
+      debugPrint('[VideoNote] Start recording error: $e');
+      if (mounted) widget.onCancel();
+    }
+  }
+
+  /// Auto-send current segment and start recording the next one
+  Future<void> _autoSegment() async {
+    if (_stopping || !_recording) return;
+    _stopping = true;
+    _timer?.cancel();
+    _ringCtrl.stop();
+    try {
+      final xfile = await _cam!.stopVideoRecording();
+      final ext = xfile.path.split('.').last;
+      final dir = await getTemporaryDirectory();
+      final outPath = '${dir.path}/video_note_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await File(xfile.path).copy(outPath);
+      // Send this segment but keep overlay open
+      widget.onSegmentDone?.call(outPath) ?? widget.onDone(outPath);
+      // Reset and start next recording immediately
+      if (mounted && widget.onSegmentDone != null) {
+        setState(() { _seconds = 0; _recording = false; });
+        await _startRecording();
+      }
+    } catch (e) {
+      debugPrint('[VideoNote] Auto-segment error: $e');
+      if (mounted) widget.onCancel();
+    }
+  }
+
+  /// Final stop — user released the button
+  Future<void> stopAndSend() async {
+    if (_stopping || !_recording) return;
+    _stopping = true;
+    _timer?.cancel();
+    _ringCtrl.stop();
+    try {
+      final xfile = await _cam!.stopVideoRecording();
+      final ext = xfile.path.split('.').last;
+      final dir = await getTemporaryDirectory();
+      final outPath = '${dir.path}/video_note_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await File(xfile.path).copy(outPath);
+      if (mounted) widget.onDone(outPath);
+    } catch (e) {
+      debugPrint('[VideoNote] Stop recording error: $e');
+      if (mounted) widget.onCancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _ringCtrl.dispose();
+    _cam?.dispose();
+    super.dispose();
+  }
+
+  String get _timeStr {
+    final m = (_seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (_seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final size = MediaQuery.of(context).size;
+    final circleSize = size.width * 0.65;
+
+    return Material(
+      color: Colors.black.withValues(alpha: 0.9),
+      child: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Spacer(flex: 2),
+            SizedBox(
+              width: circleSize + 12,
+              height: circleSize + 12,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Progress ring
+                  SizedBox(
+                    width: circleSize + 12,
+                    height: circleSize + 12,
+                    child: AnimatedBuilder(
+                      animation: _ringCtrl,
+                      builder: (_, __) => CircularProgressIndicator(
+                        value: _ringCtrl.value,
+                        strokeWidth: 4,
+                        backgroundColor: colors.border,
+                        valueColor: AlwaysStoppedAnimation<Color>(colors.error),
+                      ),
+                    ),
+                  ),
+                  // Camera preview
+                  ClipOval(
+                    child: SizedBox(
+                      width: circleSize,
+                      height: circleSize,
+                      child: _initializing || _cam == null
+                          ? Container(
+                              color: colors.surface,
+                              child: Center(child: CircularProgressIndicator(color: colors.primary, strokeWidth: 2)),
+                            )
+                          : FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width: _cam!.value.previewSize?.height ?? circleSize,
+                                height: _cam!.value.previewSize?.width ?? circleSize,
+                                child: CameraPreview(_cam!),
+                              ),
+                            ),
+                    ),
+                  ),
+                  // Timer badge
+                  if (_recording)
+                    Positioned(
+                      bottom: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: colors.error,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                            const SizedBox(width: 5),
+                            Text(_timeStr, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text('Отпустите для отправки', style: TextStyle(color: colors.textSecondary, fontSize: 14)),
+            const Spacer(flex: 3),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Circular video note player with progress ring (draggable) ──
+
+class _VideoNoteCirclePlayer extends StatefulWidget {
+  final String videoUrl;
+  final String? thumbnailUrl;
+  final double size;
+  final String? messageId;
+  final ValueNotifier<String?>? autoPlayNotifier;
+  final VoidCallback? onCompleted;
+  const _VideoNoteCirclePlayer({required this.videoUrl, this.thumbnailUrl, this.size = 200, this.messageId, this.autoPlayNotifier, this.onCompleted});
+
+  @override
+  State<_VideoNoteCirclePlayer> createState() => _VideoNoteCirclePlayerState();
+}
+
+class _VideoNoteCirclePlayerState extends State<_VideoNoteCirclePlayer> {
+  vp.VideoPlayerController? _ctrl;
+  bool _playing = false;
+  bool _initialized = false;
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.autoPlayNotifier?.addListener(_onAutoPlay);
+  }
+
+  void _onAutoPlay() {
+    if (widget.autoPlayNotifier?.value == widget.messageId) {
+      _initAndPlay();
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.autoPlayNotifier?.removeListener(_onAutoPlay);
+    _ctrl?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initAndPlay() async {
+    if (_ctrl != null) {
+      if (_playing) {
+        _ctrl!.pause();
+        setState(() => _playing = false);
+      } else {
+        _ctrl!.play();
+        setState(() => _playing = true);
+      }
+      return;
+    }
+    setState(() {}); // show loading
+    try {
+      debugPrint('[VideoNote] Loading: ${widget.videoUrl}');
+      // Download to local cache first for reliable iOS playback
+      final cacheManager = DefaultCacheManager();
+      final fileInfo = await cacheManager.downloadFile(widget.videoUrl);
+      debugPrint('[VideoNote] Cached at: ${fileInfo.file.path}');
+      _ctrl = vp.VideoPlayerController.file(
+        fileInfo.file,
+        videoPlayerOptions: vp.VideoPlayerOptions(mixWithOthers: true),
+      );
+      await _ctrl!.initialize();
+      debugPrint('[VideoNote] Initialized: ${_ctrl!.value.size}');
+      _ctrl!.setLooping(false);
+      _ctrl!.setVolume(1.0);
+      _completed = false;
+      _ctrl!.addListener(_onVideoUpdate);
+      await _ctrl!.play();
+      if (mounted) setState(() { _initialized = true; _playing = true; });
+    } catch (e) {
+      debugPrint('[VideoNote] Play error: $e');
+      try {
+        _ctrl = vp.VideoPlayerController.networkUrl(
+          Uri.parse(widget.videoUrl),
+          videoPlayerOptions: vp.VideoPlayerOptions(mixWithOthers: true),
+        );
+        await _ctrl!.initialize();
+        _ctrl!.setLooping(false);
+        _completed = false;
+        _ctrl!.addListener(_onVideoUpdate);
+        await _ctrl!.play();
+        if (mounted) setState(() { _initialized = true; _playing = true; });
+      } catch (e2) {
+        debugPrint('[VideoNote] Network fallback also failed: $e2');
+      }
+    }
+  }
+
+  void _onVideoUpdate() {
+    if (!mounted) return;
+    setState(() {});
+    final v = _ctrl?.value;
+    if (v != null && v.isInitialized && !v.isPlaying && v.position >= v.duration && v.duration > Duration.zero && !_completed) {
+      _completed = true;
+      setState(() => _playing = false);
+      widget.onCompleted?.call();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final progress = (_ctrl != null && _initialized && _ctrl!.value.duration.inMilliseconds > 0)
+        ? _ctrl!.value.position.inMilliseconds / _ctrl!.value.duration.inMilliseconds
+        : 0.0;
+
+    return GestureDetector(
+      onTap: _initAndPlay,
+      child: SizedBox(
+        width: widget.size + 6,
+        height: widget.size + 6,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Progress ring
+            SizedBox(
+              width: widget.size + 6,
+              height: widget.size + 6,
+              child: CircularProgressIndicator(
+                value: progress.toDouble(),
+                strokeWidth: 3,
+                backgroundColor: colors.border,
+                valueColor: AlwaysStoppedAnimation<Color>(colors.primary),
+              ),
+            ),
+            // Video / thumbnail
+            ClipOval(
+              child: SizedBox(
+                width: widget.size,
+                height: widget.size,
+                child: _initialized && _ctrl != null
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _ctrl!.value.size.width,
+                          height: _ctrl!.value.size.height,
+                          child: vp.VideoPlayer(_ctrl!),
+                        ),
+                      )
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (widget.thumbnailUrl != null)
+                            CachedNetworkImage(imageUrl: widget.thumbnailUrl!, fit: BoxFit.cover)
+                          else
+                            Container(color: colors.surface),
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
+                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

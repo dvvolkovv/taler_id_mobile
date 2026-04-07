@@ -58,6 +58,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   bool _waitingForCallAccept = false; // blocks in-app dialog after CallKit accept
   bool _acceptingInApp = false; // suppresses actionCallDecline after in-app accept
   bool _endingCallKitFromSocket = false; // suppresses actionCallDecline when CallKit ended by socket call_ended
+  final Set<String> _answeredOnOtherDevice = {}; // rooms answered on another device
   Timer? _callAcceptTimer;
   UpdateInfo? _updateInfo;
   bool _updateDismissed = false;
@@ -270,6 +271,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // Ignore own broadcast — sendCallAnswered echoes back to the sender via
       // the server room broadcast. If we are already in this call, skip.
       if (CallStateService.instance.roomName == roomName) return;
+      // Track so late VoIP pushes for this room are also suppressed
+      _answeredOnOtherDevice.add(roomName);
       // Another device of the same user answered — dismiss this device's CallKit UI
       await _endCallKitCallForRoom(roomName, fallbackEndAll: true);
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
@@ -509,6 +512,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
     // If at max call lines, silently dismiss incoming call invite
     if (!CallStateService.instance.canAddLine) {
+      if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
+      return;
+    }
+
+    // If this call was already answered on another device, suppress
+    if (_answeredOnOtherDevice.contains(roomName)) {
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
       return;
     }
