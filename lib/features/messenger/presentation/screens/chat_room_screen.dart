@@ -4856,7 +4856,11 @@ class _VideoNoteOverlayState extends State<_VideoNoteOverlay> with SingleTickerP
       final outPath = '${dir.path}/video_note_${DateTime.now().millisecondsSinceEpoch}.$ext';
       await File(xfile.path).copy(outPath);
       // Send this segment but keep overlay open
-      widget.onSegmentDone?.call(outPath) ?? widget.onDone(outPath);
+      if (widget.onSegmentDone != null) {
+        widget.onSegmentDone!(outPath);
+      } else {
+        widget.onDone(outPath);
+      }
       // Reset and start next recording immediately
       if (mounted && widget.onSegmentDone != null) {
         setState(() { _seconds = 0; _recording = false; });
