@@ -144,4 +144,25 @@ class DioClient {
       throw ApiErrorHandler.handle(e);
     }
   }
+
+  Future<T> uploadFile<T>(
+    String path, {
+    required FormData formData,
+    T Function(dynamic)? fromJson,
+    void Function(int sent, int total)? onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+        onSendProgress: onProgress,
+        cancelToken: cancelToken,
+      );
+      return fromJson != null ? fromJson(response.data) : response.data as T;
+    } on DioException catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
+  }
 }
