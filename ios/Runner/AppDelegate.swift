@@ -2,6 +2,7 @@ import Flutter
 import UIKit
 import AVFoundation
 import PushKit
+import Intents
 import flutter_callkit_incoming
 
 @main
@@ -132,6 +133,85 @@ import flutter_callkit_incoming
       let vfx = VideoEffectsPlugin()
       vfx.register(with: controller.binaryMessenger)
       videoEffectsPlugin = vfx
+    }
+
+    // Set up share suggestions channel (donate INSendMessageIntent for share sheet contacts)
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let shareChannel = FlutterMethodChannel(
+        name: "taler_id/share_suggestions",
+        binaryMessenger: controller.binaryMessenger
+      )
+      shareChannel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "donateConversation":
+          guard let args = call.arguments as? [String: Any],
+                let conversationId = args["conversationId"] as? String,
+                let displayName = args["displayName"] as? String else {
+            result(nil)
+            return
+          }
+          let avatarUrl = args["avatarUrl"] as? String
+
+          if #available(iOS 15.0, *) {
+            let handle = INPersonHandle(value: conversationId, type: .unknown)
+            let person = INPerson(
+              personHandle: handle,
+              nameComponents: {
+                var nc = PersonNameComponents()
+                nc.givenName = displayName
+                return nc
+              }(),
+              displayName: displayName,
+              image: nil,
+              contactIdentifier: nil,
+              customIdentifier: conversationId
+            )
+
+            let intent = INSendMessageIntent(
+              recipients: [person],
+              outgoingMessageType: .outgoingMessageText,
+              content: nil,
+              speakableGroupName: INSpeakableString(spokenPhrase: displayName),
+              conversationIdentifier: conversationId,
+              serviceName: "Taler ID",
+              sender: nil,
+              attachments: nil
+            )
+
+            // Load avatar asynchronously
+            if let urlStr = avatarUrl, let url = URL(string: urlStr) {
+              DispatchQueue.global().async {
+                if let data = try? Data(contentsOf: url) {
+                  let image = INImage(imageData: data)
+                  intent.setImage(image, forParameterNamed: \.speakableGroupName)
+                }
+                let interaction = INInteraction(intent: intent, response: nil)
+                interaction.direction = .outgoing
+                interaction.donate { error in
+                  if let error = error {
+                    NSLog("[ShareSuggestions] Donate error: %@", error.localizedDescription)
+                  } else {
+                    NSLog("[ShareSuggestions] Donated: %@", displayName)
+                  }
+                }
+              }
+            } else {
+              let interaction = INInteraction(intent: intent, response: nil)
+              interaction.direction = .outgoing
+              interaction.donate { error in
+                if let error = error {
+                  NSLog("[ShareSuggestions] Donate error: %@", error.localizedDescription)
+                } else {
+                  NSLog("[ShareSuggestions] Donated: %@", displayName)
+                }
+              }
+            }
+          }
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
 
     // Register for audio session interruptions (parallel calls from other apps/phone)
