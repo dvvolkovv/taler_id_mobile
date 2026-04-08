@@ -1530,7 +1530,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   Widget _buildIdle(AppLocalizations l10n) {
     final colors = AppColors.of(context);
     final screenSize = MediaQuery.of(context).size;
-    final orbitRadius = screenSize.width * 0.33;
+    final shortSide = screenSize.width < screenSize.height ? screenSize.width : screenSize.height;
+    final orbitRadius = (shortSide * 0.30).clamp(100.0, 220.0);
 
     return BlocBuilder<MessengerBloc, MessengerState>(
       builder: (context, msState) {
@@ -1659,8 +1660,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                 child: ScaleTransition(
                   scale: _pulseAnim,
                   child: Container(
-                    width: 120,
-                    height: 120,
+                    width: orbitRadius < 150 ? 90 : 120,
+                    height: orbitRadius < 150 ? 90 : 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.card,
