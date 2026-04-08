@@ -1080,6 +1080,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (!_scrollCtrl.hasClients) return;
     final show = _scrollCtrl.offset > 200;
     if (show != _showScrollToBottom) setState(() => _showScrollToBottom = show);
+    // Load more messages when scrolling near the top (reverse list = high offset)
+    final maxScroll = _scrollCtrl.position.maxScrollExtent;
+    if (_scrollCtrl.offset > maxScroll - 300) {
+      _messengerBloc.add(LoadMoreMessages(widget.conversationId));
+    }
   }
 
   void _enterSearchMode() => setState(() {
