@@ -9,6 +9,7 @@ import '../../data/datasources/messenger_remote_datasource.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
+import '../../../../core/services/share_suggestions_service.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -501,6 +502,20 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       topicId: event.topicId,
       clientTempId: tempId,
     );
+
+    // Donate to iOS share sheet suggestions
+    final conv = state.conversations.where((c) => c.id == event.conversationId).firstOrNull;
+    if (conv != null) {
+      final name = conv.type == 'GROUP'
+          ? (conv.name ?? 'Group')
+          : (conv.otherUserName ?? '');
+      final avatar = conv.type == 'GROUP' ? conv.avatarUrl : conv.otherUserAvatar;
+      ShareSuggestionsService.donateConversation(
+        conversationId: event.conversationId,
+        displayName: name,
+        avatarUrl: avatar,
+      );
+    }
   }
 
   void _onMessageReceived(

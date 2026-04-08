@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/api/dio_client.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/services/share_intent_service.dart';
@@ -168,11 +170,91 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     return AppLocalizations.of(context)!.shareFilesCount(count);
   }
 
-  void _sendToConversation(ConversationEntity conv) {
-    // Navigate to chat and send files
+  Future<void> _sendToConversation(ConversationEntity conv) async {
+    // If group with topics — show topic picker
+    if (conv.topicsEnabled) {
+      _showTopicPicker(conv);
+      return;
+    }
+    _navigateToChat(conv.id);
+  }
+
+  Future<void> _showTopicPicker(ConversationEntity conv) async {
+    setState(() {}); // show loading state if needed
+    try {
+      final client = sl<DioClient>();
+      final topics = await client.get<List<dynamic>>(
+        '/messenger/conversations/${conv.id}/topics',
+        fromJson: (d) => d as List<dynamic>,
+      );
+      if (!mounted) return;
+
+      final topicList = topics
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+
+      if (topicList.isEmpty) {
+        // No topics — send to general
+        _navigateToChat(conv.id);
+        return;
+      }
+
+      // Show bottom sheet with topics
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) => Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.of(context).card,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.of(context).textSecondary.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                Text(AppLocalizations.of(context)!.shareSelectChat, style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                ...topicList.map((t) {
+                  final icon = t['icon'] as String? ?? '💬';
+                  final title = t['title'] as String? ?? '';
+                  final id = t['id'] as String? ?? '';
+                  return ListTile(
+                    leading: Text(icon, style: const TextStyle(fontSize: 24)),
+                    title: Text(title, style: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w600)),
+                    trailing: Icon(Icons.send_rounded, color: AppColors.of(context).primary, size: 20),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _navigateToChat(conv.id, topicId: id, topicTitle: title);
+                    },
+                  );
+                }),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      // Fallback — send without topic
+      _navigateToChat(conv.id);
+    }
+  }
+
+  void _navigateToChat(String convId, {String? topicId, String? topicTitle}) {
+    final files = widget.sharedFiles;
     ShareIntentService.instance.clearFiles();
-    context.pushReplacement('/dashboard/messenger/${conv.id}', extra: {
-      'sharedFiles': widget.sharedFiles,
+    Navigator.of(context, rootNavigator: true).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go('/dashboard/messenger/$convId', extra: {
+        'sharedFiles': files,
+        if (topicId != null) 'topicId': topicId,
+        if (topicTitle != null) 'topicTitle': topicTitle,
+      });
     });
   }
 }

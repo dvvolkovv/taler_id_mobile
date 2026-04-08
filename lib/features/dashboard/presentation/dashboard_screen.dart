@@ -453,18 +453,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       );
     });
     // Check for initial files (app was cold-started via share)
-    final initial = ShareIntentService.instance.initialFiles;
-    if (initial != null && initial.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Multiple checks with delays since getInitialMedia() is async
+    for (final delay in [500, 1500, 3000]) {
+      Future.delayed(Duration(milliseconds: delay), () {
         if (!mounted) return;
-        Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => BlocProvider.value(
-              value: context.read<MessengerBloc>(),
-              child: ShareTargetScreen(sharedFiles: initial),
+        final initial = ShareIntentService.instance.initialFiles;
+        if (initial != null && initial.isNotEmpty) {
+          ShareIntentService.instance.clearFiles();
+          Navigator.of(context, rootNavigator: true).push(
+            MaterialPageRoute(
+              builder: (_) => BlocProvider.value(
+                value: context.read<MessengerBloc>(),
+                child: ShareTargetScreen(sharedFiles: initial),
+              ),
             ),
-          ),
-        );
+          );
+        }
       });
     }
   }

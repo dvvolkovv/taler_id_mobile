@@ -6,15 +6,27 @@ import AVFoundation
 
 /// ShareViewController compatible with receive_sharing_intent package format.
 /// Saves shared files to App Group container and redirects to host app via URL scheme.
-class ShareViewController: SLComposeServiceViewController {
+/// Uses UIViewController (not SLComposeServiceViewController) for instant redirect.
+class ShareViewController: UIViewController {
 
     private let appGroupId = "group.tirol.taler.talerIdMobile"
     private let kUserDefaultsKey = "ShareKey"
     private let kUserDefaultsMessageKey = "ShareMessageKey"
     private var sharedMedia: [SharedMediaItem] = []
 
-    override func isContentValid() -> Bool {
-        return true
+    private let spinner = UIActivityIndicatorView(style: .large)
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.3)
+        spinner.color = .white
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(spinner)
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+        ])
+        spinner.startAnimating()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -36,16 +48,8 @@ class ShareViewController: SLComposeServiceViewController {
         }
 
         group.notify(queue: .main) { [weak self] in
-            self?.saveAndRedirect(message: self?.contentText)
+            self?.saveAndRedirect(message: nil)
         }
-    }
-
-    override func didSelectPost() {
-        saveAndRedirect(message: contentText)
-    }
-
-    override func configurationItems() -> [Any]! {
-        return []
     }
 
     // MARK: - Process attachments
@@ -76,6 +80,10 @@ class ShareViewController: SLComposeServiceViewController {
                     self?.sharedMedia.append(SharedMediaItem(path: text, mimeType: "text/plain", type: .text))
                 }
                 completion()
+            }
+        } else if attachment.hasItemConformingToTypeIdentifier(UTType.data.identifier) {
+            attachment.loadItem(forTypeIdentifier: UTType.data.identifier) { [weak self] data, _ in
+                self?.handleFileItem(data, type: .file, completion: completion)
             }
         } else {
             completion()
@@ -205,8 +213,6 @@ class ShareViewController: SLComposeServiceViewController {
     }
 
     private func redirectToHostApp() {
-        // Derive host app bundle ID from extension bundle ID
-        // e.g. tirol.taler.talerIdMobile.ShareExtension -> tirol.taler.talerIdMobile
         let extBundleId = Bundle.main.bundleIdentifier ?? ""
         let hostBundleId: String
         if let lastDot = extBundleId.lastIndex(of: ".") {
@@ -221,25 +227,44 @@ class ShareViewController: SLComposeServiceViewController {
             return
         }
 
+        // Method 1: responder chain (works on most iOS versions)
+        var found = false
         var responder: UIResponder? = self
-        if #available(iOS 18.0, *) {
-            while responder != nil {
-                if let application = responder as? UIApplication {
-                    application.open(url, options: [:], completionHandler: nil)
-                }
-                responder = responder?.next
+        while responder != nil {
+            if let app = responder as? UIApplication {
+                app.open(url, options: [:]) { _ in }
+                found = true
+                break
             }
-        } else {
-            let selectorOpenURL = sel_registerName("openURL:")
+            responder = responder?.next
+        }
+
+        // Method 2: performSelector on shared UIApplication (fallback)
+        if !found {
+            let selector = NSSelectorFromString("openURL:")
+            responder = self
             while responder != nil {
-                if (responder?.responds(to: selectorOpenURL)) == true {
-                    _ = responder?.perform(selectorOpenURL, with: url)
+                if responder!.responds(to: selector) {
+                    responder!.perform(selector, with: url)
+                    found = true
+                    break
                 }
                 responder = responder?.next
             }
         }
 
-        close()
+        // Method 3: NSExtensionContext open URL
+        if !found {
+            extensionContext?.open(url) { _ in
+                self.close()
+            }
+            return
+        }
+
+        // Small delay to let the URL open before closing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            self.close()
+        }
     }
 
     private func close() {

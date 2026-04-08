@@ -664,8 +664,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
     setState(() {
       for (final file in sharedFiles) {
-        final path = file.path as String? ?? '';
+        var path = file.path as String? ?? '';
         if (path.isEmpty) continue;
+        // Normalize: strip file:// prefix
+        if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
         final name = path.split('/').last;
         final ext = name.split('.').last.toLowerCase();
         String? typeOverride;
@@ -674,6 +676,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _pendingFiles.add(_PendingFile(path: path, name: name, type: typeOverride));
       }
     });
+    // Auto-send if files came from share intent (no user interaction needed)
+    if (_pendingFiles.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pendingFiles.isNotEmpty) _sendPendingAttachment();
+      });
+    }
   }
 
   Future<void> _pickFile() async {
