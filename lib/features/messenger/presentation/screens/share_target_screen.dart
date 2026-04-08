@@ -169,10 +169,15 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
   }
 
   void _sendToConversation(ConversationEntity conv) {
-    // Navigate to chat and send files
+    final files = widget.sharedFiles;
     ShareIntentService.instance.clearFiles();
-    context.pushReplacement('/dashboard/messenger/${conv.id}', extra: {
-      'sharedFiles': widget.sharedFiles,
+    // Pop this overlay first, then navigate into the chat
+    Navigator.of(context, rootNavigator: true).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go('/dashboard/messenger/${conv.id}', extra: {
+        'sharedFiles': files,
+      });
     });
   }
 }
