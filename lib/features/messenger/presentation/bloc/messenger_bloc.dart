@@ -550,10 +550,15 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     add(LoadConversations());
   }
 
+  final Set<String> _loadingMore = {};
+
   Future<void> _onLoadMoreMessages(
       LoadMoreMessages event, Emitter<MessengerState> emit) async {
     final cursor = state.nextCursors[event.conversationId];
     if (cursor == null) return;
+    // Prevent concurrent loads for the same conversation
+    if (_loadingMore.contains(event.conversationId)) return;
+    _loadingMore.add(event.conversationId);
     try {
       final result =
           await _repo.getMessages(event.conversationId, cursor: cursor);
@@ -565,16 +570,20 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       final nextCursor = result['nextCursor'] as String?;
       final existing = List<MessageEntity>.from(
           state.messages[event.conversationId] ?? []);
+      // Deduplicate: collect existing IDs, only add new ones
+      final existingIds = existing.map((m) => m.id).toSet();
+      final deduped = newMsgs.where((m) => !existingIds.contains(m.id)).toList();
       final allMessages =
           Map<String, List<MessageEntity>>.from(state.messages);
       allMessages[event.conversationId] = [
-        ...newMsgs.reversed.toList(),
+        ...deduped.reversed.toList(),
         ...existing,
       ];
       final newCursors = Map<String, String?>.from(state.nextCursors);
       newCursors[event.conversationId] = nextCursor;
       emit(state.copyWith(messages: allMessages, nextCursors: newCursors));
     } catch (_) {}
+    _loadingMore.remove(event.conversationId);
   }
 
   Future<void> _onSearchUsers(
