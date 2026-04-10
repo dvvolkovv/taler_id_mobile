@@ -1076,14 +1076,47 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     super.dispose();
   }
 
+  bool _loadingOlder = false;
+  bool _hasMoreMessages = true;
+  DateTime? _lastLoadTime;
+  /// Locally cached message list — survives BlocBuilder rebuilds without scroll jump
+  List<MessageEntity> _cachedMessages = [];
+  String? _lastKnownCursor;
+  double? _scrollOffsetBeforeLoad;
+
+  void _syncMessages(List<MessageEntity> blocMessages, String? cursor) {
+    final grew = blocMessages.length > _cachedMessages.length;
+    _cachedMessages = List.from(blocMessages);
+    _lastKnownCursor = cursor;
+    _hasMoreMessages = cursor != null;
+    // If list grew and we saved offset before load — restore it after layout
+    if (grew && _scrollOffsetBeforeLoad != null) {
+      final savedOffset = _scrollOffsetBeforeLoad!;
+      _scrollOffsetBeforeLoad = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollCtrl.hasClients) return;
+        // Clamp to valid range
+        final clamped = savedOffset.clamp(0.0, _scrollCtrl.position.maxScrollExtent);
+        _scrollCtrl.jumpTo(clamped);
+      });
+    }
+  }
+
   void _onScrollChanged() {
     if (!_scrollCtrl.hasClients) return;
     final show = _scrollCtrl.offset > 200;
     if (show != _showScrollToBottom) setState(() => _showScrollToBottom = show);
-    // Load more messages when scrolling near the top (reverse list = high offset)
-    final maxScroll = _scrollCtrl.position.maxScrollExtent;
-    if (_scrollCtrl.offset > maxScroll - 300) {
-      _messengerBloc.add(LoadMoreMessages(widget.conversationId));
+    if (!_loadingOlder && _hasMoreMessages) {
+      final maxScroll = _scrollCtrl.position.maxScrollExtent;
+      if (_scrollCtrl.offset > maxScroll - 300) {
+        final now = DateTime.now();
+        if (_lastLoadTime != null && now.difference(_lastLoadTime!).inMilliseconds < 1000) return;
+        _lastLoadTime = now;
+        _loadingOlder = true;
+        // Save current offset so we can restore scroll position after new items load
+        _scrollOffsetBeforeLoad = _scrollCtrl.offset;
+        _messengerBloc.add(LoadMoreMessages(widget.conversationId));
+      }
     }
   }
 
@@ -1453,9 +1486,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         child: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
           final allMsgs = state.messages[widget.conversationId] ?? [];
-          final messages = widget.topicId != null
+          final blocMessages = widget.topicId != null
               ? allMsgs.where((m) => m.topicId == widget.topicId).toList()
               : allMsgs;
+          final cursor = state.nextCursors[widget.conversationId];
+          _syncMessages(blocMessages, cursor);
+          final messages = _cachedMessages;
+          // Reset loading flag silently (no setState — avoid rebuild/scroll jump)
+          if (_loadingOlder) {
+            _loadingOlder = false;
+          }
           final conv = state.conversations
               .where((c) => c.id == widget.conversationId)
               .firstOrNull;
@@ -1486,12 +1526,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               TextStyle(color: AppColors.of(context).textSecondary),
                         ),
                       )
-                    : ListView.builder(
+                    : ScrollConfiguration(
+                      behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
+                      child: ListView.builder(
+                        key: const PageStorageKey('chat_messages'),
                         controller: _scrollCtrl,
                         reverse: true,
                         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.all(16),
                         itemCount: messages.length,
+                        findChildIndexCallback: (key) {
+                          if (key is ValueKey<String>) {
+                            final id = key.value;
+                            for (int i = 0; i < messages.length; i++) {
+                              if (messages[messages.length - 1 - i].id == id) return i;
+                            }
+                          }
+                          return null;
+                        },
                         itemBuilder: (context, index) {
                           // messages[] is chronological (index 0 = oldest).
                           // reversed list: index 0 = newest (displayed at bottom).
@@ -1543,7 +1595,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               msg.content.toLowerCase().contains(_searchText.toLowerCase());
 
                           return Column(
-                            key: msgKey,
+                            key: ValueKey<String>(msg.id),
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
@@ -1574,6 +1626,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           );
                         },
                       ),
+                    ),
                 ),
                     // Scroll-to-bottom button
                     if (_showScrollToBottom)
