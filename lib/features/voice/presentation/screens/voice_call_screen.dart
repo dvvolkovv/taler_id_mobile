@@ -221,16 +221,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
       if (ourRoom == roomName) {
-        // If the AI voice twin has taken this call, the original human
-        // callee is no longer participating — they may still have an
-        // incoming-call banner on their device and could dismiss it,
-        // which broadcasts call_ended to everyone in the conversation.
-        // In that case we want to keep the caller talking to the AI twin,
-        // so just ignore the event.
-        if (_aiTwinActive) {
-          debugPrint('[VoiceCall] Ignoring call_ended — AI twin still active');
-          return;
-        }
+        // _hangUp() is internally gated on _aiTwinActive, so it's safe to
+        // always call — when AI twin is active, stale call_ended broadcasts
+        // from the human callee dismissing their incoming banner are ignored.
         _hangUp();
       }
     });
@@ -239,24 +232,29 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     // which would immediately tear down the room we just connected to.
     _callkitEndedSub = NotificationService.callEvents.listen((CallEvent? event) {
       if (event == null || !mounted || _navigatedAway) return;
-      if (event.event == Event.actionCallEnded) {
+      debugPrint('[VoiceCall] CallKit event: ${event.event}, _aiTwinActive=$_aiTwinActive, _settingUp=$_settingUp');
+      if (event.event == Event.actionCallEnded ||
+          event.event == Event.actionCallTimeout ||
+          event.event == Event.actionCallDecline) {
         if (_settingUp) {
-          debugPrint('[VoiceCall] CallKit actionCallEnded SKIPPED (still setting up)');
+          debugPrint('[VoiceCall] CallKit ${event.event} SKIPPED (still setting up)');
           return;
         }
         // When the AI voice twin is active, iOS CallKit's own ~60s outgoing
-        // timeout (or a stale VoIP push cancel) can fire actionCallEnded even
-        // though the LiveKit room is still perfectly alive and the user is
-        // mid-conversation with the agent. Don't tear down the room — but do
-        // re-activate the audio session, because CallKit just deactivated it
-        // as part of the "end" action and the user would go silent otherwise.
+        // timeout (or a stale VoIP push cancel) can fire a terminal event
+        // even though the LiveKit room is alive and the user is mid-chat
+        // with the agent. _hangUp is internally gated on _aiTwinActive so
+        // it won't actually end the room, but we do need to aggressively
+        // re-activate the iOS audio session — CallKit just deactivated it
+        // as part of the "end" action and the user would otherwise go
+        // silent (reported symptom: "we stopped hearing each other").
         if (_aiTwinActive) {
-          debugPrint('[VoiceCall] CallKit actionCallEnded IGNORED (AI twin active) — restoring audio');
-          _restoreAudioAfterCallKit();
+          debugPrint('[VoiceCall] CallKit ${event.event} IGNORED (AI twin active) — restoring audio');
+          _restoreAudioAfterInterruption();
           return;
         }
         if (_room != null) {
-          debugPrint('[VoiceCall] CallKit actionCallEnded — calling _hangUp()');
+          debugPrint('[VoiceCall] CallKit ${event.event} — calling _hangUp()');
           _hangUp();
         }
       }
@@ -291,6 +289,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (!mounted || _navigatedAway) return;
       final joinedRoom = data['roomName'] as String? ?? '';
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      debugPrint('[AI_TWIN] call_ai_twin_joined received: joined=$joinedRoom ours=$ourRoom match=${ourRoom == joinedRoom}');
       if (ourRoom != joinedRoom) return;
       if (mounted) {
         setState(() {
@@ -298,6 +297,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           _ringing = false;
         });
       }
+      debugPrint('[AI_TWIN] _aiTwinActive=true set — call is now in AI twin mode');
       _stopRingback();
     });
     _initCall();
@@ -2533,11 +2533,19 @@ Answer briefly — the user is in the middle of a conversation.''';
     } catch (_) {}
   }
 
-  Future<void> _hangUp() async {
+  Future<void> _hangUp({bool userInitiated = false}) async {
     if (_hangingUp) return;
+    // When AI voice twin is active, the ONLY valid way to end the call is
+    // a user-initiated hangup (red button). All other code paths (CallKit
+    // timeouts, ringback timers, stale call_ended broadcasts, LiveKit
+    // reconnect failures, empty-room timers…) must not tear down the room.
+    if (_aiTwinActive && !userInitiated) {
+      debugPrint('[VoiceCall] _hangUp() BLOCKED — AI twin active, not user-initiated');
+      return;
+    }
     _hangingUp = true;
     final cs = CallStateService.instance;
-    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}');
+    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}, _aiTwinActive=$_aiTwinActive, userInitiated=$userInitiated');
     _emptyRoomTimer?.cancel();
     _stopRingback();
     // Stop in-call assistant if active
@@ -3291,7 +3299,7 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _hangUp,
+                onPressed: () => _hangUp(userInitiated: true),
                 child: Text(AppLocalizations.of(context)!.voiceClose),
               ),
             ],
@@ -3560,7 +3568,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                             ListTile(
                               leading: Icon(Icons.call_end_rounded, color: colors.error),
                               title: Text(l10n.voiceEndThisCall, style: TextStyle(color: colors.textPrimary)),
-                              onTap: () { Navigator.pop(ctx); _hangUp(); },
+                              onTap: () { Navigator.pop(ctx); _hangUp(userInitiated: true); },
                             ),
                             ListTile(
                               leading: Icon(Icons.call_end_rounded, color: colors.error),
@@ -3577,7 +3585,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                     icon: Icons.call_end_rounded,
                     label: AppLocalizations.of(context)!.voiceEndCall,
                     color: AppColors.of(context).error,
-                    onTap: _hangUp,
+                    onTap: () => _hangUp(userInitiated: true),
                     large: true,
                   ),
                 ),
