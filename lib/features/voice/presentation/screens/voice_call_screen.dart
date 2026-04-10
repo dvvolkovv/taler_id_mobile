@@ -221,6 +221,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
       if (ourRoom == roomName) {
+        // If the AI voice twin has taken this call, the original human
+        // callee is no longer participating — they may still have an
+        // incoming-call banner on their device and could dismiss it,
+        // which broadcasts call_ended to everyone in the conversation.
+        // In that case we want to keep the caller talking to the AI twin,
+        // so just ignore the event.
+        if (_aiTwinActive) {
+          debugPrint('[VoiceCall] Ignoring call_ended — AI twin still active');
+          return;
+        }
         _hangUp();
       }
     });
@@ -886,7 +896,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (_ringing && _participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
       }
-      // Auto-hangup when all remote participants left (only if someone WAS here before)
+      // Auto-hangup when all remote participants left (only if someone WAS
+      // here before).
       if (_participants.isEmpty && !_connecting && !_ringing && !_reconnecting && !_manualReconnecting && _hadRemoteParticipant) {
         _emptyRoomTimer ??= Timer(const Duration(seconds: 3), () {
           if (!mounted || _navigatedAway) return;
