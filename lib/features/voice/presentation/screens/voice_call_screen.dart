@@ -244,6 +244,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           debugPrint('[VoiceCall] CallKit actionCallEnded SKIPPED (still setting up)');
           return;
         }
+        // When the AI voice twin is active, iOS CallKit's own ~60s outgoing
+        // timeout (or a stale VoIP push cancel) can fire actionCallEnded even
+        // though the LiveKit room is still perfectly alive and the user is
+        // mid-conversation with the agent. Don't tear down the room — but do
+        // re-activate the audio session, because CallKit just deactivated it
+        // as part of the "end" action and the user would go silent otherwise.
+        if (_aiTwinActive) {
+          debugPrint('[VoiceCall] CallKit actionCallEnded IGNORED (AI twin active) — restoring audio');
+          _restoreAudioAfterCallKit();
+          return;
+        }
         if (_room != null) {
           debugPrint('[VoiceCall] CallKit actionCallEnded — calling _hangUp()');
           _hangUp();
