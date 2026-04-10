@@ -1298,5 +1298,18 @@
   },
   "aiTwinPrompt": "Инструкция для AI",
   "aiTwinPromptHint": "Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.",
-  "aiTwinComingSoon": "Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия."
+  "aiTwinComingSoon": "Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.",
+  "aiTwinOfferTitle": "Не отвечает",
+  "aiTwinOfferBody": "{name} не успевает ответить. Оставить сообщение голосовому двойнику?",
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinOfferBodyUser": "Пользователь",
+  "aiTwinOfferAccept": "Да, оставить",
+  "aiTwinOfferKeepWaiting": "Ждать ответа",
+  "aiTwinLabel": "AI"
 }

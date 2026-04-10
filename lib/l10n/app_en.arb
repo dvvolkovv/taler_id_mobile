@@ -1298,5 +1298,18 @@
   },
   "aiTwinPrompt": "AI instructions",
   "aiTwinPromptHint": "Hi, this is Dmitry's AI voice twin. He couldn't pick up right now. Tell me who's calling and what it's about — I'll pass it on.",
-  "aiTwinComingSoon": "Custom voice cloning coming soon. For now the AI speaks with Dmitry's voice."
+  "aiTwinComingSoon": "Custom voice cloning coming soon. For now the AI speaks with Dmitry's voice.",
+  "aiTwinOfferTitle": "Not answering",
+  "aiTwinOfferBody": "{name} isn't picking up. Leave a message with their AI voice twin?",
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinOfferBodyUser": "User",
+  "aiTwinOfferAccept": "Yes, leave message",
+  "aiTwinOfferKeepWaiting": "Keep waiting",
+  "aiTwinLabel": "AI"
 }

@@ -36,6 +36,9 @@ class MessengerRemoteDataSource {
   final _reactionUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _reconnectCtrl = StreamController<void>.broadcast();
   final _socketErrorCtrl = StreamController<String>.broadcast();
+  // AI twin fallback
+  final _callAiTwinOfferCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _callAiTwinJoinedCtrl = StreamController<Map<String, dynamic>>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -90,6 +93,18 @@ class MessengerRemoteDataSource {
       try {
         final data = Map<String, dynamic>.from(d as Map);
         _callAnsweredCtrl.add(data['roomName'] as String? ?? '');
+      } catch (_) {}
+    });
+    _socket!.on('call_ai_twin_offer', (d) {
+      try {
+        _callAiTwinOfferCtrl.add(Map<String, dynamic>.from(d as Map));
+      } catch (e) {
+        debugPrint('[Socket] call_ai_twin_offer parse error: $e');
+      }
+    });
+    _socket!.on('call_ai_twin_joined', (d) {
+      try {
+        _callAiTwinJoinedCtrl.add(Map<String, dynamic>.from(d as Map));
       } catch (_) {}
     });
     // Group socket events
@@ -173,7 +188,17 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get contactRequestStream => _contactRequestCtrl.stream;
   Stream<Map<String, dynamic>> get contactAcceptedStream => _contactAcceptedCtrl.stream;
   Stream<Map<String, dynamic>> get reactionUpdatedStream => _reactionUpdatedCtrl.stream;
+  Stream<Map<String, dynamic>> get callAiTwinOfferStream => _callAiTwinOfferCtrl.stream;
+  Stream<Map<String, dynamic>> get callAiTwinJoinedStream => _callAiTwinJoinedCtrl.stream;
   bool get isSocketConnected => _socket?.connected ?? false;
+
+  void acceptAiTwinOffer(String roomName) {
+    _socket?.emit('call_ai_twin_accepted', {'roomName': roomName});
+  }
+
+  void declineAiTwinOffer(String roomName) {
+    _socket?.emit('call_ai_twin_declined', {'roomName': roomName});
+  }
 
   void joinConversation(String id) {
     _joinedConversations.add(id);

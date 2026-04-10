@@ -2919,4 +2919,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiTwinComingSoon =>
       'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.';
+
+  @override
+  String get aiTwinOfferTitle => 'Not answering';
+
+  @override
+  String aiTwinOfferBody(String name) {
+    return '$name isn\'t picking up. Leave a message with their AI voice twin?';
+  }
+
+  @override
+  String get aiTwinOfferBodyUser => 'User';
+
+  @override
+  String get aiTwinOfferAccept => 'Yes, leave message';
+
+  @override
+  String get aiTwinOfferKeepWaiting => 'Keep waiting';
+
+  @override
+  String get aiTwinLabel => 'AI';
 }

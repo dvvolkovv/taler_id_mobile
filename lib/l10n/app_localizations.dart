@@ -5605,6 +5605,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.'**
   String get aiTwinComingSoon;
+
+  /// No description provided for @aiTwinOfferTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not answering'**
+  String get aiTwinOfferTitle;
+
+  /// No description provided for @aiTwinOfferBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} isn\'t picking up. Leave a message with their AI voice twin?'**
+  String aiTwinOfferBody(String name);
+
+  /// No description provided for @aiTwinOfferBodyUser.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get aiTwinOfferBodyUser;
+
+  /// No description provided for @aiTwinOfferAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, leave message'**
+  String get aiTwinOfferAccept;
+
+  /// No description provided for @aiTwinOfferKeepWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep waiting'**
+  String get aiTwinOfferKeepWaiting;
+
+  /// No description provided for @aiTwinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get aiTwinLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -2927,4 +2927,24 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get aiTwinComingSoon =>
       'Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.';
+
+  @override
+  String get aiTwinOfferTitle => 'Не отвечает';
+
+  @override
+  String aiTwinOfferBody(String name) {
+    return '$name не успевает ответить. Оставить сообщение голосовому двойнику?';
+  }
+
+  @override
+  String get aiTwinOfferBodyUser => 'Пользователь';
+
+  @override
+  String get aiTwinOfferAccept => 'Да, оставить';
+
+  @override
+  String get aiTwinOfferKeepWaiting => 'Ждать ответа';
+
+  @override
+  String get aiTwinLabel => 'AI';
 }

@@ -126,7 +126,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callkitEndedSub;
   StreamSubscription<String?>? _activeRoomSub;
+  StreamSubscription? _aiTwinOfferSub;
+  StreamSubscription? _aiTwinJoinedSub;
   Timer? _emptyRoomTimer;
+  bool _aiTwinActive = false; // true once AI twin accepted and joined
+  bool _aiTwinOfferShown = false; // prevent duplicate dialogs
 
   // Dynamic callee info (updated on line switch)
   String? _currentCalleeName;
@@ -245,6 +249,35 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         final line = CallStateService.instance.activeLine;
         if (line != null) _switchToLine(line);
       }
+    });
+    // AI twin fallback: callee didn't answer in time, backend offers an AI
+    // twin. Only shown on the caller side while still ringing.
+    _aiTwinOfferSub = sl<MessengerRemoteDataSource>()
+        .callAiTwinOfferStream
+        .listen((data) {
+      if (!mounted || _navigatedAway) return;
+      if (_aiTwinOfferShown || _aiTwinActive) return;
+      final offeredRoom = data['roomName'] as String? ?? '';
+      final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      if (ourRoom != offeredRoom) return;
+      final calleeName = (data['calleeName'] as String?) ?? _currentCalleeName ?? '';
+      _aiTwinOfferShown = true;
+      _showAiTwinOfferDialog(calleeName, offeredRoom);
+    });
+    _aiTwinJoinedSub = sl<MessengerRemoteDataSource>()
+        .callAiTwinJoinedStream
+        .listen((data) {
+      if (!mounted || _navigatedAway) return;
+      final joinedRoom = data['roomName'] as String? ?? '';
+      final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      if (ourRoom != joinedRoom) return;
+      if (mounted) {
+        setState(() {
+          _aiTwinActive = true;
+          _ringing = false;
+        });
+      }
+      _stopRingback();
     });
     _initCall();
   }
@@ -2867,12 +2900,72 @@ Answer briefly — the user is in the middle of a conversation.''';
     );
   }
 
+  Future<void> _showAiTwinOfferDialog(String calleeName, String roomName) async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.smart_toy_outlined, color: colors.primary, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.aiTwinOfferTitle,
+                style: TextStyle(color: colors.textPrimary, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          l10n.aiTwinOfferBody(calleeName.isEmpty ? l10n.aiTwinOfferBodyUser : calleeName),
+          style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              l10n.aiTwinOfferKeepWaiting,
+              style: TextStyle(color: colors.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.aiTwinOfferAccept),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    final ds = sl<MessengerRemoteDataSource>();
+    if (result == true) {
+      ds.acceptAiTwinOffer(roomName);
+    } else {
+      ds.declineAiTwinOffer(roomName);
+      _aiTwinOfferShown = false; // allow re-show if server re-offers
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _callEndedSub?.cancel();
     _callkitEndedSub?.cancel();
     _activeRoomSub?.cancel();
+    _aiTwinOfferSub?.cancel();
+    _aiTwinJoinedSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
@@ -2908,12 +3001,43 @@ Answer briefly — the user is in the middle of a conversation.''';
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
-            return Text(
-              _currentCalleeName ?? widget.calleeName ??
-              (widget.publicCode != null && _publicRoomCreatorName != null
-                  ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
-                  : l10n.voiceVoiceCall),
-              overflow: TextOverflow.ellipsis,
+            final baseName = _currentCalleeName ?? widget.calleeName ??
+                (widget.publicCode != null && _publicRoomCreatorName != null
+                    ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
+                    : l10n.voiceVoiceCall);
+            if (!_aiTwinActive) {
+              return Text(baseName, overflow: TextOverflow.ellipsis);
+            }
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(baseName, overflow: TextOverflow.ellipsis),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.of(context).primary.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.smart_toy_outlined, size: 12, color: Colors.white),
+                      const SizedBox(width: 3),
+                      Text(
+                        l10n.aiTwinLabel,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             );
           },
         ),
