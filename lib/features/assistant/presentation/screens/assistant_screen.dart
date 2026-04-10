@@ -350,6 +350,10 @@ class _AssistantScreenState extends State<AssistantScreen>
         'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
         'KYC verification status, and profile data. Be concise and to the point. '
         'Don\'t start the conversation — wait for the user to speak. '
+        'When the user asks about current events, news, weather, prices, sports scores, or any real-world '
+        'information that may have changed recently, ALWAYS use the web_search tool to get up-to-date info. '
+        'When the user says goodbye ("пока", "bye", "до свидания", "хватит", "конец"), say a short farewell '
+        'and then call end_session to disconnect. '
         'When needed, call tools to read or update the profile. '
         'You can also work with "About me" sections — personal information: values, worldview, '
         'skills, interests, desires, profile, likes/dislikes. You can ask the user about themselves, '
@@ -485,6 +489,29 @@ class _AssistantScreenState extends State<AssistantScreen>
           'create_response': true,
         },
         'tools': [
+          {
+            'type': 'function',
+            'name': 'end_session',
+            'description':
+                'End the assistant voice session and disconnect. Call this when the user says goodbye ("пока", "bye", "до свидания", "всё", "хватит", "конец", "stop", "quit").',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'web_search',
+            'description':
+                'Search the web for up-to-date information, news, facts, weather, sports, current events, prices, or anything requiring fresh data. Use this whenever the user asks about real-world information that may have changed recently.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'query': {
+                  'type': 'string',
+                  'description': 'The search query in natural language',
+                },
+              },
+              'required': ['query'],
+            },
+          },
           {
             'type': 'function',
             'name': 'get_profile',
@@ -1056,7 +1083,22 @@ class _AssistantScreenState extends State<AssistantScreen>
     final client = sl<DioClient>();
     String output;
     try {
-      if (name == 'get_profile') {
+      if (name == 'end_session') {
+        output = jsonEncode({'status': 'ending'});
+        // Send output first so AI can say goodbye, then disconnect after 2s
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) _endCall();
+        });
+      } else if (name == 'web_search') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final query = args['query'] as String? ?? '';
+        final data = await client.post<Map<String, dynamic>>(
+          '/assistant/web-search',
+          data: {'query': query},
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        output = jsonEncode(data);
+      } else if (name == 'get_profile') {
         final data = await client.get(
           '/profile',
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
