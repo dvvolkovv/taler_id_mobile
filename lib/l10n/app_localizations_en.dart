@@ -2890,4 +2890,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messengerTopicsDesc => 'Split chat into topics';
+
+  @override
+  String get aiTwinSection => 'AI Voice Twin';
+
+  @override
+  String get aiTwinEnabled => 'Enable AI Twin';
+
+  @override
+  String get aiTwinEnabledDesc =>
+      'If you don\'t answer, your AI twin takes the call in your voice';
+
+  @override
+  String get aiTwinTimeout => 'Response timeout';
+
+  @override
+  String aiTwinTimeoutValue(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
+  String get aiTwinPrompt => 'AI instructions';
+
+  @override
+  String get aiTwinPromptHint =>
+      'Hi, this is Dmitry\'s AI voice twin. He couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.';
+
+  @override
+  String get aiTwinComingSoon =>
+      'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.';
 }

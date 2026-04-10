@@ -1283,5 +1283,20 @@
   "messengerTopics": "Topics",
   "messengerTopicsDesc": "Split chat into topics",
   "cancel": "Cancel",
-  "create": "Create"
+  "create": "Create",
+  "aiTwinSection": "AI Voice Twin",
+  "aiTwinEnabled": "Enable AI Twin",
+  "aiTwinEnabledDesc": "If you don't answer, your AI twin takes the call in your voice",
+  "aiTwinTimeout": "Response timeout",
+  "aiTwinTimeoutValue": "{seconds} sec",
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "aiTwinPrompt": "AI instructions",
+  "aiTwinPromptHint": "Hi, this is Dmitry's AI voice twin. He couldn't pick up right now. Tell me who's calling and what it's about — I'll pass it on.",
+  "aiTwinComingSoon": "Custom voice cloning coming soon. For now the AI speaks with Dmitry's voice."
 }

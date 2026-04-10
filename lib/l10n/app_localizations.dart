@@ -5557,6 +5557,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Split chat into topics'**
   String get messengerTopicsDesc;
+
+  /// No description provided for @aiTwinSection.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Voice Twin'**
+  String get aiTwinSection;
+
+  /// No description provided for @aiTwinEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable AI Twin'**
+  String get aiTwinEnabled;
+
+  /// No description provided for @aiTwinEnabledDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'If you don\'t answer, your AI twin takes the call in your voice'**
+  String get aiTwinEnabledDesc;
+
+  /// No description provided for @aiTwinTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Response timeout'**
+  String get aiTwinTimeout;
+
+  /// No description provided for @aiTwinTimeoutValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String aiTwinTimeoutValue(int seconds);
+
+  /// No description provided for @aiTwinPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'AI instructions'**
+  String get aiTwinPrompt;
+
+  /// No description provided for @aiTwinPromptHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hi, this is Dmitry\'s AI voice twin. He couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.'**
+  String get aiTwinPromptHint;
+
+  /// No description provided for @aiTwinComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.'**
+  String get aiTwinComingSoon;
 }
 
 class _AppLocalizationsDelegate

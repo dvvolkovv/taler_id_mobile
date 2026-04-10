@@ -34,6 +34,10 @@ mixin _$UserEntity {
   String? get fcmToken => throw _privateConstructorUsedError;
   String? get username => throw _privateConstructorUsedError;
   String? get status => throw _privateConstructorUsedError;
+  bool get aiTwinEnabled => throw _privateConstructorUsedError;
+  int get aiTwinTimeoutSeconds => throw _privateConstructorUsedError;
+  String? get aiTwinPrompt => throw _privateConstructorUsedError;
+  String? get aiTwinVoiceId => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -61,7 +65,11 @@ abstract class $UserEntityCopyWith<$Res> {
       KycStatus kycStatus,
       String? fcmToken,
       String? username,
-      String? status});
+      String? status,
+      bool aiTwinEnabled,
+      int aiTwinTimeoutSeconds,
+      String? aiTwinPrompt,
+      String? aiTwinVoiceId});
 }
 
 /// @nodoc
@@ -91,6 +99,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? fcmToken = freezed,
     Object? username = freezed,
     Object? status = freezed,
+    Object? aiTwinEnabled = null,
+    Object? aiTwinTimeoutSeconds = null,
+    Object? aiTwinPrompt = freezed,
+    Object? aiTwinVoiceId = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -149,6 +161,22 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String?,
+      aiTwinEnabled: null == aiTwinEnabled
+          ? _value.aiTwinEnabled
+          : aiTwinEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      aiTwinTimeoutSeconds: null == aiTwinTimeoutSeconds
+          ? _value.aiTwinTimeoutSeconds
+          : aiTwinTimeoutSeconds // ignore: cast_nullable_to_non_nullable
+              as int,
+      aiTwinPrompt: freezed == aiTwinPrompt
+          ? _value.aiTwinPrompt
+          : aiTwinPrompt // ignore: cast_nullable_to_non_nullable
+              as String?,
+      aiTwinVoiceId: freezed == aiTwinVoiceId
+          ? _value.aiTwinVoiceId
+          : aiTwinVoiceId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -175,7 +203,11 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       KycStatus kycStatus,
       String? fcmToken,
       String? username,
-      String? status});
+      String? status,
+      bool aiTwinEnabled,
+      int aiTwinTimeoutSeconds,
+      String? aiTwinPrompt,
+      String? aiTwinVoiceId});
 }
 
 /// @nodoc
@@ -203,6 +235,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? fcmToken = freezed,
     Object? username = freezed,
     Object? status = freezed,
+    Object? aiTwinEnabled = null,
+    Object? aiTwinTimeoutSeconds = null,
+    Object? aiTwinPrompt = freezed,
+    Object? aiTwinVoiceId = freezed,
   }) {
     return _then(_$UserEntityImpl(
       id: null == id
@@ -261,6 +297,22 @@ class __$$UserEntityImplCopyWithImpl<$Res>
           ? _value.status
           : status // ignore: cast_nullable_to_non_nullable
               as String?,
+      aiTwinEnabled: null == aiTwinEnabled
+          ? _value.aiTwinEnabled
+          : aiTwinEnabled // ignore: cast_nullable_to_non_nullable
+              as bool,
+      aiTwinTimeoutSeconds: null == aiTwinTimeoutSeconds
+          ? _value.aiTwinTimeoutSeconds
+          : aiTwinTimeoutSeconds // ignore: cast_nullable_to_non_nullable
+              as int,
+      aiTwinPrompt: freezed == aiTwinPrompt
+          ? _value.aiTwinPrompt
+          : aiTwinPrompt // ignore: cast_nullable_to_non_nullable
+              as String?,
+      aiTwinVoiceId: freezed == aiTwinVoiceId
+          ? _value.aiTwinVoiceId
+          : aiTwinVoiceId // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -282,7 +334,11 @@ class _$UserEntityImpl implements _UserEntity {
       this.kycStatus = KycStatus.unverified,
       this.fcmToken,
       this.username,
-      this.status});
+      this.status,
+      this.aiTwinEnabled = false,
+      this.aiTwinTimeoutSeconds = 30,
+      this.aiTwinPrompt,
+      this.aiTwinVoiceId});
 
   factory _$UserEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserEntityImplFromJson(json);
@@ -316,10 +372,20 @@ class _$UserEntityImpl implements _UserEntity {
   final String? username;
   @override
   final String? status;
+  @override
+  @JsonKey()
+  final bool aiTwinEnabled;
+  @override
+  @JsonKey()
+  final int aiTwinTimeoutSeconds;
+  @override
+  final String? aiTwinPrompt;
+  @override
+  final String? aiTwinVoiceId;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId)';
   }
 
   @override
@@ -349,7 +415,15 @@ class _$UserEntityImpl implements _UserEntity {
                 other.fcmToken == fcmToken) &&
             (identical(other.username, username) ||
                 other.username == username) &&
-            (identical(other.status, status) || other.status == status));
+            (identical(other.status, status) || other.status == status) &&
+            (identical(other.aiTwinEnabled, aiTwinEnabled) ||
+                other.aiTwinEnabled == aiTwinEnabled) &&
+            (identical(other.aiTwinTimeoutSeconds, aiTwinTimeoutSeconds) ||
+                other.aiTwinTimeoutSeconds == aiTwinTimeoutSeconds) &&
+            (identical(other.aiTwinPrompt, aiTwinPrompt) ||
+                other.aiTwinPrompt == aiTwinPrompt) &&
+            (identical(other.aiTwinVoiceId, aiTwinVoiceId) ||
+                other.aiTwinVoiceId == aiTwinVoiceId));
   }
 
   @JsonKey(ignore: true)
@@ -369,7 +443,11 @@ class _$UserEntityImpl implements _UserEntity {
       kycStatus,
       fcmToken,
       username,
-      status);
+      status,
+      aiTwinEnabled,
+      aiTwinTimeoutSeconds,
+      aiTwinPrompt,
+      aiTwinVoiceId);
 
   @JsonKey(ignore: true)
   @override
@@ -400,7 +478,11 @@ abstract class _UserEntity implements UserEntity {
       final KycStatus kycStatus,
       final String? fcmToken,
       final String? username,
-      final String? status}) = _$UserEntityImpl;
+      final String? status,
+      final bool aiTwinEnabled,
+      final int aiTwinTimeoutSeconds,
+      final String? aiTwinPrompt,
+      final String? aiTwinVoiceId}) = _$UserEntityImpl;
 
   factory _UserEntity.fromJson(Map<String, dynamic> json) =
       _$UserEntityImpl.fromJson;
@@ -433,6 +515,14 @@ abstract class _UserEntity implements UserEntity {
   String? get username;
   @override
   String? get status;
+  @override
+  bool get aiTwinEnabled;
+  @override
+  int get aiTwinTimeoutSeconds;
+  @override
+  String? get aiTwinPrompt;
+  @override
+  String? get aiTwinVoiceId;
   @override
   @JsonKey(ignore: true)
   _$$UserEntityImplCopyWith<_$UserEntityImpl> get copyWith =>

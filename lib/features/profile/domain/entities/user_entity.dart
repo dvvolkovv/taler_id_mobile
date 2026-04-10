@@ -27,6 +27,10 @@ class UserEntity with _$UserEntity {
     String? fcmToken,
     String? username,
     String? status,
+    @Default(false) bool aiTwinEnabled,
+    @Default(30) int aiTwinTimeoutSeconds,
+    String? aiTwinPrompt,
+    String? aiTwinVoiceId,
   }) = _UserEntity;
 
   factory UserEntity.fromJson(Map<String, dynamic> json) =>

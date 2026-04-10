@@ -2898,4 +2898,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get messengerTopicsDesc => 'Разделить чат на темы';
+
+  @override
+  String get aiTwinSection => 'Голосовой двойник';
+
+  @override
+  String get aiTwinEnabled => 'Включить AI-двойника';
+
+  @override
+  String get aiTwinEnabledDesc =>
+      'Если вы не ответите на звонок, AI-двойник примет его вашим голосом';
+
+  @override
+  String get aiTwinTimeout => 'Время ожидания';
+
+  @override
+  String aiTwinTimeoutValue(int seconds) {
+    return '$seconds сек';
+  }
+
+  @override
+  String get aiTwinPrompt => 'Инструкция для AI';
+
+  @override
+  String get aiTwinPromptHint =>
+      'Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.';
+
+  @override
+  String get aiTwinComingSoon =>
+      'Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.';
 }

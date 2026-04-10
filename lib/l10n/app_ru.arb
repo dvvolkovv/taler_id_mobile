@@ -1283,5 +1283,20 @@
   "messengerTopics": "Темы",
   "messengerTopicsDesc": "Разделить чат на темы",
   "cancel": "Отмена",
-  "create": "Создать"
+  "create": "Создать",
+  "aiTwinSection": "Голосовой двойник",
+  "aiTwinEnabled": "Включить AI-двойника",
+  "aiTwinEnabledDesc": "Если вы не ответите на звонок, AI-двойник примет его вашим голосом",
+  "aiTwinTimeout": "Время ожидания",
+  "aiTwinTimeoutValue": "{seconds} сек",
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "aiTwinPrompt": "Инструкция для AI",
+  "aiTwinPromptHint": "Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.",
+  "aiTwinComingSoon": "Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия."
 }

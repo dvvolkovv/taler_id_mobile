@@ -23,6 +23,11 @@ _$UserEntityImpl _$$UserEntityImplFromJson(Map<String, dynamic> json) =>
       fcmToken: json['fcmToken'] as String?,
       username: json['username'] as String?,
       status: json['status'] as String?,
+      aiTwinEnabled: json['aiTwinEnabled'] as bool? ?? false,
+      aiTwinTimeoutSeconds:
+          (json['aiTwinTimeoutSeconds'] as num?)?.toInt() ?? 30,
+      aiTwinPrompt: json['aiTwinPrompt'] as String?,
+      aiTwinVoiceId: json['aiTwinVoiceId'] as String?,
     );
 
 Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
@@ -41,6 +46,10 @@ Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
       'fcmToken': instance.fcmToken,
       'username': instance.username,
       'status': instance.status,
+      'aiTwinEnabled': instance.aiTwinEnabled,
+      'aiTwinTimeoutSeconds': instance.aiTwinTimeoutSeconds,
+      'aiTwinPrompt': instance.aiTwinPrompt,
+      'aiTwinVoiceId': instance.aiTwinVoiceId,
     };
 
 const _$KycStatusEnumMap = {
