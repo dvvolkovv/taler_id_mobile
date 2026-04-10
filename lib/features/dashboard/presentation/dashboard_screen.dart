@@ -51,7 +51,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _disconnectSub;
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callAnsweredSub;
-  StreamSubscription? _callAiTwinCancelledSub;
   StreamSubscription? _callkitSub;
   StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
@@ -214,7 +213,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForDisconnect();
       _listenForCallEnded();
       _listenForCallAnswered();
-      _listenForAiTwinCancelled();
       _listenForShareIntent();
       _checkForUpdate();
     });
@@ -278,32 +276,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // Another device of the same user answered — dismiss this device's CallKit UI
       await _endCallKitCallForRoom(roomName, fallbackEndAll: true);
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
-    });
-  }
-
-  /// Listen for AI voice twin takeover: the caller accepted the AI twin
-  /// offer, so this device should dismiss the ringing banner and CallKit UI
-  /// immediately. The human callee can still receive the call in their
-  /// history, but can no longer accidentally answer or decline an already-
-  /// answered call.
-  void _listenForAiTwinCancelled() {
-    _callAiTwinCancelledSub?.cancel();
-    _callAiTwinCancelledSub = sl<MessengerRemoteDataSource>()
-        .callAiTwinCancelledStream
-        .listen((data) async {
-      final roomName = data['roomName'] as String? ?? '';
-      if (roomName.isEmpty) return;
-      debugPrint('[Dashboard] AI twin took over room=$roomName — dismissing banner');
-      // Suppress the resulting CallKit decline from hitting the server.
-      _endingCallKitFromSocket = true;
-      await _endCallKitCallForRoom(roomName, fallbackEndAll: true);
-      Future.delayed(const Duration(seconds: 2), () => _endingCallKitFromSocket = false);
-      if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
-      // Close the in-app incoming call modal dialog if it's showing
-      if (mounted && _showingCallDialogRoom == roomName) {
-        _showingCallDialogRoom = null;
-        try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
-      }
     });
   }
 
@@ -458,7 +430,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _disconnectSub?.cancel();
     _callEndedSub?.cancel();
     _callAnsweredSub?.cancel();
-    _callAiTwinCancelledSub?.cancel();
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();

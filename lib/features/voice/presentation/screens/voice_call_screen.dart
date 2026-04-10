@@ -2945,49 +2945,173 @@ Answer briefly — the user is in the middle of a conversation.''';
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
-    final result = await showDialog<bool>(
+    final displayName =
+        calleeName.isEmpty ? l10n.aiTwinOfferBodyUser : calleeName;
+
+    final result = await showModalBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.smart_toy_outlined, color: colors.primary, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.aiTwinOfferTitle,
-                style: TextStyle(color: colors.textPrimary, fontSize: 18),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      isDismissible: false,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: colors.primary.withValues(alpha: 0.25),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.primary.withValues(alpha: 0.15),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Glowing robot icon
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          colors.primary.withValues(alpha: 0.35),
+                          colors.primary.withValues(alpha: 0.08),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colors.primary.withValues(alpha: 0.15),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.smart_toy_outlined,
+                          color: colors.primary,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.aiTwinOfferTitle,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    l10n.aiTwinOfferBody(displayName),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 15,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Primary action — big gradient button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          colors: [
+                            colors.primary,
+                            colors.primary.withValues(alpha: 0.8),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.primary.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => Navigator.of(ctx).pop(true),
+                          child: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.auto_awesome,
+                                    color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text(
+                                  l10n.aiTwinOfferAccept,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Secondary action — plain text, no background
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(
+                        l10n.aiTwinOfferKeepWaiting,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          l10n.aiTwinOfferBody(calleeName.isEmpty ? l10n.aiTwinOfferBodyUser : calleeName),
-          style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4),
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              l10n.aiTwinOfferKeepWaiting,
-              style: TextStyle(color: colors.textSecondary),
-            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.aiTwinOfferAccept),
-          ),
-        ],
-      ),
+        );
+      },
     );
     if (!mounted) return;
     final ds = sl<MessengerRemoteDataSource>();
