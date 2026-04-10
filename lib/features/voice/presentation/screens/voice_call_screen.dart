@@ -128,6 +128,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription<String?>? _activeRoomSub;
   StreamSubscription? _aiTwinOfferSub;
   StreamSubscription? _aiTwinJoinedSub;
+  StreamSubscription? _aiTwinLeftSub;
   Timer? _emptyRoomTimer;
   bool _aiTwinActive = false; // true once AI twin accepted and joined
   bool _aiTwinOfferShown = false; // prevent duplicate dialogs
@@ -299,6 +300,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       debugPrint('[AI_TWIN] _aiTwinActive=true set — call is now in AI twin mode');
       _stopRingback();
+    });
+    _aiTwinLeftSub = sl<MessengerRemoteDataSource>()
+        .callAiTwinLeftStream
+        .listen((data) {
+      if (!mounted || _navigatedAway) return;
+      final leftRoom = data['roomName'] as String? ?? '';
+      final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      debugPrint('[AI_TWIN] call_ai_twin_left received: left=$leftRoom ours=$ourRoom');
+      if (ourRoom != leftRoom) return;
+      if (mounted) setState(() => _aiTwinActive = false);
     });
     _initCall();
   }
@@ -2996,6 +3007,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _activeRoomSub?.cancel();
     _aiTwinOfferSub?.cancel();
     _aiTwinJoinedSub?.cancel();
+    _aiTwinLeftSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;

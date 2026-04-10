@@ -39,6 +39,8 @@ class MessengerRemoteDataSource {
   // AI twin fallback
   final _callAiTwinOfferCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _callAiTwinJoinedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _callAiTwinCancelledCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _callAiTwinLeftCtrl = StreamController<Map<String, dynamic>>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -105,6 +107,16 @@ class MessengerRemoteDataSource {
     _socket!.on('call_ai_twin_joined', (d) {
       try {
         _callAiTwinJoinedCtrl.add(Map<String, dynamic>.from(d as Map));
+      } catch (_) {}
+    });
+    _socket!.on('call_ai_twin_cancelled', (d) {
+      try {
+        _callAiTwinCancelledCtrl.add(Map<String, dynamic>.from(d as Map));
+      } catch (_) {}
+    });
+    _socket!.on('call_ai_twin_left', (d) {
+      try {
+        _callAiTwinLeftCtrl.add(Map<String, dynamic>.from(d as Map));
       } catch (_) {}
     });
     // Group socket events
@@ -190,6 +202,8 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get reactionUpdatedStream => _reactionUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get callAiTwinOfferStream => _callAiTwinOfferCtrl.stream;
   Stream<Map<String, dynamic>> get callAiTwinJoinedStream => _callAiTwinJoinedCtrl.stream;
+  Stream<Map<String, dynamic>> get callAiTwinCancelledStream => _callAiTwinCancelledCtrl.stream;
+  Stream<Map<String, dynamic>> get callAiTwinLeftStream => _callAiTwinLeftCtrl.stream;
   bool get isSocketConnected => _socket?.connected ?? false;
 
   void acceptAiTwinOffer(String roomName) {
