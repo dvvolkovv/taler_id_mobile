@@ -1311,5 +1311,10 @@
   "aiTwinOfferBodyUser": "User",
   "aiTwinOfferAccept": "Yes, leave message",
   "aiTwinOfferKeepWaiting": "Keep waiting",
-  "aiTwinLabel": "AI"
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Your AI stand-in",
+  "aiTwinHeroSubtitle": "Answers calls in your voice when you can't.",
+  "aiTwinProfileTitle": "AI Stand-in",
+  "aiTwinProfileDesc": "Answers calls in your voice",
+  "aiTwinBadgeOn": "ON"
 }

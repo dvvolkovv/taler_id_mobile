@@ -2947,4 +2947,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aiTwinLabel => 'AI';
+
+  @override
+  String get aiTwinHeroTitle => 'Ваш ИИ-заместитель';
+
+  @override
+  String get aiTwinHeroSubtitle =>
+      'Он ответит на звонок вашим голосом, если вы заняты.';
+
+  @override
+  String get aiTwinProfileTitle => 'ИИ-заместитель';
+
+  @override
+  String get aiTwinProfileDesc => 'Отвечает на звонки вашим голосом';
+
+  @override
+  String get aiTwinBadgeOn => 'ВКЛ';
 }

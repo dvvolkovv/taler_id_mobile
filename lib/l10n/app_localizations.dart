@@ -5641,6 +5641,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI'**
   String get aiTwinLabel;
+
+  /// No description provided for @aiTwinHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your AI stand-in'**
+  String get aiTwinHeroTitle;
+
+  /// No description provided for @aiTwinHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers calls in your voice when you can\'t.'**
+  String get aiTwinHeroSubtitle;
+
+  /// No description provided for @aiTwinProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Stand-in'**
+  String get aiTwinProfileTitle;
+
+  /// No description provided for @aiTwinProfileDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers calls in your voice'**
+  String get aiTwinProfileDesc;
+
+  /// No description provided for @aiTwinBadgeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'ON'**
+  String get aiTwinBadgeOn;
 }
 
 class _AppLocalizationsDelegate

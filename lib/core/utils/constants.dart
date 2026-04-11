@@ -47,4 +47,5 @@ class RouteConstants {
   static const forgotPassword = '/auth/forgot-password';
   static const translator = '/dashboard/translator';
   static const profileSections = '/dashboard/profile/sections';
+  static const aiTwin = '/dashboard/profile/ai-twin';
 }

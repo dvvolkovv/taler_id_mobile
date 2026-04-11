@@ -2939,4 +2939,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiTwinLabel => 'AI';
+
+  @override
+  String get aiTwinHeroTitle => 'Your AI stand-in';
+
+  @override
+  String get aiTwinHeroSubtitle =>
+      'Answers calls in your voice when you can\'t.';
+
+  @override
+  String get aiTwinProfileTitle => 'AI Stand-in';
+
+  @override
+  String get aiTwinProfileDesc => 'Answers calls in your voice';
+
+  @override
+  String get aiTwinBadgeOn => 'ON';
 }

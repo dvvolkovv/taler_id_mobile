@@ -12,6 +12,7 @@ import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
+import '../../features/profile/presentation/screens/ai_twin_screen.dart';
 import '../../features/assistant/presentation/screens/assistant_screen.dart';
 import '../../features/contacts/presentation/screens/contacts_screen.dart';
 import '../../features/notes/presentation/screens/notes_screen.dart';
@@ -162,6 +163,10 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'edit',
               builder: (_, __) => const EditProfileScreen(),
+            ),
+            GoRoute(
+              path: 'ai-twin',
+              builder: (_, __) => const AiTwinScreen(),
             ),
           ],
         ),

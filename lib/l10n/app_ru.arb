@@ -1311,5 +1311,10 @@
   "aiTwinOfferBodyUser": "Пользователь",
   "aiTwinOfferAccept": "Да, оставить",
   "aiTwinOfferKeepWaiting": "Ждать ответа",
-  "aiTwinLabel": "AI"
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Ваш ИИ-заместитель",
+  "aiTwinHeroSubtitle": "Он ответит на звонок вашим голосом, если вы заняты.",
+  "aiTwinProfileTitle": "ИИ-заместитель",
+  "aiTwinProfileDesc": "Отвечает на звонки вашим голосом",
+  "aiTwinBadgeOn": "ВКЛ"
 }
