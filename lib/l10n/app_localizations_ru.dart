@@ -2941,6 +2941,23 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiTwinPromptReset => 'Сбросить';
 
   @override
+  String get callHistoryAiTwinAnswered => 'AI-ДВОЙНИК ОТВЕТИЛ';
+
+  @override
+  String get callHistoryAiTwinSummary => 'СУТЬ РАЗГОВОРА';
+
+  @override
+  String get callHistoryAiTwinTranscript => 'РАСШИФРОВКА';
+
+  @override
+  String get callHistoryAiTwinLabel => 'AI';
+
+  @override
+  String callHistoryFromCaller(String name) {
+    return 'От $name';
+  }
+
+  @override
   String get aiTwinOfferTitle => 'Не отвечает';
 
   @override

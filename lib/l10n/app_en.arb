@@ -1316,6 +1316,18 @@
   },
   "aiTwinDefaultName": "the owner",
   "aiTwinPromptReset": "Reset",
+  "callHistoryAiTwinAnswered": "AI TWIN ANSWERED",
+  "callHistoryAiTwinSummary": "CALL SUMMARY",
+  "callHistoryAiTwinTranscript": "TRANSCRIPT",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "From {name}",
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiTwinOfferTitle": "Not answering",
   "aiTwinOfferBody": "{name} isn't picking up. Leave a message with their AI voice twin?",
   "@aiTwinOfferBody": {

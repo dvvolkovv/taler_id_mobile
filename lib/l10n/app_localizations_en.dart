@@ -2933,6 +2933,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTwinPromptReset => 'Reset';
 
   @override
+  String get callHistoryAiTwinAnswered => 'AI TWIN ANSWERED';
+
+  @override
+  String get callHistoryAiTwinSummary => 'CALL SUMMARY';
+
+  @override
+  String get callHistoryAiTwinTranscript => 'TRANSCRIPT';
+
+  @override
+  String get callHistoryAiTwinLabel => 'AI';
+
+  @override
+  String callHistoryFromCaller(String name) {
+    return 'From $name';
+  }
+
+  @override
   String get aiTwinOfferTitle => 'Not answering';
 
   @override

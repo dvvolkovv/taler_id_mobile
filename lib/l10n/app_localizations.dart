@@ -5624,6 +5624,36 @@ abstract class AppLocalizations {
   /// **'Reset'**
   String get aiTwinPromptReset;
 
+  /// No description provided for @callHistoryAiTwinAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'AI TWIN ANSWERED'**
+  String get callHistoryAiTwinAnswered;
+
+  /// No description provided for @callHistoryAiTwinSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'CALL SUMMARY'**
+  String get callHistoryAiTwinSummary;
+
+  /// No description provided for @callHistoryAiTwinTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSCRIPT'**
+  String get callHistoryAiTwinTranscript;
+
+  /// No description provided for @callHistoryAiTwinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get callHistoryAiTwinLabel;
+
+  /// No description provided for @callHistoryFromCaller.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String callHistoryFromCaller(String name);
+
   /// No description provided for @aiTwinOfferTitle.
   ///
   /// In en, this message translates to:

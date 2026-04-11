@@ -1316,6 +1316,18 @@
   },
   "aiTwinDefaultName": "владельца",
   "aiTwinPromptReset": "Сбросить",
+  "callHistoryAiTwinAnswered": "AI-ДВОЙНИК ОТВЕТИЛ",
+  "callHistoryAiTwinSummary": "СУТЬ РАЗГОВОРА",
+  "callHistoryAiTwinTranscript": "РАСШИФРОВКА",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "От {name}",
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiTwinOfferTitle": "Не отвечает",
   "aiTwinOfferBody": "{name} не успевает ответить. Оставить сообщение голосовому двойнику?",
   "@aiTwinOfferBody": {
