@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:dio/dio.dart' as dio_pkg;
+import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1073,6 +1076,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  double _playbackSpeed = 1.0;
   final List<StreamSubscription> _subs = [];
   bool _transcribing = false;
 
@@ -1114,6 +1118,34 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     } else {
       setState(() => _position = Duration.zero);
       await _player.play(UrlSource(url));
+      try { await _player.setPlaybackRate(_playbackSpeed); } catch (_) {}
+    }
+  }
+
+  Future<void> _cyclePlaybackSpeed() async {
+    const speeds = [1.0, 1.5, 2.0];
+    final idx = speeds.indexOf(_playbackSpeed);
+    final next = speeds[(idx + 1) % speeds.length];
+    setState(() => _playbackSpeed = next);
+    try { await _player.setPlaybackRate(next); } catch (_) {}
+  }
+
+  bool _downloading = false;
+  Future<void> _downloadRecording(String url) async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      final file = await _downloadToTemp(url);
+      if (!mounted) return;
+      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -1505,6 +1537,22 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       ),
                     ],
                   ),
+                ),
+                _SpeedButton(
+                  speed: _playbackSpeed,
+                  colors: colors,
+                  onTap: _cyclePlaybackSpeed,
+                ),
+                IconButton(
+                  icon: _downloading
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        )
+                      : Icon(Icons.download_rounded, size: 20, color: colors.textSecondary),
+                  onPressed: _downloading ? null : () => _downloadRecording(recordingUrl),
+                  tooltip: 'Download',
                 ),
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
@@ -1977,8 +2025,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  double _playbackSpeed = 1.0;
   final List<StreamSubscription> _subs = [];
   final Set<String> _transcribingIds = {};
+  final Set<String> _downloadingIds = {};
 
   @override
   void initState() {
@@ -2014,6 +2064,33 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
       await _player.stop();
       setState(() { _playingId = id; _position = Duration.zero; });
       await _player.play(UrlSource(url));
+      try { await _player.setPlaybackRate(_playbackSpeed); } catch (_) {}
+    }
+  }
+
+  Future<void> _cyclePlaybackSpeed() async {
+    const speeds = [1.0, 1.5, 2.0];
+    final idx = speeds.indexOf(_playbackSpeed);
+    final next = speeds[(idx + 1) % speeds.length];
+    setState(() => _playbackSpeed = next);
+    try { await _player.setPlaybackRate(next); } catch (_) {}
+  }
+
+  Future<void> _downloadRecording(String id, String url) async {
+    if (_downloadingIds.contains(id)) return;
+    setState(() => _downloadingIds.add(id));
+    try {
+      final file = await _downloadToTemp(url);
+      if (!mounted) return;
+      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloadingIds.remove(id));
     }
   }
 
@@ -2238,6 +2315,25 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                     ],
                   ),
                 ),
+                if (isThis)
+                  _SpeedButton(
+                    speed: _playbackSpeed,
+                    colors: colors,
+                    onTap: _cyclePlaybackSpeed,
+                  ),
+                IconButton(
+                  icon: _downloadingIds.contains(id)
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        )
+                      : Icon(Icons.download_rounded, size: 20, color: colors.textSecondary),
+                  onPressed: _downloadingIds.contains(id)
+                      ? null
+                      : () => _downloadRecording(id, recordingUrl),
+                  tooltip: 'Download',
+                ),
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
                   onPressed: () => Share.share(
@@ -2309,6 +2405,50 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Shared helpers ──────────────────────────────────────────
+
+Future<File> _downloadToTemp(String url) async {
+  final d = dio_pkg.Dio();
+  final tmp = await getTemporaryDirectory();
+  final uri = Uri.parse(url);
+  var name = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'recording.mp3';
+  if (!name.contains('.')) name = '$name.mp3';
+  final filePath = '${tmp.path}/taler_rec_${DateTime.now().millisecondsSinceEpoch}_$name';
+  await d.download(url, filePath);
+  return File(filePath);
+}
+
+class _SpeedButton extends StatelessWidget {
+  final double speed;
+  final AppColorsExtension colors;
+  final VoidCallback onTap;
+  const _SpeedButton({required this.speed, required this.colors, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = speed == speed.toInt() ? '${speed.toInt()}x' : '${speed}x';
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: colors.border.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
