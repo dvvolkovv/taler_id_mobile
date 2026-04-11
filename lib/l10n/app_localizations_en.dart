@@ -2913,12 +2913,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTwinPrompt => 'AI instructions';
 
   @override
-  String get aiTwinPromptHint =>
-      'Hi, this is Dmitry\'s AI voice twin. He couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.';
+  String get aiTwinPromptSubtitle =>
+      'How the AI twin should introduce itself and what to talk about';
 
   @override
-  String get aiTwinComingSoon =>
-      'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.';
+  String aiTwinPromptHint(String name) {
+    return 'Hi, this is $name\'s AI voice twin. $name couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.';
+  }
+
+  @override
+  String aiTwinComingSoon(String name) {
+    return 'Custom voice cloning coming soon. For now the AI speaks with $name\'s voice.';
+  }
+
+  @override
+  String get aiTwinDefaultName => 'the owner';
 
   @override
   String get aiTwinOfferTitle => 'Not answering';

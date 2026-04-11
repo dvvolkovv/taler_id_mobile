@@ -5594,17 +5594,29 @@ abstract class AppLocalizations {
   /// **'AI instructions'**
   String get aiTwinPrompt;
 
+  /// No description provided for @aiTwinPromptSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the AI twin should introduce itself and what to talk about'**
+  String get aiTwinPromptSubtitle;
+
   /// No description provided for @aiTwinPromptHint.
   ///
   /// In en, this message translates to:
-  /// **'Hi, this is Dmitry\'s AI voice twin. He couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.'**
-  String get aiTwinPromptHint;
+  /// **'Hi, this is {name}\'s AI voice twin. {name} couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.'**
+  String aiTwinPromptHint(String name);
 
   /// No description provided for @aiTwinComingSoon.
   ///
   /// In en, this message translates to:
-  /// **'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.'**
-  String get aiTwinComingSoon;
+  /// **'Custom voice cloning coming soon. For now the AI speaks with {name}\'s voice.'**
+  String aiTwinComingSoon(String name);
+
+  /// No description provided for @aiTwinDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'the owner'**
+  String get aiTwinDefaultName;
 
   /// No description provided for @aiTwinOfferTitle.
   ///

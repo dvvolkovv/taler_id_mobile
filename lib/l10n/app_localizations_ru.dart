@@ -2921,12 +2921,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiTwinPrompt => 'Инструкция для AI';
 
   @override
-  String get aiTwinPromptHint =>
-      'Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.';
+  String get aiTwinPromptSubtitle =>
+      'Как AI-двойник должен представляться и о чём говорить';
 
   @override
-  String get aiTwinComingSoon =>
-      'Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.';
+  String aiTwinPromptHint(String name) {
+    return 'Привет, это голосовой двойник $name. $name сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.';
+  }
+
+  @override
+  String aiTwinComingSoon(String name) {
+    return 'Ваш персональный голос появится позже. Сейчас AI говорит голосом $name.';
+  }
+
+  @override
+  String get aiTwinDefaultName => 'владельца';
 
   @override
   String get aiTwinOfferTitle => 'Не отвечает';

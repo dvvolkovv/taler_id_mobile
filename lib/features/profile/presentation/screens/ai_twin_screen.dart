@@ -47,6 +47,17 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
     if (!_dirty && mounted) setState(() => _dirty = true);
   }
 
+  /// Best-effort user-facing name used in default hints and info copy.
+  /// Prefers firstName, falls back to username, then to a generic word.
+  String _displayName(UserEntity? user, AppLocalizations l10n) {
+    if (user == null) return l10n.aiTwinDefaultName;
+    final first = user.firstName?.trim() ?? '';
+    if (first.isNotEmpty) return first;
+    final uname = user.username?.trim() ?? '';
+    if (uname.isNotEmpty) return uname;
+    return l10n.aiTwinDefaultName;
+  }
+
   void _save() {
     setState(() => _saving = true);
     context.read<ProfileBloc>().add(ProfileUpdateSubmitted({
@@ -113,11 +124,13 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
                 if (_enabled) ...[
                   const SizedBox(height: 16),
                   _buildTimeoutCard(colors, l10n),
-                  const SizedBox(height: 16),
-                  _buildPromptCard(colors, l10n),
                 ],
+                // Prompt is editable even when the twin is disabled — so the
+                // user can prepare their instructions in advance.
                 const SizedBox(height: 16),
-                _buildVoiceInfoCard(colors, l10n),
+                _buildPromptCard(colors, l10n, user),
+                const SizedBox(height: 16),
+                _buildVoiceInfoCard(colors, l10n, user),
                 const SizedBox(height: 32),
                 _buildSaveButton(colors, l10n),
               ],
@@ -300,7 +313,9 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
     );
   }
 
-  Widget _buildPromptCard(AppColorsExtension colors, AppLocalizations l10n) {
+  Widget _buildPromptCard(
+      AppColorsExtension colors, AppLocalizations l10n, UserEntity? user) {
+    final name = _displayName(user, l10n);
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,15 +325,26 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
               Icon(Icons.chat_bubble_outline,
                   size: 18, color: colors.textSecondary),
               const SizedBox(width: 8),
-              Text(
-                l10n.aiTwinPrompt,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  l10n.aiTwinPrompt,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.aiTwinPromptSubtitle,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 10),
           TextField(
@@ -332,7 +358,7 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
             ),
             onChanged: (_) => _markDirty(),
             decoration: InputDecoration(
-              hintText: l10n.aiTwinPromptHint,
+              hintText: l10n.aiTwinPromptHint(name),
               hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
               filled: true,
               fillColor: colors.background,
@@ -357,7 +383,8 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
   }
 
   Widget _buildVoiceInfoCard(
-      AppColorsExtension colors, AppLocalizations l10n) {
+      AppColorsExtension colors, AppLocalizations l10n, UserEntity? user) {
+    final name = _displayName(user, l10n);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -375,7 +402,7 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              l10n.aiTwinComingSoon,
+              l10n.aiTwinComingSoon(name),
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: 12,
