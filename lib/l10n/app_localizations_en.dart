@@ -2930,6 +2930,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTwinDefaultName => 'the owner';
 
   @override
+  String get aiTwinPromptReset => 'Reset';
+
+  @override
   String get aiTwinOfferTitle => 'Not answering';
 
   @override

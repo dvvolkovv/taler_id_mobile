@@ -5618,6 +5618,12 @@ abstract class AppLocalizations {
   /// **'the owner'**
   String get aiTwinDefaultName;
 
+  /// No description provided for @aiTwinPromptReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get aiTwinPromptReset;
+
   /// No description provided for @aiTwinOfferTitle.
   ///
   /// In en, this message translates to:

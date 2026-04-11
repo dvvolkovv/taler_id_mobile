@@ -335,6 +335,28 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
                   ),
                 ),
               ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: colors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: Text(
+                  l10n.aiTwinPromptReset,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                onPressed: () {
+                  setState(() {
+                    _promptCtrl.text = l10n.aiTwinPromptHint(name);
+                    _promptCtrl.selection = TextSelection.collapsed(
+                      offset: _promptCtrl.text.length,
+                    );
+                  });
+                  _markDirty();
+                },
+              ),
             ],
           ),
           const SizedBox(height: 4),

@@ -1315,6 +1315,7 @@
     }
   },
   "aiTwinDefaultName": "владельца",
+  "aiTwinPromptReset": "Сбросить",
   "aiTwinOfferTitle": "Не отвечает",
   "aiTwinOfferBody": "{name} не успевает ответить. Оставить сообщение голосовому двойнику?",
   "@aiTwinOfferBody": {

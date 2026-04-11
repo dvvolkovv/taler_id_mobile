@@ -2938,6 +2938,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiTwinDefaultName => 'владельца';
 
   @override
+  String get aiTwinPromptReset => 'Сбросить';
+
+  @override
   String get aiTwinOfferTitle => 'Не отвечает';
 
   @override
