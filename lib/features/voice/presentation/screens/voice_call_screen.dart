@@ -298,6 +298,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           _ringing = false;
         });
       }
+      // Mark the room globally so Dashboard's call_ended listener knows
+      // not to tear down CallKit audio for it (the room is still alive,
+      // with the AI twin speaking).
+      CallStateService.instance.markAiTwinActive(joinedRoom);
       debugPrint('[AI_TWIN] _aiTwinActive=true set — call is now in AI twin mode');
       _stopRingback();
     });
@@ -310,6 +314,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       debugPrint('[AI_TWIN] call_ai_twin_left received: left=$leftRoom ours=$ourRoom');
       if (ourRoom != leftRoom) return;
       if (mounted) setState(() => _aiTwinActive = false);
+      CallStateService.instance.unmarkAiTwinActive(leftRoom);
     });
     _initCall();
   }
@@ -777,7 +782,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _forceEarpiece();
         setState(() => _reconnecting = false);
       })
-      ..on<lk.RoomDisconnectedEvent>((_) {
+      ..on<lk.RoomDisconnectedEvent>((event) {
+        debugPrint('[VoiceCall] RoomDisconnectedEvent reason=${event.reason} _aiTwinActive=$_aiTwinActive');
+        // If the AI voice twin is handling the call, a disconnect almost
+        // always means the backend kicked us out after call_ended was
+        // broadcast by the stale human callee device. Don't reconnect —
+        // the AI twin session is effectively over, we should just show
+        // the user that the call ended. Reconnecting only loops through
+        // a dead room until backend's departureTimeout kills it.
+        if (_aiTwinActive) {
+          debugPrint('[VoiceCall] RoomDisconnected during AI twin — ending call');
+          if (mounted) {
+            setState(() {
+              _reconnecting = false;
+              _aiTwinActive = false;
+            });
+          }
+          if (_roomName != null) {
+            CallStateService.instance.unmarkAiTwinActive(_roomName!);
+          }
+          // Allow _hangUp to run even without userInitiated — the room
+          // is already dead, we just need to clean up local state.
+          _hangingUp = false;
+          _hangUp(userInitiated: true);
+          return;
+        }
         // LiveKit gave up — start our own reconnect loop
         if (mounted && !_navigatedAway && !_manualReconnecting) {
           if (mounted) setState(() => _reconnecting = false);
@@ -937,6 +966,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _startManualReconnect() async {
     if (_manualReconnecting || _navigatedAway || !mounted) return;
+    // Don't reconnect an AI twin session — the backend has almost
+    // certainly already closed the room because the stale human callee
+    // broadcast call_ended. Reconnect loops just thrash through dead
+    // rooms. Fall out and let the RoomDisconnectedEvent handler end
+    // the call cleanly.
+    if (_aiTwinActive) {
+      debugPrint('[VoiceCall] _startManualReconnect BLOCKED — AI twin active');
+      return;
+    }
     final roomName = _roomName;
     if (roomName == null) {
       CallStateService.instance.notifyEnded();
@@ -2557,6 +2595,11 @@ Answer briefly — the user is in the middle of a conversation.''';
     _hangingUp = true;
     final cs = CallStateService.instance;
     debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}, _aiTwinActive=$_aiTwinActive, userInitiated=$userInitiated');
+    // Clear the AI twin flag for this room so future broadcasts don't
+    // linger in the service state.
+    if (_roomName != null) {
+      cs.unmarkAiTwinActive(_roomName!);
+    }
     _emptyRoomTimer?.cancel();
     _stopRingback();
     // Stop in-call assistant if active

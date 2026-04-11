@@ -45,6 +45,16 @@ class CallStateService {
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
+  /// Rooms where the AI voice twin has taken over. These calls must survive
+  /// a stale `call_ended` broadcast from the original human callee (their
+  /// CallKit/push banner expired, they dismissed it, etc.) — we don't want
+  /// Dashboard/CallKit cleanup to deactivate the iOS audio session while the
+  /// caller is still talking to the AI twin.
+  final Set<String> _aiTwinActiveRooms = {};
+  void markAiTwinActive(String roomName) => _aiTwinActiveRooms.add(roomName);
+  void unmarkAiTwinActive(String roomName) => _aiTwinActiveRooms.remove(roomName);
+  bool isAiTwinRoom(String roomName) => _aiTwinActiveRooms.contains(roomName);
+
   final _stateCtrl = StreamController<bool>.broadcast();
   // Re-emit the current state to every new subscriber so the dashboard's
   // "active call" banner reappears correctly after the voice screen is
