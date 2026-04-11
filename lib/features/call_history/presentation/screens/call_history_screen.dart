@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:dio/dio.dart' as dio_pkg;
+import 'package:path_provider/path_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -629,9 +632,18 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   Widget _buildCallCard(_CallEntry e, AppColorsExtension colors) {
     final isMissed = e.isMissed;
     return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => CallDetailScreen(callId: e.id)),
-      ),
+      onTap: () {
+        // If an AI twin answered this call, show the transcript sheet
+        // instead of the generic call detail screen — the transcript is
+        // the whole reason this entry exists.
+        if (e.hasAiTwinSummary) {
+          _showAiTwinTranscriptSheet(e);
+          return;
+        }
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => CallDetailScreen(callId: e.id)),
+        );
+      },
       child: AppCard(
       child: Row(
         children: [
@@ -707,11 +719,57 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   _formatDate(e.startedAt),
                   style: TextStyle(color: colors.textSecondary, fontSize: 12),
                 ),
-                if (isMissed) ...[
+                if (isMissed && !e.hasAiTwinSummary) ...[
                   const SizedBox(height: 2),
                   Text(
                     AppLocalizations.of(context)!.callHistoryMissed,
                     style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ],
+                if (e.hasAiTwinSummary) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: colors.primary.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: 0.25),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.smart_toy_outlined,
+                                size: 12, color: colors.primary),
+                            const SizedBox(width: 5),
+                            Text(
+                              AppLocalizations.of(context)!.callHistoryAiTwinAnswered,
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          e.aiTwinSummary!,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
                 if (e.hasSummary || e.hasRecording) ...[
@@ -762,6 +820,251 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 ),
         ],
       ),
+      ),
+    );
+  }
+
+  void _showAiTwinTranscriptSheet(_CallEntry e) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.75,
+          minChildSize: 0.45,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, scrollController) {
+            return Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: colors.card,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: colors.primary.withValues(alpha: 0.25),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(top: 12),
+                    decoration: BoxDecoration(
+                      color: colors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                colors.primary.withValues(alpha: 0.35),
+                                colors.primary.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            border: Border.all(
+                              color: colors.primary.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.smart_toy_outlined,
+                            color: colors.primary,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.callHistoryAiTwinAnswered,
+                                style: TextStyle(
+                                  color: colors.primary,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n.callHistoryFromCaller(e.otherPartyName),
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                _formatDate(e.startedAt),
+                                style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(color: colors.border, height: 1),
+                  Expanded(
+                    child: ListView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: colors.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: colors.primary.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.auto_awesome,
+                                      size: 14, color: colors.primary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    l10n.callHistoryAiTwinSummary,
+                                    style: TextStyle(
+                                      color: colors.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                e.aiTwinSummary ?? '',
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontSize: 14,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (e.aiTwinTranscript != null &&
+                            e.aiTwinTranscript!.isNotEmpty) ...[
+                          const SizedBox(height: 20),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, left: 2),
+                            child: Text(
+                              l10n.callHistoryAiTwinTranscript,
+                              style: TextStyle(
+                                color: colors.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ),
+                          for (final turn in e.aiTwinTranscript!)
+                            _buildTranscriptTurn(
+                              turn,
+                              colors,
+                              e.otherPartyName,
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTranscriptTurn(
+    Map<String, dynamic> turn,
+    AppColorsExtension colors,
+    String callerName,
+  ) {
+    final role = (turn['role'] as String?) ?? '';
+    final text = (turn['text'] as String?) ?? '';
+    if (text.isEmpty) return const SizedBox.shrink();
+    final isAi = role == 'assistant';
+    final label =
+        isAi ? AppLocalizations.of(context)!.callHistoryAiTwinLabel : callerName;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment:
+            isAi ? MainAxisAlignment.start : MainAxisAlignment.end,
+        children: [
+          Flexible(
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isAi
+                    ? colors.primary.withValues(alpha: 0.1)
+                    : colors.border.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(14),
+                  topRight: const Radius.circular(14),
+                  bottomLeft: isAi
+                      ? const Radius.circular(4)
+                      : const Radius.circular(14),
+                  bottomRight: isAi
+                      ? const Radius.circular(14)
+                      : const Radius.circular(4),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: isAi ? colors.primary : colors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1000,6 +1303,8 @@ class _CallEntry {
   final String? conversationId;
   final bool hasSummary;
   final bool hasRecording;
+  final String? aiTwinSummary;
+  final List<Map<String, dynamic>>? aiTwinTranscript;
 
   const _CallEntry({
     required this.id,
@@ -1014,7 +1319,12 @@ class _CallEntry {
     this.conversationId,
     this.hasSummary = false,
     this.hasRecording = false,
+    this.aiTwinSummary,
+    this.aiTwinTranscript,
   });
+
+  bool get hasAiTwinSummary =>
+      aiTwinSummary != null && aiTwinSummary!.trim().isNotEmpty;
 
   factory _CallEntry.fromJson(Map<String, dynamic> json) {
     final participants = json['participants'] as List? ?? [];
@@ -1041,6 +1351,17 @@ class _CallEntry {
     final hasSummary = summary != null && (summary['summary'] as String?)?.isNotEmpty == true;
     final hasRecording = summary != null && (summary['recordingUrl'] as String?)?.isNotEmpty == true;
 
+    // AI twin answered this call — transcript + summary delivered by agent.
+    final aiSummaryRaw = json['aiTwinSummary'] as String?;
+    final aiTranscriptRaw = json['aiTwinTranscript'];
+    List<Map<String, dynamic>>? aiTranscript;
+    if (aiTranscriptRaw is List) {
+      aiTranscript = aiTranscriptRaw
+          .whereType<Map>()
+          .map((m) => Map<String, dynamic>.from(m))
+          .toList();
+    }
+
     return _CallEntry(
       id: json['id'] as String? ?? '',
       otherPartyName: name,
@@ -1054,6 +1375,8 @@ class _CallEntry {
       conversationId: json['conversationId'] as String?,
       hasSummary: hasSummary,
       hasRecording: hasRecording,
+      aiTwinSummary: aiSummaryRaw,
+      aiTwinTranscript: aiTranscript,
     );
   }
 }
@@ -1073,6 +1396,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  double _playbackSpeed = 1.0;
   final List<StreamSubscription> _subs = [];
   bool _transcribing = false;
 
@@ -1114,6 +1438,34 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     } else {
       setState(() => _position = Duration.zero);
       await _player.play(UrlSource(url));
+      try { await _player.setPlaybackRate(_playbackSpeed); } catch (_) {}
+    }
+  }
+
+  Future<void> _cyclePlaybackSpeed() async {
+    const speeds = [1.0, 1.5, 2.0];
+    final idx = speeds.indexOf(_playbackSpeed);
+    final next = speeds[(idx + 1) % speeds.length];
+    setState(() => _playbackSpeed = next);
+    try { await _player.setPlaybackRate(next); } catch (_) {}
+  }
+
+  bool _downloading = false;
+  Future<void> _downloadRecording(String url) async {
+    if (_downloading) return;
+    setState(() => _downloading = true);
+    try {
+      final file = await _downloadToTemp(url);
+      if (!mounted) return;
+      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
     }
   }
 
@@ -1505,6 +1857,22 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                       ),
                     ],
                   ),
+                ),
+                _SpeedButton(
+                  speed: _playbackSpeed,
+                  colors: colors,
+                  onTap: _cyclePlaybackSpeed,
+                ),
+                IconButton(
+                  icon: _downloading
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        )
+                      : Icon(Icons.download_rounded, size: 20, color: colors.textSecondary),
+                  onPressed: _downloading ? null : () => _downloadRecording(recordingUrl),
+                  tooltip: 'Download',
                 ),
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
@@ -1977,8 +2345,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
   PlayerState _playerState = PlayerState.stopped;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  double _playbackSpeed = 1.0;
   final List<StreamSubscription> _subs = [];
   final Set<String> _transcribingIds = {};
+  final Set<String> _downloadingIds = {};
 
   @override
   void initState() {
@@ -2014,6 +2384,33 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
       await _player.stop();
       setState(() { _playingId = id; _position = Duration.zero; });
       await _player.play(UrlSource(url));
+      try { await _player.setPlaybackRate(_playbackSpeed); } catch (_) {}
+    }
+  }
+
+  Future<void> _cyclePlaybackSpeed() async {
+    const speeds = [1.0, 1.5, 2.0];
+    final idx = speeds.indexOf(_playbackSpeed);
+    final next = speeds[(idx + 1) % speeds.length];
+    setState(() => _playbackSpeed = next);
+    try { await _player.setPlaybackRate(next); } catch (_) {}
+  }
+
+  Future<void> _downloadRecording(String id, String url) async {
+    if (_downloadingIds.contains(id)) return;
+    setState(() => _downloadingIds.add(id));
+    try {
+      final file = await _downloadToTemp(url);
+      if (!mounted) return;
+      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Download failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloadingIds.remove(id));
     }
   }
 
@@ -2238,6 +2635,25 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                     ],
                   ),
                 ),
+                if (isThis)
+                  _SpeedButton(
+                    speed: _playbackSpeed,
+                    colors: colors,
+                    onTap: _cyclePlaybackSpeed,
+                  ),
+                IconButton(
+                  icon: _downloadingIds.contains(id)
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                        )
+                      : Icon(Icons.download_rounded, size: 20, color: colors.textSecondary),
+                  onPressed: _downloadingIds.contains(id)
+                      ? null
+                      : () => _downloadRecording(id, recordingUrl),
+                  tooltip: 'Download',
+                ),
                 IconButton(
                   icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
                   onPressed: () => Share.share(
@@ -2309,6 +2725,50 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Shared helpers ──────────────────────────────────────────
+
+Future<File> _downloadToTemp(String url) async {
+  final d = dio_pkg.Dio();
+  final tmp = await getTemporaryDirectory();
+  final uri = Uri.parse(url);
+  var name = uri.pathSegments.isNotEmpty ? uri.pathSegments.last : 'recording.mp3';
+  if (!name.contains('.')) name = '$name.mp3';
+  final filePath = '${tmp.path}/taler_rec_${DateTime.now().millisecondsSinceEpoch}_$name';
+  await d.download(url, filePath);
+  return File(filePath);
+}
+
+class _SpeedButton extends StatelessWidget {
+  final double speed;
+  final AppColorsExtension colors;
+  final VoidCallback onTap;
+  const _SpeedButton({required this.speed, required this.colors, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = speed == speed.toInt() ? '${speed.toInt()}x' : '${speed}x';
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: colors.border.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }

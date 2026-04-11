@@ -5594,17 +5594,65 @@ abstract class AppLocalizations {
   /// **'AI instructions'**
   String get aiTwinPrompt;
 
+  /// No description provided for @aiTwinPromptSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the AI twin should introduce itself and what to talk about'**
+  String get aiTwinPromptSubtitle;
+
   /// No description provided for @aiTwinPromptHint.
   ///
   /// In en, this message translates to:
-  /// **'Hi, this is Dmitry\'s AI voice twin. He couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.'**
-  String get aiTwinPromptHint;
+  /// **'Hi, this is {name}\'s AI voice twin. {name} couldn\'t pick up right now. Tell me who\'s calling and what it\'s about — I\'ll pass it on.'**
+  String aiTwinPromptHint(String name);
 
   /// No description provided for @aiTwinComingSoon.
   ///
   /// In en, this message translates to:
-  /// **'Custom voice cloning coming soon. For now the AI speaks with Dmitry\'s voice.'**
-  String get aiTwinComingSoon;
+  /// **'Custom voice cloning coming soon. For now the AI speaks with {name}\'s voice.'**
+  String aiTwinComingSoon(String name);
+
+  /// No description provided for @aiTwinDefaultName.
+  ///
+  /// In en, this message translates to:
+  /// **'the owner'**
+  String get aiTwinDefaultName;
+
+  /// No description provided for @aiTwinPromptReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get aiTwinPromptReset;
+
+  /// No description provided for @callHistoryAiTwinAnswered.
+  ///
+  /// In en, this message translates to:
+  /// **'AI TWIN ANSWERED'**
+  String get callHistoryAiTwinAnswered;
+
+  /// No description provided for @callHistoryAiTwinSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'CALL SUMMARY'**
+  String get callHistoryAiTwinSummary;
+
+  /// No description provided for @callHistoryAiTwinTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'TRANSCRIPT'**
+  String get callHistoryAiTwinTranscript;
+
+  /// No description provided for @callHistoryAiTwinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get callHistoryAiTwinLabel;
+
+  /// No description provided for @callHistoryFromCaller.
+  ///
+  /// In en, this message translates to:
+  /// **'From {name}'**
+  String callHistoryFromCaller(String name);
 
   /// No description provided for @aiTwinOfferTitle.
   ///
@@ -5641,6 +5689,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'AI'**
   String get aiTwinLabel;
+
+  /// No description provided for @aiTwinHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your AI stand-in'**
+  String get aiTwinHeroTitle;
+
+  /// No description provided for @aiTwinHeroSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers calls in your voice when you can\'t.'**
+  String get aiTwinHeroSubtitle;
+
+  /// No description provided for @aiTwinProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Stand-in'**
+  String get aiTwinProfileTitle;
+
+  /// No description provided for @aiTwinProfileDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Answers calls in your voice'**
+  String get aiTwinProfileDesc;
+
+  /// No description provided for @aiTwinBadgeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'ON'**
+  String get aiTwinBadgeOn;
 }
 
 class _AppLocalizationsDelegate

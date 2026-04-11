@@ -26,13 +26,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _dateCtrl = TextEditingController();
   final _countryCtrl = TextEditingController();
   final _statusCtrl = TextEditingController();
-  final _aiTwinPromptCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _selectedCountry;
   DateTime? _dateOfBirth;
   bool _initialized = false;
-  bool _aiTwinEnabled = false;
-  int _aiTwinTimeoutSeconds = 30;
 
   @override
   void dispose() {
@@ -43,7 +40,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _dateCtrl.dispose();
     _countryCtrl.dispose();
     _statusCtrl.dispose();
-    _aiTwinPromptCtrl.dispose();
     super.dispose();
   }
 
@@ -65,9 +61,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
     _statusCtrl.text = user.status ?? '';
-    _aiTwinEnabled = user.aiTwinEnabled;
-    _aiTwinTimeoutSeconds = user.aiTwinTimeoutSeconds;
-    _aiTwinPromptCtrl.text = user.aiTwinPrompt ?? '';
     _initialized = true;
   }
 
@@ -200,116 +193,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildAiTwinSection(BuildContext context, AppLocalizations l10n) {
-    final colors = AppColors.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.border, width: 1),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Row(
-              children: [
-                Icon(Icons.smart_toy_outlined, color: colors.primary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  l10n.aiTwinSection,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(
-              l10n.aiTwinEnabled,
-              style: TextStyle(color: colors.textPrimary, fontSize: 15),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l10n.aiTwinEnabledDesc,
-                style: TextStyle(color: colors.textSecondary, fontSize: 12),
-              ),
-            ),
-            value: _aiTwinEnabled,
-            activeColor: colors.primary,
-            onChanged: (v) => setState(() => _aiTwinEnabled = v),
-          ),
-          if (_aiTwinEnabled) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.aiTwinTimeout,
-                  style: TextStyle(color: colors.textPrimary, fontSize: 14),
-                ),
-                Text(
-                  l10n.aiTwinTimeoutValue(_aiTwinTimeoutSeconds),
-                  style: TextStyle(color: colors.primary, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: colors.primary,
-                inactiveTrackColor: colors.border,
-                thumbColor: colors.primary,
-                overlayColor: colors.primary.withOpacity(0.2),
-              ),
-              child: Slider(
-                value: _aiTwinTimeoutSeconds.toDouble(),
-                min: 15,
-                max: 60,
-                divisions: 9,
-                onChanged: (v) => setState(() => _aiTwinTimeoutSeconds = v.round()),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _aiTwinPromptCtrl,
-              maxLines: 4,
-              maxLength: 2000,
-              style: TextStyle(color: colors.textPrimary, fontSize: 14),
-              decoration: InputDecoration(
-                labelText: l10n.aiTwinPrompt,
-                hintText: l10n.aiTwinPromptHint,
-                hintStyle: TextStyle(color: colors.textSecondary, fontSize: 13),
-                alignLabelWithHint: true,
-                counterStyle: TextStyle(color: colors.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.info_outline, size: 14, color: colors.textSecondary),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    l10n.aiTwinComingSoon,
-                    style: TextStyle(color: colors.textSecondary, fontSize: 11),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -436,8 +319,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  _buildAiTwinSection(context, l10n),
-                  const SizedBox(height: 32),
                   LoadingButton(
                     text: l10n.save,
                     loading: loading,
@@ -451,11 +332,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
                           if (_selectedCountry != null) 'country': _selectedCountry,
                           if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().split('T').first,
-                          'aiTwinEnabled': _aiTwinEnabled,
-                          'aiTwinTimeoutSeconds': _aiTwinTimeoutSeconds,
-                          'aiTwinPrompt': _aiTwinPromptCtrl.text.trim().isEmpty
-                              ? null
-                              : _aiTwinPromptCtrl.text.trim(),
                         };
                         context.read<ProfileBloc>().add(ProfileUpdateSubmitted(data));
                       }

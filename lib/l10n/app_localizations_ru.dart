@@ -2921,12 +2921,41 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiTwinPrompt => 'Инструкция для AI';
 
   @override
-  String get aiTwinPromptHint =>
-      'Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.';
+  String get aiTwinPromptSubtitle =>
+      'Как AI-двойник должен представляться и о чём говорить';
 
   @override
-  String get aiTwinComingSoon =>
-      'Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.';
+  String aiTwinPromptHint(String name) {
+    return 'Привет, это голосовой двойник $name. $name сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.';
+  }
+
+  @override
+  String aiTwinComingSoon(String name) {
+    return 'Ваш персональный голос появится позже. Сейчас AI говорит голосом $name.';
+  }
+
+  @override
+  String get aiTwinDefaultName => 'владельца';
+
+  @override
+  String get aiTwinPromptReset => 'Сбросить';
+
+  @override
+  String get callHistoryAiTwinAnswered => 'AI-ДВОЙНИК ОТВЕТИЛ';
+
+  @override
+  String get callHistoryAiTwinSummary => 'СУТЬ РАЗГОВОРА';
+
+  @override
+  String get callHistoryAiTwinTranscript => 'РАСШИФРОВКА';
+
+  @override
+  String get callHistoryAiTwinLabel => 'AI';
+
+  @override
+  String callHistoryFromCaller(String name) {
+    return 'От $name';
+  }
 
   @override
   String get aiTwinOfferTitle => 'Не отвечает';
@@ -2947,4 +2976,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aiTwinLabel => 'AI';
+
+  @override
+  String get aiTwinHeroTitle => 'Ваш ИИ-заместитель';
+
+  @override
+  String get aiTwinHeroSubtitle =>
+      'Он ответит на звонок вашим голосом, если вы заняты.';
+
+  @override
+  String get aiTwinProfileTitle => 'ИИ-заместитель';
+
+  @override
+  String get aiTwinProfileDesc => 'Отвечает на звонки вашим голосом';
+
+  @override
+  String get aiTwinBadgeOn => 'ВКЛ';
 }

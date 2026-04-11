@@ -1297,8 +1297,37 @@
     }
   },
   "aiTwinPrompt": "Инструкция для AI",
-  "aiTwinPromptHint": "Привет, это голосовой двойник Дмитрия. Он сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.",
-  "aiTwinComingSoon": "Ваш персональный голос появится позже. Сейчас AI говорит голосом Дмитрия.",
+  "aiTwinPromptSubtitle": "Как AI-двойник должен представляться и о чём говорить",
+  "aiTwinPromptHint": "Привет, это голосовой двойник {name}. {name} сейчас не смог ответить. Расскажите, кто звонит и по какому вопросу — я обязательно передам.",
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinComingSoon": "Ваш персональный голос появится позже. Сейчас AI говорит голосом {name}.",
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinDefaultName": "владельца",
+  "aiTwinPromptReset": "Сбросить",
+  "callHistoryAiTwinAnswered": "AI-ДВОЙНИК ОТВЕТИЛ",
+  "callHistoryAiTwinSummary": "СУТЬ РАЗГОВОРА",
+  "callHistoryAiTwinTranscript": "РАСШИФРОВКА",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "От {name}",
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiTwinOfferTitle": "Не отвечает",
   "aiTwinOfferBody": "{name} не успевает ответить. Оставить сообщение голосовому двойнику?",
   "@aiTwinOfferBody": {
@@ -1311,5 +1340,10 @@
   "aiTwinOfferBodyUser": "Пользователь",
   "aiTwinOfferAccept": "Да, оставить",
   "aiTwinOfferKeepWaiting": "Ждать ответа",
-  "aiTwinLabel": "AI"
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Ваш ИИ-заместитель",
+  "aiTwinHeroSubtitle": "Он ответит на звонок вашим голосом, если вы заняты.",
+  "aiTwinProfileTitle": "ИИ-заместитель",
+  "aiTwinProfileDesc": "Отвечает на звонки вашим голосом",
+  "aiTwinBadgeOn": "ВКЛ"
 }

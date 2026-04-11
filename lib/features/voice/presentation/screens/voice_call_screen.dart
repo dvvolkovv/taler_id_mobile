@@ -128,6 +128,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription<String?>? _activeRoomSub;
   StreamSubscription? _aiTwinOfferSub;
   StreamSubscription? _aiTwinJoinedSub;
+  StreamSubscription? _aiTwinLeftSub;
   Timer? _emptyRoomTimer;
   bool _aiTwinActive = false; // true once AI twin accepted and joined
   bool _aiTwinOfferShown = false; // prevent duplicate dialogs
@@ -221,6 +222,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
       if (ourRoom == roomName) {
+        // _hangUp() is internally gated on _aiTwinActive, so it's safe to
+        // always call — when AI twin is active, stale call_ended broadcasts
+        // from the human callee dismissing their incoming banner are ignored.
         _hangUp();
       }
     });
@@ -229,13 +233,29 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     // which would immediately tear down the room we just connected to.
     _callkitEndedSub = NotificationService.callEvents.listen((CallEvent? event) {
       if (event == null || !mounted || _navigatedAway) return;
-      if (event.event == Event.actionCallEnded) {
+      debugPrint('[VoiceCall] CallKit event: ${event.event}, _aiTwinActive=$_aiTwinActive, _settingUp=$_settingUp');
+      if (event.event == Event.actionCallEnded ||
+          event.event == Event.actionCallTimeout ||
+          event.event == Event.actionCallDecline) {
         if (_settingUp) {
-          debugPrint('[VoiceCall] CallKit actionCallEnded SKIPPED (still setting up)');
+          debugPrint('[VoiceCall] CallKit ${event.event} SKIPPED (still setting up)');
+          return;
+        }
+        // When the AI voice twin is active, iOS CallKit's own ~60s outgoing
+        // timeout (or a stale VoIP push cancel) can fire a terminal event
+        // even though the LiveKit room is alive and the user is mid-chat
+        // with the agent. _hangUp is internally gated on _aiTwinActive so
+        // it won't actually end the room, but we do need to aggressively
+        // re-activate the iOS audio session — CallKit just deactivated it
+        // as part of the "end" action and the user would otherwise go
+        // silent (reported symptom: "we stopped hearing each other").
+        if (_aiTwinActive) {
+          debugPrint('[VoiceCall] CallKit ${event.event} IGNORED (AI twin active) — restoring audio');
+          _restoreAudioAfterInterruption();
           return;
         }
         if (_room != null) {
-          debugPrint('[VoiceCall] CallKit actionCallEnded — calling _hangUp()');
+          debugPrint('[VoiceCall] CallKit ${event.event} — calling _hangUp()');
           _hangUp();
         }
       }
@@ -270,6 +290,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (!mounted || _navigatedAway) return;
       final joinedRoom = data['roomName'] as String? ?? '';
       final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      debugPrint('[AI_TWIN] call_ai_twin_joined received: joined=$joinedRoom ours=$ourRoom match=${ourRoom == joinedRoom}');
       if (ourRoom != joinedRoom) return;
       if (mounted) {
         setState(() {
@@ -277,7 +298,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           _ringing = false;
         });
       }
+      // Mark the room globally so Dashboard's call_ended listener knows
+      // not to tear down CallKit audio for it (the room is still alive,
+      // with the AI twin speaking).
+      CallStateService.instance.markAiTwinActive(joinedRoom);
+      debugPrint('[AI_TWIN] _aiTwinActive=true set — call is now in AI twin mode');
       _stopRingback();
+    });
+    _aiTwinLeftSub = sl<MessengerRemoteDataSource>()
+        .callAiTwinLeftStream
+        .listen((data) {
+      if (!mounted || _navigatedAway) return;
+      final leftRoom = data['roomName'] as String? ?? '';
+      final ourRoom = _roomName ?? CallStateService.instance.roomName;
+      debugPrint('[AI_TWIN] call_ai_twin_left received: left=$leftRoom ours=$ourRoom');
+      if (ourRoom != leftRoom) return;
+      if (mounted) setState(() => _aiTwinActive = false);
+      CallStateService.instance.unmarkAiTwinActive(leftRoom);
     });
     _initCall();
   }
@@ -745,7 +782,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _forceEarpiece();
         setState(() => _reconnecting = false);
       })
-      ..on<lk.RoomDisconnectedEvent>((_) {
+      ..on<lk.RoomDisconnectedEvent>((event) {
+        debugPrint('[VoiceCall] RoomDisconnectedEvent reason=${event.reason} _aiTwinActive=$_aiTwinActive');
+        // If the AI voice twin is handling the call, a disconnect almost
+        // always means the backend kicked us out after call_ended was
+        // broadcast by the stale human callee device. Don't reconnect —
+        // the AI twin session is effectively over, we should just show
+        // the user that the call ended. Reconnecting only loops through
+        // a dead room until backend's departureTimeout kills it.
+        if (_aiTwinActive) {
+          debugPrint('[VoiceCall] RoomDisconnected during AI twin — ending call');
+          if (mounted) {
+            setState(() {
+              _reconnecting = false;
+              _aiTwinActive = false;
+            });
+          }
+          if (_roomName != null) {
+            CallStateService.instance.unmarkAiTwinActive(_roomName!);
+          }
+          // Allow _hangUp to run even without userInitiated — the room
+          // is already dead, we just need to clean up local state.
+          _hangingUp = false;
+          _hangUp(userInitiated: true);
+          return;
+        }
         // LiveKit gave up — start our own reconnect loop
         if (mounted && !_navigatedAway && !_manualReconnecting) {
           if (mounted) setState(() => _reconnecting = false);
@@ -886,7 +947,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (_ringing && _participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
       }
-      // Auto-hangup when all remote participants left (only if someone WAS here before)
+      // Auto-hangup when all remote participants left (only if someone WAS
+      // here before).
       if (_participants.isEmpty && !_connecting && !_ringing && !_reconnecting && !_manualReconnecting && _hadRemoteParticipant) {
         _emptyRoomTimer ??= Timer(const Duration(seconds: 3), () {
           if (!mounted || _navigatedAway) return;
@@ -904,6 +966,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _startManualReconnect() async {
     if (_manualReconnecting || _navigatedAway || !mounted) return;
+    // Don't reconnect an AI twin session — the backend has almost
+    // certainly already closed the room because the stale human callee
+    // broadcast call_ended. Reconnect loops just thrash through dead
+    // rooms. Fall out and let the RoomDisconnectedEvent handler end
+    // the call cleanly.
+    if (_aiTwinActive) {
+      debugPrint('[VoiceCall] _startManualReconnect BLOCKED — AI twin active');
+      return;
+    }
     final roomName = _roomName;
     if (roomName == null) {
       CallStateService.instance.notifyEnded();
@@ -2511,11 +2582,24 @@ Answer briefly — the user is in the middle of a conversation.''';
     } catch (_) {}
   }
 
-  Future<void> _hangUp() async {
+  Future<void> _hangUp({bool userInitiated = false}) async {
     if (_hangingUp) return;
+    // When AI voice twin is active, the ONLY valid way to end the call is
+    // a user-initiated hangup (red button). All other code paths (CallKit
+    // timeouts, ringback timers, stale call_ended broadcasts, LiveKit
+    // reconnect failures, empty-room timers…) must not tear down the room.
+    if (_aiTwinActive && !userInitiated) {
+      debugPrint('[VoiceCall] _hangUp() BLOCKED — AI twin active, not user-initiated');
+      return;
+    }
     _hangingUp = true;
     final cs = CallStateService.instance;
-    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}');
+    debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}, _aiTwinActive=$_aiTwinActive, userInitiated=$userInitiated');
+    // Clear the AI twin flag for this room so future broadcasts don't
+    // linger in the service state.
+    if (_roomName != null) {
+      cs.unmarkAiTwinActive(_roomName!);
+    }
     _emptyRoomTimer?.cancel();
     _stopRingback();
     // Stop in-call assistant if active
@@ -2904,49 +2988,173 @@ Answer briefly — the user is in the middle of a conversation.''';
     if (!mounted) return;
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
-    final result = await showDialog<bool>(
+    final displayName =
+        calleeName.isEmpty ? l10n.aiTwinOfferBodyUser : calleeName;
+
+    final result = await showModalBottomSheet<bool>(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.smart_toy_outlined, color: colors.primary, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.aiTwinOfferTitle,
-                style: TextStyle(color: colors.textPrimary, fontSize: 18),
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      isDismissible: false,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors.card,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: colors.primary.withValues(alpha: 0.25),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.primary.withValues(alpha: 0.15),
+                  blurRadius: 32,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Glowing robot icon
+                  Container(
+                    width: 84,
+                    height: 84,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          colors.primary.withValues(alpha: 0.35),
+                          colors.primary.withValues(alpha: 0.08),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: colors.primary.withValues(alpha: 0.15),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.smart_toy_outlined,
+                          color: colors.primary,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.aiTwinOfferTitle,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    l10n.aiTwinOfferBody(displayName),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 15,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Primary action — big gradient button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          colors: [
+                            colors.primary,
+                            colors.primary.withValues(alpha: 0.8),
+                          ],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors.primary.withValues(alpha: 0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => Navigator.of(ctx).pop(true),
+                          child: Center(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.auto_awesome,
+                                    color: Colors.white, size: 20),
+                                const SizedBox(width: 10),
+                                Text(
+                                  l10n.aiTwinOfferAccept,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Secondary action — plain text, no background
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: Text(
+                        l10n.aiTwinOfferKeepWaiting,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          l10n.aiTwinOfferBody(calleeName.isEmpty ? l10n.aiTwinOfferBodyUser : calleeName),
-          style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4),
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(
-              l10n.aiTwinOfferKeepWaiting,
-              style: TextStyle(color: colors.textSecondary),
-            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            ),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.aiTwinOfferAccept),
-          ),
-        ],
-      ),
+        );
+      },
     );
     if (!mounted) return;
     final ds = sl<MessengerRemoteDataSource>();
@@ -2966,6 +3174,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _activeRoomSub?.cancel();
     _aiTwinOfferSub?.cancel();
     _aiTwinJoinedSub?.cancel();
+    _aiTwinLeftSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
@@ -3269,7 +3478,7 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _hangUp,
+                onPressed: () => _hangUp(userInitiated: true),
                 child: Text(AppLocalizations.of(context)!.voiceClose),
               ),
             ],
@@ -3538,7 +3747,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                             ListTile(
                               leading: Icon(Icons.call_end_rounded, color: colors.error),
                               title: Text(l10n.voiceEndThisCall, style: TextStyle(color: colors.textPrimary)),
-                              onTap: () { Navigator.pop(ctx); _hangUp(); },
+                              onTap: () { Navigator.pop(ctx); _hangUp(userInitiated: true); },
                             ),
                             ListTile(
                               leading: Icon(Icons.call_end_rounded, color: colors.error),
@@ -3555,7 +3764,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                     icon: Icons.call_end_rounded,
                     label: AppLocalizations.of(context)!.voiceEndCall,
                     color: AppColors.of(context).error,
-                    onTap: _hangUp,
+                    onTap: () => _hangUp(userInitiated: true),
                     large: true,
                   ),
                 ),

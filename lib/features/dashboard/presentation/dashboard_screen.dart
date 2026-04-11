@@ -224,6 +224,18 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         .callEndedStream
         .listen((roomName) async {
       debugPrint('[Dashboard] callEndedStream fired: roomName=$roomName');
+      // If an AI voice twin is currently handling this call, the server
+      // broadcast of call_ended is stale — it was emitted by the original
+      // human callee's device (their banner timed out / they swiped it)
+      // and does NOT mean the live conversation in the room is over.
+      // Suppress all Dashboard-side cleanup for this event so CallKit
+      // stays out of the iOS audio session and the LiveKit room keeps
+      // running. VoiceCallScreen's own listener also no-ops via the
+      // _aiTwinActive gate in _hangUp().
+      if (CallStateService.instance.isAiTwinRoom(roomName)) {
+        debugPrint('[Dashboard] call_ended IGNORED — AI twin active in $roomName');
+        return;
+      }
       final wasInCallRoom = CallStateService.instance.roomName;
       final isOurCall = wasInCallRoom != null && wasInCallRoom == roomName;
 

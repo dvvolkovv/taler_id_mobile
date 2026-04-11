@@ -349,6 +349,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // AI Voice Twin
+                AppCard(
+                  child: InkWell(
+                    onTap: () => context.push(RouteConstants.aiTwin),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
+                      children: [
+                        _navIconTile(Icons.smart_toy_rounded, AppColors.of(context).primary),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    l10n.aiTwinProfileTitle,
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.of(context).textPrimary),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  if (user.aiTwinEnabled)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.of(context).primary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        l10n.aiTwinBadgeOn,
+                                        style: TextStyle(
+                                          color: AppColors.of(context).primary,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                l10n.aiTwinProfileDesc,
+                                style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.chevron_right, color: AppColors.of(context).textSecondary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 // Personal info
                 AppCard(

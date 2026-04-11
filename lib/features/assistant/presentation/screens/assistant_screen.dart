@@ -50,6 +50,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   // PCM16 audio buffer for AI speech
   final List<int> _audioBuffer = [];
 
+  // Live transcript: list of {role: 'user'|'assistant', text: String, itemId: String?}
+  final List<_TranscriptMessage> _transcript = [];
+  final ScrollController _transcriptCtrl = ScrollController();
+
   late AnimationController _pulseCtrl;
   late Animation<double> _pulseAnim;
   late AnimationController _orbitCtrl;
@@ -181,6 +185,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     _pulseCtrl.dispose();
     _orbitCtrl.dispose();
     _logoVideo?.dispose();
+    _transcriptCtrl.dispose();
     _cleanup();
     _player.dispose();
     super.dispose();
@@ -928,22 +933,24 @@ class _AssistantScreenState extends State<AssistantScreen>
       },
     });
 
-    // Auto-briefing on session start: check unread messages, missed calls, upcoming events
+    // Auto-briefing on session start: only speak if there's something important
     final briefingPrompt = locale == 'ru'
-        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Проверь незавершённые дела пользователя прямо сейчас:\n'
-          '1. Вызови get_conversations — найди диалоги с unreadCount > 0 (непрочитанные сообщения)\n'
-          '2. Вызови get_call_history — найди пропущенные звонки за последние 24 часа\n'
-          '3. Вызови get_events — получи события на сегодня (от начала до конца дня)\n'
-          '4. Вызови get_contact_requests — проверь входящие заявки в контакты\n'
-          'На основе результатов дай краткую голосовую сводку: что нового, что требует внимания. '
-          'Если всё чисто — скажи об этом коротко. Не задавай вопросов — просто озвучь сводку.'
-        : 'AUTO-START: Check user\'s pending items right now:\n'
-          '1. Call get_conversations — find chats with unreadCount > 0 (unread messages)\n'
-          '2. Call get_call_history — find missed calls in the last 24 hours\n'
-          '3. Call get_events — get today\'s events (from start to end of day)\n'
-          '4. Call get_contact_requests — check incoming contact requests\n'
-          'Based on the results, give a brief voice summary: what\'s new, what needs attention. '
-          'If everything is clear — say so briefly. Don\'t ask questions — just deliver the briefing.';
+        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Тихо проверь следующее:\n'
+          '1. get_conversations — диалоги с unreadCount > 0 (непрочитанные сообщения)\n'
+          '2. get_contact_requests — входящие заявки в контакты\n'
+          '3. get_call_history — пропущенные звонки за последние 24 часа\n'
+          '4. get_events — события и приглашения на сегодня\n'
+          'ПРАВИЛО: Говори ТОЛЬКО если есть что-то новое: непрочитанные, заявки, пропущенные, новые события или приглашения. '
+          'Кратко перечисли что есть и предложи голосом обработать (принять/отклонить/ответить). '
+          'Если всё чисто — молчи и жди запроса пользователя. Не здоровайся и не сообщай что всё в порядке.'
+        : 'AUTO-START: Silently check:\n'
+          '1. get_conversations — unread messages (unreadCount > 0)\n'
+          '2. get_contact_requests — pending contact requests\n'
+          '3. get_call_history — missed calls in last 24 hours\n'
+          '4. get_events — today\'s events and invitations\n'
+          'RULE: Speak ONLY if there is something new: unread items, requests, missed calls, new events or invitations. '
+          'Briefly list what is there and offer to handle it by voice (accept/decline/reply). '
+          'If all clear — stay silent, wait for user. Do not greet or confirm that all is clear.';
 
     _sendEvent({
       'type': 'conversation.item.create',
@@ -967,6 +974,9 @@ class _AssistantScreenState extends State<AssistantScreen>
     final stream = await _recorder.startStream(config);
     _recordSub = stream.listen((chunk) {
       if (_muted || _ws == null) return;
+      // Half-duplex: не шлём микрофон пока AI говорит — иначе его голос ловится
+      // через динамик обратно в мик и whisper транскрибирует эхо как реплику юзера.
+      if (_aiSpeaking) return;
       _sendEvent({
         'type': 'input_audio_buffer.append',
         'audio': base64Encode(chunk),
@@ -976,6 +986,46 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _sendEvent(Map<String, dynamic> event) {
     _ws?.add(jsonEncode(event));
+  }
+
+  /// Append text delta to an existing transcript message (by itemId) or create new
+  void _appendTranscript(String role, String delta, String itemId) {
+    if (!mounted) return;
+    setState(() {
+      final idx = _transcript.indexWhere((m) => m.itemId == itemId && m.role == role);
+      if (idx >= 0) {
+        _transcript[idx] = _transcript[idx].copyWith(text: _transcript[idx].text + delta);
+      } else {
+        _transcript.add(_TranscriptMessage(role: role, text: delta, itemId: itemId));
+      }
+    });
+    _scrollTranscriptToBottom();
+  }
+
+  /// Replace full transcript for an item (used on .done events with final text)
+  void _replaceTranscript(String role, String text, String itemId) {
+    if (!mounted) return;
+    setState(() {
+      final idx = _transcript.indexWhere((m) => m.itemId == itemId && m.role == role);
+      if (idx >= 0) {
+        _transcript[idx] = _transcript[idx].copyWith(text: text);
+      } else {
+        _transcript.add(_TranscriptMessage(role: role, text: text, itemId: itemId));
+      }
+    });
+    _scrollTranscriptToBottom();
+  }
+
+  void _scrollTranscriptToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_transcriptCtrl.hasClients) {
+        _transcriptCtrl.animateTo(
+          _transcriptCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   void _onMessage(String data) {
@@ -989,6 +1039,23 @@ class _AssistantScreenState extends State<AssistantScreen>
           _audioBuffer.addAll(base64Decode(delta));
           if (mounted && !_aiSpeaking) setState(() => _aiSpeaking = true);
         }
+      } else if (type == 'response.audio_transcript.delta') {
+        // AI speech transcript (live) — item_id is the assistant response item
+        final delta = event['delta'] as String? ?? '';
+        final itemId = event['item_id'] as String? ?? '';
+        debugPrint('[Assistant] ai.delta item=$itemId');
+        if (delta.isNotEmpty) _appendTranscript('assistant', delta, 'ai:$itemId');
+      } else if (type == 'response.audio_transcript.done') {
+        final transcript = event['transcript'] as String? ?? '';
+        final itemId = event['item_id'] as String? ?? '';
+        debugPrint('[Assistant] ai.done item=$itemId text=$transcript');
+        if (transcript.isNotEmpty) _replaceTranscript('assistant', transcript, 'ai:$itemId');
+      } else if (type == 'conversation.item.input_audio_transcription.completed') {
+        // User speech transcript (after whisper finishes)
+        final transcript = event['transcript'] as String? ?? '';
+        final itemId = event['item_id'] as String? ?? '';
+        debugPrint('[Assistant] user.done item=$itemId text=$transcript');
+        if (transcript.isNotEmpty) _replaceTranscript('user', transcript, 'user:$itemId');
       } else if (type == 'response.audio.done') {
         _playBufferedAudio();
       } else if (type == 'response.done') {
@@ -1544,6 +1611,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     // Stop audio immediately so user doesn't hear lingering speech
     await _player.stop();
     _audioBuffer.clear();
+    // Note: transcript is NOT cleared — it persists across sessions
     await _cleanup();
     await _setSpeaker(false);
     if (mounted) {
@@ -1980,147 +2048,67 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Widget _buildConnected(AppLocalizations l10n) {
     final speaking = _aiSpeaking;
+    final colors = AppColors.of(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Spacer(),
-        SizedBox(
-          width: 260,
-          height: 260,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Expanding waveform rings when speaking
-              AnimatedBuilder(
-                animation: _orbitCtrl,
-                builder: (context, _) {
-                  final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
-                  return CustomPaint(
-                    size: const Size(260, 260),
-                    painter: _AssistantWavePainter(
-                      time: t,
-                      active: speaking,
-                      colors: const [
-                        Color(0xFF22D3EE),
-                        Color(0xFFA855F7),
-                        Color(0xFFFBBF24),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              // Breathing central container with video logo
-              AnimatedBuilder(
-                animation: _pulseCtrl,
-                builder: (_, child) {
-                  final scale =
-                      speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.8 : 1.0;
-                  return Transform.scale(scale: scale, child: child);
-                },
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: speaking
-                        ? const LinearGradient(
-                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          )
-                        : null,
-                    color: speaking
-                        ? null
-                        : AppColors.of(context).card,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: speaking ? 0.3 : 0.1),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: (speaking ? const Color(0xFF22D3EE) : AppColors.of(context).primary)
-                            .withValues(alpha: speaking ? 0.55 : 0.3),
-                        blurRadius: speaking ? 40 : 24,
-                        spreadRadius: speaking ? 8 : 4,
-                      ),
-                      if (speaking)
-                        BoxShadow(
-                          color: const Color(0xFFA855F7).withValues(alpha: 0.35),
-                          blurRadius: 60,
-                          spreadRadius: 12,
-                        ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(3),
-                    child: ClipOval(
-                      child: _logoVideoReady && _logoVideo != null
-                          ? SizedBox(
-                              width: 90,
-                              height: 90,
-                              child: FittedBox(
-                                fit: BoxFit.cover,
-                                child: SizedBox(
-                                  width: _logoVideo!.value.size.width,
-                                  height: _logoVideo!.value.size.height,
-                                  child: VideoPlayer(_logoVideo!),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              width: 90,
-                              height: 90,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Image.asset(
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? 'assets/app_icon_dark.png'
-                                      : 'assets/app_icon_light.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          child: speaking
-              ? ShaderMask(
-                  key: const ValueKey('speaking'),
-                  shaderCallback: (rect) => const LinearGradient(
-                    colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
-                  ).createShader(rect),
+        // Full-screen transcript
+        Expanded(
+          child: _transcript.isEmpty
+              ? Center(
                   child: Text(
-                    l10n.assistantAiSpeaking,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
+                    speaking ? l10n.assistantAiSpeaking : l10n.assistantAiListening,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 )
-              : Text(
-                  l10n.assistantAiListening,
-                  key: const ValueKey('listening'),
-                  style: TextStyle(
-                    color: AppColors.of(context).textSecondary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+              : Container(
+                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colors.card.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.border.withValues(alpha: 0.2)),
+                  ),
+                  child: ListView.builder(
+                    controller: _transcriptCtrl,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    itemCount: _transcript.length,
+                    itemBuilder: (_, i) {
+                      final m = _transcript[i];
+                      final isUser = m.role == 'user';
+                      return Align(
+                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                          decoration: BoxDecoration(
+                            color: isUser ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            m.text,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
         ),
-        const Spacer(),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _CallButton(
                 icon: _speakerOn
@@ -2128,27 +2116,110 @@ class _AssistantScreenState extends State<AssistantScreen>
                     : Icons.volume_off_rounded,
                 label: _speakerOn ? l10n.assistantSpeakerOn : l10n.assistantSpeaker,
                 color: _speakerOn
-                    ? AppColors.of(context).primary.withValues(alpha: 0.2)
-                    : AppColors.of(context).card,
+                    ? colors.primary.withValues(alpha: 0.2)
+                    : colors.card,
                 iconColor:
-                    _speakerOn ? AppColors.of(context).primary : AppColors.of(context).textSecondary,
+                    _speakerOn ? colors.primary : colors.textSecondary,
                 onTap: _toggleSpeaker,
               ),
-              _CallButton(
-                icon: Icons.call_end_rounded,
-                label: l10n.assistantEnd,
-                color: AppColors.of(context).error,
-                iconColor: Colors.white,
+              // Animated logo — tap to end session
+              GestureDetector(
                 onTap: _endCall,
-                size: 72,
+                child: SizedBox(
+                  width: 88,
+                  height: 88,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Expanding waveform rings when speaking
+                      AnimatedBuilder(
+                        animation: _orbitCtrl,
+                        builder: (context, _) {
+                          final t = (_orbitCtrl.lastElapsedDuration?.inMilliseconds ?? 0) / 1000.0;
+                          return CustomPaint(
+                            size: const Size(88, 88),
+                            painter: _AssistantWavePainter(
+                              time: t,
+                              active: speaking,
+                              colors: const [
+                                Color(0xFF22D3EE),
+                                Color(0xFFA855F7),
+                                Color(0xFFFBBF24),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      // Breathing central container with video logo
+                      AnimatedBuilder(
+                        animation: _pulseCtrl,
+                        builder: (_, child) {
+                          final scale = speaking ? 1.0 + (_pulseAnim.value - 1.0) * 0.5 : 1.0;
+                          return Transform.scale(scale: scale, child: child);
+                        },
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: speaking
+                                ? const LinearGradient(
+                                    colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : null,
+                            color: speaking ? null : colors.card,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: speaking ? 0.3 : 0.1),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (speaking ? const Color(0xFF22D3EE) : colors.primary)
+                                    .withValues(alpha: speaking ? 0.5 : 0.25),
+                                blurRadius: speaking ? 20 : 12,
+                                spreadRadius: speaking ? 4 : 2,
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: ClipOval(
+                              child: _logoVideoReady && _logoVideo != null
+                                  ? FittedBox(
+                                      fit: BoxFit.cover,
+                                      child: SizedBox(
+                                        width: _logoVideo!.value.size.width,
+                                        height: _logoVideo!.value.size.height,
+                                        child: VideoPlayer(_logoVideo!),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                                      padding: const EdgeInsets.all(6),
+                                      child: Image.asset(
+                                        Theme.of(context).brightness == Brightness.dark
+                                            ? 'assets/app_icon_dark.png'
+                                            : 'assets/app_icon_light.png',
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               _CallButton(
                 icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
                 label: _muted ? l10n.assistantUnmute : l10n.assistantMicrophone,
                 color: _muted
-                    ? AppColors.of(context).error.withValues(alpha: 0.2)
-                    : AppColors.of(context).card,
-                iconColor: _muted ? AppColors.of(context).error : AppColors.of(context).textSecondary,
+                    ? colors.error.withValues(alpha: 0.2)
+                    : colors.card,
+                iconColor: _muted ? colors.error : colors.textSecondary,
                 onTap: _toggleMute,
               ),
             ],
@@ -2537,4 +2608,17 @@ class _CenterAuraPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CenterAuraPainter old) => old.time != time;
+}
+
+
+class _TranscriptMessage {
+  final String role; // 'user' or 'assistant'
+  final String text;
+  final String? itemId;
+  const _TranscriptMessage({required this.role, required this.text, this.itemId});
+  _TranscriptMessage copyWith({String? text}) => _TranscriptMessage(
+        role: role,
+        text: text ?? this.text,
+        itemId: itemId,
+      );
 }

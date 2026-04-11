@@ -1297,8 +1297,37 @@
     }
   },
   "aiTwinPrompt": "AI instructions",
-  "aiTwinPromptHint": "Hi, this is Dmitry's AI voice twin. He couldn't pick up right now. Tell me who's calling and what it's about — I'll pass it on.",
-  "aiTwinComingSoon": "Custom voice cloning coming soon. For now the AI speaks with Dmitry's voice.",
+  "aiTwinPromptSubtitle": "How the AI twin should introduce itself and what to talk about",
+  "aiTwinPromptHint": "Hi, this is {name}'s AI voice twin. {name} couldn't pick up right now. Tell me who's calling and what it's about — I'll pass it on.",
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinComingSoon": "Custom voice cloning coming soon. For now the AI speaks with {name}'s voice.",
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTwinDefaultName": "the owner",
+  "aiTwinPromptReset": "Reset",
+  "callHistoryAiTwinAnswered": "AI TWIN ANSWERED",
+  "callHistoryAiTwinSummary": "CALL SUMMARY",
+  "callHistoryAiTwinTranscript": "TRANSCRIPT",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "From {name}",
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiTwinOfferTitle": "Not answering",
   "aiTwinOfferBody": "{name} isn't picking up. Leave a message with their AI voice twin?",
   "@aiTwinOfferBody": {
@@ -1311,5 +1340,10 @@
   "aiTwinOfferBodyUser": "User",
   "aiTwinOfferAccept": "Yes, leave message",
   "aiTwinOfferKeepWaiting": "Keep waiting",
-  "aiTwinLabel": "AI"
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Your AI stand-in",
+  "aiTwinHeroSubtitle": "Answers calls in your voice when you can't.",
+  "aiTwinProfileTitle": "AI Stand-in",
+  "aiTwinProfileDesc": "Answers calls in your voice",
+  "aiTwinBadgeOn": "ON"
 }
