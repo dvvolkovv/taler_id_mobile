@@ -1180,6 +1180,9 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _onIncomingMessage(dynamic msg) {
     if (_ws == null || _state != _CallState.connected) return;
+    // Ignore system messages (AI Analyst bot responses, missed-call labels, etc.)
+    // — they are not real incoming messages from humans.
+    if (msg.isSystem) return;
     final senderName = msg.senderName ?? 'Unknown';
     final content = msg.content;
     final conversationId = msg.conversationId;

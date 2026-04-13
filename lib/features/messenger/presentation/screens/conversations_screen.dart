@@ -628,6 +628,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
     bool archivedOnly = false,
   }) {
     var result = convs.where((c) {
+      // SAVED and AI_ANALYST are pinned separately at the top — exclude from the list
+      if (c.type == 'SAVED' || c.type == 'AI_ANALYST') return false;
       return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
     }).toList();
 
@@ -1224,9 +1226,12 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
-    final displayName = isGroup
-        ? (conversation.name ?? l10n.chatGroup)
-        : (conversation.otherUserName ?? l10n.convDefaultUser);
+    final isAiAnalyst = conversation.type == 'AI_ANALYST';
+    final displayName = isAiAnalyst
+        ? l10n.aiAnalystTitle
+        : isGroup
+            ? (conversation.name ?? l10n.chatGroup)
+            : (conversation.otherUserName ?? l10n.convDefaultUser);
     final lastMsg = conversation.lastMessageContent;
     final lastAt = conversation.lastMessageAt;
     final timeStr = lastAt != null
@@ -1263,9 +1268,11 @@ class _ConversationTile extends StatelessWidget {
       }
     }
 
-    final avatar = isGroup ? conversation.avatarUrl : conversation.otherUserAvatar;
+    final avatar = isAiAnalyst ? null : (isGroup ? conversation.avatarUrl : conversation.otherUserAvatar);
 
-    final rainbowColor = rainbowColorFor(displayName);
+    final rainbowColor = isAiAnalyst
+        ? AppColors.of(context).primary
+        : rainbowColorFor(displayName);
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
@@ -1283,7 +1290,21 @@ class _ConversationTile extends StatelessWidget {
             ),
           ],
         ),
-        child: avatar != null
+        child: isAiAnalyst
+            ? Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.of(context).primary, AppColors.of(context).primary.withValues(alpha: 0.7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              )
+            : avatar != null
             ? CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.transparent,
