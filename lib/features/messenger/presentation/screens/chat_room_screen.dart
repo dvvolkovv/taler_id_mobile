@@ -1273,13 +1273,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   final l10n = AppLocalizations.of(context)!;
                   final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
-                  final name = isSaved
-                      ? l10n.messengerSavedSection
-                      : isGroup
-                          ? (conv?.name ?? l10n.chatGroup)
-                          : conv?.otherUserName;
-                  final avatarUrl =
-                      isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
+                  final isAiAnalyst = conv?.type == 'AI_ANALYST';
+                  final name = isAiAnalyst
+                      ? l10n.aiAnalystTitle
+                      : isSaved
+                          ? l10n.messengerSavedSection
+                          : isGroup
+                              ? (conv?.name ?? l10n.chatGroup)
+                              : conv?.otherUserName;
+                  final avatarUrl = isAiAnalyst
+                      ? null
+                      : isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
                   return GestureDetector(
               onTap: isGroup
@@ -1319,6 +1323,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ),
                             ),
                             child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 18),
+                          )
+                        : isAiAnalyst
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [AppColors.of(context).primary, AppColors.of(context).primary.withValues(alpha: 0.7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
                           )
                         : CircleAvatar(
                       radius: 18,
@@ -1566,16 +1584,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             showDate = msgDate != prevDate;
                           }
 
-                          // Group context: consecutive messages from same sender
+                          // Group context: consecutive messages from same sender.
+                          // In AI_ANALYST chats, system messages are bot replies
+                          // and should group normally, not break grouping.
+                          final analystChat = conv?.type == 'AI_ANALYST';
+                          final breakOnSystem = !analystChat;
                           final isFirstInGroup = showDate ||
                               prevChron == null ||
-                              prevChron.isSystem ||
-                              msg.isSystem ||
-                              prevChron.senderId != msg.senderId;
+                              (breakOnSystem && prevChron.isSystem) ||
+                              (breakOnSystem && msg.isSystem) ||
+                              (analystChat
+                                  ? prevChron.isSystem != msg.isSystem // group by bot vs user
+                                  : prevChron.senderId != msg.senderId);
                           final isLastInGroup = nextChron == null ||
-                              nextChron.isSystem ||
-                              msg.isSystem ||
-                              nextChron.senderId != msg.senderId ||
+                              (breakOnSystem && nextChron.isSystem) ||
+                              (breakOnSystem && msg.isSystem) ||
+                              (analystChat
+                                  ? nextChron.isSystem != msg.isSystem
+                                  : nextChron.senderId != msg.senderId) ||
                               DateTime(nextChron.sentAt.year, nextChron.sentAt.month, nextChron.sentAt.day) != msgDate;
 
                           // Show sender name only on first message of a group (incoming group chats)
@@ -1602,9 +1628,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               if (showDate) _DateSeparator(date: msg.sentAt),
                               _MessageBubble(
                                 message: msg,
-                                isMe: isMe,
+                                isMe: msg.isSystem && conv?.type == 'AI_ANALYST' ? false : isMe,
                                 isGroup: isGroup,
-                                senderName: sName,
+                                isAiAnalyst: conv?.type == 'AI_ANALYST',
+                                senderName: msg.isSystem && conv?.type == 'AI_ANALYST'
+                                    ? AppLocalizations.of(context)!.aiAnalystTitle
+                                    : sName,
                                 isFirstInGroup: isFirstInGroup,
                                 isLastInGroup: isLastInGroup,
                                 isSearchMatch: isAnyMatch,
@@ -2138,6 +2167,7 @@ class _MessageBubble extends StatefulWidget {
   final bool isMe;
   final String? senderName;
   final bool isGroup;
+  final bool isAiAnalyst;
   final bool isFirstInGroup;
   final bool isLastInGroup;
   final bool isSearchMatch;
@@ -2154,6 +2184,7 @@ class _MessageBubble extends StatefulWidget {
     required this.isMe,
     this.senderName,
     this.isGroup = false,
+    this.isAiAnalyst = false,
     this.isFirstInGroup = true,
     this.isLastInGroup = true,
     this.isSearchMatch = false,
@@ -2193,7 +2224,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.message.isSystem) {
+    // In AI Analyst conversations, system messages are bot responses —
+    // render them as regular left-aligned bubbles, not centered labels.
+    if (widget.message.isSystem && !widget.isAiAnalyst) {
       return _buildSystemMessage(context);
     }
 
