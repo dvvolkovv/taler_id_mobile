@@ -13,6 +13,7 @@ import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
@@ -27,6 +28,9 @@ enum _CallState { idle, connecting, connected, error }
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
+
+  /// Set to true before navigating to auto-connect on open (wake word trigger).
+  static bool autoConnect = false;
 
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
@@ -106,6 +110,17 @@ class _AssistantScreenState extends State<AssistantScreen>
         await _startRecording();
       }
     });
+    // Auto-connect if triggered by wake word
+    if (AssistantScreen.autoConnect) {
+      AssistantScreen.autoConnect = false;
+      debugPrint('[WakeWord] Auto-connecting assistant...');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _state == _CallState.idle) {
+          debugPrint('[WakeWord] Calling _connect()');
+          _connect();
+        }
+      });
+    }
   }
 
   @override
@@ -2090,8 +2105,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                             color: isUser ? colors.primary.withValues(alpha: 0.15) : colors.surface,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Text(
-                            m.text,
+                          child: LinkifiedText(
+                            text: m.text,
                             style: TextStyle(
                               color: colors.textPrimary,
                               fontSize: 14,

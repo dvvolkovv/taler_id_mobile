@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
@@ -1052,8 +1053,8 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    text,
+                  LinkifiedText(
+                    text: text,
                     style: TextStyle(
                       color: colors.textPrimary,
                       fontSize: 14,

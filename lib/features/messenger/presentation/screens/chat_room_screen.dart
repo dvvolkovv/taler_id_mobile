@@ -18,6 +18,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../core/theme/linkified_text.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -3130,11 +3131,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
   }
 }
 
-final _urlRegex = RegExp(
-  r'https?://[^\s<>\"\)]+',
-  caseSensitive: false,
-);
-
 class _ContactCardWidget extends StatelessWidget {
   final String content;
   const _ContactCardWidget({required this.content});
@@ -3204,66 +3200,9 @@ class _ContactCardWidget extends StatelessWidget {
   }
 }
 
-class _LinkifiedText extends StatelessWidget {
-  final String text;
-  final TextStyle style;
-  final TextStyle linkStyle;
-  const _LinkifiedText({
-    required this.text,
-    required this.style,
-    required this.linkStyle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final matches = _urlRegex.allMatches(text).toList();
-    if (matches.isEmpty) {
-      return SelectionArea(child: Text(text, style: style));
-    }
-
-    final spans = <InlineSpan>[];
-    var lastEnd = 0;
-    for (final m in matches) {
-      if (m.start > lastEnd) {
-        spans.add(TextSpan(text: text.substring(lastEnd, m.start), style: style));
-      }
-      final url = m.group(0)!;
-      spans.add(TextSpan(
-        text: url,
-        style: linkStyle,
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            final uri = Uri.tryParse(url);
-            if (uri == null) return;
-            const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol'};
-            final isTaler = talerHosts.contains(uri.host);
-            // Open room links inside the app instead of the browser
-            if (isTaler && uri.path.startsWith('/room/')) {
-              final code = uri.pathSegments.last;
-              if (code.isNotEmpty) {
-                GoRouter.of(context).go('/dashboard/voice?publicCode=$code');
-                return;
-              }
-            }
-            // Open contact profile links inside the app
-            if (isTaler && uri.path.startsWith('/u/')) {
-              final userId = uri.pathSegments.last;
-              if (userId.isNotEmpty) {
-                GoRouter.of(context).push('/dashboard/user/$userId');
-                return;
-              }
-            }
-            launchUrl(uri, mode: LaunchMode.externalApplication);
-          },
-      ));
-      lastEnd = m.end;
-    }
-    if (lastEnd < text.length) {
-      spans.add(TextSpan(text: text.substring(lastEnd), style: style));
-    }
-    return SelectionArea(child: Text.rich(TextSpan(children: spans)));
-  }
-}
+// _LinkifiedText is now a shared widget: see core/theme/linkified_text.dart
+// Kept as a thin typedef so existing call-sites compile without changes.
+typedef _LinkifiedText = LinkifiedText;
 
 class _CallOptionsSheet extends StatefulWidget {
   const _CallOptionsSheet();
