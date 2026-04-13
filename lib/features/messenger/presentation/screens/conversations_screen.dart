@@ -953,6 +953,66 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                     ),
                   ),
+                // AI Analyst — Claude-powered chat
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.primary, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.primary.withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [colors.primary, colors.primary.withValues(alpha: 0.7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                        ),
+                      ),
+                      title: Text(
+                        AppLocalizations.of(context)!.aiAnalystTitle,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        AppLocalizations.of(context)!.aiAnalystSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
+                      onTap: () async {
+                        try {
+                          final res = await sl<DioClient>().post(
+                            '/messenger/ai-analyst',
+                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                          );
+                          final convId = res['conversationId'] as String?;
+                          if (convId != null && context.mounted) {
+                            context.push('/dashboard/messenger/$convId');
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
                 // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(

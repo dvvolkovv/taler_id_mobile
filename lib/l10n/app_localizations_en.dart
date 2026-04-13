@@ -2984,4 +2984,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiTwinBadgeOn => 'ON';
+
+  @override
+  String get aiAnalystTitle => 'AI Analyst';
+
+  @override
+  String get aiAnalystSubtitle => 'Files, tasks, analysis — Claude';
 }

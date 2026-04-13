@@ -5719,6 +5719,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ON'**
   String get aiTwinBadgeOn;
+
+  /// No description provided for @aiAnalystTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Analyst'**
+  String get aiAnalystTitle;
+
+  /// No description provided for @aiAnalystSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Files, tasks, analysis — Claude'**
+  String get aiAnalystSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -2992,4 +2992,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aiTwinBadgeOn => 'ВКЛ';
+
+  @override
+  String get aiAnalystTitle => 'AI Аналитик';
+
+  @override
+  String get aiAnalystSubtitle => 'Файлы, задачи, анализ — Claude';
 }
