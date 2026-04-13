@@ -1180,13 +1180,38 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _onIncomingMessage(dynamic msg) {
     if (_ws == null || _state != _CallState.connected) return;
-    // Ignore system messages (AI Analyst bot responses, missed-call labels, etc.)
-    // — they are not real incoming messages from humans.
-    if (msg.isSystem) return;
     final senderName = msg.senderName ?? 'Unknown';
     final content = msg.content;
     final conversationId = msg.conversationId;
     if (content == null || content.isEmpty) return;
+
+    // AI Analyst bot responses: proactively tell the user what the
+    // analyst said, instead of waiting for them to ask.
+    if (msg.isSystem && senderName == 'AI Аналитик') {
+      final summary = content.length > 600
+          ? '${content.substring(0, 600)}...'
+          : content;
+      _sendEvent({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'message',
+          'role': 'user',
+          'content': [
+            {
+              'type': 'input_text',
+              'text': '[СИСТЕМНОЕ УВЕДОМЛЕНИЕ] AI Аналитик завершил анализ и прислал ответ:\n\n$summary\n\n'
+                  'Кратко сообщи пользователю, что аналитик ответил, и перескажи суть ответа в 2-3 предложениях.',
+            },
+          ],
+        },
+      });
+      _sendEvent({'type': 'response.create'});
+      return;
+    }
+
+    // Ignore other system messages (missed-call labels, etc.)
+    if (msg.isSystem) return;
+
     // Inject as a user-context message with conversationId so AI can load history and recommend a reply
     _sendEvent({
       'type': 'conversation.item.create',
