@@ -13,10 +13,12 @@ import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
@@ -27,6 +29,13 @@ enum _CallState { idle, connecting, connected, error }
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
+
+  /// Set to true before navigating to auto-connect on open (wake word trigger).
+  static bool autoConnect = false;
+
+  /// Notifier for wake word when already on assistant screen.
+  static final connectNotifier = ValueNotifier<int>(0);
+  static void triggerConnect() => connectNotifier.value++;
 
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
@@ -106,6 +115,19 @@ class _AssistantScreenState extends State<AssistantScreen>
         await _startRecording();
       }
     });
+    // Listen for wake word trigger while already on this screen
+    AssistantScreen.connectNotifier.addListener(_onWakeWordTrigger);
+    // Auto-connect if triggered by wake word
+    if (AssistantScreen.autoConnect) {
+      AssistantScreen.autoConnect = false;
+      debugPrint('[WakeWord] Auto-connecting assistant...');
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _state == _CallState.idle) {
+          debugPrint('[WakeWord] Calling _connect()');
+          _connect();
+        }
+      });
+    }
   }
 
   @override
@@ -181,6 +203,7 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   void dispose() {
+    AssistantScreen.connectNotifier.removeListener(_onWakeWordTrigger);
     _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
     _orbitCtrl.dispose();
@@ -201,6 +224,13 @@ class _AssistantScreenState extends State<AssistantScreen>
     await _recorder.stop();
     await _ws?.close();
     _ws = null;
+  }
+
+  void _onWakeWordTrigger() {
+    if (mounted && _state == _CallState.idle) {
+      debugPrint('[WakeWord] connectNotifier triggered → _connect()');
+      _connect();
+    }
   }
 
   Future<void> _connect() async {
@@ -252,6 +282,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       _messageSub = sl<MessengerRemoteDataSource>().messageStream.listen(_onIncomingMessage);
 
       // No greeting — start listening immediately
+      WakeWordService.instance.pause();
       setState(() => _state = _CallState.connected);
     } catch (e) {
       await _cleanup();
@@ -342,6 +373,14 @@ class _AssistantScreenState extends State<AssistantScreen>
           '3. Подтверди сохранение голосом\n'
           'Если пользователь спрашивает "какие у меня заметки" — вызови get_notes и перескажи\n'
           'Если просит резюме заметок — вызови get_notes, проанализируй и дай краткое резюме\n\n'
+          'AI АНАЛИТИК:\n'
+          'У тебя есть доступ к AI Аналитику — мощному инструменту на базе Claude, который может:\n'
+          '- Анализировать документы и файлы (PDF, таблицы, код, изображения)\n'
+          '- Выполнять сложные исследовательские задачи\n'
+          '- Генерировать отчёты, код, презентации\n'
+          '- Давать взвешенные экспертные ответы на сложные вопросы\n'
+          'Используй ask_analyst чтобы отправить задачу. Результат придёт асинхронно — ты его автоматически озвучишь.\n'
+          'Если пользователь спрашивает "что ты умеешь" или "какие у тебя возможности" — обязательно упомяни AI Аналитика.\n\n'
           'КАЛЕНДАРЬ И НАПОМИНАНИЯ:\n'
           'Сейчас: $nowStr.\n'
           'Передавай startAt и reminderAt в МЕСТНОМ времени формат YYYY-MM-DDTHH:MM:SS (БЕЗ Z, БЕЗ конвертации в UTC).\n'
@@ -928,29 +967,62 @@ class _AssistantScreenState extends State<AssistantScreen>
             'description': 'Disable PIN code lock. To enable PIN a setup flow is required — tell the user to go to Settings.',
             'parameters': {'type': 'object', 'properties': {}},
           },
+          {
+            'type': 'function',
+            'name': 'ask_analyst',
+            'description':
+                'Send a task or question to the AI Analyst (Claude) for deep analysis. '
+                'Use this for complex tasks: document analysis, code review, research, '
+                'data processing, file generation. The result will appear in the AI Analyst '
+                'chat in Messages. Tell the user you sent the task and they can check '
+                'the result in the AI Analyst chat.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'question': {
+                  'type': 'string',
+                  'description': 'The task or question for the AI Analyst',
+                },
+              },
+              'required': ['question'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_analyst_result',
+            'description':
+                'Get the latest response from the AI Analyst. Use this when the user '
+                'asks what the analyst said, or to check if a previously submitted '
+                'task has been completed.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
         ],
         'tool_choice': 'auto',
       },
     });
 
-    // Auto-briefing on session start: only speak if there's something important
+    // Auto-briefing on session start: greet briefly, then check for unread/missed
     final briefingPrompt = locale == 'ru'
-        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Тихо проверь следующее:\n'
+        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Сначала скажи "Слушаю вас" (коротко, одна фраза). '
+          'Затем тихо проверь:\n'
           '1. get_conversations — диалоги с unreadCount > 0 (непрочитанные сообщения)\n'
           '2. get_contact_requests — входящие заявки в контакты\n'
           '3. get_call_history — пропущенные звонки за последние 24 часа\n'
           '4. get_events — события и приглашения на сегодня\n'
-          'ПРАВИЛО: Говори ТОЛЬКО если есть что-то новое: непрочитанные, заявки, пропущенные, новые события или приглашения. '
-          'Кратко перечисли что есть и предложи голосом обработать (принять/отклонить/ответить). '
-          'Если всё чисто — молчи и жди запроса пользователя. Не здоровайся и не сообщай что всё в порядке.'
-        : 'AUTO-START: Silently check:\n'
+          'Если есть что-то новое — кратко сообщи после приветствия: '
+          '"У вас N непрочитанных сообщений / N пропущенных звонков / событие на сегодня". '
+          'Предложи обработать голосом. '
+          'Если всё чисто — жди запроса пользователя, больше ничего не говори.'
+        : 'AUTO-START: First say "I\'m listening" (brief, one phrase). '
+          'Then silently check:\n'
           '1. get_conversations — unread messages (unreadCount > 0)\n'
           '2. get_contact_requests — pending contact requests\n'
           '3. get_call_history — missed calls in last 24 hours\n'
           '4. get_events — today\'s events and invitations\n'
-          'RULE: Speak ONLY if there is something new: unread items, requests, missed calls, new events or invitations. '
-          'Briefly list what is there and offer to handle it by voice (accept/decline/reply). '
-          'If all clear — stay silent, wait for user. Do not greet or confirm that all is clear.';
+          'If there is something new — briefly mention after greeting: '
+          '"You have N unread messages / N missed calls / event today". '
+          'Offer to handle by voice. '
+          'If all clear — wait for user, say nothing else.';
 
     _sendEvent({
       'type': 'conversation.item.create',
@@ -1124,6 +1196,34 @@ class _AssistantScreenState extends State<AssistantScreen>
     final content = msg.content;
     final conversationId = msg.conversationId;
     if (content == null || content.isEmpty) return;
+
+    // AI Analyst bot responses: proactively tell the user what the
+    // analyst said, instead of waiting for them to ask.
+    if (msg.isSystem && senderName == 'AI Аналитик') {
+      final summary = content.length > 600
+          ? '${content.substring(0, 600)}...'
+          : content;
+      _sendEvent({
+        'type': 'conversation.item.create',
+        'item': {
+          'type': 'message',
+          'role': 'user',
+          'content': [
+            {
+              'type': 'input_text',
+              'text': '[СИСТЕМНОЕ УВЕДОМЛЕНИЕ] AI Аналитик завершил анализ и прислал ответ:\n\n$summary\n\n'
+                  'Кратко сообщи пользователю, что аналитик ответил, и перескажи суть ответа в 2-3 предложениях.',
+            },
+          ],
+        },
+      });
+      _sendEvent({'type': 'response.create'});
+      return;
+    }
+
+    // Ignore other system messages (missed-call labels, etc.)
+    if (msg.isSystem) return;
+
     // Inject as a user-context message with conversationId so AI can load history and recommend a reply
     _sendEvent({
       'type': 'conversation.item.create',
@@ -1574,6 +1674,42 @@ class _AssistantScreenState extends State<AssistantScreen>
       } else if (name == 'disable_pin') {
         await sl<SecureStorageService>().clearPin();
         output = jsonEncode({'ok': true, 'pinEnabled': false});
+      } else if (name == 'ask_analyst') {
+        final args = jsonDecode(argsJson);
+        final question = args['question'] as String? ?? '';
+        // 1. Get or create the AI Analyst conversation
+        final convRes = await client.post<Map<String, dynamic>>(
+          '/messenger/ai-analyst',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final convId = convRes['conversationId'] as String;
+        // 2. Send the question as a user message via Socket.io
+        sl<MessengerRemoteDataSource>().sendMessage(convId, question);
+        output = jsonEncode({
+          'ok': true,
+          'conversationId': convId,
+          'message': 'Task sent to AI Analyst. The result will appear in the AI Analyst chat in Messages.',
+        });
+      } else if (name == 'get_analyst_result') {
+        final res = await client.get<Map<String, dynamic>>(
+          '/ai-analyst/latest',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final text = res['text'] as String?;
+        final createdAt = res['createdAt'] as String?;
+        if (text != null && text.isNotEmpty) {
+          output = jsonEncode({
+            'ok': true,
+            'result': text.length > 500 ? '${text.substring(0, 500)}...' : text,
+            'createdAt': createdAt,
+          });
+        } else {
+          output = jsonEncode({
+            'ok': true,
+            'result': null,
+            'message': 'No analyst response yet. The task may still be processing.',
+          });
+        }
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
@@ -1614,6 +1750,8 @@ class _AssistantScreenState extends State<AssistantScreen>
     // Note: transcript is NOT cleared — it persists across sessions
     await _cleanup();
     await _setSpeaker(false);
+    // Resume wake word listening after session ends
+    WakeWordService.instance.resume();
     if (mounted) {
       setState(() {
         _state = _CallState.idle;
@@ -2090,8 +2228,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                             color: isUser ? colors.primary.withValues(alpha: 0.15) : colors.surface,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Text(
-                            m.text,
+                          child: LinkifiedText(
+                            text: m.text,
                             style: TextStyle(
                               color: colors.textPrimary,
                               fontSize: 14,

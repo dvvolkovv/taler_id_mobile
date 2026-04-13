@@ -18,6 +18,8 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../../../core/theme/linkified_text.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
@@ -1272,13 +1274,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   final l10n = AppLocalizations.of(context)!;
                   final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
-                  final name = isSaved
-                      ? l10n.messengerSavedSection
-                      : isGroup
-                          ? (conv?.name ?? l10n.chatGroup)
-                          : conv?.otherUserName;
-                  final avatarUrl =
-                      isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
+                  final isAiAnalyst = conv?.type == 'AI_ANALYST';
+                  final name = isAiAnalyst
+                      ? l10n.aiAnalystTitle
+                      : isSaved
+                          ? l10n.messengerSavedSection
+                          : isGroup
+                              ? (conv?.name ?? l10n.chatGroup)
+                              : conv?.otherUserName;
+                  final avatarUrl = isAiAnalyst
+                      ? null
+                      : isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
                   return GestureDetector(
               onTap: isGroup
@@ -1318,6 +1324,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ),
                             ),
                             child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 18),
+                          )
+                        : isAiAnalyst
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [AppColors.of(context).primary, AppColors.of(context).primary.withValues(alpha: 0.7)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
                           )
                         : CircleAvatar(
                       radius: 18,
@@ -1409,10 +1429,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.phone_outlined),
-                  onPressed: _startCall,
-                  tooltip: AppLocalizations.of(context)!.chatCall,
+                BlocBuilder<MessengerBloc, MessengerState>(
+                  buildWhen: (prev, curr) =>
+                      prev.conversations != curr.conversations,
+                  builder: (context, state) {
+                    final conv = state.conversations
+                        .where((c) => c.id == widget.conversationId)
+                        .firstOrNull;
+                    // Hide call button for AI Analyst — it's a bot, not a person
+                    if (conv?.type != 'AI_ANALYST')
+                      return IconButton(
+                        icon: const Icon(Icons.phone_outlined),
+                        onPressed: _startCall,
+                        tooltip: AppLocalizations.of(context)!.chatCall,
+                      );
+                    return const SizedBox.shrink();
+                  },
                 ),
                 BlocBuilder<MessengerBloc, MessengerState>(
                   buildWhen: (prev, curr) =>
@@ -1565,16 +1597,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             showDate = msgDate != prevDate;
                           }
 
-                          // Group context: consecutive messages from same sender
+                          // Group context: consecutive messages from same sender.
+                          // In AI_ANALYST chats, system messages are bot replies
+                          // and should group normally, not break grouping.
+                          final analystChat = conv?.type == 'AI_ANALYST';
+                          final breakOnSystem = !analystChat;
                           final isFirstInGroup = showDate ||
                               prevChron == null ||
-                              prevChron.isSystem ||
-                              msg.isSystem ||
-                              prevChron.senderId != msg.senderId;
+                              (breakOnSystem && prevChron.isSystem) ||
+                              (breakOnSystem && msg.isSystem) ||
+                              (analystChat
+                                  ? prevChron.isSystem != msg.isSystem // group by bot vs user
+                                  : prevChron.senderId != msg.senderId);
                           final isLastInGroup = nextChron == null ||
-                              nextChron.isSystem ||
-                              msg.isSystem ||
-                              nextChron.senderId != msg.senderId ||
+                              (breakOnSystem && nextChron.isSystem) ||
+                              (breakOnSystem && msg.isSystem) ||
+                              (analystChat
+                                  ? nextChron.isSystem != msg.isSystem
+                                  : nextChron.senderId != msg.senderId) ||
                               DateTime(nextChron.sentAt.year, nextChron.sentAt.month, nextChron.sentAt.day) != msgDate;
 
                           // Show sender name only on first message of a group (incoming group chats)
@@ -1601,9 +1641,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               if (showDate) _DateSeparator(date: msg.sentAt),
                               _MessageBubble(
                                 message: msg,
-                                isMe: isMe,
+                                isMe: msg.isSystem && conv?.type == 'AI_ANALYST' ? false : isMe,
                                 isGroup: isGroup,
-                                senderName: sName,
+                                isAiAnalyst: conv?.type == 'AI_ANALYST',
+                                senderName: msg.isSystem && conv?.type == 'AI_ANALYST'
+                                    ? AppLocalizations.of(context)!.aiAnalystTitle
+                                    : sName,
                                 isFirstInGroup: isFirstInGroup,
                                 isLastInGroup: isLastInGroup,
                                 isSearchMatch: isAnyMatch,
@@ -2137,6 +2180,7 @@ class _MessageBubble extends StatefulWidget {
   final bool isMe;
   final String? senderName;
   final bool isGroup;
+  final bool isAiAnalyst;
   final bool isFirstInGroup;
   final bool isLastInGroup;
   final bool isSearchMatch;
@@ -2153,6 +2197,7 @@ class _MessageBubble extends StatefulWidget {
     required this.isMe,
     this.senderName,
     this.isGroup = false,
+    this.isAiAnalyst = false,
     this.isFirstInGroup = true,
     this.isLastInGroup = true,
     this.isSearchMatch = false,
@@ -2192,7 +2237,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.message.isSystem) {
+    // In AI Analyst conversations, system messages are bot responses —
+    // render them as regular left-aligned bubbles, not centered labels.
+    if (widget.message.isSystem && !widget.isAiAnalyst) {
       return _buildSystemMessage(context);
     }
 
@@ -2457,6 +2504,47 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _PollWidget(message: widget.message, isMe: widget.isMe)
             else if (widget.message.content.startsWith('[CONTACT]'))
               _ContactCardWidget(content: widget.message.content)
+            else if (widget.isAiAnalyst && widget.message.isSystem)
+              // AI Analyst bot responses are markdown — render with
+              // flutter_markdown for headers, bold, code blocks, lists,
+              // and clickable links that open in the in-app browser.
+              MarkdownBody(
+                data: widget.message.content,
+                selectable: true,
+                softLineBreak: true,
+                onTapLink: (text, href, title) {
+                  if (href == null) return;
+                  final uri = Uri.tryParse(href.startsWith('http') ? href : 'https://$href');
+                  if (uri != null) launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                },
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14, height: 1.45),
+                  h1: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
+                  h2: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+                  h3: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                  strong: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w700),
+                  em: TextStyle(color: AppColors.of(context).textPrimary, fontStyle: FontStyle.italic),
+                  a: TextStyle(color: AppColors.of(context).primary, decoration: TextDecoration.underline),
+                  code: TextStyle(
+                    color: AppColors.of(context).textPrimary,
+                    backgroundColor: AppColors.of(context).background,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: AppColors.of(context).background,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  codeblockPadding: const EdgeInsets.all(12),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: AppColors.of(context).primary, width: 3),
+                    ),
+                  ),
+                  blockquotePadding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+                  listBullet: TextStyle(color: AppColors.of(context).textSecondary),
+                ),
+              )
             else
               _LinkifiedText(
                 text: widget.message.content,
@@ -3130,11 +3218,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
   }
 }
 
-final _urlRegex = RegExp(
-  r'https?://[^\s<>\"\)]+',
-  caseSensitive: false,
-);
-
 class _ContactCardWidget extends StatelessWidget {
   final String content;
   const _ContactCardWidget({required this.content});
@@ -3204,66 +3287,9 @@ class _ContactCardWidget extends StatelessWidget {
   }
 }
 
-class _LinkifiedText extends StatelessWidget {
-  final String text;
-  final TextStyle style;
-  final TextStyle linkStyle;
-  const _LinkifiedText({
-    required this.text,
-    required this.style,
-    required this.linkStyle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final matches = _urlRegex.allMatches(text).toList();
-    if (matches.isEmpty) {
-      return SelectionArea(child: Text(text, style: style));
-    }
-
-    final spans = <InlineSpan>[];
-    var lastEnd = 0;
-    for (final m in matches) {
-      if (m.start > lastEnd) {
-        spans.add(TextSpan(text: text.substring(lastEnd, m.start), style: style));
-      }
-      final url = m.group(0)!;
-      spans.add(TextSpan(
-        text: url,
-        style: linkStyle,
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            final uri = Uri.tryParse(url);
-            if (uri == null) return;
-            const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol'};
-            final isTaler = talerHosts.contains(uri.host);
-            // Open room links inside the app instead of the browser
-            if (isTaler && uri.path.startsWith('/room/')) {
-              final code = uri.pathSegments.last;
-              if (code.isNotEmpty) {
-                GoRouter.of(context).go('/dashboard/voice?publicCode=$code');
-                return;
-              }
-            }
-            // Open contact profile links inside the app
-            if (isTaler && uri.path.startsWith('/u/')) {
-              final userId = uri.pathSegments.last;
-              if (userId.isNotEmpty) {
-                GoRouter.of(context).push('/dashboard/user/$userId');
-                return;
-              }
-            }
-            launchUrl(uri, mode: LaunchMode.externalApplication);
-          },
-      ));
-      lastEnd = m.end;
-    }
-    if (lastEnd < text.length) {
-      spans.add(TextSpan(text: text.substring(lastEnd), style: style));
-    }
-    return SelectionArea(child: Text.rich(TextSpan(children: spans)));
-  }
-}
+// _LinkifiedText is now a shared widget: see core/theme/linkified_text.dart
+// Kept as a thin typedef so existing call-sites compile without changes.
+typedef _LinkifiedText = LinkifiedText;
 
 class _CallOptionsSheet extends StatefulWidget {
   const _CallOptionsSheet();

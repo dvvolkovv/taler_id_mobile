@@ -13,6 +13,7 @@ import '../services/messenger_cache_service.dart';
 import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
+import '../services/wake_word_service.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -72,6 +73,9 @@ Future<void> setupDependencies() async {
   // Cache
   await CacheService.init();
   sl.registerSingleton<CacheService>(CacheService());
+
+  // Wake word settings (Hive)
+  await WakeWordService.initBox();
 
   // Messenger cache (Hive)
   await MessengerCacheService.init();

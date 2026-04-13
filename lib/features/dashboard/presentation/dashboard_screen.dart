@@ -25,11 +25,13 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/services/share_intent_service.dart';
+import '../../../core/services/wake_word_service.dart';
 import '../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../messenger/presentation/screens/share_target_screen.dart';
 import '../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../messenger/presentation/bloc/messenger_event.dart';
 import '../../messenger/presentation/bloc/messenger_state.dart';
+import '../../assistant/presentation/screens/assistant_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Widget child;
@@ -215,6 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForCallAnswered();
       _listenForShareIntent();
       _checkForUpdate();
+      _startWakeWord();
     });
   }
 
@@ -385,6 +388,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       try {
         context.read<MessengerBloc>().add(LoadBadgeCounts());
       } catch (_) {}
+      // Resume wake word when app comes back to foreground
+      _resumeWakeWordIfNeeded();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      WakeWordService.instance.pause();
     }
   }
 
@@ -445,6 +452,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
+    WakeWordService.instance.stop();
     NotificationService.setMissedCallCallback(null);
     NotificationService.setCalendarInviteCallback(null);
     super.dispose();
@@ -483,6 +491,35 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         }
       });
     }
+  }
+
+  void _startWakeWord() {
+    WakeWordService.instance.start(
+      onWakeWord: () {
+        if (!mounted) return;
+        final loc = GoRouter.of(context)
+            .routerDelegate.currentConfiguration.uri.path;
+        // Don't trigger during a call
+        if (loc.startsWith('/dashboard/voice')) return;
+        debugPrint('[WakeWord] Navigating to assistant from $loc');
+        if (loc.startsWith('/dashboard/assistant')) {
+          // Already on assistant — trigger connect directly
+          AssistantScreen.triggerConnect();
+        } else {
+          // Navigate to assistant tab — it auto-connects via the flag
+          AssistantScreen.autoConnect = true;
+          context.go(RouteConstants.assistant);
+        }
+      },
+    );
+  }
+
+  void _resumeWakeWordIfNeeded() {
+    final loc = GoRouter.of(context)
+        .routerDelegate.currentConfiguration.uri.path;
+    // Don't listen during an active call
+    if (loc.startsWith('/dashboard/voice')) return;
+    WakeWordService.instance.resume();
   }
 
   Future<void> _checkForUpdate() async {
@@ -804,6 +841,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final location = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
+
+    // Pause wake word during active calls (mic conflict)
+    if (location.startsWith('/dashboard/voice')) {
+      WakeWordService.instance.pause();
+    }
 
     return BlocListener<MessengerBloc, MessengerState>(
       listenWhen: (prev, curr) =>

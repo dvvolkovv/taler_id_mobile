@@ -27,8 +27,12 @@ class MainActivity : FlutterFragmentActivity() {
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
     private var audioFocusGranted = false
     private var flutterChannel: MethodChannel? = null
+    private var savedNotifVolume = -1
+    private var savedMusicVolume = -1
     private var videoProcessor: VideoBackgroundProcessor? = null
     private var isVideoProcessing = false
+    private var wakeWordListener: WakeWordListener? = null
+    private var wakeWordChannel: MethodChannel? = null
     // Capture the correct FlutterWebRTCPlugin instance right after plugin registration
     private var webrtcPlugin: FlutterWebRTCPlugin? = null
 
@@ -203,6 +207,26 @@ class MainActivity : FlutterFragmentActivity() {
                         abandonAudioFocus(am)
                         result.success(null)
                     }
+                    "muteBeep" -> {
+                        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                        savedNotifVolume = am.getStreamVolume(AudioManager.STREAM_NOTIFICATION)
+                        savedMusicVolume = am.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, 0, 0)
+                        am.setStreamVolume(AudioManager.STREAM_MUSIC, 0, 0)
+                        result.success(null)
+                    }
+                    "unmuteBeep" -> {
+                        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                        if (savedNotifVolume >= 0) {
+                            am.setStreamVolume(AudioManager.STREAM_NOTIFICATION, savedNotifVolume, 0)
+                            savedNotifVolume = -1
+                        }
+                        if (savedMusicVolume >= 0) {
+                            am.setStreamVolume(AudioManager.STREAM_MUSIC, savedMusicVolume, 0)
+                            savedMusicVolume = -1
+                        }
+                        result.success(null)
+                    }
                     "requestBatteryOptimizationExemption" -> {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                             val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -220,6 +244,42 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Wake word channel (separate from audio to avoid handler conflicts)
+        val wwCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/wake_word")
+        wakeWordChannel = wwCh
+        wwCh.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    if (wakeWordListener == null) {
+                        wakeWordListener = WakeWordListener(this@MainActivity) {
+                            runOnUiThread {
+                                wakeWordChannel?.invokeMethod("onWakeWord", null)
+                            }
+                        }
+                    }
+                    val args = call.arguments as? Map<*, *>
+                    wakeWordListener?.setCustomPhrase(args?.get("customPhrase") as? String)
+                    wakeWordListener?.start()
+                    result.success(null)
+                }
+                "stop" -> {
+                    wakeWordListener?.stop()
+                    result.success(null)
+                }
+                "pause" -> {
+                    wakeWordListener?.pause()
+                    result.success(null)
+                }
+                "resume" -> {
+                    val args = call.arguments as? Map<*, *>
+                    wakeWordListener?.setCustomPhrase(args?.get("customPhrase") as? String)
+                    wakeWordListener?.resume()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     private fun requestAudioFocus(am: AudioManager) {

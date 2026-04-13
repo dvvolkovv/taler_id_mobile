@@ -1345,5 +1345,7 @@
   "aiTwinHeroSubtitle": "Он ответит на звонок вашим голосом, если вы заняты.",
   "aiTwinProfileTitle": "ИИ-заместитель",
   "aiTwinProfileDesc": "Отвечает на звонки вашим голосом",
-  "aiTwinBadgeOn": "ВКЛ"
+  "aiTwinBadgeOn": "ВКЛ",
+  "aiAnalystTitle": "AI Аналитик",
+  "aiAnalystSubtitle": "Файлы, задачи, анализ — Claude"
 }

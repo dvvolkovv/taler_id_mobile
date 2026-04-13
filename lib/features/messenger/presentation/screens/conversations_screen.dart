@@ -628,6 +628,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
     bool archivedOnly = false,
   }) {
     var result = convs.where((c) {
+      // SAVED and AI_ANALYST are pinned separately at the top — exclude from the list
+      if (c.type == 'SAVED' || c.type == 'AI_ANALYST') return false;
       return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
     }).toList();
 
@@ -953,6 +955,66 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       ),
                     ),
                   ),
+                // AI Analyst — Claude-powered chat
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: colors.primary, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.primary.withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [colors.primary, colors.primary.withValues(alpha: 0.7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+                        ),
+                      ),
+                      title: Text(
+                        AppLocalizations.of(context)!.aiAnalystTitle,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        AppLocalizations.of(context)!.aiAnalystSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
+                      onTap: () async {
+                        try {
+                          final res = await sl<DioClient>().post(
+                            '/messenger/ai-analyst',
+                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                          );
+                          final convId = res['conversationId'] as String?;
+                          if (convId != null && context.mounted) {
+                            context.push('/dashboard/messenger/$convId');
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
                 // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
@@ -1164,9 +1226,12 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
-    final displayName = isGroup
-        ? (conversation.name ?? l10n.chatGroup)
-        : (conversation.otherUserName ?? l10n.convDefaultUser);
+    final isAiAnalyst = conversation.type == 'AI_ANALYST';
+    final displayName = isAiAnalyst
+        ? l10n.aiAnalystTitle
+        : isGroup
+            ? (conversation.name ?? l10n.chatGroup)
+            : (conversation.otherUserName ?? l10n.convDefaultUser);
     final lastMsg = conversation.lastMessageContent;
     final lastAt = conversation.lastMessageAt;
     final timeStr = lastAt != null
@@ -1203,9 +1268,11 @@ class _ConversationTile extends StatelessWidget {
       }
     }
 
-    final avatar = isGroup ? conversation.avatarUrl : conversation.otherUserAvatar;
+    final avatar = isAiAnalyst ? null : (isGroup ? conversation.avatarUrl : conversation.otherUserAvatar);
 
-    final rainbowColor = rainbowColorFor(displayName);
+    final rainbowColor = isAiAnalyst
+        ? AppColors.of(context).primary
+        : rainbowColorFor(displayName);
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
@@ -1223,7 +1290,21 @@ class _ConversationTile extends StatelessWidget {
             ),
           ],
         ),
-        child: avatar != null
+        child: isAiAnalyst
+            ? Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [AppColors.of(context).primary, AppColors.of(context).primary.withValues(alpha: 0.7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              )
+            : avatar != null
             ? CircleAvatar(
                 radius: 20,
                 backgroundColor: Colors.transparent,
