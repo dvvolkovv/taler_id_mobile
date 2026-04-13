@@ -12,6 +12,7 @@ import '../../../../core/theme/widgets.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/services/wake_word_service.dart';
 import '../../../../main.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -34,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   bool _pinEnabled = false;
   String _currentLang = 'ru';
   String _currentTheme = 'light';
+  bool _wakeWordEnabled = WakeWordService.isSettingEnabled;
   String _appVersion = '';
   bool _permNotifications = false;
   bool _permMicrophone = false;
@@ -353,6 +355,50 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     onTap: () => _showDeleteAccountDialog(context),
                     textColor: AppColors.of(context).error,
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Voice assistant section
+            _sectionHeader(_currentLang == 'ru' ? 'Голосовой помощник' : 'Voice Assistant'),
+            AppCard(
+              child: Column(
+                children: [
+                  SwitchListTile(
+                    secondary: Icon(Icons.mic_outlined, color: AppColors.of(context).primary),
+                    title: Text(
+                      _currentLang == 'ru' ? 'Активация голосом' : 'Voice Activation',
+                      style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 15),
+                    ),
+                    subtitle: Text(
+                      _currentLang == 'ru'
+                          ? 'Скажите "${WakeWordService.effectivePhrase(_currentLang)}" для запуска'
+                          : 'Say "${WakeWordService.effectivePhrase(_currentLang)}" to start',
+                      style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12),
+                    ),
+                    value: _wakeWordEnabled,
+                    activeColor: AppColors.of(context).primary,
+                    onChanged: (v) {
+                      setState(() => _wakeWordEnabled = v);
+                      WakeWordService.isSettingEnabled = v;
+                      if (v) {
+                        WakeWordService.instance.resume();
+                      } else {
+                        WakeWordService.instance.stop();
+                      }
+                    },
+                  ),
+                  if (_wakeWordEnabled) ...[
+                    Divider(color: AppColors.of(context).border, height: 1),
+                    _navTile(
+                      icon: Icons.record_voice_over_outlined,
+                      iconColor: AppColors.of(context).textSecondary,
+                      title: _currentLang == 'ru' ? 'Фраза активации' : 'Wake Phrase',
+                      trailing: WakeWordService.effectivePhrase(_currentLang),
+                      onTap: () => _showWakePhrasePicker(context),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -775,6 +821,91 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     };
     TalerIdApp.setThemeMode(context, mode);
     setState(() => _currentTheme = theme);
+  }
+
+  void _showWakePhrasePicker(BuildContext context) {
+    final colors = AppColors.of(context);
+    final current = WakeWordService.effectivePhrase(_currentLang);
+    final options = [
+      WakeWordService.defaultPhraseRu,
+      WakeWordService.defaultPhraseEn,
+    ];
+    final customCtrl = TextEditingController();
+    final saved = WakeWordService.settingPhrase;
+    final isCustom = saved.isNotEmpty && !options.contains(saved);
+    if (isCustom) customCtrl.text = saved;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 24, right: 24, top: 24, bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _currentLang == 'ru' ? 'Фраза активации' : 'Wake Phrase',
+              style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            ...options.map((phrase) => ListTile(
+              leading: Icon(Icons.record_voice_over_outlined, color: colors.textSecondary),
+              title: Text(phrase, style: TextStyle(color: colors.textPrimary)),
+              trailing: current == phrase && !isCustom ? Icon(Icons.check, color: colors.primary) : null,
+              onTap: () {
+                Navigator.pop(context);
+                WakeWordService.settingPhrase = phrase;
+                // Restart wake word with new phrase
+                WakeWordService.instance.stop();
+                if (_wakeWordEnabled) WakeWordService.instance.resume();
+                setState(() {});
+              },
+            )),
+            const SizedBox(height: 8),
+            Divider(color: colors.border),
+            const SizedBox(height: 8),
+            Text(
+              _currentLang == 'ru' ? 'Или введите свою фразу:' : 'Or enter your own phrase:',
+              style: TextStyle(color: colors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: customCtrl,
+              style: TextStyle(color: colors.textPrimary),
+              decoration: InputDecoration(
+                hintText: _currentLang == 'ru' ? 'Например: Окей Талер' : 'e.g. OK Taler',
+                hintStyle: TextStyle(color: colors.textSecondary.withValues(alpha: 0.5)),
+                filled: true,
+                fillColor: colors.background,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.check_circle, color: colors.primary),
+                  onPressed: () {
+                    final text = customCtrl.text.trim();
+                    if (text.length < 2) return;
+                    Navigator.pop(context);
+                    WakeWordService.settingPhrase = text;
+                    WakeWordService.instance.stop();
+                    if (_wakeWordEnabled) WakeWordService.instance.resume();
+                    setState(() {});
+                  },
+                ),
+              ),
+              onSubmitted: (text) {
+                if (text.trim().length < 2) return;
+                Navigator.pop(context);
+                WakeWordService.settingPhrase = text.trim();
+                WakeWordService.instance.stop();
+                if (_wakeWordEnabled) WakeWordService.instance.resume();
+                setState(() {});
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showDeleteAccountDialog(BuildContext context) {

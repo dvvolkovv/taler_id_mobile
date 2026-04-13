@@ -18,6 +18,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
@@ -31,6 +32,10 @@ class AssistantScreen extends StatefulWidget {
 
   /// Set to true before navigating to auto-connect on open (wake word trigger).
   static bool autoConnect = false;
+
+  /// Notifier for wake word when already on assistant screen.
+  static final connectNotifier = ValueNotifier<int>(0);
+  static void triggerConnect() => connectNotifier.value++;
 
   @override
   State<AssistantScreen> createState() => _AssistantScreenState();
@@ -110,6 +115,8 @@ class _AssistantScreenState extends State<AssistantScreen>
         await _startRecording();
       }
     });
+    // Listen for wake word trigger while already on this screen
+    AssistantScreen.connectNotifier.addListener(_onWakeWordTrigger);
     // Auto-connect if triggered by wake word
     if (AssistantScreen.autoConnect) {
       AssistantScreen.autoConnect = false;
@@ -196,6 +203,7 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   void dispose() {
+    AssistantScreen.connectNotifier.removeListener(_onWakeWordTrigger);
     _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
     _orbitCtrl.dispose();
@@ -216,6 +224,13 @@ class _AssistantScreenState extends State<AssistantScreen>
     await _recorder.stop();
     await _ws?.close();
     _ws = null;
+  }
+
+  void _onWakeWordTrigger() {
+    if (mounted && _state == _CallState.idle) {
+      debugPrint('[WakeWord] connectNotifier triggered → _connect()');
+      _connect();
+    }
   }
 
   Future<void> _connect() async {
@@ -267,6 +282,7 @@ class _AssistantScreenState extends State<AssistantScreen>
       _messageSub = sl<MessengerRemoteDataSource>().messageStream.listen(_onIncomingMessage);
 
       // No greeting — start listening immediately
+      WakeWordService.instance.pause();
       setState(() => _state = _CallState.connected);
     } catch (e) {
       await _cleanup();
@@ -1629,6 +1645,8 @@ class _AssistantScreenState extends State<AssistantScreen>
     // Note: transcript is NOT cleared — it persists across sessions
     await _cleanup();
     await _setSpeaker(false);
+    // Resume wake word listening after session ends
+    WakeWordService.instance.resume();
     if (mounted) {
       setState(() {
         _state = _CallState.idle;
