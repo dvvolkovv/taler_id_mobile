@@ -18,6 +18,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../../core/theme/linkified_text.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
@@ -1428,10 +1429,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.phone_outlined),
-                  onPressed: _startCall,
-                  tooltip: AppLocalizations.of(context)!.chatCall,
+                BlocBuilder<MessengerBloc, MessengerState>(
+                  buildWhen: (prev, curr) =>
+                      prev.conversations != curr.conversations,
+                  builder: (context, state) {
+                    final conv = state.conversations
+                        .where((c) => c.id == widget.conversationId)
+                        .firstOrNull;
+                    // Hide call button for AI Analyst — it's a bot, not a person
+                    if (conv?.type != 'AI_ANALYST')
+                      return IconButton(
+                        icon: const Icon(Icons.phone_outlined),
+                        onPressed: _startCall,
+                        tooltip: AppLocalizations.of(context)!.chatCall,
+                      );
+                    return const SizedBox.shrink();
+                  },
                 ),
                 BlocBuilder<MessengerBloc, MessengerState>(
                   buildWhen: (prev, curr) =>
@@ -2491,6 +2504,47 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _PollWidget(message: widget.message, isMe: widget.isMe)
             else if (widget.message.content.startsWith('[CONTACT]'))
               _ContactCardWidget(content: widget.message.content)
+            else if (widget.isAiAnalyst && widget.message.isSystem)
+              // AI Analyst bot responses are markdown — render with
+              // flutter_markdown for headers, bold, code blocks, lists,
+              // and clickable links that open in the in-app browser.
+              MarkdownBody(
+                data: widget.message.content,
+                selectable: true,
+                softLineBreak: true,
+                onTapLink: (text, href, title) {
+                  if (href == null) return;
+                  final uri = Uri.tryParse(href.startsWith('http') ? href : 'https://$href');
+                  if (uri != null) launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+                },
+                styleSheet: MarkdownStyleSheet(
+                  p: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 14, height: 1.45),
+                  h1: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
+                  h2: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+                  h3: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+                  strong: TextStyle(color: AppColors.of(context).textPrimary, fontWeight: FontWeight.w700),
+                  em: TextStyle(color: AppColors.of(context).textPrimary, fontStyle: FontStyle.italic),
+                  a: TextStyle(color: AppColors.of(context).primary, decoration: TextDecoration.underline),
+                  code: TextStyle(
+                    color: AppColors.of(context).textPrimary,
+                    backgroundColor: AppColors.of(context).background,
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                  ),
+                  codeblockDecoration: BoxDecoration(
+                    color: AppColors.of(context).background,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  codeblockPadding: const EdgeInsets.all(12),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: AppColors.of(context).primary, width: 3),
+                    ),
+                  ),
+                  blockquotePadding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
+                  listBullet: TextStyle(color: AppColors.of(context).textSecondary),
+                ),
+              )
             else
               _LinkifiedText(
                 text: widget.message.content,
