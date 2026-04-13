@@ -2583,11 +2583,11 @@ Answer briefly — the user is in the middle of a conversation.''';
   }
 
   Future<void> _hangUp({bool userInitiated = false}) async {
-    if (_hangingUp) return;
-    // When AI voice twin is active, the ONLY valid way to end the call is
-    // a user-initiated hangup (red button). All other code paths (CallKit
-    // timeouts, ringback timers, stale call_ended broadcasts, LiveKit
-    // reconnect failures, empty-room timers…) must not tear down the room.
+    // User-initiated hangup (red button) always wins — even if a previous
+    // _hangUp call set _hangingUp=true and then got stuck or was blocked.
+    // Without this override the call screen can freeze permanently.
+    if (_hangingUp && !userInitiated) return;
+    // When AI voice twin is active, only user-initiated hangup may proceed.
     if (_aiTwinActive && !userInitiated) {
       debugPrint('[VoiceCall] _hangUp() BLOCKED — AI twin active, not user-initiated');
       return;
@@ -2595,6 +2595,45 @@ Answer briefly — the user is in the middle of a conversation.''';
     _hangingUp = true;
     final cs = CallStateService.instance;
     debugPrint('[VoiceCall] _hangUp() called, _room=${_room != null}, _roomName=$_roomName, lines=${cs.lineCount}, _aiTwinActive=$_aiTwinActive, userInitiated=$userInitiated');
+
+    // Wrap the entire teardown in a safety timeout so a stuck async call
+    // (dead room, unresponsive LiveKit, sluggish OS audio) can never lock
+    // up the call screen permanently. If the timeout fires, force-navigate
+    // the user out. 8 seconds is generous — normal hangup takes <1s.
+    try {
+      await Future.any([
+        _hangUpInner(cs),
+        Future.delayed(const Duration(seconds: 8), () {
+          debugPrint('[VoiceCall] _hangUp TIMEOUT — forcing navigation');
+        }),
+      ]);
+    } catch (e) {
+      debugPrint('[VoiceCall] _hangUp error: $e');
+    }
+
+    // Unconditionally navigate away, even if inner cleanup didn't finish.
+    if (!mounted) return;
+    if (_navigatedAway) return;
+    _navigatedAway = true;
+    try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
+    try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
+    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+    debugPrint('[VoiceCall] audio cleanup done, navigating back...');
+    if (!mounted) return;
+    try {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.messenger);
+      }
+      debugPrint('[VoiceCall] navigation done');
+    } catch (e) {
+      debugPrint('[VoiceCall] navigation error (ignored): $e');
+    }
+  }
+
+  /// Inner cleanup logic — called from _hangUp wrapped in a timeout.
+  Future<void> _hangUpInner(CallStateService cs) async {
     // Clear the AI twin flag for this room so future broadcasts don't
     // linger in the service state.
     if (_roomName != null) {
@@ -2662,28 +2701,8 @@ Answer briefly — the user is in the middle of a conversation.''';
     if (cs.isInCall && cs.activeLine != null) {
       debugPrint('[VoiceCall] other lines remain (${cs.lineCount}), switching to ${cs.activeLine!.roomName}');
       _switchToLine(cs.activeLine!);
+      _navigatedAway = true; // prevent double-navigation in outer method
       return;
-    }
-
-    // No more lines — full cleanup and navigate away
-    _navigatedAway = true;
-    try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
-    try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
-    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
-    debugPrint('[VoiceCall] audio cleanup done, navigating back...');
-    if (!mounted) {
-      debugPrint('[VoiceCall] NOT mounted, cannot navigate');
-      return;
-    }
-    try {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go(RouteConstants.messenger);
-      }
-      debugPrint('[VoiceCall] navigation done');
-    } catch (e) {
-      debugPrint('[VoiceCall] navigation error (ignored): $e');
     }
   }
 
