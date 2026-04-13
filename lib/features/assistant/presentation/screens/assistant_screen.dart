@@ -959,6 +959,35 @@ class _AssistantScreenState extends State<AssistantScreen>
             'description': 'Disable PIN code lock. To enable PIN a setup flow is required — tell the user to go to Settings.',
             'parameters': {'type': 'object', 'properties': {}},
           },
+          {
+            'type': 'function',
+            'name': 'ask_analyst',
+            'description':
+                'Send a task or question to the AI Analyst (Claude) for deep analysis. '
+                'Use this for complex tasks: document analysis, code review, research, '
+                'data processing, file generation. The result will appear in the AI Analyst '
+                'chat in Messages. Tell the user you sent the task and they can check '
+                'the result in the AI Analyst chat.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'question': {
+                  'type': 'string',
+                  'description': 'The task or question for the AI Analyst',
+                },
+              },
+              'required': ['question'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_analyst_result',
+            'description':
+                'Get the latest response from the AI Analyst. Use this when the user '
+                'asks what the analyst said, or to check if a previously submitted '
+                'task has been completed.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
         ],
         'tool_choice': 'auto',
       },
@@ -1605,6 +1634,42 @@ class _AssistantScreenState extends State<AssistantScreen>
       } else if (name == 'disable_pin') {
         await sl<SecureStorageService>().clearPin();
         output = jsonEncode({'ok': true, 'pinEnabled': false});
+      } else if (name == 'ask_analyst') {
+        final args = jsonDecode(argsJson);
+        final question = args['question'] as String? ?? '';
+        // 1. Get or create the AI Analyst conversation
+        final convRes = await client.post<Map<String, dynamic>>(
+          '/messenger/ai-analyst',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final convId = convRes['conversationId'] as String;
+        // 2. Send the question as a user message via Socket.io
+        sl<MessengerRemoteDataSource>().sendMessage(convId, question);
+        output = jsonEncode({
+          'ok': true,
+          'conversationId': convId,
+          'message': 'Task sent to AI Analyst. The result will appear in the AI Analyst chat in Messages.',
+        });
+      } else if (name == 'get_analyst_result') {
+        final res = await client.get<Map<String, dynamic>>(
+          '/ai-analyst/latest',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final text = res['text'] as String?;
+        final createdAt = res['createdAt'] as String?;
+        if (text != null && text.isNotEmpty) {
+          output = jsonEncode({
+            'ok': true,
+            'result': text.length > 500 ? '${text.substring(0, 500)}...' : text,
+            'createdAt': createdAt,
+          });
+        } else {
+          output = jsonEncode({
+            'ok': true,
+            'result': null,
+            'message': 'No analyst response yet. The task may still be processing.',
+          });
+        }
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
