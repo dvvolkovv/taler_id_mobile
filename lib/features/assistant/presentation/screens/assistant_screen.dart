@@ -373,6 +373,14 @@ class _AssistantScreenState extends State<AssistantScreen>
           '3. Подтверди сохранение голосом\n'
           'Если пользователь спрашивает "какие у меня заметки" — вызови get_notes и перескажи\n'
           'Если просит резюме заметок — вызови get_notes, проанализируй и дай краткое резюме\n\n'
+          'AI АНАЛИТИК:\n'
+          'У тебя есть доступ к AI Аналитику — мощному инструменту на базе Claude, который может:\n'
+          '- Анализировать документы и файлы (PDF, таблицы, код, изображения)\n'
+          '- Выполнять сложные исследовательские задачи\n'
+          '- Генерировать отчёты, код, презентации\n'
+          '- Давать взвешенные экспертные ответы на сложные вопросы\n'
+          'Используй ask_analyst чтобы отправить задачу. Результат придёт асинхронно — ты его автоматически озвучишь.\n'
+          'Если пользователь спрашивает "что ты умеешь" или "какие у тебя возможности" — обязательно упомяни AI Аналитика.\n\n'
           'КАЛЕНДАРЬ И НАПОМИНАНИЯ:\n'
           'Сейчас: $nowStr.\n'
           'Передавай startAt и reminderAt в МЕСТНОМ времени формат YYYY-MM-DDTHH:MM:SS (БЕЗ Z, БЕЗ конвертации в UTC).\n'
@@ -993,24 +1001,28 @@ class _AssistantScreenState extends State<AssistantScreen>
       },
     });
 
-    // Auto-briefing on session start: only speak if there's something important
+    // Auto-briefing on session start: greet briefly, then check for unread/missed
     final briefingPrompt = locale == 'ru'
-        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Тихо проверь следующее:\n'
+        ? 'АВТОМАТИЧЕСКИЙ ЗАПУСК: Сначала скажи "Слушаю вас" (коротко, одна фраза). '
+          'Затем тихо проверь:\n'
           '1. get_conversations — диалоги с unreadCount > 0 (непрочитанные сообщения)\n'
           '2. get_contact_requests — входящие заявки в контакты\n'
           '3. get_call_history — пропущенные звонки за последние 24 часа\n'
           '4. get_events — события и приглашения на сегодня\n'
-          'ПРАВИЛО: Говори ТОЛЬКО если есть что-то новое: непрочитанные, заявки, пропущенные, новые события или приглашения. '
-          'Кратко перечисли что есть и предложи голосом обработать (принять/отклонить/ответить). '
-          'Если всё чисто — молчи и жди запроса пользователя. Не здоровайся и не сообщай что всё в порядке.'
-        : 'AUTO-START: Silently check:\n'
+          'Если есть что-то новое — кратко сообщи после приветствия: '
+          '"У вас N непрочитанных сообщений / N пропущенных звонков / событие на сегодня". '
+          'Предложи обработать голосом. '
+          'Если всё чисто — жди запроса пользователя, больше ничего не говори.'
+        : 'AUTO-START: First say "I\'m listening" (brief, one phrase). '
+          'Then silently check:\n'
           '1. get_conversations — unread messages (unreadCount > 0)\n'
           '2. get_contact_requests — pending contact requests\n'
           '3. get_call_history — missed calls in last 24 hours\n'
           '4. get_events — today\'s events and invitations\n'
-          'RULE: Speak ONLY if there is something new: unread items, requests, missed calls, new events or invitations. '
-          'Briefly list what is there and offer to handle it by voice (accept/decline/reply). '
-          'If all clear — stay silent, wait for user. Do not greet or confirm that all is clear.';
+          'If there is something new — briefly mention after greeting: '
+          '"You have N unread messages / N missed calls / event today". '
+          'Offer to handle by voice. '
+          'If all clear — wait for user, say nothing else.';
 
     _sendEvent({
       'type': 'conversation.item.create',
