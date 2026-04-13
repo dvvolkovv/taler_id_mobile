@@ -3,8 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// Matches both full URLs (https://example.com/path) and bare domains
+// (example.com, sub.example.co.uk/path). The bare-domain pattern requires
+// at least one dot and a known-length TLD (2-12 chars) to avoid false
+// positives on words like "i.e." or version strings like "v2.0".
 final _urlRegex = RegExp(
-  r'https?://[^\s<>\"\)]+',
+  r'(?:https?://[^\s<>\"\)]+)'           // full URL with scheme
+  r'|'
+  r'(?:(?:[\w-]+\.)+[a-z]{2,12}(?:/[^\s<>\"\)]*)?)', // bare domain
   caseSensitive: false,
 );
 
@@ -87,7 +93,9 @@ class LinkifiedText extends StatelessWidget {
   }
 
   static void _handleTap(BuildContext context, String url) {
-    final uri = Uri.tryParse(url);
+    // Bare domains (e.g. "bundesregierung.de") need a scheme prefix.
+    final normalized = url.startsWith('http') ? url : 'https://$url';
+    final uri = Uri.tryParse(normalized);
     if (uri == null) return;
 
     const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol'};
