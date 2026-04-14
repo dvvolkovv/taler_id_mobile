@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
@@ -86,6 +87,13 @@ class ChunkedUploadService {
     CancelToken? cancelToken,
     void Function(double)? onProgress,
   }) async {
+    final f = File(filePath);
+    if (!f.existsSync()) {
+      // iOS may delete temp file — try originFile path
+      debugPrint('[Upload] File not found: $filePath');
+      throw Exception('File not found: $filePath');
+    }
+    debugPrint('[Upload] Uploading: $fileName size=${f.lengthSync()} path=$filePath');
     final client = sl<DioClient>();
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: fileName),

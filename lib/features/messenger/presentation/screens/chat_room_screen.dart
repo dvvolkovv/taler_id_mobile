@@ -1658,10 +1658,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               if (showDate) _DateSeparator(date: msg.sentAt),
                               _MessageBubble(
                                 message: msg,
-                                isMe: msg.isSystem && conv?.type == 'AI_ANALYST' ? false : isMe,
+                                isMe: (msg.isSystem && (conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND')) ? false
+                                    : (msg.senderId == 'ai-outbound-bot') ? false
+                                    : isMe,
                                 isGroup: isGroup,
-                                isAiAnalyst: conv?.type == 'AI_ANALYST',
-                                senderName: msg.isSystem && conv?.type == 'AI_ANALYST'
+                                isAiAnalyst: conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND',
+                                senderName: (msg.senderId == 'ai-outbound-bot' || (msg.isSystem && conv?.type == 'AI_OUTBOUND'))
+                                    ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
+                                    : msg.isSystem && conv?.type == 'AI_ANALYST'
                                     ? AppLocalizations.of(context)!.aiAnalystTitle
                                     : sName,
                                 isFirstInGroup: isFirstInGroup,
@@ -2521,10 +2525,16 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _PollWidget(message: widget.message, isMe: widget.isMe)
             else if (widget.message.content.startsWith('[CONTACT]'))
               _ContactCardWidget(content: widget.message.content)
-            else if (widget.isAiAnalyst && widget.message.isSystem)
-              // AI Analyst bot responses are markdown — render with
+            else if (widget.isAiAnalyst)
+              // AI bot responses are markdown — render with
               // flutter_markdown for headers, bold, code blocks, lists,
-              // and clickable links that open in the in-app browser.
+              // clickable links, and action buttons [ACTION:xxx].
+              _AiBotContent(
+                content: widget.message.content,
+                conversationId: widget.message.conversationId,
+                topicId: widget.message.topicId,
+              )
+            else if (false) // placeholder — old AI_ANALYST markdown block kept below
               MarkdownBody(
                 data: widget.message.content,
                 selectable: true,
@@ -5261,6 +5271,73 @@ class _VideoNoteCirclePlayerState extends State<_VideoNoteCirclePlayer> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── AI Bot content with markdown + action buttons ──
+
+class _AiBotContent extends StatelessWidget {
+  final String content;
+  final String conversationId;
+  final String? topicId;
+  const _AiBotContent({required this.content, required this.conversationId, this.topicId});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    // Split content into text and action buttons
+    final actionRegex = RegExp(r'\[ACTION:(.+?)\]');
+    final actions = actionRegex.allMatches(content).map((m) => m.group(1)!).toList();
+    final textContent = content.replaceAll(actionRegex, '').trim();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (textContent.isNotEmpty)
+          MarkdownBody(
+            data: textContent,
+            selectable: true,
+            softLineBreak: true,
+            onTapLink: (text, href, title) {
+              if (href == null) return;
+              final uri = Uri.tryParse(href.startsWith('http') ? href : 'https://$href');
+              if (uri != null) launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+            },
+            styleSheet: MarkdownStyleSheet(
+              p: TextStyle(color: colors.textPrimary, fontSize: 14, height: 1.45),
+              h1: TextStyle(color: colors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700),
+              h2: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+              h3: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600),
+              strong: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w700),
+              a: TextStyle(color: colors.primary, decoration: TextDecoration.underline),
+              listBullet: TextStyle(color: colors.textPrimary, fontSize: 14),
+            ),
+          ),
+        if (actions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: actions.map((action) => ElevatedButton.icon(
+              onPressed: () {
+                context.read<MessengerBloc>().add(SendMessage(conversationId, action, topicId: topicId));
+              },
+              icon: Icon(
+                action.contains('Ищи') || action.contains('Search') ? Icons.search : Icons.play_arrow_rounded,
+                size: 18,
+              ),
+              label: Text(action),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF34D399),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            )).toList(),
+          ),
+        ],
+      ],
     );
   }
 }
