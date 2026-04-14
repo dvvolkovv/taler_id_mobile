@@ -21,9 +21,10 @@ class LoadConversations extends MessengerEvent {}
 
 class OpenConversation extends MessengerEvent {
   final String conversationId;
-  const OpenConversation(this.conversationId);
+  final String? topicId;
+  const OpenConversation(this.conversationId, {this.topicId});
   @override
-  List<Object?> get props => [conversationId];
+  List<Object?> get props => [conversationId, topicId];
 }
 
 class SendMessage extends MessengerEvent {

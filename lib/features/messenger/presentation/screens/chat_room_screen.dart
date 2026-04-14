@@ -106,7 +106,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
-    _messengerBloc.add(OpenConversation(widget.conversationId));
+    _messengerBloc.add(OpenConversation(widget.conversationId, topicId: widget.topicId));
     // Mark messages as read when opening conversation
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _loadBlockStatus();

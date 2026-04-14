@@ -140,7 +140,10 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                 final topicId = res['topicId'] as String?;
                 if (topicId != null && mounted) {
                   // Open the topic chat
-                  context.push('/dashboard/messenger/${widget.conversationId}?topicId=$topicId&topicTitle=${Uri.encodeComponent(title)}');
+                  context.push(
+                    '/dashboard/messenger/${widget.conversationId}',
+                    extra: {'topicId': topicId, 'topicTitle': title},
+                  );
                   // Reload topics when coming back
                   Future.delayed(const Duration(seconds: 1), () {
                     if (mounted) _loadTopics();
@@ -319,7 +322,55 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         ),
                       );
                     }
-                    return ListTile(
+                    return Dismissible(
+                      key: ValueKey(topic.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 20),
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                        decoration: BoxDecoration(
+                          color: colors.error,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.delete_rounded, color: Colors.white),
+                      ),
+                      confirmDismiss: (_) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            backgroundColor: colors.card,
+                            title: Text(
+                              Localizations.localeOf(context).languageCode == 'ru' ? 'Удалить задачу?' : 'Delete task?',
+                              style: TextStyle(color: colors.textPrimary),
+                            ),
+                            content: Text(topic.title, style: TextStyle(color: colors.textSecondary)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: Text(
+                                  Localizations.localeOf(context).languageCode == 'ru' ? 'Отмена' : 'Cancel',
+                                  style: TextStyle(color: colors.textSecondary),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: Text(
+                                  Localizations.localeOf(context).languageCode == 'ru' ? 'Удалить' : 'Delete',
+                                  style: TextStyle(color: colors.error),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ) ?? false;
+                      },
+                      onDismissed: (_) async {
+                        try {
+                          await sl<DioClient>().delete('/messenger/topics/${topic.id}');
+                        } catch (_) {}
+                        if (mounted) _loadTopics();
+                      },
+                      child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       tileColor: colors.card,
@@ -362,7 +413,7 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                         );
                         if (mounted) _loadTopics();
                       },
-                    );
+                    ));
                   },
                 ),
       floatingActionButton: FloatingActionButton(

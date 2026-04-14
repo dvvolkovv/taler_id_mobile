@@ -21,8 +21,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       _remote.createConversation(participantId);
 
   @override
-  Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor}) =>
-      _remote.getMessages(conversationId, cursor: cursor);
+  Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor, String? topicId}) =>
+      _remote.getMessages(conversationId, cursor: cursor, topicId: topicId);
 
   @override
   Future<List<UserSearchEntity>> searchUsers(String query) => _remote.searchUsers(query);

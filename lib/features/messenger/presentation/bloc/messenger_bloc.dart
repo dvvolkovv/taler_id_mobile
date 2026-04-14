@@ -300,7 +300,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
 
     // 2. Fetch from server and merge
     try {
-      final result = await _repo.getMessages(event.conversationId);
+      final result = await _repo.getMessages(event.conversationId, topicId: event.topicId);
       final rawMessages = result['messages'] as List? ?? [];
       final knownStatus = <String, ({bool isRead, bool isDelivered})>{
         for (final m in state.messages[event.conversationId] ?? [])

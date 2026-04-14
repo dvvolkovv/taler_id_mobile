@@ -324,10 +324,12 @@ class MessengerRemoteDataSource {
     return ConversationEntity.fromJson(data);
   }
 
-  Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor}) async {
-    final url = cursor != null
-        ? '/messenger/conversations/$conversationId/messages?cursor=$cursor'
-        : '/messenger/conversations/$conversationId/messages';
+  Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor, String? topicId}) async {
+    final params = <String>[];
+    if (cursor != null) params.add('cursor=$cursor');
+    if (topicId != null) params.add('topicId=$topicId');
+    final qs = params.isNotEmpty ? '?${params.join('&')}' : '';
+    final url = '/messenger/conversations/$conversationId/messages$qs';
     return _http.get(url, fromJson: (d) => Map<String, dynamic>.from(d as Map));
   }
 
