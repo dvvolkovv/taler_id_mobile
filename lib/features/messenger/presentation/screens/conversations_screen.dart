@@ -628,8 +628,8 @@ class _ConversationsViewState extends State<_ConversationsView> {
     bool archivedOnly = false,
   }) {
     var result = convs.where((c) {
-      // SAVED and AI_ANALYST are pinned separately at the top — exclude from the list
-      if (c.type == 'SAVED' || c.type == 'AI_ANALYST') return false;
+      // SAVED, AI_ANALYST, AI_OUTBOUND are pinned separately at the top — exclude from the list
+      if (c.type == 'SAVED' || c.type == 'AI_ANALYST' || c.type == 'AI_OUTBOUND') return false;
       return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
     }).toList();
 
@@ -1015,6 +1015,68 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       },
                     ),
                   ),
+                // AI Outbound Bot — automated calling campaigns
+                if (_searchQuery.isEmpty)
+                  SliverToBoxAdapter(
+                    child: ListTile(
+                      dense: true,
+                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                      leading: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF34D399), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF34D399).withValues(alpha: 0.45),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF34D399), Color(0xFF059669)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Icon(Icons.phone_forwarded_rounded, color: Colors.white, size: 20),
+                        ),
+                      ),
+                      title: Text(
+                        Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        Localizations.localeOf(context).languageCode == 'ru'
+                            ? 'Автоматический обзвон бизнесов'
+                            : 'Automated business calling',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                      ),
+                      onTap: () async {
+                        try {
+                          final res = await sl<DioClient>().get<Map<String, dynamic>>(
+                            '/outbound-bot/chat',
+                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                          );
+                          final convId = res['conversationId'] as String?;
+                          if (convId != null && context.mounted) {
+                            context.push('/dashboard/messenger/$convId');
+                          }
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
                 // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
                   SliverToBoxAdapter(
@@ -1227,7 +1289,10 @@ class _ConversationTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
     final isAiAnalyst = conversation.type == 'AI_ANALYST';
-    final displayName = isAiAnalyst
+    final isAiOutbound = conversation.type == 'AI_OUTBOUND';
+    final displayName = isAiOutbound
+        ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
+        : isAiAnalyst
         ? l10n.aiAnalystTitle
         : isGroup
             ? (conversation.name ?? l10n.chatGroup)

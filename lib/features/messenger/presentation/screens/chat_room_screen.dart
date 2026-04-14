@@ -1275,14 +1275,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
                   final isAiAnalyst = conv?.type == 'AI_ANALYST';
-                  final name = isAiAnalyst
+                  final isAiOutbound = conv?.type == 'AI_OUTBOUND';
+                  final name = isAiOutbound
+                      ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
+                      : isAiAnalyst
                       ? l10n.aiAnalystTitle
                       : isSaved
                           ? l10n.messengerSavedSection
                           : isGroup
                               ? (conv?.name ?? l10n.chatGroup)
                               : conv?.otherUserName;
-                  final avatarUrl = isAiAnalyst
+                  final avatarUrl = (isAiAnalyst || isAiOutbound)
                       ? null
                       : isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
@@ -1324,6 +1327,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ),
                             ),
                             child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 18),
+                          )
+                        : isAiOutbound
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF34D399), Color(0xFF059669)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.phone_forwarded_rounded, color: Colors.white, size: 18),
                           )
                         : isAiAnalyst
                         ? Container(
@@ -1436,8 +1453,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     final conv = state.conversations
                         .where((c) => c.id == widget.conversationId)
                         .firstOrNull;
-                    // Hide call button for AI Analyst — it's a bot, not a person
-                    if (conv?.type != 'AI_ANALYST')
+                    // Hide call button for AI bots
+                    if (conv?.type != 'AI_ANALYST' && conv?.type != 'AI_OUTBOUND')
                       return IconButton(
                         icon: const Icon(Icons.phone_outlined),
                         onPressed: _startCall,
