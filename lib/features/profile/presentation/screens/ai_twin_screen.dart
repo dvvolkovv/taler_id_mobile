@@ -113,7 +113,10 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
                   : null;
           if (user != null) _initFromUser(user);
 
-          return SingleChildScrollView(
+          return GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.translucent,
+            child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,6 +138,7 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
                 _buildSaveButton(colors, l10n),
               ],
             ),
+          ),
           );
         },
       ),
@@ -335,28 +339,6 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
                   ),
                 ),
               ),
-              TextButton.icon(
-                style: TextButton.styleFrom(
-                  foregroundColor: colors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: Text(
-                  l10n.aiTwinPromptReset,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                ),
-                onPressed: () {
-                  setState(() {
-                    _promptCtrl.text = l10n.aiTwinPromptHint(name);
-                    _promptCtrl.selection = TextSelection.collapsed(
-                      offset: _promptCtrl.text.length,
-                    );
-                  });
-                  _markDirty();
-                },
-              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -372,7 +354,11 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
           TextField(
             controller: _promptCtrl,
             maxLines: 5,
+            minLines: 3,
             maxLength: 2000,
+            keyboardType: TextInputType.text,
+            textInputAction: TextInputAction.done,
+            onEditingComplete: () => FocusScope.of(context).unfocus(),
             style: TextStyle(
               color: colors.textPrimary,
               fontSize: 14,
