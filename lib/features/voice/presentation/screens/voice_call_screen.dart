@@ -331,8 +331,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         // Switch to existing line instead
         await cs.holdAndSwitch(existing.roomName);
         if (mounted) {
+          final route = '/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}';
           context.pop();
-          context.push('/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) context.push(route);
+          });
         }
         return;
       }
@@ -1277,17 +1280,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (!mounted) return null;
     // If ProfileBloc is available and loaded, use the real name automatically.
     try {
-      final pState = context.read<ProfileBloc>().state;
-      if (pState is ProfileLoaded) {
-        final full = [pState.user.firstName, pState.user.lastName]
-            .where((s) => s != null && s.isNotEmpty)
-            .join(' ');
-        if (full.isNotEmpty) return full;
+      if (mounted) {
+        final pState = context.read<ProfileBloc>().state;
+        if (pState is ProfileLoaded) {
+          final full = [pState.user.firstName, pState.user.lastName]
+              .where((s) => s != null && s.isNotEmpty)
+              .join(' ');
+          if (full.isNotEmpty) return full;
+        }
       }
     } catch (_) {}
 
-    // Otherwise prompt the user for a name.
+    if (!mounted) return null;
+    // Cache theme/l10n before async gap to avoid context-after-dispose
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -1298,7 +1305,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(AppLocalizations.of(context)!.voiceJoinRoom,
+            Text(l10n.voiceJoinRoom,
                 style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
             if (_publicRoomCreatorName != null) ...[
               const SizedBox(height: 4),
@@ -1318,7 +1325,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           autofocus: true,
           style: TextStyle(color: colors.textPrimary),
           decoration: InputDecoration(
-            hintText: AppLocalizations.of(context)!.voiceYourName,
+            hintText: l10n.voiceYourName,
             hintStyle: TextStyle(color: colors.textSecondary),
           ),
           onSubmitted: (v) {
@@ -1329,14 +1336,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(null),
-            child: Text(AppLocalizations.of(context)!.cancel, style: TextStyle(color: colors.textSecondary)),
+            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
               final t = controller.text.trim();
               if (t.isNotEmpty) Navigator.of(ctx).pop(t);
             },
-            child: Text(AppLocalizations.of(context)!.voiceEnter, style: TextStyle(color: colors.primary)),
+            child: Text(l10n.voiceEnter, style: TextStyle(color: colors.primary)),
           ),
         ],
       ),
