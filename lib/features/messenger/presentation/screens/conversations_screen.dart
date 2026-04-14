@@ -1071,7 +1071,13 @@ class _ConversationsViewState extends State<_ConversationsView> {
                           );
                           final convId = res['conversationId'] as String?;
                           if (convId != null && context.mounted) {
-                            context.push('/dashboard/messenger/$convId');
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => TopicsListScreen(
+                                conversationId: convId,
+                                groupName: Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller',
+                                isOutboundBot: true,
+                              ),
+                            ));
                           }
                         } catch (_) {}
                       },
@@ -1517,7 +1523,7 @@ class _ConversationTile extends StatelessWidget {
         );
       }(),
       onTap: () {
-        if (conversation.topicsEnabled && conversation.type == 'GROUP') {
+        if (conversation.topicsEnabled && (conversation.type == 'GROUP' || conversation.type == 'AI_OUTBOUND')) {
           Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => TopicsListScreen(
               conversationId: conversation.id,

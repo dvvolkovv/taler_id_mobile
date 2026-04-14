@@ -7,6 +7,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/messenger_bloc.dart';
+import '../bloc/messenger_event.dart';
 
 class _Topic {
   final String id;
@@ -50,11 +51,13 @@ class _Topic {
 class TopicsListScreen extends StatefulWidget {
   final String conversationId;
   final String groupName;
+  final bool isOutboundBot;
 
   const TopicsListScreen({
     super.key,
     required this.conversationId,
     required this.groupName,
+    this.isOutboundBot = false,
   });
 
   @override
@@ -93,6 +96,70 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showNewTaskDialog() {
+    final colors = AppColors.of(context);
+    final titleCtrl = TextEditingController();
+    final isRu = Localizations.localeOf(context).languageCode == 'ru';
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text(
+          isRu ? 'Новая задача' : 'New Task',
+          style: TextStyle(color: colors.textPrimary),
+        ),
+        content: TextField(
+          controller: titleCtrl,
+          autofocus: true,
+          style: TextStyle(color: colors.textPrimary),
+          decoration: InputDecoration(
+            hintText: isRu ? 'Например: Ремонт BMW X5' : 'e.g. BMW X5 repair',
+            hintStyle: TextStyle(color: colors.textSecondary),
+            border: const OutlineInputBorder(),
+            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: const Color(0xFF34D399))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(isRu ? 'Отмена' : 'Cancel', style: TextStyle(color: colors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final title = titleCtrl.text.trim();
+              if (title.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                final res = await sl<DioClient>().post<Map<String, dynamic>>(
+                  '/outbound-bot/tasks',
+                  data: {'title': title},
+                  fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                );
+                final topicId = res['topicId'] as String?;
+                if (topicId != null && mounted) {
+                  // Open the topic chat
+                  context.push('/dashboard/messenger/${widget.conversationId}?topicId=$topicId&topicTitle=${Uri.encodeComponent(title)}');
+                  // Reload topics when coming back
+                  Future.delayed(const Duration(seconds: 1), () {
+                    if (mounted) _loadTopics();
+                  });
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e'), backgroundColor: colors.error),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF34D399)),
+            child: Text(isRu ? 'Создать' : 'Create', style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCreateTopicDialog() {
@@ -299,9 +366,9 @@ class _TopicsListScreenState extends State<TopicsListScreen> {
                   },
                 ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showCreateTopicDialog,
-        backgroundColor: colors.primary,
-        child: const Icon(Icons.add, color: Colors.black),
+        onPressed: widget.isOutboundBot ? _showNewTaskDialog : _showCreateTopicDialog,
+        backgroundColor: widget.isOutboundBot ? const Color(0xFF34D399) : colors.primary,
+        child: Icon(widget.isOutboundBot ? Icons.phone_forwarded_rounded : Icons.add, color: Colors.white),
       ),
     );
   }
