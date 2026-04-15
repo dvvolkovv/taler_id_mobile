@@ -5333,12 +5333,20 @@ class _AiBotContent extends StatelessWidget {
                 context.read<MessengerBloc>().add(SendMessage(conversationId, action, topicId: topicId));
               },
               icon: Icon(
-                action.contains('Ищи') || action.contains('Search') ? Icons.search : Icons.play_arrow_rounded,
+                action.contains('Ищи') || action.contains('Search') ? Icons.search
+                  : action.contains('Достаточно') || action.contains('Стоп') ? Icons.stop_rounded
+                  : action.contains('Сводка') || action.contains('Итоги') ? Icons.analytics_rounded
+                  : action.contains('Продолжить') || action.contains('Начинай') ? Icons.play_arrow_rounded
+                  : Icons.check_rounded,
                 size: 18,
               ),
               label: Text(action),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF34D399),
+                backgroundColor: action.contains('Достаточно') || action.contains('Стоп')
+                  ? const Color(0xFFF59E0B) // amber for stop
+                  : action.contains('Сводка') || action.contains('Итоги')
+                    ? const Color(0xFF3B82F6) // blue for summary
+                    : const Color(0xFF34D399), // green for action
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
