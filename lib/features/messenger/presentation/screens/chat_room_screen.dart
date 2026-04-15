@@ -5293,6 +5293,8 @@ class _AiBotContent extends StatelessWidget {
   final String? topicId;
   const _AiBotContent({required this.content, required this.conversationId, this.topicId});
 
+  static DateTime _lastActionTap = DateTime(2000);
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -5330,6 +5332,9 @@ class _AiBotContent extends StatelessWidget {
             spacing: 8,
             children: actions.map((action) => ElevatedButton.icon(
               onPressed: () {
+                final now = DateTime.now();
+                if (now.difference(_lastActionTap).inMilliseconds < 1500) return;
+                _lastActionTap = now;
                 context.read<MessengerBloc>().add(SendMessage(conversationId, action, topicId: topicId));
               },
               icon: Icon(
