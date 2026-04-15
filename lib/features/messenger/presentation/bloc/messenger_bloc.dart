@@ -198,6 +198,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
           userId: userId,
           userName: userName,
           isTyping: isTyping,
+          typingText: data['typingText'] as String?,
+          topicId: data['topicId'] as String?,
         ));
       }
     });
@@ -750,9 +752,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     final updated = Map<String, Map<String, String>>.from(
       state.typingUsers.map((k, v) => MapEntry(k, Map<String, String>.from(v))),
     );
+    // Use topicId as key suffix to isolate typing per topic
+    final key = event.topicId != null ? '${event.conversationId}:${event.topicId}' : event.conversationId;
     if (event.isTyping) {
-      updated.putIfAbsent(event.conversationId, () => {});
-      updated[event.conversationId]![event.userId] = event.userName ?? '';
+      updated.putIfAbsent(key, () => {});
+      updated[key]![event.userId] = event.typingText ?? event.userName ?? '';
       // Auto-clear after 5 seconds
       final timerKey = '${event.conversationId}_${event.userId}';
       _typingTimers[timerKey]?.cancel();
@@ -764,6 +768,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         ));
       });
     } else {
+      updated[key]?.remove(event.userId);
+      if (updated[key]?.isEmpty ?? false) {
+        updated.remove(key);
+      }
+      // Also clear from conversation-level key (for backward compat)
       updated[event.conversationId]?.remove(event.userId);
       if (updated[event.conversationId]?.isEmpty ?? false) {
         updated.remove(event.conversationId);

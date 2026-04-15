@@ -1732,18 +1732,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ),
               // Typing indicator
               BlocBuilder<MessengerBloc, MessengerState>(
-                buildWhen: (prev, curr) =>
-                    prev.typingUsers[widget.conversationId] != curr.typingUsers[widget.conversationId],
+                buildWhen: (prev, curr) {
+                  final key = widget.topicId != null ? '${widget.conversationId}:${widget.topicId}' : widget.conversationId;
+                  return prev.typingUsers[key] != curr.typingUsers[key];
+                },
                 builder: (context, state) {
-                  final typers = state.typingUsers[widget.conversationId];
+                  final key = widget.topicId != null ? '${widget.conversationId}:${widget.topicId}' : widget.conversationId;
+                  final typers = state.typingUsers[key];
                   if (typers == null || typers.isEmpty) return const SizedBox.shrink();
                   final l10n = AppLocalizations.of(context)!;
-                  final names = typers.values.where((n) => n.isNotEmpty).toList();
-                  final text = names.isEmpty
-                      ? l10n.chatIsTyping
-                      : names.length == 1
-                          ? l10n.chatUserIsTyping(names.first)
-                          : l10n.chatUsersAreTyping(names.join(', '));
+                  final values = typers.values.where((n) => n.isNotEmpty).toList();
+                  // Check if any value is a custom typingText (contains emoji or status)
+                  final customText = values.firstWhere(
+                    (v) => v.contains('🔍') || v.contains('🌐') || v.contains('📊') || v.contains('📋') || v.contains('🤔') || v.contains('🚀'),
+                    orElse: () => '',
+                  );
+                  final text = customText.isNotEmpty
+                      ? customText
+                      : values.isEmpty
+                          ? l10n.chatIsTyping
+                          : values.length == 1
+                              ? l10n.chatUserIsTyping(values.first)
+                              : l10n.chatUsersAreTyping(values.join(', '));
                   return Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     decoration: BoxDecoration(

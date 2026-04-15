@@ -285,11 +285,15 @@ class TypingReceived extends MessengerEvent {
   final String userId;
   final String? userName;
   final bool isTyping;
+  final String? typingText;
+  final String? topicId;
   const TypingReceived({
     required this.conversationId,
     required this.userId,
     this.userName,
     required this.isTyping,
+    this.typingText,
+    this.topicId,
   });
   @override
   List<Object?> get props => [conversationId, userId, isTyping];
