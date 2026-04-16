@@ -19,12 +19,14 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
 import '../../../../core/theme/linkified_text.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:share_plus/share_plus.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:camera/camera.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -72,6 +74,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _socketDisconnected = false;
   StreamSubscription? _disconnectSub;
   StreamSubscription? _reconnectSub;
+  StreamSubscription? _outboundListenSub;
   Timer? _typingTimer;
   bool _isTypingSent = false;
   late final MessengerBloc _messengerBloc;
@@ -124,6 +127,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
     _reconnectSub = ds.reconnectStream.listen((_) {
       if (mounted) setState(() => _socketDisconnected = false);
+    });
+    _outboundListenSub = ds.outboundListenStream.listen((data) {
+      if (!mounted) return;
+      final businessName = data['businessName'] as String? ?? '';
+      final token = data['token'] as String? ?? '';
+      final wsUrl = data['wsUrl'] as String? ?? '';
+      if (token.isEmpty || wsUrl.isEmpty) return;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        useRootNavigator: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => _OutboundListenSheet(
+          businessName: businessName,
+          token: token,
+          wsUrl: wsUrl,
+        ),
+      );
     });
   }
 
@@ -1075,6 +1097,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _recorder.dispose();
     _disconnectSub?.cancel();
     _reconnectSub?.cancel();
+    _outboundListenSub?.cancel();
     super.dispose();
   }
 
@@ -5285,6 +5308,312 @@ class _VideoNoteCirclePlayerState extends State<_VideoNoteCirclePlayer> {
   }
 }
 
+// ── Inline audio player for call recordings ──
+
+// ── Live listen-in sheet (connects to LiveKit room as listener) ──
+
+class _OutboundListenSheet extends StatefulWidget {
+  final String businessName;
+  final String token;
+  final String wsUrl;
+  const _OutboundListenSheet({required this.businessName, required this.token, required this.wsUrl});
+  @override
+  State<_OutboundListenSheet> createState() => _OutboundListenSheetState();
+}
+
+class _OutboundListenSheetState extends State<_OutboundListenSheet> with SingleTickerProviderStateMixin {
+  lk.Room? _room;
+  bool _connecting = true;
+  String? _error;
+  late final AnimationController _pulseCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+    _connect();
+  }
+
+  Future<void> _connect() async {
+    try {
+      final room = lk.Room();
+      await room.connect(
+        widget.wsUrl,
+        widget.token,
+        connectOptions: const lk.ConnectOptions(autoSubscribe: true),
+      );
+      if (mounted) setState(() { _room = room; _connecting = false; });
+    } catch (e) {
+      debugPrint('[ListenSheet] connect error: $e');
+      if (mounted) setState(() { _error = e.toString(); _connecting = false; });
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseCtrl.dispose();
+    _room?.disconnect().catchError((_) {});
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 12, 24, 24 + MediaQuery.of(context).padding.bottom),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 4,
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: colors.textSecondary.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          if (_connecting) ...[
+            CircularProgressIndicator(color: colors.primary),
+            const SizedBox(height: 16),
+            Text('Подключение к разговору...', style: TextStyle(color: colors.textSecondary, fontSize: 14)),
+          ] else if (_error != null) ...[
+            const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+            const SizedBox(height: 12),
+            Text('Ошибка подключения', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Text(_error!, style: TextStyle(color: colors.textSecondary, fontSize: 11), textAlign: TextAlign.center),
+          ] else ...[
+            AnimatedBuilder(
+              animation: _pulseCtrl,
+              builder: (_, __) => Container(
+                width: 80, height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.primary.withValues(alpha: 0.08 + 0.12 * _pulseCtrl.value),
+                ),
+                child: Icon(Icons.headphones_rounded, color: colors.primary, size: 38),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text('Слушаем разговор', style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+            const SizedBox(height: 4),
+            Text(
+              widget.businessName,
+              style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.call_end_rounded),
+              label: const Text('Отключиться'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecordingPlayer extends StatefulWidget {
+  final String url;
+  const _RecordingPlayer({required this.url});
+
+  @override
+  State<_RecordingPlayer> createState() => _RecordingPlayerState();
+}
+
+class _RecordingPlayerState extends State<_RecordingPlayer> {
+  final _player = AudioPlayer();
+  bool _playing = false;
+  bool _loading = false;
+  bool _downloading = false;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _player.onPositionChanged.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    _player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+    _player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() { _playing = false; _position = Duration.zero; });
+    });
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _toggle() async {
+    if (_playing) {
+      await _player.pause();
+      if (mounted) setState(() => _playing = false);
+    } else {
+      if (mounted) setState(() => _loading = true);
+      try {
+        try {
+          final file = await DefaultCacheManager().getSingleFile(widget.url);
+          await _player.play(DeviceFileSource(file.path));
+        } catch (_) {
+          await _player.play(UrlSource(widget.url));
+        }
+        if (mounted) setState(() { _playing = true; _loading = false; });
+      } catch (e) {
+        if (mounted) setState(() => _loading = false);
+        debugPrint('[RecordingPlayer] Error: $e');
+      }
+    }
+  }
+
+  Future<void> _seek(double value) async {
+    final pos = Duration(milliseconds: (value * _duration.inMilliseconds).round());
+    await _player.seek(pos);
+  }
+
+  Future<void> _download() async {
+    if (_downloading) return;
+    if (mounted) setState(() => _downloading = true);
+    try {
+      final file = await DefaultCacheManager().getSingleFile(widget.url);
+      // sharePositionOrigin required on iOS 26+
+      final box = context.findRenderObject() as RenderBox?;
+      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'audio/mpeg', name: 'запись.mp3')],
+        sharePositionOrigin: origin,
+      );
+    } catch (e) {
+      debugPrint('[RecordingPlayer] Download error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Ошибка: ${e.toString().substring(0, e.toString().length.clamp(0, 80))}'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _downloading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final progress = _duration.inMilliseconds > 0
+        ? (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0)
+        : 0.0;
+    final timeStr = _fmt(_playing || _position > Duration.zero ? _position : _duration);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _loading ? null : _toggle,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: colors.primary.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: _loading
+                  ? Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+                    )
+                  : Icon(
+                      _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      color: colors.primary,
+                      size: 24,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SliderTheme(
+                  data: SliderThemeData(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                    activeTrackColor: colors.primary,
+                    inactiveTrackColor: colors.primary.withValues(alpha: 0.2),
+                    thumbColor: colors.primary,
+                    overlayColor: colors.primary.withValues(alpha: 0.15),
+                  ),
+                  child: Slider(
+                    value: progress,
+                    onChanged: _duration > Duration.zero ? _seek : null,
+                    min: 0,
+                    max: 1,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    _duration > Duration.zero ? '$timeStr / ${_fmt(_duration)}' : '–:––',
+                    style: TextStyle(color: colors.textSecondary, fontSize: 11),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _downloading ? null : _download,
+            icon: _downloading
+                ? SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: colors.textSecondary),
+                  )
+                : Icon(Icons.download_rounded, color: colors.textSecondary, size: 20),
+            tooltip: 'Скачать',
+            padding: const EdgeInsets.all(4),
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── AI Bot content with markdown + action buttons ──
 
 class _AiBotContent extends StatelessWidget {
@@ -5295,13 +5624,27 @@ class _AiBotContent extends StatelessWidget {
 
   static DateTime _lastActionTap = DateTime(2000);
 
+  static final _recordingRegex = RegExp(r'\[▶ Слушать / Скачать\]\(([^)]+)\)');
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     // Split content into text and action buttons
     final actionRegex = RegExp(r'\[ACTION:(.+?)\]');
+    final listenRegex = RegExp(r'\[LISTEN:[^\]]+\]');
     final actions = actionRegex.allMatches(content).map((m) => m.group(1)!).toList();
-    final textContent = content.replaceAll(actionRegex, '').trim();
+
+    // Extract recording URLs before stripping
+    final recordingUrls = _recordingRegex
+        .allMatches(content)
+        .map((m) => m.group(1)!)
+        .toList();
+
+    final textContent = content
+        .replaceAll(actionRegex, '')
+        .replaceAll(listenRegex, '')
+        .replaceAll(_recordingRegex, '')
+        .trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -5311,6 +5654,10 @@ class _AiBotContent extends StatelessWidget {
             data: textContent,
             selectable: true,
             softLineBreak: true,
+            extensionSet: md.ExtensionSet(
+              md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+              [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, md.AutolinkExtensionSyntax()],
+            ),
             onTapLink: (text, href, title) {
               if (href == null) return;
               final uri = Uri.tryParse(href.startsWith('http') ? href : 'https://$href');
@@ -5326,6 +5673,7 @@ class _AiBotContent extends StatelessWidget {
               listBullet: TextStyle(color: colors.textPrimary, fontSize: 14),
             ),
           ),
+        for (final url in recordingUrls) _RecordingPlayer(url: url),
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),
           Wrap(

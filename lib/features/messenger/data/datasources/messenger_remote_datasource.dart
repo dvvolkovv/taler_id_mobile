@@ -40,6 +40,8 @@ class MessengerRemoteDataSource {
   final _callAiTwinOfferCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _callAiTwinJoinedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _callAiTwinLeftCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _topicUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _outboundListenCtrl = StreamController<Map<String, dynamic>>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -147,11 +149,17 @@ class MessengerRemoteDataSource {
     _socket!.on('message_reaction_updated', (d) {
       try { _reactionUpdatedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    _socket!.on('topic_updated', (d) {
+      try { _topicUpdatedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
     _socket!.on('contact_request', (d) {
       try { _contactRequestCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
     _socket!.on('contact_request_accepted', (d) {
       try { _contactAcceptedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('outbound_listen', (d) {
+      try { _outboundListenCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
     // Re-join all conversation rooms after reconnect
     _socket!.on('error', (d) {
@@ -197,6 +205,8 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get callAiTwinOfferStream => _callAiTwinOfferCtrl.stream;
   Stream<Map<String, dynamic>> get callAiTwinJoinedStream => _callAiTwinJoinedCtrl.stream;
   Stream<Map<String, dynamic>> get callAiTwinLeftStream => _callAiTwinLeftCtrl.stream;
+  Stream<Map<String, dynamic>> get topicUpdatedStream => _topicUpdatedCtrl.stream;
+  Stream<Map<String, dynamic>> get outboundListenStream => _outboundListenCtrl.stream;
   bool get isSocketConnected => _socket?.connected ?? false;
 
   void acceptAiTwinOffer(String roomName) {
@@ -490,5 +500,6 @@ class MessengerRemoteDataSource {
     _contactRequestCtrl.close();
     _contactAcceptedCtrl.close();
     _reactionUpdatedCtrl.close();
+    _topicUpdatedCtrl.close();
   }
 }
