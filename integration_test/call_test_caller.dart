@@ -192,7 +192,12 @@ void main() {
     final hangup = find.byIcon(Icons.call_end_rounded);
     await tester.tap(hangup.first, warnIfMissed: false);
     debugPrint('[CALLER] Hangup tapped');
-    await tester.pumpFor(const Duration(seconds: 3));
+    await tester.pumpFor(const Duration(seconds: 5));
+
+    // Allow audioplayers & other animations to fully stop before teardown
+    await tester.binding.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
 
     // Should be back on chat or dashboard
     debugPrint('[CALLER] ✓ Call test complete');

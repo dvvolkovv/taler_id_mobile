@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +7,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../data/datasources/messenger_remote_datasource.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 
@@ -67,11 +69,66 @@ class TopicsListScreen extends StatefulWidget {
 class _TopicsListScreenState extends State<TopicsListScreen> {
   List<_Topic> _topics = [];
   bool _loading = true;
+  StreamSubscription? _topicUpdatedSub;
+  StreamSubscription? _messageSub;
 
   @override
   void initState() {
     super.initState();
     _loadTopics();
+    _subscribeToSocketEvents();
+  }
+
+  void _subscribeToSocketEvents() {
+    final ds = sl<MessengerRemoteDataSource>();
+    // Update topic icon when backend emits topic_updated
+    _topicUpdatedSub = ds.topicUpdatedStream.listen((data) {
+      final topicId = data['topicId'] as String?;
+      final icon = data['icon'] as String?;
+      if (topicId == null || icon == null) return;
+      if (mounted) {
+        setState(() {
+          _topics = _topics.map((t) => t.id == topicId ? _Topic(
+            id: t.id, title: t.title, icon: icon,
+            lastMessage: t.lastMessage, lastMessageAt: t.lastMessageAt,
+            lastMessageSenderName: t.lastMessageSenderName,
+            lastMessageSenderId: t.lastMessageSenderId,
+            lastMessageIsDelivered: t.lastMessageIsDelivered,
+            lastMessageIsRead: t.lastMessageIsRead,
+            unreadCount: t.unreadCount,
+          ) : t).toList();
+        });
+      }
+    });
+    // Update last message preview when new message arrives for a topic in this conversation
+    _messageSub = ds.messageStream.listen((msg) {
+      if (msg.conversationId != widget.conversationId) return;
+      if (msg.topicId == null) return;
+      if (mounted) {
+        setState(() {
+          _topics = _topics.map((t) {
+            if (t.id != msg.topicId) return t;
+            return _Topic(
+              id: t.id, title: t.title, icon: t.icon,
+              lastMessage: msg.content,
+              lastMessageAt: msg.sentAt,
+              lastMessageSenderName: msg.senderName,
+              lastMessageSenderId: msg.senderId,
+              lastMessageIsDelivered: true,
+              lastMessageIsRead: false,
+              unreadCount: t.unreadCount + 1,
+            );
+          }).toList();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _topicUpdatedSub?.cancel();
+    _messageSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadTopics() async {

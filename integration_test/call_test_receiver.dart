@@ -192,7 +192,11 @@ void main() {
       }
     }
 
-    await tester.pumpFor(const Duration(seconds: 3));
+    await tester.pumpFor(const Duration(seconds: 5));
+    // Allow audioplayers & other animations to fully stop before teardown
+    await tester.binding.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    });
     debugPrint('[RECEIVER] ✓ Call test complete');
   });
 }
