@@ -44,6 +44,28 @@ class BonjourTransport implements MeshTransport {
   @override
   Stream<InboundFrame> get inbound => _inboundCtrl.stream;
 
+  /// The TCP port this transport is listening on.
+  /// Returns 0 if [startAdvertising] has not been called yet.
+  int get listenPort => _server?.port ?? 0;
+
+  /// Manually inject a peer's address, bypassing mDNS discovery.
+  ///
+  /// This is useful for integration tests running on environments where
+  /// mDNS multicast is unreliable (e.g., Android emulators), or for
+  /// scenarios where the address is known through an out-of-band channel.
+  void seedPeer({
+    required PeerId peerId,
+    required String host,
+    required int port,
+  }) {
+    _peerAddresses[peerId] = _PeerAddress(host: host, port: port);
+    _discoveriesCtrl.add(PeerDiscovered(
+      peerId: peerId,
+      host: host,
+      port: port,
+    ));
+  }
+
   @override
   Future<void> startAdvertising(DeviceInfo self) async {
     _server = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
@@ -205,7 +227,10 @@ class BonjourTransport implements MeshTransport {
   @override
   Future<void> dispose() async {
     await stopAdvertising();
-    for (final conn in _connections.values) {
+    // Copy values before iterating to avoid ConcurrentModificationError:
+    // socket.destroy() triggers onDone which removes the entry from _connections.
+    final conns = _connections.values.toList();
+    for (final conn in conns) {
       conn.socket.destroy();
     }
     _connections.clear();
