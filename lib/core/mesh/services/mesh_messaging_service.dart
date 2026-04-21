@@ -17,6 +17,12 @@ class InboundMessage {
 
 /// High-level messaging over a mesh transport.
 ///
+/// **IMPORTANT:** [myDevicePrivateKey] and [myDevicePublicKey] must be
+/// X25519 keys (from [MeshStaticKey]), NOT Ed25519 ([DeviceKey]).
+/// Noise IK requires X25519 Diffie-Hellman. Passing Ed25519 bytes will
+/// produce a silent key mismatch — the Noise handshake will fail
+/// mysteriously rather than with a clear error.
+///
 /// Phase 1a scope:
 ///   - Single injected transport (typically BonjourTransport)
 ///   - ContactKeyStore for known peers
@@ -68,15 +74,15 @@ class MeshMessagingService {
     }
     final state = _peerStates.putIfAbsent(devicePk, () => _PeerState());
     if (state.session == null && state.handshake == null) {
+      state.sessionEstablished = Completer<void>();
       await _initiateHandshake(devicePk, state);
     }
-    // Wait up to 2 s for handshake to complete.
-    final deadline = DateTime.now().add(const Duration(seconds: 2));
-    while (state.session == null && DateTime.now().isBefore(deadline)) {
-      await Future.delayed(const Duration(milliseconds: 20));
-    }
     if (state.session == null) {
-      throw TimeoutException('handshake did not complete');
+      try {
+        await state.sessionEstablished!.future.timeout(const Duration(seconds: 2));
+      } on TimeoutException {
+        throw TimeoutException('handshake did not complete');
+      }
     }
     final payload = Uint8List.fromList(utf8.encode(text));
     final ct = await state.session!.encrypt(payload);
@@ -116,6 +122,7 @@ class MeshMessagingService {
         final (k1, k2) = responder.finalize();
         // Responder: k1 = recv (initiator→responder), k2 = send (responder→initiator).
         state.session = NoiseSession(sendKey: k2, recvKey: k1);
+        state.sessionEstablished?.complete();
         await _sendFrame(srcDevice, FrameType.handshake, msg2);
       } else if (state.isInitiator) {
         // Initiator receiving msg2.
@@ -123,6 +130,7 @@ class MeshMessagingService {
         final (k1, k2) = state.handshake!.finalize();
         // Initiator: k1 = send (initiator→responder), k2 = recv (responder→initiator).
         state.session = NoiseSession(sendKey: k1, recvKey: k2);
+        state.sessionEstablished?.complete();
       }
       return;
     }
@@ -165,4 +173,5 @@ class _PeerState {
   NoiseIKHandshake? handshake;
   NoiseSession? session;
   bool isInitiator = false;
+  Completer<void>? sessionEstablished;
 }

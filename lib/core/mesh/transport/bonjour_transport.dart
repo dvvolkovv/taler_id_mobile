@@ -26,6 +26,7 @@ class BonjourTransport implements MeshTransport {
   BonsoirBroadcast? _broadcast;
   BonsoirDiscovery? _discovery;
   ServerSocket? _server;
+  PeerId? _selfPk;
 
   final Map<PeerId, _ConnectedPeer> _connections = {};
   final Map<String, PeerId> _nameToPeerId = {};
@@ -68,6 +69,7 @@ class BonjourTransport implements MeshTransport {
 
   @override
   Future<void> startAdvertising(DeviceInfo self) async {
+    _selfPk = self.devicePk;
     _server = await ServerSocket.bind(InternetAddress.anyIPv4, 0);
     _server!.listen(_handleIncomingSocket);
 
@@ -106,6 +108,9 @@ class BonjourTransport implements MeshTransport {
     }
     switch (event.type) {
       case BonsoirDiscoveryEventType.discoveryServiceResolved:
+        if (_selfPk != null && peerId == _selfPk) {
+          return; // don't announce self as a peer
+        }
         if (service is ResolvedBonsoirService) {
           _nameToPeerId[service.name] = peerId;
           _peerAddresses[peerId] = _PeerAddress(
@@ -121,6 +126,9 @@ class BonjourTransport implements MeshTransport {
         }
         break;
       case BonsoirDiscoveryEventType.discoveryServiceLost:
+        if (_selfPk != null && peerId == _selfPk) {
+          return; // skip self
+        }
         final lostPeer = _nameToPeerId.remove(service.name);
         if (lostPeer != null) {
           _peerAddresses.remove(lostPeer);

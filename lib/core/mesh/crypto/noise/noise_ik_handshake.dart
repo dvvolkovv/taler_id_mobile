@@ -29,6 +29,7 @@ class NoiseIKHandshake {
 
   Uint8List? _remoteStaticPub;
   Uint8List? _ephemeralPriv;
+  Uint8List? _ephemeralPub;
   Uint8List? _remoteEphemeralPub;
 
   NoiseIKHandshake._({
@@ -100,10 +101,11 @@ class NoiseIKHandshake {
   ///   [48B] encrypted initiator static pk  (32B pk + 16B Poly tag)
   ///   [len(payload)+16B] encrypted payload
   Future<Uint8List> writeMessage1({required Uint8List payload}) async {
-    assert(_isInitiator, 'writeMessage1 called on non-initiator');
+    if (!_isInitiator) throw StateError('writeMessage1 called on responder');
 
     final (ePriv, ePub) = await _newEphemeral();
     _ephemeralPriv = ePriv;
+    _ephemeralPub = ePub;
 
     final buf = BytesBuilder();
 
@@ -112,7 +114,7 @@ class NoiseIKHandshake {
     _ss.mixHash(ePub);
 
     // → es : DH(init_ephem_priv, resp_static_pub)
-    final es = await _dh(myPriv: ePriv, remotePub: _remoteStaticPub!);
+    final es = await _dh(myPriv: ePriv, myPub: ePub, remotePub: _remoteStaticPub!);
     _ss.mixKey(es);
 
     // → s  : encrypted initiator static pk
@@ -120,7 +122,7 @@ class NoiseIKHandshake {
     buf.add(sEnc);
 
     // → ss : DH(init_static_priv, resp_static_pub)
-    final ss = await _dh(myPriv: _staticPriv, remotePub: _remoteStaticPub!);
+    final ss = await _dh(myPriv: _staticPriv, myPub: _staticPub, remotePub: _remoteStaticPub!);
     _ss.mixKey(ss);
 
     // → payload
@@ -143,7 +145,7 @@ class NoiseIKHandshake {
   /// Throws [Exception] (AEAD auth failure) if the initiator used a wrong
   /// responder static key — the decryption of `s` or `payload` will fail.
   Future<(Uint8List, void)> readMessage1(Uint8List msg) async {
-    assert(!_isInitiator, 'readMessage1 called on non-responder');
+    if (_isInitiator) throw StateError('readMessage1 called on initiator');
 
     // Minimum length: 32 (e) + 48 (s-enc = 32pk+16tag) + 16 (empty-payload tag)
     if (msg.length < 32 + 48 + 16) {
@@ -158,7 +160,7 @@ class NoiseIKHandshake {
     _ss.mixHash(ePub);
 
     // ← es : DH(resp_static_priv, init_ephem_pub) == same shared as DH(e, rs)
-    final es = await _dh(myPriv: _staticPriv, remotePub: ePub);
+    final es = await _dh(myPriv: _staticPriv, myPub: _staticPub, remotePub: ePub);
     _ss.mixKey(es);
 
     // ← s  : decrypt initiator static pk
@@ -167,7 +169,7 @@ class NoiseIKHandshake {
     _remoteStaticPub = sPub;
 
     // ← ss : DH(resp_static_priv, init_static_pub)
-    final ss = await _dh(myPriv: _staticPriv, remotePub: sPub);
+    final ss = await _dh(myPriv: _staticPriv, myPub: _staticPub, remotePub: sPub);
     _ss.mixKey(ss);
 
     // ← payload
@@ -187,10 +189,11 @@ class NoiseIKHandshake {
   ///   [32B] responder ephemeral pk (plaintext)
   ///   [len(payload)+16B] encrypted payload
   Future<Uint8List> writeMessage2({required Uint8List payload}) async {
-    assert(!_isInitiator, 'writeMessage2 called on non-responder');
+    if (_isInitiator) throw StateError('writeMessage2 called on initiator');
 
     final (ePriv, ePub) = await _newEphemeral();
     _ephemeralPriv = ePriv;
+    _ephemeralPub = ePub;
 
     final buf = BytesBuilder();
 
@@ -199,13 +202,13 @@ class NoiseIKHandshake {
     _ss.mixHash(ePub);
 
     // ← ee : DH(resp_ephem_priv, init_ephem_pub)
-    final ee = await _dh(myPriv: ePriv, remotePub: _remoteEphemeralPub!);
+    final ee = await _dh(myPriv: ePriv, myPub: ePub, remotePub: _remoteEphemeralPub!);
     _ss.mixKey(ee);
 
     // ← se : DH(resp_ephem_priv, init_static_pub)
     //   ("se" = resp-ephem × init-static; from spec: se means sender=initiator,
     //    responder performs DH(resp_ephem_priv, init_static_pub))
-    final se = await _dh(myPriv: ePriv, remotePub: _remoteStaticPub!);
+    final se = await _dh(myPriv: ePriv, myPub: ePub, remotePub: _remoteStaticPub!);
     _ss.mixKey(se);
 
     // ← payload
@@ -221,7 +224,7 @@ class NoiseIKHandshake {
 
   /// Initiator reads message 2.  Returns decrypted payload.
   Future<Uint8List> readMessage2(Uint8List msg) async {
-    assert(_isInitiator, 'readMessage2 called on non-initiator');
+    if (!_isInitiator) throw StateError('readMessage2 called on responder');
 
     // Minimum: 32 (e) + 16 (empty-payload tag)
     if (msg.length < 32 + 16) {
@@ -236,12 +239,12 @@ class NoiseIKHandshake {
     _ss.mixHash(ePub);
 
     // → ee : DH(init_ephem_priv, resp_ephem_pub)
-    final ee = await _dh(myPriv: _ephemeralPriv!, remotePub: ePub);
+    final ee = await _dh(myPriv: _ephemeralPriv!, myPub: _ephemeralPub!, remotePub: ePub);
     _ss.mixKey(ee);
 
     // → se : DH(init_static_priv, resp_ephem_pub)
     //   ("se" from initiator side: DH(init_static_priv, resp_ephem_pub))
-    final se = await _dh(myPriv: _staticPriv, remotePub: ePub);
+    final se = await _dh(myPriv: _staticPriv, myPub: _staticPub, remotePub: ePub);
     _ss.mixKey(se);
 
     // → payload
@@ -275,20 +278,17 @@ class NoiseIKHandshake {
     return (Uint8List.fromList(priv), Uint8List.fromList(pub.bytes));
   }
 
-  /// Performs X25519 DH with `myPriv` (private bytes) and `remotePub` (public
-  /// bytes).  The local public key is derived from `myPriv` by the library
-  /// internally, so we don't need to pass `myPub`.
+  /// Performs X25519 DH with the caller's already-known key pair bytes and
+  /// [remotePub].  [myPub] must match [myPriv] — callers are responsible for
+  /// passing the correct cached public key so we never re-derive it here.
   Future<Uint8List> _dh({
     required Uint8List myPriv,
+    required Uint8List myPub,
     required Uint8List remotePub,
   }) async {
-    // We need to supply the matching public key; derive it first.
-    final tempKp = await _x25519.newKeyPairFromSeed(myPriv);
-    final myPub = await tempKp.extractPublicKey();
-
     final kpData = SimpleKeyPairData(
       myPriv,
-      publicKey: SimplePublicKey(myPub.bytes, type: KeyPairType.x25519),
+      publicKey: SimplePublicKey(myPub, type: KeyPairType.x25519),
       type: KeyPairType.x25519,
     );
     final shared = await _x25519.sharedSecretKey(
