@@ -2,8 +2,10 @@
 
 **Date:** 2026-04-21
 **Status:** Design approved, ready for implementation planning
-**Branch:** `feature/mesh-network` (off `dev`)
-**Working dir:** `~/Downloads/taler_id_mesh/`
+
+**Working dirs:**
+- Mobile (Flutter): `~/Downloads/taler_id_mesh/` — branch `feature/mesh-network` (off `dev`)
+- Backend (NestJS): `~/taler-id-mesh/` — branch `feature/mesh-bridge` (off `main`)
 
 ---
 
