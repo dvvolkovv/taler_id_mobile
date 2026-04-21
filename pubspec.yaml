@@ -59,6 +59,10 @@ dependencies:
   # Crypto
   crypto: ^3.0.6
 
+  # Mesh network
+  bonsoir: ^5.1.10
+  cryptography: ^2.7.0
+
   # Chat assistant
   speech_to_text: ^7.0.0
   flutter_tts: ^4.2.0
