@@ -54,6 +54,7 @@ dependencies:
   app_links: ^6.3.4
 
   # Cache
+  hive: ^2.2.3
   hive_flutter: ^1.1.0
 
   # Crypto
