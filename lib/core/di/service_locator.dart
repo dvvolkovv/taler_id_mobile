@@ -15,6 +15,13 @@ import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
 
+// Mesh Phase 1b
+import '../mesh/crypto/keys/contact_key_store_hive.dart';
+import '../mesh/crypto/keys/device_key.dart';
+import '../mesh/crypto/keys/mesh_static_key.dart';
+import '../mesh/services/device_key_sync_service.dart';
+import '../mesh/services/device_keys_api_client.dart';
+
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -125,6 +132,44 @@ Future<void> setupDependencies() async {
   final dioClient = DioClient.create(authInterceptor: authInterceptor);
   sl.registerSingleton<DioClient>(dioClient);
 
+  // ---------------------------------------------------------------------------
+  // Mesh Phase 1b — device key sync (dormant until Phase 1e triggers login wiring)
+  // ---------------------------------------------------------------------------
+  // Keys are generated lazily on first access. Phase 1c will persist them
+  // across launches via flutter_secure_storage; Phase 1b regenerates per
+  // session (acceptable since no backend endpoint is deployed yet).
+  final deviceKey = await DeviceKey.generate();
+  sl.registerSingleton<DeviceKey>(deviceKey);
+
+  final meshStaticKey = await MeshStaticKey.generate();
+  sl.registerSingleton<MeshStaticKey>(meshStaticKey);
+
+  // Hive-backed contact key store. Box name is stable across restarts.
+  final contactKeyStore = await HiveContactKeyStore.open(
+    boxName: 'mesh_contacts',
+  );
+  sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
+
+  // API client reuses the existing DioClient's inner Dio (AuthInterceptor
+  // is already attached to that Dio instance).
+  sl.registerLazySingleton<DeviceKeysApiClient>(
+    () => DeviceKeysApiClient(sl<DioClient>().dio),
+  );
+
+  // DeviceKeySyncService is retrievable via sl<DeviceKeySyncService>() but
+  // intentionally dormant: registerOwnDevice() is not called here.
+  // Phase 1e wires the login event → registerOwnDevice() once the backend
+  // device-keys endpoints are deployed.
+  sl.registerLazySingleton<DeviceKeySyncService>(
+    () => DeviceKeySyncService(
+      api: sl<DeviceKeysApiClient>(),
+      store: sl<HiveContactKeyStore>(),
+      signingKey: sl<DeviceKey>(),
+      meshStaticKey: sl<MeshStaticKey>(),
+      myUserId: _placeholderUserId(),
+    ),
+  );
+
   // Data sources
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => ProfileRemoteDataSource(sl<DioClient>()));
@@ -198,3 +243,11 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => ChatBloc(repo: sl<IChatRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
 }
+
+/// Placeholder until Phase 1e wires login → DeviceKeySyncService.registerOwnDevice.
+/// Real userId is pulled from the JWT / SessionManager in a later phase.
+/// Using a fixed sentinel means DeviceKeySyncService is retrievable but any
+/// actual registerOwnDevice() call would POST with this userId — safe since
+/// the backend device-keys endpoints are not yet deployed (Phase 1b deferred
+/// deploy is explicit per project decision).
+String _placeholderUserId() => 'phase1b-placeholder-user';
