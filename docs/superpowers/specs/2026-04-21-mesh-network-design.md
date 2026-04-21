@@ -207,7 +207,9 @@ abstract class MeshTransport {
 
 **Android:** `BLUETOOTH_ADVERTISE`, `BLUETOOTH_CONNECT`, `BLUETOOTH_SCAN`, `ACCESS_FINE_LOCATION`, `CHANGE_WIFI_STATE`, `ACCESS_WIFI_STATE`, `NEARBY_WIFI_DEVICES` (API 33+), `FOREGROUND_SERVICE_CONNECTED_DEVICE`
 
-**iOS:** `NSBluetoothAlwaysUsageDescription`, `NSLocalNetworkUsageDescription`, Bonjour service в Info.plist, **`com.apple.developer.networking.multicast` entitlement** (требует Apple approval — подать заявку в начале Phase 1, ~1-2 недели)
+**iOS:** `NSBluetoothAlwaysUsageDescription`, `NSLocalNetworkUsageDescription`, `NSBonjourServices` в Info.plist с `_talermesh._tcp`.
+
+**Примечание про multicast entitlement:** iOS 14+ ограничивает raw UDP multicast без `com.apple.developer.networking.multicast` entitlement. Мы **обходим это ограничение** через Bonjour service discovery + application-layer epidemic flood (N×TCP unicast к discovered peers вместо multicast). Entitlement **не требуется**. Trade-off: чуть больше bandwidth на gossip (~3× на 30 peers), абсолютно приемлемо для наших масштабов. Briar работает так же.
 
 ---
 
@@ -710,13 +712,13 @@ model MeshEvent {
 **Цель:** базовый mesh transport + 1-hop text messaging между знакомыми в общем WiFi.
 
 Deliverables:
-- Transport Layer (все 5 plugins, BLE discovery + mDNS + общий WiFi)
+- Transport Layer (все 5 plugins, BLE discovery + Bonjour/mDNS + общий WiFi)
 - Session Layer (Noise IK, ContactKeyStore, device-key registration в backend)
 - Минимальный Routing (только direct links, без multi-hop)
 - Минимальный Onion (1-hop, не fixed size пока)
 - MessagingService + TransportSelector в existing мессенджер (transparent fallback)
 - Settings UI секция «Mesh Network»
-- Apple multicast entitlement approval
+- iOS: Bonjour-based discovery без multicast entitlement (app-layer flood к discovered peers)
 
 Testing:
 - Unit tests каждого layer interface
@@ -814,8 +816,8 @@ External crypto review перед Phase 2 release (Noise implementation, onion c
 ### Высокие
 
 1. **iOS background ограничения** — неизбежны для текущего iOS API. Mitigation: gateway-based VoIP push; honest UX messaging про background-поведение.
-2. **Apple multicast entitlement delay** — может задержать Phase 1 на 1-2 недели. Mitigation: подаём заявку сразу в начале Phase 1, параллельно разрабатываем Android-only.
-3. **Battery drain на long-lived BLE scan** — может оттолкнуть юзеров. Mitigation: adaptive duty-cycle + honest power warning; можно полностью отключить в Settings.
+2. **Battery drain на long-lived BLE scan** — может оттолкнуть юзеров. Mitigation: adaptive duty-cycle + honest power warning; можно полностью отключить в Settings.
+3. **Bonjour unicast N× overhead вместо multicast** — на крупных event (200 чел.) больше трафика per gossip cycle. Mitigation: gossip идёт только к direct neighbors (≤30), event-broadcast через application-layer epidemic flood — overhead приемлем.
 
 ### Средние
 
