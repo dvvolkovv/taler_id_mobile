@@ -29,7 +29,6 @@ class NoiseIKHandshake {
 
   Uint8List? _remoteStaticPub;
   Uint8List? _ephemeralPriv;
-  Uint8List? _ephemeralPub;
   Uint8List? _remoteEphemeralPub;
 
   NoiseIKHandshake._({
@@ -105,7 +104,6 @@ class NoiseIKHandshake {
 
     final (ePriv, ePub) = await _newEphemeral();
     _ephemeralPriv = ePriv;
-    _ephemeralPub = ePub;
 
     final buf = BytesBuilder();
 
@@ -193,7 +191,6 @@ class NoiseIKHandshake {
 
     final (ePriv, ePub) = await _newEphemeral();
     _ephemeralPriv = ePriv;
-    _ephemeralPub = ePub;
 
     final buf = BytesBuilder();
 
