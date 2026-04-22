@@ -262,7 +262,8 @@ class _AssistantScreenState extends State<AssistantScreen>
       _ws!.listen(
         (data) => _onMessage(data as String),
         onDone: () {
-          if (mounted && _state == _CallState.connected && !_navigatingToCall) _endCall();
+          // During mode switch we intentionally close the old WebSocket — don't end the session.
+          if (mounted && _state == _CallState.connected && !_navigatingToCall && !_switchingMode) _endCall();
         },
         onError: (e) {
           if (mounted) {
@@ -1137,6 +1138,74 @@ class _AssistantScreenState extends State<AssistantScreen>
       },
     });
     _sendEvent({'type': 'response.create'});
+  }
+
+  Future<void> _switchMode(_AssistantMode target) async {
+    if (!mounted) return;
+    if (_switchingMode) return; // guard against double triggers
+    debugPrint('[Assistant] switchMode $_mode → $target');
+
+    setState(() {
+      _switchingMode = true;
+      _aiSpeaking = false;
+      _mode = target;
+      if (target == _AssistantMode.translator) {
+        _langA = null;
+        _langB = null;
+      }
+    });
+
+    // Stop audio and recording cleanly
+    await _player.stop();
+    _audioBuffer.clear();
+    await _recordSub?.cancel();
+    _recordSub = null;
+    try { await _recorder.stop(); } catch (_) {}
+
+    // Close current WebSocket
+    await _ws?.close();
+    _ws = null;
+    _sessionConfigured = false;
+
+    // Reopen new WebSocket + configure for target mode
+    try {
+      final token = await sl<SecureStorageService>().getAccessToken();
+      if (token == null) throw Exception('Not authenticated');
+      final wsUrl = Uri(
+        scheme: 'wss',
+        host: Uri.parse(ApiConstants.baseUrl).host,
+        path: '/voice/realtime-proxy',
+        queryParameters: {'token': token},
+      ).toString();
+      _ws = await WebSocket.connect(wsUrl);
+      _ws!.listen(
+        (data) => _onMessage(data as String),
+        onDone: () {
+          // Same guard as in _connect — ignore close events triggered by mode switch.
+          if (mounted && _state == _CallState.connected && !_navigatingToCall && !_switchingMode) _endCall();
+        },
+        onError: (e) {
+          if (mounted) {
+            setState(() {
+              _state = _CallState.error;
+              _errorMessage = e.toString();
+            });
+          }
+        },
+      );
+      _onChannelOpen(); // uses _mode internally
+      await _startRecording();
+    } catch (e) {
+      debugPrint('[Assistant] switchMode failed: $e');
+      if (mounted) {
+        setState(() {
+          _state = _CallState.error;
+          _errorMessage = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _switchingMode = false);
+    }
   }
 
   Future<void> _startRecording() async {
