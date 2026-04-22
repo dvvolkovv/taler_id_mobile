@@ -1970,6 +1970,76 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Future<void> _toggleSpeaker() => _setSpeaker(!_speakerOn);
 
+  static const Map<String, String> _langFlagMap = {
+    'ru': '🇷🇺',
+    'en': '🇬🇧',
+    'de': '🇩🇪',
+    'es': '🇪🇸',
+    'fr': '🇫🇷',
+    'it': '🇮🇹',
+    'pt': '🇵🇹',
+    'zh': '🇨🇳',
+    'ja': '🇯🇵',
+    'ko': '🇰🇷',
+    'ar': '🇸🇦',
+    'tr': '🇹🇷',
+    'uk': '🇺🇦',
+    'pl': '🇵🇱',
+  };
+
+  String _langDisplay(String? code) {
+    if (code == null || code.isEmpty) return '';
+    return _langFlagMap[code] ?? code.toUpperCase();
+  }
+
+  Widget _buildTranslatorBadge(BuildContext context) {
+    final colors = AppColors.of(context);
+    final locale = Localizations.localeOf(context).languageCode;
+    final title = locale == 'ru' ? 'Переводчик' : 'Translator';
+    final detecting = locale == 'ru' ? 'определяю языки…' : 'detecting languages…';
+
+    final hasPair = _langA != null && _langB != null;
+    final right = hasPair
+        ? '${_langDisplay(_langA)} ⇄ ${_langDisplay(_langB)}'
+        : detecting;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('🌐', style: TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: colors.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text('·', style: TextStyle(color: colors.primary)),
+          const SizedBox(width: 6),
+          Text(
+            right,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _endCall() async {
     // Stop audio immediately so user doesn't hear lingering speech
     await _player.stop();
@@ -2417,6 +2487,11 @@ class _AssistantScreenState extends State<AssistantScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        if (_mode == _AssistantMode.translator)
+          Align(
+            alignment: Alignment.center,
+            child: _buildTranslatorBadge(context),
+          ),
         // Full-screen transcript
         Expanded(
           child: _transcript.isEmpty
