@@ -91,6 +91,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   String? _pendingCallName;
   final StringBuffer _pendingArgs = StringBuffer();
 
+  // Translator mode: pair user with assistant response
+  String? _lastAssistantItemId;  // most recent assistant item id, used for translator-mode pairing
+
   // Incoming message listener
   StreamSubscription? _messageSub;
 
@@ -1275,6 +1278,20 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
+  void _pairLastUserWithAssistant(String assistantItemId) {
+    if (!mounted) return;
+    setState(() {
+      // Find the most recent user message without a pair, walking backwards.
+      for (int i = _transcript.length - 1; i >= 0; i--) {
+        final m = _transcript[i];
+        if (m.role == 'user' && m.pairedItemId == null) {
+          _transcript[i] = m.copyWith(pairedItemId: assistantItemId);
+          break;
+        }
+      }
+    });
+  }
+
   void _scrollTranscriptToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_transcriptCtrl.hasClients) {
@@ -1309,6 +1326,7 @@ class _AssistantScreenState extends State<AssistantScreen>
         final itemId = event['item_id'] as String? ?? '';
         debugPrint('[Assistant] ai.done item=$itemId text=$transcript');
         if (transcript.isNotEmpty) _replaceTranscript('assistant', transcript, 'ai:$itemId');
+        if (itemId.isNotEmpty) _lastAssistantItemId = 'ai:$itemId';
       } else if (type == 'conversation.item.input_audio_transcription.completed') {
         // User speech transcript (after whisper finishes)
         final transcript = event['transcript'] as String? ?? '';
@@ -1323,6 +1341,10 @@ class _AssistantScreenState extends State<AssistantScreen>
         _playBufferedAudio();
       } else if (type == 'response.done') {
         if (_audioBuffer.isNotEmpty) _playBufferedAudio();
+        if (_mode == _AssistantMode.translator && _lastAssistantItemId != null) {
+          _pairLastUserWithAssistant(_lastAssistantItemId!);
+        }
+        _lastAssistantItemId = null;
       } else if (type == 'response.function_call_arguments.delta') {
         _pendingCallId ??= event['call_id'] as String?;
         _pendingCallName ??= event['name'] as String?;
