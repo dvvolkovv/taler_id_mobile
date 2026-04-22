@@ -565,10 +565,50 @@ class _AssistantScreenState extends State<AssistantScreen>
         'Begin listening. Say nothing until someone speaks.';
   }
 
+  Map<String, dynamic> _translatorSessionConfig() {
+    return {
+      'modalities': ['text', 'audio'],
+      'instructions': _translatorPrompt(),
+      'voice': 'alloy',
+      'input_audio_format': 'pcm16',
+      'output_audio_format': 'pcm16',
+      // No language pin — we want Whisper to auto-detect each speaker.
+      'input_audio_transcription': {'model': 'whisper-1'},
+      'turn_detection': {
+        'type': 'server_vad',
+        'threshold': 0.6,
+        'prefix_padding_ms': 300,
+        'silence_duration_ms': 700,
+        'create_response': true,
+      },
+      'tools': [
+        {
+          'type': 'function',
+          'name': 'exit_translator_mode',
+          'description':
+              'Exit translator mode. Call ONLY when you hear one of the exit phrases listed in your instructions. Never call otherwise.',
+          'parameters': {'type': 'object', 'properties': {}},
+        },
+      ],
+      'tool_choice': 'auto',
+    };
+  }
+
   void _onChannelOpen() {
     if (_sessionConfigured) return;
     _sessionConfigured = true;
     final locale = Localizations.localeOf(context).languageCode;
+
+    // Translator mode — send the minimal translator session and return.
+    // No briefing prompt: translator must stay silent until someone speaks.
+    if (_mode == _AssistantMode.translator) {
+      _sendEvent({
+        'type': 'session.update',
+        'session': _translatorSessionConfig(),
+      });
+      return;
+    }
+
     _sendEvent({
       'type': 'session.update',
       'session': {
@@ -588,6 +628,13 @@ class _AssistantScreenState extends State<AssistantScreen>
           'create_response': true,
         },
         'tools': [
+          {
+            'type': 'function',
+            'name': 'enter_translator_mode',
+            'description':
+                'Enter live translator mode between two people speaking different languages. Call when user says "включи переводчика", "translator mode", "переводи нам", etc.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
           {
             'type': 'function',
             'name': 'end_session',
