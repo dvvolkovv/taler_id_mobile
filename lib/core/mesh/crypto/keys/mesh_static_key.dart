@@ -7,8 +7,8 @@ import 'package:cryptography/cryptography.dart';
 /// signing device certificates. The Noise IK handshake requires X25519
 /// Diffie-Hellman, so a separate keypair is needed.
 ///
-/// Phase 1a: generated ephemerally per test. Phase 1b: persisted via
-/// flutter_secure_storage, rotated every 30 days per spec.
+/// Phase 1a: generated ephemerally per test. Phase 1c: persisted via Hive
+/// (see [MeshKeyPersistence]), rotated every 30 days per spec.
 class MeshStaticKey {
   static final _x25519 = X25519();
 
