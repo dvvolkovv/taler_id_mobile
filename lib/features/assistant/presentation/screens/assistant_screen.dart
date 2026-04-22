@@ -1246,17 +1246,33 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   /// Replace full transcript for an item (used on .done events with final text)
-  void _replaceTranscript(String role, String text, String itemId) {
+  void _replaceTranscript(String role, String text, String itemId, {String? originalLang}) {
     if (!mounted) return;
     setState(() {
       final idx = _transcript.indexWhere((m) => m.itemId == itemId && m.role == role);
       if (idx >= 0) {
-        _transcript[idx] = _transcript[idx].copyWith(text: text);
+        _transcript[idx] = _transcript[idx].copyWith(text: text, originalLang: originalLang);
       } else {
-        _transcript.add(_TranscriptMessage(role: role, text: text, itemId: itemId));
+        _transcript.add(_TranscriptMessage(
+          role: role,
+          text: text,
+          itemId: itemId,
+          originalLang: originalLang,
+        ));
       }
     });
     _scrollTranscriptToBottom();
+  }
+
+  void _updateLanguagePair(String? lang) {
+    if (lang == null || lang.isEmpty) return;
+    if (_langA == null) {
+      setState(() => _langA = lang);
+      return;
+    }
+    if (_langB == null && lang != _langA) {
+      setState(() => _langB = lang);
+    }
   }
 
   void _scrollTranscriptToBottom() {
@@ -1297,8 +1313,12 @@ class _AssistantScreenState extends State<AssistantScreen>
         // User speech transcript (after whisper finishes)
         final transcript = event['transcript'] as String? ?? '';
         final itemId = event['item_id'] as String? ?? '';
-        debugPrint('[Assistant] user.done item=$itemId text=$transcript');
-        if (transcript.isNotEmpty) _replaceTranscript('user', transcript, 'user:$itemId');
+        final lang = event['language'] as String?; // Whisper returns ISO code (e.g. 'ru', 'de')
+        debugPrint('[Assistant] user.done item=$itemId lang=$lang text=$transcript');
+        if (transcript.isNotEmpty) {
+          _replaceTranscript('user', transcript, 'user:$itemId', originalLang: lang);
+          if (_mode == _AssistantMode.translator) _updateLanguagePair(lang);
+        }
       } else if (type == 'response.audio.done') {
         _playBufferedAudio();
       } else if (type == 'response.done') {
