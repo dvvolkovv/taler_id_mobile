@@ -1996,8 +1996,9 @@ class _AssistantScreenState extends State<AssistantScreen>
     if (currentLang == null) return null;
     if (currentLang == _langA) return _langB;
     if (currentLang == _langB) return _langA;
-    // Fallback — return whichever we have that isn't the current.
-    return _langA == currentLang ? _langB : _langA;
+    // Third language fallback — if user briefly speaks a language outside the detected
+    // pair, show the translation's flag as _langA (our "default" direction).
+    return _langA;
   }
 
   Widget _buildTranslatorBadge(BuildContext context) {
