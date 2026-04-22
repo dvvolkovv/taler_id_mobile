@@ -1992,6 +1992,14 @@ class _AssistantScreenState extends State<AssistantScreen>
     return _langFlagMap[code] ?? code.toUpperCase();
   }
 
+  String? _otherLang(String? currentLang) {
+    if (currentLang == null) return null;
+    if (currentLang == _langA) return _langB;
+    if (currentLang == _langB) return _langA;
+    // Fallback — return whichever we have that isn't the current.
+    return _langA == currentLang ? _langB : _langA;
+  }
+
   Widget _buildTranslatorBadge(BuildContext context) {
     final colors = AppColors.of(context);
     final locale = Localizations.localeOf(context).languageCode;
@@ -2505,43 +2513,141 @@ class _AssistantScreenState extends State<AssistantScreen>
                     ),
                   ),
                 )
-              : Container(
-                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colors.card.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: colors.border.withValues(alpha: 0.2)),
-                  ),
-                  child: ListView.builder(
-                    controller: _transcriptCtrl,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    itemCount: _transcript.length,
-                    itemBuilder: (_, i) {
-                      final m = _transcript[i];
-                      final isUser = m.role == 'user';
-                      return Align(
-                        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-                          decoration: BoxDecoration(
-                            color: isUser ? colors.primary.withValues(alpha: 0.15) : colors.surface,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: LinkifiedText(
-                            text: m.text,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 14,
-                              height: 1.4,
+              : Builder(
+                  builder: (context) {
+                    final isTranslator = _mode == _AssistantMode.translator;
+                    // In translator mode, we show one card per user item (with its paired translation).
+                    // Skip assistant items that are already paired — they get rendered inside their user card.
+                    final pairedAssistantIds = isTranslator
+                        ? _transcript
+                            .where((m) => m.role == 'user' && m.pairedItemId != null)
+                            .map((m) => m.pairedItemId!)
+                            .toSet()
+                        : const <String>{};
+                    final renderItems = isTranslator
+                        ? _transcript
+                            .where((m) =>
+                                m.role == 'user' ||
+                                (m.role == 'assistant' &&
+                                    m.itemId != null &&
+                                    !pairedAssistantIds.contains(m.itemId)))
+                            .toList()
+                        : _transcript;
+
+                    return Container(
+                      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colors.card.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colors.border.withValues(alpha: 0.2)),
+                      ),
+                      child: ListView.builder(
+                        controller: _transcriptCtrl,
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        itemCount: renderItems.length,
+                        itemBuilder: (_, i) {
+                          final m = renderItems[i];
+                          final isUser = m.role == 'user';
+
+                          if (isTranslator && isUser) {
+                            // Paired card: user original + translation below.
+                            final paired = m.pairedItemId != null
+                                ? _transcript.firstWhere(
+                                    (x) => x.itemId == m.pairedItemId,
+                                    orElse: () => const _TranscriptMessage(role: 'assistant', text: ''),
+                                  )
+                                : const _TranscriptMessage(role: 'assistant', text: '');
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: colors.card.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: colors.border.withValues(alpha: 0.2)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 28,
+                                        child: Text(
+                                          _langDisplay(m.originalLang),
+                                          style: const TextStyle(fontSize: 16),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: LinkifiedText(
+                                          text: m.text,
+                                          style: TextStyle(
+                                            color: colors.textPrimary,
+                                            fontSize: 14,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (paired.text.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        SizedBox(
+                                          width: 28,
+                                          child: Text(
+                                            // The translation's language is "the other one".
+                                            _langDisplay(_otherLang(m.originalLang)),
+                                            style: const TextStyle(fontSize: 16),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: LinkifiedText(
+                                            text: paired.text,
+                                            style: TextStyle(
+                                              color: colors.textPrimary.withValues(alpha: 0.85),
+                                              fontSize: 14,
+                                              height: 1.4,
+                                              fontStyle: FontStyle.italic,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          }
+
+                          // Normal-mode card (or orphan assistant card in translator mode).
+                          return Align(
+                            alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+                              decoration: BoxDecoration(
+                                color: isUser ? colors.primary.withValues(alpha: 0.15) : colors.surface,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: LinkifiedText(
+                                text: m.text,
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontSize: 14,
+                                  height: 1.4,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
         ),
         Padding(
