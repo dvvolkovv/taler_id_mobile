@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
@@ -15,10 +17,12 @@ import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
 
-// Mesh Phase 1b
+// Mesh Phase 1b/1c
 import '../mesh/crypto/keys/contact_key_store_hive.dart';
 import '../mesh/crypto/keys/device_key.dart';
+import '../mesh/crypto/keys/mesh_key_persistence.dart';
 import '../mesh/crypto/keys/mesh_static_key.dart';
+import '../mesh/crypto/keys/user_identity_key.dart';
 import '../mesh/services/device_key_sync_service.dart';
 import '../mesh/services/device_keys_api_client.dart';
 
@@ -133,15 +137,33 @@ Future<void> setupDependencies() async {
   sl.registerSingleton<DioClient>(dioClient);
 
   // ---------------------------------------------------------------------------
-  // Mesh Phase 1b — device key sync (dormant until Phase 1e triggers login wiring)
+  // Mesh Phase 1c — persistent identity + rotating device keys
   // ---------------------------------------------------------------------------
-  // Keys are generated lazily on first access. Phase 1c will persist them
-  // across launches via flutter_secure_storage; Phase 1b regenerates per
-  // session (acceptable since no backend endpoint is deployed yet).
-  final deviceKey = await DeviceKey.generate();
+  //
+  // UserIdentityKey is permanent per device (FlutterSecureStorage). DeviceKey
+  // and MeshStaticKey are rotated every 30 days — the rotation check runs at
+  // startup and triggers a fresh POST /profile/device-keys if any key was
+  // regenerated. Phase 1e will wire _placeholderUserId() to the real JWT user
+  // id; until then registerOwnDevice() is still dormant.
+  final userIdentityKey = await UserIdentityKey.loadOrCreate(
+    const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    ),
+  );
+  sl.registerSingleton<UserIdentityKey>(userIdentityKey);
+
+  final meshKeyPersistence = await MeshKeyPersistence.open(
+    boxName: 'mesh_keys',
+  );
+  sl.registerSingleton<MeshKeyPersistence>(meshKeyPersistence);
+
+  final (deviceKey, deviceKeyRotated) =
+      await meshKeyPersistence.loadOrRotateDeviceKey();
   sl.registerSingleton<DeviceKey>(deviceKey);
 
-  final meshStaticKey = await MeshStaticKey.generate();
+  final (meshStaticKey, meshStaticRotated) =
+      await meshKeyPersistence.loadOrRotateMeshStaticKey();
   sl.registerSingleton<MeshStaticKey>(meshStaticKey);
 
   // Hive-backed contact key store. Box name is stable across restarts.
@@ -150,25 +172,30 @@ Future<void> setupDependencies() async {
   );
   sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
 
-  // API client reuses the existing DioClient's inner Dio (AuthInterceptor
-  // is already attached to that Dio instance).
   sl.registerLazySingleton<DeviceKeysApiClient>(
     () => DeviceKeysApiClient(sl<DioClient>().dio),
   );
 
-  // DeviceKeySyncService is retrievable via sl<DeviceKeySyncService>() but
-  // intentionally dormant: registerOwnDevice() is not called here.
-  // Phase 1e wires the login event → registerOwnDevice() once the backend
-  // device-keys endpoints are deployed.
   sl.registerLazySingleton<DeviceKeySyncService>(
     () => DeviceKeySyncService(
       api: sl<DeviceKeysApiClient>(),
       store: sl<HiveContactKeyStore>(),
-      signingKey: sl<DeviceKey>(),
+      userIdentityKey: sl<UserIdentityKey>(),
       meshStaticKey: sl<MeshStaticKey>(),
       myUserId: _placeholderUserId(),
     ),
   );
+
+  // If any rotating key was regenerated, push a fresh cert. Best-effort: a
+  // failure here must not block app startup. Wait for Phase 1e to wire the
+  // real userId before this does anything useful — until then the POST goes
+  // to the DEV server under the placeholder userId (dormant).
+  if (deviceKeyRotated || meshStaticRotated) {
+    // ignore: unawaited_futures
+    sl<DeviceKeySyncService>().registerOwnDevice().catchError((e, st) {
+      debugPrint('[mesh] registerOwnDevice failed: $e');
+    });
+  }
 
   // Data sources
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));

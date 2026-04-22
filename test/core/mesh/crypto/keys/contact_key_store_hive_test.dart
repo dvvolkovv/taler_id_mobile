@@ -28,6 +28,7 @@ void main() {
       final cert = DeviceCert(
         devicePk: 'ab' * 32,
         userId: 'user-1',
+        userPk: null,
         algorithm: 'X25519',
         validUntilEpochMs: DateTime.now()
             .add(const Duration(days: 30))
@@ -51,6 +52,7 @@ void main() {
       final cert = DeviceCert(
         devicePk: 'cd' * 32,
         userId: 'user-2',
+        userPk: null,
         algorithm: 'X25519',
         validUntilEpochMs: DateTime.now()
             .add(const Duration(days: 30))
@@ -73,6 +75,7 @@ void main() {
       final cert1 = DeviceCert(
         devicePk: '11' * 32,
         userId: 'user-3',
+        userPk: null,
         algorithm: 'X25519',
         validUntilEpochMs: DateTime.now()
             .add(const Duration(days: 30))
@@ -82,6 +85,7 @@ void main() {
       final cert2 = DeviceCert(
         devicePk: '22' * 32,
         userId: 'user-3',
+        userPk: null,
         algorithm: 'X25519',
         validUntilEpochMs: DateTime.now()
             .add(const Duration(days: 30))
