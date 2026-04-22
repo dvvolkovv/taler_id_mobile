@@ -1421,6 +1421,20 @@ class _AssistantScreenState extends State<AssistantScreen>
     final client = sl<DioClient>();
     String output;
     try {
+      // Translator mode switches — handled specially.
+      // We do NOT send function_call_output because we're about to drop the WebSocket;
+      // the call id becomes moot in the new session.
+      if (name == 'enter_translator_mode') {
+        debugPrint('[Assistant] tool enter_translator_mode (callId=$callId)');
+        // Fire-and-forget: schedule the switch without awaiting inside the handler.
+        Future.microtask(() => _switchMode(_AssistantMode.translator));
+        return;
+      }
+      if (name == 'exit_translator_mode') {
+        debugPrint('[Assistant] tool exit_translator_mode (callId=$callId)');
+        Future.microtask(() => _switchMode(_AssistantMode.normal));
+        return;
+      }
       if (name == 'end_session') {
         output = jsonEncode({'status': 'ending'});
         // Send output first so AI can say goodbye, then disconnect after 2s
