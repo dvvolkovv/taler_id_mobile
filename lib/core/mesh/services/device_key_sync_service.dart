@@ -1,10 +1,7 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 
 import '../crypto/keys/cert_signer.dart';
 import '../crypto/keys/contact_key_store_hive.dart';
-import '../crypto/keys/device_cert.dart';
 import '../crypto/keys/mesh_static_key.dart';
 import '../crypto/keys/user_identity_key.dart';
 import '../transport/peer_id.dart';
