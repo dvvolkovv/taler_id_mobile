@@ -2496,11 +2496,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (_mode == _AssistantMode.translator)
-          Align(
-            alignment: Alignment.center,
-            child: _buildTranslatorBadge(context),
-          ),
         // Full-screen transcript
         Expanded(
           child: _transcript.isEmpty
@@ -2651,6 +2646,14 @@ class _AssistantScreenState extends State<AssistantScreen>
                   },
                 ),
         ),
+        if (_mode == _AssistantMode.translator)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Align(
+              alignment: Alignment.center,
+              child: _buildTranslatorBadge(context),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Row(
