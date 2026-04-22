@@ -44,6 +44,7 @@ class DeviceKeysApiClient {
       return DeviceCert(
         devicePk: inner['devicePk'] as String,
         userId: inner['userId'] as String,
+        userPk: inner['userPk'] as String?,
         algorithm: inner['algorithm'] as String,
         validUntilEpochMs: inner['validUntilEpochMs'] as int,
         signature: row['signature'] as String,
