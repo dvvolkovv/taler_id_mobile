@@ -1,36 +1,58 @@
 import 'dart:convert';
 
-/// Self-signed device certificate for Phase 1b mesh identity.
+/// Self-signed device certificate for mesh identity.
 ///
-/// A device owns an Ed25519 keypair (DeviceKey, signing) and an X25519 keypair
-/// (MeshStaticKey, ECDH). The cert binds the X25519 public key to a Taler ID
-/// user, signed by the device's Ed25519 private key.
+/// A device owns:
+/// - an Ed25519 keypair ([UserIdentityKey]) that is permanent per device and
+///   signs this cert — its public key is the [userPk] field;
+/// - an X25519 keypair ([MeshStaticKey]) whose public key is [devicePk], used
+///   for Noise IK ECDH.
 ///
-/// Phase 1b simplification: self-signed (device signs its own cert).
-/// Phase 1c promotes this to a user-identity-key-signed cert chain.
+/// Phase 1b compat: certs issued under Phase 1b have no [userPk] (it is null
+/// on the wire). When loading such certs, consumers that want to verify the
+/// signature will skip verification and fall back to trusting the server that
+/// served the cert.
 class DeviceCert {
-  final String devicePk;             // hex 64 chars, X25519 static pk
-  final String userId;               // Taler ID user UUID
-  final String algorithm;            // "X25519"
+  /// X25519 static public key (hex, 64 chars).
+  final String devicePk;
+
+  /// Taler ID user UUID.
+  final String userId;
+
+  /// Ed25519 [UserIdentityKey] public key (hex, 64 chars).
+  ///
+  /// Null for Phase 1b certs that did not carry a user identity key.
+  final String? userPk;
+
+  /// Algorithm of [devicePk]; must be `"X25519"`.
+  final String algorithm;
+
   final int validUntilEpochMs;
-  final String signature;            // hex 128 chars Ed25519 over canonical JSON
+
+  /// Ed25519 signature over [toCanonicalJsonWithoutSignature] (hex, 128 chars).
+  final String signature;
 
   const DeviceCert({
     required this.devicePk,
     required this.userId,
+    required this.userPk,
     required this.algorithm,
     required this.validUntilEpochMs,
     required this.signature,
   });
 
-  /// Canonical JSON of the signed fields (excluding `signature`), alphabetical
-  /// keys, no whitespace. This is what the Ed25519 signature covers.
+  /// Canonical JSON of the signed fields (excluding `signature`), keys in
+  /// alphabetical order, no whitespace. This is what the Ed25519 signature
+  /// covers. When [userPk] is null, the field is **omitted** — required for
+  /// Phase 1b backward compatibility where signatures were computed without
+  /// the field.
   String toCanonicalJsonWithoutSignature() {
-    // Keys alphabetically: algorithm, devicePk, userId, validUntilEpochMs.
+    // Alphabetical: algorithm, devicePk, userId, userPk, validUntilEpochMs.
     final map = <String, dynamic>{
       'algorithm': algorithm,
       'devicePk': devicePk,
       'userId': userId,
+      if (userPk != null) 'userPk': userPk,
       'validUntilEpochMs': validUntilEpochMs,
     };
     return jsonEncode(map);
@@ -39,6 +61,7 @@ class DeviceCert {
   Map<String, dynamic> toJson() => {
         'devicePk': devicePk,
         'userId': userId,
+        if (userPk != null) 'userPk': userPk,
         'algorithm': algorithm,
         'validUntilEpochMs': validUntilEpochMs,
         'signature': signature,
@@ -47,6 +70,7 @@ class DeviceCert {
   factory DeviceCert.fromJson(Map<String, dynamic> json) => DeviceCert(
         devicePk: json['devicePk'] as String,
         userId: json['userId'] as String,
+        userPk: json['userPk'] as String?,
         algorithm: json['algorithm'] as String,
         validUntilEpochMs: json['validUntilEpochMs'] as int,
         signature: json['signature'] as String,
