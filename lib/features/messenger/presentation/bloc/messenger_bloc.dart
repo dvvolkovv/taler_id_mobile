@@ -41,6 +41,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _reconnectSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
+  /// Tracks pending clientTempIds that have been emitted to the server and
+  /// are awaiting a `new_message` broadcast. Prevents _resendPending() from
+  /// re-emitting the same message on every reconnect cycle — even when the
+  /// socket flaps multiple times before the server ACK round-trips.
+  final Set<String> _inFlightTempIds = {};
+
   MessengerBloc({required IMessengerRepository repo})
       : _repo = repo,
         super(const MessengerState()) {
@@ -379,14 +385,23 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   /// Re-emit all persisted pending messages over the socket. Safe to call
-  /// multiple times — if the server has already received a duplicate, the
-  /// `MessageReceived` handler will clear the temp row regardless.
+  /// multiple times — each tempId is tracked in [_inFlightTempIds] so a
+  /// reconnect storm cannot trigger the same message to be emitted twice.
+  /// The entry is removed from the set when the matching `new_message`
+  /// broadcast arrives back (see [_onMessageReceived]).
   void _resendPending() {
     final items = _pending.getAll();
     for (final m in items) {
+      final tempId = m['id'] as String?;
+      if (tempId == null) continue;
+      if (_inFlightTempIds.contains(tempId)) {
+        debugPrint('[MessengerBloc] Skip resend: $tempId already in flight');
+        continue;
+      }
       final convId = m['conversationId'] as String?;
       final content = m['content'] as String?;
       if (convId == null || content == null) continue;
+      _inFlightTempIds.add(tempId);
       _repo.sendMessage(
         convId,
         content,
@@ -400,7 +415,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         thumbnailLargeUrl: m['thumbnailLargeUrl'] as String?,
         fileRecordId: m['fileRecordId'] as String?,
         topicId: m['topicId'] as String?,
-        clientTempId: m['id'] as String?,
+        clientTempId: tempId,
       );
     }
   }
@@ -489,6 +504,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       'senderId': tempMsg.senderId,
     });
 
+    // Mark as in-flight BEFORE emitting so subsequent _resendPending() calls
+    // (triggered by a socket reconnect burst) cannot duplicate this emit.
+    _inFlightTempIds.add(tempId);
     _repo.sendMessage(
       event.conversationId,
       event.content,
@@ -539,8 +557,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       return match;
     });
     // Clear these from the persistent pending queue — server has acknowledged.
+    // Also clear from in-flight set so a future _resendPending() can emit them
+    // if they're ever re-queued.
     for (final tempId in removed) {
       _pending.remove(tempId);
+      _inFlightTempIds.remove(tempId);
     }
     existing.add(msg);
     final newMessages =
