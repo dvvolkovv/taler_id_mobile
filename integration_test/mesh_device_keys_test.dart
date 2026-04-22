@@ -1,5 +1,6 @@
-// Phase 1b integration test: register own device key + contact fetches it.
-// Runs against staging.id.taler.tirol using real network.
+// Phase 1c integration test: register own device key with userPk + contact
+// fetches and verifies it. Runs against staging.id.taler.tirol.
+//
 // flutter test integration_test/mesh_device_keys_test.dart \
 //   --flavor dev -t lib/main_dev.dart \
 //   --dart-define=FLAVOR=dev \
@@ -15,8 +16,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store_hive.dart';
-import 'package:taler_id_mobile/core/mesh/crypto/keys/device_key.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/mesh_static_key.dart';
+import 'package:taler_id_mobile/core/mesh/crypto/keys/user_identity_key.dart';
 import 'package:taler_id_mobile/core/mesh/services/device_key_sync_service.dart';
 import 'package:taler_id_mobile/core/mesh/services/device_keys_api_client.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
@@ -34,7 +35,6 @@ Future<({String token, String userId})> _login(
     data: {'email': email, 'password': password},
   );
   final token = res.data!['accessToken'] as String;
-  // Decode JWT payload (base64url, no verification) to extract sub = userId.
   final parts = token.split('.');
   final payload = jsonDecode(
     utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
@@ -46,10 +46,10 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets(
-    'Phase 1b — register own key + user2 fetches it from DEV',
+    'Phase 1c — register own key (userPk) + user2 fetches and verifies it',
     (tester) async {
       final appDir = await getApplicationDocumentsDirectory();
-      await Hive.initFlutter('${appDir.path}/mesh_integ_test');
+      await Hive.initFlutter('${appDir.path}/mesh_integ_test_c');
 
       final bootstrapDio = Dio(BaseOptions(
         baseUrl: _baseUrl,
@@ -69,39 +69,40 @@ void main() {
         headers: {'Authorization': 'Bearer ${u2.token}'},
       ));
 
-      final signing = await DeviceKey.generate();
-      final mesh = await MeshStaticKey.generate();
-      final devicePk = PeerId(mesh.publicKey);
+      final identity1 = await UserIdentityKey.generate();
+      final mesh1 = await MeshStaticKey.generate();
+      final devicePk = PeerId(mesh1.publicKey);
 
-      final store1 = await HiveContactKeyStore.open(boxName: 'integ-u1-${DateTime.now().millisecondsSinceEpoch}');
+      final stamp = DateTime.now().millisecondsSinceEpoch;
+      final store1 = await HiveContactKeyStore.open(boxName: 'integ-u1-c-$stamp');
       final svc1 = DeviceKeySyncService(
         api: DeviceKeysApiClient(dio1),
         store: store1,
-        signingKey: signing,
-        meshStaticKey: mesh,
+        userIdentityKey: identity1,
+        meshStaticKey: mesh1,
         myUserId: u1.userId,
       );
 
-      // user1 registers its device key.
       await svc1.registerOwnDevice();
 
-      // user2 fetches user1's keys.
-      final store2 = await HiveContactKeyStore.open(boxName: 'integ-u2-${DateTime.now().millisecondsSinceEpoch}');
+      final store2 = await HiveContactKeyStore.open(boxName: 'integ-u2-c-$stamp');
       final svc2 = DeviceKeySyncService(
         api: DeviceKeysApiClient(dio2),
         store: store2,
-        signingKey: await DeviceKey.generate(),
+        userIdentityKey: await UserIdentityKey.generate(),
         meshStaticKey: await MeshStaticKey.generate(),
         myUserId: u2.userId,
       );
       await svc2.fetchContactKeys(u1.userId);
 
-      // user1's mesh pk must now be known to user2.
-      expect(
-        store2.isKnownDevice(devicePk),
-        isTrue,
-        reason: "user2 should have user1's newly registered device pk",
-      );
+      // Device known (cert passed signature verification on fetch).
+      expect(store2.isKnownDevice(devicePk), isTrue,
+          reason: "user2 should have user1's device pk after verification");
+
+      // The stored cert must map to user1's real userPk (not a UUID-derived placeholder).
+      final looked = store2.lookupUserByDevice(devicePk);
+      expect(looked?.bytes, equals(identity1.publicKey),
+          reason: 'stored userPk must be user1 UserIdentityKey, not placeholder');
 
       await store1.close();
       await store2.close();
