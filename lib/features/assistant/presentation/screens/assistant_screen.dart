@@ -26,6 +26,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 
 enum _CallState { idle, connecting, connected, error }
+enum _AssistantMode { normal, translator }
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -44,6 +45,10 @@ class AssistantScreen extends StatefulWidget {
 class _AssistantScreenState extends State<AssistantScreen>
     with TickerProviderStateMixin {
   _CallState _state = _CallState.idle;
+  _AssistantMode _mode = _AssistantMode.normal;
+  String? _langA;  // ISO code of first detected language in translator mode
+  String? _langB;  // ISO code of second detected language (≠ _langA)
+  bool _switchingMode = false;  // true during WebSocket reconnect for mode switch
   WebSocket? _ws;
   final _recorder = AudioRecorder();
   StreamSubscription<Uint8List>? _recordSub;
@@ -2750,13 +2755,28 @@ class _CenterAuraPainter extends CustomPainter {
 
 
 class _TranscriptMessage {
-  final String role; // 'user' or 'assistant'
+  final String role;          // 'user' or 'assistant'
   final String text;
   final String? itemId;
-  const _TranscriptMessage({required this.role, required this.text, this.itemId});
-  _TranscriptMessage copyWith({String? text}) => _TranscriptMessage(
+  final String? originalLang; // ISO code, set for user items in translator mode
+  final String? pairedItemId; // itemId of assistant translation that pairs with this user item
+  const _TranscriptMessage({
+    required this.role,
+    required this.text,
+    this.itemId,
+    this.originalLang,
+    this.pairedItemId,
+  });
+  _TranscriptMessage copyWith({
+    String? text,
+    String? originalLang,
+    String? pairedItemId,
+  }) =>
+      _TranscriptMessage(
         role: role,
         text: text ?? this.text,
         itemId: itemId,
+        originalLang: originalLang ?? this.originalLang,
+        pairedItemId: pairedItemId ?? this.pairedItemId,
       );
 }
