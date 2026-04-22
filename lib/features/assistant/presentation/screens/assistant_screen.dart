@@ -1331,7 +1331,10 @@ class _AssistantScreenState extends State<AssistantScreen>
         // User speech transcript (after whisper finishes)
         final transcript = event['transcript'] as String? ?? '';
         final itemId = event['item_id'] as String? ?? '';
-        final lang = event['language'] as String?; // Whisper returns ISO code (e.g. 'ru', 'de')
+        // Whisper's transcription.completed event doesn't actually include a
+        // language field in the current Realtime API — fall back to script-based
+        // detection from the transcript text.
+        final lang = (event['language'] as String?) ?? _detectLanguageFromText(transcript);
         debugPrint('[Assistant] user.done item=$itemId lang=$lang text=$transcript');
         if (transcript.isNotEmpty) {
           _replaceTranscript('user', transcript, 'user:$itemId', originalLang: lang);
@@ -1999,6 +2002,40 @@ class _AssistantScreenState extends State<AssistantScreen>
     // Third language fallback — if user briefly speaks a language outside the detected
     // pair, show the translation's flag as _langA (our "default" direction).
     return _langA;
+  }
+
+  /// Best-effort language detection by Unicode script — fallback when the
+  /// Realtime API's `conversation.item.input_audio_transcription.completed`
+  /// event does not carry a `language` field (currently it never does).
+  /// Distinguishes broad scripts: Cyrillic → ru, CJK → zh, Arabic → ar,
+  /// Korean → ko, Latin → en. Cannot tell en/de/es/fr apart — good enough
+  /// for badge display in the most common ru↔en pair.
+  static String? _detectLanguageFromText(String text) {
+    if (text.isEmpty) return null;
+    var cyrillic = 0, latin = 0, cjk = 0, arabic = 0, korean = 0;
+    for (final rune in text.runes) {
+      if (rune >= 0x0400 && rune <= 0x04FF) {
+        cyrillic++;
+      } else if ((rune >= 0x41 && rune <= 0x5A) || (rune >= 0x61 && rune <= 0x7A)) {
+        latin++;
+      } else if (rune >= 0x4E00 && rune <= 0x9FFF) {
+        cjk++;
+      } else if (rune >= 0x0600 && rune <= 0x06FF) {
+        arabic++;
+      } else if (rune >= 0xAC00 && rune <= 0xD7AF) {
+        korean++;
+      }
+    }
+    final counts = {'ru': cyrillic, 'en': latin, 'zh': cjk, 'ar': arabic, 'ko': korean};
+    String? best;
+    var bestCount = 0;
+    counts.forEach((code, count) {
+      if (count > bestCount) {
+        bestCount = count;
+        best = code;
+      }
+    });
+    return best;
   }
 
   Widget _buildTranslatorBadge(BuildContext context) {
