@@ -35,6 +35,7 @@ import '../../features/messenger/presentation/screens/create_group_screen.dart';
 import '../../features/messenger/presentation/screens/group_settings_screen.dart';
 import '../../features/messenger/presentation/screens/add_group_members_screen.dart';
 import '../../features/messenger/presentation/screens/channel_directory_screen.dart';
+import '../../features/messenger/presentation/screens/channel_settings_screen.dart';
 import '../../features/voice/presentation/screens/voice_call_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
@@ -258,6 +259,12 @@ final appRouter = GoRouter(
                   path: 'add-members',
                   builder: (_, state) => AddGroupMembersScreen(
                     conversationId: state.pathParameters['id']!,
+                  ),
+                ),
+                GoRoute(
+                  path: 'channel-settings',
+                  builder: (_, state) => ChannelSettingsScreen(
+                    channelId: state.pathParameters['id']!,
                   ),
                 ),
               ],
