@@ -354,7 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                       icon: Icons.bluetooth_searching,
                       iconColor: const Color(0xFF00A1FF),
                       title: 'Mesh Debug (dev)',
-                      onTap: () => context.push('/settings/mesh-debug'),
+                      onTap: () => context.push('${RouteConstants.settings}/mesh-debug'),
                     ),
                   if (AppConfig.isDev)
                     Divider(color: AppColors.of(context).border, height: 1),
