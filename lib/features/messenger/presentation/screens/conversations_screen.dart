@@ -548,6 +548,14 @@ class _ConversationsViewState extends State<_ConversationsView> {
                     _showCreateChannel(context);
                   },
                 ),
+                ListTile(
+                  leading: _gradientLeading(Icons.explore_rounded, const Color(0xFFF59E0B)),
+                  title: Text(AppLocalizations.of(context)!.channelsDiscover, style: TextStyle(color: AppColors.of(context).textPrimary)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    context.push('/dashboard/messenger/channels');
+                  },
+                ),
                 if (contacts.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Padding(
