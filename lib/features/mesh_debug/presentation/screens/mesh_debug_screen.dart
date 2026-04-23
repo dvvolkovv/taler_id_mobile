@@ -118,17 +118,21 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   }
 
   Future<void> _stop() async {
-    try {
-      await _messaging?.dispose();
-    } catch (e) {
-      debugPrint('[mesh-debug] stop error: $e');
-    }
+    // NOTE: intentionally NOT calling _messaging.dispose() — that would
+    // also dispose the shared MeshTransport DI singleton, killing it for
+    // the rest of the app session. We just cancel our subscriptions and
+    // ask the transport to stop advertising.
     await _discoverySub?.cancel();
     await _lossSub?.cancel();
     await _inboundSub?.cancel();
     _discoverySub = null;
     _lossSub = null;
     _inboundSub = null;
+    try {
+      await _transport.stopAdvertising();
+    } catch (e) {
+      debugPrint('[mesh-debug] stopAdvertising error: $e');
+    }
     _messaging = null;
     _contactStore = null;
     setState(() {

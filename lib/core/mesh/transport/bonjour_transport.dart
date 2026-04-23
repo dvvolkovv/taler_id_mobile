@@ -91,7 +91,15 @@ class BonjourTransport implements MeshTransport {
     await _discovery!.start();
     final stream = _discovery!.eventStream;
     if (stream != null) {
-      _discoverySub = stream.listen(_onBonjourEvent);
+      // bonsoir surfaces native PlatformException via the stream's error
+      // channel when e.g. resolveService is called on an already-lost
+      // service. Swallow those so they don't become Unhandled Exceptions.
+      _discoverySub = stream.listen(
+        _onBonjourEvent,
+        onError: (Object e) {
+          // Stale resolveService / resolver churn — safe to ignore.
+        },
+      );
     }
   }
 
