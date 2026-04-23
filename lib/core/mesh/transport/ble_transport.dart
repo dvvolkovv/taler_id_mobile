@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ble_peripheral/flutter_ble_peripheral.dart';
@@ -94,6 +95,13 @@ class BleTransport implements MeshTransport {
   }
 
   Future<bool> _ensurePermissions() async {
+    // iOS: CoreBluetooth prompts automatically on first use via the
+    // NSBluetoothAlwaysUsageDescription key in Info.plist. The Android-only
+    // bluetoothAdvertise/Scan/Connect permission_handler entries always
+    // report `denied` on iOS, so skip them.
+    if (Platform.isIOS) return true;
+
+    // Android 12+ (API 31) runtime BLE permissions.
     final needed = <Permission>[
       Permission.bluetoothAdvertise,
       Permission.bluetoothScan,
