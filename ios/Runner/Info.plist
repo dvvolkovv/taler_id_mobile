@@ -93,5 +93,7 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Taler ID mesh uses Bluetooth to find nearby contacts when you're offline.</string>
 </dict>
 </plist>
