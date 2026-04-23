@@ -98,6 +98,16 @@ class BonjourTransport implements MeshTransport {
   void _onBonjourEvent(BonsoirDiscoveryEvent event) {
     final service = event.service;
     if (service == null) return;
+
+    // Bonsoir 5.x does not auto-resolve: after discoveryServiceFound we must
+    // explicitly call resolveService() so the resolved event is emitted with
+    // the service host/port. Without this, discoveryServiceResolved never
+    // fires and the peer stays invisible.
+    if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
+      _discovery?.serviceResolver.resolveService(service);
+      return;
+    }
+
     final pkHex = service.attributes['pk'];
     if (pkHex == null) return;
     final PeerId peerId;
