@@ -101,6 +101,7 @@ void main() {
     when(() => repo.callInviteStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messageUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messageDeletedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.messageAckedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messagesReadStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.groupUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.groupMemberAddedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
