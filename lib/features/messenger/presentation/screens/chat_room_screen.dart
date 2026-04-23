@@ -46,6 +46,7 @@ import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
+import '../../domain/entities/channel_details.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 
 class ChatRoomScreen extends StatefulWidget {
@@ -94,6 +95,47 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
 
+  /// Synthetic ConversationEntity used when a CHANNEL is opened via a deep
+  /// link / directory and the user is not yet a member — so the conversation
+  /// isn't in MessengerBloc.state.conversations. Fetched once on open.
+  ConversationEntity? _channelFallbackConv;
+
+  /// Locate the active conversation object, falling back to the synthesized
+  /// CHANNEL entity when the user is not a participant.
+  ConversationEntity? _resolveConv(List<ConversationEntity> convs) {
+    for (final c in convs) {
+      if (c.id == widget.conversationId) return c;
+    }
+    return _channelFallbackConv;
+  }
+
+  Future<void> _fetchChannelFallbackIfNeeded() async {
+    // Only fetch if conversation is not already in the bloc.
+    final inBloc = _messengerBloc.state.conversations
+        .any((c) => c.id == widget.conversationId);
+    if (inBloc) return;
+    try {
+      final ChannelDetails d =
+          await sl<MessengerRemoteDataSource>().getChannelDetails(widget.conversationId);
+      if (!mounted) return;
+      setState(() {
+        _channelFallbackConv = ConversationEntity(
+          id: d.id,
+          participantIds: const [],
+          type: 'CHANNEL',
+          name: d.name,
+          description: d.description,
+          avatarUrl: d.avatarUrl,
+          myRole: d.myRole,
+          subscribersCount: d.subscribersCount,
+          isSubscribed: d.isSubscribed,
+        );
+      });
+    } catch (_) {
+      // Not a channel (or 404) — leave fallback null; existing code handles it.
+    }
+  }
+
   // Stable key for persisting unsent drafts (topics get their own draft).
   String get _draftKey => widget.topicId != null
       ? '${widget.conversationId}:${widget.topicId}'
@@ -128,6 +170,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _reconnectSub = ds.reconnectStream.listen((_) {
       if (mounted) setState(() => _socketDisconnected = false);
     });
+    _fetchChannelFallbackIfNeeded();
     _outboundListenSub = ds.outboundListenStream.listen((data) {
       if (!mounted) return;
       final businessName = data['businessName'] as String? ?? '';
@@ -1493,9 +1536,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 buildWhen: (prev, curr) =>
                     prev.conversations != curr.conversations,
                 builder: (context, state) {
-                  final conv = state.conversations
-                      .where((c) => c.id == widget.conversationId)
-                      .firstOrNull;
+                  final conv = _resolveConv(state.conversations);
                   final l10n = AppLocalizations.of(context)!;
                   final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
@@ -1689,9 +1730,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   buildWhen: (prev, curr) =>
                       prev.conversations != curr.conversations,
                   builder: (context, state) {
-                    final conv = state.conversations
-                        .where((c) => c.id == widget.conversationId)
-                        .firstOrNull;
+                    final conv = _resolveConv(state.conversations);
                     // Hide call button for AI bots and channels
                     if (conv?.type != 'AI_ANALYST' &&
                         conv?.type != 'AI_OUTBOUND' &&
@@ -1708,9 +1747,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   buildWhen: (prev, curr) =>
                       prev.conversations != curr.conversations,
                   builder: (context, state) {
-                    final conv = state.conversations
-                        .where((c) => c.id == widget.conversationId)
-                        .firstOrNull;
+                    final conv = _resolveConv(state.conversations);
                     final isMuted = conv?.isMuted ?? false;
                     final l10n = AppLocalizations.of(context)!;
                     final isChannel = conv?.type == 'CHANNEL';
@@ -1838,9 +1875,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           if (_loadingOlder) {
             _loadingOlder = false;
           }
-          final conv = state.conversations
-              .where((c) => c.id == widget.conversationId)
-              .firstOrNull;
+          final conv = _resolveConv(state.conversations);
           final isGroup = conv?.type == 'GROUP';
           final otherUserName = conv?.otherUserName;
           final activeRoomName = state.activeGroupCalls[widget.conversationId];
