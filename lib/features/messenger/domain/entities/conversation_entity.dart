@@ -14,6 +14,8 @@ class ConversationEntity with _$ConversationEntity {
     String? description,
     @Default(0) int participantCount,
     String? myRole,
+    int? subscribersCount,
+    bool? isSubscribed,
     String? lastMessageContent,
     DateTime? lastMessageAt,
     String? lastMessageSenderId,

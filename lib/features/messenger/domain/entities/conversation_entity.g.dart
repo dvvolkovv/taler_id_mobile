@@ -19,6 +19,8 @@ _$ConversationEntityImpl _$$ConversationEntityImplFromJson(
       description: json['description'] as String?,
       participantCount: (json['participantCount'] as num?)?.toInt() ?? 0,
       myRole: json['myRole'] as String?,
+      subscribersCount: (json['subscribersCount'] as num?)?.toInt(),
+      isSubscribed: json['isSubscribed'] as bool?,
       lastMessageContent: json['lastMessageContent'] as String?,
       lastMessageAt: json['lastMessageAt'] == null
           ? null
@@ -55,6 +57,8 @@ Map<String, dynamic> _$$ConversationEntityImplToJson(
       'description': instance.description,
       'participantCount': instance.participantCount,
       'myRole': instance.myRole,
+      'subscribersCount': instance.subscribersCount,
+      'isSubscribed': instance.isSubscribed,
       'lastMessageContent': instance.lastMessageContent,
       'lastMessageAt': instance.lastMessageAt?.toIso8601String(),
       'lastMessageSenderId': instance.lastMessageSenderId,

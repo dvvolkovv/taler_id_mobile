@@ -28,6 +28,8 @@ mixin _$ConversationEntity {
   String? get description => throw _privateConstructorUsedError;
   int get participantCount => throw _privateConstructorUsedError;
   String? get myRole => throw _privateConstructorUsedError;
+  int? get subscribersCount => throw _privateConstructorUsedError;
+  bool? get isSubscribed => throw _privateConstructorUsedError;
   String? get lastMessageContent => throw _privateConstructorUsedError;
   DateTime? get lastMessageAt => throw _privateConstructorUsedError;
   String? get lastMessageSenderId => throw _privateConstructorUsedError;
@@ -67,6 +69,8 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? description,
       int participantCount,
       String? myRole,
+      int? subscribersCount,
+      bool? isSubscribed,
       String? lastMessageContent,
       DateTime? lastMessageAt,
       String? lastMessageSenderId,
@@ -107,6 +111,8 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? description = freezed,
     Object? participantCount = null,
     Object? myRole = freezed,
+    Object? subscribersCount = freezed,
+    Object? isSubscribed = freezed,
     Object? lastMessageContent = freezed,
     Object? lastMessageAt = freezed,
     Object? lastMessageSenderId = freezed,
@@ -158,6 +164,14 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.myRole
           : myRole // ignore: cast_nullable_to_non_nullable
               as String?,
+      subscribersCount: freezed == subscribersCount
+          ? _value.subscribersCount
+          : subscribersCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      isSubscribed: freezed == isSubscribed
+          ? _value.isSubscribed
+          : isSubscribed // ignore: cast_nullable_to_non_nullable
+              as bool?,
       lastMessageContent: freezed == lastMessageContent
           ? _value.lastMessageContent
           : lastMessageContent // ignore: cast_nullable_to_non_nullable
@@ -247,6 +261,8 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? description,
       int participantCount,
       String? myRole,
+      int? subscribersCount,
+      bool? isSubscribed,
       String? lastMessageContent,
       DateTime? lastMessageAt,
       String? lastMessageSenderId,
@@ -285,6 +301,8 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? description = freezed,
     Object? participantCount = null,
     Object? myRole = freezed,
+    Object? subscribersCount = freezed,
+    Object? isSubscribed = freezed,
     Object? lastMessageContent = freezed,
     Object? lastMessageAt = freezed,
     Object? lastMessageSenderId = freezed,
@@ -336,6 +354,14 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.myRole
           : myRole // ignore: cast_nullable_to_non_nullable
               as String?,
+      subscribersCount: freezed == subscribersCount
+          ? _value.subscribersCount
+          : subscribersCount // ignore: cast_nullable_to_non_nullable
+              as int?,
+      isSubscribed: freezed == isSubscribed
+          ? _value.isSubscribed
+          : isSubscribed // ignore: cast_nullable_to_non_nullable
+              as bool?,
       lastMessageContent: freezed == lastMessageContent
           ? _value.lastMessageContent
           : lastMessageContent // ignore: cast_nullable_to_non_nullable
@@ -420,6 +446,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.description,
       this.participantCount = 0,
       this.myRole,
+      this.subscribersCount,
+      this.isSubscribed,
       this.lastMessageContent,
       this.lastMessageAt,
       this.lastMessageSenderId,
@@ -467,6 +495,10 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   final String? myRole;
   @override
+  final int? subscribersCount;
+  @override
+  final bool? isSubscribed;
+  @override
   final String? lastMessageContent;
   @override
   final DateTime? lastMessageAt;
@@ -508,7 +540,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays)';
   }
 
   @override
@@ -528,6 +560,10 @@ class _$ConversationEntityImpl implements _ConversationEntity {
             (identical(other.participantCount, participantCount) ||
                 other.participantCount == participantCount) &&
             (identical(other.myRole, myRole) || other.myRole == myRole) &&
+            (identical(other.subscribersCount, subscribersCount) ||
+                other.subscribersCount == subscribersCount) &&
+            (identical(other.isSubscribed, isSubscribed) ||
+                other.isSubscribed == isSubscribed) &&
             (identical(other.lastMessageContent, lastMessageContent) ||
                 other.lastMessageContent == lastMessageContent) &&
             (identical(other.lastMessageAt, lastMessageAt) ||
@@ -575,6 +611,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         description,
         participantCount,
         myRole,
+        subscribersCount,
+        isSubscribed,
         lastMessageContent,
         lastMessageAt,
         lastMessageSenderId,
@@ -619,6 +657,8 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? description,
       final int participantCount,
       final String? myRole,
+      final int? subscribersCount,
+      final bool? isSubscribed,
       final String? lastMessageContent,
       final DateTime? lastMessageAt,
       final String? lastMessageSenderId,
@@ -656,6 +696,10 @@ abstract class _ConversationEntity implements ConversationEntity {
   int get participantCount;
   @override
   String? get myRole;
+  @override
+  int? get subscribersCount;
+  @override
+  bool? get isSubscribed;
   @override
   String? get lastMessageContent;
   @override
