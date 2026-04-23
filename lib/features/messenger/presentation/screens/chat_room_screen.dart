@@ -204,6 +204,106 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       } else {
         _showMuteDurationSheet();
       }
+    } else if (action == 'channel_settings') {
+      context.push('/dashboard/messenger/${widget.conversationId}/channel-settings');
+    } else if (action == 'channel_delete') {
+      _confirmDeleteChannel();
+    } else if (action == 'channel_unsubscribe') {
+      _confirmUnsubscribeChannel();
+    }
+  }
+
+  Future<void> _confirmDeleteChannel() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.channelsDelete),
+        content: Text(l10n.channelsDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              l10n.channelsDelete,
+              style: TextStyle(color: AppColors.of(context).error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await sl<MessengerRemoteDataSource>().deleteChannel(widget.conversationId);
+      if (!mounted) return;
+      context.read<MessengerBloc>().add(LoadConversations());
+      if (context.canPop()) context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+          backgroundColor: AppColors.of(context).error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmUnsubscribeChannel() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.channelsUnsubscribe),
+        content: Text(l10n.channelsUnsubscribe),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              l10n.channelsUnsubscribe,
+              style: TextStyle(color: AppColors.of(context).error),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await sl<MessengerRemoteDataSource>().unsubscribeFromChannel(widget.conversationId);
+      if (!mounted) return;
+      context.read<MessengerBloc>().add(LoadConversations());
+      if (context.canPop()) context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+          backgroundColor: AppColors.of(context).error,
+        ),
+      );
+    }
+  }
+
+  Future<void> _subscribeChannel() async {
+    try {
+      await sl<MessengerRemoteDataSource>().subscribeToChannel(widget.conversationId);
+      if (!mounted) return;
+      context.read<MessengerBloc>().add(LoadConversations());
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$e'),
+          backgroundColor: AppColors.of(context).error,
+        ),
+      );
     }
   }
 
@@ -1214,6 +1314,108 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _scrollToChronIndex(_searchMatchChronIndices[newIdx]);
   }
 
+  /// Build composer footer for CHANNEL conversations based on myRole.
+  /// - OWNER / ADMIN: full message input (they can post to subscribers).
+  /// - SUBSCRIBER: compact read-only bar with an "Unsubscribe" button.
+  /// - null (not a participant): full-width "Subscribe" button.
+  Widget _buildChannelComposer(ConversationEntity? conv) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final role = conv?.myRole;
+
+    if (role == 'OWNER' || role == 'ADMIN') {
+      return _InputBar(
+        controller: _ctrl,
+        onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+        onAttach: _showAttachMenu,
+        isRecording: _isRecording,
+        onRecordStart: _startRecording,
+        onRecordStop: _stopRecordingAndSend,
+        onVideoNote: _startVideoRecording,
+        onVideoRecordStart: _startVideoRecording,
+        onVideoRecordStop: _stopVideoRecording,
+      );
+    }
+
+    if (role == 'SUBSCRIBER') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: colors.card,
+          border: Border(
+            top: BorderSide(color: colors.border, width: 0.5),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: [
+              Icon(
+                Icons.notifications_active_rounded,
+                size: 18,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.channelsSubscribedLabel,
+                  style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: _confirmUnsubscribeChannel,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.error,
+                  side: BorderSide(color: colors.error),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(l10n.channelsUnsubscribe),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Not a participant — offer to subscribe.
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: colors.card,
+        border: Border(
+          top: BorderSide(color: colors.border, width: 0.5),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _subscribeChannel,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+            icon: const Icon(Icons.add_rounded),
+            label: Text(
+              l10n.channelsSubscribe,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -1297,6 +1499,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   final l10n = AppLocalizations.of(context)!;
                   final isSaved = conv?.type == 'SAVED';
                   final isGroup = conv?.type == 'GROUP';
+                  final isChannel = conv?.type == 'CHANNEL';
                   final isAiAnalyst = conv?.type == 'AI_ANALYST';
                   final isAiOutbound = conv?.type == 'AI_OUTBOUND';
                   final name = isAiOutbound
@@ -1305,19 +1508,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       ? l10n.aiAnalystTitle
                       : isSaved
                           ? l10n.messengerSavedSection
-                          : isGroup
+                          : (isGroup || isChannel)
                               ? (conv?.name ?? l10n.chatGroup)
                               : conv?.otherUserName;
                   final avatarUrl = (isAiAnalyst || isAiOutbound)
                       ? null
-                      : isGroup ? conv?.avatarUrl : conv?.otherUserAvatar;
+                      : (isGroup || isChannel) ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
                   return GestureDetector(
-              onTap: isGroup
-                  ? () => context.push('/dashboard/messenger/${widget.conversationId}/settings')
-                  : otherUserId != null
-                      ? () => context.push('/dashboard/user/$otherUserId')
-                      : null,
+              onTap: isChannel
+                  ? ((conv?.myRole == 'OWNER' || conv?.myRole == 'ADMIN')
+                      ? () => context.push('/dashboard/messenger/${widget.conversationId}/channel-settings')
+                      : null)
+                  : isGroup
+                      ? () => context.push('/dashboard/messenger/${widget.conversationId}/settings')
+                      : otherUserId != null
+                          ? () => context.push('/dashboard/user/$otherUserId')
+                          : null,
               child: Row(
                 children: [
                   Container(
@@ -1381,26 +1588,30 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           )
                         : CircleAvatar(
                       radius: 18,
-                      backgroundColor: AppColors.of(context).primary.withValues(alpha: isGroup ? 0.4 : 0.2),
+                      backgroundColor: AppColors.of(context).primary.withValues(alpha: (isGroup || isChannel) ? 0.4 : 0.2),
                       child: avatarUrl != null && avatarUrl.isNotEmpty
                               ? ClipOval(
                                   child: CachedNetworkImage(
                                     imageUrl: avatarUrl,
                                     width: 36, height: 36, fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => isGroup
-                                        ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
-                                        : Text(
-                                            name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                            style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
-                                          ),
+                                    errorWidget: (_, __, ___) => isChannel
+                                        ? Icon(Icons.campaign_rounded, color: AppColors.of(context).primary, size: 18)
+                                        : isGroup
+                                            ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
+                                            : Text(
+                                                name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                                style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
+                                              ),
                                   ),
                                 )
-                              : isGroup
-                                  ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
-                                  : Text(
-                                      name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                      style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
-                                    ),
+                              : isChannel
+                                  ? Icon(Icons.campaign_rounded, color: AppColors.of(context).primary, size: 18)
+                                  : isGroup
+                                      ? Icon(Icons.group_rounded, color: AppColors.of(context).primary, size: 18)
+                                      : Text(
+                                          name != null && name.isNotEmpty ? name[0].toUpperCase() : '?',
+                                          style: TextStyle(color: AppColors.of(context).primary, fontSize: 14, fontWeight: FontWeight.bold),
+                                        ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1421,12 +1632,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                             overflow: TextOverflow.ellipsis,
                           )
+                        else if (isChannel && conv != null)
+                          Text(
+                            '${conv.subscribersCount ?? 0} ${l10n.channelsSubscribers}',
+                            style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
+                          )
                         else if (isGroup && conv != null)
                           Text(
                             AppLocalizations.of(context)!.participantsCount(conv.participantCount),
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                           ),
-                        if (!isGroup && !isSaved && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
+                        if (!isGroup && !isChannel && !isSaved && conv?.otherUserStatus != null && conv!.otherUserStatus!.isNotEmpty)
                           Text(
                             conv.otherUserStatus!,
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
@@ -1476,8 +1692,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     final conv = state.conversations
                         .where((c) => c.id == widget.conversationId)
                         .firstOrNull;
-                    // Hide call button for AI bots
-                    if (conv?.type != 'AI_ANALYST' && conv?.type != 'AI_OUTBOUND')
+                    // Hide call button for AI bots and channels
+                    if (conv?.type != 'AI_ANALYST' &&
+                        conv?.type != 'AI_OUTBOUND' &&
+                        conv?.type != 'CHANNEL')
                       return IconButton(
                         icon: const Icon(Icons.phone_outlined),
                         onPressed: _startCall,
@@ -1494,6 +1712,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         .where((c) => c.id == widget.conversationId)
                         .firstOrNull;
                     final isMuted = conv?.isMuted ?? false;
+                    final l10n = AppLocalizations.of(context)!;
+                    final isChannel = conv?.type == 'CHANNEL';
+                    final role = conv?.myRole;
                     return PopupMenuButton<String>(
                       icon: Icon(
                         isMuted ? Icons.volume_off : Icons.more_vert,
@@ -1514,13 +1735,62 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(isMuted
-                                  ? AppLocalizations.of(context)!
-                                      .unmuteNotifications
-                                  : AppLocalizations.of(context)!
-                                      .muteNotifications),
+                                  ? l10n.unmuteNotifications
+                                  : l10n.muteNotifications),
                             ],
                           ),
                         ),
+                        if (isChannel && (role == 'OWNER' || role == 'ADMIN'))
+                          PopupMenuItem(
+                            value: 'channel_settings',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.settings_rounded,
+                                  size: 20,
+                                  color: AppColors.of(context).textPrimary,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(l10n.channelsSettings),
+                              ],
+                            ),
+                          ),
+                        if (isChannel && role == 'SUBSCRIBER')
+                          PopupMenuItem(
+                            value: 'channel_unsubscribe',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.logout_rounded,
+                                  size: 20,
+                                  color: AppColors.of(context).error,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  l10n.channelsUnsubscribe,
+                                  style: TextStyle(color: AppColors.of(context).error),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (isChannel && role == 'OWNER')
+                          PopupMenuItem(
+                            value: 'channel_delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 20,
+                                  color: AppColors.of(context).error,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  l10n.channelsDelete,
+                                  style: TextStyle(color: AppColors.of(context).error),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     );
                   },
@@ -2064,7 +2334,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ],
                   ),
                 )
-              else if (!_isContact)
+              else if (!_isContact && conv?.type != 'CHANNEL')
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   color: AppColors.of(context).card,
@@ -2083,6 +2353,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     ],
                   ),
                 )
+              else if (conv?.type == 'CHANNEL')
+                _buildChannelComposer(conv)
               else
                 _InputBar(
                   controller: _ctrl,
