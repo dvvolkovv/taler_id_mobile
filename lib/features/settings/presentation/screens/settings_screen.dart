@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -348,6 +349,15 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     onTap: () => context.push(RouteConstants.wallpaper),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
+                  if (AppConfig.isDev)
+                    _navTile(
+                      icon: Icons.bluetooth_searching,
+                      iconColor: const Color(0xFF00A1FF),
+                      title: 'Mesh Debug (dev)',
+                      onTap: () => context.push('/settings/mesh-debug'),
+                    ),
+                  if (AppConfig.isDev)
+                    Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
                     icon: Icons.delete_forever_outlined,
                     iconColor: AppColors.of(context).error,
