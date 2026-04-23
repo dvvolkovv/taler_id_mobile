@@ -1010,6 +1010,30 @@ abstract class AppLocalizations {
   /// **'Confirm New Password'**
   String get confirmNewPassword;
 
+  /// No description provided for @passwordChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Password changed'**
+  String get passwordChanged;
+
+  /// No description provided for @wrongCurrentPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong current password'**
+  String get wrongCurrentPassword;
+
+  /// No description provided for @passwordTooWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Password too weak: at least 8 chars, letter and digit required'**
+  String get passwordTooWeak;
+
+  /// No description provided for @passwordChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to change password'**
+  String get passwordChangeFailed;
+
   /// No description provided for @notifications.
   ///
   /// In en, this message translates to:
@@ -5731,6 +5755,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Files, tasks, analysis — Claude'**
   String get aiAnalystSubtitle;
+
+  /// No description provided for @channelsDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Find channel'**
+  String get channelsDiscover;
+
+  /// No description provided for @channelsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search channels'**
+  String get channelsSearchHint;
+
+  /// No description provided for @channelsSubscribers.
+  ///
+  /// In en, this message translates to:
+  /// **'subscribers'**
+  String get channelsSubscribers;
+
+  /// No description provided for @channelsSubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe'**
+  String get channelsSubscribe;
+
+  /// No description provided for @channelsUnsubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsubscribe'**
+  String get channelsUnsubscribe;
+
+  /// No description provided for @channelsSubscribedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You are subscribed'**
+  String get channelsSubscribedLabel;
+
+  /// No description provided for @channelsSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel settings'**
+  String get channelsSettings;
+
+  /// No description provided for @channelsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete channel'**
+  String get channelsDelete;
+
+  /// No description provided for @channelsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete channel permanently?'**
+  String get channelsDeleteConfirm;
+
+  /// No description provided for @channelsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels yet'**
+  String get channelsEmpty;
+
+  /// No description provided for @channelsOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get channelsOpen;
+
+  /// No description provided for @channelsNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get channelsNameLabel;
+
+  /// No description provided for @channelsDescriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get channelsDescriptionLabel;
+
+  /// No description provided for @channelsCannotUnsubscribeOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner cannot unsubscribe. Delete the channel instead.'**
+  String get channelsCannotUnsubscribeOwner;
+
+  /// No description provided for @channelsNotFoundRedirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel no longer exists'**
+  String get channelsNotFoundRedirect;
 }
 
 class _AppLocalizationsDelegate

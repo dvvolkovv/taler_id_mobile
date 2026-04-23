@@ -495,6 +495,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get confirmNewPassword => 'Confirm New Password';
 
   @override
+  String get passwordChanged => 'Password changed';
+
+  @override
+  String get wrongCurrentPassword => 'Wrong current password';
+
+  @override
+  String get passwordTooWeak =>
+      'Password too weak: at least 8 chars, letter and digit required';
+
+  @override
+  String get passwordChangeFailed => 'Failed to change password';
+
+  @override
   String get notifications => 'Notifications';
 
   @override
@@ -2990,4 +3003,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiAnalystSubtitle => 'Files, tasks, analysis — Claude';
+
+  @override
+  String get channelsDiscover => 'Find channel';
+
+  @override
+  String get channelsSearchHint => 'Search channels';
+
+  @override
+  String get channelsSubscribers => 'subscribers';
+
+  @override
+  String get channelsSubscribe => 'Subscribe';
+
+  @override
+  String get channelsUnsubscribe => 'Unsubscribe';
+
+  @override
+  String get channelsSubscribedLabel => 'You are subscribed';
+
+  @override
+  String get channelsSettings => 'Channel settings';
+
+  @override
+  String get channelsDelete => 'Delete channel';
+
+  @override
+  String get channelsDeleteConfirm => 'Delete channel permanently?';
+
+  @override
+  String get channelsEmpty => 'No channels yet';
+
+  @override
+  String get channelsOpen => 'Open';
+
+  @override
+  String get channelsNameLabel => 'Name';
+
+  @override
+  String get channelsDescriptionLabel => 'Description';
+
+  @override
+  String get channelsCannotUnsubscribeOwner =>
+      'Owner cannot unsubscribe. Delete the channel instead.';
+
+  @override
+  String get channelsNotFoundRedirect => 'Channel no longer exists';
 }

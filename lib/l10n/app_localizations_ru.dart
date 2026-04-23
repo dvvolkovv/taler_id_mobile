@@ -496,6 +496,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get confirmNewPassword => 'Подтвердить новый пароль';
 
   @override
+  String get passwordChanged => 'Пароль изменён';
+
+  @override
+  String get wrongCurrentPassword => 'Неверный текущий пароль';
+
+  @override
+  String get passwordTooWeak =>
+      'Пароль слишком простой: минимум 8 символов, буква и цифра';
+
+  @override
+  String get passwordChangeFailed => 'Не удалось изменить пароль';
+
+  @override
   String get notifications => 'Уведомления';
 
   @override
@@ -2998,4 +3011,51 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aiAnalystSubtitle => 'Файлы, задачи, анализ — Claude';
+
+  @override
+  String get channelsDiscover => 'Найти канал';
+
+  @override
+  String get channelsSearchHint => 'Поиск каналов';
+
+  @override
+  String get channelsSubscribers => 'подписчиков';
+
+  @override
+  String get channelsSubscribe => 'Подписаться';
+
+  @override
+  String get channelsUnsubscribe => 'Отписаться';
+
+  @override
+  String get channelsSubscribedLabel => 'Вы подписаны на канал';
+
+  @override
+  String get channelsSettings => 'Настройки канала';
+
+  @override
+  String get channelsDelete => 'Удалить канал';
+
+  @override
+  String get channelsDeleteConfirm =>
+      'Удалить канал без возможности восстановления?';
+
+  @override
+  String get channelsEmpty => 'Каналов пока нет';
+
+  @override
+  String get channelsOpen => 'Открыть';
+
+  @override
+  String get channelsNameLabel => 'Название';
+
+  @override
+  String get channelsDescriptionLabel => 'Описание';
+
+  @override
+  String get channelsCannotUnsubscribeOwner =>
+      'Владелец не может отписаться. Удалите канал.';
+
+  @override
+  String get channelsNotFoundRedirect => 'Канал больше не существует';
 }

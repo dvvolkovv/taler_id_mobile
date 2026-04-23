@@ -18,6 +18,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../profile/data/datasources/profile_remote_datasource.dart';
+import '../../../auth/data/datasources/auth_remote_datasource.dart';
+import 'package:dio/dio.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -618,6 +620,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     bool showOld = false;
     bool showNew = false;
     bool showConfirm = false;
+    bool saving = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -688,7 +691,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                       ),
                       const SizedBox(height: 24),
                       GestureDetector(
-                        onTap: () {
+                        onTap: saving ? null : () async {
                           if (oldCtrl.text.isEmpty || newCtrl.text.isEmpty || confirmCtrl.text.isEmpty) return;
                           if (newCtrl.text != confirmCtrl.text) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -696,10 +699,44 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                             );
                             return;
                           }
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: const Text('Coming soon'), backgroundColor: colors.warning),
-                          );
+                          if (newCtrl.text.length < 8 || !RegExp(r'^(?=.*[A-Za-z])(?=.*\d).+$').hasMatch(newCtrl.text)) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.passwordTooWeak), backgroundColor: colors.error),
+                            );
+                            return;
+                          }
+                          setSheetState(() => saving = true);
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            await sl<AuthRemoteDataSource>().changePassword(
+                              currentPassword: oldCtrl.text,
+                              newPassword: newCtrl.text,
+                            );
+                            if (!ctx.mounted) return;
+                            Navigator.pop(ctx);
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.passwordChanged), backgroundColor: colors.primary),
+                            );
+                          } on DioException catch (e) {
+                            setSheetState(() => saving = false);
+                            final status = e.response?.statusCode;
+                            String msg;
+                            if (status == 401) {
+                              msg = l10n.wrongCurrentPassword;
+                            } else if (status == 400) {
+                              final data = e.response?.data;
+                              final serverMsg = data is Map ? (data['message'] is List ? (data['message'] as List).join(', ') : data['message']?.toString()) : null;
+                              msg = serverMsg ?? l10n.passwordTooWeak;
+                            } else {
+                              msg = l10n.passwordChangeFailed;
+                            }
+                            messenger.showSnackBar(SnackBar(content: Text(msg), backgroundColor: colors.error));
+                          } catch (_) {
+                            setSheetState(() => saving = false);
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.passwordChangeFailed), backgroundColor: colors.error),
+                            );
+                          }
                         },
                         child: Container(
                           width: double.infinity,
@@ -714,7 +751,12 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                             boxShadow: [BoxShadow(color: colors.primary.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
                           ),
                           child: Center(
-                            child: Text(l10n.save, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                            child: saving
+                                ? const SizedBox(
+                                    width: 20, height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : Text(l10n.save, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ),
