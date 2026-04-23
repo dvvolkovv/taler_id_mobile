@@ -7,6 +7,8 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
+import '../../domain/entities/channel_summary.dart';
+import '../../domain/entities/channel_details.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -30,6 +32,7 @@ class MessengerRemoteDataSource {
   final _groupCallStartedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _groupCallEndedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageDeletedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _messageAckedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _typingCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _contactRequestCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _contactAcceptedCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -143,6 +146,9 @@ class MessengerRemoteDataSource {
     _socket!.on('message_deleted', (d) {
       try { _messageDeletedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    _socket!.on('message_acked', (d) {
+      try { _messageAckedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
     _socket!.on('typing', (d) {
       try { _typingCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
@@ -198,6 +204,7 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get groupCallStartedStream => _groupCallStartedCtrl.stream;
   Stream<Map<String, dynamic>> get groupCallEndedStream => _groupCallEndedCtrl.stream;
   Stream<Map<String, dynamic>> get messageDeletedStream => _messageDeletedCtrl.stream;
+  Stream<Map<String, dynamic>> get messageAckedStream => _messageAckedCtrl.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingCtrl.stream;
   Stream<Map<String, dynamic>> get contactRequestStream => _contactRequestCtrl.stream;
   Stream<Map<String, dynamic>> get contactAcceptedStream => _contactAcceptedCtrl.stream;
@@ -476,6 +483,74 @@ class MessengerRemoteDataSource {
       '/messenger/conversations/$conversationId/unmute',
       data: {},
       fromJson: (d) => d,
+    );
+  }
+
+  // ─── Channels ───────────────────────────────────────────────
+
+  Future<List<ChannelSummary>> listChannels({String? q, int limit = 20, int offset = 0}) async {
+    final params = <String, dynamic>{'limit': limit, 'offset': offset};
+    if (q != null && q.isNotEmpty) params['q'] = q;
+    final list = await _http.get(
+      '/messenger/channels',
+      queryParameters: params,
+      fromJson: (d) => d as List,
+    );
+    return list
+        .map((e) => ChannelSummary.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<ChannelDetails> getChannelDetails(String id) async {
+    final data = await _http.get(
+      '/messenger/channels/$id',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return ChannelDetails.fromJson(data);
+  }
+
+  Future<String> createChannel({required String name, String? description, String? avatarUrl}) async {
+    final data = await _http.post(
+      '/messenger/channels',
+      data: {
+        'name': name,
+        if (description != null) 'description': description,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      },
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return data['id'] as String;
+  }
+
+  Future<ChannelDetails> updateChannel(String id, {String? name, String? description, String? avatarUrl}) async {
+    final data = await _http.patch(
+      '/messenger/channels/$id',
+      data: {
+        if (name != null) 'name': name,
+        if (description != null) 'description': description,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      },
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return ChannelDetails.fromJson(data);
+  }
+
+  Future<void> deleteChannel(String id) async {
+    await _http.delete('/messenger/channels/$id');
+  }
+
+  Future<Map<String, dynamic>> subscribeToChannel(String id) async {
+    return _http.post(
+      '/messenger/channels/$id/subscribe',
+      data: {},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> unsubscribeFromChannel(String id) async {
+    return _http.deleteWithResponse(
+      '/messenger/channels/$id/subscribe',
+      fromJson: (d) => d is Map ? Map<String, dynamic>.from(d) : <String, dynamic>{},
     );
   }
 

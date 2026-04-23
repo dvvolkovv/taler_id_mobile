@@ -128,6 +128,19 @@ class DioClient {
     }
   }
 
+  Future<T> deleteWithResponse<T>(
+    String path, {
+    dynamic data,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final response = await _dio.delete(path, data: data);
+      return fromJson != null ? fromJson(response.data) : response.data as T;
+    } on DioException catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
+  }
+
   Future<T> postForm<T>(
     String path, {
     required FormData formData,
