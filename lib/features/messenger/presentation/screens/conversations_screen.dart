@@ -1204,6 +1204,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
         },
       ),
       floatingActionButton: GestureDetector(
+        key: const Key('messenger_new_chat_fab'),
         onTap: () => _showNewChatSheet(context),
         child: Container(
           width: 56,

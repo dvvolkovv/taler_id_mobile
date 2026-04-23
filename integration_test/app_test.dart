@@ -344,14 +344,17 @@ void main() {
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed before channels');
 
-      // Tap the new-chat FAB (+)
-      final fab = find.byType(FloatingActionButton);
-      if (fab.evaluate().isNotEmpty) {
-        await tester.tap(fab.first, warnIfMissed: false);
-        await tester.pumpFor(const Duration(seconds: 2));
+      // Tap the new-chat FAB by key.
+      final fab = find.byKey(const Key('messenger_new_chat_fab'));
+      expect(fab, findsOneWidget, reason: 'Messenger new-chat FAB not found by key');
+      await tester.tap(fab, warnIfMissed: true);
+      await tester.pumpAndSettle(const Duration(seconds: 2));
 
+      {
         // Tap "Найти канал" ListTile in the bottom sheet
         final findChannelTile = find.textContaining('Найти канал');
+        expect(findChannelTile, findsOneWidget,
+            reason: '"Найти канал" tile should be in the new-chat bottom sheet');
         if (findChannelTile.evaluate().isNotEmpty) {
           await tester.tap(findChannelTile.first, warnIfMissed: false);
           await tester.pumpFor(const Duration(seconds: 2));
@@ -425,14 +428,7 @@ void main() {
           // Leave directory
           await tester.safeTap(find.byIcon(Icons.arrow_back));
           await tester.pumpFor(const Duration(seconds: 1));
-        } else {
-          debugPrint('[TEST] "Найти канал" tile not found in new-chat sheet — skipping channels section');
-          // Dismiss the sheet
-          await tester.tapAt(const Offset(10, 10));
-          await tester.pumpFor(const Duration(seconds: 1));
         }
-      } else {
-        debugPrint('[TEST] Messenger FAB not found — skipping channels section');
       }
 
       await tester.goHome();
