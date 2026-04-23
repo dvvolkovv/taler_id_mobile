@@ -64,6 +64,10 @@ dependencies:
   bonsoir: ^5.1.10
   cryptography: ^2.7.0
 
+  # Mesh BLE (Phase 1d) — central + peripheral
+  flutter_reactive_ble: ^5.3.1
+  flutter_ble_peripheral: ^2.1.0
+
   # Chat assistant
   speech_to_text: ^7.0.0
   flutter_tts: ^4.2.0
