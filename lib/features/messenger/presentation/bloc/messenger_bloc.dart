@@ -33,6 +33,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _groupCallStartedSub;
   StreamSubscription? _groupCallEndedSub;
   StreamSubscription? _msgDeletedSub;
+  StreamSubscription? _msgAckedSub;
   StreamSubscription? _typingSub;
   StreamSubscription? _contactReqSub;
   StreamSubscription? _contactAccSub;
@@ -191,6 +192,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       if (msgId != null && convId != null) {
         add(MessageDeleted(messageId: msgId, conversationId: convId));
       }
+    });
+    _msgAckedSub?.cancel();
+    _msgAckedSub = _repo.messageAckedStream.listen((data) {
+      final tempId = data['clientTempId'] as String?;
+      if (tempId == null) return;
+      // Server confirmed it received the message (either fresh or as duplicate).
+      // Stop the retry storm: drop from persistent queue and in-flight set.
+      _pending.remove(tempId);
+      _inFlightTempIds.remove(tempId);
+      debugPrint('[MessengerBloc] message_acked: cleared tempId=$tempId');
     });
     _typingSub?.cancel();
     _typingSub = _repo.typingStream.listen((data) {
@@ -915,6 +926,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _groupCallStartedSub?.cancel();
     _groupCallEndedSub?.cancel();
     _msgDeletedSub?.cancel();
+    _msgAckedSub?.cancel();
     _typingSub?.cancel();
     _contactReqSub?.cancel();
     _contactAccSub?.cancel();

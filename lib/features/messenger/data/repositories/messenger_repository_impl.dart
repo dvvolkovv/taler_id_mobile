@@ -63,6 +63,9 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   Stream<Map<String, dynamic>> get messageDeletedStream => _remote.messageDeletedStream;
 
   @override
+  Stream<Map<String, dynamic>> get messageAckedStream => _remote.messageAckedStream;
+
+  @override
   Stream<Map<String, dynamic>> get messagesReadStream => _remote.messagesReadStream;
 
   @override

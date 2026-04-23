@@ -19,6 +19,7 @@ abstract class IMessengerRepository {
   Stream<Map<String, dynamic>> get callInviteStream;
   Stream<Map<String, dynamic>> get messageUpdatedStream;
   Stream<Map<String, dynamic>> get messageDeletedStream;
+  Stream<Map<String, dynamic>> get messageAckedStream;
   Stream<Map<String, dynamic>> get messagesReadStream;
   void markRead(String conversationId);
   // Group methods
