@@ -333,7 +333,111 @@ void main() {
       }
       await tester.goHome();
 
-      // ── 13. Final check ────────────────────────────────────────────
+      // ── 13. Channels E2E: Directory → Subscribe → Read ─────────────
+      // Exercises the channels flow without polluting shared test-account state.
+      // We do NOT unsubscribe at the end — the integration_test@ account may already
+      // be subscribed to "Хорошие новости" from prior runs; we keep it that way.
+      debugPrint('[TEST] Starting channels E2E section');
+
+      // Open Messenger
+      await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
+      await tester.pumpFor(const Duration(seconds: 2));
+      expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed before channels');
+
+      // Tap the new-chat FAB (+)
+      final fab = find.byType(FloatingActionButton);
+      if (fab.evaluate().isNotEmpty) {
+        await tester.tap(fab.first, warnIfMissed: false);
+        await tester.pumpFor(const Duration(seconds: 2));
+
+        // Tap "Найти канал" ListTile in the bottom sheet
+        final findChannelTile = find.textContaining('Найти канал');
+        if (findChannelTile.evaluate().isNotEmpty) {
+          await tester.tap(findChannelTile.first, warnIfMissed: false);
+          await tester.pumpFor(const Duration(seconds: 2));
+          expect(find.byType(ErrorWidget), findsNothing, reason: 'Channel directory screen crashed');
+          debugPrint('[TEST] ✓ Channel directory opened');
+
+          // Search for "Хорошие"
+          final searchField = find.byType(TextField);
+          if (searchField.evaluate().isNotEmpty) {
+            await tester.enterText(searchField.first, 'Хорошие');
+            await tester.pump();
+            FocusManager.instance.primaryFocus?.unfocus();
+            // Wait for debounce (300ms) + network
+            await tester.pumpFor(const Duration(seconds: 3));
+
+            // Verify the "Хорошие новости" channel card appears
+            final channelCard = find.textContaining('Хорошие новости');
+            final hasChannel = await tester.waitFor(
+              channelCard,
+              timeout: const Duration(seconds: 10),
+            );
+            expect(hasChannel, isTrue,
+                reason: 'Expected "Хорошие новости" channel in directory search results');
+            debugPrint('[TEST] ✓ Channel "Хорошие новости" appears in results');
+
+            // If "Подписаться" button is visible, tap it. Wrapped to be idempotent.
+            try {
+              final subscribeBtn = find.widgetWithText(ElevatedButton, 'Подписаться');
+              if (subscribeBtn.evaluate().isNotEmpty) {
+                await tester.tap(subscribeBtn.first, warnIfMissed: false);
+                await tester.pumpFor(const Duration(seconds: 2));
+                debugPrint('[TEST] Subscribed to channel');
+              } else {
+                debugPrint('[TEST] Already subscribed — skipping subscribe');
+              }
+            } catch (e) {
+              debugPrint('[TEST] Subscribe action skipped: $e');
+            }
+
+            // Tap the channel card to enter chat room
+            if (channelCard.evaluate().isNotEmpty) {
+              await tester.tap(channelCard.first, warnIfMissed: false);
+              await tester.pumpFor(const Duration(seconds: 3));
+              expect(find.byType(ErrorWidget), findsNothing, reason: 'Channel chat room crashed');
+              debugPrint('[TEST] ✓ Channel chat room opened');
+
+              // Verify role-aware composer shows "Вы подписаны на канал"
+              final subscribedLabel = find.textContaining('Вы подписаны');
+              final hasLabel = await tester.waitFor(
+                subscribedLabel,
+                timeout: const Duration(seconds: 8),
+              );
+              expect(hasLabel, isTrue,
+                  reason: 'Subscriber composer label should appear in channel chat');
+              debugPrint('[TEST] ✓ "Вы подписаны" label visible — role-aware UI active');
+
+              // Verify PopupMenuButton in AppBar exists (⋮)
+              final popupMenu = find.byType(PopupMenuButton<String>);
+              if (popupMenu.evaluate().isNotEmpty) {
+                debugPrint('[TEST] ✓ AppBar popup menu present');
+              }
+
+              // Navigate back — do NOT unsubscribe to keep state clean for next runs
+              await tester.safeTap(find.byIcon(Icons.arrow_back));
+              await tester.pumpFor(const Duration(seconds: 1));
+            }
+          } else {
+            debugPrint('[TEST] Search TextField not found on directory — skipping search');
+          }
+
+          // Leave directory
+          await tester.safeTap(find.byIcon(Icons.arrow_back));
+          await tester.pumpFor(const Duration(seconds: 1));
+        } else {
+          debugPrint('[TEST] "Найти канал" tile not found in new-chat sheet — skipping channels section');
+          // Dismiss the sheet
+          await tester.tapAt(const Offset(10, 10));
+          await tester.pumpFor(const Duration(seconds: 1));
+        }
+      } else {
+        debugPrint('[TEST] Messenger FAB not found — skipping channels section');
+      }
+
+      await tester.goHome();
+
+      // ── 14. Final check ────────────────────────────────────────────
       expect(find.byType(ErrorWidget), findsNothing, reason: 'App has ErrorWidget at the end');
       debugPrint('[TEST] ✓ All screens passed — no crashes detected');
     });
