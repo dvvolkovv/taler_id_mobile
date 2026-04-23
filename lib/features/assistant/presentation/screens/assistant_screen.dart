@@ -789,6 +789,18 @@ class _AssistantScreenState extends State<AssistantScreen>
           },
           {
             'type': 'function',
+            'name': 'delete_last_own_message',
+            'description': 'Delete the user\'s last sent text message in a conversation (for everyone). Use when the user asks to delete/undo/cancel the message they just sent.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+              },
+              'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'get_notes',
             'description': 'Get all user notes. Returns list with id, title, content, source, createdAt.',
             'parameters': {
@@ -1639,6 +1651,34 @@ class _AssistantScreenState extends State<AssistantScreen>
         final content = args['content'] as String;
         sl<MessengerRemoteDataSource>().sendMessage(convId, content);
         output = jsonEncode({'ok': true, 'message': 'sent'});
+      } else if (name == 'delete_last_own_message') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final convId = args['conversationId'] as String;
+        final bloc = sl<MessengerBloc>();
+        final me = bloc.state.currentUserId;
+        final msgs = bloc.state.messages[convId] ?? const [];
+        final myMsgs = msgs.where((m) =>
+          m.senderId == me &&
+          !m.id.startsWith('temp_') &&
+          !m.id.startsWith('call_invite_') &&
+          !m.isSystem).toList();
+        if (me == null || myMsgs.isEmpty) {
+          output = jsonEncode({'ok': false, 'error': 'no own messages found in this conversation'});
+        } else {
+          final target = myMsgs.last;
+          bloc.add(DeleteMessage(
+            conversationId: convId,
+            messageId: target.id,
+            forEveryone: true,
+          ));
+          output = jsonEncode({
+            'ok': true,
+            'deletedMessageId': target.id,
+            'deletedContent': target.content.length > 60
+                ? '${target.content.substring(0, 60)}…'
+                : target.content,
+          });
+        }
       } else if (name == 'get_notes') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         final limit = args['limit'] as int? ?? 20;
