@@ -18,6 +18,7 @@ import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
 
 // Mesh Phase 1b/1c
+import '../config/mesh_config.dart';
 import '../mesh/crypto/keys/contact_key_store_hive.dart';
 import '../mesh/crypto/keys/device_key.dart';
 import '../mesh/crypto/keys/mesh_key_persistence.dart';
@@ -25,6 +26,12 @@ import '../mesh/crypto/keys/mesh_static_key.dart';
 import '../mesh/crypto/keys/user_identity_key.dart';
 import '../mesh/services/device_key_sync_service.dart';
 import '../mesh/services/device_keys_api_client.dart';
+// Mesh Phase 1d — transport composition
+import '../mesh/transport/ble_transport.dart';
+import '../mesh/transport/bonjour_transport.dart';
+import '../mesh/transport/mesh_transport.dart';
+import '../mesh/transport/multi_transport.dart';
+import '../mesh/transport/transport_preference.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -196,6 +203,24 @@ Future<void> setupDependencies() async {
       debugPrint('[mesh] registerOwnDevice failed: $e');
     });
   }
+
+  // ---------------------------------------------------------------------------
+  // Mesh Phase 1d — transport composition
+  // ---------------------------------------------------------------------------
+  //
+  // Bonjour is always present (Phase 1a). BLE is added when the compile-time
+  // flag MeshConfig.bleEnabled is true. MultiTransport picks the best path
+  // per peer — Bonjour preferred for bandwidth, BLE fallback for offline.
+  final bonjourTransport = BonjourTransport();
+  final transports = <TransportId, MeshTransport>{
+    TransportId.bonjour: bonjourTransport,
+  };
+  if (MeshConfig.bleEnabled) {
+    transports[TransportId.ble] = BleTransport();
+  }
+  sl.registerSingleton<MeshTransport>(
+    MultiTransport(children: transports),
+  );
 
   // Data sources
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));
