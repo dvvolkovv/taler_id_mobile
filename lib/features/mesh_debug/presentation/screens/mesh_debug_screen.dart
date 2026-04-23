@@ -4,18 +4,15 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/crypto/keys/contact_key_store.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
+import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/mesh/transport/mesh_transport.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 
-/// Phase 1d debug screen — live visibility into the mesh transport layer.
-///
-/// Lets a developer start/stop the MeshTransport (Bonjour + BLE via
-/// MultiTransport), see discovered peers in real time, and verify basic
-/// advertising + scanning on real hardware.
-///
-/// Enable with `--dart-define=MESH_BLE_ENABLED=true` to activate the BLE
-/// child transport.
+/// Phase 1d debug screen — live visibility into the mesh transport + Noise
+/// messaging stack. Start/stop the stack, see discovered peers, send test
+/// messages, watch incoming ones.
 class MeshDebugScreen extends StatefulWidget {
   const MeshDebugScreen({super.key});
 
@@ -27,12 +24,17 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   late final MeshTransport _transport;
   late final MeshStaticKey _meshKey;
 
+  ContactKeyStore? _contactStore;
+  MeshMessagingService? _messaging;
+
   bool _running = false;
   String? _lastError;
 
   final Map<PeerId, _PeerEntry> _peers = {};
+  final List<_LogEntry> _messages = [];
   StreamSubscription<PeerDiscovered>? _discoverySub;
   StreamSubscription<PeerLost>? _lossSub;
+  StreamSubscription<InboundMessage>? _inboundSub;
 
   @override
   void initState() {
@@ -45,13 +47,48 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   void dispose() {
     _discoverySub?.cancel();
     _lossSub?.cancel();
+    _inboundSub?.cancel();
     super.dispose();
   }
 
   Future<void> _start() async {
     setState(() => _lastError = null);
     try {
+      _contactStore = ContactKeyStore();
+
+      final messaging = MeshMessagingService(
+        transport: _transport,
+        contactKeyStore: _contactStore!,
+        myDevicePrivateKey: _meshKey.privateKeyBytes,
+        myDevicePublicKey: _meshKey.publicKey,
+      );
+      _messaging = messaging;
+
+      _inboundSub = messaging.inbound.listen((msg) {
+        final prefix = msg.fromUserPk.toHex().substring(0, 16);
+        setState(() => _messages.insert(
+              0,
+              _LogEntry(
+                text: '← $prefix: ${msg.text}',
+                timestamp: DateTime.now(),
+              ),
+            ));
+      });
+
       _discoverySub = _transport.discoveries.listen((event) {
+        // Phase 1a: userPk == devicePk for Bonjour peers — register the peer
+        // in the in-memory ContactKeyStore so handshake can start.
+        final devicePk = event.peerId;
+        final pkHex = event.attributes['pk'] ?? event.attributes['ble_prefix'];
+        // Only register peers with a full 32-byte pk (from Bonjour TXT).
+        // BLE-only peers carry an 8-byte prefix and can't be messaged in
+        // Phase 1d (peripheral GATT gap).
+        if (pkHex != null && pkHex.length == 64) {
+          _contactStore!.addContact(
+            userPk: devicePk,
+            devicePks: [devicePk],
+          );
+        }
         setState(() {
           _peers[event.peerId] = _PeerEntry(
             peerId: event.peerId,
@@ -59,6 +96,7 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
             port: event.port,
             attributes: event.attributes,
             discoveredAt: DateTime.now(),
+            canMessage: pkHex != null && pkHex.length == 64,
           );
         });
       });
@@ -66,10 +104,9 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
         setState(() => _peers.remove(event.peerId));
       });
 
-      await _transport.startAdvertising(DeviceInfo(
-        devicePk: PeerId(_meshKey.publicKey),
+      await messaging.start(
         serviceName: 'taler-mesh-debug-${DateTime.now().millisecondsSinceEpoch}',
-      ));
+      );
       setState(() => _running = true);
     } catch (e, st) {
       debugPrint('[mesh-debug] start failed: $e\n$st');
@@ -82,18 +119,48 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
 
   Future<void> _stop() async {
     try {
-      await _transport.stopAdvertising();
+      await _messaging?.dispose();
     } catch (e) {
       debugPrint('[mesh-debug] stop error: $e');
     }
     await _discoverySub?.cancel();
     await _lossSub?.cancel();
+    await _inboundSub?.cancel();
     _discoverySub = null;
     _lossSub = null;
+    _inboundSub = null;
+    _messaging = null;
+    _contactStore = null;
     setState(() {
       _running = false;
       _peers.clear();
     });
+  }
+
+  Future<void> _sendTestMessage(PeerId peer) async {
+    final messaging = _messaging;
+    if (messaging == null) return;
+    final myPrefix = PeerId(_meshKey.publicKey).toHex().substring(0, 8);
+    final text = 'Hello from $myPrefix @ ${DateTime.now().toIso8601String().substring(11, 19)}';
+    try {
+      await messaging.sendText(toUserPk: peer, text: text);
+      final peerPrefix = peer.toHex().substring(0, 16);
+      setState(() => _messages.insert(
+            0,
+            _LogEntry(
+              text: '→ $peerPrefix: $text',
+              timestamp: DateTime.now(),
+            ),
+          ));
+    } catch (e) {
+      setState(() => _messages.insert(
+            0,
+            _LogEntry(
+              text: '⚠ send failed: $e',
+              timestamp: DateTime.now(),
+            ),
+          ));
+    }
   }
 
   @override
@@ -114,7 +181,7 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
               myPrefix: myPrefix,
               peerCount: _peers.length,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -127,9 +194,9 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
               ],
             ),
             if (_lastError != null) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -140,23 +207,43 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              'Discovered peers (${_peers.length})',
+              'Peers (${_peers.length})',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
+            if (_peers.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text(
+                  'No peers. Start and make sure the other device is also running.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
+            else
+              ..._peers.values.map((p) => _PeerTile(
+                    entry: p,
+                    onSendTest: p.canMessage ? () => _sendTestMessage(p.peerId) : null,
+                  )),
+            const SizedBox(height: 16),
+            Text(
+              'Messages (${_messages.length})',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
             Expanded(
-              child: _peers.isEmpty
+              child: _messages.isEmpty
                   ? const Center(
                       child: Text(
-                        'No peers yet.\nStart the transport and\nmake sure the other device is running.',
-                        textAlign: TextAlign.center,
+                        'No messages yet. Tap "Send test" on a peer.',
+                        style: TextStyle(color: Colors.grey),
                       ),
                     )
                   : ListView(
-                      children: _peers.values
-                          .map((p) => _PeerTile(entry: p))
+                      children: _messages
+                          .map((m) => _MessageTile(entry: m))
                           .toList(),
                     ),
             ),
@@ -173,6 +260,7 @@ class _PeerEntry {
   final int port;
   final Map<String, String> attributes;
   final DateTime discoveredAt;
+  final bool canMessage;
 
   _PeerEntry({
     required this.peerId,
@@ -180,7 +268,14 @@ class _PeerEntry {
     required this.port,
     required this.attributes,
     required this.discoveredAt,
+    required this.canMessage,
   });
+}
+
+class _LogEntry {
+  final String text;
+  final DateTime timestamp;
+  _LogEntry({required this.text, required this.timestamp});
 }
 
 class _StatusCard extends StatelessWidget {
@@ -200,7 +295,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -209,18 +304,19 @@ class _StatusCard extends StatelessWidget {
                 Icon(
                   running ? Icons.radio_button_checked : Icons.radio_button_off,
                   color: running ? Colors.green : Colors.grey,
+                  size: 20,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  running ? 'Transport running' : 'Transport stopped',
+                  running ? 'Running' : 'Stopped',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _kv('BLE enabled', bleEnabled ? 'YES' : 'NO (compile flag off)'),
-            _kv('My devicePk prefix', myPrefix),
-            _kv('Peers seen', '$peerCount'),
+            const SizedBox(height: 8),
+            _kv('BLE', bleEnabled ? 'ON' : 'off'),
+            _kv('Me', myPrefix),
+            _kv('Peers', '$peerCount'),
           ],
         ),
       ),
@@ -228,21 +324,21 @@ class _StatusCard extends StatelessWidget {
   }
 
   Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              width: 140,
+              width: 80,
               child: Text(
                 k,
-                style: const TextStyle(fontWeight: FontWeight.w500),
+                style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
               ),
             ),
             Expanded(
               child: Text(
                 v,
-                style: const TextStyle(fontFamily: 'monospace'),
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               ),
             ),
           ],
@@ -252,7 +348,8 @@ class _StatusCard extends StatelessWidget {
 
 class _PeerTile extends StatelessWidget {
   final _PeerEntry entry;
-  const _PeerTile({required this.entry});
+  final VoidCallback? onSendTest;
+  const _PeerTile({required this.entry, required this.onSendTest});
 
   @override
   Widget build(BuildContext context) {
@@ -261,35 +358,78 @@ class _PeerTile extends StatelessWidget {
     final prefix = entry.peerId.toHex().substring(0, 16);
     return Card(
       child: ListTile(
+        dense: true,
         leading: CircleAvatar(
+          radius: 14,
           backgroundColor: transport == 'BLE' ? Colors.blue : Colors.orange,
           child: Text(
             transport == 'BLE' ? 'B' : 'W',
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
+              fontSize: 12,
             ),
           ),
         ),
-        title: Text(
-          prefix,
-          style: const TextStyle(fontFamily: 'monospace'),
-        ),
+        title: Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
         subtitle: Text(
           '$transport  ·  ${entry.host}:${entry.port}',
-          style: const TextStyle(fontSize: 12),
+          style: const TextStyle(fontSize: 11),
         ),
-        trailing: Text(
-          _age(entry.discoveredAt),
-          style: const TextStyle(fontSize: 11, color: Colors.grey),
-        ),
+        trailing: onSendTest != null
+            ? TextButton(
+                onPressed: onSendTest,
+                child: const Text('Send test'),
+              )
+            : const Text(
+                'no pk',
+                style: TextStyle(fontSize: 10, color: Colors.grey),
+              ),
       ),
     );
   }
+}
 
-  String _age(DateTime t) {
-    final s = DateTime.now().difference(t).inSeconds;
-    if (s < 60) return '${s}s ago';
-    return '${s ~/ 60}m ago';
+class _MessageTile extends StatelessWidget {
+  final _LogEntry entry;
+  const _MessageTile({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = entry.timestamp.toIso8601String().substring(11, 19);
+    final isIn = entry.text.startsWith('←');
+    final isErr = entry.text.startsWith('⚠');
+    final color = isErr
+        ? Colors.redAccent
+        : isIn
+            ? Colors.lightBlueAccent
+            : Colors.greenAccent;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ts,
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 10,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              entry.text,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
