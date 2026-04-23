@@ -104,7 +104,11 @@ class BonjourTransport implements MeshTransport {
     // the service host/port. Without this, discoveryServiceResolved never
     // fires and the peer stays invisible.
     if (event.type == BonsoirDiscoveryEventType.discoveryServiceFound) {
-      _discovery?.serviceResolver.resolveService(service);
+      // Fire-and-forget resolve — bonsoir may fire a second found for a
+      // peer that has already moved out of its internal cache, which makes
+      // resolveService throw. Swallow those here; the next found → resolve
+      // cycle will recover.
+      _discovery?.serviceResolver.resolveService(service).catchError((_) {});
       return;
     }
 
