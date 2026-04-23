@@ -95,5 +95,11 @@
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>Taler ID mesh uses Bluetooth to find nearby contacts when you're offline.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Taler ID mesh uses your local network to find nearby contacts on the same Wi-Fi.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_talermesh._tcp</string>
+	</array>
 </dict>
 </plist>
