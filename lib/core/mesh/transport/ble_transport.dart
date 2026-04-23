@@ -41,8 +41,10 @@ class BleTransport implements MeshTransport {
   StreamSubscription<DiscoveredDevice>? _scanSub;
   final Map<PeerId, StreamSubscription<ConnectionStateUpdate>> _connectionSubs =
       {};
+  final Map<PeerId, StreamSubscription<List<int>>> _notifySubs = {};
   final Map<PeerId, FrameReassembler> _reassemblers = {};
   final Map<PeerId, DiscoveredDevice> _deviceCache = {};
+  final Set<PeerId> _seenPeers = {};
 
   bool _started = false;
 
@@ -111,17 +113,28 @@ class BleTransport implements MeshTransport {
     // We only know the 8-byte prefix from the advertisement. The full
     // PeerId is learned during the Noise handshake. Phase 1d: identify
     // the peer by the prefix tag stored in `attributes`.
+    //
+    // Phase 1d note: the 8-byte prefix space is birthday-sparse for small
+    // mesh networks (< 100 devices, collision probability < 10^-14). If two
+    // peers collide, the second overwrites the first in `_deviceCache` —
+    // documented as an accepted limitation. Phase 1e remaps to the full
+    // 32-byte PeerId once the Noise handshake learns it.
+    final placeholder = _placeholderPeerId(parsed.devicePkPrefix);
+    _deviceCache[placeholder] = device;
+
+    // Dedup: BLE scans re-emit the same device on every advertising
+    // interval. We only surface PeerDiscovered once per peer.
+    if (!_seenPeers.add(placeholder)) return;
+
     final prefixHex = parsed.devicePkPrefix
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
         .join();
-    final placeholder = _placeholderPeerId(parsed.devicePkPrefix);
     _discoveriesCtrl.add(PeerDiscovered(
       peerId: placeholder,
       host: device.id,
       port: 0,
       attributes: {'ble_prefix': prefixHex},
     ));
-    _deviceCache[placeholder] = device;
   }
 
   /// Build a synthetic 32-byte PeerId from the 8-byte prefix. Upper
@@ -172,6 +185,8 @@ class BleTransport implements MeshTransport {
         _lossesCtrl.add(PeerLost(peer));
         _connectionSubs[peer]?.cancel();
         _connectionSubs.remove(peer);
+        _notifySubs[peer]?.cancel();
+        _notifySubs.remove(peer);
         break;
       case DeviceConnectionState.connecting:
       case DeviceConnectionState.disconnecting:
@@ -188,9 +203,10 @@ class BleTransport implements MeshTransport {
     );
     // flutter_reactive_ble 5.4.1: subscribeToCharacteristic returns
     // Stream<List<int>>, not Stream<Uint8List> — convert at the call-site.
-    _central.subscribeToCharacteristic(ch).listen(
-          (bytes) =>
-              _reassemblers[peer]?.feed(Uint8List.fromList(bytes)),
+    // The returned subscription is tracked in _notifySubs so it is cancelled
+    // on disconnect/dispose.
+    _notifySubs[peer] = _central.subscribeToCharacteristic(ch).listen(
+          (bytes) => _reassemblers[peer]?.feed(Uint8List.fromList(bytes)),
           onError: (Object e) => debugPrint('[ble] subscribe error: $e'),
         );
   }
@@ -237,8 +253,13 @@ class BleTransport implements MeshTransport {
       await sub.cancel();
     }
     _connectionSubs.clear();
+    for (final sub in _notifySubs.values) {
+      await sub.cancel();
+    }
+    _notifySubs.clear();
     _reassemblers.clear();
     _deviceCache.clear();
+    _seenPeers.clear();
     await _discoveriesCtrl.close();
     await _lossesCtrl.close();
     await _inboundCtrl.close();
