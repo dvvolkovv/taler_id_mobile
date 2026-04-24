@@ -45,12 +45,6 @@ import '../../features/sessions/data/repositories/sessions_repository_impl.dart'
 import '../../features/sessions/domain/repositories/i_session_repository.dart';
 import '../../features/sessions/presentation/bloc/sessions_bloc.dart';
 
-// Chat
-import '../../features/chat/data/datasources/chat_remote_datasource.dart';
-import '../../features/chat/data/repositories/chat_repository_impl.dart';
-import '../../features/chat/domain/repositories/i_chat_repository.dart';
-import '../../features/chat/presentation/bloc/chat_bloc.dart';
-
 // Messenger
 import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../features/messenger/data/repositories/messenger_repository_impl.dart';
@@ -162,15 +156,6 @@ Future<void> setupDependencies() async {
     () => SessionsRepositoryImpl(sl<SessionsRemoteDataSource>()),
   );
 
-  // Chat
-  sl.registerLazySingleton(() => ChatRemoteDataSource());
-  sl.registerLazySingleton<IChatRepository>(
-    () => ChatRepositoryImpl(
-      remote: sl<ChatRemoteDataSource>(),
-      storage: sl<SecureStorageService>(),
-    ),
-  );
-
   // Messenger
   sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IMessengerRepository>(
@@ -195,6 +180,5 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => KycBloc(repo: sl<IKycRepository>()));
   sl.registerFactory(() => TenantBloc(repo: sl<ITenantRepository>()));
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
-  sl.registerFactory(() => ChatBloc(repo: sl<IChatRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
 }
