@@ -32,6 +32,9 @@ import '../mesh/transport/bonjour_transport.dart';
 import '../mesh/transport/mesh_transport.dart';
 import '../mesh/transport/multi_transport.dart';
 import '../mesh/transport/transport_preference.dart';
+// Mesh Phase 1e — messaging service
+import '../mesh/crypto/keys/contact_key_store.dart';
+import '../mesh/services/mesh_messaging_service.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -220,6 +223,25 @@ Future<void> setupDependencies() async {
   }
   sl.registerSingleton<MeshTransport>(
     MultiTransport(children: transports),
+  );
+
+  // ---------------------------------------------------------------------------
+  // Mesh Phase 1e — messaging service wraps transport + contact key store
+  // with Noise handshake. Started/stopped by AuthBloc on login/logout.
+  // ---------------------------------------------------------------------------
+  //
+  // MeshMessagingService uses the Phase 1a in-memory ContactKeyStore. The
+  // HiveContactKeyStore (Phase 1c) is kept for persistence; keys are bridged
+  // from Hive into this in-memory store on demand in T7/T9 contact key fetch.
+  sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
+
+  sl.registerLazySingleton<MeshMessagingService>(
+    () => MeshMessagingService(
+      transport: sl<MeshTransport>(),
+      contactKeyStore: sl<ContactKeyStore>(),
+      myDevicePrivateKey: sl<MeshStaticKey>().privateKeyBytes,
+      myDevicePublicKey: sl<MeshStaticKey>().publicKey,
+    ),
   );
 
   // Data sources
