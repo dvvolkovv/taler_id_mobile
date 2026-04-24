@@ -3049,4 +3049,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get channelsNotFoundRedirect => 'Channel no longer exists';
+
+  @override
+  String analystSeamSearches(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count searches',
+      one: '$count search',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamFiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '$count file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamCommands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count commands',
+      one: '$count command',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamImages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count images',
+      one: '$count image',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamOther(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count steps',
+      one: '$count step',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamDurationSeconds(int seconds) {
+    return '${seconds}s';
+  }
 }

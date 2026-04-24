@@ -3058,4 +3058,74 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get channelsNotFoundRedirect => 'Канал больше не существует';
+
+  @override
+  String analystSeamSearches(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count поиска',
+      many: '$count поисков',
+      few: '$count поиска',
+      one: '$count поиск',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamFiles(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count файла',
+      many: '$count файлов',
+      few: '$count файла',
+      one: '$count файл',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamCommands(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count команды',
+      many: '$count команд',
+      few: '$count команды',
+      one: '$count команда',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamImages(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count картинки',
+      many: '$count картинок',
+      few: '$count картинки',
+      one: '$count картинка',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamOther(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count шага',
+      many: '$count шагов',
+      few: '$count шага',
+      one: '$count шаг',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String analystSeamDurationSeconds(int seconds) {
+    return '$seconds с';
+  }
 }

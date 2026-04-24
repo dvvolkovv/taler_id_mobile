@@ -1366,5 +1366,17 @@
   "channelsNameLabel": "Название",
   "channelsDescriptionLabel": "Описание",
   "channelsCannotUnsubscribeOwner": "Владелец не может отписаться. Удалите канал.",
-  "channelsNotFoundRedirect": "Канал больше не существует"
+  "channelsNotFoundRedirect": "Канал больше не существует",
+  "analystSeamSearches": "{count, plural, =1{{count} поиск} few{{count} поиска} many{{count} поисков} other{{count} поиска}}",
+  "@analystSeamSearches": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamFiles": "{count, plural, =1{{count} файл} few{{count} файла} many{{count} файлов} other{{count} файла}}",
+  "@analystSeamFiles": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamCommands": "{count, plural, =1{{count} команда} few{{count} команды} many{{count} команд} other{{count} команды}}",
+  "@analystSeamCommands": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamImages": "{count, plural, =1{{count} картинка} few{{count} картинки} many{{count} картинок} other{{count} картинки}}",
+  "@analystSeamImages": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamOther": "{count, plural, =1{{count} шаг} few{{count} шага} many{{count} шагов} other{{count} шага}}",
+  "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamDurationSeconds": "{seconds} с",
+  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } }
 }

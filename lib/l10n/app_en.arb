@@ -1366,5 +1366,17 @@
   "channelsNameLabel": "Name",
   "channelsDescriptionLabel": "Description",
   "channelsCannotUnsubscribeOwner": "Owner cannot unsubscribe. Delete the channel instead.",
-  "channelsNotFoundRedirect": "Channel no longer exists"
+  "channelsNotFoundRedirect": "Channel no longer exists",
+  "analystSeamSearches": "{count, plural, =1{{count} search} other{{count} searches}}",
+  "@analystSeamSearches": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamFiles": "{count, plural, =1{{count} file} other{{count} files}}",
+  "@analystSeamFiles": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamCommands": "{count, plural, =1{{count} command} other{{count} commands}}",
+  "@analystSeamCommands": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamImages": "{count, plural, =1{{count} image} other{{count} images}}",
+  "@analystSeamImages": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamOther": "{count, plural, =1{{count} step} other{{count} steps}}",
+  "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamDurationSeconds": "{seconds}s",
+  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } }
 }

@@ -5845,6 +5845,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Channel no longer exists'**
   String get channelsNotFoundRedirect;
+
+  /// No description provided for @analystSeamSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} search} other{{count} searches}}'**
+  String analystSeamSearches(int count);
+
+  /// No description provided for @analystSeamFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} file} other{{count} files}}'**
+  String analystSeamFiles(int count);
+
+  /// No description provided for @analystSeamCommands.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} command} other{{count} commands}}'**
+  String analystSeamCommands(int count);
+
+  /// No description provided for @analystSeamImages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} image} other{{count} images}}'**
+  String analystSeamImages(int count);
+
+  /// No description provided for @analystSeamOther.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} step} other{{count} steps}}'**
+  String analystSeamOther(int count);
+
+  /// No description provided for @analystSeamDurationSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String analystSeamDurationSeconds(int seconds);
 }
 
 class _AppLocalizationsDelegate
