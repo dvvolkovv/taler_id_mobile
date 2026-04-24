@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/mesh/crypto/keys/contact_key_store.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/mesh/transport/mesh_transport.dart';
@@ -24,7 +23,6 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   late final MeshTransport _transport;
   late final MeshStaticKey _meshKey;
 
-  ContactKeyStore? _contactStore;
   MeshMessagingService? _messaging;
 
   bool _running = false;
@@ -54,14 +52,23 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   Future<void> _start() async {
     setState(() => _lastError = null);
     try {
-      _contactStore = ContactKeyStore();
-
-      final messaging = MeshMessagingService(
-        transport: _transport,
-        contactKeyStore: _contactStore!,
-        myDevicePrivateKey: _meshKey.privateKeyBytes,
-        myDevicePublicKey: _meshKey.publicKey,
-      );
+      // Phase 1i — reuse the shared DI MeshMessagingService that was
+      // started by AuthBloc / runMeshBootstrap at login. Do NOT call
+      // start() again here — it would replace the app's main Bonjour
+      // advertisement (taler-mesh-<userId>) with a taler-mesh-debug-*
+      // one, breaking mesh for the rest of the app until logout.
+      //
+      // We still attach our own listeners to visualize live traffic.
+      final messaging = sl.isRegistered<MeshMessagingService>()
+          ? sl<MeshMessagingService>()
+          : null;
+      if (messaging == null) {
+        setState(() {
+          _lastError =
+              'MeshMessagingService not registered — log out and back in.';
+        });
+        return;
+      }
       _messaging = messaging;
 
       _inboundSub = messaging.inbound.listen((msg) {
@@ -76,19 +83,11 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
       });
 
       _discoverySub = _transport.discoveries.listen((event) {
-        // Phase 1a: userPk == devicePk for Bonjour peers — register the peer
-        // in the in-memory ContactKeyStore so handshake can start.
-        final devicePk = event.peerId;
-        final pkHex = event.attributes['pk'] ?? event.attributes['ble_prefix'];
-        // Only register peers with a full 32-byte pk (from Bonjour TXT).
-        // BLE-only peers carry an 8-byte prefix and can't be messaged in
-        // Phase 1d (peripheral GATT gap).
-        if (pkHex != null && pkHex.length == 64) {
-          _contactStore!.addContact(
-            userPk: devicePk,
-            devicePks: [devicePk],
-          );
-        }
+        // Debug screen reflects discoveries live. The actual
+        // ContactKeyStore population is handled by DeviceKeySyncService
+        // (Phase 1f+1g bridge) — the debug screen no longer touches the
+        // main trust graph to avoid diverging from what the messenger
+        // uses at runtime.
         setState(() {
           _peers[event.peerId] = _PeerEntry(
             peerId: event.peerId,
@@ -96,7 +95,7 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
             port: event.port,
             attributes: event.attributes,
             discoveredAt: DateTime.now(),
-            canMessage: pkHex != null && pkHex.length == 64,
+            canMessage: (event.attributes['pk'] ?? '').length == 64,
           );
         });
       });
@@ -104,9 +103,6 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
         setState(() => _peers.remove(event.peerId));
       });
 
-      await messaging.start(
-        serviceName: 'taler-mesh-debug-${DateTime.now().millisecondsSinceEpoch}',
-      );
       setState(() => _running = true);
     } catch (e, st) {
       debugPrint('[mesh-debug] start failed: $e\n$st');
@@ -118,23 +114,16 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   }
 
   Future<void> _stop() async {
-    // NOTE: intentionally NOT calling _messaging.dispose() — that would
-    // also dispose the shared MeshTransport DI singleton, killing it for
-    // the rest of the app session. We just cancel our subscriptions and
-    // ask the transport to stop advertising.
+    // Phase 1i — we don't own the DI MeshMessagingService / transport.
+    // Just detach our listeners; the shared services keep running for
+    // the messenger layer.
     await _discoverySub?.cancel();
     await _lossSub?.cancel();
     await _inboundSub?.cancel();
     _discoverySub = null;
     _lossSub = null;
     _inboundSub = null;
-    try {
-      await _transport.stopAdvertising();
-    } catch (e) {
-      debugPrint('[mesh-debug] stopAdvertising error: $e');
-    }
     _messaging = null;
-    _contactStore = null;
     setState(() {
       _running = false;
       _peers.clear();
