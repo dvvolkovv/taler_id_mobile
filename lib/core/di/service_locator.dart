@@ -193,6 +193,17 @@ Future<void> setupDependencies() async {
   // startup if keys were rotated, triggering registerOwnDevice).
   sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
 
+  // Phase 1g — populate the in-memory store from persistent Hive certs.
+  // Without this, Noise IK handshakes would fail on startup until the user
+  // opens a chat AND the backend fetchContactKeys call succeeds. After
+  // the bridge, mesh works immediately for any contact whose cert was
+  // previously synced.
+  try {
+    contactKeyStore.bridgeIntoInMemory(sl<ContactKeyStore>());
+  } catch (e) {
+    debugPrint('[mesh-di] bridgeIntoInMemory failed: $e');
+  }
+
   sl.registerLazySingleton<DeviceKeysApiClient>(
     () => DeviceKeysApiClient(sl<DioClient>().dio),
   );

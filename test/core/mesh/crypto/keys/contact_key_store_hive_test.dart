@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store_hive.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/device_cert.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
@@ -142,6 +143,86 @@ void main() {
       expect(devices.length, 2);
       expect(devices.map((d) => d.toHex()), containsAll(['11' * 32, '22' * 32]));
       await store.close();
+    });
+  });
+
+  group('HiveContactKeyStore bridgeIntoInMemory (Phase 1g)', () {
+    test('populates the in-memory store with all stored certs', () async {
+      final hiveStore = await HiveContactKeyStore.open(boxName: 'bridge-1');
+
+      final userPk = PeerId(Uint8List.fromList(List.filled(32, 0x11)));
+      final cert = DeviceCert(
+        devicePk: 'ee' * 32,
+        userId: 'user-2',
+        userPk: null,
+        algorithm: 'X25519',
+        validUntilEpochMs: DateTime.now()
+            .add(const Duration(days: 30))
+            .millisecondsSinceEpoch,
+        signature: 'aa' * 64,
+      );
+      await hiveStore.addContactCerts(userPk: userPk, certs: [cert]);
+      await hiveStore.putContactUserIdMapping(
+        contactUserId: 'user-2',
+        userPk: userPk,
+      );
+
+      final inMemory = ContactKeyStore();
+      final devicePk = PeerId.fromHex(cert.devicePk);
+      expect(inMemory.isKnownDevice(devicePk), isFalse,
+          reason: 'empty before bridge');
+
+      hiveStore.bridgeIntoInMemory(inMemory);
+
+      expect(inMemory.isKnownDevice(devicePk), isTrue);
+      expect(inMemory.lookupUserByDevice(devicePk), equals(userPk));
+      expect(inMemory.devicesFor(userPk).length, 1);
+
+      await hiveStore.close();
+    });
+
+    test('is a no-op when Hive is empty', () async {
+      final hiveStore = await HiveContactKeyStore.open(boxName: 'bridge-2');
+      final inMemory = ContactKeyStore();
+      // Should not throw.
+      hiveStore.bridgeIntoInMemory(inMemory);
+      expect(inMemory.isKnownDevice(PeerId.fromHex('a' * 64)), isFalse);
+      await hiveStore.close();
+    });
+
+    test('dedupes by userPk across multiple userId mappings (same userPk)',
+        () async {
+      final hiveStore = await HiveContactKeyStore.open(boxName: 'bridge-3');
+
+      final userPk = PeerId(Uint8List.fromList(List.filled(32, 0x22)));
+      final cert = DeviceCert(
+        devicePk: 'ff' * 32,
+        userId: 'user-2',
+        userPk: null,
+        algorithm: 'X25519',
+        validUntilEpochMs: DateTime.now()
+            .add(const Duration(days: 30))
+            .millisecondsSinceEpoch,
+        signature: 'bb' * 64,
+      );
+      await hiveStore.addContactCerts(userPk: userPk, certs: [cert]);
+      // Two userId → same userPk mappings (shouldn't happen in practice but
+      // tests the dedup guard).
+      await hiveStore.putContactUserIdMapping(
+        contactUserId: 'user-2',
+        userPk: userPk,
+      );
+      await hiveStore.putContactUserIdMapping(
+        contactUserId: 'user-2-alias',
+        userPk: userPk,
+      );
+
+      final inMemory = ContactKeyStore();
+      hiveStore.bridgeIntoInMemory(inMemory);
+
+      expect(inMemory.devicesFor(userPk).length, 1);
+
+      await hiveStore.close();
     });
   });
 }

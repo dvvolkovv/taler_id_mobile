@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 
 import '../../transport/peer_id.dart';
+import 'contact_key_store.dart';
 import 'device_cert.dart';
 
 /// Hive-persisted store of trusted contact device certs.
@@ -131,6 +132,24 @@ class HiveContactKeyStore {
       } catch (_) {
         // skip malformed
       }
+    }
+  }
+
+  /// Phase 1g — populate an in-memory [ContactKeyStore] with every
+  /// (userPk → [devicePks]) mapping currently cached in Hive. Called once
+  /// at app start so Noise IK handshakes succeed even when the network
+  /// fetch of contact keys has never completed (airplane mode, server
+  /// down, or first-launch after install with cached state).
+  void bridgeIntoInMemory(ContactKeyStore inMemory) {
+    // Walk userId: entries to find unique userPks, then resolve their
+    // device lists via devicesFor.
+    final seenUserPks = <String>{};
+    for (final (_, userPk) in allUserIdMappings()) {
+      final hex = userPk.toHex();
+      if (!seenUserPks.add(hex)) continue;
+      final devices = devicesFor(userPk);
+      if (devices.isEmpty) continue;
+      inMemory.addContact(userPk: userPk, devicePks: devices);
     }
   }
 }
