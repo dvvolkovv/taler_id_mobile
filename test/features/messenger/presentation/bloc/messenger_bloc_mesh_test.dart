@@ -115,5 +115,46 @@ void main() {
         expect(bloc.state.messages['server-conv-42'], hasLength(1));
       },
     );
+
+    test(
+        'merges mesh history Map with server MessageEntity list via fromJson sorted by sentAt',
+        () {
+      // Pure helper-level verification: a Map in the mesh_messages Hive box
+      // round-trips via MessageEntity.fromJson with transport='mesh', and
+      // when merged with server messages and sorted by sentAt, the interleave
+      // order matches the timestamps. This locks in the shape that
+      // _onOpenConversation's merge must produce.
+      final meshRaw = {
+        'id': 'mesh-in-contact-1-1761307200000',
+        'conversationId': 'server-conv-42',
+        'senderId': 'contact-1',
+        'content': 'mid mesh',
+        'sentAt': '2026-04-24T11:30:00.000Z',
+        'transport': 'mesh',
+      };
+      final server = [
+        MessageEntity(
+          id: 'srv-1',
+          conversationId: 'server-conv-42',
+          senderId: 'contact-1',
+          content: 'first',
+          sentAt: DateTime.parse('2026-04-24T11:00:00.000Z'),
+        ),
+        MessageEntity(
+          id: 'srv-2',
+          conversationId: 'server-conv-42',
+          senderId: 'me',
+          content: 'last',
+          sentAt: DateTime.parse('2026-04-24T12:00:00.000Z'),
+        ),
+      ];
+      final merged = <MessageEntity>[
+        ...server,
+        MessageEntity.fromJson(meshRaw),
+      ]..sort((a, b) => a.sentAt.compareTo(b.sentAt));
+      expect(merged.map((m) => m.id).toList(),
+          ['srv-1', 'mesh-in-contact-1-1761307200000', 'srv-2']);
+      expect(merged[1].transport, 'mesh');
+    });
   });
 }

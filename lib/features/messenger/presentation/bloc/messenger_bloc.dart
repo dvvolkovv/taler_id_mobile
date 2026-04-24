@@ -300,13 +300,20 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       OpenConversation event, Emitter<MessengerState> emit) async {
     _repo.joinConversation(event.conversationId);
 
-    // 1. Load from cache instantly
+    // 1. Load from cache instantly, merged with mesh history.
     final cachedMsgs = _cache.getMessages(event.conversationId);
-    if (cachedMsgs != null && cachedMsgs.isNotEmpty && (state.messages[event.conversationId]?.isEmpty ?? true)) {
+    if (cachedMsgs != null &&
+        cachedMsgs.isNotEmpty &&
+        (state.messages[event.conversationId]?.isEmpty ?? true)) {
       try {
-        final msgs = cachedMsgs.map((e) => MessageEntity.fromJson(e)).toList();
+        final serverCached =
+            cachedMsgs.map((e) => MessageEntity.fromJson(e)).toList();
+        final merged = _mergeSortedById(
+          serverCached,
+          _loadMeshHistory(event.conversationId),
+        );
         final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
-        newMessages[event.conversationId] = msgs;
+        newMessages[event.conversationId] = merged;
         emit(state.copyWith(messages: newMessages, isLoading: true));
       } catch (_) {
         emit(state.copyWith(isLoading: true));
@@ -315,7 +322,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       emit(state.copyWith(isLoading: true));
     }
 
-    // 2. Fetch from server and merge
+    // 2. Fetch from server and merge with mesh history.
     try {
       final result = await _repo.getMessages(event.conversationId, topicId: event.topicId);
       final rawMessages = result['messages'] as List? ?? [];
@@ -352,7 +359,6 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       for (final p in pendingMaps) {
         final tempId = p['id'] as String? ?? '';
         if (tempId.isEmpty) continue;
-        // Skip if the server already returned a message with the same content.
         final dup = serverList.any((m) =>
             m.senderId == (p['senderId'] as String? ?? '') &&
             m.content == (p['content'] as String? ?? ''));
@@ -375,14 +381,17 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
           topicId: p['topicId'] as String?,
         ));
       }
-      newMessages[event.conversationId] = serverList;
+      // Phase 1f — merge mesh history so the chat renders both kinds.
+      final meshMsgs = _loadMeshHistory(event.conversationId);
+      final merged = _mergeSortedById(serverList, meshMsgs);
+      newMessages[event.conversationId] = merged;
       final newCursors = Map<String, String?>.from(state.nextCursors);
       newCursors[event.conversationId] = nextCursor;
       emit(state.copyWith(
           messages: newMessages, nextCursors: newCursors, isLoading: false));
-      // Save to cache (fire-and-forget)
+      // Save only the server portion to cache (mesh has its own persistence).
       _cache.saveMessages(event.conversationId,
-          newMessages[event.conversationId]!.map((m) => m.toJson()).toList());
+          serverList.map((m) => m.toJson()).toList());
     } catch (e) {
       // If cache was shown, just stop loading
       if (state.messages[event.conversationId]?.isNotEmpty ?? false) {
@@ -391,6 +400,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         emit(state.copyWith(isLoading: false, error: e.toString()));
       }
     }
+  }
+
+  // Phase 1f helpers.
+  List<MessageEntity> _loadMeshHistory(String convId) {
+    try {
+      return _cache
+          .getMeshMessagesFor(convId)
+          .map((m) => MessageEntity.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<MessageEntity> _mergeSortedById(
+      List<MessageEntity> a, List<MessageEntity> b) {
+    final seen = <String>{};
+    final out = <MessageEntity>[];
+    for (final m in [...a, ...b]) {
+      if (seen.add(m.id)) out.add(m);
+    }
+    out.sort((x, y) => x.sentAt.compareTo(y.sentAt));
+    return out;
   }
 
   /// Re-emit all persisted pending messages over the socket. Safe to call
