@@ -18,6 +18,7 @@ import '../../../../main.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../mesh/presentation/widgets/mesh_settings_section.dart';
 import '../../../profile/data/datasources/profile_remote_datasource.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -349,15 +350,6 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     onTap: () => context.push(RouteConstants.wallpaper),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
-                  if (AppConfig.isDev)
-                    _navTile(
-                      icon: Icons.bluetooth_searching,
-                      iconColor: const Color(0xFF00A1FF),
-                      title: 'Mesh Debug (dev)',
-                      onTap: () => context.push('${RouteConstants.settings}/mesh-debug'),
-                    ),
-                  if (AppConfig.isDev)
-                    Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
                     icon: Icons.delete_forever_outlined,
                     iconColor: AppColors.of(context).error,
@@ -369,6 +361,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
               ),
             ),
             const SizedBox(height: 16),
+
+            // Mesh network section (Phase 1e)
+            if (AppConfig.isDev) ...[
+              _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+              const MeshSettingsSection(),
+              const SizedBox(height: 16),
+            ],
 
             // Voice assistant section
             _sectionHeader(_currentLang == 'ru' ? 'Голосовой помощник' : 'Voice Assistant'),
