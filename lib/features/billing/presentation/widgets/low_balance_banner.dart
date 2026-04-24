@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 /// Non-dismissible warning banner shown during an active AI session when
 /// the balance drops into a warning range. Caller decides when to render it
 /// (e.g. in response to a `billing_low_balance_warning` socket event) and
@@ -23,6 +25,7 @@ class LowBalanceBanner extends StatelessWidget {
     // against both dark and light surfaces.
     const bg = Color(0xFFFFF3CD); // warm amber tint
     const fg = Color(0xFF7A4F01);
+    final l10n = AppLocalizations.of(context)!;
 
     return Material(
       color: bg,
@@ -37,7 +40,7 @@ class LowBalanceBanner extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Баланс на исходе: $balanceMicroTal μTAL',
+                  l10n.billingLowBalanceWarning(balanceMicroTal),
                   style: const TextStyle(
                     color: fg,
                     fontWeight: FontWeight.w600,
@@ -53,9 +56,9 @@ class LowBalanceBanner extends StatelessWidget {
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: const Text(
-                  'Пополнить',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                child: Text(
+                  l10n.billingTopUp,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ],

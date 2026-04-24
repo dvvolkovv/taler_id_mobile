@@ -29,18 +29,6 @@ class AiTogglesScreen extends StatelessWidget {
   }
 }
 
-/// Display labels (can differ slightly from the shared map, e.g. adding
-/// a qualifier like "(AI Twin)" or "Outbound-бот обзвона" for clarity
-/// on a settings screen).
-const _displayLabels = <String, String>{
-  'voice_assistant': 'Голосовой ассистент',
-  'web_search': 'Веб-поиск ассистента',
-  'ai_twin': 'Голосовой двойник (AI Twin)',
-  'outbound_call': 'Outbound-бот обзвона',
-  'whisper_transcribe': 'Транскрипция звонков',
-  'meeting_summary': 'AI-резюме звонков',
-};
-
 class _AiTogglesView extends StatelessWidget {
   const _AiTogglesView();
 
@@ -49,7 +37,7 @@ class _AiTogglesView extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('AI-функции')),
+      appBar: AppBar(title: Text(l10n.billingAiFeaturesTitle)),
       body: BlocConsumer<TogglesBloc, TogglesState>(
         listenWhen: (_, current) => current is TogglesError,
         listener: (context, state) {
@@ -91,7 +79,7 @@ class _AiTogglesView extends StatelessWidget {
               for (final key in orderedFeatureKeys)
                 _ToggleTile(
                   featureKey: key,
-                  label: _displayLabels[key] ?? key,
+                  label: featureLabelLong(l10n, key),
                   enabled: enabledFor(key),
                   onChanged: (v) => context
                       .read<TogglesBloc>()
@@ -140,6 +128,7 @@ class _ToggleTile extends StatelessWidget {
     ThemeData theme,
     ColorScheme colorScheme,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final subStyle = theme.textTheme.bodySmall?.copyWith(
       color: colorScheme.onSurface.withValues(alpha: 0.65),
     );
@@ -153,7 +142,7 @@ class _ToggleTile extends StatelessWidget {
       case 'web_search':
         return Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Text('(при использовании ассистента)', style: subStyle),
+          child: Text(l10n.billingWebSearchSubtitle, style: subStyle),
         );
       case 'ai_twin':
         // Inline link to the detailed AI Twin settings screen (prompt,
@@ -165,7 +154,7 @@ class _ToggleTile extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () => context.push('/profile/ai-twin'),
             child: Text(
-              'Настроить двойника',
+              l10n.billingConfigureAiTwin,
               style: linkStyle,
             ),
           ),

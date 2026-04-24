@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/features/billing/presentation/widgets/insufficient_funds_sheet.dart';
+import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
 /// Builds a MaterialApp.router with a fake /billing/purchase route
 /// so the "Пополнить" button has a destination to go to in tests.
+///
+/// Forces locale to `ru` so the sheet renders Russian strings we can
+/// assert against literally.
 GoRouter _buildRouter({required VoidCallback onHome}) {
   return GoRouter(
     initialLocation: '/',
@@ -36,11 +41,25 @@ GoRouter _buildRouter({required VoidCallback onHome}) {
   );
 }
 
+MaterialApp _wrap(GoRouter router) {
+  return MaterialApp.router(
+    routerConfig: router,
+    locale: const Locale('ru'),
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+  );
+}
+
 void main() {
   testWidgets('InsufficientFundsSheet renders title, description and CTAs',
       (tester) async {
     final router = _buildRouter(onHome: () {});
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(_wrap(router));
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -59,7 +78,7 @@ void main() {
 
   testWidgets('Tapping Отмена dismisses the sheet', (tester) async {
     final router = _buildRouter(onHome: () {});
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(_wrap(router));
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
@@ -74,7 +93,7 @@ void main() {
   testWidgets('Tapping Пополнить pops sheet and navigates to /billing/purchase',
       (tester) async {
     final router = _buildRouter(onHome: () {});
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(_wrap(router));
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();

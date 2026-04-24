@@ -2334,9 +2334,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   /// balance exhaustion), `failed` is a backend/internal error.
   void _onSessionTerminated(AiSessionTerminatedEvent e) {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final msg = e.reason == 'no_funds'
-        ? 'Баланс закончился — сессия завершена'
-        : 'Сессия ассистента завершена';
+        ? l10n.billingSessionTerminatedNoFunds
+        : l10n.billingSessionTerminatedGeneric;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg)),
     );

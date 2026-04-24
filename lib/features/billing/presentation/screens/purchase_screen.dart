@@ -43,7 +43,7 @@ class _PurchaseView extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Купить пакет')),
+      appBar: AppBar(title: Text(l10n.billingBuyPackage)),
       body: BlocConsumer<PackagesBloc, PackagesState>(
         listener: (context, state) {
           if (state is PurchaseSuccess) {
@@ -62,7 +62,9 @@ class _PurchaseView extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Пакет куплен: ${state.newBalance.balanceMicroTal} μTAL',
+                  l10n.billingPackagePurchased(
+                    state.newBalance.balanceMicroTal,
+                  ),
                 ),
                 backgroundColor: colorScheme.primary,
               ),
@@ -104,7 +106,7 @@ class _PurchaseView extends StatelessWidget {
                     FilledButton(
                       onPressed: () =>
                           context.read<PackagesBloc>().add(LoadPackages()),
-                      child: const Text('Повторить'),
+                      child: Text(l10n.billingRetry),
                     ),
                   ],
                 ),
@@ -200,6 +202,7 @@ class _PackageOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final title = package.label['ru'] ?? package.label['en'] ?? package.id;
     final highlightsRu =
         package.highlights['ru'] ?? package.highlights['en'] ?? const <String>[];
@@ -250,7 +253,7 @@ class _PackageOptionCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              'Рекомендуем',
+                              l10n.billingRecommendedBadge,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.primary,
                                 fontWeight: FontWeight.w700,
@@ -310,7 +313,7 @@ class _PackageOptionCard extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text('Купить за €$priceEur'),
+                : Text(l10n.billingBuyForPrice(priceEur)),
           ),
         ],
       ),

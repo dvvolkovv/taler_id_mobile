@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
+
 /// Modal bottom sheet shown when the server returns HTTP 402 for a metered
 /// feature call. Invoked centrally from the Dio paywall interceptor (Task 7).
 ///
@@ -68,6 +70,7 @@ class InsufficientFundsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final requiredMicroTal = _planckToMicroTal(requiredPlanck);
     final availableMicroTal = _planckToMicroTal(availablePlanck);
 
@@ -99,7 +102,7 @@ class InsufficientFundsSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Недостаточно средств',
+            l10n.billingInsufficientFundsTitle,
             style: theme.textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -107,7 +110,7 @@ class InsufficientFundsSheet extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Для использования этой функции нужно пополнить баланс.',
+            l10n.billingInsufficientFundsSubtitle,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
             ),
@@ -124,7 +127,7 @@ class InsufficientFundsSheet extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Нужно: $requiredMicroTal μTAL',
+                  l10n.billingRequiredLine(requiredMicroTal),
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -133,7 +136,7 @@ class InsufficientFundsSheet extends StatelessWidget {
                 Container(width: 1, height: 14, color: colorScheme.outlineVariant),
                 const SizedBox(width: 12),
                 Text(
-                  'Есть: $availableMicroTal μTAL',
+                  l10n.billingAvailableLine(availableMicroTal),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -150,15 +153,15 @@ class InsufficientFundsSheet extends StatelessWidget {
                 extra: {'preferred': suggestedPackage ?? 'starter'},
               );
             },
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text('Пополнить'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(l10n.billingTopUp),
             ),
           ),
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            child: Text(l10n.billingCancel),
           ),
         ],
       ),

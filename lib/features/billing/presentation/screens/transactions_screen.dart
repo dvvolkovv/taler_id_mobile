@@ -37,8 +37,9 @@ class _TransactionsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Операции')),
+      appBar: AppBar(title: Text(l10n.billingOperationsTitle)),
       body: RefreshIndicator(
         color: theme.colorScheme.primary,
         onRefresh: () => _refresh(context),
@@ -129,7 +130,7 @@ class _ErrorView extends StatelessWidget {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: onRetry,
-                  child: const Text('Повторить'),
+                  child: Text(l10n.billingRetry),
                 ),
               ],
             ),
@@ -147,6 +148,7 @@ class _EmptyView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(24),
@@ -164,14 +166,14 @@ class _EmptyView extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Операций пока нет',
+                  l10n.billingOperationsEmptyTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Здесь будут пополнения и списания за AI-функции',
+                  l10n.billingOperationsEmptySubtitle,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -195,6 +197,7 @@ class _TransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final credit = isCreditTx(tx);
     final amountMicroTal = planckToMicroTal(tx.amountPlanck);
     final absAmount = amountMicroTal.startsWith('-')
@@ -202,11 +205,9 @@ class _TransactionRow extends StatelessWidget {
         : amountMicroTal;
     final sign = credit ? '+' : '-';
     final amountColor = credit ? colorScheme.primary : colorScheme.onSurface;
-    final featureLabel = tx.featureKey == null
-        ? null
-        : (featureLabels[tx.featureKey] ?? tx.featureKey);
+    final label = featureLabel(l10n, tx.featureKey);
     final subtitle = [
-      if (featureLabel != null && featureLabel.isNotEmpty) featureLabel,
+      if (label != null && label.isNotEmpty) label,
       formatIsoDate(tx.createdAt),
     ].join(' · ');
 
@@ -234,7 +235,7 @@ class _TransactionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  typeLabel(tx),
+                  typeLabel(l10n, tx),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

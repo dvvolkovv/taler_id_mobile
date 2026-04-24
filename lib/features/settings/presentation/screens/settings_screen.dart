@@ -333,21 +333,21 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             const SizedBox(height: 16),
 
             // Billing & AI section
-            _sectionHeader(_currentLang == 'ru' ? 'Платежи и AI' : 'Billing & AI'),
+            _sectionHeader(l10n.billingSectionHeader),
             AppCard(
               child: Column(
                 children: [
                   _navTile(
                     icon: Icons.account_balance_wallet_outlined,
                     iconColor: AppColors.of(context).primary,
-                    title: _currentLang == 'ru' ? 'Кошелёк и баланс' : 'Wallet & Balance',
+                    title: l10n.billingWalletAndBalance,
                     onTap: () => context.push('/billing/wallet'),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _navTile(
                     icon: Icons.smart_toy_outlined,
                     iconColor: AppColors.of(context).accent,
-                    title: _currentLang == 'ru' ? 'AI-функции' : 'AI Features',
+                    title: l10n.billingAiFeaturesTitle,
                     onTap: () => context.push('/settings/ai-toggles'),
                   ),
                 ],

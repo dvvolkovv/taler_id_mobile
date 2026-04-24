@@ -52,8 +52,9 @@ class _WalletView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Кошелёк')),
+      appBar: AppBar(title: Text(l10n.billingWalletTitle)),
       body: RefreshIndicator(
         color: theme.colorScheme.primary,
         onRefresh: () => _refresh(context),
@@ -128,7 +129,7 @@ class _BalanceCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Текущий баланс',
+                    l10n.billingCurrentBalance,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.75),
                       fontWeight: FontWeight.w500,
@@ -156,7 +157,7 @@ class _BalanceCard extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => context.push('/billing/purchase'),
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Купить пакет'),
+                label: Text(l10n.billingBuyPackage),
               ),
             ],
           ),
@@ -183,7 +184,7 @@ class _PackagesSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Пакеты',
+          l10n.billingPackagesTitle,
           style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
@@ -218,7 +219,7 @@ class _PackagesSection extends StatelessWidget {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(
-                    'Пакеты недоступны',
+                    l10n.billingPackagesUnavailable,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
@@ -361,6 +362,7 @@ class _RecentTransactionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return BlocBuilder<BalanceBloc, BalanceState>(
       builder: (context, state) {
@@ -376,7 +378,7 @@ class _RecentTransactionsSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Последние операции',
+                    l10n.billingRecentOperations,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -384,7 +386,7 @@ class _RecentTransactionsSection extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () => context.push('/billing/transactions'),
-                  child: const Text('Все операции'),
+                  child: Text(l10n.billingAllOperations),
                 ),
               ],
             ),
@@ -403,7 +405,7 @@ class _RecentTransactionsSection extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
-                  'Операций нет',
+                  l10n.billingNoOperations,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
@@ -431,6 +433,7 @@ class _TransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final credit = isCreditTx(tx);
     final amountMicroTal = planckToMicroTal(tx.amountPlanck);
     // Strip any '-' so we can prepend our own sign in front of μTAL suffix.
@@ -439,11 +442,9 @@ class _TransactionRow extends StatelessWidget {
         : amountMicroTal;
     final sign = credit ? '+' : '-';
     final amountColor = credit ? colorScheme.primary : colorScheme.onSurface;
-    final featureLabel = tx.featureKey == null
-        ? null
-        : (featureLabels[tx.featureKey] ?? tx.featureKey);
+    final label = featureLabel(l10n, tx.featureKey);
     final subtitle = [
-      if (featureLabel != null && featureLabel.isNotEmpty) featureLabel,
+      if (label != null && label.isNotEmpty) label,
       formatIsoDate(tx.createdAt),
     ].join(' · ');
 
@@ -471,7 +472,7 @@ class _TransactionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  typeLabel(tx),
+                  typeLabel(l10n, tx),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

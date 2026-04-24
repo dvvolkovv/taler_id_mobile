@@ -38,7 +38,7 @@ class _PricebookScreenState extends State<PricebookScreen> {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Цены на функции')),
+      appBar: AppBar(title: Text(l10n.billingPricebookTitle)),
       body: FutureBuilder<List<PricebookItemEntity>>(
         future: _future,
         builder: (context, snapshot) {
@@ -70,7 +70,7 @@ class _PricebookScreenState extends State<PricebookScreen> {
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _reload,
-                      child: const Text('Повторить'),
+                      child: Text(l10n.billingRetry),
                     ),
                   ],
                 ),
@@ -81,7 +81,7 @@ class _PricebookScreenState extends State<PricebookScreen> {
           if (items.isEmpty) {
             return Center(
               child: Text(
-                'Прайс-лист недоступен',
+                l10n.billingPricebookUnavailable,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
@@ -116,20 +116,20 @@ class _PricebookRow extends StatelessWidget {
 
   const _PricebookRow({required this.item});
 
-  /// Translate a unit string to a human-friendly Russian label.
-  String _unitLabel(String unit) {
+  /// Translate a unit string to a human-friendly localized label.
+  String _unitLabel(AppLocalizations l10n, String unit) {
     switch (unit) {
       case 'minute':
-        return 'минуту';
+        return l10n.billingUnitMinute;
       case 'request':
-        return 'запрос';
+        return l10n.billingUnitRequest;
       case 'token':
-        return 'токен';
+        return l10n.billingUnitToken;
       case 'token_1k':
       case 'tokens_1k':
-        return '1К токенов';
+        return l10n.billingUnitTokens1k;
       case 'call':
-        return 'звонок';
+        return l10n.billingUnitCall;
       default:
         return unit;
     }
@@ -139,10 +139,11 @@ class _PricebookRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final name = featureLabels[item.featureKey] ?? item.featureKey;
-    final unitLabel = _unitLabel(item.unit);
+    final l10n = AppLocalizations.of(context)!;
+    final name = featureLabel(l10n, item.featureKey) ?? item.featureKey;
+    final unitLabel = _unitLabel(l10n, item.unit);
     final subtitle =
-        '\$${item.costUsdPerUnit} × ${item.markupMultiplier} за $unitLabel';
+        '\$${item.costUsdPerUnit} × ${item.markupMultiplier} / $unitLabel';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),

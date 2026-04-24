@@ -1366,5 +1366,78 @@
   "channelsNameLabel": "Название",
   "channelsDescriptionLabel": "Описание",
   "channelsCannotUnsubscribeOwner": "Владелец не может отписаться. Удалите канал.",
-  "channelsNotFoundRedirect": "Канал больше не существует"
+  "channelsNotFoundRedirect": "Канал больше не существует",
+
+  "billingWalletTitle": "Кошелёк",
+  "billingBuyPackage": "Купить пакет",
+  "billingCurrentBalance": "Текущий баланс",
+  "billingPackagesTitle": "Пакеты",
+  "billingPackagesUnavailable": "Пакеты недоступны",
+  "billingRecentOperations": "Последние операции",
+  "billingAllOperations": "Все операции",
+  "billingNoOperations": "Операций нет",
+  "billingOperationsTitle": "Операции",
+  "billingOperationsEmptyTitle": "Операций пока нет",
+  "billingOperationsEmptySubtitle": "Здесь будут пополнения и списания за AI-функции",
+  "billingPricebookTitle": "Цены на функции",
+  "billingPricebookUnavailable": "Прайс-лист недоступен",
+  "billingAiFeaturesTitle": "AI-функции",
+  "billingInsufficientFundsTitle": "Недостаточно средств",
+  "billingInsufficientFundsSubtitle": "Для использования этой функции нужно пополнить баланс.",
+  "billingRequiredLine": "Нужно: {required} μTAL",
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {"type": "String"}
+    }
+  },
+  "billingAvailableLine": "Есть: {available} μTAL",
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {"type": "String"}
+    }
+  },
+  "billingTopUp": "Пополнить",
+  "billingCancel": "Отмена",
+  "billingRetry": "Повторить",
+  "billingLowBalanceWarning": "Баланс на исходе: {balance} μTAL",
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingWalletAndBalance": "Кошелёк и баланс",
+  "billingSectionHeader": "Платежи и AI",
+  "billingFeatureVoiceAssistant": "Голосовой ассистент",
+  "billingFeatureWebSearch": "Веб-поиск ассистента",
+  "billingFeatureAiTwin": "Голосовой двойник",
+  "billingFeatureAiTwinLong": "Голосовой двойник (AI Twin)",
+  "billingFeatureOutboundCall": "Outbound-бот",
+  "billingFeatureOutboundCallLong": "Outbound-бот обзвона",
+  "billingFeatureWhisperTranscribe": "Транскрипция звонков",
+  "billingFeatureMeetingSummary": "AI-резюме звонков",
+  "billingConfigureAiTwin": "Настроить двойника",
+  "billingWebSearchSubtitle": "(при использовании ассистента)",
+  "billingPackagePurchased": "Пакет куплен: {balance} μTAL",
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingRecommendedBadge": "Рекомендуем",
+  "billingSessionTerminatedNoFunds": "Баланс закончился — сессия завершена",
+  "billingSessionTerminatedGeneric": "Сессия ассистента завершена",
+  "billingBuyForPrice": "Купить за €{price}",
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "billingTxTypeTopup": "Пополнение",
+  "billingTxTypeRefund": "Возврат",
+  "billingTxTypeSpend": "Оплата",
+  "billingUnitMinute": "минуту",
+  "billingUnitRequest": "запрос",
+  "billingUnitToken": "токен",
+  "billingUnitTokens1k": "1К токенов",
+  "billingUnitCall": "звонок"
 }

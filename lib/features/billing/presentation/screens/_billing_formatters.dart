@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/billing_transaction_entity.dart';
 
 /// Shared formatters/classifiers for billing UI.
@@ -41,13 +42,13 @@ bool isCreditTx(BillingTransactionEntity tx) {
   return !tx.amountPlanck.startsWith('-');
 }
 
-/// Human-friendly transaction type label (RU).
-String typeLabel(BillingTransactionEntity tx) {
+/// Human-friendly transaction type label, localized.
+String typeLabel(AppLocalizations l10n, BillingTransactionEntity tx) {
   final t = tx.type.toUpperCase();
-  if (t.startsWith('TOPUP')) return 'Пополнение';
-  if (t.contains('REFUND')) return 'Возврат';
+  if (t.startsWith('TOPUP')) return l10n.billingTxTypeTopup;
+  if (t.contains('REFUND')) return l10n.billingTxTypeRefund;
   if (t.contains('SPEND') || t.contains('DEBIT') || t.contains('CHARGE')) {
-    return 'Оплата';
+    return l10n.billingTxTypeSpend;
   }
   return tx.type;
 }
@@ -71,16 +72,48 @@ String formatIsoDate(String iso) {
   return '$d.$m.$y $hh:$mm';
 }
 
-/// Human-friendly labels for AI feature keys (RU). Used across
-/// transactions, pricebook, and toggles screens.
-const featureLabels = <String, String>{
-  'voice_assistant': 'Голосовой ассистент',
-  'web_search': 'Веб-поиск ассистента',
-  'ai_twin': 'Голосовой двойник',
-  'outbound_call': 'Outbound-бот',
-  'whisper_transcribe': 'Транскрипция звонков',
-  'meeting_summary': 'AI-резюме звонков',
-};
+/// Human-friendly labels for AI feature keys (short form).
+/// Used across transactions, pricebook, and toggles screens.
+String? featureLabel(AppLocalizations l10n, String? key) {
+  if (key == null) return null;
+  switch (key) {
+    case 'voice_assistant':
+      return l10n.billingFeatureVoiceAssistant;
+    case 'web_search':
+      return l10n.billingFeatureWebSearch;
+    case 'ai_twin':
+      return l10n.billingFeatureAiTwin;
+    case 'outbound_call':
+      return l10n.billingFeatureOutboundCall;
+    case 'whisper_transcribe':
+      return l10n.billingFeatureWhisperTranscribe;
+    case 'meeting_summary':
+      return l10n.billingFeatureMeetingSummary;
+    default:
+      return key;
+  }
+}
+
+/// Long-form feature label (used on settings/toggles screen where we
+/// want clarifying qualifiers like "(AI Twin)" / "bot обзвона").
+String featureLabelLong(AppLocalizations l10n, String key) {
+  switch (key) {
+    case 'voice_assistant':
+      return l10n.billingFeatureVoiceAssistant;
+    case 'web_search':
+      return l10n.billingFeatureWebSearch;
+    case 'ai_twin':
+      return l10n.billingFeatureAiTwinLong;
+    case 'outbound_call':
+      return l10n.billingFeatureOutboundCallLong;
+    case 'whisper_transcribe':
+      return l10n.billingFeatureWhisperTranscribe;
+    case 'meeting_summary':
+      return l10n.billingFeatureMeetingSummary;
+    default:
+      return key;
+  }
+}
 
 /// Ordered feature list — ensures a stable UI ordering across
 /// the toggles and pricebook screens regardless of API response order.
