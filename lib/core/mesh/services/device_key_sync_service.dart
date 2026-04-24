@@ -70,6 +70,23 @@ class DeviceKeySyncService {
         await store.addContactCerts(userPk: fallbackUserPk, certs: [cert]);
       }
     }
+
+    // Phase 1e — persist the Taler ID userId → userPk mapping so the
+    // messenger layer can find this contact's identity key when choosing
+    // the mesh transport. Use the first cert that carries a valid userPk.
+    for (final cert in certs) {
+      if (cert.userPk != null && cert.userPk!.isNotEmpty) {
+        try {
+          await store.putContactUserIdMapping(
+            contactUserId: contactUserId,
+            userPk: PeerId.fromHex(cert.userPk!),
+          );
+          break; // first valid cert is sufficient
+        } catch (_) {
+          // malformed hex — skip and try next cert
+        }
+      }
+    }
   }
 
   /// Legacy Phase 1b placeholder derivation for certs that predate Phase 1c.

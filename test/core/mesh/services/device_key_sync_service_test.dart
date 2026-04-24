@@ -106,6 +106,10 @@ void main() {
     final expectedUserPkHex = _hex(otherIdentity.publicKey);
     expect(lookedUp?.toHex(), equals(expectedUserPkHex));
 
+    // Phase 1e: userId → userPk mapping must also be populated.
+    final mappedPk = store.userPkForContactUserId('user-2');
+    expect(mappedPk?.toHex(), equals(expectedUserPkHex));
+
     await store.close();
   });
 

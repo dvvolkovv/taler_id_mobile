@@ -6,7 +6,8 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
-import '../../domain/repositories/i_messenger_repository.dart';
+import '../../domain/repositories/i_messenger_repository.dart'
+    show IMessengerRepository, MeshInboundMessage;
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/services/share_suggestions_service.dart';
@@ -39,6 +40,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _reactionSub;
   StreamSubscription? _socketErrorSub;
   StreamSubscription? _reconnectSub;
+  StreamSubscription? _meshMsgSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   MessengerBloc({required IMessengerRepository repo})
@@ -102,6 +104,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
     on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
     on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
+    // Phase 1e — mesh inbound pipeline; UI rendering is Phase 1f.
+    on<MeshMessageReceived>(_onMeshMessageReceived);
   }
 
   Future<void> _onConnect(
@@ -223,6 +227,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       if (msgId != null && convId != null) {
         add(ReactionUpdated(messageId: msgId, conversationId: convId, reactions: reactions));
       }
+    });
+    // Phase 1e: subscribe to the mesh inbound stream so messages are no
+    // longer silently dropped when a peer sends via the local network.
+    _meshMsgSub?.cancel();
+    _meshMsgSub = _repo.meshMessageStream.listen((msg) {
+      add(MeshMessageReceived(
+        contactUserId: msg.contactUserId,
+        text: msg.text,
+        receivedAt: msg.receivedAt,
+      ));
     });
     emit(state.copyWith(
       isConnected: true,
@@ -899,6 +913,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub?.cancel();
     _reactionSub?.cancel();
     _reconnectSub?.cancel();
+    _meshMsgSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }
     _repo.dispose();
     return super.close();
@@ -1014,6 +1029,19 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     allMessages[event.conversationId] = msgs;
     emit(state.copyWith(messages: allMessages));
     add(LoadConversations());
+  }
+
+  // Phase 1e: handler for mesh-delivered inbound messages. Logs the arrival
+  // so the inbound pipeline is confirmed connected. UI rendering of the
+  // message bubble in conversation history is Phase 1f work (requires
+  // MessageEntity.transport field + Freezed code generation).
+  void _onMeshMessageReceived(
+      MeshMessageReceived event, Emitter<MessengerState> emit) {
+    debugPrint(
+      '[mesh-in] from=${event.contactUserId}: '
+      '${event.text.substring(0, event.text.length.clamp(0, 60))}',
+    );
+    // No-op state change: Phase 1f will render the bubble.
   }
 
   Future<void> _onLoadBadgeCounts(LoadBadgeCounts event, Emitter<MessengerState> emit) async {

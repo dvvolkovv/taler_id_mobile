@@ -362,12 +362,12 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 16),
 
-            // Mesh network section (Phase 1e)
-            if (AppConfig.isDev) ...[
-              _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
-              const MeshSettingsSection(),
-              const SizedBox(height: 16),
-            ],
+            // Mesh network section (Phase 1e) — visible in all flavors so
+            // users can toggle offline-fallback. The "View debug" button
+            // inside MeshSettingsSection is already dev-only.
+            _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+            const MeshSettingsSection(),
+            const SizedBox(height: 16),
 
             // Voice assistant section
             _sectionHeader(_currentLang == 'ru' ? 'Голосовой помощник' : 'Voice Assistant'),

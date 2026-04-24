@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/constants.dart';
 import '../../domain/entities/mesh_status.dart';
@@ -95,11 +96,12 @@ class _MeshSettingsSectionState extends State<MeshSettingsSection> {
                   onChanged: _toggle,
                 ),
                 const Divider(height: 8),
-                TextButton(
-                  onPressed: () =>
-                      context.push('${RouteConstants.settings}/mesh-debug'),
-                  child: const Text('View debug'),
-                ),
+                if (AppConfig.isDev)
+                  TextButton(
+                    onPressed: () =>
+                        context.push('${RouteConstants.settings}/mesh-debug'),
+                    child: const Text('View debug'),
+                  ),
               ],
             );
           },

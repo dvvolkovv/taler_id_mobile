@@ -411,17 +411,7 @@ String _placeholderUserId() => 'phase1b-placeholder-user';
 
 PeerId? _resolveUserPkForUserId(String userId) {
   try {
-    final items = sl<ContactsCacheService>().get() ?? const [];
-    for (final item in items) {
-      if (item['userId'] == userId && item['userPk'] is String) {
-        try {
-          return PeerId.fromHex(item['userPk'] as String);
-        } catch (_) {
-          return null;
-        }
-      }
-    }
-    return null;
+    return sl<HiveContactKeyStore>().userPkForContactUserId(userId);
   } catch (_) {
     return null;
   }
@@ -429,12 +419,11 @@ PeerId? _resolveUserPkForUserId(String userId) {
 
 String? _contactUserIdByUserPk(PeerId userPk) {
   try {
+    // HiveContactKeyStore stores userId → userPk mappings, so we scan for
+    // the reverse match. Phase 1e expects contact counts under 100 typically.
     final hex = userPk.toHex();
-    final items = sl<ContactsCacheService>().get() ?? const [];
-    for (final item in items) {
-      if (item['userPk'] == hex) {
-        return item['userId'] as String?;
-      }
+    for (final entry in sl<HiveContactKeyStore>().allUserIdMappings()) {
+      if (entry.$2.toHex() == hex) return entry.$1;
     }
     return null;
   } catch (_) {

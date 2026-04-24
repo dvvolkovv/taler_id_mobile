@@ -58,11 +58,19 @@ class HiveContactKeyStore {
   List<PeerId> devicesFor(PeerId userPk) {
     final userHex = userPk.toHex();
     final devices = <PeerId>[];
-    for (final raw in _box.values) {
-      final map = jsonDecode(raw) as Map<String, dynamic>;
-      if (map['userPk'] == userHex) {
-        devices.add(PeerId.fromHex(
-            (map['cert'] as Map<String, dynamic>)['devicePk'] as String));
+    for (final entry in _box.toMap().entries) {
+      // Skip the userId-mapping entries (Phase 1e) — they are plain hex strings,
+      // not JSON-encoded cert objects.
+      if (entry.key is String &&
+          (entry.key as String).startsWith('userId:')) continue;
+      try {
+        final map = jsonDecode(entry.value) as Map<String, dynamic>;
+        if (map['userPk'] == userHex) {
+          devices.add(PeerId.fromHex(
+              (map['cert'] as Map<String, dynamic>)['devicePk'] as String));
+        }
+      } catch (_) {
+        // malformed entry — skip
       }
     }
     return devices;
@@ -78,5 +86,51 @@ class HiveContactKeyStore {
 
   Future<void> close() async {
     await _box.close();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Phase 1e — Taler ID contactUserId ↔ userPk (Ed25519 hex) mapping.
+  //
+  // Keys use the prefix `userId:` which never collides with the device-cert
+  // entries (those are keyed by lowercase hex devicePk, containing only
+  // `[0-9a-f]` — never `:` characters).
+  // ---------------------------------------------------------------------------
+
+  /// Store a Taler ID contactUserId → userPk (Ed25519 hex) mapping.
+  /// Called by DeviceKeySyncService.fetchContactKeys after it learns the
+  /// userPk from server-returned certs.
+  Future<void> putContactUserIdMapping({
+    required String contactUserId,
+    required PeerId userPk,
+  }) async {
+    await _box.put('userId:$contactUserId', userPk.toHex());
+  }
+
+  /// Returns the userPk (Ed25519 hex) for a Taler ID contactUserId, or null.
+  PeerId? userPkForContactUserId(String contactUserId) {
+    final hex = _box.get('userId:$contactUserId');
+    if (hex == null) return null;
+    try {
+      return PeerId.fromHex(hex);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// List all (contactUserId, userPk) mappings stored by
+  /// putContactUserIdMapping. O(n) scan of the `userId:` prefixed keys.
+  Iterable<(String, PeerId)> allUserIdMappings() sync* {
+    for (final key in _box.keys) {
+      if (key is! String) continue;
+      if (!key.startsWith('userId:')) continue;
+      final userId = key.substring('userId:'.length);
+      final hex = _box.get(key);
+      if (hex == null) continue;
+      try {
+        yield (userId, PeerId.fromHex(hex));
+      } catch (_) {
+        // skip malformed
+      }
+    }
   }
 }

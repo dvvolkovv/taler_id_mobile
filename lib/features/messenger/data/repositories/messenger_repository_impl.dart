@@ -3,7 +3,8 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
-import '../../domain/repositories/i_messenger_repository.dart';
+import '../../domain/repositories/i_messenger_repository.dart'
+    show IMessengerRepository, MeshInboundMessage;
 import '../datasources/messenger_remote_datasource.dart';
 import '../services/mesh_messenger_adapter.dart';
 import '../services/transport_selector.dart';
@@ -245,6 +246,16 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   @override
   Future<void> unmuteConversation(String conversationId) =>
       _remote.unmuteConversation(conversationId);
+
+  @override
+  Stream<MeshInboundMessage> get meshMessageStream =>
+      _meshAdapter.inbound.map(
+        (msg) => MeshInboundMessage(
+          contactUserId: msg.contactUserId,
+          text: msg.text,
+          receivedAt: msg.receivedAt,
+        ),
+      );
 
   @override
   void dispose() => _remote.dispose();

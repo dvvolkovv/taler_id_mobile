@@ -391,3 +391,19 @@ class ClearSocketError extends MessengerEvent {
   @override
   List<Object?> get props => [];
 }
+
+/// Phase 1e — emitted when a message arrives over the mesh transport.
+/// UI rendering of the message bubble is deferred to Phase 1f (requires
+/// MessageEntity.transport field + Freezed regen).
+class MeshMessageReceived extends MessengerEvent {
+  final String contactUserId;
+  final String text;
+  final DateTime receivedAt;
+  const MeshMessageReceived({
+    required this.contactUserId,
+    required this.text,
+    required this.receivedAt,
+  });
+  @override
+  List<Object?> get props => [contactUserId, text, receivedAt];
+}

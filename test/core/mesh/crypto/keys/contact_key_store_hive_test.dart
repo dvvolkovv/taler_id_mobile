@@ -69,6 +69,51 @@ void main() {
       await reopened.close();
     });
 
+    test('userId ↔ userPk mapping round-trips', () async {
+      final store = await HiveContactKeyStore.open(boxName: 'userid-map-test');
+      await store.putContactUserIdMapping(
+        contactUserId: 'contact-uuid-1',
+        userPk: PeerId.fromHex('a' * 64),
+      );
+      expect(
+        store.userPkForContactUserId('contact-uuid-1')?.toHex(),
+        equals('a' * 64),
+      );
+      expect(store.userPkForContactUserId('unknown'), isNull);
+      await store.close();
+    });
+
+    test('allUserIdMappings returns all stored userId mappings', () async {
+      final store = await HiveContactKeyStore.open(boxName: 'userid-map-all-test');
+      await store.putContactUserIdMapping(
+        contactUserId: 'user-a',
+        userPk: PeerId.fromHex('a' * 64),
+      );
+      await store.putContactUserIdMapping(
+        contactUserId: 'user-b',
+        userPk: PeerId.fromHex('b' * 64),
+      );
+      final mappings = store.allUserIdMappings().toList();
+      expect(mappings.length, 2);
+      final ids = mappings.map((e) => e.$1).toSet();
+      expect(ids, containsAll(['user-a', 'user-b']));
+      await store.close();
+    });
+
+    test('userId mappings do not appear in devicesFor results', () async {
+      final store = await HiveContactKeyStore.open(boxName: 'userid-no-device-test');
+      final userPk = PeerId(Uint8List.fromList(List.filled(32, 0xAA)));
+      // Add a userId mapping with the same hex as userPk.
+      await store.putContactUserIdMapping(
+        contactUserId: 'some-user',
+        userPk: userPk,
+      );
+      // devicesFor should return an empty list because no cert entries exist.
+      final devices = store.devicesFor(userPk);
+      expect(devices, isEmpty);
+      await store.close();
+    });
+
     test('devicesFor returns all devices of user', () async {
       final store = await HiveContactKeyStore.open(boxName: 'test-contacts-3');
       final userPk = PeerId(Uint8List.fromList(List.filled(32, 0xCC)));

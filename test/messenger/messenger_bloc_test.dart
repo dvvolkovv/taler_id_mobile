@@ -115,6 +115,9 @@ void main() {
     when(() => repo.contactAcceptedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.reactionUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.socketErrorStream).thenAnswer((_) => emptyStream<String>());
+    // Phase 1e: mesh inbound stream — stub required after meshMessageStream
+    // was added to IMessengerRepository.
+    when(() => repo.meshMessageStream).thenAnswer((_) => emptyStream<MeshInboundMessage>());
   }
 
   MessengerBloc buildBloc() => MessengerBloc(repo: repo);

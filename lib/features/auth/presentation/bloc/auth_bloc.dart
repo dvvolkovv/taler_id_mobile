@@ -14,6 +14,7 @@ import '../../../../core/mesh/services/device_key_sync_service.dart';
 import '../../../../core/mesh/services/device_keys_api_client.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
+import '../../../mesh/presentation/bloc/mesh_status_bloc.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -174,6 +175,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           // transport may already be started by a previous session
         }
       }
+
+      // I2: reflect running state in the Settings card.
+      try {
+        sl<MeshStatusBloc>().markRunning(true);
+      } catch (_) {}
     } catch (_) {
       // Mesh bootstrap must never block the login UX.
     }
@@ -203,5 +209,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (_) {
       // swallow
     }
+    // I2: reflect stopped state in the Settings card.
+    try {
+      sl<MeshStatusBloc>().markRunning(false);
+    } catch (_) {}
   }
 }

@@ -58,4 +58,20 @@ abstract class IMessengerRepository {
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes});
   Future<void> unmuteConversation(String conversationId);
   void dispose();
+
+  /// Stream of mesh-delivered text messages (Phase 1e). Emits after the
+  /// mesh adapter resolves the sender's devicePk to a known contact.
+  Stream<MeshInboundMessage> get meshMessageStream;
+}
+
+/// A mesh-delivered inbound message surfaced to the messenger layer.
+class MeshInboundMessage {
+  final String contactUserId;
+  final String text;
+  final DateTime receivedAt;
+  const MeshInboundMessage({
+    required this.contactUserId,
+    required this.text,
+    required this.receivedAt,
+  });
 }
