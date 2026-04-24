@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/i_auth_repository.dart';
@@ -139,12 +140,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   // ---------------------------------------------------------------------------
 
   Future<void> _bootstrapMeshAfterLogin() async {
+    debugPrint('[mesh-boot] start');
     try {
       final storage = sl<SecureStorageService>();
       final accessToken = await storage.getAccessToken();
-      if (accessToken == null || accessToken.isEmpty) return;
+      if (accessToken == null || accessToken.isEmpty) {
+        debugPrint('[mesh-boot] no access token, skipping');
+        return;
+      }
       final userId = _decodeSubFromJwt(accessToken);
-      if (userId == null) return;
+      if (userId == null) {
+        debugPrint('[mesh-boot] could not decode userId from JWT, skipping');
+        return;
+      }
+      debugPrint('[mesh-boot] userId resolved: $userId');
 
       // Re-register DeviceKeySyncService with the real JWT userId. The
       // registration performed in service_locator used a placeholder that
@@ -162,28 +171,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           myUserId: userId,
         ),
       );
+      debugPrint('[mesh-boot] DeviceKeySyncService re-registered');
 
       try {
         await sl<DeviceKeySyncService>().registerOwnDevice();
-      } catch (_) {
-        // best-effort; FCM/backend registration failure must not block UX
+        debugPrint('[mesh-boot] registerOwnDevice succeeded');
+      } catch (e) {
+        debugPrint('[mesh-boot] registerOwnDevice failed: $e');
       }
 
       if (sl.isRegistered<MeshMessagingService>()) {
         try {
           await sl<MeshMessagingService>()
               .start(serviceName: 'taler-mesh-$userId');
-        } catch (_) {
-          // transport may already be started by a previous session
+          debugPrint('[mesh-boot] MeshMessagingService.start() succeeded for taler-mesh-$userId');
+        } catch (e) {
+          debugPrint('[mesh-boot] MeshMessagingService.start() failed: $e');
         }
+      } else {
+        debugPrint('[mesh-boot] MeshMessagingService not registered — skipping start');
       }
 
       // I2: reflect running state in the Settings card.
       try {
         sl<MeshStatusBloc>().markRunning(true);
-      } catch (_) {}
-    } catch (_) {
-      // Mesh bootstrap must never block the login UX.
+        debugPrint('[mesh-boot] MeshStatusBloc.markRunning(true) ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] markRunning failed: $e');
+      }
+    } catch (e) {
+      debugPrint('[mesh-boot] bootstrap outer catch: $e');
     }
   }
 
