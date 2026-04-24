@@ -76,10 +76,16 @@ class MeshMessagingService {
       throw StateError('Unknown contact device: ${devicePk.toHex()}');
     }
     final state = _peerStates.putIfAbsent(devicePk, () => _PeerState());
-    if (state.session == null && state.handshake == null) {
+    if (state.session == null && state.handshake == null && !state.initiating) {
+      state.initiating = true;
       state.sessionEstablished = Completer<void>();
       debugPrint('[mesh-send] initiating new handshake');
-      await _initiateHandshake(devicePk, state);
+      try {
+        await _initiateHandshake(devicePk, state);
+      } catch (e) {
+        state.initiating = false;
+        rethrow;
+      }
     }
     if (state.session == null) {
       // Phase 1j — 10s timeout (was 2s). On mobile Bonjour + Noise IK, the
@@ -205,4 +211,10 @@ class _PeerState {
   NoiseSession? session;
   bool isInitiator = false;
   Completer<void>? sessionEstablished;
+  /// Phase 1j — guard against parallel handshake init by two rapid
+  /// sendText calls. `putIfAbsent` + null-check on `handshake` is not
+  /// enough because `_initiateHandshake` has several awaits before
+  /// `state.handshake = ...` lands, leaving a window where a second
+  /// sendText observes `handshake == null` and starts its own.
+  bool initiating = false;
 }
