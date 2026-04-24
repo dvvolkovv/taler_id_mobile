@@ -263,6 +263,55 @@ void main() {
     expect(inMemory.isKnownDevice(PeerId.fromHex(tampered.devicePk)), isFalse);
     await store.close();
   });
+
+  test('fetchContactKeys does not write userId→userPk mapping for unverified cert',
+      () async {
+    final api = _FakeApi();
+    final store = await HiveContactKeyStore.open(boxName: 'sync-poison');
+    final inMemory = ContactKeyStore();
+
+    // Forge a cert whose signature fails verification. The tampered `userId`
+    // won't match what the signature was computed over, so the cert is bad —
+    // but its `userPk` field still points at a real public key that a
+    // malicious server might try to poison the mapping with.
+    final identity = await UserIdentityKey.generate();
+    final mesh = await MeshStaticKey.generate();
+    final signer = CertSigner(userIdentityKey: identity);
+    final cert = await signer.sign(
+      meshPublicKey: mesh.publicKey,
+      userId: 'user-2',
+      validUntilEpochMs:
+          DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
+    );
+    final tampered = DeviceCert(
+      devicePk: cert.devicePk,
+      userId: 'evil-attacker',
+      userPk: cert.userPk,
+      algorithm: cert.algorithm,
+      validUntilEpochMs: cert.validUntilEpochMs,
+      signature: cert.signature,
+    );
+    api.seedContactKeys('user-2', [tampered]);
+
+    final service = DeviceKeySyncService(
+      api: api,
+      store: store,
+      inMemoryStore: inMemory,
+      userIdentityKey: await UserIdentityKey.generate(),
+      meshStaticKey: await MeshStaticKey.generate(),
+      myUserId: 'user-1',
+    );
+    await service.fetchContactKeys('user-2');
+
+    // The bad cert is correctly excluded from both Hive and in-memory stores.
+    expect(store.isKnownDevice(PeerId.fromHex(tampered.devicePk)), isFalse);
+    expect(inMemory.isKnownDevice(PeerId.fromHex(tampered.devicePk)), isFalse);
+    // And — the key assertion — the userId→userPk mapping is NOT poisoned.
+    expect(store.userPkForContactUserId('user-2'), isNull,
+        reason: 'unverified cert must not write the contactUserId→userPk mapping');
+
+    await store.close();
+  });
 }
 
 String _hex(List<int> bytes) {

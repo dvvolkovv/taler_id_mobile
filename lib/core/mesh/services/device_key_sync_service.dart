@@ -56,6 +56,7 @@ class DeviceKeySyncService {
       debugPrint('[mesh-sync] no keys for $contactUserId');
       return;
     }
+    PeerId? firstVerifiedUserPk;
     for (final cert in certs) {
       if (cert.userPk != null) {
         final ok = await CertSigner.verifyWithEmbeddedUserPk(cert: cert);
@@ -82,6 +83,8 @@ class DeviceKeySyncService {
             '[mesh-sync] failed to mirror devicePk into in-memory store: $e',
           );
         }
+
+        firstVerifiedUserPk ??= userPeer;
       } else {
         // Phase 1b legacy cert: no userPk to verify against. Trust the server
         // for backward compat; key the entry by a UUID-derived PeerId. NOT
@@ -91,19 +94,19 @@ class DeviceKeySyncService {
       }
     }
 
-    // Phase 1e — persist the Taler ID userId → userPk mapping so the
-    // messenger layer can find this contact's identity key.
-    for (final cert in certs) {
-      if (cert.userPk != null && cert.userPk!.isNotEmpty) {
-        try {
-          await store.putContactUserIdMapping(
-            contactUserId: contactUserId,
-            userPk: PeerId.fromHex(cert.userPk!),
-          );
-          break;
-        } catch (_) {
-          // malformed hex — skip and try next cert
-        }
+    // Phase 1e — persist the Taler ID contactUserId → userPk mapping using a
+    // cert whose signature VERIFIED. Pre-T3 logic wrote this for any cert
+    // with a non-null userPk, which let a malicious server poison the index
+    // with an unverified pk. The single-pass verification above is the gate.
+    if (firstVerifiedUserPk != null) {
+      try {
+        await store.putContactUserIdMapping(
+          contactUserId: contactUserId,
+          userPk: firstVerifiedUserPk,
+        );
+      } catch (_) {
+        // malformed hex already impossible here — userPeer came from
+        // PeerId.fromHex above — but keep the guard defensive.
       }
     }
   }
