@@ -9,6 +9,7 @@ import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/entities/channel_summary.dart';
 import '../../domain/entities/channel_details.dart';
+import '../../domain/entities/analyst_events.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -45,6 +46,8 @@ class MessengerRemoteDataSource {
   final _callAiTwinLeftCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _topicUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _outboundListenCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _analystChunkCtrl = StreamController<AnalystChunk>.broadcast();
+  final _analystSeamCtrl  = StreamController<AnalystSeam>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -152,6 +155,16 @@ class MessengerRemoteDataSource {
     _socket!.on('typing', (d) {
       try { _typingCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    _socket!.on('analyst_chunk', (data) {
+      try {
+        _analystChunkCtrl.add(AnalystChunk.fromJson(Map<String, dynamic>.from(data as Map)));
+      } catch (_) {}
+    });
+    _socket!.on('analyst_seam', (data) {
+      try {
+        _analystSeamCtrl.add(AnalystSeam.fromJson(Map<String, dynamic>.from(data as Map)));
+      } catch (_) {}
+    });
     _socket!.on('message_reaction_updated', (d) {
       try { _reactionUpdatedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
@@ -214,6 +227,8 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get callAiTwinLeftStream => _callAiTwinLeftCtrl.stream;
   Stream<Map<String, dynamic>> get topicUpdatedStream => _topicUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get outboundListenStream => _outboundListenCtrl.stream;
+  Stream<AnalystChunk> get analystChunkStream => _analystChunkCtrl.stream;
+  Stream<AnalystSeam>  get analystSeamStream  => _analystSeamCtrl.stream;
   bool get isSocketConnected => _socket?.connected ?? false;
 
   void acceptAiTwinOffer(String roomName) {
@@ -576,5 +591,7 @@ class MessengerRemoteDataSource {
     _contactAcceptedCtrl.close();
     _reactionUpdatedCtrl.close();
     _topicUpdatedCtrl.close();
+    _analystChunkCtrl.close();
+    _analystSeamCtrl.close();
   }
 }
