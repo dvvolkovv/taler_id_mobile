@@ -41,8 +41,9 @@ class MeshMessengerAdapter {
   /// Phase 1f — provider that returns the currently authenticated Taler ID
   /// userId (or null before login). Used to stamp outbound mesh entries with
   /// the real senderId so chat bubbles render with the correct alignment.
-  /// Falls back to the `'me'` sentinel when the provider returns null — same
-  /// fallback shape as MessengerBloc's pending-message path.
+  /// When the provider returns null, persistence is skipped entirely (see
+  /// [sendMessage]) to avoid a bogus `'me'`-stamped entry that would render
+  /// on the wrong side after app restart.
   final String? Function() currentUserIdProvider;
 
   final void Function(Map<String, dynamic> entry) persistLocal;
@@ -105,11 +106,20 @@ class MeshMessengerAdapter {
   }) async {
     await meshSendText(toUserPk: contactDevicePk, text: text);
     final now = DateTime.now();
+    final myUserId = currentUserIdProvider();
+    if (myUserId == null || myUserId.isEmpty) {
+      // Rare: bloc currentUserId not yet populated. Skip persistence so a
+      // bogus `senderId: 'me'` entry doesn't render on the wrong side of
+      // the chat after app restart — the transport send already succeeded,
+      // so the message IS delivered; we just don't cache it locally.
+      // Runtime inbound delivery on the receiver side is unaffected.
+      return;
+    }
     persistLocal({
       'id': _outboundId(contactUserId, now),
       'conversationId': conversationId,
       'contactUserId': contactUserId,
-      'senderId': currentUserIdProvider() ?? 'me',
+      'senderId': myUserId,
       'content': text,
       'transport': _kTransport,
       'direction': 'outbound',

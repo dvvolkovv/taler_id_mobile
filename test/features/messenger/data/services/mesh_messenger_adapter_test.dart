@@ -137,7 +137,11 @@ void main() {
         () async {
       final messaging = _FakeMessaging();
       final cache = _CacheSpy();
-      final adapter = _adapter(messaging, cache);
+      final adapter = _adapter(
+        messaging,
+        cache,
+        currentUserIdProvider: () => 'user-me',
+      );
 
       await adapter.sendMessage(
         conversationId: 'server-conv-42',
@@ -155,8 +159,7 @@ void main() {
       expect(e['conversationId'], 'server-conv-42');
       expect(e['direction'], 'outbound');
       expect(e['id'], startsWith('mesh-out-'));
-      expect(e['senderId'], 'me',
-          reason: 'falls back to sentinel when currentUserIdProvider returns null');
+      expect(e['senderId'], 'user-me');
 
       await messaging.dispose();
     });
@@ -180,6 +183,30 @@ void main() {
 
       expect(cache.persisted, hasLength(1));
       expect(cache.persisted.first['senderId'], 'user-abc-123');
+    });
+
+    test('sendMessage skips persistence when currentUserIdProvider returns null',
+        () async {
+      final messaging = _FakeMessaging();
+      final cache = _CacheSpy();
+      final adapter = _adapter(
+        messaging,
+        cache,
+        currentUserIdProvider: () => null,
+      );
+
+      await adapter.sendMessage(
+        conversationId: 'server-conv-42',
+        text: 'pre-login mesh send',
+        contactDevicePk: PeerId.fromHex('a' * 64),
+        contactUserId: 'contact-1',
+      );
+
+      // Transport send succeeded — message was delivered over the wire.
+      expect(messaging.sentCalls, hasLength(1));
+      // But persistence was skipped to avoid a bogus 'me'-stamped entry that
+      // would render on the wrong side after restart.
+      expect(cache.persisted, isEmpty);
     });
 
     test('sendMessage surfaces error from underlying transport and does NOT persist',
