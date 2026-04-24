@@ -129,11 +129,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final contactId = _resolveContactUserId();
       if (contactId == null) return;
-      try {
-        sl<DeviceKeySyncService>().fetchContactKeys(contactId);
-      } catch (_) {
-        // best-effort
-      }
+      debugPrint('[mesh-chat] ChatRoomScreen opening — calling fetchContactKeys($contactId)');
+      sl<DeviceKeySyncService>().fetchContactKeys(contactId).then((_) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) completed');
+      }).catchError((Object e, StackTrace st) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) FAILED: $e');
+      });
     });
     // Listen for socket connectivity changes
     final ds = sl<MessengerRemoteDataSource>();

@@ -51,12 +51,16 @@ class DeviceKeySyncService {
   /// mirrored into the in-memory [ContactKeyStore] so Noise IK handshakes
   /// can find the devicePk for this contact.
   Future<void> fetchContactKeys(String contactUserId) async {
+    debugPrint('[mesh-sync] fetchContactKeys($contactUserId) — START');
     final certs = await api.getContactKeys(contactUserId);
+    debugPrint('[mesh-sync] fetchContactKeys($contactUserId) — server returned ${certs.length} cert(s)');
     if (certs.isEmpty) {
       debugPrint('[mesh-sync] no keys for $contactUserId');
       return;
     }
     PeerId? firstVerifiedUserPk;
+    var verifiedCount = 0;
+    var legacyCount = 0;
     for (final cert in certs) {
       if (cert.userPk != null) {
         final ok = await CertSigner.verifyWithEmbeddedUserPk(cert: cert);
@@ -78,6 +82,9 @@ class DeviceKeySyncService {
             userPk: userPeer,
             devicePks: [devicePeer],
           );
+          debugPrint(
+            '[mesh-sync] bridged devicePk=${cert.devicePk.substring(0, 12)}... userPk=${userPeer.toHex().substring(0, 12)}... into in-memory store',
+          );
         } catch (e) {
           debugPrint(
             '[mesh-sync] failed to mirror devicePk into in-memory store: $e',
@@ -85,12 +92,14 @@ class DeviceKeySyncService {
         }
 
         firstVerifiedUserPk ??= userPeer;
+        verifiedCount++;
       } else {
         // Phase 1b legacy cert: no userPk to verify against. Trust the server
         // for backward compat; key the entry by a UUID-derived PeerId. NOT
         // mirrored into ContactKeyStore — no real userPk to key by.
         final fallbackUserPk = _derivePlaceholderUserPk(contactUserId);
         await store.addContactCerts(userPk: fallbackUserPk, certs: [cert]);
+        legacyCount++;
       }
     }
 
@@ -104,11 +113,21 @@ class DeviceKeySyncService {
           contactUserId: contactUserId,
           userPk: firstVerifiedUserPk,
         );
+        debugPrint(
+          '[mesh-sync] saved userId mapping $contactUserId -> ${firstVerifiedUserPk.toHex().substring(0, 12)}...',
+        );
       } catch (_) {
         // malformed hex already impossible here — userPeer came from
         // PeerId.fromHex above — but keep the guard defensive.
       }
+    } else {
+      debugPrint(
+        '[mesh-sync] WARNING: no verified cert for $contactUserId — no userId mapping written',
+      );
     }
+    debugPrint(
+      '[mesh-sync] fetchContactKeys($contactUserId) DONE — verified=$verifiedCount legacy=$legacyCount',
+    );
   }
 
   PeerId _derivePlaceholderUserPk(String userId) {
