@@ -67,6 +67,7 @@ import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
 import '../../features/billing/data/services/billing_event_bus.dart';
 import '../../features/billing/data/services/billing_socket_listener.dart';
+import '../../features/billing/data/services/voice_billing_bridge.dart';
 import '../../features/billing/domain/repositories/billing_repository.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../../features/billing/presentation/bloc/balance_event.dart';
@@ -205,6 +206,14 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<BillingEventBus>(() => BillingEventBus());
   sl.registerLazySingleton<BillingSocketListener>(
     () => BillingSocketListener(sl<BillingEventBus>()),
+  );
+  // Factory: a fresh bridge per voice/assistant session so each screen
+  // owns its own heartbeat timer and terminated-event filter.
+  sl.registerFactory<VoiceBillingBridge>(
+    () => VoiceBillingBridge(
+      dio: sl<DioClient>(),
+      eventBus: sl<BillingEventBus>(),
+    ),
   );
 
   // Update check

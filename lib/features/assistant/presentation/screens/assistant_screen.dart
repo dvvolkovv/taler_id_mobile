@@ -22,6 +22,8 @@ import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
+import '../../../billing/data/services/billing_event_bus.dart';
+import '../../../billing/data/services/voice_billing_bridge.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 
@@ -96,6 +98,12 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   // Incoming message listener
   StreamSubscription? _messageSub;
+
+  // Billing bridge: owns POST /voice/session, heartbeat, close.
+  // Created per connect, disposed on cleanup.
+  VoiceBillingBridge? _billing;
+  StreamSubscription<AiSessionTerminatedEvent>? _terminatedSub;
+  DateTime? _sessionStartedAt;
 
   @override
   void initState() {
@@ -230,6 +238,21 @@ class _AssistantScreenState extends State<AssistantScreen>
     await _recordSub?.cancel();
     _recordSub = null;
     await _recorder.stop();
+    // Finalize billing BEFORE closing the WS so the backend still has the
+    // session active when it receives the close call. Best-effort — any
+    // failure is swallowed by VoiceBillingBridge.stop().
+    await _terminatedSub?.cancel();
+    _terminatedSub = null;
+    final bridge = _billing;
+    if (bridge != null) {
+      final secs = _sessionStartedAt == null
+          ? 0
+          : DateTime.now().difference(_sessionStartedAt!).inSeconds;
+      await bridge.stop(durationSec: secs);
+      await bridge.dispose();
+    }
+    _billing = null;
+    _sessionStartedAt = null;
     await _ws?.close();
     _ws = null;
   }
@@ -251,6 +274,23 @@ class _AssistantScreenState extends State<AssistantScreen>
       // 1. Get JWT token (API key stays on server)
       final token = await sl<SecureStorageService>().getAccessToken();
       if (token == null) throw Exception('Not authenticated');
+
+      // 1a. Open billing session. Pre-flight check for feature toggle +
+      // minReserve balance happens server-side; 402 insufficient-funds
+      // surfaces via the global Dio interceptor (InsufficientFundsSheet).
+      // We keep the returned billingSessionId for heartbeat + close.
+      _billing = sl<VoiceBillingBridge>();
+      try {
+        await _billing!.start();
+        _sessionStartedAt = DateTime.now();
+        _terminatedSub?.cancel();
+        _terminatedSub = _billing!.onTerminated.listen(_onSessionTerminated);
+      } catch (e) {
+        // Insufficient funds or backend unavailable — abort before opening
+        // the OpenAI socket so we don't consume bandwidth for nothing.
+        _billing = null;
+        rethrow;
+      }
 
       // 2. Connect to backend WebSocket proxy
       final wsUrl = Uri(
@@ -2142,6 +2182,21 @@ class _AssistantScreenState extends State<AssistantScreen>
         _aiSpeaking = false;
       });
     }
+  }
+
+  /// Backend pushed `ai_session_terminated` for *our* session (the bridge
+  /// already filtered by sessionId). Show a short message to the user and
+  /// tear the call down — `no_funds` is the common case (cron-driven
+  /// balance exhaustion), `failed` is a backend/internal error.
+  void _onSessionTerminated(AiSessionTerminatedEvent e) {
+    if (!mounted) return;
+    final msg = e.reason == 'no_funds'
+        ? 'Баланс закончился — сессия завершена'
+        : 'Сессия ассистента завершена';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+    _endCall();
   }
 
   @override
