@@ -83,8 +83,8 @@ void main() {
       expect(e['conversationId'], 'server-conv-42');
       expect(e['content'], 'Hello');
       expect(e['senderId'], 'contact-1');
-      expect(e['id'], startsWith('mesh-'),
-          reason: 'persisted entry must carry a deterministic mesh-prefixed id for dedup');
+      expect(e['id'], startsWith('mesh-in-contact-1-'),
+          reason: 'persisted entry must carry a id aligned with MessengerBloc dedup scheme');
 
       await sub.cancel();
       await adapter.stop();

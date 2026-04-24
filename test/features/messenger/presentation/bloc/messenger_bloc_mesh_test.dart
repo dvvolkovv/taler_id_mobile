@@ -74,42 +74,46 @@ void main() {
       },
     );
 
-    test('appends to existing conversation messages preserving ascending sentAt order',
-        () async {
-      final bloc = MessengerBloc(repo: _FakeRepo());
-      // Seed the state directly by firing two events in order and verifying
-      // the final state. We use two MeshMessageReceived events with
-      // distinct receivedAt times.
-      bloc.add(MeshMessageReceived(
-        conversationId: 'server-conv-42',
-        contactUserId: 'contact-1',
-        text: 'earlier',
-        receivedAt: DateTime(2026, 4, 24, 11, 0),
-      ));
-      bloc.add(MeshMessageReceived(
-        conversationId: 'server-conv-42',
-        contactUserId: 'contact-1',
-        text: 'later',
-        receivedAt: DateTime(2026, 4, 24, 12, 0),
-      ));
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      final list = bloc.state.messages['server-conv-42']!;
-      expect(list.map((m) => m.content).toList(), ['earlier', 'later']);
-    });
+    blocTest<MessengerBloc, MessengerState>(
+      'appends to existing conversation messages preserving ascending sentAt order',
+      build: () => MessengerBloc(repo: _FakeRepo()),
+      act: (bloc) async {
+        bloc.add(MeshMessageReceived(
+          conversationId: 'server-conv-42',
+          contactUserId: 'contact-1',
+          text: 'earlier',
+          receivedAt: DateTime(2026, 4, 24, 11, 0),
+        ));
+        bloc.add(MeshMessageReceived(
+          conversationId: 'server-conv-42',
+          contactUserId: 'contact-1',
+          text: 'later',
+          receivedAt: DateTime(2026, 4, 24, 12, 0),
+        ));
+      },
+      verify: (bloc) {
+        final list = bloc.state.messages['server-conv-42']!;
+        expect(list.map((m) => m.content).toList(), ['earlier', 'later']);
+      },
+    );
 
-    test('deduplicates by message id when the same MeshMessageReceived fires twice',
-        () async {
-      final bloc = MessengerBloc(repo: _FakeRepo());
-      final evt = MeshMessageReceived(
-        conversationId: 'server-conv-42',
-        contactUserId: 'contact-1',
-        text: 'only once',
-        receivedAt: DateTime(2026, 4, 24, 12, 0),
-      );
-      bloc.add(evt);
-      bloc.add(evt);
-      await Future<void>.delayed(const Duration(milliseconds: 30));
-      expect(bloc.state.messages['server-conv-42'], hasLength(1));
-    });
+    blocTest<MessengerBloc, MessengerState>(
+      'deduplicates by message id when the same MeshMessageReceived fires twice',
+      build: () => MessengerBloc(repo: _FakeRepo()),
+      act: (bloc) async {
+        // same event added twice to the bloc queue — dedup on id prevents double emit
+        final evt = MeshMessageReceived(
+          conversationId: 'server-conv-42',
+          contactUserId: 'contact-1',
+          text: 'only once',
+          receivedAt: DateTime(2026, 4, 24, 12, 0),
+        );
+        bloc.add(evt);
+        bloc.add(evt);
+      },
+      verify: (bloc) {
+        expect(bloc.state.messages['server-conv-42'], hasLength(1));
+      },
+    );
   });
 }

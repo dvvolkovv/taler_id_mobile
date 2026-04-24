@@ -78,7 +78,7 @@ class MeshMessengerAdapter {
     if (contactUserId == null) return;
     final now = DateTime.now();
     final convId = resolveConversationId(contactUserId);
-    final msgId = _inboundId(msg.fromUserPk, now);
+    final msgId = _inboundId(contactUserId, now);
     persistLocal({
       'id': msgId,
       'conversationId': convId,
@@ -122,14 +122,12 @@ class MeshMessengerAdapter {
     await _ctrl.close();
   }
 
-  // 1ms collision window is safe for mesh transport: BLE/Bonjour minimum RTT
-  // is ~100ms, so two messages from the same devicePk within the same
-  // millisecond cannot happen in practice.
-  static String _inboundId(PeerId from, DateTime at) {
-    final hex = from.toHex();
-    final prefix = hex.substring(0, hex.length < 8 ? hex.length : 8);
-    return 'mesh-$prefix-${at.millisecondsSinceEpoch}';
-  }
+  // Id scheme matches MessengerBloc._onMeshMessageReceived so the same
+  // message isn't double-rendered after T6 merges Hive mesh history into
+  // bloc state. The 1ms window is safe: mesh RTT (BLE/Bonjour) is
+  // ~100ms, so two messages from the same contact in <1ms cannot happen.
+  static String _inboundId(String contactUserId, DateTime at) =>
+      'mesh-in-$contactUserId-${at.millisecondsSinceEpoch}';
 
   static String _outboundId(String contactUserId, DateTime at) =>
       'mesh-out-$contactUserId-${at.millisecondsSinceEpoch}';
