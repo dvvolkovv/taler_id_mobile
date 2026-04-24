@@ -359,6 +359,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       for (final p in pendingMaps) {
         final tempId = p['id'] as String? ?? '';
         if (tempId.isEmpty) continue;
+        // Skip if the server already returned a message with the same content.
         final dup = serverList.any((m) =>
             m.senderId == (p['senderId'] as String? ?? '') &&
             m.content == (p['content'] as String? ?? ''));
@@ -409,7 +410,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
           .getMeshMessagesFor(convId)
           .map((m) => MessageEntity.fromJson(Map<String, dynamic>.from(m)))
           .toList();
-    } catch (_) {
+    } catch (e, st) {
+      debugPrint('[mesh-bloc] _loadMeshHistory($convId) failed: $e\n$st');
       return const [];
     }
   }
