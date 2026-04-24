@@ -286,6 +286,13 @@ Future<void> setupDependencies() async {
           return 'meshOnly:$contactUserId';
         }
       },
+      currentUserIdProvider: () {
+        try {
+          return sl<MessengerBloc>().state.currentUserId;
+        } catch (_) {
+          return null;
+        }
+      },
       persistLocal: (entry) =>
           sl<MessengerCacheService>().appendMeshMessage(entry),
     );

@@ -24,6 +24,8 @@ class AdaptedInboundMessage {
 /// via [meshSendText] and persists a local record flagged
 /// `transport: 'mesh'`.
 class MeshMessengerAdapter {
+  static const _kTransport = 'mesh';
+
   final Future<void> Function({required PeerId toUserPk, required String text})
       meshSendText;
   final Stream<InboundMessage> meshInbound;
@@ -36,6 +38,13 @@ class MeshMessengerAdapter {
   /// `meshOnly:<userId>` so the ghost chat still captures history.
   final String Function(String contactUserId) resolveConversationId;
 
+  /// Phase 1f — provider that returns the currently authenticated Taler ID
+  /// userId (or null before login). Used to stamp outbound mesh entries with
+  /// the real senderId so chat bubbles render with the correct alignment.
+  /// Falls back to the `'me'` sentinel when the provider returns null — same
+  /// fallback shape as MessengerBloc's pending-message path.
+  final String? Function() currentUserIdProvider;
+
   final void Function(Map<String, dynamic> entry) persistLocal;
 
   final _ctrl = StreamController<AdaptedInboundMessage>.broadcast();
@@ -47,6 +56,7 @@ class MeshMessengerAdapter {
     required this.lookupUserByDevice,
     required this.contactUserIdForUserPk,
     required this.resolveConversationId,
+    required this.currentUserIdProvider,
     required this.persistLocal,
   });
 
@@ -75,7 +85,7 @@ class MeshMessengerAdapter {
       'contactUserId': contactUserId,
       'senderId': contactUserId,
       'content': msg.text,
-      'transport': 'mesh',
+      'transport': _kTransport,
       'direction': 'inbound',
       'sentAt': now.toUtc().toIso8601String(),
     });
@@ -99,9 +109,9 @@ class MeshMessengerAdapter {
       'id': _outboundId(contactUserId, now),
       'conversationId': conversationId,
       'contactUserId': contactUserId,
-      'senderId': 'me',
+      'senderId': currentUserIdProvider() ?? 'me',
       'content': text,
-      'transport': 'mesh',
+      'transport': _kTransport,
       'direction': 'outbound',
       'sentAt': now.toUtc().toIso8601String(),
     });
@@ -112,6 +122,9 @@ class MeshMessengerAdapter {
     await _ctrl.close();
   }
 
+  // 1ms collision window is safe for mesh transport: BLE/Bonjour minimum RTT
+  // is ~100ms, so two messages from the same devicePk within the same
+  // millisecond cannot happen in practice.
   static String _inboundId(PeerId from, DateTime at) {
     final hex = from.toHex();
     final prefix = hex.substring(0, hex.length < 8 ? hex.length : 8);

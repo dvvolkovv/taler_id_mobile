@@ -36,6 +36,7 @@ MeshMessengerAdapter _adapter(
   PeerId? Function(PeerId)? lookupUserByDevice,
   String? Function(PeerId)? contactUserIdForUserPk,
   String Function(String)? resolveConversationId,
+  String? Function()? currentUserIdProvider,
 }) {
   return MeshMessengerAdapter(
     meshSendText: m.sendText,
@@ -44,6 +45,7 @@ MeshMessengerAdapter _adapter(
     contactUserIdForUserPk: contactUserIdForUserPk ?? (_) => null,
     resolveConversationId:
         resolveConversationId ?? (userId) => 'meshOnly:$userId',
+    currentUserIdProvider: currentUserIdProvider ?? () => null,
     persistLocal: cache.persist,
   );
 }
@@ -153,8 +155,31 @@ void main() {
       expect(e['conversationId'], 'server-conv-42');
       expect(e['direction'], 'outbound');
       expect(e['id'], startsWith('mesh-out-'));
+      expect(e['senderId'], 'me',
+          reason: 'falls back to sentinel when currentUserIdProvider returns null');
 
       await messaging.dispose();
+    });
+
+    test('sendMessage stamps persisted senderId with currentUserIdProvider() when available',
+        () async {
+      final messaging = _FakeMessaging();
+      final cache = _CacheSpy();
+      final adapter = _adapter(
+        messaging,
+        cache,
+        currentUserIdProvider: () => 'user-abc-123',
+      );
+
+      await adapter.sendMessage(
+        conversationId: 'server-conv-42',
+        text: 'hi',
+        contactDevicePk: PeerId.fromHex('a' * 64),
+        contactUserId: 'contact-1',
+      );
+
+      expect(cache.persisted, hasLength(1));
+      expect(cache.persisted.first['senderId'], 'user-abc-123');
     });
 
     test('sendMessage surfaces error from underlying transport and does NOT persist',
