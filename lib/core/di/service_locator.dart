@@ -35,6 +35,7 @@ import '../mesh/transport/multi_transport.dart';
 import '../mesh/transport/transport_preference.dart';
 // Mesh Phase 1e — messaging service + messenger wiring
 import '../mesh/crypto/keys/contact_key_store.dart';
+import '../mesh/mesh_bootstrap.dart';
 import '../mesh/services/mesh_messaging_service.dart';
 import '../mesh/transport/peer_id.dart';
 import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
@@ -406,6 +407,13 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
   sl.registerFactory(() => ChatBloc(repo: sl<IChatRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
+
+  // Phase 1g — if the user is already authenticated from a prior session
+  // (JWT cached in SecureStorage), run the mesh bootstrap immediately so
+  // Bonjour advertising + contact-key bridge are active without waiting
+  // for a fresh LoginSubmitted event. On a clean install this is a no-op.
+  // ignore: unawaited_futures
+  runMeshBootstrapIfAuthenticated();
 }
 
 /// Placeholder until Phase 1e wires login → DeviceKeySyncService.registerOwnDevice.
