@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../billing/data/services/billing_socket_listener.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
@@ -181,6 +183,22 @@ class MessengerRemoteDataSource {
     _socket!.on('disconnect', (reason) {
       _disconnectCtrl.add(reason?.toString() ?? 'disconnected');
     });
+
+    // Billing real-time events (balance changed, ai_session_*, low_balance_warning).
+    // The listener registers handlers on the same socket and fans them out
+    // via the BillingEventBus singleton. Safe to skip if DI not wired (e.g.
+    // isolated unit tests of this datasource).
+    try {
+      final getIt = GetIt.instance;
+      if (getIt.isRegistered<BillingSocketListener>()) {
+        getIt<BillingSocketListener>().attach((event, handler) {
+          _socket!.on(event, handler);
+        });
+      }
+    } catch (e) {
+      debugPrint('[Socket] billing listener attach skipped: $e');
+    }
+
     _socket!.connect();
   }
 

@@ -65,6 +65,8 @@ import '../../features/profile_sections/domain/repositories/i_profile_sections_r
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
+import '../../features/billing/data/services/billing_event_bus.dart';
+import '../../features/billing/data/services/billing_socket_listener.dart';
 import '../../features/billing/domain/repositories/billing_repository.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../../features/billing/presentation/bloc/packages_bloc.dart';
@@ -197,6 +199,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<BillingRepository>(
     () => BillingRepositoryImpl(remote: sl<BillingRemoteDataSource>()),
   );
+  // Real-time event hub (balance changed, session started/terminated, low balance).
+  // Singleton: the messenger socket pushes into it; BLoCs and widgets listen.
+  sl.registerLazySingleton<BillingEventBus>(() => BillingEventBus());
+  sl.registerLazySingleton<BillingSocketListener>(
+    () => BillingSocketListener(sl<BillingEventBus>()),
+  );
 
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
@@ -217,7 +225,10 @@ Future<void> setupDependencies() async {
   // Note: Task 9 will add a separate lazySingleton BalanceBloc for the
   // dashboard AppBar chip (needs to persist across screens + receive socket
   // events). For now, factory is sufficient for the billing screens.
-  sl.registerFactory(() => BalanceBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => BalanceBloc(
+        repo: sl<BillingRepository>(),
+        eventBus: sl<BillingEventBus>(),
+      ));
   sl.registerFactory(() => PackagesBloc(repo: sl<BillingRepository>()));
   sl.registerFactory(() => TogglesBloc(repo: sl<BillingRepository>()));
   sl.registerFactory(() => TransactionsBloc(repo: sl<BillingRepository>()));
