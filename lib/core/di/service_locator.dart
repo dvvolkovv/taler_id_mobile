@@ -187,6 +187,12 @@ Future<void> setupDependencies() async {
   );
   sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
 
+  // Phase 1a in-memory ContactKeyStore — registered here (before
+  // DeviceKeySyncService) so the lazy singleton is available when
+  // DeviceKeySyncService is first instantiated (which may happen at
+  // startup if keys were rotated, triggering registerOwnDevice).
+  sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
+
   sl.registerLazySingleton<DeviceKeysApiClient>(
     () => DeviceKeysApiClient(sl<DioClient>().dio),
   );
@@ -195,6 +201,7 @@ Future<void> setupDependencies() async {
     () => DeviceKeySyncService(
       api: sl<DeviceKeysApiClient>(),
       store: sl<HiveContactKeyStore>(),
+      inMemoryStore: sl<ContactKeyStore>(),
       userIdentityKey: sl<UserIdentityKey>(),
       meshStaticKey: sl<MeshStaticKey>(),
       myUserId: _placeholderUserId(),
@@ -235,11 +242,9 @@ Future<void> setupDependencies() async {
   // with Noise handshake. Started/stopped by AuthBloc on login/logout.
   // ---------------------------------------------------------------------------
   //
-  // MeshMessagingService uses the Phase 1a in-memory ContactKeyStore. The
-  // HiveContactKeyStore (Phase 1c) is kept for persistence; keys are bridged
-  // from Hive into this in-memory store on demand in T7/T9 contact key fetch.
-  sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
-
+  // MeshMessagingService uses the Phase 1a in-memory ContactKeyStore
+  // (registered above, before DeviceKeySyncService). Phase 1f bridges
+  // verified certs from Hive into this store via DeviceKeySyncService.
   sl.registerLazySingleton<MeshMessagingService>(
     () => MeshMessagingService(
       transport: sl<MeshTransport>(),

@@ -9,6 +9,7 @@ import '../../../../core/utils/error_keys.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
 import '../../../../core/mesh/crypto/keys/user_identity_key.dart';
+import '../../../../core/mesh/crypto/keys/contact_key_store.dart';
 import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
 import '../../../../core/mesh/services/device_keys_api_client.dart';
@@ -155,6 +156,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         () => DeviceKeySyncService(
           api: sl<DeviceKeysApiClient>(),
           store: sl<HiveContactKeyStore>(),
+          inMemoryStore: sl<ContactKeyStore>(),
           userIdentityKey: sl<UserIdentityKey>(),
           meshStaticKey: sl<MeshStaticKey>(),
           myUserId: userId,

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 
 import 'package:taler_id_mobile/core/mesh/crypto/keys/cert_signer.dart';
+import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store_hive.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/device_cert.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/mesh_static_key.dart';
@@ -61,6 +62,7 @@ void main() {
     final service = DeviceKeySyncService(
       api: api,
       store: store,
+      inMemoryStore: ContactKeyStore(),
       userIdentityKey: identity,
       meshStaticKey: mesh,
       myUserId: 'user-1',
@@ -92,6 +94,7 @@ void main() {
     final service = DeviceKeySyncService(
       api: api,
       store: store,
+      inMemoryStore: ContactKeyStore(),
       userIdentityKey: myIdentity,
       meshStaticKey: myMesh,
       myUserId: 'user-1',
@@ -141,6 +144,7 @@ void main() {
     final service = DeviceKeySyncService(
       api: api,
       store: store,
+      inMemoryStore: ContactKeyStore(),
       userIdentityKey: await UserIdentityKey.generate(),
       meshStaticKey: await MeshStaticKey.generate(),
       myUserId: 'user-1',
@@ -172,6 +176,7 @@ void main() {
     final service = DeviceKeySyncService(
       api: api,
       store: store,
+      inMemoryStore: ContactKeyStore(),
       userIdentityKey: await UserIdentityKey.generate(),
       meshStaticKey: await MeshStaticKey.generate(),
       myUserId: 'user-1',
@@ -179,6 +184,83 @@ void main() {
     await service.fetchContactKeys('user-legacy');
 
     expect(store.isKnownDevice(PeerId.fromHex('ab' * 32)), isTrue);
+    await store.close();
+  });
+
+  test('fetchContactKeys mirrors verified cert into in-memory ContactKeyStore',
+      () async {
+    final api = _FakeApi();
+    final store = await HiveContactKeyStore.open(boxName: 'sync-bridge-1');
+    final inMemory = ContactKeyStore();
+
+    final otherIdentity = await UserIdentityKey.generate();
+    final otherMesh = await MeshStaticKey.generate();
+    final otherSigner = CertSigner(userIdentityKey: otherIdentity);
+    final validCert = await otherSigner.sign(
+      meshPublicKey: otherMesh.publicKey,
+      userId: 'user-2',
+      validUntilEpochMs:
+          DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
+    );
+    api.seedContactKeys('user-2', [validCert]);
+
+    final service = DeviceKeySyncService(
+      api: api,
+      store: store,
+      inMemoryStore: inMemory,
+      userIdentityKey: await UserIdentityKey.generate(),
+      meshStaticKey: await MeshStaticKey.generate(),
+      myUserId: 'user-1',
+    );
+    await service.fetchContactKeys('user-2');
+
+    final userPk = PeerId.fromHex(_hex(otherIdentity.publicKey));
+    final devicePk = PeerId.fromHex(validCert.devicePk);
+    expect(inMemory.isKnownDevice(devicePk), isTrue,
+        reason: 'Noise IK needs the devicePk in the in-memory store');
+    expect(inMemory.lookupUserByDevice(devicePk)?.toHex(), userPk.toHex());
+    expect(inMemory.devicesFor(userPk).map((d) => d.toHex()).toList(),
+        contains(devicePk.toHex()));
+
+    await store.close();
+  });
+
+  test('fetchContactKeys does not mirror unverified (bad-signature) cert',
+      () async {
+    final api = _FakeApi();
+    final store = await HiveContactKeyStore.open(boxName: 'sync-bridge-2');
+    final inMemory = ContactKeyStore();
+
+    final identity = await UserIdentityKey.generate();
+    final mesh = await MeshStaticKey.generate();
+    final signer = CertSigner(userIdentityKey: identity);
+    final cert = await signer.sign(
+      meshPublicKey: mesh.publicKey,
+      userId: 'user-2',
+      validUntilEpochMs:
+          DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch,
+    );
+    final tampered = DeviceCert(
+      devicePk: cert.devicePk,
+      userId: 'evil-attacker',
+      userPk: cert.userPk,
+      algorithm: cert.algorithm,
+      validUntilEpochMs: cert.validUntilEpochMs,
+      signature: cert.signature,
+    );
+    api.seedContactKeys('user-2', [tampered]);
+
+    final service = DeviceKeySyncService(
+      api: api,
+      store: store,
+      inMemoryStore: inMemory,
+      userIdentityKey: await UserIdentityKey.generate(),
+      meshStaticKey: await MeshStaticKey.generate(),
+      myUserId: 'user-1',
+    );
+    await service.fetchContactKeys('user-2');
+
+    expect(inMemory.isKnownDevice(PeerId.fromHex(tampered.devicePk)), isFalse);
     await store.close();
   });
 }
