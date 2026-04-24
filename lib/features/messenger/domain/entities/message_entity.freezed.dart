@@ -46,6 +46,7 @@ mixin _$MessageEntity {
   List<String>? get threadLastReplierAvatars =>
       throw _privateConstructorUsedError;
   String? get topicId => throw _privateConstructorUsedError;
+  Map<String, dynamic>? get metadata => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -83,7 +84,8 @@ abstract class $MessageEntityCopyWith<$Res> {
       String? threadParentId,
       int threadReplyCount,
       List<String>? threadLastReplierAvatars,
-      String? topicId});
+      String? topicId,
+      Map<String, dynamic>? metadata});
 }
 
 /// @nodoc
@@ -123,6 +125,7 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? threadReplyCount = null,
     Object? threadLastReplierAvatars = freezed,
     Object? topicId = freezed,
+    Object? metadata = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -221,6 +224,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.topicId
           : topicId // ignore: cast_nullable_to_non_nullable
               as String?,
+      metadata: freezed == metadata
+          ? _value.metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ) as $Val);
   }
 }
@@ -257,7 +264,8 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       String? threadParentId,
       int threadReplyCount,
       List<String>? threadLastReplierAvatars,
-      String? topicId});
+      String? topicId,
+      Map<String, dynamic>? metadata});
 }
 
 /// @nodoc
@@ -295,6 +303,7 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? threadReplyCount = null,
     Object? threadLastReplierAvatars = freezed,
     Object? topicId = freezed,
+    Object? metadata = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -393,6 +402,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value.topicId
           : topicId // ignore: cast_nullable_to_non_nullable
               as String?,
+      metadata: freezed == metadata
+          ? _value._metadata
+          : metadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, dynamic>?,
     ));
   }
 }
@@ -424,9 +437,11 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.threadParentId,
       this.threadReplyCount = 0,
       final List<String>? threadLastReplierAvatars,
-      this.topicId})
+      this.topicId,
+      final Map<String, dynamic>? metadata})
       : _reactions = reactions,
-        _threadLastReplierAvatars = threadLastReplierAvatars;
+        _threadLastReplierAvatars = threadLastReplierAvatars,
+        _metadata = metadata;
 
   factory _$MessageEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$MessageEntityImplFromJson(json);
@@ -500,10 +515,19 @@ class _$MessageEntityImpl implements _MessageEntity {
 
   @override
   final String? topicId;
+  final Map<String, dynamic>? _metadata;
+  @override
+  Map<String, dynamic>? get metadata {
+    final value = _metadata;
+    if (value == null) return null;
+    if (_metadata is EqualUnmodifiableMapView) return _metadata;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(value);
+  }
 
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata)';
   }
 
   @override
@@ -551,7 +575,8 @@ class _$MessageEntityImpl implements _MessageEntity {
                 other.threadReplyCount == threadReplyCount) &&
             const DeepCollectionEquality().equals(
                 other._threadLastReplierAvatars, _threadLastReplierAvatars) &&
-            (identical(other.topicId, topicId) || other.topicId == topicId));
+            (identical(other.topicId, topicId) || other.topicId == topicId) &&
+            const DeepCollectionEquality().equals(other._metadata, _metadata));
   }
 
   @JsonKey(ignore: true)
@@ -581,7 +606,8 @@ class _$MessageEntityImpl implements _MessageEntity {
         threadParentId,
         threadReplyCount,
         const DeepCollectionEquality().hash(_threadLastReplierAvatars),
-        topicId
+        topicId,
+        const DeepCollectionEquality().hash(_metadata)
       ]);
 
   @JsonKey(ignore: true)
@@ -623,7 +649,8 @@ abstract class _MessageEntity implements MessageEntity {
       final String? threadParentId,
       final int threadReplyCount,
       final List<String>? threadLastReplierAvatars,
-      final String? topicId}) = _$MessageEntityImpl;
+      final String? topicId,
+      final Map<String, dynamic>? metadata}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -676,6 +703,8 @@ abstract class _MessageEntity implements MessageEntity {
   List<String>? get threadLastReplierAvatars;
   @override
   String? get topicId;
+  @override
+  Map<String, dynamic>? get metadata;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

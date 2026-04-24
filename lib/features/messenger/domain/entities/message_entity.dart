@@ -30,6 +30,7 @@ class MessageEntity with _$MessageEntity {
     @Default(0) int threadReplyCount,
     List<String>? threadLastReplierAvatars,
     String? topicId,
+    Map<String, dynamic>? metadata,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>
