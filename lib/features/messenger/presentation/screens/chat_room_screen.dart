@@ -2691,6 +2691,19 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                   const SizedBox(width: 4),
                 ],
+                if (widget.message.transport == 'mesh') ...[
+                  Text(
+                    'via mesh',
+                    style: TextStyle(
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 Text(
                   DateFormat('HH:mm').format(widget.message.sentAt.toLocal()),
                   style: TextStyle(
