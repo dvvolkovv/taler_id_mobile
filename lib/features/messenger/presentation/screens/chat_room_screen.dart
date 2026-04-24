@@ -47,6 +47,10 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import '../../../../core/mesh/services/device_key_sync_service.dart';
+import '../../../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
+import '../../../../features/mesh/domain/entities/mesh_status.dart';
+import '../widgets/chat_transport_badge.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -120,6 +124,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _addSharedFiles(widget.sharedFiles!);
       });
     }
+    // Phase 1e — prime mesh auth by fetching this contact's device certs.
+    // Fire-and-forget; failures don't block chat UX.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final contactId = _resolveContactUserId();
+      if (contactId == null) return;
+      try {
+        sl<DeviceKeySyncService>().fetchContactKeys(contactId);
+      } catch (_) {
+        // best-effort
+      }
+    });
     // Listen for socket connectivity changes
     final ds = sl<MessengerRemoteDataSource>();
     _disconnectSub = ds.disconnectStream.listen((_) {
@@ -1063,6 +1078,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _videoRecording = false);
   }
 
+  /// Returns the other user's userId for 1:1 (DIRECT) chats, null for groups/bots.
+  String? _resolveContactUserId() {
+    final conv = _messengerBloc.state.conversations
+        .where((c) => c.id == widget.conversationId)
+        .firstOrNull;
+    return conv?.type == 'DIRECT' ? conv?.otherUserId : null;
+  }
+
   void _onTextChanged() {
     // Persist draft so the user can resume typing later or on another session
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
@@ -1465,6 +1488,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ]
             : [
+                BlocBuilder<MeshStatusBloc, MeshStatus>(
+                  bloc: sl<MeshStatusBloc>(),
+                  builder: (context, meshState) {
+                    final socketConnected = sl<MessengerRemoteDataSource>().isSocketConnected;
+                    final contactId = _resolveContactUserId();
+                    final peerVisible = contactId != null &&
+                        (meshState.visibilityByContactUserId[contactId] ?? false);
+                    final badgeState = socketConnected
+                        ? TransportBadgeState.server
+                        : (peerVisible ? TransportBadgeState.mesh : TransportBadgeState.queued);
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 4),
+                      child: ChatTransportBadge(state: badgeState),
+                    );
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
