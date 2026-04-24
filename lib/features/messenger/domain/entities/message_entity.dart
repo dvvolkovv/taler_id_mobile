@@ -30,6 +30,9 @@ class MessageEntity with _$MessageEntity {
     @Default(0) int threadReplyCount,
     List<String>? threadLastReplierAvatars,
     String? topicId,
+    /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
+    /// Null (or absent in server JSON) means the normal socket/REST path.
+    String? transport,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>
