@@ -2,6 +2,7 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
+import '../../domain/entities/analyst_events.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../datasources/messenger_remote_datasource.dart';
 
@@ -159,6 +160,12 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   @override
   Future<void> unmuteConversation(String conversationId) =>
       _remote.unmuteConversation(conversationId);
+
+  @override
+  Stream<AnalystChunk> get analystChunkStream => _remote.analystChunkStream;
+
+  @override
+  Stream<AnalystSeam> get analystSeamStream => _remote.analystSeamStream;
 
   @override
   void dispose() => _remote.dispose();

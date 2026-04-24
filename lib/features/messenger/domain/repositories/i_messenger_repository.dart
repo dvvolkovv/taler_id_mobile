@@ -2,6 +2,7 @@ import '../entities/conversation_entity.dart';
 import '../entities/message_entity.dart';
 import '../entities/user_search_entity.dart';
 import '../entities/group_member_entity.dart';
+import '../entities/analyst_events.dart';
 
 abstract class IMessengerRepository {
   Future<void> connect(String accessToken);
@@ -58,5 +59,8 @@ abstract class IMessengerRepository {
   // Mute methods
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes});
   Future<void> unmuteConversation(String conversationId);
+  // Analyst streams
+  Stream<AnalystChunk> get analystChunkStream;
+  Stream<AnalystSeam>  get analystSeamStream;
   void dispose();
 }
