@@ -382,6 +382,7 @@ Future<void> setupDependencies() async {
       selector: sl<TransportSelector>(),
       meshAdapter: sl<MeshMessengerAdapter>()..start(),
       resolveContact: _resolveConversationContact,
+      pending: sl<PendingMessageService>(),
     ),
   );
 

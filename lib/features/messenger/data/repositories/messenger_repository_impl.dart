@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../../core/services/pending_message_service.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
@@ -21,15 +24,18 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   final TransportSelector _selector;
   final MeshMessengerAdapter _meshAdapter;
   final ConversationContactResolver _resolveContact;
+  final PendingMessageService _pending;
 
   MessengerRepositoryImpl(
     this._remote, {
     required TransportSelector selector,
     required MeshMessengerAdapter meshAdapter,
     required ConversationContactResolver resolveContact,
+    required PendingMessageService pending,
   })  : _selector = selector,
         _meshAdapter = meshAdapter,
-        _resolveContact = resolveContact;
+        _resolveContact = resolveContact,
+        _pending = pending;
 
   @override
   Future<void> connect(String accessToken) => _remote.connect(accessToken);
@@ -92,8 +98,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         );
         return;
       case TransportChoice.mesh:
-        // Phase 1e: text only via mesh; attachments fall back to server
-        // so they don't silently disappear.
+        // Phase 1g — attachments always via server (mesh is text-only in 1f).
         if (fileUrl != null || s3Key != null) {
           _remote.sendMessage(
             conversationId,
@@ -112,15 +117,54 @@ class MessengerRepositoryImpl implements IMessengerRepository {
           );
           return;
         }
-        // Fire-and-forget text send through mesh.
+        // Fire-and-forget wrapper so the sync `sendMessage` contract stays
+        // intact, but under the hood the mesh send is awaited, failures fall
+        // back to server, and on success the pending temp_* is cleared so
+        // _resendPending on reconnect doesn't duplicate the message.
         // ignore: unawaited_futures
-        _meshAdapter.sendMessage(
+        _sendMeshWithFallback(
           conversationId: conversationId,
-          text: content,
+          content: content,
           contactDevicePk: contact!.devicePk,
           contactUserId: contact.userId,
+          clientTempId: clientTempId,
+          topicId: topicId,
         );
         return;
+    }
+  }
+
+  Future<void> _sendMeshWithFallback({
+    required String conversationId,
+    required String content,
+    required PeerId contactDevicePk,
+    required String contactUserId,
+    required String? clientTempId,
+    required String? topicId,
+  }) async {
+    try {
+      await _meshAdapter.sendMessage(
+        conversationId: conversationId,
+        text: content,
+        contactDevicePk: contactDevicePk,
+        contactUserId: contactUserId,
+      );
+      // Success — clear pending so socket reconnect's _resendPending
+      // doesn't re-send this message through the server.
+      if (clientTempId != null && clientTempId.isNotEmpty) {
+        await _pending.remove(clientTempId);
+      }
+      debugPrint('[mesh-send] success via mesh, cleared pending $clientTempId');
+    } catch (e) {
+      // Mesh send failed (unknown device, handshake timeout, transport).
+      // Fall back to the server so the user's message still gets delivered.
+      debugPrint('[mesh-send] failed ($e), falling back to server');
+      _remote.sendMessage(
+        conversationId,
+        content,
+        topicId: topicId,
+        clientTempId: clientTempId,
+      );
     }
   }
 
