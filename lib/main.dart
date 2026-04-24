@@ -23,6 +23,13 @@ import 'features/kyc/presentation/bloc/kyc_bloc.dart';
 import 'features/tenant/presentation/bloc/tenant_bloc.dart';
 import 'features/sessions/presentation/bloc/sessions_bloc.dart';
 
+/// Global navigator key used by:
+/// - GoRouter (as `navigatorKey`)
+/// - [BillingPaywallInterceptor] to reach a valid [BuildContext] from outside
+///   the widget tree when centrally surfacing the insufficient-funds paywall.
+/// Keep this as the single source of truth — do not introduce parallel keys.
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
 /// Set up CallKit event listener as early as possible (before runApp) so that
 /// accept events are not missed when the app is launched from a killed state.
 ///

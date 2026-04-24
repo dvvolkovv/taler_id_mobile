@@ -48,8 +48,10 @@ import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../main.dart' show globalNavigatorKey;
 
 final appRouter = GoRouter(
+  navigatorKey: globalNavigatorKey,
   initialLocation: RouteConstants.splash,
   redirect: _globalRedirect,
   routes: [
