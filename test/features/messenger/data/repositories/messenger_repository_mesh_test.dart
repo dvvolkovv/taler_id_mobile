@@ -65,6 +65,7 @@ class _FakeMeshAdapter extends MeshMessengerAdapter {
     required String text,
     required PeerId contactDevicePk,
     required String contactUserId,
+    String? clientTempId,
   }) async {
     outboundCalls.add({
       'conversationId': conversationId,

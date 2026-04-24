@@ -7,7 +7,7 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/repositories/i_messenger_repository.dart'
-    show IMessengerRepository, MeshInboundMessage;
+    show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import '../datasources/messenger_remote_datasource.dart';
 import '../services/mesh_messenger_adapter.dart';
 import '../services/transport_selector.dart';
@@ -148,6 +148,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         text: content,
         contactDevicePk: contactDevicePk,
         contactUserId: contactUserId,
+        clientTempId: clientTempId,
       );
       // Success — clear pending so socket reconnect's _resendPending
       // doesn't re-send this message through the server.
@@ -299,6 +300,19 @@ class MessengerRepositoryImpl implements IMessengerRepository {
           conversationId: msg.conversationId,
           text: msg.text,
           receivedAt: msg.receivedAt,
+        ),
+      );
+
+  @override
+  Stream<MeshOutboundMessage> get meshOutboundStream =>
+      _meshAdapter.outbound.map(
+        (o) => MeshOutboundMessage(
+          id: o.id,
+          conversationId: o.conversationId,
+          contactUserId: o.contactUserId,
+          clientTempId: o.clientTempId,
+          text: o.text,
+          sentAt: o.sentAt,
         ),
       );
 

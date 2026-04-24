@@ -7,7 +7,7 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../../domain/repositories/i_messenger_repository.dart'
-    show IMessengerRepository, MeshInboundMessage;
+    show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/services/share_suggestions_service.dart';
@@ -41,6 +41,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _socketErrorSub;
   StreamSubscription? _reconnectSub;
   StreamSubscription? _meshMsgSub;
+  StreamSubscription? _meshOutSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   MessengerBloc({required IMessengerRepository repo})
@@ -106,6 +107,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
     // Phase 1e — mesh inbound pipeline; UI rendering is Phase 1f.
     on<MeshMessageReceived>(_onMeshMessageReceived);
+    // Phase 1h — mesh outbound: replace temp_* bubble with mesh-out entity.
+    on<MeshMessageSent>(_onMeshMessageSent);
   }
 
   Future<void> _onConnect(
@@ -237,6 +240,19 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         contactUserId: msg.contactUserId,
         text: msg.text,
         receivedAt: msg.receivedAt,
+      ));
+    });
+    // Phase 1h: subscribe to mesh outbound stream so temp_* bubbles are
+    // replaced with mesh-out MessageEntity after a successful mesh send.
+    _meshOutSub?.cancel();
+    _meshOutSub = _repo.meshOutboundStream.listen((msg) {
+      add(MeshMessageSent(
+        id: msg.id,
+        conversationId: msg.conversationId,
+        contactUserId: msg.contactUserId,
+        clientTempId: msg.clientTempId,
+        text: msg.text,
+        sentAt: msg.sentAt,
       ));
     });
     emit(state.copyWith(
@@ -949,6 +965,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _reactionSub?.cancel();
     _reconnectSub?.cancel();
     _meshMsgSub?.cancel();
+    _meshOutSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }
     _repo.dispose();
     return super.close();
@@ -1090,6 +1107,38 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     existing.add(incoming);
     existing.sort((a, b) => a.sentAt.compareTo(b.sentAt));
     updated[event.conversationId] = existing;
+    emit(state.copyWith(messages: updated));
+  }
+
+  // Phase 1h: handler for mesh-delivered outbound messages. Replaces the
+  // optimistic `temp_*` bubble with a permanent `mesh-out-*` MessageEntity
+  // carrying `transport: 'mesh'`, and deduplicates on the mesh id.
+  void _onMeshMessageSent(
+      MeshMessageSent event, Emitter<MessengerState> emit) {
+    final myUserId = state.currentUserId ?? 'me';
+    final entity = MessageEntity(
+      id: event.id,
+      conversationId: event.conversationId,
+      senderId: myUserId,
+      content: event.text,
+      sentAt: event.sentAt,
+      transport: 'mesh',
+    );
+    final updated = Map<String, List<MessageEntity>>.from(state.messages);
+    final list = List<MessageEntity>.from(updated[event.conversationId] ?? const []);
+    // Remove the optimistic temp_* bubble if present.
+    if (event.clientTempId != null && event.clientTempId!.isNotEmpty) {
+      list.removeWhere((m) => m.id == event.clientTempId);
+    }
+    // Dedup by mesh id (if this event fires twice).
+    if (list.any((m) => m.id == entity.id)) {
+      updated[event.conversationId] = list;
+      emit(state.copyWith(messages: updated));
+      return;
+    }
+    list.add(entity);
+    list.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    updated[event.conversationId] = list;
     emit(state.copyWith(messages: updated));
   }
 

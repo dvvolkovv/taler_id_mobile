@@ -3,6 +3,26 @@ import 'dart:async';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 
+/// Adapted mesh outbound event — emitted AFTER the local transport ack,
+/// so the bloc can replace the optimistic `temp_*` bubble with a
+/// `mesh-out-*` MessageEntity carrying `transport: 'mesh'`.
+class AdaptedOutboundMessage {
+  final String id;
+  final String conversationId;
+  final String contactUserId;
+  final String? clientTempId;
+  final String text;
+  final DateTime sentAt;
+  AdaptedOutboundMessage({
+    required this.id,
+    required this.conversationId,
+    required this.contactUserId,
+    required this.clientTempId,
+    required this.text,
+    required this.sentAt,
+  });
+}
+
 /// Adapted mesh inbound event for the messenger layer.
 class AdaptedInboundMessage {
   final String contactUserId;
@@ -49,6 +69,7 @@ class MeshMessengerAdapter {
   final void Function(Map<String, dynamic> entry) persistLocal;
 
   final _ctrl = StreamController<AdaptedInboundMessage>.broadcast();
+  final _outCtrl = StreamController<AdaptedOutboundMessage>.broadcast();
   StreamSubscription<InboundMessage>? _sub;
 
   MeshMessengerAdapter({
@@ -62,6 +83,7 @@ class MeshMessengerAdapter {
   });
 
   Stream<AdaptedInboundMessage> get inbound => _ctrl.stream;
+  Stream<AdaptedOutboundMessage> get outbound => _outCtrl.stream;
 
   void start() {
     _sub ??= meshInbound.listen(_onInbound);
@@ -103,6 +125,7 @@ class MeshMessengerAdapter {
     required String text,
     required PeerId contactDevicePk,
     required String contactUserId,
+    String? clientTempId,
   }) async {
     await meshSendText(toUserPk: contactDevicePk, text: text);
     final now = DateTime.now();
@@ -115,8 +138,9 @@ class MeshMessengerAdapter {
       // Runtime inbound delivery on the receiver side is unaffected.
       return;
     }
+    final msgId = _outboundId(contactUserId, now);
     persistLocal({
-      'id': _outboundId(contactUserId, now),
+      'id': msgId,
       'conversationId': conversationId,
       'contactUserId': contactUserId,
       'senderId': myUserId,
@@ -125,11 +149,20 @@ class MeshMessengerAdapter {
       'direction': 'outbound',
       'sentAt': now.toUtc().toIso8601String(),
     });
+    _outCtrl.add(AdaptedOutboundMessage(
+      id: msgId,
+      conversationId: conversationId,
+      contactUserId: contactUserId,
+      clientTempId: clientTempId,
+      text: text,
+      sentAt: now,
+    ));
   }
 
   Future<void> dispose() async {
     await stop();
     await _ctrl.close();
+    await _outCtrl.close();
   }
 
   // Id scheme matches MessengerBloc._onMeshMessageReceived so the same

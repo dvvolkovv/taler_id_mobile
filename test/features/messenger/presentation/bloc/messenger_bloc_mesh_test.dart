@@ -7,16 +7,21 @@ import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
 import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/message_entity.dart';
-import 'package:taler_id_mobile/features/messenger/domain/repositories/i_messenger_repository.dart';
+import 'package:taler_id_mobile/features/messenger/domain/repositories/i_messenger_repository.dart'
+    show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_bloc.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_event.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_state.dart';
 
 class _FakeRepo implements IMessengerRepository {
   final _meshCtrl = StreamController<MeshInboundMessage>.broadcast();
+  final _meshOutCtrl = StreamController<MeshOutboundMessage>.broadcast();
 
   @override
   Stream<MeshInboundMessage> get meshMessageStream => _meshCtrl.stream;
+
+  @override
+  Stream<MeshOutboundMessage> get meshOutboundStream => _meshOutCtrl.stream;
 
   void pushMesh(MeshInboundMessage m) => _meshCtrl.add(m);
 
@@ -113,6 +118,40 @@ void main() {
       },
       verify: (bloc) {
         expect(bloc.state.messages['server-conv-42'], hasLength(1));
+      },
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'MeshMessageSent replaces temp_* bubble with mesh-out MessageEntity',
+      build: () => MessengerBloc(repo: _FakeRepo()),
+      seed: () => MessengerState(
+        currentUserId: 'user-me',
+        messages: {
+          'server-conv-42': [
+            MessageEntity(
+              id: 'temp_123',
+              conversationId: 'server-conv-42',
+              senderId: 'user-me',
+              content: 'hi via mesh',
+              sentAt: DateTime(2026, 4, 24, 12, 0),
+            ),
+          ],
+        },
+      ),
+      act: (bloc) => bloc.add(MeshMessageSent(
+        id: 'mesh-out-contact-1-1777020401699',
+        conversationId: 'server-conv-42',
+        contactUserId: 'contact-1',
+        clientTempId: 'temp_123',
+        text: 'hi via mesh',
+        sentAt: DateTime(2026, 4, 24, 12, 0),
+      )),
+      verify: (bloc) {
+        final list = bloc.state.messages['server-conv-42']!;
+        expect(list, hasLength(1));
+        expect(list.first.id, 'mesh-out-contact-1-1777020401699');
+        expect(list.first.transport, 'mesh');
+        expect(list.first.senderId, 'user-me');
       },
     );
 

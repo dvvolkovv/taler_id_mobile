@@ -409,3 +409,25 @@ class MeshMessageReceived extends MessengerEvent {
   @override
   List<Object?> get props => [conversationId, contactUserId, text, receivedAt];
 }
+
+/// Phase 1h — emitted by the mesh adapter after a successful outbound
+/// send so the bloc can replace the optimistic `temp_*` bubble with
+/// a `mesh-out-*` MessageEntity carrying `transport: 'mesh'`.
+class MeshMessageSent extends MessengerEvent {
+  final String id;
+  final String conversationId;
+  final String contactUserId;
+  final String? clientTempId;
+  final String text;
+  final DateTime sentAt;
+  const MeshMessageSent({
+    required this.id,
+    required this.conversationId,
+    required this.contactUserId,
+    required this.clientTempId,
+    required this.text,
+    required this.sentAt,
+  });
+  @override
+  List<Object?> get props => [id, conversationId, contactUserId, clientTempId, text, sentAt];
+}

@@ -185,6 +185,39 @@ void main() {
       expect(cache.persisted.first['senderId'], 'user-abc-123');
     });
 
+    test('sendMessage emits AdaptedOutboundMessage on the outbound stream after persist',
+        () async {
+      final messaging = _FakeMessaging();
+      final cache = _CacheSpy();
+      final adapter = _adapter(
+        messaging,
+        cache,
+        currentUserIdProvider: () => 'user-abc-123',
+      );
+
+      final outs = <AdaptedOutboundMessage>[];
+      final sub = adapter.outbound.listen(outs.add);
+
+      await adapter.sendMessage(
+        conversationId: 'server-conv-42',
+        text: 'hi',
+        contactDevicePk: PeerId.fromHex('a' * 64),
+        contactUserId: 'contact-1',
+        clientTempId: 'temp_999',
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(outs, hasLength(1));
+      expect(outs.first.contactUserId, 'contact-1');
+      expect(outs.first.text, 'hi');
+      expect(outs.first.conversationId, 'server-conv-42');
+      expect(outs.first.clientTempId, 'temp_999');
+      expect(outs.first.id, startsWith('mesh-out-'));
+
+      await sub.cancel();
+      await messaging.dispose();
+    });
+
     test('sendMessage skips persistence when currentUserIdProvider returns null',
         () async {
       final messaging = _FakeMessaging();
