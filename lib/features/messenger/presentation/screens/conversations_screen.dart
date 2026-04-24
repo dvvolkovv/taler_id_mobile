@@ -18,6 +18,7 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+import '../../../billing/presentation/widgets/balance_chip.dart';
 import 'saved_messages_screen.dart';
 import 'topics_list_screen.dart';
 
@@ -766,6 +767,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 ),
                 title: Text(l10n.tabMessenger),
                 actions: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: BalanceChip(),
+                  ),
+                  const SizedBox(width: 4),
                   BlocBuilder<MessengerBloc, MessengerState>(
                     buildWhen: (prev, curr) => prev.contactRequests.length != curr.contactRequests.length,
                     builder: (context, state) {

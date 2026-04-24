@@ -19,6 +19,7 @@ import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../profile/data/datasources/profile_remote_datasource.dart';
 import '../../../auth/data/datasources/auth_remote_datasource.dart';
+import '../../../billing/presentation/widgets/balance_chip.dart';
 import 'package:dio/dio.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -193,7 +194,16 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(centerTitle: true, title: Text(l10n.settings)),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(l10n.settings),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: BalanceChip(),
+          ),
+        ],
+      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthLoggedOut) {
@@ -316,6 +326,29 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                       _permLocation,
                       () => Permission.locationWhenInUse.request(),
                     ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Billing & AI section
+            _sectionHeader(_currentLang == 'ru' ? 'Платежи и AI' : 'Billing & AI'),
+            AppCard(
+              child: Column(
+                children: [
+                  _navTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    iconColor: AppColors.of(context).primary,
+                    title: _currentLang == 'ru' ? 'Кошелёк и баланс' : 'Wallet & Balance',
+                    onTap: () => context.push('/billing/wallet'),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _navTile(
+                    icon: Icons.smart_toy_outlined,
+                    iconColor: AppColors.of(context).accent,
+                    title: _currentLang == 'ru' ? 'AI-функции' : 'AI Features',
+                    onTap: () => context.push('/settings/ai-toggles'),
                   ),
                 ],
               ),

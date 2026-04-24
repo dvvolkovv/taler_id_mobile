@@ -69,6 +69,7 @@ import '../../features/billing/data/services/billing_event_bus.dart';
 import '../../features/billing/data/services/billing_socket_listener.dart';
 import '../../features/billing/domain/repositories/billing_repository.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
+import '../../features/billing/presentation/bloc/balance_event.dart';
 import '../../features/billing/presentation/bloc/packages_bloc.dart';
 import '../../features/billing/presentation/bloc/toggles_bloc.dart';
 import '../../features/billing/presentation/bloc/transactions_bloc.dart';
@@ -222,9 +223,6 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
 
   // Billing BLoCs (factory: new instance per screen).
-  // Note: Task 9 will add a separate lazySingleton BalanceBloc for the
-  // dashboard AppBar chip (needs to persist across screens + receive socket
-  // events). For now, factory is sufficient for the billing screens.
   sl.registerFactory(() => BalanceBloc(
         repo: sl<BillingRepository>(),
         eventBus: sl<BillingEventBus>(),
@@ -232,4 +230,16 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => PackagesBloc(repo: sl<BillingRepository>()));
   sl.registerFactory(() => TogglesBloc(repo: sl<BillingRepository>()));
   sl.registerFactory(() => TransactionsBloc(repo: sl<BillingRepository>()));
+
+  // Global BalanceBloc for the dashboard AppBar chip (Task 9) — persists
+  // across screens and subscribes to BillingEventBus so the chip always
+  // reflects the current balance. Resolved via instanceName to coexist
+  // with the per-screen factory above (used by wallet/purchase screens).
+  sl.registerLazySingleton<BalanceBloc>(
+    () => BalanceBloc(
+      repo: sl<BillingRepository>(),
+      eventBus: sl<BillingEventBus>(),
+    )..add(LoadBalance()),
+    instanceName: 'globalBalance',
+  );
 }

@@ -44,6 +44,7 @@ import '../../features/billing/presentation/screens/purchase_screen.dart';
 import '../../features/billing/presentation/screens/transactions_screen.dart';
 import '../../features/billing/presentation/screens/pricebook_screen.dart';
 import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
+import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
@@ -164,10 +165,19 @@ final appRouter = GoRouter(
       path: '/settings/ai-toggles',
       builder: (_, __) => const AiTogglesScreen(),
     ),
-    // Dashboard shell with bottom nav
+    // Dashboard shell with bottom nav.
+    // Provides the global BalanceBloc singleton here so any child tab's
+    // AppBar can embed BalanceChip without needing its own provider —
+    // state persists across tab switches and receives socket-driven
+    // balance_changed events.
     ShellRoute(
-      builder: (context, state, child) => BlocProvider.value(
-        value: sl<MessengerBloc>(),
+      builder: (context, state, child) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: sl<MessengerBloc>()),
+          BlocProvider<BalanceBloc>.value(
+            value: sl<BalanceBloc>(instanceName: 'globalBalance'),
+          ),
+        ],
         child: DashboardScreen(child: child),
       ),
       routes: [
