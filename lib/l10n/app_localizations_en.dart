@@ -1540,6 +1540,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatEdited => 'Edited';
 
   @override
+  String get chatViaMesh => 'via mesh';
+
+  @override
   String get chatReply => 'Reply';
 
   @override

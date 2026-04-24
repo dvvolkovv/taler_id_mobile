@@ -2678,9 +2678,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (widget.message.isEdited) ...[
+                if (widget.message.transport == 'mesh') ...[
                   Text(
-                    AppLocalizations.of(context)!.chatEdited,
+                    AppLocalizations.of(context)!.chatViaMesh,
                     style: TextStyle(
                       color: widget.isMe
                           ? Colors.white.withValues(alpha: 0.6)
@@ -2691,9 +2691,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   ),
                   const SizedBox(width: 4),
                 ],
-                if (widget.message.transport == 'mesh') ...[
+                if (widget.message.isEdited) ...[
                   Text(
-                    'via mesh',
+                    AppLocalizations.of(context)!.chatEdited,
                     style: TextStyle(
                       color: widget.isMe
                           ? Colors.white.withValues(alpha: 0.6)

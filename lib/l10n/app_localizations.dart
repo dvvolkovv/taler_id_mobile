@@ -3002,6 +3002,12 @@ abstract class AppLocalizations {
   /// **'Edited'**
   String get chatEdited;
 
+  /// No description provided for @chatViaMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'via mesh'**
+  String get chatViaMesh;
+
   /// No description provided for @chatReply.
   ///
   /// In en, this message translates to:
