@@ -119,8 +119,8 @@ class MessengerCacheService {
   }
 
   /// Phase 1f — find the existing DIRECT (1:1) conversation with a given
-  /// contact userId. Returns null when no 1:1 conversation is cached
-  /// (forces callers to fall back to `meshOnly:<userId>`).
+  /// contact userId. Returns null when no 1:1 conversation is cached; callers
+  /// are expected to fall back to `meshOnly:<userId>` in that case.
   ConversationEntity? getConversationByContact(String contactUserId) {
     try {
       final raw = getConversations();
@@ -152,18 +152,23 @@ class MessengerCacheService {
       return;
     }
     final key = 'mesh_history_$convId';
-    final raw = box.get(key);
-    final list = raw != null
-        ? (jsonDecode(raw) as List).cast<Map<String, dynamic>>()
-        : <Map<String, dynamic>>[];
-    final newId = entry['id'] as String?;
-    if (newId != null && list.any((m) => m['id'] == newId)) return;
-    list.add(entry);
-    await box.put(key, jsonEncode(list));
+    try {
+      final raw = box.get(key);
+      final list = raw != null
+          ? (jsonDecode(raw) as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+      final newId = entry['id'] as String?;
+      if (newId != null && list.any((m) => m['id'] == newId)) return;
+      list.add(entry);
+      await box.put(key, jsonEncode(list));
+    } catch (e, st) {
+      debugPrint('[mesh-cache] appendMeshMessage failed: $e\n$st');
+    }
   }
 
   /// Phase 1f — read mesh history for a conversation, oldest-first by
-  /// `sentAt` (ISO8601 string comparison is chronological).
+  /// `sentAt`. Timestamps are parsed to `DateTime` so UTC-suffixed (`Z`) and
+  /// naive ISO strings are compared on equal footing.
   List<Map<String, dynamic>> getMeshMessagesFor(String conversationId) {
     final Box<String> box;
     try {
@@ -176,8 +181,10 @@ class MessengerCacheService {
     try {
       final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
       list.sort((a, b) {
-        final sa = a['sentAt'] as String? ?? '';
-        final sb = b['sentAt'] as String? ?? '';
+        final sa = DateTime.tryParse(a['sentAt'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final sb = DateTime.tryParse(b['sentAt'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
         return sa.compareTo(sb);
       });
       return list;
@@ -187,10 +194,8 @@ class MessengerCacheService {
   }
 
   Future<void> clearAll() async {
-    try {
-      await Hive.box(_conversationsBox).clear();
-      await Hive.box(_messagesBox).clear();
-      await Hive.box<String>(_meshBoxName).clear();
-    } catch (_) {}
+    try { await Hive.box(_conversationsBox).clear(); } catch (_) {}
+    try { await Hive.box(_messagesBox).clear(); } catch (_) {}
+    try { await Hive.box<String>(_meshBoxName).clear(); } catch (_) {}
   }
 }

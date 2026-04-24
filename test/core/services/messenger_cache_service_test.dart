@@ -131,5 +131,32 @@ void main() {
       ]);
       expect(svc.getConversationByContact('u-2'), isNull);
     });
+
+    test('getMeshMessagesFor sorts correctly when entries mix UTC Z and local offsets',
+        () async {
+      final svc = MessengerCacheService();
+      // 'later' is written as a Z-suffixed UTC string; 'earlier' as naive
+      // (no offset) ISO. Lexicographic compare would put Z after naive; the
+      // parsed-DateTime compare must put the actual earlier timestamp first.
+      await svc.appendMeshMessage({
+        'id': 'mesh-later',
+        'conversationId': 'conv-mix',
+        'senderId': 'u-2',
+        'content': 'later',
+        'transport': 'mesh',
+        'sentAt': '2026-04-24T13:00:00.000Z',
+      });
+      await svc.appendMeshMessage({
+        'id': 'mesh-earlier',
+        'conversationId': 'conv-mix',
+        'senderId': 'u-2',
+        'content': 'earlier',
+        'transport': 'mesh',
+        'sentAt': '2026-04-24T12:00:00.000',
+      });
+      final list = svc.getMeshMessagesFor('conv-mix');
+      expect(list.map((m) => m['id']).toList(),
+          ['mesh-earlier', 'mesh-later']);
+    });
   });
 }
