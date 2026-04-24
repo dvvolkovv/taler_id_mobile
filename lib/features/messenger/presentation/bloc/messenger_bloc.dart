@@ -14,6 +14,7 @@ import '../../../../core/services/share_suggestions_service.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/services/device_key_sync_service.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
@@ -119,7 +120,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     // Re-send on each reconnect too.
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
+      debugPrint('[mesh-reconnect] socket reconnected — resending pending + refreshing contact keys');
       _resendPending();
+      _refreshMeshContactKeys();
     });
     _msgSub?.cancel();
     _msgSub = _repo.messageStream.listen((msg) => add(MessageReceived(msg)));
@@ -467,6 +470,33 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         topicId: m['topicId'] as String?,
         clientTempId: m['id'] as String?,
       );
+    }
+  }
+
+  /// Phase 1i — after socket reconnect, re-fetch each DIRECT contact's
+  /// device keys so the in-memory ContactKeyStore gets populated even if
+  /// the initial ChatRoomScreen.initState fetch failed (server was down).
+  /// This makes mesh usable without requiring the user to leave and
+  /// re-enter the chat.
+  void _refreshMeshContactKeys() {
+    try {
+      if (!sl.isRegistered<DeviceKeySyncService>()) return;
+      final sync = sl<DeviceKeySyncService>();
+      final seen = <String>{};
+      for (final c in state.conversations) {
+        if (c.type != 'DIRECT') continue;
+        final uid = c.otherUserId;
+        if (uid == null || uid.isEmpty) continue;
+        if (!seen.add(uid)) continue;
+        // Fire-and-forget. DeviceKeySyncService has its own [mesh-sync]
+        // debug logging; errors are logged there.
+        // ignore: unawaited_futures
+        sync.fetchContactKeys(uid).catchError((e, _) {
+          debugPrint('[mesh-reconnect] fetchContactKeys($uid) still failing: $e');
+        });
+      }
+    } catch (e) {
+      debugPrint('[mesh-reconnect] _refreshMeshContactKeys error: $e');
     }
   }
 
