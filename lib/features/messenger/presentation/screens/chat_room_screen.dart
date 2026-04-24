@@ -49,6 +49,9 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
+import '../widgets/analyst_streaming_bubble.dart';
+import '../widgets/analyst_seam_widget.dart';
+import '../../domain/entities/analyst_events.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -1906,26 +1909,34 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       )
                     : ScrollConfiguration(
                       behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
-                      child: ListView.builder(
+                      child: Builder(builder: (context) {
+                        final pendingText = state.pendingAnalystText[widget.conversationId] ?? '';
+                        final hasStreaming = conv?.type == 'AI_ANALYST' && pendingText.isNotEmpty;
+                        return ListView.builder(
                         key: const PageStorageKey('chat_messages'),
                         controller: _scrollCtrl,
                         reverse: true,
                         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.all(16),
-                        itemCount: messages.length,
+                        itemCount: messages.length + (hasStreaming ? 1 : 0),
                         findChildIndexCallback: (key) {
                           if (key is ValueKey<String>) {
                             final id = key.value;
                             for (int i = 0; i < messages.length; i++) {
-                              if (messages[messages.length - 1 - i].id == id) return i;
+                              if (messages[messages.length - 1 - i].id == id) return i + (hasStreaming ? 1 : 0);
                             }
                           }
                           return null;
                         },
                         itemBuilder: (context, index) {
+                          // Streaming bubble at top (index 0 in reversed list = newest)
+                          if (hasStreaming && index == 0) {
+                            return AnalystStreamingBubble(text: pendingText);
+                          }
                           // messages[] is chronological (index 0 = oldest).
                           // reversed list: index 0 = newest (displayed at bottom).
-                          final chronIdx = messages.length - 1 - index;
+                          final messageIndex = hasStreaming ? index - 1 : index;
+                          final chronIdx = messages.length - 1 - messageIndex;
                           final msg = messages[chronIdx];
                           final isMe = _isMyMessage(msg, state);
 
@@ -1936,7 +1947,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           // Date separator logic (same as before)
                           final msgDate = DateTime(msg.sentAt.year, msg.sentAt.month, msg.sentAt.day);
                           bool showDate = false;
-                          if (index == messages.length - 1) {
+                          if (messageIndex == messages.length - 1) {
                             showDate = true;
                           } else {
                             final prevDate = DateTime(prevChron!.sentAt.year, prevChron.sentAt.month, prevChron.sentAt.day);
@@ -1980,12 +1991,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               !msg.isSystem &&
                               msg.content.toLowerCase().contains(_searchText.toLowerCase());
 
-                          return Column(
-                            key: ValueKey<String>(msg.id),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (showDate) _DateSeparator(date: msg.sentAt),
-                              _MessageBubble(
+                          final messageBubble = _MessageBubble(
                                 message: msg,
                                 isMe: (msg.isSystem && (conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND')) ? false
                                     : (msg.senderId == 'ai-outbound-bot') ? false
@@ -2014,11 +2020,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
-                              ),
+                              );
+
+                          // AI_ANALYST bot messages: show seam widget above the bubble
+                          if (analystChat && msg.isSystem) {
+                            final liveSeam = state.analystSeams[msg.id];
+                            final metaSeam = AnalystSeam.fromMetadata(
+                              conversationId: msg.conversationId,
+                              messageId: msg.id,
+                              metadata: msg.metadata,
+                            );
+                            final seam = liveSeam ?? metaSeam;
+                            if (seam != null) {
+                              return Column(
+                                key: ValueKey<String>(msg.id),
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showDate) _DateSeparator(date: msg.sentAt),
+                                  AnalystSeamWidget(seam: seam),
+                                  messageBubble,
+                                ],
+                              );
+                            }
+                          }
+
+                          return Column(
+                            key: ValueKey<String>(msg.id),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (showDate) _DateSeparator(date: msg.sentAt),
+                              messageBubble,
                             ],
                           );
                         },
-                      ),
+                      );
+                      }),
                     ),
                 ),
                     // Scroll-to-bottom button
