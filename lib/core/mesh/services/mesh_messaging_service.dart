@@ -76,26 +76,22 @@ class MeshMessagingService {
       throw StateError('Unknown contact device: ${devicePk.toHex()}');
     }
     final state = _peerStates.putIfAbsent(devicePk, () => _PeerState());
-    // I1: if prior handshake attempt timed out (session never established),
-    // the Completer is stuck completed-with-timeout. Reset the peer state so
-    // a fresh handshake can start.
-    if (state.session == null && state.handshake != null) {
-      final prevCompleter = state.sessionEstablished;
-      if (prevCompleter == null || prevCompleter.isCompleted) {
-        debugPrint('[mesh-send] resetting stale peer state (previous handshake never completed)');
-        _peerStates[devicePk] = _PeerState();
-      }
-    }
-    final freshState = _peerStates[devicePk]!;
-    if (freshState.session == null && freshState.handshake == null) {
-      freshState.sessionEstablished = Completer<void>();
+    if (state.session == null && state.handshake == null) {
+      state.sessionEstablished = Completer<void>();
       debugPrint('[mesh-send] initiating new handshake');
-      await _initiateHandshake(devicePk, freshState);
+      await _initiateHandshake(devicePk, state);
     }
-    if (freshState.session == null) {
-      debugPrint('[mesh-send] awaiting handshake completion (2s timeout)');
+    if (state.session == null) {
+      // Phase 1j — 10s timeout (was 2s). On mobile Bonjour + Noise IK, the
+      // first TCP connect + handshake can exceed 2s on low-end Android or
+      // cold-start iOS. Prior 1i reset-on-timeout caused MAC errors when a
+      // late msg2 arrived against a fresh handshake state — that path was
+      // reverted here. A stuck handshake now blocks future sends to the
+      // same peer until logout; proper retry with state machine is Phase 2.
+      debugPrint('[mesh-send] awaiting handshake completion (10s timeout)');
       try {
-        await freshState.sessionEstablished!.future.timeout(const Duration(seconds: 2));
+        await state.sessionEstablished!.future
+            .timeout(const Duration(seconds: 10));
       } on TimeoutException {
         debugPrint('[mesh-send] handshake TIMEOUT');
         throw TimeoutException('handshake did not complete');
@@ -103,7 +99,7 @@ class MeshMessagingService {
     }
     debugPrint('[mesh-send] session established, encrypting payload');
     final payload = Uint8List.fromList(utf8.encode(text));
-    final ct = await freshState.session!.encrypt(payload);
+    final ct = await state.session!.encrypt(payload);
     await _sendFrame(devicePk, FrameType.data, ct);
     debugPrint('[mesh-send] data frame sent');
   }
