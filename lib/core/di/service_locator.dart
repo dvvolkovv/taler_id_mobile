@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:hive/hive.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../config/app_config.dart';
@@ -32,9 +33,13 @@ import '../mesh/transport/bonjour_transport.dart';
 import '../mesh/transport/mesh_transport.dart';
 import '../mesh/transport/multi_transport.dart';
 import '../mesh/transport/transport_preference.dart';
-// Mesh Phase 1e — messaging service
+// Mesh Phase 1e — messaging service + messenger wiring
 import '../mesh/crypto/keys/contact_key_store.dart';
 import '../mesh/services/mesh_messaging_service.dart';
+import '../mesh/transport/peer_id.dart';
+import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
+import '../../features/messenger/data/services/mesh_messenger_adapter.dart';
+import '../../features/messenger/data/services/transport_selector.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -244,6 +249,53 @@ Future<void> setupDependencies() async {
     ),
   );
 
+  // Phase 1e — mesh status cubit + messenger adapter + transport selector
+  sl.registerLazySingleton<MeshStatusBloc>(
+    () {
+      final bloc = MeshStatusBloc(
+        transport: sl<MeshTransport>(),
+        lookupUserByDevice: (devicePk) =>
+            sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
+        contactUserIdForUserPk: _contactUserIdByUserPk,
+      );
+      bloc.start();
+      return bloc;
+    },
+  );
+
+  sl.registerLazySingleton<MeshMessengerAdapter>(() {
+    final messaging = sl<MeshMessagingService>();
+    return MeshMessengerAdapter(
+      meshSendText: ({required toUserPk, required text}) =>
+          messaging.sendText(toUserPk: toUserPk, text: text),
+      meshInbound: messaging.inbound,
+      lookupUserByDevice: (devicePk) =>
+          sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
+      contactUserIdForUserPk: _contactUserIdByUserPk,
+      persistLocal: (entry) =>
+          sl<MessengerCacheService>().appendMeshMessage(entry),
+    );
+  });
+
+  sl.registerLazySingleton<TransportSelector>(
+    () => TransportSelector(
+      isSocketConnected: () =>
+          sl<MessengerRemoteDataSource>().isSocketConnected,
+      isPeerVisibleFor: (userId) =>
+          sl<MeshStatusBloc>().state.visibilityByContactUserId[userId] ?? false,
+      offlineFallbackEnabled: () {
+        try {
+          // mesh_keys Hive box (Box<String>) is already open from Phase 1c.
+          final raw = Hive.box<String>('mesh_keys').get('mesh.offlineFallback');
+          if (raw == null) return true;
+          return raw != 'false';
+        } catch (_) {
+          return true;
+        }
+      },
+    ),
+  );
+
   // Data sources
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => ProfileRemoteDataSource(sl<DioClient>()));
@@ -293,7 +345,12 @@ Future<void> setupDependencies() async {
   // Messenger
   sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IMessengerRepository>(
-    () => MessengerRepositoryImpl(sl<MessengerRemoteDataSource>()),
+    () => MessengerRepositoryImpl(
+      sl<MessengerRemoteDataSource>(),
+      selector: sl<TransportSelector>(),
+      meshAdapter: sl<MeshMessengerAdapter>()..start(),
+      resolveContact: _resolveConversationContact,
+    ),
   );
 
   // Profile Sections
@@ -325,3 +382,62 @@ Future<void> setupDependencies() async {
 /// the backend device-keys endpoints are not yet deployed (Phase 1b deferred
 /// deploy is explicit per project decision).
 String _placeholderUserId() => 'phase1b-placeholder-user';
+
+// ---------------------------------------------------------------------------
+// Phase 1e helpers — contact resolution for mesh transport routing
+// ---------------------------------------------------------------------------
+
+/// Resolves a conversationId → (contactUserId, devicePk).
+///
+/// Returns null when the conversation has no `otherUserId` (group chat) or
+/// when the contact's device cert has not yet been fetched into
+/// HiveContactKeyStore.
+({String userId, PeerId devicePk})? _resolveConversationContact(
+    String conversationId) {
+  try {
+    final cached =
+        sl<MessengerCacheService>().getConversationById(conversationId);
+    final otherUserId = cached?.otherUserId;
+    if (otherUserId == null) return null;
+    final userPk = _resolveUserPkForUserId(otherUserId);
+    if (userPk == null) return null;
+    final devices = sl<HiveContactKeyStore>().devicesFor(userPk);
+    if (devices.isEmpty) return null;
+    return (userId: otherUserId, devicePk: devices.first);
+  } catch (_) {
+    return null;
+  }
+}
+
+PeerId? _resolveUserPkForUserId(String userId) {
+  try {
+    final items = sl<ContactsCacheService>().get() ?? const [];
+    for (final item in items) {
+      if (item['userId'] == userId && item['userPk'] is String) {
+        try {
+          return PeerId.fromHex(item['userPk'] as String);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
+String? _contactUserIdByUserPk(PeerId userPk) {
+  try {
+    final hex = userPk.toHex();
+    final items = sl<ContactsCacheService>().get() ?? const [];
+    for (final item in items) {
+      if (item['userPk'] == hex) {
+        return item['userId'] as String?;
+      }
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}

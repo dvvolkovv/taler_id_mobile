@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../features/messenger/domain/entities/conversation_entity.dart';
 
 /// Hive-based cache for messenger conversations and messages.
 /// Provides instant loading from local storage before server fetch.
@@ -95,6 +97,29 @@ class MessengerCacheService {
     if (messages == null) return;
     messages.removeWhere((m) => m['id'] == messageId);
     await saveMessages(conversationId, messages);
+  }
+
+  /// Phase 1e — look up a cached conversation by id. Returns null when not
+  /// cached — the resolver treats this as "mesh route unavailable".
+  ConversationEntity? getConversationById(String id) {
+    try {
+      final raw = getConversations();
+      if (raw == null) return null;
+      for (final map in raw) {
+        if (map['id'] == id) {
+          return ConversationEntity.fromJson(map);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Phase 1e — append a mesh-delivered message to a side list indexed by
+  /// conversationId so the UI can render mesh-only history.
+  void appendMeshMessage(Map<String, dynamic> entry) {
+    // Stub — Phase 1f wires real persistence. For Phase 1e we log so tests
+    // pass and dev QA can see delivery in logs.
+    debugPrint('[mesh-cache] append: ${entry['conversationId']} ${entry['text']}');
   }
 
   Future<void> clearAll() async {

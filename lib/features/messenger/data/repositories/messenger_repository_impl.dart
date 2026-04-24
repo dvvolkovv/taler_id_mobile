@@ -1,14 +1,34 @@
+import '../../../../core/mesh/transport/peer_id.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 import '../datasources/messenger_remote_datasource.dart';
+import '../services/mesh_messenger_adapter.dart';
+import '../services/transport_selector.dart';
+
+/// Resolves a conversationId to `(contactUserId, contactDevicePk)` — needed
+/// by MessengerRepositoryImpl to decide transport per outbound message.
+/// Returns null when the conversation is a group or the contact's
+/// devicePk is not cached.
+typedef ConversationContactResolver = ({String userId, PeerId devicePk})?
+    Function(String conversationId);
 
 class MessengerRepositoryImpl implements IMessengerRepository {
   final MessengerRemoteDataSource _remote;
+  final TransportSelector _selector;
+  final MeshMessengerAdapter _meshAdapter;
+  final ConversationContactResolver _resolveContact;
 
-  MessengerRepositoryImpl(this._remote);
+  MessengerRepositoryImpl(
+    this._remote, {
+    required TransportSelector selector,
+    required MeshMessengerAdapter meshAdapter,
+    required ConversationContactResolver resolveContact,
+  })  : _selector = selector,
+        _meshAdapter = meshAdapter,
+        _resolveContact = resolveContact;
 
   @override
   Future<void> connect(String accessToken) => _remote.connect(accessToken);
@@ -31,8 +51,77 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   void joinConversation(String id) => _remote.joinConversation(id);
 
   @override
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId}) =>
-      _remote.sendMessage(conversationId, content, fileUrl: fileUrl, fileName: fileName, fileSize: fileSize, fileType: fileType, s3Key: s3Key, thumbnailSmallUrl: thumbnailSmallUrl, thumbnailMediumUrl: thumbnailMediumUrl, thumbnailLargeUrl: thumbnailLargeUrl, fileRecordId: fileRecordId, topicId: topicId, clientTempId: clientTempId);
+  void sendMessage(
+    String conversationId,
+    String content, {
+    String? fileUrl,
+    String? fileName,
+    int? fileSize,
+    String? fileType,
+    String? s3Key,
+    String? thumbnailSmallUrl,
+    String? thumbnailMediumUrl,
+    String? thumbnailLargeUrl,
+    String? fileRecordId,
+    String? topicId,
+    String? clientTempId,
+  }) {
+    final contact = _resolveContact(conversationId);
+    final choice = contact == null
+        ? TransportChoice.server
+        : _selector.chooseFor(contact.userId);
+
+    switch (choice) {
+      case TransportChoice.server:
+      case TransportChoice.offline:
+        _remote.sendMessage(
+          conversationId,
+          content,
+          fileUrl: fileUrl,
+          fileName: fileName,
+          fileSize: fileSize,
+          fileType: fileType,
+          s3Key: s3Key,
+          thumbnailSmallUrl: thumbnailSmallUrl,
+          thumbnailMediumUrl: thumbnailMediumUrl,
+          thumbnailLargeUrl: thumbnailLargeUrl,
+          fileRecordId: fileRecordId,
+          topicId: topicId,
+          clientTempId: clientTempId,
+        );
+        return;
+      case TransportChoice.mesh:
+        // Phase 1e: text only via mesh; attachments fall back to server
+        // so they don't silently disappear.
+        if (fileUrl != null || s3Key != null) {
+          _remote.sendMessage(
+            conversationId,
+            content,
+            fileUrl: fileUrl,
+            fileName: fileName,
+            fileSize: fileSize,
+            fileType: fileType,
+            s3Key: s3Key,
+            thumbnailSmallUrl: thumbnailSmallUrl,
+            thumbnailMediumUrl: thumbnailMediumUrl,
+            thumbnailLargeUrl: thumbnailLargeUrl,
+            fileRecordId: fileRecordId,
+            topicId: topicId,
+            clientTempId: clientTempId,
+          );
+          return;
+        }
+        // Fire-and-forget text send through mesh.
+        // ignore: unawaited_futures
+        _meshAdapter.sendMessage(
+          conversationId: conversationId,
+          text: content,
+          contactDevicePk: contact!.devicePk,
+          contactUserId: contact.userId,
+        );
+        return;
+    }
+  }
 
   @override
   void editMessage(String conversationId, String messageId, String newContent) =>
