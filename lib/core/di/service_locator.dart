@@ -66,6 +66,10 @@ import '../../features/profile_sections/domain/repositories/i_profile_sections_r
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
 import '../../features/billing/domain/repositories/billing_repository.dart';
+import '../../features/billing/presentation/bloc/balance_bloc.dart';
+import '../../features/billing/presentation/bloc/packages_bloc.dart';
+import '../../features/billing/presentation/bloc/toggles_bloc.dart';
+import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 
 
 final sl = GetIt.instance;
@@ -208,4 +212,13 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
   sl.registerFactory(() => ChatBloc(repo: sl<IChatRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
+
+  // Billing BLoCs (factory: new instance per screen).
+  // Note: Task 9 will add a separate lazySingleton BalanceBloc for the
+  // dashboard AppBar chip (needs to persist across screens + receive socket
+  // events). For now, factory is sufficient for the billing screens.
+  sl.registerFactory(() => BalanceBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => PackagesBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => TogglesBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => TransactionsBloc(repo: sl<BillingRepository>()));
 }
