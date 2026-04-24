@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/analyst_events.dart';
 
 abstract class MessengerEvent extends Equatable {
   const MessengerEvent();
@@ -390,4 +391,28 @@ class ClearSocketError extends MessengerEvent {
   const ClearSocketError();
   @override
   List<Object?> get props => [];
+}
+
+// ─── AI Analyst events ───
+
+class AnalystChunkReceived extends MessengerEvent {
+  final String conversationId;
+  final String text;
+  const AnalystChunkReceived({required this.conversationId, required this.text});
+  @override
+  List<Object?> get props => [conversationId, text];
+}
+
+class AnalystSeamReceived extends MessengerEvent {
+  final AnalystSeam seam;
+  const AnalystSeamReceived({required this.seam});
+  @override
+  List<Object?> get props => [seam];
+}
+
+class AnalystPendingTextCleared extends MessengerEvent {
+  final String conversationId;
+  const AnalystPendingTextCleared({required this.conversationId});
+  @override
+  List<Object?> get props => [conversationId];
 }

@@ -40,6 +40,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _reactionSub;
   StreamSubscription? _socketErrorSub;
   StreamSubscription? _reconnectSub;
+  StreamSubscription? _analystChunkSub;
+  StreamSubscription? _analystSeamSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   /// Tracks pending clientTempIds that have been emitted to the server and
@@ -109,6 +111,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
     on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
     on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
+    on<AnalystChunkReceived>(_onAnalystChunk);
+    on<AnalystSeamReceived>(_onAnalystSeam);
+    on<AnalystPendingTextCleared>(_onAnalystPendingTextCleared);
   }
 
   Future<void> _onConnect(
@@ -241,6 +246,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         add(ReactionUpdated(messageId: msgId, conversationId: convId, reactions: reactions));
       }
     });
+    _analystChunkSub?.cancel();
+    _analystChunkSub = _repo.analystChunkStream.listen(
+      (c) => add(AnalystChunkReceived(conversationId: c.conversationId, text: c.text)),
+    );
+    _analystSeamSub?.cancel();
+    _analystSeamSub = _repo.analystSeamStream.listen(
+      (s) => add(AnalystSeamReceived(seam: s)),
+    );
     emit(state.copyWith(
       isConnected: true,
       currentUserId: event.userId ?? state.currentUserId,
@@ -578,7 +591,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     final newMessages =
         Map<String, List<MessageEntity>>.from(state.messages);
     newMessages[msg.conversationId] = existing;
-    emit(state.copyWith(messages: newMessages));
+    Map<String, String>? nextPendingText;
+    if (msg.isSystem && state.pendingAnalystText.containsKey(msg.conversationId)) {
+      nextPendingText = Map<String, String>.from(state.pendingAnalystText)..remove(msg.conversationId);
+    }
+    emit(state.copyWith(
+      messages: newMessages,
+      pendingAnalystText: nextPendingText ?? state.pendingAnalystText,
+    ));
     // Cache the new message
     _cache.appendMessage(msg.conversationId, msg.toJson());
     add(LoadConversations());
@@ -932,6 +952,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub?.cancel();
     _reactionSub?.cancel();
     _reconnectSub?.cancel();
+    _analystChunkSub?.cancel();
+    _analystSeamSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }
     _repo.dispose();
     return super.close();
@@ -1095,6 +1117,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         pendingContactRequests: pendingContacts,
       ));
     } catch (_) {}
+  }
+
+  // ─── AI Analyst handlers ───
+
+  Future<void> _onAnalystChunk(AnalystChunkReceived e, Emitter<MessengerState> emit) async {
+    final current = state.pendingAnalystText[e.conversationId] ?? '';
+    emit(state.copyWith(pendingAnalystText: {
+      ...state.pendingAnalystText,
+      e.conversationId: current + e.text,
+    }));
+  }
+
+  Future<void> _onAnalystSeam(AnalystSeamReceived e, Emitter<MessengerState> emit) async {
+    emit(state.copyWith(analystSeams: {
+      ...state.analystSeams,
+      e.seam.messageId: e.seam,
+    }));
+  }
+
+  Future<void> _onAnalystPendingTextCleared(AnalystPendingTextCleared e, Emitter<MessengerState> emit) async {
+    if (!state.pendingAnalystText.containsKey(e.conversationId)) return;
+    final next = Map<String, String>.from(state.pendingAnalystText)..remove(e.conversationId);
+    emit(state.copyWith(pendingAnalystText: next));
   }
 
   Future<void> _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) async {
