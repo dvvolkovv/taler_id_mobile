@@ -39,6 +39,8 @@ import '../../features/messenger/presentation/screens/channel_settings_screen.da
 import '../../features/voice/presentation/screens/voice_call_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
+import '../../features/billing/presentation/screens/wallet_screen.dart';
+import '../../features/billing/presentation/screens/purchase_screen.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
@@ -129,6 +131,20 @@ final appRouter = GoRouter(
           e2eeKey: e2eeKey,
           publicCode: publicCode,
         );
+      },
+    ),
+    // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
+    // InsufficientFundsSheet and LowBalanceBanner across the app.
+    GoRoute(
+      path: '/billing/wallet',
+      builder: (_, __) => const WalletScreen(),
+    ),
+    GoRoute(
+      path: '/billing/purchase',
+      builder: (_, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final preferred = extra?['preferred'] as String?;
+        return PurchaseScreen(preferred: preferred);
       },
     ),
     // Dashboard shell with bottom nav
