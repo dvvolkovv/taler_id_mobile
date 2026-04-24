@@ -252,6 +252,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       _meshAdapter.inbound.map(
         (msg) => MeshInboundMessage(
           contactUserId: msg.contactUserId,
+          conversationId: msg.conversationId,
           text: msg.text,
           receivedAt: msg.receivedAt,
         ),

@@ -233,6 +233,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _meshMsgSub?.cancel();
     _meshMsgSub = _repo.meshMessageStream.listen((msg) {
       add(MeshMessageReceived(
+        conversationId: msg.conversationId,
         contactUserId: msg.contactUserId,
         text: msg.text,
         receivedAt: msg.receivedAt,
@@ -1031,17 +1032,31 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     add(LoadConversations());
   }
 
-  // Phase 1e: handler for mesh-delivered inbound messages. Logs the arrival
-  // so the inbound pipeline is confirmed connected. UI rendering of the
-  // message bubble in conversation history is Phase 1f work (requires
-  // MessageEntity.transport field + Freezed code generation).
+  // Phase 1f: handler for mesh-delivered inbound messages. Inserts the
+  // message as a MessageEntity(transport: 'mesh') into the correct
+  // conversation's message list, deduplicating by deterministic id and
+  // keeping the list sorted by sentAt.
   void _onMeshMessageReceived(
       MeshMessageReceived event, Emitter<MessengerState> emit) {
-    debugPrint(
-      '[mesh-in] from=${event.contactUserId}: '
-      '${event.text.substring(0, event.text.length.clamp(0, 60))}',
+    final msgId =
+        'mesh-in-${event.contactUserId}-${event.receivedAt.millisecondsSinceEpoch}';
+    final incoming = MessageEntity(
+      id: msgId,
+      conversationId: event.conversationId,
+      senderId: event.contactUserId,
+      content: event.text,
+      sentAt: event.receivedAt,
+      transport: 'mesh',
     );
-    // No-op state change: Phase 1f will render the bubble.
+    final updated = Map<String, List<MessageEntity>>.from(state.messages);
+    final existing =
+        List<MessageEntity>.from(updated[event.conversationId] ?? const []);
+    // Dedup by id (adapter may have already persisted + re-delivered on restart).
+    if (existing.any((m) => m.id == msgId)) return;
+    existing.add(incoming);
+    existing.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    updated[event.conversationId] = existing;
+    emit(state.copyWith(messages: updated));
   }
 
   Future<void> _onLoadBadgeCounts(LoadBadgeCounts event, Emitter<MessengerState> emit) async {

@@ -67,10 +67,12 @@ abstract class IMessengerRepository {
 /// A mesh-delivered inbound message surfaced to the messenger layer.
 class MeshInboundMessage {
   final String contactUserId;
+  final String conversationId;
   final String text;
   final DateTime receivedAt;
   const MeshInboundMessage({
     required this.contactUserId,
+    required this.conversationId,
     required this.text,
     required this.receivedAt,
   });
