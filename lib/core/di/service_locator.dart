@@ -277,6 +277,15 @@ Future<void> setupDependencies() async {
       lookupUserByDevice: (devicePk) =>
           sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
       contactUserIdForUserPk: _contactUserIdByUserPk,
+      resolveConversationId: (contactUserId) {
+        try {
+          final existing = sl<MessengerCacheService>()
+              .getConversationByContact(contactUserId);
+          return existing?.id ?? 'meshOnly:$contactUserId';
+        } catch (_) {
+          return 'meshOnly:$contactUserId';
+        }
+      },
       persistLocal: (entry) =>
           sl<MessengerCacheService>().appendMeshMessage(entry),
     );

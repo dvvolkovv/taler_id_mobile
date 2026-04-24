@@ -6,31 +6,36 @@ import '../../../../core/mesh/transport/peer_id.dart';
 /// Adapted mesh inbound event for the messenger layer.
 class AdaptedInboundMessage {
   final String contactUserId;
+  final String conversationId;
   final String text;
   final DateTime receivedAt;
   AdaptedInboundMessage({
     required this.contactUserId,
+    required this.conversationId,
     required this.text,
     required this.receivedAt,
   });
 }
 
 /// Bridges [MeshMessagingService] (transport level) and the messenger
-/// layer. On inbound: resolves the sender's devicePk → userPk → Taler ID
-/// contactUserId and emits an [AdaptedInboundMessage] that the messenger
-/// bloc can consume alongside server-delivered messages. On outbound:
-/// sends via [meshSendText] and persists a local record flagged
+/// layer. On inbound: resolves devicePk → userPk → contactUserId →
+/// conversationId and emits an [AdaptedInboundMessage] the messenger
+/// bloc consumes alongside server-delivered messages. On outbound: sends
+/// via [meshSendText] and persists a local record flagged
 /// `transport: 'mesh'`.
-///
-/// The contact resolution + local persistence are injected as callbacks
-/// so this adapter is easily unit-testable without touching Hive or the
-/// DI graph.
 class MeshMessengerAdapter {
   final Future<void> Function({required PeerId toUserPk, required String text})
       meshSendText;
   final Stream<InboundMessage> meshInbound;
   final PeerId? Function(PeerId devicePk) lookupUserByDevice;
   final String? Function(PeerId userPk) contactUserIdForUserPk;
+
+  /// Phase 1f — given a Taler ID contactUserId, return the existing DIRECT
+  /// conversationId if one exists in the cache. When no server chat has
+  /// ever happened with this contact, implementations should fall back to
+  /// `meshOnly:<userId>` so the ghost chat still captures history.
+  final String Function(String contactUserId) resolveConversationId;
+
   final void Function(Map<String, dynamic> entry) persistLocal;
 
   final _ctrl = StreamController<AdaptedInboundMessage>.broadcast();
@@ -41,6 +46,7 @@ class MeshMessengerAdapter {
     required this.meshInbound,
     required this.lookupUserByDevice,
     required this.contactUserIdForUserPk,
+    required this.resolveConversationId,
     required this.persistLocal,
   });
 
@@ -61,17 +67,21 @@ class MeshMessengerAdapter {
     final contactUserId = contactUserIdForUserPk(userPk);
     if (contactUserId == null) return;
     final now = DateTime.now();
+    final convId = resolveConversationId(contactUserId);
+    final msgId = _inboundId(msg.fromUserPk, now);
     persistLocal({
-      'conversationId': 'meshOnly:$contactUserId',
+      'id': msgId,
+      'conversationId': convId,
       'contactUserId': contactUserId,
-      'text': msg.text,
+      'senderId': contactUserId,
+      'content': msg.text,
       'transport': 'mesh',
-      'meshOnly': true,
       'direction': 'inbound',
-      'sentAt': now.toIso8601String(),
+      'sentAt': now.toUtc().toIso8601String(),
     });
     _ctrl.add(AdaptedInboundMessage(
       contactUserId: contactUserId,
+      conversationId: convId,
       text: msg.text,
       receivedAt: now,
     ));
@@ -84,14 +94,16 @@ class MeshMessengerAdapter {
     required String contactUserId,
   }) async {
     await meshSendText(toUserPk: contactDevicePk, text: text);
+    final now = DateTime.now();
     persistLocal({
+      'id': _outboundId(contactUserId, now),
       'conversationId': conversationId,
       'contactUserId': contactUserId,
-      'text': text,
+      'senderId': 'me',
+      'content': text,
       'transport': 'mesh',
-      'meshOnly': true,
       'direction': 'outbound',
-      'sentAt': DateTime.now().toIso8601String(),
+      'sentAt': now.toUtc().toIso8601String(),
     });
   }
 
@@ -99,4 +111,13 @@ class MeshMessengerAdapter {
     await stop();
     await _ctrl.close();
   }
+
+  static String _inboundId(PeerId from, DateTime at) {
+    final hex = from.toHex();
+    final prefix = hex.substring(0, hex.length < 8 ? hex.length : 8);
+    return 'mesh-$prefix-${at.millisecondsSinceEpoch}';
+  }
+
+  static String _outboundId(String contactUserId, DateTime at) =>
+      'mesh-out-$contactUserId-${at.millisecondsSinceEpoch}';
 }

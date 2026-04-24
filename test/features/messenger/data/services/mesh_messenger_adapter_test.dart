@@ -25,96 +25,120 @@ class _FakeMessaging {
   Future<void> dispose() => _ctrl.close();
 }
 
-class _ContactLookupDouble {
-  PeerId? Function(PeerId) lookupUserByDevice = (_) => null;
-  String? Function(PeerId) contactUserIdForUserPk = (_) => null;
-}
-
 class _CacheSpy {
   final List<Map<String, dynamic>> persisted = [];
+  void persist(Map<String, dynamic> entry) => persisted.add(entry);
+}
 
-  void persist(Map<String, dynamic> entry) {
-    persisted.add(entry);
-  }
+MeshMessengerAdapter _adapter(
+  _FakeMessaging m,
+  _CacheSpy cache, {
+  PeerId? Function(PeerId)? lookupUserByDevice,
+  String? Function(PeerId)? contactUserIdForUserPk,
+  String Function(String)? resolveConversationId,
+}) {
+  return MeshMessengerAdapter(
+    meshSendText: m.sendText,
+    meshInbound: m.inbound,
+    lookupUserByDevice: lookupUserByDevice ?? (_) => null,
+    contactUserIdForUserPk: contactUserIdForUserPk ?? (_) => null,
+    resolveConversationId:
+        resolveConversationId ?? (userId) => 'meshOnly:$userId',
+    persistLocal: cache.persist,
+  );
 }
 
 void main() {
   group('MeshMessengerAdapter', () {
-    test('inbound from known contact emits adapted Message', () async {
+    test('inbound from known contact emits AdaptedInboundMessage with resolved conversationId',
+        () async {
       final messaging = _FakeMessaging();
-      final lookup = _ContactLookupDouble();
-      lookup.lookupUserByDevice = (dev) =>
-          dev.toHex() == 'a' * 64 ? PeerId.fromHex('b' * 64) : null;
-      lookup.contactUserIdForUserPk = (user) =>
-          user.toHex() == 'b' * 64 ? 'contact-1' : null;
       final cache = _CacheSpy();
-
       final events = <AdaptedInboundMessage>[];
-      final adapter = MeshMessengerAdapter(
-        meshSendText: messaging.sendText,
-        meshInbound: messaging.inbound,
-        lookupUserByDevice: lookup.lookupUserByDevice,
-        contactUserIdForUserPk: lookup.contactUserIdForUserPk,
-        persistLocal: cache.persist,
+      final adapter = _adapter(
+        messaging,
+        cache,
+        lookupUserByDevice: (dev) =>
+            dev.toHex() == 'a' * 64 ? PeerId.fromHex('b' * 64) : null,
+        contactUserIdForUserPk: (user) =>
+            user.toHex() == 'b' * 64 ? 'contact-1' : null,
+        resolveConversationId: (uid) =>
+            uid == 'contact-1' ? 'server-conv-42' : 'meshOnly:$uid',
       );
       final sub = adapter.inbound.listen(events.add);
       adapter.start();
 
       messaging.pushInbound(PeerId.fromHex('a' * 64), 'Hello');
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       expect(events, hasLength(1));
       expect(events.first.contactUserId, 'contact-1');
+      expect(events.first.conversationId, 'server-conv-42');
       expect(events.first.text, 'Hello');
       expect(cache.persisted, hasLength(1));
-      expect(cache.persisted.first['transport'], 'mesh');
-      expect(cache.persisted.first['text'], 'Hello');
+      final e = cache.persisted.first;
+      expect(e['transport'], 'mesh');
+      expect(e['conversationId'], 'server-conv-42');
+      expect(e['content'], 'Hello');
+      expect(e['senderId'], 'contact-1');
+      expect(e['id'], startsWith('mesh-'),
+          reason: 'persisted entry must carry a deterministic mesh-prefixed id for dedup');
 
       await sub.cancel();
       await adapter.stop();
       await messaging.dispose();
     });
 
-    test('inbound from unknown contact is dropped', () async {
+    test('inbound falls back to meshOnly:<userId> when no server chat exists',
+        () async {
       final messaging = _FakeMessaging();
-      final lookup = _ContactLookupDouble();
       final cache = _CacheSpy();
-
       final events = <AdaptedInboundMessage>[];
-      final adapter = MeshMessengerAdapter(
-        meshSendText: messaging.sendText,
-        meshInbound: messaging.inbound,
-        lookupUserByDevice: lookup.lookupUserByDevice,
-        contactUserIdForUserPk: lookup.contactUserIdForUserPk,
-        persistLocal: cache.persist,
+      final adapter = _adapter(
+        messaging,
+        cache,
+        lookupUserByDevice: (_) => PeerId.fromHex('b' * 64),
+        contactUserIdForUserPk: (_) => 'contact-2',
+        resolveConversationId: (uid) => 'meshOnly:$uid',
       );
       final sub = adapter.inbound.listen(events.add);
       adapter.start();
+      messaging.pushInbound(PeerId.fromHex('a' * 64), 'first contact');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      messaging.pushInbound(PeerId.fromHex('c' * 64), 'ignore me');
-      await Future.delayed(const Duration(milliseconds: 10));
-
-      expect(events, isEmpty);
-      expect(cache.persisted, isEmpty);
+      expect(events, hasLength(1));
+      expect(events.first.conversationId, 'meshOnly:contact-2');
+      expect(cache.persisted.first['conversationId'], 'meshOnly:contact-2');
 
       await sub.cancel();
       await adapter.stop();
       await messaging.dispose();
     });
 
-    test('sendMessage routes to meshMessaging and persists locally', () async {
+    test('inbound from unknown device is dropped silently', () async {
       final messaging = _FakeMessaging();
       final cache = _CacheSpy();
-      final adapter = MeshMessengerAdapter(
-        meshSendText: messaging.sendText,
-        meshInbound: messaging.inbound,
-        lookupUserByDevice: (_) => null,
-        contactUserIdForUserPk: (_) => null,
-        persistLocal: cache.persist,
-      );
+      final events = <AdaptedInboundMessage>[];
+      final adapter = _adapter(messaging, cache);
+      final sub = adapter.inbound.listen(events.add);
+      adapter.start();
+      messaging.pushInbound(PeerId.fromHex('c' * 64), 'ignore');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(events, isEmpty);
+      expect(cache.persisted, isEmpty);
+      await sub.cancel();
+      await adapter.stop();
+      await messaging.dispose();
+    });
+
+    test('sendMessage persists outbound entry with deterministic id + caller conversationId',
+        () async {
+      final messaging = _FakeMessaging();
+      final cache = _CacheSpy();
+      final adapter = _adapter(messaging, cache);
 
       await adapter.sendMessage(
-        conversationId: 'conv-1',
+        conversationId: 'server-conv-42',
         text: 'Hi there',
         contactDevicePk: PeerId.fromHex('a' * 64),
         contactUserId: 'contact-1',
@@ -124,27 +148,25 @@ void main() {
       expect(messaging.sentCalls.first.$1, PeerId.fromHex('a' * 64));
       expect(messaging.sentCalls.first.$2, 'Hi there');
       expect(cache.persisted, hasLength(1));
-      expect(cache.persisted.first['transport'], 'mesh');
-      expect(cache.persisted.first['conversationId'], 'conv-1');
+      final e = cache.persisted.first;
+      expect(e['transport'], 'mesh');
+      expect(e['conversationId'], 'server-conv-42');
+      expect(e['direction'], 'outbound');
+      expect(e['id'], startsWith('mesh-out-'));
 
       await messaging.dispose();
     });
 
-    test('sendMessage surfaces error when underlying transport fails', () async {
+    test('sendMessage surfaces error from underlying transport and does NOT persist',
+        () async {
       final messaging = _FakeMessaging()..fail = true;
       final cache = _CacheSpy();
-      final adapter = MeshMessengerAdapter(
-        meshSendText: messaging.sendText,
-        meshInbound: messaging.inbound,
-        lookupUserByDevice: (_) => null,
-        contactUserIdForUserPk: (_) => null,
-        persistLocal: cache.persist,
-      );
+      final adapter = _adapter(messaging, cache);
 
       await expectLater(
         adapter.sendMessage(
-          conversationId: 'conv-1',
-          text: 'Hi there',
+          conversationId: 'server-conv-42',
+          text: 'boom',
           contactDevicePk: PeerId.fromHex('a' * 64),
           contactUserId: 'contact-1',
         ),
