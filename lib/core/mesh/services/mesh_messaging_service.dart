@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
+
 import '../crypto/keys/contact_key_store.dart';
 import '../crypto/noise/noise_ik_handshake.dart';
 import '../crypto/noise/session.dart';
@@ -69,24 +71,41 @@ class MeshMessagingService {
   Future<void> sendText({required PeerId toUserPk, required String text}) async {
     // Phase 1a: userPk == devicePk.
     final devicePk = toUserPk;
+    debugPrint('[mesh-send] sendText to=${devicePk.toHex().substring(0, 12)}... known=${contactKeyStore.isKnownDevice(devicePk)}');
     if (!contactKeyStore.isKnownDevice(devicePk)) {
       throw StateError('Unknown contact device: ${devicePk.toHex()}');
     }
     final state = _peerStates.putIfAbsent(devicePk, () => _PeerState());
-    if (state.session == null && state.handshake == null) {
-      state.sessionEstablished = Completer<void>();
-      await _initiateHandshake(devicePk, state);
+    // I1: if prior handshake attempt timed out (session never established),
+    // the Completer is stuck completed-with-timeout. Reset the peer state so
+    // a fresh handshake can start.
+    if (state.session == null && state.handshake != null) {
+      final prevCompleter = state.sessionEstablished;
+      if (prevCompleter == null || prevCompleter.isCompleted) {
+        debugPrint('[mesh-send] resetting stale peer state (previous handshake never completed)');
+        _peerStates[devicePk] = _PeerState();
+      }
     }
-    if (state.session == null) {
+    final freshState = _peerStates[devicePk]!;
+    if (freshState.session == null && freshState.handshake == null) {
+      freshState.sessionEstablished = Completer<void>();
+      debugPrint('[mesh-send] initiating new handshake');
+      await _initiateHandshake(devicePk, freshState);
+    }
+    if (freshState.session == null) {
+      debugPrint('[mesh-send] awaiting handshake completion (2s timeout)');
       try {
-        await state.sessionEstablished!.future.timeout(const Duration(seconds: 2));
+        await freshState.sessionEstablished!.future.timeout(const Duration(seconds: 2));
       } on TimeoutException {
+        debugPrint('[mesh-send] handshake TIMEOUT');
         throw TimeoutException('handshake did not complete');
       }
     }
+    debugPrint('[mesh-send] session established, encrypting payload');
     final payload = Uint8List.fromList(utf8.encode(text));
-    final ct = await state.session!.encrypt(payload);
+    final ct = await freshState.session!.encrypt(payload);
     await _sendFrame(devicePk, FrameType.data, ct);
+    debugPrint('[mesh-send] data frame sent');
   }
 
   Future<void> _initiateHandshake(PeerId devicePk, _PeerState state) async {
@@ -104,11 +123,18 @@ class MeshMessagingService {
 
   Future<void> _onInboundFrame(InboundFrame frame) async {
     final srcDevice = frame.srcPeer;
-    if (!contactKeyStore.isKnownDevice(srcDevice)) return; // drop unknown
+    debugPrint(
+      '[mesh-frame] ← type=${frame.type} from=${srcDevice.toHex().substring(0, 12)}... known=${contactKeyStore.isKnownDevice(srcDevice)}',
+    );
+    if (!contactKeyStore.isKnownDevice(srcDevice)) {
+      debugPrint('[mesh-frame] DROPPED — unknown devicePk');
+      return;
+    }
     final state = _peerStates.putIfAbsent(srcDevice, () => _PeerState());
 
     if (frame.type == FrameType.handshake) {
       if (state.handshake == null) {
+        debugPrint('[mesh-frame] starting RESPONDER handshake');
         // Responder path — we received msg1 from an initiator.
         final responder = await NoiseIKHandshake.startResponder(
           responderStaticPrivateKey: myDevicePrivateKey,
@@ -124,31 +150,40 @@ class MeshMessagingService {
         state.session = NoiseSession(sendKey: k2, recvKey: k1);
         state.sessionEstablished?.complete();
         await _sendFrame(srcDevice, FrameType.handshake, msg2);
+        debugPrint('[mesh-frame] responder handshake complete, session established');
       } else if (state.isInitiator) {
+        debugPrint('[mesh-frame] initiator receiving msg2');
         // Initiator receiving msg2.
         await state.handshake!.readMessage2(frame.bytes);
         final (k1, k2) = state.handshake!.finalize();
         // Initiator: k1 = send (initiator→responder), k2 = recv (responder→initiator).
         state.session = NoiseSession(sendKey: k1, recvKey: k2);
         state.sessionEstablished?.complete();
+        debugPrint('[mesh-frame] initiator handshake complete, session established');
+      } else {
+        debugPrint('[mesh-frame] unexpected handshake frame — state.isInitiator=${state.isInitiator} handshake!=null');
       }
       return;
     }
 
     if (frame.type == FrameType.data) {
-      if (state.session == null) return; // no session yet — drop
+      if (state.session == null) {
+        debugPrint('[mesh-frame] data frame but no session — dropped');
+        return;
+      }
       try {
         final pt = await state.session!.decrypt(frame.bytes);
+        debugPrint('[mesh-frame] decrypted data frame, emitting InboundMessage');
         _inboundCtrl.add(InboundMessage(
           fromUserPk: srcDevice,
           text: utf8.decode(pt),
         ));
-      } catch (_) {
-        // undecryptable — drop silently
+      } catch (e) {
+        debugPrint('[mesh-frame] decrypt failed: $e');
       }
       return;
     }
-    // Other frame types (keepalive, disconnect) — Phase 1a ignores.
+    debugPrint('[mesh-frame] ignored frame type: ${frame.type}');
   }
 
   Future<void> _sendFrame(PeerId peer, FrameType type, Uint8List payload) async {
