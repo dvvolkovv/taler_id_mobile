@@ -48,6 +48,7 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import '../widgets/typing_dots.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -2095,7 +2096,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         SizedBox(
                           width: 24,
                           height: 16,
-                          child: _TypingDots(color: AppColors.of(context).primary),
+                          child: TypingDots(color: AppColors.of(context).primary),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -4623,62 +4624,6 @@ class _WaveformPainter extends CustomPainter {
       old.progress != progress ||
       old.activeColor != activeColor ||
       old.inactiveColor != inactiveColor;
-}
-
-class _TypingDots extends StatefulWidget {
-  final Color color;
-  const _TypingDots({required this.color});
-
-  @override
-  State<_TypingDots> createState() => _TypingDotsState();
-}
-
-class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (i) {
-          final delay = i * 0.2;
-          final t = ((_ctrl.value - delay) % 1.0).clamp(0.0, 1.0);
-          final scale = t < 0.5 ? 0.5 + t : 1.5 - t;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: 0.4 + 0.6 * scale.clamp(0.0, 1.0)),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }
 
 class _ReactionsRow extends StatelessWidget {
