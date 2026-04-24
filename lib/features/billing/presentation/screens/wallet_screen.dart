@@ -13,6 +13,7 @@ import '../bloc/balance_state.dart';
 import '../bloc/packages_bloc.dart';
 import '../bloc/packages_event.dart';
 import '../bloc/packages_state.dart';
+import '_billing_formatters.dart';
 
 /// Primary wallet screen: shows balance, available packages, recent transactions.
 ///
@@ -426,82 +427,24 @@ class _TransactionRow extends StatelessWidget {
 
   const _TransactionRow({required this.tx});
 
-  /// Convert planck (18 decimals) → μTAL (12 decimals) by dividing by 1e6.
-  /// Accepts optional leading '-' for outgoing amounts.
-  /// Operates on strings to avoid int64 overflow.
-  String _planckToMicroTal(String planck) {
-    var s = planck;
-    final negative = s.startsWith('-');
-    if (negative) s = s.substring(1);
-    final value = BigInt.tryParse(s);
-    if (value == null) return planck;
-    final microTal = value ~/ BigInt.from(1000000);
-    final fraction = value % BigInt.from(1000000);
-    String result;
-    if (fraction == BigInt.zero) {
-      result = microTal.toString();
-    } else {
-      final fracStr = fraction.toString().padLeft(6, '0');
-      final trimmed = fracStr.replaceFirst(RegExp(r'0+$'), '');
-      result = trimmed.isEmpty ? microTal.toString() : '$microTal.$trimmed';
-    }
-    return negative ? '-$result' : result;
-  }
-
-  bool get _isCredit {
-    // Classify by type first; fall back to sign of amount.
-    final t = tx.type.toUpperCase();
-    if (t.startsWith('TOPUP') || t.contains('REFUND') || t.contains('CREDIT')) {
-      return true;
-    }
-    if (t.contains('SPEND') || t.contains('DEBIT') || t.contains('CHARGE')) {
-      return false;
-    }
-    return !tx.amountPlanck.startsWith('-');
-  }
-
-  String _typeLabel() {
-    final t = tx.type.toUpperCase();
-    if (t.startsWith('TOPUP')) return 'Пополнение';
-    if (t.contains('REFUND')) return 'Возврат';
-    if (t.contains('SPEND') || t.contains('DEBIT') || t.contains('CHARGE')) {
-      return 'Оплата';
-    }
-    return tx.type;
-  }
-
-  IconData _icon() {
-    if (_isCredit) return Icons.south_west;
-    return Icons.north_east;
-  }
-
-  String _formatDate(String iso) {
-    final dt = DateTime.tryParse(iso);
-    if (dt == null) return iso;
-    final local = dt.toLocal();
-    final y = local.year.toString();
-    final m = local.month.toString().padLeft(2, '0');
-    final d = local.day.toString().padLeft(2, '0');
-    final hh = local.hour.toString().padLeft(2, '0');
-    final mm = local.minute.toString().padLeft(2, '0');
-    return '$d.$m.$y $hh:$mm';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final amountMicroTal = _planckToMicroTal(tx.amountPlanck);
+    final credit = isCreditTx(tx);
+    final amountMicroTal = planckToMicroTal(tx.amountPlanck);
     // Strip any '-' so we can prepend our own sign in front of μTAL suffix.
     final absAmount = amountMicroTal.startsWith('-')
         ? amountMicroTal.substring(1)
         : amountMicroTal;
-    final sign = _isCredit ? '+' : '-';
-    final amountColor =
-        _isCredit ? colorScheme.primary : colorScheme.onSurface;
+    final sign = credit ? '+' : '-';
+    final amountColor = credit ? colorScheme.primary : colorScheme.onSurface;
+    final featureLabel = tx.featureKey == null
+        ? null
+        : (featureLabels[tx.featureKey] ?? tx.featureKey);
     final subtitle = [
-      if (tx.featureKey != null && tx.featureKey!.isNotEmpty) tx.featureKey!,
-      _formatDate(tx.createdAt),
+      if (featureLabel != null && featureLabel.isNotEmpty) featureLabel,
+      formatIsoDate(tx.createdAt),
     ].join(' · ');
 
     return Padding(
@@ -517,7 +460,7 @@ class _TransactionRow extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              _icon(),
+              txIcon(tx),
               size: 18,
               color: colorScheme.primary,
             ),
@@ -528,7 +471,7 @@ class _TransactionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _typeLabel(),
+                  typeLabel(tx),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

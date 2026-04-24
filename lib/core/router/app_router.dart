@@ -41,6 +41,9 @@ import '../../features/call_history/presentation/screens/call_history_screen.dar
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
 import '../../features/billing/presentation/screens/wallet_screen.dart';
 import '../../features/billing/presentation/screens/purchase_screen.dart';
+import '../../features/billing/presentation/screens/transactions_screen.dart';
+import '../../features/billing/presentation/screens/pricebook_screen.dart';
+import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
@@ -146,6 +149,18 @@ final appRouter = GoRouter(
         final preferred = extra?['preferred'] as String?;
         return PurchaseScreen(preferred: preferred);
       },
+    ),
+    GoRoute(
+      path: '/billing/transactions',
+      builder: (_, __) => const TransactionsScreen(),
+    ),
+    GoRoute(
+      path: '/billing/pricebook',
+      builder: (_, __) => const PricebookScreen(),
+    ),
+    GoRoute(
+      path: '/settings/ai-toggles',
+      builder: (_, __) => const AiTogglesScreen(),
     ),
     // Dashboard shell with bottom nav
     ShellRoute(
