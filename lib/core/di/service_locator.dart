@@ -62,6 +62,11 @@ import '../../features/profile_sections/data/datasources/profile_sections_remote
 import '../../features/profile_sections/data/repositories/profile_sections_repository_impl.dart';
 import '../../features/profile_sections/domain/repositories/i_profile_sections_repository.dart';
 
+// Billing
+import '../../features/billing/data/datasources/billing_remote_datasource.dart';
+import '../../features/billing/data/repositories/billing_repository_impl.dart';
+import '../../features/billing/domain/repositories/billing_repository.dart';
+
 
 final sl = GetIt.instance;
 
@@ -181,6 +186,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => ProfileSectionsRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IProfileSectionsRepository>(
     () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
+  );
+
+  // Billing
+  sl.registerLazySingleton(() => BillingRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton<BillingRepository>(
+    () => BillingRepositoryImpl(remote: sl<BillingRemoteDataSource>()),
   );
 
   // Update check
