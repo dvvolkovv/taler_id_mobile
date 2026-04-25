@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -17,6 +18,7 @@ import '../../../../main.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../mesh/presentation/widgets/mesh_settings_section.dart';
 import '../../../profile/data/datasources/profile_remote_datasource.dart';
 import '../../../auth/data/datasources/auth_remote_datasource.dart';
 import 'package:dio/dio.dart';
@@ -360,6 +362,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Mesh network section (Phase 1e) — visible in all flavors so
+            // users can toggle offline-fallback. The "View debug" button
+            // inside MeshSettingsSection is already dev-only.
+            _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+            const MeshSettingsSection(),
             const SizedBox(height: 16),
 
             // Voice assistant section

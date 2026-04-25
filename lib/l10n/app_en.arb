@@ -667,6 +667,7 @@
     }
   },
   "chatEdited": "Edited",
+  "chatViaMesh": "via mesh",
   "chatReply": "Reply",
   "chatEdit": "Edit",
   "chatCopy": "Copy",

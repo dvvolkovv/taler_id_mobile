@@ -48,6 +48,10 @@ mixin _$MessageEntity {
   String? get topicId => throw _privateConstructorUsedError;
   Map<String, dynamic>? get metadata => throw _privateConstructorUsedError;
 
+  /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
+  /// Null (or absent in server JSON) means the normal socket/REST path.
+  String? get transport => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $MessageEntityCopyWith<MessageEntity> get copyWith =>
@@ -85,7 +89,8 @@ abstract class $MessageEntityCopyWith<$Res> {
       int threadReplyCount,
       List<String>? threadLastReplierAvatars,
       String? topicId,
-      Map<String, dynamic>? metadata});
+      Map<String, dynamic>? metadata,
+      String? transport});
 }
 
 /// @nodoc
@@ -126,6 +131,7 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? threadLastReplierAvatars = freezed,
     Object? topicId = freezed,
     Object? metadata = freezed,
+    Object? transport = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -228,6 +234,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      transport: freezed == transport
+          ? _value.transport
+          : transport // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -265,7 +275,8 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       int threadReplyCount,
       List<String>? threadLastReplierAvatars,
       String? topicId,
-      Map<String, dynamic>? metadata});
+      Map<String, dynamic>? metadata,
+      String? transport});
 }
 
 /// @nodoc
@@ -304,6 +315,7 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? threadLastReplierAvatars = freezed,
     Object? topicId = freezed,
     Object? metadata = freezed,
+    Object? transport = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -406,6 +418,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value._metadata
           : metadata // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>?,
+      transport: freezed == transport
+          ? _value.transport
+          : transport // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -438,7 +454,8 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.threadReplyCount = 0,
       final List<String>? threadLastReplierAvatars,
       this.topicId,
-      final Map<String, dynamic>? metadata})
+      final Map<String, dynamic>? metadata,
+      this.transport})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars,
         _metadata = metadata;
@@ -525,9 +542,14 @@ class _$MessageEntityImpl implements _MessageEntity {
     return EqualUnmodifiableMapView(value);
   }
 
+  /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
+  /// Null (or absent in server JSON) means the normal socket/REST path.
+  @override
+  final String? transport;
+
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport)';
   }
 
   @override
@@ -576,7 +598,9 @@ class _$MessageEntityImpl implements _MessageEntity {
             const DeepCollectionEquality().equals(
                 other._threadLastReplierAvatars, _threadLastReplierAvatars) &&
             (identical(other.topicId, topicId) || other.topicId == topicId) &&
-            const DeepCollectionEquality().equals(other._metadata, _metadata));
+            const DeepCollectionEquality().equals(other._metadata, _metadata) &&
+            (identical(other.transport, transport) ||
+                other.transport == transport));
   }
 
   @JsonKey(ignore: true)
@@ -607,7 +631,8 @@ class _$MessageEntityImpl implements _MessageEntity {
         threadReplyCount,
         const DeepCollectionEquality().hash(_threadLastReplierAvatars),
         topicId,
-        const DeepCollectionEquality().hash(_metadata)
+        const DeepCollectionEquality().hash(_metadata),
+        transport
       ]);
 
   @JsonKey(ignore: true)
@@ -650,7 +675,8 @@ abstract class _MessageEntity implements MessageEntity {
       final int threadReplyCount,
       final List<String>? threadLastReplierAvatars,
       final String? topicId,
-      final Map<String, dynamic>? metadata}) = _$MessageEntityImpl;
+      final Map<String, dynamic>? metadata,
+      final String? transport}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -705,6 +731,11 @@ abstract class _MessageEntity implements MessageEntity {
   String? get topicId;
   @override
   Map<String, dynamic>? get metadata;
+  @override
+
+  /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
+  /// Null (or absent in server JSON) means the normal socket/REST path.
+  String? get transport;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

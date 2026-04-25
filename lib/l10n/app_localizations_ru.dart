@@ -1537,6 +1537,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatEdited => 'Отредактировано';
 
   @override
+  String get chatViaMesh => 'через mesh';
+
+  @override
   String get chatReply => 'Ответить';
 
   @override

@@ -65,4 +65,44 @@ abstract class IMessengerRepository {
   /// Returns the per-user SAVED conversation id, creating it on the server if needed.
   Future<String> getOrCreateSavedConversation();
   void dispose();
+
+  /// Stream of mesh-delivered text messages (Phase 1e). Emits after the
+  /// mesh adapter resolves the sender's devicePk to a known contact.
+  Stream<MeshInboundMessage> get meshMessageStream;
+
+  /// Stream of mesh-delivered OUTBOUND messages — emitted after the
+  /// local transport ack so the bloc can replace the optimistic `temp_*`
+  /// bubble with a mesh-out entry carrying `transport: 'mesh'`.
+  Stream<MeshOutboundMessage> get meshOutboundStream;
+}
+
+class MeshOutboundMessage {
+  final String id;
+  final String conversationId;
+  final String contactUserId;
+  final String? clientTempId;
+  final String text;
+  final DateTime sentAt;
+  const MeshOutboundMessage({
+    required this.id,
+    required this.conversationId,
+    required this.contactUserId,
+    required this.clientTempId,
+    required this.text,
+    required this.sentAt,
+  });
+}
+
+/// A mesh-delivered inbound message surfaced to the messenger layer.
+class MeshInboundMessage {
+  final String contactUserId;
+  final String conversationId;
+  final String text;
+  final DateTime receivedAt;
+  const MeshInboundMessage({
+    required this.contactUserId,
+    required this.conversationId,
+    required this.text,
+    required this.receivedAt,
+  });
 }

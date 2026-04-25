@@ -1,11 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../features/messenger/domain/entities/conversation_entity.dart';
 
 /// Hive-based cache for messenger conversations and messages.
 /// Provides instant loading from local storage before server fetch.
 class MessengerCacheService {
   static const _conversationsBox = 'messenger_conversations';
   static const _messagesBox = 'messenger_messages';
+  static const _meshBoxName = 'mesh_messages';
   static const _maxMessagesPerConversation = 100;
 
   static Future<void> init() async {
@@ -13,13 +16,16 @@ class MessengerCacheService {
       await Future.wait([
         Hive.openBox(_conversationsBox),
         Hive.openBox(_messagesBox),
+        Hive.openBox<String>(_meshBoxName),
       ]);
     } catch (_) {
       await Hive.deleteBoxFromDisk(_conversationsBox);
       await Hive.deleteBoxFromDisk(_messagesBox);
+      await Hive.deleteBoxFromDisk(_meshBoxName);
       await Future.wait([
         Hive.openBox(_conversationsBox),
         Hive.openBox(_messagesBox),
+        Hive.openBox<String>(_meshBoxName),
       ]);
     }
   }
@@ -97,10 +103,99 @@ class MessengerCacheService {
     await saveMessages(conversationId, messages);
   }
 
-  Future<void> clearAll() async {
+  /// Phase 1e — look up a cached conversation by id. Returns null when not
+  /// cached — the resolver treats this as "mesh route unavailable".
+  ConversationEntity? getConversationById(String id) {
     try {
-      await Hive.box(_conversationsBox).clear();
-      await Hive.box(_messagesBox).clear();
+      final raw = getConversations();
+      if (raw == null) return null;
+      for (final map in raw) {
+        if (map['id'] == id) {
+          return ConversationEntity.fromJson(map);
+        }
+      }
     } catch (_) {}
+    return null;
+  }
+
+  /// Phase 1f — find the existing DIRECT (1:1) conversation with a given
+  /// contact userId. Returns null when no 1:1 conversation is cached; callers
+  /// are expected to fall back to `meshOnly:<userId>` in that case.
+  ConversationEntity? getConversationByContact(String contactUserId) {
+    try {
+      final raw = getConversations();
+      if (raw == null) return null;
+      for (final map in raw) {
+        final type = map['type'] as String? ?? 'DIRECT';
+        if (type != 'DIRECT') continue;
+        if (map['otherUserId'] == contactUserId) {
+          return ConversationEntity.fromJson(map);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  // ─── Mesh history ───
+
+  /// Phase 1f — append a mesh-delivered message (either direction) to the
+  /// per-conversation list. Idempotent: a second call with the same `id`
+  /// under the same `conversationId` is a no-op.
+  Future<void> appendMeshMessage(Map<String, dynamic> entry) async {
+    final convId = entry['conversationId'] as String?;
+    if (convId == null || convId.isEmpty) return;
+    final Box<String> box;
+    try {
+      box = Hive.box<String>(_meshBoxName);
+    } catch (_) {
+      debugPrint('[mesh-cache] mesh_messages box not open, dropping entry');
+      return;
+    }
+    final key = 'mesh_history_$convId';
+    try {
+      final raw = box.get(key);
+      final list = raw != null
+          ? (jsonDecode(raw) as List).cast<Map<String, dynamic>>()
+          : <Map<String, dynamic>>[];
+      final newId = entry['id'] as String?;
+      if (newId != null && list.any((m) => m['id'] == newId)) return;
+      list.add(entry);
+      await box.put(key, jsonEncode(list));
+    } catch (e, st) {
+      debugPrint('[mesh-cache] appendMeshMessage failed: $e\n$st');
+    }
+  }
+
+  /// Phase 1f — read mesh history for a conversation, oldest-first by
+  /// `sentAt`. Timestamps are parsed to `DateTime` so UTC-suffixed (`Z`) and
+  /// naive ISO strings are compared on equal footing.
+  List<Map<String, dynamic>> getMeshMessagesFor(String conversationId) {
+    final Box<String> box;
+    try {
+      box = Hive.box<String>(_meshBoxName);
+    } catch (_) {
+      return const [];
+    }
+    final raw = box.get('mesh_history_$conversationId');
+    if (raw == null) return const [];
+    try {
+      final list = (jsonDecode(raw) as List).cast<Map<String, dynamic>>();
+      list.sort((a, b) {
+        final sa = DateTime.tryParse(a['sentAt'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final sb = DateTime.tryParse(b['sentAt'] as String? ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return sa.compareTo(sb);
+      });
+      return list;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> clearAll() async {
+    try { await Hive.box(_conversationsBox).clear(); } catch (_) {}
+    try { await Hive.box(_messagesBox).clear(); } catch (_) {}
+    try { await Hive.box<String>(_meshBoxName).clear(); } catch (_) {}
   }
 }

@@ -54,10 +54,19 @@ dependencies:
   app_links: ^6.3.4
 
   # Cache
+  hive: ^2.2.3
   hive_flutter: ^1.1.0
 
   # Crypto
   crypto: ^3.0.6
+
+  # Mesh network
+  bonsoir: ^5.1.10
+  cryptography: ^2.7.0
+
+  # Mesh BLE (Phase 1d) — central + peripheral
+  flutter_reactive_ble: ^5.3.1
+  flutter_ble_peripheral: ^2.1.0
 
   # Chat assistant
   speech_to_text: ^7.0.0

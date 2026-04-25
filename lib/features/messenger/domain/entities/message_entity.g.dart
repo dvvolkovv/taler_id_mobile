@@ -39,6 +39,7 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
               .toList(),
       topicId: json['topicId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
+      transport: json['transport'] as String?,
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -68,4 +69,5 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'threadLastReplierAvatars': instance.threadLastReplierAvatars,
       'topicId': instance.topicId,
       'metadata': instance.metadata,
+      'transport': instance.transport,
     };

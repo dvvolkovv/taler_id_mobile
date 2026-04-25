@@ -667,6 +667,7 @@
     }
   },
   "chatEdited": "Отредактировано",
+  "chatViaMesh": "через mesh",
   "chatReply": "Ответить",
   "chatEdit": "Редактировать",
   "chatCopy": "Копировать",

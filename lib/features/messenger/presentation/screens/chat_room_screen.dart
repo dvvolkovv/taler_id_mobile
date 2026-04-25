@@ -52,6 +52,10 @@ import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../utils/recipient_filters.dart';
+import '../../../../core/mesh/services/device_key_sync_service.dart';
+import '../../../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
+import '../../../../features/mesh/domain/entities/mesh_status.dart';
+import '../widgets/chat_transport_badge.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -166,6 +170,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _addSharedFiles(widget.sharedFiles!);
       });
     }
+    // Phase 1e — prime mesh auth by fetching this contact's device certs.
+    // Fire-and-forget; failures don't block chat UX.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final contactId = _resolveContactUserId();
+      if (contactId == null) return;
+      debugPrint('[mesh-chat] ChatRoomScreen opening — calling fetchContactKeys($contactId)');
+      sl<DeviceKeySyncService>().fetchContactKeys(contactId).then((_) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) completed');
+      }).catchError((Object e, StackTrace st) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) FAILED: $e');
+      });
+    });
     // Listen for socket connectivity changes
     final ds = sl<MessengerRemoteDataSource>();
     _disconnectSub = ds.disconnectStream.listen((_) {
@@ -1210,6 +1226,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _videoRecording = false);
   }
 
+  /// Returns the other user's userId for 1:1 (DIRECT) chats, null for groups/bots.
+  String? _resolveContactUserId() {
+    final conv = _messengerBloc.state.conversations
+        .where((c) => c.id == widget.conversationId)
+        .firstOrNull;
+    return conv?.type == 'DIRECT' ? conv?.otherUserId : null;
+  }
+
   void _onTextChanged() {
     // Persist draft so the user can resume typing later or on another session
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
@@ -1726,6 +1750,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ]
             : [
+                BlocBuilder<MeshStatusBloc, MeshStatus>(
+                  bloc: sl<MeshStatusBloc>(),
+                  builder: (context, meshState) {
+                    final socketConnected = sl<MessengerRemoteDataSource>().isSocketConnected;
+                    final contactId = _resolveContactUserId();
+                    final peerVisible = contactId != null &&
+                        (meshState.visibilityByContactUserId[contactId] ?? false);
+                    final badgeState = socketConnected
+                        ? TransportBadgeState.server
+                        : (peerVisible ? TransportBadgeState.mesh : TransportBadgeState.queued);
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 4),
+                      child: ChatTransportBadge(state: badgeState),
+                    );
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
@@ -2984,6 +3024,19 @@ class _MessageBubbleState extends State<_MessageBubble> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (widget.message.transport == 'mesh') ...[
+                  Text(
+                    AppLocalizations.of(context)!.chatViaMesh,
+                    style: TextStyle(
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 if (widget.message.isEdited) ...[
                   Text(
                     AppLocalizations.of(context)!.chatEdited,
