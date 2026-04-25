@@ -51,6 +51,7 @@ import '../widgets/typing_dots.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../../domain/entities/analyst_events.dart';
+import '../../utils/recipient_filters.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -3281,7 +3282,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
   void _showForwardPicker(BuildContext context) {
     final bloc = context.read<MessengerBloc>();
-    final conversations = bloc.state.conversations;
+    final conversations = filterRecipients(bloc.state.conversations);
     final rootContext = context;
     showModalBottomSheet(
       context: context,
