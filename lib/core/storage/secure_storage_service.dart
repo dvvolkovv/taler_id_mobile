@@ -239,4 +239,21 @@ class SecureStorageService {
       await _storage.write(key: 'seen_calendar_invites', value: '$count');
     }
   }
+
+  /// Generic key-value read. Returns null if not set.
+  Future<String?> read(String key) async {
+    if (kIsWeb) {
+      return _webBox?.get(key) as String?;
+    }
+    return _storage.read(key: key);
+  }
+
+  /// Generic key-value write.
+  Future<void> write(String key, String value) async {
+    if (kIsWeb) {
+      await _webBox?.put(key, value);
+    } else {
+      await _storage.write(key: key, value: value);
+    }
+  }
 }
