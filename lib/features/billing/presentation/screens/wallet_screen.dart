@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/error_keys.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/billing_package_entity.dart';
@@ -15,15 +17,18 @@ import '../bloc/packages_event.dart';
 import '../bloc/packages_state.dart';
 import '_billing_formatters.dart';
 
-/// Primary wallet screen: shows balance, available packages, recent transactions.
+/// Single billing screen: balance, packages with inline buy buttons,
+/// and recent transactions. Replaces the prior split between wallet
+/// (preview) and purchase (actual buy) screens — packages are bought
+/// directly here.
 ///
-/// Entry point for the billing UX — reached from the [BalanceChip] in the
-/// AppBar or from the `Insufficient funds` / `Low balance` modals.
-///
-/// Hosts two BLoCs (balance + packages) via [MultiBlocProvider]. Refresh
-/// reloads both from the backend.
+/// Reached from [BalanceChip], [LowBalanceBanner], and the
+/// [InsufficientFundsSheet]. The optional [preferred] query parameter
+/// highlights one package (used when the paywall sheet recommends a
+/// specific top-up size).
 class WalletScreen extends StatelessWidget {
-  const WalletScreen({super.key});
+  final String? preferred;
+  const WalletScreen({super.key, this.preferred});
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +41,14 @@ class WalletScreen extends StatelessWidget {
           create: (_) => sl<PackagesBloc>()..add(LoadPackages()),
         ),
       ],
-      child: const _WalletView(),
+      child: _WalletView(preferred: preferred),
     );
   }
 }
 
 class _WalletView extends StatelessWidget {
-  const _WalletView();
+  final String? preferred;
+  const _WalletView({required this.preferred});
 
   Future<void> _refresh(BuildContext context) async {
     context.read<BalanceBloc>().add(LoadBalance());
@@ -51,24 +57,107 @@ class _WalletView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.billingWalletTitle)),
-      body: RefreshIndicator(
-        color: theme.colorScheme.primary,
-        onRefresh: () => _refresh(context),
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: const [
-            _BalanceCard(),
-            SizedBox(height: 24),
-            _PackagesSection(),
-            SizedBox(height: 24),
-            _RecentTransactionsSection(),
-          ],
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        title: Text(l10n.billingWalletTitle),
+        backgroundColor: colors.background,
+        elevation: 0,
+      ),
+      body: BlocListener<PackagesBloc, PackagesState>(
+        listener: (context, state) {
+          final messenger = ScaffoldMessenger.of(context);
+          if (state is PurchaseSuccess) {
+            try {
+              context.read<BalanceBloc>().add(
+                    BalanceChangedExternally(state.newBalance.balancePlanck),
+                  );
+            } catch (_) {}
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  l10n.billingPackagePurchased(state.newBalance.balanceMicroTal),
+                ),
+                backgroundColor: colors.primary,
+              ),
+            );
+          } else if (state is PurchaseFailed) {
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(resolveErrorMessage(l10n, state.message)),
+                backgroundColor: colors.error,
+              ),
+            );
+          }
+        },
+        child: RefreshIndicator(
+          color: colors.primary,
+          onRefresh: () => _refresh(context),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            children: [
+              _SectionHeader(label: l10n.billingCurrentBalance),
+              const SizedBox(height: 8),
+              const _BalanceCard(),
+              const SizedBox(height: 20),
+              _SectionHeader(label: l10n.billingPackagesTitle),
+              const SizedBox(height: 8),
+              _PackagesSection(preferred: preferred),
+              const SizedBox(height: 20),
+              const _RecentTransactionsSection(),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Section header — gradient bar + small caps label, identical to Settings
+// ────────────────────────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final Widget? trailing;
+  const _SectionHeader({required this.label, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Row(
+        children: [
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [colors.primary, colors.accent],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: colors.textPrimary.withValues(alpha: 0.85),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.6,
+              ),
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
       ),
     );
   }
@@ -83,81 +172,76 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return BlocBuilder<BalanceBloc, BalanceState>(
       builder: (context, state) {
         String display;
+        String? errMsg;
         if (state is BalanceLoaded) {
           display = '${state.balance.balanceMicroTal} μTAL';
         } else if (state is BalanceLoading || state is BalanceInitial) {
           display = '…';
         } else if (state is BalanceError) {
           display = '—';
+          errMsg = resolveErrorMessage(l10n, state.message);
         } else {
           display = '—';
         }
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                colorScheme.primary.withValues(alpha: 0.18),
-                colorScheme.primary.withValues(alpha: 0.06),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.25),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        return AppCard(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: colorScheme.primary,
-                    size: 22,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.lerp(colors.primary, Colors.white, 0.15)!,
+                      colors.primary,
+                      Color.lerp(colors.primary, Colors.black, 0.25)!,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.billingCurrentBalance,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w500,
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.45),
+                      blurRadius: 10,
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                display,
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  ],
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Colors.white,
+                  size: 22,
                 ),
               ),
-              if (state is BalanceError) ...[
-                const SizedBox(height: 8),
-                Text(
-                  resolveErrorMessage(l10n, state.message),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.error,
-                  ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      display,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (errMsg != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        errMsg,
+                        style: TextStyle(color: colors.error, fontSize: 11),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: () => context.push('/billing/purchase'),
-                icon: const Icon(Icons.add, size: 18),
-                label: Text(l10n.billingBuyPackage),
               ),
             ],
           ),
@@ -168,134 +252,161 @@ class _BalanceCard extends StatelessWidget {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Packages
+// Packages — grouped in a single AppCard, divided by thin lines, each
+// row carries an inline LoadingButton (the only place to buy).
 // ────────────────────────────────────────────────────────────────────────────
 
 class _PackagesSection extends StatelessWidget {
-  const _PackagesSection();
+  final String? preferred;
+  const _PackagesSection({required this.preferred});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          l10n.billingPackagesTitle,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+    return BlocBuilder<PackagesBloc, PackagesState>(
+      builder: (context, state) {
+        if (state is PackagesLoading || state is PackagesInitial) {
+          return AppCard(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: CircularProgressIndicator(color: colors.primary),
+              ),
+            ),
+          );
+        }
+        if (state is PackagesError) {
+          return AppCard(
+            child: Text(
+              resolveErrorMessage(l10n, state.message),
+              style: TextStyle(color: colors.error, fontSize: 12),
+            ),
+          );
+        }
+
+        // PackagesLoaded / PurchaseInProgress / PurchaseSuccess /
+        // PurchaseFailed all flow through here. The BLoC re-emits
+        // PackagesLoaded after each transition, so we read the list
+        // off PackagesLoaded — and only carry an inProgressId override
+        // while a purchase is mid-flight.
+        List<BillingPackageEntity> packages = const [];
+        String? inProgressId;
+        if (state is PackagesLoaded) {
+          packages = state.packages;
+        } else if (state is PurchaseInProgress) {
+          inProgressId = state.packageId;
+        }
+
+        if (packages.isEmpty) {
+          return AppCard(
+            child: Text(
+              l10n.billingPackagesUnavailable,
+              style: TextStyle(color: colors.textSecondary, fontSize: 12),
+            ),
+          );
+        }
+
+        return AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              for (int i = 0; i < packages.length; i++) ...[
+                _PackageRow(
+                  package: packages[i],
+                  highlighted: packages[i].id == preferred,
+                  busy: inProgressId == packages[i].id,
+                  // Only one purchase at a time — disable the others.
+                  disabled:
+                      inProgressId != null && inProgressId != packages[i].id,
+                ),
+                if (i < packages.length - 1)
+                  Divider(color: colors.border, height: 1, thickness: 1),
+              ],
+            ],
           ),
-        ),
-        const SizedBox(height: 12),
-        BlocBuilder<PackagesBloc, PackagesState>(
-          builder: (context, state) {
-            if (state is PackagesLoading || state is PackagesInitial) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(
-                  child: CircularProgressIndicator(color: colorScheme.primary),
-                ),
-              );
-            }
-            if (state is PackagesError) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  resolveErrorMessage(l10n, state.message),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.error,
-                  ),
-                ),
-              );
-            }
-            // PackagesLoaded, PurchaseInProgress, PurchaseSuccess, PurchaseFailed
-            // all still have the package list in the BLoC's cache — we only
-            // render the loaded state here.
-            if (state is PackagesLoaded) {
-              if (state.packages.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    l10n.billingPackagesUnavailable,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                );
-              }
-              return Column(
-                children: [
-                  for (final pkg in state.packages)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _PackageCard(
-                        package: pkg,
-                        onTap: () => context.push(
-                          '/billing/purchase',
-                          extra: {'preferred': pkg.id},
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 }
 
-class _PackageCard extends StatelessWidget {
+class _PackageRow extends StatelessWidget {
   final BillingPackageEntity package;
-  final VoidCallback onTap;
+  final bool highlighted;
+  final bool busy;
+  final bool disabled;
 
-  const _PackageCard({required this.package, required this.onTap});
+  const _PackageRow({
+    required this.package,
+    required this.highlighted,
+    required this.busy,
+    required this.disabled,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final title = package.label['ru'] ?? package.label['en'] ?? package.id;
-    final highlightsRu =
+    final highlights =
         package.highlights['ru'] ?? package.highlights['en'] ?? const <String>[];
     final priceEur = (package.priceEurCents / 100).toStringAsFixed(2);
 
-    return Material(
-      color: colorScheme.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-              width: 1,
-            ),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (highlighted) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.primary.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: colors.primary.withValues(alpha: 0.30),
+                              ),
+                            ),
+                            child: Text(
+                              l10n.billingRecommendedBadge,
+                              style: TextStyle(
+                                color: colors.primary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    if (highlightsRu.isNotEmpty) ...[
+                    if (highlights.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      for (final h in highlightsRu)
+                      for (final h in highlights)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Row(
@@ -303,17 +414,18 @@ class _PackageCard extends StatelessWidget {
                             children: [
                               Text(
                                 '• ',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurface
-                                      .withValues(alpha: 0.55),
+                                style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: 12,
                                 ),
                               ),
                               Expanded(
                                 child: Text(
                                   h,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: colorScheme.onSurface
-                                        .withValues(alpha: 0.75),
+                                  style: TextStyle(
+                                    color: colors.textSecondary,
+                                    fontSize: 12,
+                                    height: 1.35,
                                   ),
                                 ),
                               ),
@@ -325,34 +437,33 @@ class _PackageCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '€$priceEur',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: colorScheme.onSurface.withValues(alpha: 0.4),
-                    size: 20,
-                  ),
-                ],
+              Text(
+                '€$priceEur',
+                style: TextStyle(
+                  color: colors.primary,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          LoadingButton(
+            text: l10n.billingBuyForPrice(priceEur),
+            loading: busy,
+            onPressed: disabled
+                ? null
+                : () =>
+                    context.read<PackagesBloc>().add(PurchasePackage(package.id)),
+          ),
+        ],
       ),
     );
   }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Recent transactions
+// Recent transactions — single AppCard with rows, "Все" link in header.
 // ────────────────────────────────────────────────────────────────────────────
 
 class _RecentTransactionsSection extends StatelessWidget {
@@ -360,62 +471,61 @@ class _RecentTransactionsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
 
     return BlocBuilder<BalanceBloc, BalanceState>(
       builder: (context, state) {
         final List<BillingTransactionEntity> tx =
             state is BalanceLoaded ? state.balance.recentTx : const [];
-        // Latest first; we take at most 5.
         final recent = tx.take(5).toList(growable: false);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.billingRecentOperations,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+            _SectionHeader(
+              label: l10n.billingRecentOperations,
+              trailing: TextButton(
+                onPressed: () => context.push('/billing/transactions'),
+                style: TextButton.styleFrom(
+                  foregroundColor: colors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 28),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                TextButton(
-                  onPressed: () => context.push('/billing/transactions'),
-                  child: Text(l10n.billingAllOperations),
+                child: Text(
+                  l10n.billingAllOperations,
+                  style: const TextStyle(fontSize: 12),
                 ),
-              ],
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             if (state is! BalanceLoaded)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              AppCard(
                 child: Text(
                   '—',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
                 ),
               )
             else if (recent.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
+              AppCard(
                 child: Text(
                   l10n.billingNoOperations,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
+                  style: TextStyle(color: colors.textSecondary, fontSize: 12),
                 ),
               )
             else
-              Column(
-                children: [
-                  for (final t in recent) _TransactionRow(tx: t),
-                ],
+              AppCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
+                    for (int i = 0; i < recent.length; i++) ...[
+                      _TransactionRow(tx: recent[i]),
+                      if (i < recent.length - 1)
+                        Divider(color: colors.border, height: 1, thickness: 1),
+                    ],
+                  ],
+                ),
               ),
           ],
         );
@@ -431,17 +541,16 @@ class _TransactionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     final credit = isCreditTx(tx);
     final amountMicroTal = planckToMicroTal(tx.amountPlanck);
-    // Strip any '-' so we can prepend our own sign in front of μTAL suffix.
     final absAmount = amountMicroTal.startsWith('-')
         ? amountMicroTal.substring(1)
         : amountMicroTal;
     final sign = credit ? '+' : '-';
-    final amountColor = credit ? colorScheme.primary : colorScheme.onSurface;
+    final amountColor = credit ? colors.primary : colors.textPrimary;
+    final iconBg = credit ? colors.primary : colors.textSecondary;
     final label = featureLabel(l10n, tx.featureKey);
     final subtitle = [
       if (label != null && label.isNotEmpty) label,
@@ -449,7 +558,7 @@ class _TransactionRow extends StatelessWidget {
     ].join(' · ');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -457,14 +566,24 @@ class _TransactionRow extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  Color.lerp(iconBg, Colors.white, 0.15)!,
+                  iconBg,
+                  Color.lerp(iconBg, Colors.black, 0.25)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(9),
+              boxShadow: [
+                BoxShadow(
+                  color: iconBg.withValues(alpha: 0.45),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-            child: Icon(
-              txIcon(tx),
-              size: 18,
-              color: colorScheme.primary,
-            ),
+            child: Icon(txIcon(tx), size: 16, color: Colors.white),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -473,15 +592,18 @@ class _TransactionRow extends StatelessWidget {
               children: [
                 Text(
                   typeLabel(l10n, tx),
-                  style: theme.textTheme.bodyMedium?.copyWith(
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -492,9 +614,10 @@ class _TransactionRow extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             '$sign$absAmount μTAL',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+            style: TextStyle(
               color: amountColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -502,4 +625,3 @@ class _TransactionRow extends StatelessWidget {
     );
   }
 }
-

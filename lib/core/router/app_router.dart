@@ -40,7 +40,6 @@ import '../../features/voice/presentation/screens/voice_call_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
 import '../../features/billing/presentation/screens/wallet_screen.dart';
-import '../../features/billing/presentation/screens/purchase_screen.dart';
 import '../../features/billing/presentation/screens/transactions_screen.dart';
 import '../../features/billing/presentation/screens/pricebook_screen.dart';
 import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
@@ -143,14 +142,9 @@ final appRouter = GoRouter(
     // InsufficientFundsSheet and LowBalanceBanner across the app.
     GoRoute(
       path: '/billing/wallet',
-      builder: (_, __) => const WalletScreen(),
-    ),
-    GoRoute(
-      path: '/billing/purchase',
       builder: (_, state) {
-        final extra = state.extra as Map<String, dynamic>?;
-        final preferred = extra?['preferred'] as String?;
-        return PurchaseScreen(preferred: preferred);
+        final preferred = state.uri.queryParameters['preferred'];
+        return WalletScreen(preferred: preferred);
       },
     ),
     GoRoute(

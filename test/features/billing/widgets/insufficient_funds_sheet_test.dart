@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/features/billing/presentation/widgets/insufficient_funds_sheet.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
-/// Builds a MaterialApp.router with a fake /billing/purchase route
+/// Builds a MaterialApp.router with a fake /billing/wallet route
 /// so the "Пополнить" button has a destination to go to in tests.
 ///
 /// Forces locale to `ru` so the sheet renders Russian strings we can
@@ -34,8 +34,11 @@ GoRouter _buildRouter({required VoidCallback onHome}) {
         ),
       ),
       GoRoute(
-        path: '/billing/purchase',
-        builder: (_, __) => const Scaffold(body: Text('purchase screen')),
+        path: '/billing/wallet',
+        builder: (_, state) {
+          final pref = state.uri.queryParameters['preferred'] ?? '';
+          return Scaffold(body: Text('wallet screen pref=$pref'));
+        },
       ),
     ],
   );
@@ -90,7 +93,9 @@ void main() {
     expect(find.text('Недостаточно средств'), findsNothing);
   });
 
-  testWidgets('Tapping Пополнить pops sheet and navigates to /billing/purchase',
+  testWidgets(
+      'Tapping Пополнить pops sheet and navigates to /billing/wallet '
+      'with preferred query param',
       (tester) async {
     final router = _buildRouter(onHome: () {});
     await tester.pumpWidget(_wrap(router));
@@ -101,7 +106,8 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Пополнить'));
     await tester.pumpAndSettle();
 
-    expect(find.text('purchase screen'), findsOneWidget);
+    // Defaults to "starter" when no suggestedPackage is supplied.
+    expect(find.text('wallet screen pref=starter'), findsOneWidget);
     expect(find.text('Недостаточно средств'), findsNothing);
   });
 }

@@ -148,10 +148,8 @@ class InsufficientFundsSheet extends StatelessWidget {
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              context.push(
-                '/billing/purchase',
-                extra: {'preferred': suggestedPackage ?? 'starter'},
-              );
+              final pref = suggestedPackage ?? 'starter';
+              context.push('/billing/wallet?preferred=$pref');
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
