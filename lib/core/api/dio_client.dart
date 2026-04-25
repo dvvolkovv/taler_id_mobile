@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../utils/constants.dart';
 import 'auth_interceptor.dart';
 import 'api_error_handler.dart';
+import 'billing_paywall_interceptor.dart';
 
 class _RetryInterceptor extends Interceptor {
   final Dio dio;
@@ -54,8 +55,13 @@ class DioClient {
       ),
     );
 
+    // Order rationale: retry first (transient errors get a second chance
+    // before anything else reacts), auth next (token refresh + retry on 401),
+    // then paywall (we react to 402 which auth/retry can't recover from),
+    // finally log (observability after everyone has had their say).
     dio.interceptors.add(_RetryInterceptor(dio));
     dio.interceptors.add(authInterceptor);
+    dio.interceptors.add(BillingPaywallInterceptor());
     dio.interceptors.add(LogInterceptor(
       requestBody: false,
       responseBody: false,

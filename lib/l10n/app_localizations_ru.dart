@@ -3119,4 +3119,158 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get savedOpenError => 'Не удалось открыть Избранное';
+
+  @override
+  String get billingWalletTitle => 'Кошелёк';
+
+  @override
+  String get billingBuyPackage => 'Купить пакет';
+
+  @override
+  String get billingCurrentBalance => 'Текущий баланс';
+
+  @override
+  String get billingPackagesTitle => 'Пакеты';
+
+  @override
+  String get billingPackagesUnavailable => 'Пакеты недоступны';
+
+  @override
+  String get billingRecentOperations => 'Последние операции';
+
+  @override
+  String get billingAllOperations => 'Все операции';
+
+  @override
+  String get billingNoOperations => 'Операций нет';
+
+  @override
+  String get billingOperationsTitle => 'Операции';
+
+  @override
+  String get billingOperationsEmptyTitle => 'Операций пока нет';
+
+  @override
+  String get billingOperationsEmptySubtitle =>
+      'Здесь будут пополнения и списания за AI-функции';
+
+  @override
+  String get billingPricebookTitle => 'Цены на функции';
+
+  @override
+  String get billingPricebookUnavailable => 'Прайс-лист недоступен';
+
+  @override
+  String get billingAiFeaturesTitle => 'AI-функции';
+
+  @override
+  String get billingInsufficientFundsTitle => 'Недостаточно средств';
+
+  @override
+  String get billingInsufficientFundsSubtitle =>
+      'Для использования этой функции нужно пополнить баланс.';
+
+  @override
+  String billingRequiredLine(String required) {
+    return 'Нужно: $required μTAL';
+  }
+
+  @override
+  String billingAvailableLine(String available) {
+    return 'Есть: $available μTAL';
+  }
+
+  @override
+  String get billingTopUp => 'Пополнить';
+
+  @override
+  String get billingCancel => 'Отмена';
+
+  @override
+  String get billingRetry => 'Повторить';
+
+  @override
+  String billingLowBalanceWarning(String balance) {
+    return 'Баланс на исходе: $balance μTAL';
+  }
+
+  @override
+  String get billingWalletAndBalance => 'Кошелёк и баланс';
+
+  @override
+  String get billingSectionHeader => 'Платежи и AI';
+
+  @override
+  String get billingFeatureVoiceAssistant => 'Голосовой ассистент';
+
+  @override
+  String get billingFeatureWebSearch => 'Веб-поиск ассистента';
+
+  @override
+  String get billingFeatureAiTwin => 'Голосовой двойник';
+
+  @override
+  String get billingFeatureAiTwinLong => 'Голосовой двойник (AI Twin)';
+
+  @override
+  String get billingFeatureOutboundCall => 'Outbound-бот';
+
+  @override
+  String get billingFeatureOutboundCallLong => 'Outbound-бот обзвона';
+
+  @override
+  String get billingFeatureWhisperTranscribe => 'Транскрипция звонков';
+
+  @override
+  String get billingFeatureMeetingSummary => 'AI-резюме звонков';
+
+  @override
+  String get billingConfigureAiTwin => 'Настроить двойника';
+
+  @override
+  String get billingWebSearchSubtitle => '(при использовании ассистента)';
+
+  @override
+  String billingPackagePurchased(String balance) {
+    return 'Пакет куплен: $balance μTAL';
+  }
+
+  @override
+  String get billingRecommendedBadge => 'Рекомендуем';
+
+  @override
+  String get billingSessionTerminatedNoFunds =>
+      'Баланс закончился — сессия завершена';
+
+  @override
+  String get billingSessionTerminatedGeneric => 'Сессия ассистента завершена';
+
+  @override
+  String billingBuyForPrice(String price) {
+    return 'Купить за €$price';
+  }
+
+  @override
+  String get billingTxTypeTopup => 'Пополнение';
+
+  @override
+  String get billingTxTypeRefund => 'Возврат';
+
+  @override
+  String get billingTxTypeSpend => 'Оплата';
+
+  @override
+  String get billingUnitMinute => 'минуту';
+
+  @override
+  String get billingUnitRequest => 'запрос';
+
+  @override
+  String get billingUnitToken => 'токен';
+
+  @override
+  String get billingUnitTokens1k => '1К токенов';
+
+  @override
+  String get billingUnitCall => 'звонок';
 }

@@ -1375,5 +1375,77 @@
   "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
   "savedTitle": "Saved Messages",
   "savedSubtitle": "Your private cloud",
-  "savedOpenError": "Couldn't open Saved Messages"
+  "savedOpenError": "Couldn't open Saved Messages",
+  "billingWalletTitle": "Wallet",
+  "billingBuyPackage": "Buy package",
+  "billingCurrentBalance": "Current balance",
+  "billingPackagesTitle": "Packages",
+  "billingPackagesUnavailable": "Packages unavailable",
+  "billingRecentOperations": "Recent operations",
+  "billingAllOperations": "All operations",
+  "billingNoOperations": "No operations",
+  "billingOperationsTitle": "Operations",
+  "billingOperationsEmptyTitle": "No operations yet",
+  "billingOperationsEmptySubtitle": "Top-ups and charges for AI features will appear here",
+  "billingPricebookTitle": "Feature prices",
+  "billingPricebookUnavailable": "Price list unavailable",
+  "billingAiFeaturesTitle": "AI features",
+  "billingInsufficientFundsTitle": "Insufficient funds",
+  "billingInsufficientFundsSubtitle": "Top up your balance to use this feature.",
+  "billingRequiredLine": "Need: {required} μTAL",
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {"type": "String"}
+    }
+  },
+  "billingAvailableLine": "Have: {available} μTAL",
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {"type": "String"}
+    }
+  },
+  "billingTopUp": "Top up",
+  "billingCancel": "Cancel",
+  "billingRetry": "Retry",
+  "billingLowBalanceWarning": "Balance running low: {balance} μTAL",
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingWalletAndBalance": "Wallet & Balance",
+  "billingSectionHeader": "Billing & AI",
+  "billingFeatureVoiceAssistant": "Voice assistant",
+  "billingFeatureWebSearch": "Assistant web search",
+  "billingFeatureAiTwin": "Voice twin",
+  "billingFeatureAiTwinLong": "Voice twin (AI Twin)",
+  "billingFeatureOutboundCall": "Outbound bot",
+  "billingFeatureOutboundCallLong": "Outbound calling bot",
+  "billingFeatureWhisperTranscribe": "Call transcription",
+  "billingFeatureMeetingSummary": "AI call summaries",
+  "billingConfigureAiTwin": "Configure AI twin",
+  "billingWebSearchSubtitle": "(used by the assistant)",
+  "billingPackagePurchased": "Package purchased: {balance} μTAL",
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingRecommendedBadge": "Recommended",
+  "billingSessionTerminatedNoFunds": "Balance ran out — session ended",
+  "billingSessionTerminatedGeneric": "Assistant session ended",
+  "billingBuyForPrice": "Buy for €{price}",
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "billingTxTypeTopup": "Top-up",
+  "billingTxTypeRefund": "Refund",
+  "billingTxTypeSpend": "Charge",
+  "billingUnitMinute": "minute",
+  "billingUnitRequest": "request",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K tokens",
+  "billingUnitCall": "call"
 }

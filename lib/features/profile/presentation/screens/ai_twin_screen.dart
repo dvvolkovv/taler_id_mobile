@@ -3,8 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
+import '../../../billing/domain/repositories/billing_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
@@ -26,6 +28,7 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
   bool _enabled = false;
   int _timeoutSeconds = 30;
   bool _initialized = false;
+  bool _toggleFetched = false;
   bool _dirty = false;
   bool _saving = false;
 
@@ -41,6 +44,28 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
     _timeoutSeconds = user.aiTwinTimeoutSeconds;
     _promptCtrl.text = user.aiTwinPrompt ?? '';
     _initialized = true;
+    // Fire-and-forget: fetch the new UserFeatureToggle — if a record exists
+    // for `ai_twin`, it overrides the legacy Profile.aiTwinEnabled value
+    // (spec §7.3: toggle table is the new source of truth, Profile stays
+    // for backward compat). Fails open — on network error we keep the
+    // Profile value.
+    _fetchToggleOverride();
+  }
+
+  Future<void> _fetchToggleOverride() async {
+    if (_toggleFetched) return;
+    _toggleFetched = true;
+    try {
+      final toggles = await sl<BillingRepository>().getToggles();
+      final aiTwin = toggles
+          .where((t) => t.featureKey == 'ai_twin')
+          .firstOrNull;
+      if (aiTwin == null || !mounted) return;
+      if (aiTwin.enabled == _enabled) return;
+      setState(() => _enabled = aiTwin.enabled);
+    } catch (e) {
+      debugPrint('[AiTwin] getToggles fallback — keeping Profile value: $e');
+    }
   }
 
   void _markDirty() {
@@ -60,12 +85,28 @@ class _AiTwinScreenState extends State<AiTwinScreen> {
 
   void _save() {
     setState(() => _saving = true);
+    // Primary write: legacy Profile.aiTwinEnabled (+ timeout & prompt,
+    // which remain Profile-only). The ProfileBloc listener below picks up
+    // ProfileLoaded/ProfileError and clears `_saving`.
     context.read<ProfileBloc>().add(ProfileUpdateSubmitted({
           'aiTwinEnabled': _enabled,
           'aiTwinTimeoutSeconds': _timeoutSeconds,
           'aiTwinPrompt':
               _promptCtrl.text.trim().isEmpty ? null : _promptCtrl.text.trim(),
         }));
+    // Secondary write: new UserFeatureToggle (`ai_twin`). Fail-open —
+    // if this errors we keep the Profile PATCH above. Backend accepts both
+    // per spec §7.3; once the toggle table fully supersedes Profile the
+    // Profile write can be removed.
+    _persistToggle(_enabled);
+  }
+
+  Future<void> _persistToggle(bool enabled) async {
+    try {
+      await sl<BillingRepository>().setToggle('ai_twin', enabled);
+    } catch (e) {
+      debugPrint('[AiTwin] setToggle failed (non-fatal): $e');
+    }
   }
 
   @override

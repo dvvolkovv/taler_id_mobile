@@ -57,6 +57,19 @@ import '../../features/profile_sections/data/datasources/profile_sections_remote
 import '../../features/profile_sections/data/repositories/profile_sections_repository_impl.dart';
 import '../../features/profile_sections/domain/repositories/i_profile_sections_repository.dart';
 
+// Billing
+import '../../features/billing/data/datasources/billing_remote_datasource.dart';
+import '../../features/billing/data/repositories/billing_repository_impl.dart';
+import '../../features/billing/data/services/billing_event_bus.dart';
+import '../../features/billing/data/services/billing_socket_listener.dart';
+import '../../features/billing/data/services/voice_billing_bridge.dart';
+import '../../features/billing/domain/repositories/billing_repository.dart';
+import '../../features/billing/presentation/bloc/balance_bloc.dart';
+import '../../features/billing/presentation/bloc/balance_event.dart';
+import '../../features/billing/presentation/bloc/packages_bloc.dart';
+import '../../features/billing/presentation/bloc/toggles_bloc.dart';
+import '../../features/billing/presentation/bloc/transactions_bloc.dart';
+
 
 final sl = GetIt.instance;
 
@@ -175,6 +188,26 @@ Future<void> setupDependencies() async {
     () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
   );
 
+  // Billing
+  sl.registerLazySingleton(() => BillingRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton<BillingRepository>(
+    () => BillingRepositoryImpl(remote: sl<BillingRemoteDataSource>()),
+  );
+  // Real-time event hub (balance changed, session started/terminated, low balance).
+  // Singleton: the messenger socket pushes into it; BLoCs and widgets listen.
+  sl.registerLazySingleton<BillingEventBus>(() => BillingEventBus());
+  sl.registerLazySingleton<BillingSocketListener>(
+    () => BillingSocketListener(sl<BillingEventBus>()),
+  );
+  // Factory: a fresh bridge per voice/assistant session so each screen
+  // owns its own heartbeat timer and terminated-event filter.
+  sl.registerFactory<VoiceBillingBridge>(
+    () => VoiceBillingBridge(
+      dio: sl<DioClient>(),
+      eventBus: sl<BillingEventBus>(),
+    ),
+  );
+
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
 
@@ -188,4 +221,25 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => TenantBloc(repo: sl<ITenantRepository>()));
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
+
+  // Billing BLoCs (factory: new instance per screen).
+  sl.registerFactory(() => BalanceBloc(
+        repo: sl<BillingRepository>(),
+        eventBus: sl<BillingEventBus>(),
+      ));
+  sl.registerFactory(() => PackagesBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => TogglesBloc(repo: sl<BillingRepository>()));
+  sl.registerFactory(() => TransactionsBloc(repo: sl<BillingRepository>()));
+
+  // Global BalanceBloc for the dashboard AppBar chip (Task 9) — persists
+  // across screens and subscribes to BillingEventBus so the chip always
+  // reflects the current balance. Resolved via instanceName to coexist
+  // with the per-screen factory above (used by wallet/purchase screens).
+  sl.registerLazySingleton<BalanceBloc>(
+    () => BalanceBloc(
+      repo: sl<BillingRepository>(),
+      eventBus: sl<BillingEventBus>(),
+    )..add(LoadBalance()),
+    instanceName: 'globalBalance',
+  );
 }

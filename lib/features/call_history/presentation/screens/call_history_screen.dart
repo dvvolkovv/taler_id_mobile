@@ -21,6 +21,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../billing/presentation/widgets/balance_chip.dart';
 
 const _kIncomingColor = Color(0xFF4CAF50);
 
@@ -345,6 +346,11 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               ),
               title: Text(l10n.callHistoryTitle),
               actions: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: BalanceChip(),
+                ),
+                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.contacts_outlined),
                   tooltip: l10n.callHistoryContacts,

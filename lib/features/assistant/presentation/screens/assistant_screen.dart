@@ -22,6 +22,9 @@ import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
+import '../../../billing/data/services/billing_event_bus.dart';
+import '../../../billing/data/services/voice_billing_bridge.dart';
+import '../../../billing/domain/repositories/billing_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 
@@ -96,6 +99,12 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   // Incoming message listener
   StreamSubscription? _messageSub;
+
+  // Billing bridge: owns POST /voice/session, heartbeat, close.
+  // Created per connect, disposed on cleanup.
+  VoiceBillingBridge? _billing;
+  StreamSubscription<AiSessionTerminatedEvent>? _terminatedSub;
+  DateTime? _sessionStartedAt;
 
   @override
   void initState() {
@@ -230,6 +239,21 @@ class _AssistantScreenState extends State<AssistantScreen>
     await _recordSub?.cancel();
     _recordSub = null;
     await _recorder.stop();
+    // Finalize billing BEFORE closing the WS so the backend still has the
+    // session active when it receives the close call. Best-effort — any
+    // failure is swallowed by VoiceBillingBridge.stop().
+    await _terminatedSub?.cancel();
+    _terminatedSub = null;
+    final bridge = _billing;
+    if (bridge != null) {
+      final secs = _sessionStartedAt == null
+          ? 0
+          : DateTime.now().difference(_sessionStartedAt!).inSeconds;
+      await bridge.stop(durationSec: secs);
+      await bridge.dispose();
+    }
+    _billing = null;
+    _sessionStartedAt = null;
     await _ws?.close();
     _ws = null;
   }
@@ -251,6 +275,23 @@ class _AssistantScreenState extends State<AssistantScreen>
       // 1. Get JWT token (API key stays on server)
       final token = await sl<SecureStorageService>().getAccessToken();
       if (token == null) throw Exception('Not authenticated');
+
+      // 1a. Open billing session. Pre-flight check for feature toggle +
+      // minReserve balance happens server-side; 402 insufficient-funds
+      // surfaces via the global Dio interceptor (InsufficientFundsSheet).
+      // We keep the returned billingSessionId for heartbeat + close.
+      _billing = sl<VoiceBillingBridge>();
+      try {
+        await _billing!.start();
+        _sessionStartedAt = DateTime.now();
+        _terminatedSub?.cancel();
+        _terminatedSub = _billing!.onTerminated.listen(_onSessionTerminated);
+      } catch (e) {
+        // Insufficient funds or backend unavailable — abort before opening
+        // the OpenAI socket so we don't consume bandwidth for nothing.
+        _billing = null;
+        rethrow;
+      }
 
       // 2. Connect to backend WebSocket proxy
       final wsUrl = Uri(
@@ -1113,6 +1154,69 @@ class _AssistantScreenState extends State<AssistantScreen>
                 'asks what the analyst said, or to check if a previously submitted '
                 'task has been completed.',
             'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
+            'name': 'get_balance',
+            'description':
+                'Получить текущий баланс TAL-кошелька пользователя в μTAL',
+            'parameters': {
+              'type': 'object',
+              'properties': <String, dynamic>{},
+              'required': <String>[],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_packages',
+            'description':
+                'Получить список доступных пакетов для пополнения баланса',
+            'parameters': {
+              'type': 'object',
+              'properties': <String, dynamic>{},
+              'required': <String>[],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'list_recent_transactions',
+            'description':
+                'Получить последние операции по балансу пользователя',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'limit': {
+                  'type': 'integer',
+                  'description':
+                      'Количество операций (по умолчанию 10, максимум 50)',
+                },
+              },
+              'required': <String>[],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'toggle_feature',
+            'description':
+                'Включить или выключить AI-функцию. Допустимые значения featureKey: voice_assistant, web_search, ai_twin, outbound_call, whisper_transcribe, meeting_summary',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'featureKey': {
+                  'type': 'string',
+                  'enum': [
+                    'voice_assistant',
+                    'web_search',
+                    'ai_twin',
+                    'outbound_call',
+                    'whisper_transcribe',
+                    'meeting_summary',
+                  ],
+                },
+                'enabled': {'type': 'boolean'},
+              },
+              'required': ['featureKey', 'enabled'],
+            },
           },
         ],
         'tool_choice': 'auto',
@@ -1980,6 +2084,86 @@ class _AssistantScreenState extends State<AssistantScreen>
             'message': 'No analyst response yet. The task may still be processing.',
           });
         }
+      } else if (name == 'get_balance') {
+        try {
+          final balance = await sl<BillingRepository>().getBalance();
+          output = jsonEncode({
+            'balanceMicroTal': balance.balanceMicroTal,
+            'balancePlanck': balance.balancePlanck,
+            'recentTxCount': balance.recentTx.length,
+          });
+        } catch (e) {
+          output = jsonEncode({
+            'error': 'failed_to_get_balance',
+            'details': e.toString(),
+          });
+        }
+      } else if (name == 'get_packages') {
+        try {
+          final packages = await sl<BillingRepository>().getPackages();
+          final list = packages.map((p) {
+            final highlights =
+                p.highlights['ru'] ?? p.highlights['en'] ?? const <String>[];
+            final label = p.label['ru'] ?? p.label['en'] ?? p.id;
+            return {
+              'id': p.id,
+              'label': label,
+              'priceEur': p.priceEurCents / 100.0,
+              'highlights': highlights,
+            };
+          }).toList();
+          output = jsonEncode(list);
+        } catch (e) {
+          output = jsonEncode({
+            'error': 'failed_to_get_packages',
+            'details': e.toString(),
+          });
+        }
+      } else if (name == 'list_recent_transactions') {
+        try {
+          final args = jsonDecode(argsJson) as Map<String, dynamic>;
+          var limit = (args['limit'] as int?) ?? 10;
+          if (limit < 1) limit = 1;
+          if (limit > 50) limit = 50;
+          final txs = await sl<BillingRepository>().getTransactions();
+          final sliced = txs.take(limit).map((t) => {
+                'type': t.type,
+                'amountPlanck': t.amountPlanck,
+                'featureKey': t.featureKey,
+                'createdAt': t.createdAt,
+              }).toList();
+          output = jsonEncode(sliced);
+        } catch (e) {
+          output = jsonEncode({
+            'error': 'failed_to_list_transactions',
+            'details': e.toString(),
+          });
+        }
+      } else if (name == 'toggle_feature') {
+        try {
+          final args = jsonDecode(argsJson) as Map<String, dynamic>;
+          final featureKey = args['featureKey'] as String?;
+          final enabled = args['enabled'] as bool?;
+          if (featureKey == null || enabled == null) {
+            output = jsonEncode({
+              'error': 'invalid_args',
+              'details': 'featureKey and enabled are required',
+            });
+          } else {
+            final toggle = await sl<BillingRepository>()
+                .setToggle(featureKey, enabled);
+            output = jsonEncode({
+              'ok': true,
+              'featureKey': toggle.featureKey,
+              'enabled': toggle.enabled,
+            });
+          }
+        } catch (e) {
+          output = jsonEncode({
+            'error': 'failed_to_toggle',
+            'details': e.toString(),
+          });
+        }
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
@@ -2142,6 +2326,22 @@ class _AssistantScreenState extends State<AssistantScreen>
         _aiSpeaking = false;
       });
     }
+  }
+
+  /// Backend pushed `ai_session_terminated` for *our* session (the bridge
+  /// already filtered by sessionId). Show a short message to the user and
+  /// tear the call down — `no_funds` is the common case (cron-driven
+  /// balance exhaustion), `failed` is a backend/internal error.
+  void _onSessionTerminated(AiSessionTerminatedEvent e) {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    final msg = e.reason == 'no_funds'
+        ? l10n.billingSessionTerminatedNoFunds
+        : l10n.billingSessionTerminatedGeneric;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
+    _endCall();
   }
 
   @override
