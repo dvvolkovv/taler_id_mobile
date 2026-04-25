@@ -740,24 +740,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewResultRed => 'Verification failed';
 
   @override
-  String get chatTitle => 'Assistant';
-
-  @override
-  String get chatHint => 'Type a message...';
-
-  @override
-  String get chatListening => 'Listening...';
-
-  @override
-  String get chatError => 'Connection error';
-
-  @override
-  String get chatClear => 'Clear chat';
-
-  @override
-  String get chatEmpty => 'Ask the assistant a question';
-
-  @override
   String get tabAssistant => 'Assistant';
 
   @override
@@ -3109,4 +3091,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String analystSeamDurationSeconds(int seconds) {
     return '${seconds}s';
   }
+
+  @override
+  String get savedTitle => 'Saved Messages';
+
+  @override
+  String get savedSubtitle => 'Your private cloud';
+
+  @override
+  String get savedOpenError => 'Couldn\'t open Saved Messages';
 }

@@ -1372,5 +1372,8 @@
   "analystSeamOther": "{count, plural, =1{{count} шаг} few{{count} шага} many{{count} шагов} other{{count} шага}}",
   "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
   "analystSeamDurationSeconds": "{seconds} с",
-  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } }
+  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
+  "savedTitle": "Избранное",
+  "savedSubtitle": "Ваше личное облако",
+  "savedOpenError": "Не удалось открыть Избранное"
 }

@@ -1372,5 +1372,8 @@
   "analystSeamOther": "{count, plural, =1{{count} step} other{{count} steps}}",
   "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
   "analystSeamDurationSeconds": "{seconds}s",
-  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } }
+  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
+  "savedTitle": "Saved Messages",
+  "savedSubtitle": "Your private cloud",
+  "savedOpenError": "Couldn't open Saved Messages"
 }

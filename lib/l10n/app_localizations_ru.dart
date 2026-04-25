@@ -742,24 +742,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get reviewResultRed => 'Проверка не пройдена';
 
   @override
-  String get chatTitle => 'Ассистент';
-
-  @override
-  String get chatHint => 'Напишите сообщение...';
-
-  @override
-  String get chatListening => 'Слушаю...';
-
-  @override
-  String get chatError => 'Ошибка соединения';
-
-  @override
-  String get chatClear => 'Очистить чат';
-
-  @override
-  String get chatEmpty => 'Задайте вопрос ассистенту';
-
-  @override
   String get tabAssistant => 'Ассистент';
 
   @override
@@ -3128,4 +3110,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String analystSeamDurationSeconds(int seconds) {
     return '$seconds с';
   }
+
+  @override
+  String get savedTitle => 'Избранное';
+
+  @override
+  String get savedSubtitle => 'Ваше личное облако';
+
+  @override
+  String get savedOpenError => 'Не удалось открыть Избранное';
 }

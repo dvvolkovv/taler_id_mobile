@@ -1490,42 +1490,6 @@ abstract class AppLocalizations {
   /// **'Verification failed'**
   String get reviewResultRed;
 
-  /// No description provided for @chatTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Assistant'**
-  String get chatTitle;
-
-  /// No description provided for @chatHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Type a message...'**
-  String get chatHint;
-
-  /// No description provided for @chatListening.
-  ///
-  /// In en, this message translates to:
-  /// **'Listening...'**
-  String get chatListening;
-
-  /// No description provided for @chatError.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection error'**
-  String get chatError;
-
-  /// No description provided for @chatClear.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear chat'**
-  String get chatClear;
-
-  /// No description provided for @chatEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask the assistant a question'**
-  String get chatEmpty;
-
   /// No description provided for @tabAssistant.
   ///
   /// In en, this message translates to:
@@ -5881,6 +5845,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{seconds}s'**
   String analystSeamDurationSeconds(int seconds);
+
+  /// No description provided for @savedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Messages'**
+  String get savedTitle;
+
+  /// No description provided for @savedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your private cloud'**
+  String get savedSubtitle;
+
+  /// No description provided for @savedOpenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open Saved Messages'**
+  String get savedOpenError;
 }
 
 class _AppLocalizationsDelegate
