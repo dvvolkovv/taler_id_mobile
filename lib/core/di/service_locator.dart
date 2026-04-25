@@ -14,6 +14,7 @@ import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
+import '../../features/messenger/services/hive_favorites_migration_service.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -160,6 +161,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IMessengerRepository>(
     () => MessengerRepositoryImpl(sl<MessengerRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<HiveFavoritesMigrationService>(
+    () => HiveFavoritesMigrationService(
+      repo: sl<IMessengerRepository>(),
+      storage: sl<SecureStorageService>(),
+    ),
   );
 
   // Profile Sections
