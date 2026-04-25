@@ -159,6 +159,14 @@ final appRouter = GoRouter(
       path: '/settings/ai-toggles',
       builder: (_, __) => const AiTogglesScreen(),
     ),
+    // Top-level alias so screens outside the dashboard ShellRoute (e.g.
+    // /settings/ai-toggles) can push AI Twin config without remounting the
+    // shell — pushing a shell-nested path from outside the shell triggers a
+    // duplicate-page-key assertion.
+    GoRoute(
+      path: '/profile/ai-twin',
+      builder: (_, __) => const AiTwinScreen(),
+    ),
     // Dashboard shell with bottom nav.
     // Provides the global BalanceBloc singleton here so any child tab's
     // AppBar can embed BalanceChip without needing its own provider —
