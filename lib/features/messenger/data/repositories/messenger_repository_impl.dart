@@ -168,5 +168,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   Stream<AnalystSeam> get analystSeamStream => _remote.analystSeamStream;
 
   @override
+  Future<String> getOrCreateSavedConversation() => _remote.getOrCreateSavedConversation();
+
+  @override
   void dispose() => _remote.dispose();
 }

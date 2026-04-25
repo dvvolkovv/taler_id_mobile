@@ -62,5 +62,7 @@ abstract class IMessengerRepository {
   // Analyst streams
   Stream<AnalystChunk> get analystChunkStream;
   Stream<AnalystSeam>  get analystSeamStream;
+  /// Returns the per-user SAVED conversation id, creating it on the server if needed.
+  Future<String> getOrCreateSavedConversation();
   void dispose();
 }

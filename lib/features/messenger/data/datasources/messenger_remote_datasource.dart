@@ -569,6 +569,19 @@ class MessengerRemoteDataSource {
     );
   }
 
+  Future<String> getOrCreateSavedConversation() async {
+    final data = await _http.post(
+      '/messenger/saved',
+      data: {},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    final id = data['conversationId'];
+    if (id is! String) {
+      throw const FormatException('SAVED conversation: missing conversationId in response');
+    }
+    return id;
+  }
+
   void dispose() {
     _socket?.dispose();
     _messageCtrl.close();
