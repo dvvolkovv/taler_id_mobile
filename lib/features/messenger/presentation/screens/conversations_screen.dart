@@ -20,6 +20,7 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
 import 'saved_messages_screen.dart';
 import 'topics_list_screen.dart';
+import '../widgets/saved_pinned_tile.dart';
 
 enum _FilterTab { all, unread, personal, groups, channels }
 
@@ -1093,59 +1094,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
                   ),
                 // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
-                  SliverToBoxAdapter(
-                    child: ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                      leading: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFA855F7), width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFA855F7).withValues(alpha: 0.45),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 20),
-                        ),
-                      ),
-                      title: Text(AppLocalizations.of(context)!.messengerSavedSection, style: TextStyle(
-                        color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                        AppLocalizations.of(context)!.messengerSavedSubtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                      ),
-                      onTap: () async {
-                        try {
-                          final res = await sl<DioClient>().post(
-                            '/messenger/saved',
-                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
-                          );
-                          final convId = res['conversationId'] as String?;
-                          if (convId != null && context.mounted) {
-                            context.push('/dashboard/messenger/$convId');
-                          }
-                        } catch (_) {}
-                      },
-                    ),
-                  ),
+                  const SliverToBoxAdapter(child: SavedPinnedTile()),
                 // Regular chats
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
