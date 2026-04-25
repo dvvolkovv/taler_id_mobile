@@ -42,6 +42,8 @@ import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/messenger/presentation/screens/share_target_screen.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 final appRouter = GoRouter(
   initialLocation: RouteConstants.splash,
@@ -123,6 +125,14 @@ final appRouter = GoRouter(
           e2eeKey: e2eeKey,
           publicCode: publicCode,
         );
+      },
+    ),
+    // Share-in recipient picker (full-screen, outside shell)
+    GoRoute(
+      path: '/share-target',
+      builder: (context, state) {
+        final files = (state.extra as List?)?.cast<SharedMediaFile>() ?? const <SharedMediaFile>[];
+        return ShareTargetScreen(sharedFiles: files);
       },
     ),
     // Dashboard shell with bottom nav
