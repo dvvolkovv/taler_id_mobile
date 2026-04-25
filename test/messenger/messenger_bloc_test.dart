@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/conversation_entity.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/message_entity.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/user_search_entity.dart';
+import 'package:taler_id_mobile/features/messenger/domain/entities/analyst_events.dart';
 import 'package:taler_id_mobile/features/messenger/domain/repositories/i_messenger_repository.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_bloc.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_event.dart';
@@ -116,6 +117,8 @@ void main() {
     when(() => repo.contactAcceptedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.reactionUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.socketErrorStream).thenAnswer((_) => emptyStream<String>());
+    when(() => repo.analystChunkStream).thenAnswer((_) => emptyStream<AnalystChunk>());
+    when(() => repo.analystSeamStream).thenAnswer((_) => emptyStream<AnalystSeam>());
   }
 
   MessengerBloc buildBloc() => MessengerBloc(repo: repo);
