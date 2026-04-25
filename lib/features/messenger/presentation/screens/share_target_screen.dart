@@ -13,6 +13,7 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/conversation_entity.dart';
+import '../../utils/recipient_filters.dart';
 
 /// Screen shown when user shares files to Taler ID from another app.
 /// Displays a list of conversations to choose where to send the files.
@@ -89,9 +90,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
           Expanded(
             child: BlocBuilder<MessengerBloc, MessengerState>(
               builder: (context, state) {
-                final conversations = state.conversations
-                    .where((c) => c.type != 'SYSTEM')
-                    .toList();
+                final conversations = filterRecipients(state.conversations);
                 if (conversations.isEmpty) {
                   return Center(
                     child: Text(
