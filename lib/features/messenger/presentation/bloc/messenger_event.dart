@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/analyst_events.dart';
 
 abstract class MessengerEvent extends Equatable {
   const MessengerEvent();
@@ -390,4 +391,70 @@ class ClearSocketError extends MessengerEvent {
   const ClearSocketError();
   @override
   List<Object?> get props => [];
+}
+
+// ─── AI Analyst events ───
+
+class AnalystChunkReceived extends MessengerEvent {
+  final String conversationId;
+  final String text;
+  const AnalystChunkReceived({required this.conversationId, required this.text});
+  @override
+  List<Object?> get props => [conversationId, text];
+}
+
+class AnalystSeamReceived extends MessengerEvent {
+  final AnalystSeam seam;
+  const AnalystSeamReceived({required this.seam});
+  @override
+  List<Object?> get props => [seam];
+}
+
+class AnalystPendingTextCleared extends MessengerEvent {
+  final String conversationId;
+  const AnalystPendingTextCleared({required this.conversationId});
+  @override
+  List<Object?> get props => [conversationId];
+}
+
+// ─── Mesh networking events ───
+
+/// Phase 1f — emitted when a message arrives over the mesh transport.
+/// Carries [conversationId] so the bloc can route the message into the
+/// correct conversation's message list.
+class MeshMessageReceived extends MessengerEvent {
+  final String conversationId;
+  final String contactUserId;
+  final String text;
+  final DateTime receivedAt;
+  const MeshMessageReceived({
+    required this.conversationId,
+    required this.contactUserId,
+    required this.text,
+    required this.receivedAt,
+  });
+  @override
+  List<Object?> get props => [conversationId, contactUserId, text, receivedAt];
+}
+
+/// Phase 1h — emitted by the mesh adapter after a successful outbound
+/// send so the bloc can replace the optimistic `temp_*` bubble with
+/// a `mesh-out-*` MessageEntity carrying `transport: 'mesh'`.
+class MeshMessageSent extends MessengerEvent {
+  final String id;
+  final String conversationId;
+  final String contactUserId;
+  final String? clientTempId;
+  final String text;
+  final DateTime sentAt;
+  const MeshMessageSent({
+    required this.id,
+    required this.conversationId,
+    required this.contactUserId,
+    required this.clientTempId,
+    required this.text,
+    required this.sentAt,
+  });
+  @override
+  List<Object?> get props => [id, conversationId, contactUserId, clientTempId, text, sentAt];
 }

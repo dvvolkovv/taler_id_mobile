@@ -7,6 +7,7 @@ import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -17,8 +18,10 @@ import '../../../../main.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
+import '../../../mesh/presentation/widgets/mesh_settings_section.dart';
 import '../../../profile/data/datasources/profile_remote_datasource.dart';
 import '../../../auth/data/datasources/auth_remote_datasource.dart';
+import '../../../billing/presentation/widgets/balance_chip.dart';
 import 'package:dio/dio.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -193,7 +196,16 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(centerTitle: true, title: Text(l10n.settings)),
+      appBar: AppBar(
+        centerTitle: true,
+        title: Text(l10n.settings),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: BalanceChip(),
+          ),
+        ],
+      ),
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthLoggedOut) {
@@ -322,6 +334,29 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 16),
 
+            // Billing & AI section
+            _sectionHeader(l10n.billingSectionHeader),
+            AppCard(
+              child: Column(
+                children: [
+                  _navTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    iconColor: AppColors.of(context).primary,
+                    title: l10n.billingWalletAndBalance,
+                    onTap: () => context.push('/billing/wallet'),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _navTile(
+                    icon: Icons.smart_toy_outlined,
+                    iconColor: AppColors.of(context).accent,
+                    title: l10n.billingAiFeaturesTitle,
+                    onTap: () => context.push('/settings/ai-toggles'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Account section
             _sectionHeader(l10n.account),
             AppCard(
@@ -360,6 +395,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Mesh network section (Phase 1e) — visible in all flavors so
+            // users can toggle offline-fallback. The "View debug" button
+            // inside MeshSettingsSection is already dev-only.
+            _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+            const MeshSettingsSection(),
             const SizedBox(height: 16),
 
             // Voice assistant section

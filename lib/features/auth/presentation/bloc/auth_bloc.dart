@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../../../../core/api/api_exception.dart';
 import '../../../../core/utils/error_keys.dart';
+import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/mesh_bootstrap.dart';
+import '../../../../core/mesh/services/mesh_messaging_service.dart';
+import '../../../mesh/presentation/bloc/mesh_status_bloc.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -27,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         password: event.password,
       );
       emit(AuthSuccess(tokens.accessToken));
+      unawaited(_bootstrapMeshAfterLogin());
     } on TwoFARequiredException catch (e) {
       emit(AuthRequires2FA(email: e.email, tempToken: e.tempToken));
     } on ApiException catch (e) {
@@ -47,6 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         username: event.username,
       );
       emit(AuthSuccess(tokens.accessToken));
+      unawaited(_bootstrapMeshAfterLogin());
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
@@ -63,6 +71,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         tempToken: event.tempToken,
       );
       emit(AuthSuccess(tokens.accessToken));
+      unawaited(_bootstrapMeshAfterLogin());
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
@@ -72,6 +81,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     await authRepository.logout();
+    await _teardownMeshOnLogout();
     emit(AuthLoggedOut());
   }
 
@@ -115,5 +125,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthFailure(ErrorKeys.generalError));
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mesh Phase 1e — bootstrap / teardown helpers
+  // ---------------------------------------------------------------------------
+
+  Future<void> _bootstrapMeshAfterLogin() =>
+      runMeshBootstrapIfAuthenticated();
+
+  Future<void> _teardownMeshOnLogout() async {
+    try {
+      if (sl.isRegistered<MeshMessagingService>()) {
+        try {
+          await sl<MeshMessagingService>().dispose();
+        } catch (_) {}
+        await sl.unregister<MeshMessagingService>();
+      }
+    } catch (_) {
+      // swallow
+    }
+    // I2: reflect stopped state in the Settings card.
+    try {
+      sl<MeshStatusBloc>().markRunning(false);
+    } catch (_) {}
   }
 }

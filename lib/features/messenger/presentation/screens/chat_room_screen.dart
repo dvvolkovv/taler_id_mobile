@@ -8,7 +8,6 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/gestures.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -48,6 +47,15 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import '../widgets/typing_dots.dart';
+import '../widgets/analyst_streaming_bubble.dart';
+import '../widgets/analyst_seam_widget.dart';
+import '../../domain/entities/analyst_events.dart';
+import '../../utils/recipient_filters.dart';
+import '../../../../core/mesh/services/device_key_sync_service.dart';
+import '../../../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
+import '../../../../features/mesh/domain/entities/mesh_status.dart';
+import '../widgets/chat_transport_badge.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -162,6 +170,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         _addSharedFiles(widget.sharedFiles!);
       });
     }
+    // Phase 1e — prime mesh auth by fetching this contact's device certs.
+    // Fire-and-forget; failures don't block chat UX.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final contactId = _resolveContactUserId();
+      if (contactId == null) return;
+      debugPrint('[mesh-chat] ChatRoomScreen opening — calling fetchContactKeys($contactId)');
+      sl<DeviceKeySyncService>().fetchContactKeys(contactId).then((_) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) completed');
+      }).catchError((Object e, StackTrace st) {
+        debugPrint('[mesh-chat] fetchContactKeys($contactId) FAILED: $e');
+      });
+    });
     // Listen for socket connectivity changes
     final ds = sl<MessengerRemoteDataSource>();
     _disconnectSub = ds.disconnectStream.listen((_) {
@@ -1206,6 +1226,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _videoRecording = false);
   }
 
+  /// Returns the other user's userId for 1:1 (DIRECT) chats, null for groups/bots.
+  String? _resolveContactUserId() {
+    final conv = _messengerBloc.state.conversations
+        .where((c) => c.id == widget.conversationId)
+        .firstOrNull;
+    return conv?.type == 'DIRECT' ? conv?.otherUserId : null;
+  }
+
   void _onTextChanged() {
     // Persist draft so the user can resume typing later or on another session
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
@@ -1722,6 +1750,22 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 ],
               ]
             : [
+                BlocBuilder<MeshStatusBloc, MeshStatus>(
+                  bloc: sl<MeshStatusBloc>(),
+                  builder: (context, meshState) {
+                    final socketConnected = sl<MessengerRemoteDataSource>().isSocketConnected;
+                    final contactId = _resolveContactUserId();
+                    final peerVisible = contactId != null &&
+                        (meshState.visibilityByContactUserId[contactId] ?? false);
+                    final badgeState = socketConnected
+                        ? TransportBadgeState.server
+                        : (peerVisible ? TransportBadgeState.mesh : TransportBadgeState.queued);
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 4),
+                      child: ChatTransportBadge(state: badgeState),
+                    );
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _enterSearchMode,
@@ -1905,26 +1949,34 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       )
                     : ScrollConfiguration(
                       behavior: ScrollConfiguration.of(context).copyWith(overscroll: false),
-                      child: ListView.builder(
+                      child: Builder(builder: (context) {
+                        final pendingText = state.pendingAnalystText[widget.conversationId] ?? '';
+                        final hasStreaming = conv?.type == 'AI_ANALYST' && pendingText.isNotEmpty;
+                        return ListView.builder(
                         key: const PageStorageKey('chat_messages'),
                         controller: _scrollCtrl,
                         reverse: true,
                         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                         padding: const EdgeInsets.all(16),
-                        itemCount: messages.length,
+                        itemCount: messages.length + (hasStreaming ? 1 : 0),
                         findChildIndexCallback: (key) {
                           if (key is ValueKey<String>) {
                             final id = key.value;
                             for (int i = 0; i < messages.length; i++) {
-                              if (messages[messages.length - 1 - i].id == id) return i;
+                              if (messages[messages.length - 1 - i].id == id) return i + (hasStreaming ? 1 : 0);
                             }
                           }
                           return null;
                         },
                         itemBuilder: (context, index) {
+                          // Streaming bubble at top (index 0 in reversed list = newest)
+                          if (hasStreaming && index == 0) {
+                            return AnalystStreamingBubble(text: pendingText);
+                          }
                           // messages[] is chronological (index 0 = oldest).
                           // reversed list: index 0 = newest (displayed at bottom).
-                          final chronIdx = messages.length - 1 - index;
+                          final messageIndex = hasStreaming ? index - 1 : index;
+                          final chronIdx = messages.length - 1 - messageIndex;
                           final msg = messages[chronIdx];
                           final isMe = _isMyMessage(msg, state);
 
@@ -1935,7 +1987,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           // Date separator logic (same as before)
                           final msgDate = DateTime(msg.sentAt.year, msg.sentAt.month, msg.sentAt.day);
                           bool showDate = false;
-                          if (index == messages.length - 1) {
+                          if (messageIndex == messages.length - 1) {
                             showDate = true;
                           } else {
                             final prevDate = DateTime(prevChron!.sentAt.year, prevChron.sentAt.month, prevChron.sentAt.day);
@@ -1979,12 +2031,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               !msg.isSystem &&
                               msg.content.toLowerCase().contains(_searchText.toLowerCase());
 
-                          return Column(
-                            key: ValueKey<String>(msg.id),
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (showDate) _DateSeparator(date: msg.sentAt),
-                              _MessageBubble(
+                          final messageBubble = _MessageBubble(
                                 message: msg,
                                 isMe: (msg.isSystem && (conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND')) ? false
                                     : (msg.senderId == 'ai-outbound-bot') ? false
@@ -2013,11 +2060,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
-                              ),
+                              );
+
+                          // AI_ANALYST bot messages: show seam widget above the bubble
+                          if (analystChat && msg.isSystem) {
+                            final liveSeam = state.analystSeams[msg.id];
+                            final metaSeam = AnalystSeam.fromMetadata(
+                              conversationId: msg.conversationId,
+                              messageId: msg.id,
+                              metadata: msg.metadata,
+                            );
+                            final seam = liveSeam ?? metaSeam;
+                            if (seam != null) {
+                              return Column(
+                                key: ValueKey<String>(msg.id),
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (showDate) _DateSeparator(date: msg.sentAt),
+                                  AnalystSeamWidget(seam: seam),
+                                  messageBubble,
+                                ],
+                              );
+                            }
+                          }
+
+                          return Column(
+                            key: ValueKey<String>(msg.id),
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (showDate) _DateSeparator(date: msg.sentAt),
+                              messageBubble,
                             ],
                           );
                         },
-                      ),
+                      );
+                      }),
                     ),
                 ),
                     // Scroll-to-bottom button
@@ -2095,7 +2173,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         SizedBox(
                           width: 24,
                           height: 16,
-                          child: _TypingDots(color: AppColors.of(context).primary),
+                          child: TypingDots(color: AppColors.of(context).primary),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -2946,6 +3024,19 @@ class _MessageBubbleState extends State<_MessageBubble> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (widget.message.transport == 'mesh') ...[
+                  Text(
+                    AppLocalizations.of(context)!.chatViaMesh,
+                    style: TextStyle(
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 if (widget.message.isEdited) ...[
                   Text(
                     AppLocalizations.of(context)!.chatEdited,
@@ -3110,14 +3201,6 @@ class _MessageBubbleState extends State<_MessageBubble> {
               },
             ),
             ListTile(
-              leading: Icon(Icons.bookmark_add_outlined, color: colors.textSecondary),
-              title: Text(AppLocalizations.of(context)!.messengerSaveToFavorites, style: TextStyle(color: colors.textPrimary)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _saveToFavorites(context);
-              },
-            ),
-            ListTile(
               leading: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400),
               title: Text(l10n.delete, style: TextStyle(color: Colors.red.shade400)),
               onTap: () {
@@ -3250,39 +3333,9 @@ class _MessageBubbleState extends State<_MessageBubble> {
     );
   }
 
-  Future<void> _saveToFavorites(BuildContext context) async {
-    try {
-      Box box;
-      const boxName = 'saved_messages';
-      try {
-        box = Hive.isBoxOpen(boxName) ? Hive.box(boxName) : await Hive.openBox(boxName);
-      } catch (_) {
-        await Hive.deleteBoxFromDisk(boxName);
-        box = await Hive.openBox(boxName);
-      }
-      final msg = widget.message;
-      await box.put(msg.id, {
-        'id': msg.id,
-        'content': msg.content,
-        'senderId': msg.senderId,
-        'senderName': msg.senderName ?? widget.senderName,
-        'sentAt': msg.sentAt.toIso8601String(),
-        'fileUrl': msg.fileUrl,
-        'fileName': msg.fileName,
-        'fileType': msg.fileType,
-        'conversationId': msg.conversationId,
-      });
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.messengerSavedToFavorites), duration: const Duration(seconds: 2)),
-        );
-      }
-    } catch (_) {}
-  }
-
   void _showForwardPicker(BuildContext context) {
     final bloc = context.read<MessengerBloc>();
-    final conversations = bloc.state.conversations;
+    final conversations = filterRecipients(bloc.state.conversations);
     final rootContext = context;
     showModalBottomSheet(
       context: context,
@@ -4623,62 +4676,6 @@ class _WaveformPainter extends CustomPainter {
       old.progress != progress ||
       old.activeColor != activeColor ||
       old.inactiveColor != inactiveColor;
-}
-
-class _TypingDots extends StatefulWidget {
-  final Color color;
-  const _TypingDots({required this.color});
-
-  @override
-  State<_TypingDots> createState() => _TypingDotsState();
-}
-
-class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _ctrl,
-      builder: (_, __) => Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (i) {
-          final delay = i * 0.2;
-          final t = ((_ctrl.value - delay) % 1.0).clamp(0.0, 1.0);
-          final scale = t < 0.5 ? 0.5 + t : 1.5 - t;
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 1.5),
-            child: Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 5,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: widget.color.withValues(alpha: 0.4 + 0.6 * scale.clamp(0.0, 1.0)),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
 }
 
 class _ReactionsRow extends StatelessWidget {

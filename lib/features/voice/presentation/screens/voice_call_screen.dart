@@ -637,6 +637,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         connectOptions: const lk.ConnectOptions(autoSubscribe: false),
       );
       debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}');
+      try {
+        await _audioChannel.invokeMethod('enableCallAudioMix');
+      } catch (e) {
+        debugPrint('[CallAudio] enableCallAudioMix failed: $e');
+      }
 
       // Register in global state so call persists across navigation
       CallStateService.instance.setRoom(
@@ -2641,6 +2646,11 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   /// Inner cleanup logic — called from _hangUp wrapped in a timeout.
   Future<void> _hangUpInner(CallStateService cs) async {
+    try {
+      await _audioChannel.invokeMethod('disableCallAudioMix');
+    } catch (e) {
+      debugPrint('[CallAudio] disableCallAudioMix failed: $e');
+    }
     // Clear the AI twin flag for this room so future broadcasts don't
     // linger in the service state.
     if (_roomName != null) {

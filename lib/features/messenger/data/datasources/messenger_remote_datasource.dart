@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:get_it/get_it.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../billing/data/services/billing_socket_listener.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/entities/channel_summary.dart';
 import '../../domain/entities/channel_details.dart';
+import '../../domain/entities/analyst_events.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -45,6 +48,8 @@ class MessengerRemoteDataSource {
   final _callAiTwinLeftCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _topicUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _outboundListenCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _analystChunkCtrl = StreamController<AnalystChunk>.broadcast();
+  final _analystSeamCtrl  = StreamController<AnalystSeam>.broadcast();
 
   MessengerRemoteDataSource(this._http);
 
@@ -152,6 +157,16 @@ class MessengerRemoteDataSource {
     _socket!.on('typing', (d) {
       try { _typingCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    _socket!.on('analyst_chunk', (data) {
+      try {
+        _analystChunkCtrl.add(AnalystChunk.fromJson(Map<String, dynamic>.from(data as Map)));
+      } catch (_) {}
+    });
+    _socket!.on('analyst_seam', (data) {
+      try {
+        _analystSeamCtrl.add(AnalystSeam.fromJson(Map<String, dynamic>.from(data as Map)));
+      } catch (_) {}
+    });
     _socket!.on('message_reaction_updated', (d) {
       try { _reactionUpdatedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
@@ -181,6 +196,22 @@ class MessengerRemoteDataSource {
     _socket!.on('disconnect', (reason) {
       _disconnectCtrl.add(reason?.toString() ?? 'disconnected');
     });
+
+    // Billing real-time events (balance changed, ai_session_*, low_balance_warning).
+    // The listener registers handlers on the same socket and fans them out
+    // via the BillingEventBus singleton. Safe to skip if DI not wired (e.g.
+    // isolated unit tests of this datasource).
+    try {
+      final getIt = GetIt.instance;
+      if (getIt.isRegistered<BillingSocketListener>()) {
+        getIt<BillingSocketListener>().attach((event, handler) {
+          _socket!.on(event, handler);
+        });
+      }
+    } catch (e) {
+      debugPrint('[Socket] billing listener attach skipped: $e');
+    }
+
     _socket!.connect();
   }
 
@@ -214,6 +245,8 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get callAiTwinLeftStream => _callAiTwinLeftCtrl.stream;
   Stream<Map<String, dynamic>> get topicUpdatedStream => _topicUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get outboundListenStream => _outboundListenCtrl.stream;
+  Stream<AnalystChunk> get analystChunkStream => _analystChunkCtrl.stream;
+  Stream<AnalystSeam>  get analystSeamStream  => _analystSeamCtrl.stream;
   bool get isSocketConnected => _socket?.connected ?? false;
 
   void acceptAiTwinOffer(String roomName) {
@@ -554,6 +587,19 @@ class MessengerRemoteDataSource {
     );
   }
 
+  Future<String> getOrCreateSavedConversation() async {
+    final data = await _http.post(
+      '/messenger/saved',
+      data: {},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    final id = data['conversationId'];
+    if (id is! String) {
+      throw const FormatException('SAVED conversation: missing conversationId in response');
+    }
+    return id;
+  }
+
   void dispose() {
     _socket?.dispose();
     _messageCtrl.close();
@@ -576,5 +622,7 @@ class MessengerRemoteDataSource {
     _contactAcceptedCtrl.close();
     _reactionUpdatedCtrl.close();
     _topicUpdatedCtrl.close();
+    _analystChunkCtrl.close();
+    _analystSeamCtrl.close();
   }
 }

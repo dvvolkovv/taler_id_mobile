@@ -1490,42 +1490,6 @@ abstract class AppLocalizations {
   /// **'Verification failed'**
   String get reviewResultRed;
 
-  /// No description provided for @chatTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Assistant'**
-  String get chatTitle;
-
-  /// No description provided for @chatHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Type a message...'**
-  String get chatHint;
-
-  /// No description provided for @chatListening.
-  ///
-  /// In en, this message translates to:
-  /// **'Listening...'**
-  String get chatListening;
-
-  /// No description provided for @chatError.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection error'**
-  String get chatError;
-
-  /// No description provided for @chatClear.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear chat'**
-  String get chatClear;
-
-  /// No description provided for @chatEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Ask the assistant a question'**
-  String get chatEmpty;
-
   /// No description provided for @tabAssistant.
   ///
   /// In en, this message translates to:
@@ -3025,6 +2989,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edited'**
   String get chatEdited;
+
+  /// No description provided for @chatViaMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'via mesh'**
+  String get chatViaMesh;
 
   /// No description provided for @chatReply.
   ///
@@ -5845,6 +5815,342 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Channel no longer exists'**
   String get channelsNotFoundRedirect;
+
+  /// No description provided for @analystSeamSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} search} other{{count} searches}}'**
+  String analystSeamSearches(int count);
+
+  /// No description provided for @analystSeamFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} file} other{{count} files}}'**
+  String analystSeamFiles(int count);
+
+  /// No description provided for @analystSeamCommands.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} command} other{{count} commands}}'**
+  String analystSeamCommands(int count);
+
+  /// No description provided for @analystSeamImages.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} image} other{{count} images}}'**
+  String analystSeamImages(int count);
+
+  /// No description provided for @analystSeamOther.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{{count} step} other{{count} steps}}'**
+  String analystSeamOther(int count);
+
+  /// No description provided for @analystSeamDurationSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s'**
+  String analystSeamDurationSeconds(int seconds);
+
+  /// No description provided for @savedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Messages'**
+  String get savedTitle;
+
+  /// No description provided for @savedSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your private cloud'**
+  String get savedSubtitle;
+
+  /// No description provided for @savedOpenError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open Saved Messages'**
+  String get savedOpenError;
+
+  /// No description provided for @billingWalletTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet'**
+  String get billingWalletTitle;
+
+  /// No description provided for @billingBuyPackage.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy package'**
+  String get billingBuyPackage;
+
+  /// No description provided for @billingCurrentBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Current balance'**
+  String get billingCurrentBalance;
+
+  /// No description provided for @billingPackagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Packages'**
+  String get billingPackagesTitle;
+
+  /// No description provided for @billingPackagesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Packages unavailable'**
+  String get billingPackagesUnavailable;
+
+  /// No description provided for @billingRecentOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent operations'**
+  String get billingRecentOperations;
+
+  /// No description provided for @billingAllOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'All operations'**
+  String get billingAllOperations;
+
+  /// No description provided for @billingNoOperations.
+  ///
+  /// In en, this message translates to:
+  /// **'No operations'**
+  String get billingNoOperations;
+
+  /// No description provided for @billingOperationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Operations'**
+  String get billingOperationsTitle;
+
+  /// No description provided for @billingOperationsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No operations yet'**
+  String get billingOperationsEmptyTitle;
+
+  /// No description provided for @billingOperationsEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-ups and charges for AI features will appear here'**
+  String get billingOperationsEmptySubtitle;
+
+  /// No description provided for @billingPricebookTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Feature prices'**
+  String get billingPricebookTitle;
+
+  /// No description provided for @billingPricebookUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Price list unavailable'**
+  String get billingPricebookUnavailable;
+
+  /// No description provided for @billingAiFeaturesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI features'**
+  String get billingAiFeaturesTitle;
+
+  /// No description provided for @billingInsufficientFundsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient funds'**
+  String get billingInsufficientFundsTitle;
+
+  /// No description provided for @billingInsufficientFundsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up your balance to use this feature.'**
+  String get billingInsufficientFundsSubtitle;
+
+  /// No description provided for @billingRequiredLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Need: {required} μTAL'**
+  String billingRequiredLine(String required);
+
+  /// No description provided for @billingAvailableLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Have: {available} μTAL'**
+  String billingAvailableLine(String available);
+
+  /// No description provided for @billingTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up'**
+  String get billingTopUp;
+
+  /// No description provided for @billingCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get billingCancel;
+
+  /// No description provided for @billingRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get billingRetry;
+
+  /// No description provided for @billingLowBalanceWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance running low: {balance} μTAL'**
+  String billingLowBalanceWarning(String balance);
+
+  /// No description provided for @billingWalletAndBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet & Balance'**
+  String get billingWalletAndBalance;
+
+  /// No description provided for @billingSectionHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing & AI'**
+  String get billingSectionHeader;
+
+  /// No description provided for @billingFeatureVoiceAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice assistant'**
+  String get billingFeatureVoiceAssistant;
+
+  /// No description provided for @billingFeatureWebSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant web search'**
+  String get billingFeatureWebSearch;
+
+  /// No description provided for @billingFeatureAiTwin.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice twin'**
+  String get billingFeatureAiTwin;
+
+  /// No description provided for @billingFeatureAiTwinLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice twin (AI Twin)'**
+  String get billingFeatureAiTwinLong;
+
+  /// No description provided for @billingFeatureOutboundCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbound bot'**
+  String get billingFeatureOutboundCall;
+
+  /// No description provided for @billingFeatureOutboundCallLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Outbound calling bot'**
+  String get billingFeatureOutboundCallLong;
+
+  /// No description provided for @billingFeatureWhisperTranscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Call transcription'**
+  String get billingFeatureWhisperTranscribe;
+
+  /// No description provided for @billingFeatureMeetingSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'AI call summaries'**
+  String get billingFeatureMeetingSummary;
+
+  /// No description provided for @billingConfigureAiTwin.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure AI twin'**
+  String get billingConfigureAiTwin;
+
+  /// No description provided for @billingWebSearchSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'(used by the assistant)'**
+  String get billingWebSearchSubtitle;
+
+  /// No description provided for @billingPackagePurchased.
+  ///
+  /// In en, this message translates to:
+  /// **'Package purchased: {balance} μTAL'**
+  String billingPackagePurchased(String balance);
+
+  /// No description provided for @billingRecommendedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended'**
+  String get billingRecommendedBadge;
+
+  /// No description provided for @billingSessionTerminatedNoFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance ran out — session ended'**
+  String get billingSessionTerminatedNoFunds;
+
+  /// No description provided for @billingSessionTerminatedGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant session ended'**
+  String get billingSessionTerminatedGeneric;
+
+  /// No description provided for @billingBuyForPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy for €{price}'**
+  String billingBuyForPrice(String price);
+
+  /// No description provided for @billingTxTypeTopup.
+  ///
+  /// In en, this message translates to:
+  /// **'Top-up'**
+  String get billingTxTypeTopup;
+
+  /// No description provided for @billingTxTypeRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get billingTxTypeRefund;
+
+  /// No description provided for @billingTxTypeSpend.
+  ///
+  /// In en, this message translates to:
+  /// **'Charge'**
+  String get billingTxTypeSpend;
+
+  /// No description provided for @billingUnitMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'minute'**
+  String get billingUnitMinute;
+
+  /// No description provided for @billingUnitRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'request'**
+  String get billingUnitRequest;
+
+  /// No description provided for @billingUnitToken.
+  ///
+  /// In en, this message translates to:
+  /// **'token'**
+  String get billingUnitToken;
+
+  /// No description provided for @billingUnitTokens1k.
+  ///
+  /// In en, this message translates to:
+  /// **'1K tokens'**
+  String get billingUnitTokens1k;
+
+  /// No description provided for @billingUnitCall.
+  ///
+  /// In en, this message translates to:
+  /// **'call'**
+  String get billingUnitCall;
 }
 
 class _AppLocalizationsDelegate

@@ -34,7 +34,6 @@ class RouteConstants {
   static const invite = '/invite';
   static const pinSetup = '/auth/pin-setup';
   static const pinEntry = '/auth/pin-entry';
-  static const chat = '/chat';
   static const assistant = '/dashboard/assistant';
   static const messenger = '/dashboard/messenger';
   static const messengerSearch = '/dashboard/messenger/search';

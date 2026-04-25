@@ -122,6 +122,12 @@ import flutter_callkit_incoming
           } catch {
             result(nil) // Non-fatal
           }
+        case "enableCallAudioMix":
+          self.enableCallAudioMix()
+          result(nil)
+        case "disableCallAudioMix":
+          self.disableCallAudioMix()
+          result(nil)
         default:
           result(FlutterMethodNotImplemented)
         }
@@ -308,6 +314,40 @@ import flutter_callkit_incoming
       try session.setActive(true, options: .notifyOthersOnDeactivation)
     } catch {
       NSLog("[Audio] Failed to restore session: %@", error.localizedDescription)
+    }
+  }
+
+  /// Configure AVAudioSession for active call: allow mixing with other apps' audio
+  /// (WhatsApp/Telegram VoIP) so their incoming call doesn't preempt ours.
+  private func enableCallAudioMix() {
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(
+        .playAndRecord,
+        mode: .voiceChat,
+        options: [
+          .mixWithOthers,
+          .allowBluetooth,
+          .allowBluetoothA2DP,
+          .defaultToSpeaker,
+        ]
+      )
+      try session.setActive(true, options: .notifyOthersOnDeactivation)
+      NSLog("[CallAudioMix] enabled (mixWithOthers + voiceChat)")
+    } catch {
+      NSLog("[CallAudioMix] enable failed: \(error)")
+    }
+  }
+
+  /// Revert AVAudioSession to default for non-call app behavior.
+  private func disableCallAudioMix() {
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(.soloAmbient)
+      try session.setActive(false, options: .notifyOthersOnDeactivation)
+      NSLog("[CallAudioMix] disabled (reverted to soloAmbient)")
+    } catch {
+      NSLog("[CallAudioMix] disable failed: \(error)")
     }
   }
 }

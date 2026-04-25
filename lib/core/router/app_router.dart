@@ -24,8 +24,8 @@ import '../../features/tenant/presentation/screens/organization_detail_screen.da
 import '../../features/tenant/presentation/screens/invite_screen.dart';
 import '../../features/sessions/presentation/screens/sessions_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/mesh_debug/presentation/screens/mesh_debug_screen.dart';
 import '../../features/settings/presentation/screens/wallpaper_picker_screen.dart';
-import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/messenger/presentation/screens/conversations_screen.dart';
 import '../../features/messenger/presentation/screens/chat_room_screen.dart';
 import '../../features/messenger/presentation/screens/user_search_screen.dart';
@@ -39,12 +39,21 @@ import '../../features/messenger/presentation/screens/channel_settings_screen.da
 import '../../features/voice/presentation/screens/voice_call_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
+import '../../features/billing/presentation/screens/wallet_screen.dart';
+import '../../features/billing/presentation/screens/transactions_screen.dart';
+import '../../features/billing/presentation/screens/pricebook_screen.dart';
+import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
+import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/messenger/presentation/screens/share_target_screen.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import '../../main.dart' show globalNavigatorKey;
 
 final appRouter = GoRouter(
+  navigatorKey: globalNavigatorKey,
   initialLocation: RouteConstants.splash,
   redirect: _globalRedirect,
   routes: [
@@ -102,11 +111,6 @@ final appRouter = GoRouter(
         return '${RouteConstants.voice}?publicCode=$code';
       },
     ),
-    // Chat (full-screen, outside ShellRoute)
-    GoRoute(
-      path: RouteConstants.chat,
-      builder: (_, __) => const ChatScreen(),
-    ),
     // Voice call (full-screen, outside ShellRoute)
     GoRoute(
       path: RouteConstants.voice,
@@ -131,10 +135,56 @@ final appRouter = GoRouter(
         );
       },
     ),
-    // Dashboard shell with bottom nav
+    // Share-in recipient picker (full-screen, outside shell)
+    GoRoute(
+      path: '/share-target',
+      builder: (context, state) {
+        final files = (state.extra as List?)?.cast<SharedMediaFile>() ?? const <SharedMediaFile>[];
+        return ShareTargetScreen(sharedFiles: files);
+      },
+    ),
+    // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
+    // InsufficientFundsSheet and LowBalanceBanner across the app.
+    GoRoute(
+      path: '/billing/wallet',
+      builder: (_, state) {
+        final preferred = state.uri.queryParameters['preferred'];
+        return WalletScreen(preferred: preferred);
+      },
+    ),
+    GoRoute(
+      path: '/billing/transactions',
+      builder: (_, __) => const TransactionsScreen(),
+    ),
+    GoRoute(
+      path: '/billing/pricebook',
+      builder: (_, __) => const PricebookScreen(),
+    ),
+    GoRoute(
+      path: '/settings/ai-toggles',
+      builder: (_, __) => const AiTogglesScreen(),
+    ),
+    // Top-level alias so screens outside the dashboard ShellRoute (e.g.
+    // /settings/ai-toggles) can push AI Twin config without remounting the
+    // shell — pushing a shell-nested path from outside the shell triggers a
+    // duplicate-page-key assertion.
+    GoRoute(
+      path: '/profile/ai-twin',
+      builder: (_, __) => const AiTwinScreen(),
+    ),
+    // Dashboard shell with bottom nav.
+    // Provides the global BalanceBloc singleton here so any child tab's
+    // AppBar can embed BalanceChip without needing its own provider —
+    // state persists across tab switches and receives socket-driven
+    // balance_changed events.
     ShellRoute(
-      builder: (context, state, child) => BlocProvider.value(
-        value: sl<MessengerBloc>(),
+      builder: (context, state, child) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: sl<MessengerBloc>()),
+          BlocProvider<BalanceBloc>.value(
+            value: sl<BalanceBloc>(instanceName: 'globalBalance'),
+          ),
+        ],
         child: DashboardScreen(child: child),
       ),
       routes: [
@@ -203,6 +253,10 @@ final appRouter = GoRouter(
             GoRoute(
               path: 'wallpaper',
               builder: (_, __) => const WallpaperPickerScreen(),
+            ),
+            GoRoute(
+              path: 'mesh-debug',
+              builder: (_, __) => const MeshDebugScreen(),
             ),
           ],
         ),

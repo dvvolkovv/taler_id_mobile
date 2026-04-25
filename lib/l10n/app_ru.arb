@@ -295,12 +295,6 @@
   "sumsubDataLoading": "Загрузка данных верификации...",
   "reviewResultGreen": "Проверка пройдена",
   "reviewResultRed": "Проверка не пройдена",
-  "chatTitle": "Ассистент",
-  "chatHint": "Напишите сообщение...",
-  "chatListening": "Слушаю...",
-  "chatError": "Ошибка соединения",
-  "chatClear": "Очистить чат",
-  "chatEmpty": "Задайте вопрос ассистенту",
   "tabAssistant": "Ассистент",
   "assistantConnecting": "Подключение…",
   "assistantSpeaking": "Говорит…",
@@ -673,6 +667,7 @@
     }
   },
   "chatEdited": "Отредактировано",
+  "chatViaMesh": "через mesh",
   "chatReply": "Ответить",
   "chatEdit": "Редактировать",
   "chatCopy": "Копировать",
@@ -1366,5 +1361,92 @@
   "channelsNameLabel": "Название",
   "channelsDescriptionLabel": "Описание",
   "channelsCannotUnsubscribeOwner": "Владелец не может отписаться. Удалите канал.",
-  "channelsNotFoundRedirect": "Канал больше не существует"
+  "channelsNotFoundRedirect": "Канал больше не существует",
+  "analystSeamSearches": "{count, plural, =1{{count} поиск} few{{count} поиска} many{{count} поисков} other{{count} поиска}}",
+  "@analystSeamSearches": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamFiles": "{count, plural, =1{{count} файл} few{{count} файла} many{{count} файлов} other{{count} файла}}",
+  "@analystSeamFiles": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamCommands": "{count, plural, =1{{count} команда} few{{count} команды} many{{count} команд} other{{count} команды}}",
+  "@analystSeamCommands": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamImages": "{count, plural, =1{{count} картинка} few{{count} картинки} many{{count} картинок} other{{count} картинки}}",
+  "@analystSeamImages": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamOther": "{count, plural, =1{{count} шаг} few{{count} шага} many{{count} шагов} other{{count} шага}}",
+  "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
+  "analystSeamDurationSeconds": "{seconds} с",
+  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
+  "savedTitle": "Избранное",
+  "savedSubtitle": "Ваше личное облако",
+  "savedOpenError": "Не удалось открыть Избранное",
+  "billingWalletTitle": "Кошелёк",
+  "billingBuyPackage": "Купить пакет",
+  "billingCurrentBalance": "Текущий баланс",
+  "billingPackagesTitle": "Пакеты",
+  "billingPackagesUnavailable": "Пакеты недоступны",
+  "billingRecentOperations": "Последние операции",
+  "billingAllOperations": "Все операции",
+  "billingNoOperations": "Операций нет",
+  "billingOperationsTitle": "Операции",
+  "billingOperationsEmptyTitle": "Операций пока нет",
+  "billingOperationsEmptySubtitle": "Здесь будут пополнения и списания за AI-функции",
+  "billingPricebookTitle": "Цены на функции",
+  "billingPricebookUnavailable": "Прайс-лист недоступен",
+  "billingAiFeaturesTitle": "AI-функции",
+  "billingInsufficientFundsTitle": "Недостаточно средств",
+  "billingInsufficientFundsSubtitle": "Для использования этой функции нужно пополнить баланс.",
+  "billingRequiredLine": "Нужно: {required} μTAL",
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {"type": "String"}
+    }
+  },
+  "billingAvailableLine": "Есть: {available} μTAL",
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {"type": "String"}
+    }
+  },
+  "billingTopUp": "Пополнить",
+  "billingCancel": "Отмена",
+  "billingRetry": "Повторить",
+  "billingLowBalanceWarning": "Баланс на исходе: {balance} μTAL",
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingWalletAndBalance": "Кошелёк и баланс",
+  "billingSectionHeader": "Платежи и AI",
+  "billingFeatureVoiceAssistant": "Голосовой ассистент",
+  "billingFeatureWebSearch": "Веб-поиск ассистента",
+  "billingFeatureAiTwin": "Голосовой двойник",
+  "billingFeatureAiTwinLong": "Голосовой двойник (AI Twin)",
+  "billingFeatureOutboundCall": "Outbound-бот",
+  "billingFeatureOutboundCallLong": "Outbound-бот обзвона",
+  "billingFeatureWhisperTranscribe": "Транскрипция звонков",
+  "billingFeatureMeetingSummary": "AI-резюме звонков",
+  "billingConfigureAiTwin": "Настроить двойника",
+  "billingWebSearchSubtitle": "(при использовании ассистента)",
+  "billingPackagePurchased": "Пакет куплен: {balance} μTAL",
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {"type": "String"}
+    }
+  },
+  "billingRecommendedBadge": "Рекомендуем",
+  "billingSessionTerminatedNoFunds": "Баланс закончился — сессия завершена",
+  "billingSessionTerminatedGeneric": "Сессия ассистента завершена",
+  "billingBuyForPrice": "Купить за €{price}",
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {"type": "String"}
+    }
+  },
+  "billingTxTypeTopup": "Пополнение",
+  "billingTxTypeRefund": "Возврат",
+  "billingTxTypeSpend": "Оплата",
+  "billingUnitMinute": "минуту",
+  "billingUnitRequest": "запрос",
+  "billingUnitToken": "токен",
+  "billingUnitTokens1k": "1К токенов",
+  "billingUnitCall": "звонок"
 }

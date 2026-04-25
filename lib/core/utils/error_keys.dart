@@ -26,6 +26,12 @@ class ErrorKeys {
   static const failedToStartKyb = 'error.failedToStartKyb';
   static const failedToLoadSessions = 'error.failedToLoadSessions';
   static const failedToDeleteSession = 'error.failedToDeleteSession';
+  static const failedToLoadBalance = 'error.failedToLoadBalance';
+  static const failedToLoadPackages = 'error.failedToLoadPackages';
+  static const failedToPurchasePackage = 'error.failedToPurchasePackage';
+  static const failedToLoadToggles = 'error.failedToLoadToggles';
+  static const failedToSaveToggle = 'error.failedToSaveToggle';
+  static const failedToLoadTransactions = 'error.failedToLoadTransactions';
 }
 
 /// Resolves a BLoC error/success key to a localized string.

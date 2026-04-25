@@ -7,6 +7,7 @@ import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
+import 'dart:async';
 import 'core/api/dio_client.dart';
 import 'core/di/service_locator.dart';
 import 'core/notifications/notification_service.dart';
@@ -14,6 +15,7 @@ import 'core/services/call_state_service.dart';
 import 'core/services/share_intent_service.dart';
 import 'firebase_options.dart';
 import 'core/storage/secure_storage_service.dart';
+import 'features/messenger/services/hive_favorites_migration_service.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/wallpaper_service.dart';
@@ -22,6 +24,13 @@ import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'features/kyc/presentation/bloc/kyc_bloc.dart';
 import 'features/tenant/presentation/bloc/tenant_bloc.dart';
 import 'features/sessions/presentation/bloc/sessions_bloc.dart';
+
+/// Global navigator key used by:
+/// - GoRouter (as `navigatorKey`)
+/// - [BillingPaywallInterceptor] to reach a valid [BuildContext] from outside
+///   the widget tree when centrally surfacing the insufficient-funds paywall.
+/// Keep this as the single source of truth — do not introduce parallel keys.
+final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Set up CallKit event listener as early as possible (before runApp) so that
 /// accept events are not missed when the app is launched from a killed state.
@@ -165,6 +174,9 @@ Future<void> main() async {
   // Setup DI first — must happen before NotificationService.init() so that
   // DioClient is registered when we try to save FCM/VoIP tokens.
   await setupDependencies();
+
+  // One-shot migration: move legacy Hive saved_messages → server SAVED conversation.
+  unawaited(sl<HiveFavoritesMigrationService>().runOnce());
 
   // Initialize Firebase (mobile only) — after DI so DioClient is available
   if (!kIsWeb) {

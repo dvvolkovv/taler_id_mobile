@@ -3,6 +3,7 @@ import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
+import '../../domain/entities/analyst_events.dart';
 
 class MessengerState extends Equatable {
   final List<ConversationEntity> conversations;
@@ -25,6 +26,8 @@ class MessengerState extends Equatable {
   final int pendingCalendarInvites;
   final int pendingContactRequests;
   final String? socketError;
+  final Map<String, String> pendingAnalystText;   // convId → accumulated streamed text
+  final Map<String, AnalystSeam> analystSeams;    // messageId → seam (in-memory live cache)
 
   const MessengerState({
     this.conversations = const [],
@@ -47,6 +50,8 @@ class MessengerState extends Equatable {
     this.pendingCalendarInvites = 0,
     this.pendingContactRequests = 0,
     this.socketError,
+    this.pendingAnalystText = const {},
+    this.analystSeams = const {},
   });
 
   MessengerState copyWith({
@@ -70,6 +75,8 @@ class MessengerState extends Equatable {
     int? pendingCalendarInvites,
     int? pendingContactRequests,
     String? socketError,
+    Map<String, String>? pendingAnalystText,
+    Map<String, AnalystSeam>? analystSeams,
     bool clearError = false,
     bool clearNewConversation = false,
     bool clearCallInvite = false,
@@ -100,6 +107,8 @@ class MessengerState extends Equatable {
       pendingCalendarInvites: pendingCalendarInvites ?? this.pendingCalendarInvites,
       pendingContactRequests: pendingContactRequests ?? this.pendingContactRequests,
       socketError: clearSocketError ? null : (socketError ?? this.socketError),
+      pendingAnalystText: pendingAnalystText ?? this.pendingAnalystText,
+      analystSeams: analystSeams ?? this.analystSeams,
     );
   }
 
@@ -125,5 +134,7 @@ class MessengerState extends Equatable {
         pendingCalendarInvites,
         pendingContactRequests,
         socketError,
+        pendingAnalystText,
+        analystSeams,
       ];
 }

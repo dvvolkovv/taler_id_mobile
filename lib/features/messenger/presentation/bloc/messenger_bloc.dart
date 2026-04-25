@@ -6,13 +6,15 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
-import '../../domain/repositories/i_messenger_repository.dart';
+import '../../domain/repositories/i_messenger_repository.dart'
+    show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/services/share_suggestions_service.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/services/device_key_sync_service.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
@@ -40,6 +42,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _reactionSub;
   StreamSubscription? _socketErrorSub;
   StreamSubscription? _reconnectSub;
+  StreamSubscription? _disconnectSub;
+  StreamSubscription? _analystChunkSub;
+  StreamSubscription? _analystSeamSub;
+  StreamSubscription? _meshMsgSub;
+  StreamSubscription? _meshOutSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
 
   /// Tracks pending clientTempIds that have been emitted to the server and
@@ -109,6 +116,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
     on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
     on<ClearSocketError>((_, emit) => emit(state.copyWith(clearSocketError: true)));
+    on<AnalystChunkReceived>(_onAnalystChunk);
+    on<AnalystSeamReceived>(_onAnalystSeam);
+    on<AnalystPendingTextCleared>(_onAnalystPendingTextCleared);
+    // Phase 1e — mesh inbound pipeline; UI rendering is Phase 1f.
+    on<MeshMessageReceived>(_onMeshMessageReceived);
+    // Phase 1h — mesh outbound: replace temp_* bubble with mesh-out entity.
+    on<MeshMessageSent>(_onMeshMessageSent);
   }
 
   Future<void> _onConnect(
@@ -119,7 +133,18 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     // Re-send on each reconnect too.
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
+      debugPrint('[mesh-reconnect] socket reconnected — resending pending + refreshing contact keys');
       _resendPending();
+      _refreshMeshContactKeys();
+    });
+    // Clear in-flight set on disconnect so the next reconnect re-emits any
+    // pending messages. Without this, a message that was emitted into a
+    // dying socket gets stuck in-flight forever (until app restart) — the
+    // server side dedup (Redis, 1h TTL) protects against duplicates.
+    _disconnectSub?.cancel();
+    _disconnectSub =
+        sl<MessengerRemoteDataSource>().disconnectStream.listen((_) {
+      _inFlightTempIds.clear();
     });
     _msgSub?.cancel();
     _msgSub = _repo.messageStream.listen((msg) => add(MessageReceived(msg)));
@@ -241,6 +266,38 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         add(ReactionUpdated(messageId: msgId, conversationId: convId, reactions: reactions));
       }
     });
+    _analystChunkSub?.cancel();
+    _analystChunkSub = _repo.analystChunkStream.listen(
+      (c) => add(AnalystChunkReceived(conversationId: c.conversationId, text: c.text)),
+    );
+    _analystSeamSub?.cancel();
+    _analystSeamSub = _repo.analystSeamStream.listen(
+      (s) => add(AnalystSeamReceived(seam: s)),
+    );
+    // Phase 1e: subscribe to the mesh inbound stream so messages are no
+    // longer silently dropped when a peer sends via the local network.
+    _meshMsgSub?.cancel();
+    _meshMsgSub = _repo.meshMessageStream.listen((msg) {
+      add(MeshMessageReceived(
+        conversationId: msg.conversationId,
+        contactUserId: msg.contactUserId,
+        text: msg.text,
+        receivedAt: msg.receivedAt,
+      ));
+    });
+    // Phase 1h: subscribe to mesh outbound stream so temp_* bubbles are
+    // replaced with mesh-out MessageEntity after a successful mesh send.
+    _meshOutSub?.cancel();
+    _meshOutSub = _repo.meshOutboundStream.listen((msg) {
+      add(MeshMessageSent(
+        id: msg.id,
+        conversationId: msg.conversationId,
+        contactUserId: msg.contactUserId,
+        clientTempId: msg.clientTempId,
+        text: msg.text,
+        sentAt: msg.sentAt,
+      ));
+    });
     emit(state.copyWith(
       isConnected: true,
       currentUserId: event.userId ?? state.currentUserId,
@@ -302,13 +359,20 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       OpenConversation event, Emitter<MessengerState> emit) async {
     _repo.joinConversation(event.conversationId);
 
-    // 1. Load from cache instantly
+    // 1. Load from cache instantly, merged with mesh history.
     final cachedMsgs = _cache.getMessages(event.conversationId);
-    if (cachedMsgs != null && cachedMsgs.isNotEmpty && (state.messages[event.conversationId]?.isEmpty ?? true)) {
+    if (cachedMsgs != null &&
+        cachedMsgs.isNotEmpty &&
+        (state.messages[event.conversationId]?.isEmpty ?? true)) {
       try {
-        final msgs = cachedMsgs.map((e) => MessageEntity.fromJson(e)).toList();
+        final serverCached =
+            cachedMsgs.map((e) => MessageEntity.fromJson(e)).toList();
+        final merged = _mergeSortedById(
+          serverCached,
+          _loadMeshHistory(event.conversationId),
+        );
         final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
-        newMessages[event.conversationId] = msgs;
+        newMessages[event.conversationId] = merged;
         emit(state.copyWith(messages: newMessages, isLoading: true));
       } catch (_) {
         emit(state.copyWith(isLoading: true));
@@ -317,7 +381,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       emit(state.copyWith(isLoading: true));
     }
 
-    // 2. Fetch from server and merge
+    // 2. Fetch from server and merge with mesh history.
     try {
       final result = await _repo.getMessages(event.conversationId, topicId: event.topicId);
       final rawMessages = result['messages'] as List? ?? [];
@@ -350,50 +414,94 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       }
       // Re-append any unsent pending messages for this conversation so the
       // user sees them with a clock icon.
-      final pendingMaps = _pending.getForConversation(event.conversationId);
-      for (final p in pendingMaps) {
-        final tempId = p['id'] as String? ?? '';
-        if (tempId.isEmpty) continue;
-        // Skip if the server already returned a message with the same content.
-        final dup = serverList.any((m) =>
-            m.senderId == (p['senderId'] as String? ?? '') &&
-            m.content == (p['content'] as String? ?? ''));
-        if (dup) continue;
-        serverList.add(MessageEntity(
-          id: tempId,
-          conversationId: event.conversationId,
-          senderId: p['senderId'] as String? ?? state.currentUserId ?? 'me',
-          content: p['content'] as String? ?? '',
-          sentAt: DateTime.tryParse(p['sentAt'] as String? ?? '') ?? DateTime.now(),
-          fileUrl: p['fileUrl'] as String?,
-          fileName: p['fileName'] as String?,
-          fileSize: p['fileSize'] as int?,
-          fileType: p['fileType'] as String?,
-          s3Key: p['s3Key'] as String?,
-          thumbnailSmallUrl: p['thumbnailSmallUrl'] as String?,
-          thumbnailMediumUrl: p['thumbnailMediumUrl'] as String?,
-          thumbnailLargeUrl: p['thumbnailLargeUrl'] as String?,
-          fileRecordId: p['fileRecordId'] as String?,
-          topicId: p['topicId'] as String?,
-        ));
-      }
-      newMessages[event.conversationId] = serverList;
+      _appendPending(event.conversationId, serverList);
+      // Phase 1f — merge mesh history so the chat renders both kinds.
+      final meshMsgs = _loadMeshHistory(event.conversationId);
+      final merged = _mergeSortedById(serverList, meshMsgs);
+      newMessages[event.conversationId] = merged;
       final newCursors = Map<String, String?>.from(state.nextCursors);
       newCursors[event.conversationId] = nextCursor;
       emit(state.copyWith(
           messages: newMessages, nextCursors: newCursors, isLoading: false));
-      // Save to cache (fire-and-forget)
+      // Save only the server portion to cache (mesh has its own persistence).
       _cache.saveMessages(event.conversationId,
-          newMessages[event.conversationId]!.map((m) => m.toJson()).toList());
+          serverList.map((m) => m.toJson()).toList());
     } catch (e) {
-      // If cache was shown, just stop loading
-      if (state.messages[event.conversationId]?.isNotEmpty ?? false) {
-        emit(state.copyWith(isLoading: false));
+      // API failed (backend down, network error, etc). Surface any locally
+      // persisted pending messages so the user keeps seeing what they typed
+      // — otherwise messages typed during an outage appear to "vanish" on
+      // reopen, which we observed during the 2026-04-24 PROD outage.
+      final base = List<MessageEntity>.from(
+          state.messages[event.conversationId] ?? const <MessageEntity>[]);
+      _appendPending(event.conversationId, base);
+      if (base.isNotEmpty) {
+        final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
+        newMessages[event.conversationId] = base;
+        emit(state.copyWith(
+            messages: newMessages, isLoading: false, clearError: true));
       } else {
         emit(state.copyWith(isLoading: false, error: e.toString()));
       }
     }
   }
+
+  /// Merges persisted pending messages for [conversationId] into [target],
+  /// skipping items already present (by id) or duplicated by server-returned
+  /// content (same senderId + content). Mutates [target] in place.
+  void _appendPending(String conversationId, List<MessageEntity> target) {
+    final pendingMaps = _pending.getForConversation(conversationId);
+    for (final p in pendingMaps) {
+      final tempId = p['id'] as String? ?? '';
+      if (tempId.isEmpty) continue;
+      if (target.any((m) => m.id == tempId)) continue;
+      final dup = target.any((m) =>
+          m.senderId == (p['senderId'] as String? ?? '') &&
+          m.content == (p['content'] as String? ?? ''));
+      if (dup) continue;
+      target.add(MessageEntity(
+        id: tempId,
+        conversationId: conversationId,
+        senderId: p['senderId'] as String? ?? state.currentUserId ?? 'me',
+        content: p['content'] as String? ?? '',
+        sentAt: DateTime.tryParse(p['sentAt'] as String? ?? '') ?? DateTime.now(),
+        fileUrl: p['fileUrl'] as String?,
+        fileName: p['fileName'] as String?,
+        fileSize: p['fileSize'] as int?,
+        fileType: p['fileType'] as String?,
+        s3Key: p['s3Key'] as String?,
+        thumbnailSmallUrl: p['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: p['thumbnailMediumUrl'] as String?,
+        thumbnailLargeUrl: p['thumbnailLargeUrl'] as String?,
+        fileRecordId: p['fileRecordId'] as String?,
+        topicId: p['topicId'] as String?,
+      ));
+    }
+  }
+
+  // Phase 1f helpers.
+  List<MessageEntity> _loadMeshHistory(String convId) {
+    try {
+      return _cache
+          .getMeshMessagesFor(convId)
+          .map((m) => MessageEntity.fromJson(Map<String, dynamic>.from(m)))
+          .toList();
+    } catch (e, st) {
+      debugPrint('[mesh-bloc] _loadMeshHistory($convId) failed: $e\n$st');
+      return const [];
+    }
+  }
+
+  List<MessageEntity> _mergeSortedById(
+      List<MessageEntity> a, List<MessageEntity> b) {
+    final seen = <String>{};
+    final out = <MessageEntity>[];
+    for (final m in [...a, ...b]) {
+      if (seen.add(m.id)) out.add(m);
+    }
+    out.sort((x, y) => x.sentAt.compareTo(y.sentAt));
+    return out;
+  }
+
 
   /// Re-emit all persisted pending messages over the socket. Safe to call
   /// multiple times — each tempId is tracked in [_inFlightTempIds] so a
@@ -428,6 +536,33 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         topicId: m['topicId'] as String?,
         clientTempId: tempId,
       );
+    }
+  }
+
+  /// Phase 1i — after socket reconnect, re-fetch each DIRECT contact's
+  /// device keys so the in-memory ContactKeyStore gets populated even if
+  /// the initial ChatRoomScreen.initState fetch failed (server was down).
+  /// This makes mesh usable without requiring the user to leave and
+  /// re-enter the chat.
+  void _refreshMeshContactKeys() {
+    try {
+      if (!sl.isRegistered<DeviceKeySyncService>()) return;
+      final sync = sl<DeviceKeySyncService>();
+      final seen = <String>{};
+      for (final c in state.conversations) {
+        if (c.type != 'DIRECT') continue;
+        final uid = c.otherUserId;
+        if (uid == null || uid.isEmpty) continue;
+        if (!seen.add(uid)) continue;
+        // Fire-and-forget. DeviceKeySyncService has its own [mesh-sync]
+        // debug logging; errors are logged there.
+        // ignore: unawaited_futures
+        sync.fetchContactKeys(uid).catchError((e, _) {
+          debugPrint('[mesh-reconnect] fetchContactKeys($uid) still failing: $e');
+        });
+      }
+    } catch (e) {
+      debugPrint('[mesh-reconnect] _refreshMeshContactKeys error: $e');
     }
   }
 
@@ -470,7 +605,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     emit(state.copyWith(messages: newMessages));
   }
 
-  void _onSendMessage(SendMessage event, Emitter<MessengerState> emit) {
+  Future<void> _onSendMessage(SendMessage event, Emitter<MessengerState> emit) async {
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempMsg = MessageEntity(
       id: tempId,
@@ -497,8 +632,15 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     newMessages[event.conversationId] = existing;
     emit(state.copyWith(messages: newMessages));
 
-    // Persist to local pending queue so it survives app restarts / offline.
-    _pending.save(tempId, {
+    // Persist temp message to cache so it survives app kill — without this,
+    // a kill during outage made messages "vanish" on next open.
+    _cache.appendMessage(event.conversationId, tempMsg.toJson());
+
+    // Persist to local pending queue BEFORE hitting the socket — if the
+    // process dies between emit and Hive flush, the message is lost. We saw
+    // this in the 2026-04-24 PROD outage: an unawaited save() lost a message
+    // that the socket emit then dropped into a dead connection.
+    await _pending.save(tempId, {
       'conversationId': event.conversationId,
       'content': event.content,
       'fileUrl': event.fileUrl,
@@ -578,7 +720,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     final newMessages =
         Map<String, List<MessageEntity>>.from(state.messages);
     newMessages[msg.conversationId] = existing;
-    emit(state.copyWith(messages: newMessages));
+    Map<String, String>? nextPendingText;
+    if (msg.isSystem && state.pendingAnalystText.containsKey(msg.conversationId)) {
+      nextPendingText = Map<String, String>.from(state.pendingAnalystText)..remove(msg.conversationId);
+    }
+    emit(state.copyWith(
+      messages: newMessages,
+      pendingAnalystText: nextPendingText ?? state.pendingAnalystText,
+    ));
     // Cache the new message
     _cache.appendMessage(msg.conversationId, msg.toJson());
     add(LoadConversations());
@@ -932,6 +1081,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub?.cancel();
     _reactionSub?.cancel();
     _reconnectSub?.cancel();
+    _disconnectSub?.cancel();
+    _analystChunkSub?.cancel();
+    _analystSeamSub?.cancel();
+    _meshMsgSub?.cancel();
+    _meshOutSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }
     _repo.dispose();
     return super.close();
@@ -1049,6 +1203,65 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     add(LoadConversations());
   }
 
+  // Phase 1f: handler for mesh-delivered inbound messages. Inserts the
+  // message as a MessageEntity(transport: 'mesh') into the correct
+  // conversation's message list, deduplicating by deterministic id and
+  // keeping the list sorted by sentAt.
+  void _onMeshMessageReceived(
+      MeshMessageReceived event, Emitter<MessengerState> emit) {
+    final msgId =
+        'mesh-in-${event.contactUserId}-${event.receivedAt.millisecondsSinceEpoch}';
+    final incoming = MessageEntity(
+      id: msgId,
+      conversationId: event.conversationId,
+      senderId: event.contactUserId,
+      content: event.text,
+      sentAt: event.receivedAt,
+      transport: 'mesh',
+    );
+    final updated = Map<String, List<MessageEntity>>.from(state.messages);
+    final existing =
+        List<MessageEntity>.from(updated[event.conversationId] ?? const []);
+    // Dedup by id (adapter may have already persisted + re-delivered on restart).
+    if (existing.any((m) => m.id == msgId)) return;
+    existing.add(incoming);
+    existing.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    updated[event.conversationId] = existing;
+    emit(state.copyWith(messages: updated));
+  }
+
+  // Phase 1h: handler for mesh-delivered outbound messages. Replaces the
+  // optimistic `temp_*` bubble with a permanent `mesh-out-*` MessageEntity
+  // carrying `transport: 'mesh'`, and deduplicates on the mesh id.
+  void _onMeshMessageSent(
+      MeshMessageSent event, Emitter<MessengerState> emit) {
+    final myUserId = state.currentUserId ?? 'me';
+    final entity = MessageEntity(
+      id: event.id,
+      conversationId: event.conversationId,
+      senderId: myUserId,
+      content: event.text,
+      sentAt: event.sentAt,
+      transport: 'mesh',
+    );
+    final updated = Map<String, List<MessageEntity>>.from(state.messages);
+    final list = List<MessageEntity>.from(updated[event.conversationId] ?? const []);
+    // Remove the optimistic temp_* bubble if present.
+    if (event.clientTempId != null && event.clientTempId!.isNotEmpty) {
+      list.removeWhere((m) => m.id == event.clientTempId);
+    }
+    // Dedup by mesh id (if this event fires twice).
+    if (list.any((m) => m.id == entity.id)) {
+      updated[event.conversationId] = list;
+      emit(state.copyWith(messages: updated));
+      return;
+    }
+    list.add(entity);
+    list.sort((a, b) => a.sentAt.compareTo(b.sentAt));
+    updated[event.conversationId] = list;
+    emit(state.copyWith(messages: updated));
+  }
+
   Future<void> _onLoadBadgeCounts(LoadBadgeCounts event, Emitter<MessengerState> emit) async {
     try {
       final client = sl<DioClient>();
@@ -1095,6 +1308,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         pendingContactRequests: pendingContacts,
       ));
     } catch (_) {}
+  }
+
+  // ─── AI Analyst handlers ───
+
+  Future<void> _onAnalystChunk(AnalystChunkReceived e, Emitter<MessengerState> emit) async {
+    final current = state.pendingAnalystText[e.conversationId] ?? '';
+    emit(state.copyWith(pendingAnalystText: {
+      ...state.pendingAnalystText,
+      e.conversationId: current + e.text,
+    }));
+  }
+
+  Future<void> _onAnalystSeam(AnalystSeamReceived e, Emitter<MessengerState> emit) async {
+    emit(state.copyWith(analystSeams: {
+      ...state.analystSeams,
+      e.seam.messageId: e.seam,
+    }));
+  }
+
+  Future<void> _onAnalystPendingTextCleared(AnalystPendingTextCleared e, Emitter<MessengerState> emit) async {
+    if (!state.pendingAnalystText.containsKey(e.conversationId)) return;
+    final next = Map<String, String>.from(state.pendingAnalystText)..remove(e.conversationId);
+    emit(state.copyWith(pendingAnalystText: next));
   }
 
   Future<void> _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) async {

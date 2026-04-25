@@ -2,6 +2,7 @@ import '../entities/conversation_entity.dart';
 import '../entities/message_entity.dart';
 import '../entities/user_search_entity.dart';
 import '../entities/group_member_entity.dart';
+import '../entities/analyst_events.dart';
 
 abstract class IMessengerRepository {
   Future<void> connect(String accessToken);
@@ -58,5 +59,50 @@ abstract class IMessengerRepository {
   // Mute methods
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes});
   Future<void> unmuteConversation(String conversationId);
+  // Analyst streams
+  Stream<AnalystChunk> get analystChunkStream;
+  Stream<AnalystSeam>  get analystSeamStream;
+  /// Returns the per-user SAVED conversation id, creating it on the server if needed.
+  Future<String> getOrCreateSavedConversation();
   void dispose();
+
+  /// Stream of mesh-delivered text messages (Phase 1e). Emits after the
+  /// mesh adapter resolves the sender's devicePk to a known contact.
+  Stream<MeshInboundMessage> get meshMessageStream;
+
+  /// Stream of mesh-delivered OUTBOUND messages — emitted after the
+  /// local transport ack so the bloc can replace the optimistic `temp_*`
+  /// bubble with a mesh-out entry carrying `transport: 'mesh'`.
+  Stream<MeshOutboundMessage> get meshOutboundStream;
+}
+
+class MeshOutboundMessage {
+  final String id;
+  final String conversationId;
+  final String contactUserId;
+  final String? clientTempId;
+  final String text;
+  final DateTime sentAt;
+  const MeshOutboundMessage({
+    required this.id,
+    required this.conversationId,
+    required this.contactUserId,
+    required this.clientTempId,
+    required this.text,
+    required this.sentAt,
+  });
+}
+
+/// A mesh-delivered inbound message surfaced to the messenger layer.
+class MeshInboundMessage {
+  final String contactUserId;
+  final String conversationId;
+  final String text;
+  final DateTime receivedAt;
+  const MeshInboundMessage({
+    required this.contactUserId,
+    required this.conversationId,
+    required this.text,
+    required this.receivedAt,
+  });
 }
