@@ -40,6 +40,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _reactionSub;
   StreamSubscription? _socketErrorSub;
   StreamSubscription? _reconnectSub;
+  StreamSubscription? _disconnectSub;
   StreamSubscription? _analystChunkSub;
   StreamSubscription? _analystSeamSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
@@ -125,6 +126,15 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
       _resendPending();
+    });
+    // Clear in-flight set on disconnect so the next reconnect re-emits any
+    // pending messages. Without this, a message that was emitted into a
+    // dying socket gets stuck in-flight forever (until app restart) — the
+    // server side dedup (Redis, 1h TTL) protects against duplicates.
+    _disconnectSub?.cancel();
+    _disconnectSub =
+        sl<MessengerRemoteDataSource>().disconnectStream.listen((_) {
+      _inFlightTempIds.clear();
     });
     _msgSub?.cancel();
     _msgSub = _repo.messageStream.listen((msg) => add(MessageReceived(msg)));
@@ -363,33 +373,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       }
       // Re-append any unsent pending messages for this conversation so the
       // user sees them with a clock icon.
-      final pendingMaps = _pending.getForConversation(event.conversationId);
-      for (final p in pendingMaps) {
-        final tempId = p['id'] as String? ?? '';
-        if (tempId.isEmpty) continue;
-        // Skip if the server already returned a message with the same content.
-        final dup = serverList.any((m) =>
-            m.senderId == (p['senderId'] as String? ?? '') &&
-            m.content == (p['content'] as String? ?? ''));
-        if (dup) continue;
-        serverList.add(MessageEntity(
-          id: tempId,
-          conversationId: event.conversationId,
-          senderId: p['senderId'] as String? ?? state.currentUserId ?? 'me',
-          content: p['content'] as String? ?? '',
-          sentAt: DateTime.tryParse(p['sentAt'] as String? ?? '') ?? DateTime.now(),
-          fileUrl: p['fileUrl'] as String?,
-          fileName: p['fileName'] as String?,
-          fileSize: p['fileSize'] as int?,
-          fileType: p['fileType'] as String?,
-          s3Key: p['s3Key'] as String?,
-          thumbnailSmallUrl: p['thumbnailSmallUrl'] as String?,
-          thumbnailMediumUrl: p['thumbnailMediumUrl'] as String?,
-          thumbnailLargeUrl: p['thumbnailLargeUrl'] as String?,
-          fileRecordId: p['fileRecordId'] as String?,
-          topicId: p['topicId'] as String?,
-        ));
-      }
+      _appendPending(event.conversationId, serverList);
       newMessages[event.conversationId] = serverList;
       final newCursors = Map<String, String?>.from(state.nextCursors);
       newCursors[event.conversationId] = nextCursor;
@@ -399,12 +383,54 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       _cache.saveMessages(event.conversationId,
           newMessages[event.conversationId]!.map((m) => m.toJson()).toList());
     } catch (e) {
-      // If cache was shown, just stop loading
-      if (state.messages[event.conversationId]?.isNotEmpty ?? false) {
-        emit(state.copyWith(isLoading: false));
+      // API failed (backend down, network error, etc). Surface any locally
+      // persisted pending messages so the user keeps seeing what they typed
+      // — otherwise messages typed during an outage appear to "vanish" on
+      // reopen, which we observed during the 2026-04-24 PROD outage.
+      final base = List<MessageEntity>.from(
+          state.messages[event.conversationId] ?? const <MessageEntity>[]);
+      _appendPending(event.conversationId, base);
+      if (base.isNotEmpty) {
+        final newMessages = Map<String, List<MessageEntity>>.from(state.messages);
+        newMessages[event.conversationId] = base;
+        emit(state.copyWith(
+            messages: newMessages, isLoading: false, clearError: true));
       } else {
         emit(state.copyWith(isLoading: false, error: e.toString()));
       }
+    }
+  }
+
+  /// Merges persisted pending messages for [conversationId] into [target],
+  /// skipping items already present (by id) or duplicated by server-returned
+  /// content (same senderId + content). Mutates [target] in place.
+  void _appendPending(String conversationId, List<MessageEntity> target) {
+    final pendingMaps = _pending.getForConversation(conversationId);
+    for (final p in pendingMaps) {
+      final tempId = p['id'] as String? ?? '';
+      if (tempId.isEmpty) continue;
+      if (target.any((m) => m.id == tempId)) continue;
+      final dup = target.any((m) =>
+          m.senderId == (p['senderId'] as String? ?? '') &&
+          m.content == (p['content'] as String? ?? ''));
+      if (dup) continue;
+      target.add(MessageEntity(
+        id: tempId,
+        conversationId: conversationId,
+        senderId: p['senderId'] as String? ?? state.currentUserId ?? 'me',
+        content: p['content'] as String? ?? '',
+        sentAt: DateTime.tryParse(p['sentAt'] as String? ?? '') ?? DateTime.now(),
+        fileUrl: p['fileUrl'] as String?,
+        fileName: p['fileName'] as String?,
+        fileSize: p['fileSize'] as int?,
+        fileType: p['fileType'] as String?,
+        s3Key: p['s3Key'] as String?,
+        thumbnailSmallUrl: p['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: p['thumbnailMediumUrl'] as String?,
+        thumbnailLargeUrl: p['thumbnailLargeUrl'] as String?,
+        fileRecordId: p['fileRecordId'] as String?,
+        topicId: p['topicId'] as String?,
+      ));
     }
   }
 
@@ -483,7 +509,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     emit(state.copyWith(messages: newMessages));
   }
 
-  void _onSendMessage(SendMessage event, Emitter<MessengerState> emit) {
+  Future<void> _onSendMessage(SendMessage event, Emitter<MessengerState> emit) async {
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final tempMsg = MessageEntity(
       id: tempId,
@@ -510,8 +536,15 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     newMessages[event.conversationId] = existing;
     emit(state.copyWith(messages: newMessages));
 
-    // Persist to local pending queue so it survives app restarts / offline.
-    _pending.save(tempId, {
+    // Persist temp message to cache so it survives app kill — without this,
+    // a kill during outage made messages "vanish" on next open.
+    _cache.appendMessage(event.conversationId, tempMsg.toJson());
+
+    // Persist to local pending queue BEFORE hitting the socket — if the
+    // process dies between emit and Hive flush, the message is lost. We saw
+    // this in the 2026-04-24 PROD outage: an unawaited save() lost a message
+    // that the socket emit then dropped into a dead connection.
+    await _pending.save(tempId, {
       'conversationId': event.conversationId,
       'content': event.content,
       'fileUrl': event.fileUrl,
@@ -952,6 +985,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _contactAccSub?.cancel();
     _reactionSub?.cancel();
     _reconnectSub?.cancel();
+    _disconnectSub?.cancel();
     _analystChunkSub?.cancel();
     _analystSeamSub?.cancel();
     for (final timer in _typingTimers.values) { timer.cancel(); }

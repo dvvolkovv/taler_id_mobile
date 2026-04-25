@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -17,8 +18,16 @@ import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_re
 
 class _FakeMessengerRemoteDataSource implements MessengerRemoteDataSource {
   final _reconnectCtrl = StreamController<void>.broadcast();
+  final _disconnectCtrl = StreamController<String>.broadcast();
   @override
   Stream<void> get reconnectStream => _reconnectCtrl.stream;
+  @override
+  Stream<String> get disconnectStream => _disconnectCtrl.stream;
+
+  void emitReconnect() => _reconnectCtrl.add(null);
+  void emitDisconnect([String reason = 'transport close']) =>
+      _disconnectCtrl.add(reason);
+
   @override
   noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -35,6 +44,73 @@ class FakePendingMessageService extends PendingMessageService {
   Future<void> remove(String tempId) async {}
   @override
   List<Map<String, dynamic>> getAll() => const [];
+}
+
+/// In-memory pending queue with real save/remove semantics — for tests that
+/// exercise the merge logic in OpenConversation / SendMessage.
+class _PopulatedPendingMessageService extends PendingMessageService {
+  final Map<String, Map<String, dynamic>> _items = {};
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<void> save(String tempId, Map<String, dynamic> message) async {
+    _items[tempId] = Map<String, dynamic>.from(jsonDecode(jsonEncode(message)) as Map);
+  }
+
+  @override
+  Future<void> remove(String tempId) async {
+    _items.remove(tempId);
+  }
+
+  @override
+  List<Map<String, dynamic>> getAll() {
+    final keys = _items.keys.toList()..sort();
+    return [
+      for (final k in keys) {...?_items[k], 'id': k},
+    ];
+  }
+}
+
+/// Pending service whose save() blocks on a completer — lets us verify that
+/// SendMessage awaits persistence before emitting on the socket.
+class _BlockingPendingMessageService extends _PopulatedPendingMessageService {
+  Completer<void> blockSave = Completer<void>();
+  bool saveCompletedBeforeSend = false;
+  bool saveResolved = false;
+
+  @override
+  Future<void> save(String tempId, Map<String, dynamic> message) async {
+    await blockSave.future;
+    saveResolved = true;
+    await super.save(tempId, message);
+  }
+}
+
+/// Cache fake that captures appendMessage calls — used to assert that temp
+/// messages get persisted on send.
+class _CapturingCacheService extends MessengerCacheService {
+  final List<(String, Map<String, dynamic>)> appended = [];
+
+  @override
+  List<Map<String, dynamic>>? getConversations() => null;
+  @override
+  Future<void> saveConversations(List<Map<String, dynamic>> conversations) async {}
+  @override
+  List<Map<String, dynamic>>? getMessages(String conversationId) => null;
+  @override
+  Future<void> saveMessages(String conversationId, List<Map<String, dynamic>> messages) async {}
+  @override
+  Future<void> appendMessage(String conversationId, Map<String, dynamic> message) async {
+    appended.add((conversationId, message));
+  }
+  @override
+  Future<void> updateMessage(String conversationId, String messageId, Map<String, dynamic> updates) async {}
+  @override
+  Future<void> removeMessage(String conversationId, String messageId) async {}
+  @override
+  Future<void> clearAll() async {}
 }
 
 /// Fake без Hive — возвращает пустые данные, игнорирует записи
@@ -233,6 +309,232 @@ void main() {
             .having((s) => s.isLoading, 'isLoading', false)
             .having((s) => s.messages['conv-1']?.length, 'message count', 1),
       ],
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'still shows pending messages when API call fails (backend down)',
+      build: () {
+        // Pre-populate pending queue with a message the user typed during outage.
+        final pending = _PopulatedPendingMessageService();
+        pending.save('temp_111', {
+          'conversationId': 'conv-1',
+          'content': 'Привет',
+          'sentAt': '2024-01-15T10:00:00.000Z',
+          'senderId': 'user-1',
+        });
+        sl.unregister<PendingMessageService>();
+        sl.registerSingleton<PendingMessageService>(pending);
+
+        when(() => repo.joinConversation('conv-1')).thenReturn(null);
+        when(() => repo.getMessages('conv-1',
+                cursor: any(named: 'cursor'), topicId: any(named: 'topicId')))
+            .thenThrow(Exception('Network error'));
+        return buildBloc();
+      },
+      act: (b) => b.add(const OpenConversation('conv-1')),
+      verify: (b) {
+        final msgs = b.state.messages['conv-1'] ?? const [];
+        expect(
+          msgs.any((m) => m.id == 'temp_111' && m.content == 'Привет'),
+          isTrue,
+          reason:
+              'Pending message must remain visible (with clock icon) when the '
+              'server is unreachable, otherwise the user thinks it disappeared.',
+        );
+        expect(b.state.isLoading, isFalse);
+      },
+    );
+  });
+
+  // ── Send message ──────────────────────────────────────────────────────────
+
+  group('SendMessage', () {
+    blocTest<MessengerBloc, MessengerState>(
+      'awaits _pending.save before emitting message on socket',
+      build: () {
+        final pending = _BlockingPendingMessageService();
+        sl.unregister<PendingMessageService>();
+        sl.registerSingleton<PendingMessageService>(pending);
+
+        when(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) async {
+        b.add(const SendMessage('conv-1', 'Привет'));
+        // Give bloc a chance to enter the handler. Pending.save() is blocked,
+        // so sendMessage must NOT have run yet.
+        await Future.delayed(const Duration(milliseconds: 30));
+        verifyNever(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            ));
+        // Now release pending.save() and let sendMessage proceed.
+        (sl<PendingMessageService>() as _BlockingPendingMessageService)
+            .blockSave
+            .complete();
+        await Future.delayed(const Duration(milliseconds: 30));
+      },
+      verify: (b) {
+        verify(() => repo.sendMessage(
+              'conv-1',
+              'Привет',
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).called(1);
+      },
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'persists temp message to cache so it survives app kill',
+      build: () {
+        final cache = _CapturingCacheService();
+        sl.unregister<MessengerCacheService>();
+        sl.registerSingleton<MessengerCacheService>(cache);
+
+        when(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) async {
+        b.add(const SendMessage('conv-1', 'Привет'));
+        await Future.delayed(const Duration(milliseconds: 30));
+      },
+      verify: (b) {
+        final cache = sl<MessengerCacheService>() as _CapturingCacheService;
+        expect(cache.appended, isNotEmpty,
+            reason: 'temp message must be appended to cache so it survives app restart');
+        expect(cache.appended.first.$1, equals('conv-1'));
+        expect(cache.appended.first.$2['content'], equals('Привет'));
+        expect(cache.appended.first.$2['id'] as String, startsWith('temp_'));
+      },
+    );
+  });
+
+  // ── Reconnect storm recovery ──────────────────────────────────────────────
+
+  group('Reconnect recovery', () {
+    blocTest<MessengerBloc, MessengerState>(
+      'clears in-flight set on disconnect so pending messages re-emit on next reconnect',
+      build: () {
+        final pending = _PopulatedPendingMessageService();
+        sl.unregister<PendingMessageService>();
+        sl.registerSingleton<PendingMessageService>(pending);
+
+        when(() => repo.joinConversation(any())).thenReturn(null);
+        when(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) async {
+        b.add(const ConnectMessenger('token', userId: 'user-1'));
+        await Future.delayed(const Duration(milliseconds: 30));
+        b.add(const SendMessage('conv-1', 'Привет'));
+        await Future.delayed(const Duration(milliseconds: 30));
+
+        // Initial send: 1 call to repo.sendMessage.
+        verify(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).called(1);
+
+        // Simulate the outage: socket dropped, then re-established.
+        final ds = sl<MessengerRemoteDataSource>()
+            as _FakeMessengerRemoteDataSource;
+        ds.emitDisconnect();
+        await Future.delayed(const Duration(milliseconds: 30));
+        ds.emitReconnect();
+        await Future.delayed(const Duration(milliseconds: 30));
+      },
+      verify: (b) {
+        // After reconnect, _resendPending must have re-emitted the message
+        // because disconnect cleared the in-flight set.
+        verify(() => repo.sendMessage(
+              'conv-1',
+              'Привет',
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).called(greaterThanOrEqualTo(1));
+      },
     );
   });
 
