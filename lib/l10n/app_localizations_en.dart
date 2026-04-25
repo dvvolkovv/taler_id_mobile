@@ -3103,4 +3103,158 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedOpenError => 'Couldn\'t open Saved Messages';
+
+  @override
+  String get billingWalletTitle => 'Wallet';
+
+  @override
+  String get billingBuyPackage => 'Buy package';
+
+  @override
+  String get billingCurrentBalance => 'Current balance';
+
+  @override
+  String get billingPackagesTitle => 'Packages';
+
+  @override
+  String get billingPackagesUnavailable => 'Packages unavailable';
+
+  @override
+  String get billingRecentOperations => 'Recent operations';
+
+  @override
+  String get billingAllOperations => 'All operations';
+
+  @override
+  String get billingNoOperations => 'No operations';
+
+  @override
+  String get billingOperationsTitle => 'Operations';
+
+  @override
+  String get billingOperationsEmptyTitle => 'No operations yet';
+
+  @override
+  String get billingOperationsEmptySubtitle =>
+      'Top-ups and charges for AI features will appear here';
+
+  @override
+  String get billingPricebookTitle => 'Feature prices';
+
+  @override
+  String get billingPricebookUnavailable => 'Price list unavailable';
+
+  @override
+  String get billingAiFeaturesTitle => 'AI features';
+
+  @override
+  String get billingInsufficientFundsTitle => 'Insufficient funds';
+
+  @override
+  String get billingInsufficientFundsSubtitle =>
+      'Top up your balance to use this feature.';
+
+  @override
+  String billingRequiredLine(String required) {
+    return 'Need: $required μTAL';
+  }
+
+  @override
+  String billingAvailableLine(String available) {
+    return 'Have: $available μTAL';
+  }
+
+  @override
+  String get billingTopUp => 'Top up';
+
+  @override
+  String get billingCancel => 'Cancel';
+
+  @override
+  String get billingRetry => 'Retry';
+
+  @override
+  String billingLowBalanceWarning(String balance) {
+    return 'Balance running low: $balance μTAL';
+  }
+
+  @override
+  String get billingWalletAndBalance => 'Wallet & Balance';
+
+  @override
+  String get billingSectionHeader => 'Billing & AI';
+
+  @override
+  String get billingFeatureVoiceAssistant => 'Voice assistant';
+
+  @override
+  String get billingFeatureWebSearch => 'Assistant web search';
+
+  @override
+  String get billingFeatureAiTwin => 'Voice twin';
+
+  @override
+  String get billingFeatureAiTwinLong => 'Voice twin (AI Twin)';
+
+  @override
+  String get billingFeatureOutboundCall => 'Outbound bot';
+
+  @override
+  String get billingFeatureOutboundCallLong => 'Outbound calling bot';
+
+  @override
+  String get billingFeatureWhisperTranscribe => 'Call transcription';
+
+  @override
+  String get billingFeatureMeetingSummary => 'AI call summaries';
+
+  @override
+  String get billingConfigureAiTwin => 'Configure AI twin';
+
+  @override
+  String get billingWebSearchSubtitle => '(used by the assistant)';
+
+  @override
+  String billingPackagePurchased(String balance) {
+    return 'Package purchased: $balance μTAL';
+  }
+
+  @override
+  String get billingRecommendedBadge => 'Recommended';
+
+  @override
+  String get billingSessionTerminatedNoFunds =>
+      'Balance ran out — session ended';
+
+  @override
+  String get billingSessionTerminatedGeneric => 'Assistant session ended';
+
+  @override
+  String billingBuyForPrice(String price) {
+    return 'Buy for €$price';
+  }
+
+  @override
+  String get billingTxTypeTopup => 'Top-up';
+
+  @override
+  String get billingTxTypeRefund => 'Refund';
+
+  @override
+  String get billingTxTypeSpend => 'Charge';
+
+  @override
+  String get billingUnitMinute => 'minute';
+
+  @override
+  String get billingUnitRequest => 'request';
+
+  @override
+  String get billingUnitToken => 'token';
+
+  @override
+  String get billingUnitTokens1k => '1K tokens';
+
+  @override
+  String get billingUnitCall => 'call';
 }
