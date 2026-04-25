@@ -241,6 +241,14 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                         result.success(null)
                     }
+                    "enableCallAudioMix" -> {
+                        enableCallAudioMix()
+                        result.success(null)
+                    }
+                    "disableCallAudioMix" -> {
+                        disableCallAudioMix()
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -346,6 +354,60 @@ class MainActivity : FlutterFragmentActivity() {
             am.abandonAudioFocus(focusListener)
         }
         focusListener = null
+    }
+
+    private var callAudioFocusRequest: AudioFocusRequest? = null
+
+    /// Request audio focus in mix-respecting mode so external VoIP apps
+    /// (WhatsApp/Telegram) can ring without preempting our LiveKit audio.
+    private fun enableCallAudioMix() {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val attrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build()
+            val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(attrs)
+                .setAcceptsDelayedFocusGain(true)
+                .setWillPauseWhenDucked(false)
+                .also { b -> focusListener?.let { b.setOnAudioFocusChangeListener(it) } }
+                .build()
+            val outcome = audioManager.requestAudioFocus(request)
+            if (outcome == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ||
+                outcome == AudioManager.AUDIOFOCUS_REQUEST_DELAYED) {
+                callAudioFocusRequest = request
+                Log.i("CallAudioMix", "enabled (gain=$outcome, may_duck=true)")
+            } else {
+                Log.w("CallAudioMix", "enable failed: outcome=$outcome")
+            }
+        } else {
+            // API 24-25 fallback: deprecated API
+            @Suppress("DEPRECATION")
+            val outcome = audioManager.requestAudioFocus(
+                focusListener,
+                AudioManager.STREAM_VOICE_CALL,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK,
+            )
+            Log.i("CallAudioMix", "enabled via deprecated API (outcome=$outcome)")
+        }
+    }
+
+    /// Release the call audio focus request so the app stops mixing with others.
+    private fun disableCallAudioMix() {
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val req = callAudioFocusRequest
+            if (req != null) {
+                audioManager.abandonAudioFocusRequest(req)
+                callAudioFocusRequest = null
+                Log.i("CallAudioMix", "disabled")
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            audioManager.abandonAudioFocus(focusListener)
+            Log.i("CallAudioMix", "disabled via deprecated API")
+        }
     }
 
     // Track the LocalVideoTrack wrapper we created (for removal later)
