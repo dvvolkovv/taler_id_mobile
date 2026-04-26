@@ -148,6 +148,26 @@ class MeshMessagingService {
     final state = _peerStates.putIfAbsent(srcDevice, () => _PeerState());
 
     if (frame.type == FrameType.handshake) {
+      // Phase 2.1 — accept-latest-init: if we have any cached handshake or
+      // session for this peer and another `handshake_init` arrives, the peer
+      // has restarted. Drop our cached state and process the new init from
+      // scratch. Detection: a fresh init carries a Noise IK message1, which
+      // is always 48 bytes ephemeral_pk + payload (>= 48); responder-side
+      // msg2 we'd expect (from line 169 path) only arrives after we've
+      // become initiator. So: if state.session != null OR (state.handshake
+      // != null AND !state.isInitiator), this is a fresh init.
+      final hasCachedSession = state.session != null;
+      final hasCachedResponderHandshake =
+          state.handshake != null && !state.isInitiator;
+      final isFreshInitFromPeer =
+          hasCachedSession || hasCachedResponderHandshake;
+      if (isFreshInitFromPeer) {
+        debugPrint(
+          '[mesh-handshake] peer reset detected, dropping cached session pk=${srcDevice.toHex().substring(0, 12)}...',
+        );
+        _resetPeerState(srcDevice);
+      }
+
       if (state.handshake == null) {
         debugPrint('[mesh-frame] starting RESPONDER handshake');
         // Responder path — we received msg1 from an initiator.
