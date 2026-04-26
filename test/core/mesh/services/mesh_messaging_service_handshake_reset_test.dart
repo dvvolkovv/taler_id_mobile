@@ -147,5 +147,87 @@ void main() {
       await alice.dispose();
       await bob.dispose();
     });
+
+    test('anti-thrash jitter cancels pending outbound init when peer init arrives first', () async {
+      // Alice has a stale session. Both sides try to re-handshake at once.
+      // Alice's outbound init must be cancelled; she becomes responder.
+
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      final aliceTransport = _FakeTransport();
+      final bobTransport = _FakeTransport();
+      aliceTransport.partner = bobTransport;
+      bobTransport.partner = aliceTransport;
+
+      final alice = MeshMessagingService(
+        transport: aliceTransport,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+        recoveryInitJitter: const Duration(milliseconds: 100),
+      );
+      final bob = MeshMessagingService(
+        transport: bobTransport,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+        recoveryInitJitter: Duration.zero,
+      );
+      await alice.start(serviceName: 'alice');
+      await bob.start(serviceName: 'bob');
+
+      // Establish initial session.
+      final firstAtBob = bob.inbound.first;
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 2,
+          type: 'text',
+          convId: 'c1',
+          clientId: 'm1',
+          text: 'hi',
+          sentAt: DateTime.parse('2026-04-26T10:00:00Z'),
+        ),
+      );
+      await firstAtBob;
+
+      // Both sides initiate a recovery handshake at "the same time".
+      // Alice's call gets jittered by 100ms; Bob's fires immediately.
+      // Bob's init should reach Alice before Alice's init goes out.
+      final aliceFuture = alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 2,
+          type: 'text',
+          convId: 'c1',
+          clientId: 'm-alice',
+          text: 'from-alice',
+          sentAt: DateTime.parse('2026-04-26T10:00:01Z'),
+        ),
+      );
+      final bobFuture = bob.sendEnvelope(
+        toUserPk: alicePeer,
+        envelope: Envelope(
+          version: 2,
+          type: 'text',
+          convId: 'c1',
+          clientId: 'm-bob',
+          text: 'from-bob',
+          sentAt: DateTime.parse('2026-04-26T10:00:01Z'),
+        ),
+      );
+      await Future.wait<void>([aliceFuture, bobFuture]);
+
+      await alice.dispose();
+      await bob.dispose();
+    });
   });
 }

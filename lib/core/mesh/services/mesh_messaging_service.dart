@@ -48,6 +48,13 @@ class MeshMessagingService {
   final Uint8List myDevicePrivateKey;
   final Uint8List myDevicePublicKey;
 
+  /// Phase 2.1 — when initiating a handshake along the recovery path
+  /// (i.e., we had a session/handshake with this peer that is now stale),
+  /// delay the outbound `handshake_init` by `random(0..jitter)` so that
+  /// if the peer initiates concurrently, their init has time to arrive
+  /// and we become responder instead of racing.
+  final Duration recoveryInitJitter;
+
   final Map<PeerId, _PeerState> _peerStates = {};
   final _inboundCtrl = StreamController<InboundEnvelope>.broadcast();
 
@@ -59,6 +66,7 @@ class MeshMessagingService {
     required this.contactKeyStore,
     required this.myDevicePrivateKey,
     required this.myDevicePublicKey,
+    this.recoveryInitJitter = const Duration(milliseconds: 200),
   });
 
   Stream<InboundEnvelope> get inbound => _inboundCtrl.stream;
@@ -124,6 +132,22 @@ class MeshMessagingService {
   }
 
   Future<void> _initiateHandshake(PeerId devicePk, _PeerState state) async {
+    final isRecovery = state.hadPriorSession;
+    if (isRecovery && recoveryInitJitter > Duration.zero) {
+      final ms = (recoveryInitJitter.inMilliseconds *
+              (0.25 + 0.75 * (DateTime.now().microsecondsSinceEpoch % 1000) /
+                  1000.0))
+          .round();
+      debugPrint('[mesh-handshake] recovery init — jittering ${ms}ms');
+      await Future<void>.delayed(Duration(milliseconds: ms));
+      // If the peer initiated during the jitter window, our state will now
+      // contain their handshake. Bail out — we became responder.
+      if (state.handshake != null && !state.isInitiator) {
+        debugPrint('[mesh-handshake] recovery init cancelled — peer beat us');
+        state.initiating = false;
+        return;
+      }
+    }
     final handshake = await NoiseIKHandshake.startInitiator(
       initiatorStaticPrivateKey: myDevicePrivateKey,
       initiatorStaticPublicKey: myDevicePublicKey,
@@ -183,6 +207,7 @@ class MeshMessagingService {
         final (k1, k2) = responder.finalize();
         // Responder: k1 = recv (initiator→responder), k2 = send (responder→initiator).
         state.session = NoiseSession(sendKey: k2, recvKey: k1);
+        state.hadPriorSession = true;
         state.sessionEstablished?.complete();
         await _sendFrame(srcDevice, FrameType.handshake, msg2);
         debugPrint('[mesh-frame] responder handshake complete, session established');
@@ -193,6 +218,7 @@ class MeshMessagingService {
         final (k1, k2) = state.handshake!.finalize();
         // Initiator: k1 = send (initiator→responder), k2 = recv (responder→initiator).
         state.session = NoiseSession(sendKey: k1, recvKey: k2);
+        state.hadPriorSession = true;
         state.sessionEstablished?.complete();
         debugPrint('[mesh-frame] initiator handshake complete, session established');
       } else {
@@ -268,4 +294,7 @@ class _PeerState {
   /// `state.handshake = ...` lands, leaving a window where a second
   /// sendEnvelope observes `handshake == null` and starts its own.
   bool initiating = false;
+  /// Phase 2.1 — set after first successful session, used by
+  /// `_initiateHandshake` to decide whether to apply recovery jitter.
+  bool hadPriorSession = false;
 }
