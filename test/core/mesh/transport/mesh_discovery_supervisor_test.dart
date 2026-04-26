@@ -79,12 +79,45 @@ void main() {
         maxColdStartAttempts: 3,
         connectivityStream: connectivityCtrl.stream,
       );
+      supervisor.onDiscoveryStarted();
 
       connectivityCtrl.add([ConnectivityResult.none]);
       await Future<void>.delayed(Duration.zero);
       expect(reinitCalls, isEmpty,
           reason: 'no kick when connection drops');
 
+      connectivityCtrl.add([ConnectivityResult.wifi]);
+      await Future<void>.delayed(Duration.zero);
+      expect(reinitCalls, ['connectivity']);
+
+      await connectivityCtrl.close();
+      await supervisor.dispose();
+    });
+
+    test('connectivity event before onDiscoveryStarted is ignored', () async {
+      // Regression: connectivity_plus emits the current state on subscribe.
+      // If we react before startAdvertising's _startDiscovery() returns, two
+      // concurrent discovery init paths race and one ends up with a null
+      // eventStream, breaking the Bonjour transport.
+      final reinitCalls = <String>[];
+      final connectivityCtrl =
+          StreamController<List<ConnectivityResult>>.broadcast();
+
+      final supervisor = MeshDiscoverySupervisor(
+        reinit: (reason) async => reinitCalls.add(reason),
+        coldStartDelay: const Duration(seconds: 5),
+        maxColdStartAttempts: 3,
+        connectivityStream: connectivityCtrl.stream,
+      );
+
+      // Initial WiFi emission BEFORE discovery has started.
+      connectivityCtrl.add([ConnectivityResult.wifi]);
+      await Future<void>.delayed(Duration.zero);
+      expect(reinitCalls, isEmpty,
+          reason: 'must not reinit before host calls onDiscoveryStarted');
+
+      // After discovery is up, subsequent events are honoured.
+      supervisor.onDiscoveryStarted();
       connectivityCtrl.add([ConnectivityResult.wifi]);
       await Future<void>.delayed(Duration.zero);
       expect(reinitCalls, ['connectivity']);
@@ -105,6 +138,7 @@ void main() {
         maxColdStartAttempts: 3,
         lifecycleStream: lifecycleCtrl.stream,
       );
+      supervisor.onDiscoveryStarted();
 
       lifecycleCtrl.add(AppLifecycleState.paused);
       await Future<void>.delayed(Duration.zero);
@@ -132,7 +166,7 @@ void main() {
             StreamController<List<ConnectivityResult>>.broadcast();
         final lifecycleCtrl = StreamController<AppLifecycleState>.broadcast();
 
-        MeshDiscoverySupervisor(
+        final supervisor = MeshDiscoverySupervisor(
           reinit: (reason) async => reinitCalls.add(reason),
           coldStartDelay: const Duration(seconds: 5),
           maxColdStartAttempts: 3,
@@ -140,6 +174,7 @@ void main() {
           lifecycleStream: lifecycleCtrl.stream,
           rateLimit: const Duration(seconds: 3),
         );
+        supervisor.onDiscoveryStarted();
 
         connectivityCtrl.add([ConnectivityResult.wifi]);
         async.flushMicrotasks();

@@ -25,6 +25,7 @@ class MeshDiscoverySupervisor {
   Timer? _watchdog;
   int _coldStartAttempt = 0;
   bool _eventSeenSinceStart = false;
+  bool _discoveryStartedOnce = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<AppLifecycleState>? _lifecycleSub;
   AppLifecycleState? _lastLifecycleState;
@@ -46,6 +47,7 @@ class MeshDiscoverySupervisor {
 
   void onDiscoveryStarted() {
     _eventSeenSinceStart = false;
+    _discoveryStartedOnce = true;
     _armWatchdog();
   }
 
@@ -75,6 +77,15 @@ class MeshDiscoverySupervisor {
         r == ConnectivityResult.ethernet ||
         r == ConnectivityResult.mobile);
     if (!hasNetwork) return;
+    if (!_discoveryStartedOnce) {
+      // connectivity_plus emits the current state on subscribe; we must
+      // not race the initial startAdvertising path. Wait for the host to
+      // finish bringing discovery up before reacting to network events.
+      debugPrint(
+        '[mesh-discovery-supervisor] connectivity event ignored — discovery not started yet',
+      );
+      return;
+    }
     debugPrint(
       '[mesh-discovery-supervisor] kick reason=connectivity now=$results',
     );
@@ -89,6 +100,7 @@ class MeshDiscoverySupervisor {
             prev == AppLifecycleState.inactive ||
             prev == AppLifecycleState.hidden);
     if (!returningFromBackground) return;
+    if (!_discoveryStartedOnce) return;
     debugPrint('[mesh-discovery-supervisor] kick reason=resumed prev=$prev');
     await _gatedReinit('resumed');
   }
