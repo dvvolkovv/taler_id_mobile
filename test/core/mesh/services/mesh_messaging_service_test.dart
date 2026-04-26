@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store.dart';
+import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
 import 'package:taler_id_mobile/core/mesh/transport/frame.dart';
 import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
@@ -65,8 +65,8 @@ Future<(Uint8List, Uint8List)> _x25519Keys() async {
 }
 
 void main() {
-  group('MeshMessagingService', () {
-    test('two services exchange text after handshake', () async {
+  group('MeshMessagingService Phase 2 envelope', () {
+    test('two services exchange envelope after handshake', () async {
       final (alicePriv, alicePub) = await _x25519Keys();
       final (bobPriv, bobPub) = await _x25519Keys();
 
@@ -112,18 +112,35 @@ void main() {
         port: 0,
       ));
 
-      final bobInbox = <String>[];
-      final sub = bob.inbound.listen((m) => bobInbox.add(m.text));
+      final received = <InboundEnvelope>[];
+      final sub = bob.inbound.listen(received.add);
 
       // Wait for discovery to register
       await Future.delayed(const Duration(milliseconds: 50));
 
-      await alice.sendText(toUserPk: bobPeer, text: 'hello bob');
+      final envelope = Envelope(
+        version: 1,
+        type: 'text',
+        convId: 'conv-test',
+        clientId: 'client-abc',
+        text: 'Привет from Alice 👋',
+        sentAt: DateTime.parse('2026-04-26T12:00:00.000Z'),
+      );
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: envelope,
+      );
 
       // Wait for handshake + message round-trip
       await Future.delayed(const Duration(milliseconds: 200));
 
-      expect(bobInbox, contains('hello bob'));
+      expect(received, hasLength(1));
+      final got = received.first;
+      expect(got.fromUserPk, alicePeer);
+      expect(got.envelope.text, envelope.text);
+      expect(got.envelope.convId, envelope.convId);
+      expect(got.envelope.clientId, envelope.clientId);
+      expect(got.envelope.sentAt, envelope.sentAt);
 
       await sub.cancel();
       await alice.dispose();
