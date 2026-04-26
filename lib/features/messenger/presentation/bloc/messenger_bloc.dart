@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
@@ -606,7 +607,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   Future<void> _onSendMessage(SendMessage event, Emitter<MessengerState> emit) async {
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempId = 'temp_${const Uuid().v4()}';
     final tempMsg = MessageEntity(
       id: tempId,
       conversationId: event.conversationId,

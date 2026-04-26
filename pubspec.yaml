@@ -91,6 +91,7 @@ dependencies:
   # File picking and URL launching
   file_picker: ^8.1.2
   url_launcher: ^6.3.1
+  uuid: ^4.5.2
 
   # Audio recording and playback (voice messages)
   record: ^5.1.2
