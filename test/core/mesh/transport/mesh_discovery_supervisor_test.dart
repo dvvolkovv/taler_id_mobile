@@ -123,4 +123,38 @@ void main() {
       await supervisor.dispose();
     });
   });
+
+  group('MeshDiscoverySupervisor rate-limit', () {
+    test('two triggers within rate-limit window collapse to one reinit', () {
+      fakeAsync((async) {
+        final reinitCalls = <String>[];
+        final connectivityCtrl =
+            StreamController<List<ConnectivityResult>>.broadcast();
+        final lifecycleCtrl = StreamController<AppLifecycleState>.broadcast();
+
+        MeshDiscoverySupervisor(
+          reinit: (reason) async => reinitCalls.add(reason),
+          coldStartDelay: const Duration(seconds: 5),
+          maxColdStartAttempts: 3,
+          connectivityStream: connectivityCtrl.stream,
+          lifecycleStream: lifecycleCtrl.stream,
+          rateLimit: const Duration(seconds: 3),
+        );
+
+        connectivityCtrl.add([ConnectivityResult.wifi]);
+        async.flushMicrotasks();
+        lifecycleCtrl
+          ..add(AppLifecycleState.paused)
+          ..add(AppLifecycleState.resumed);
+        async.flushMicrotasks();
+
+        expect(reinitCalls, ['connectivity']);
+
+        async.elapse(const Duration(seconds: 4));
+        connectivityCtrl.add([ConnectivityResult.wifi]);
+        async.flushMicrotasks();
+        expect(reinitCalls, ['connectivity', 'connectivity']);
+      });
+    });
+  });
 }

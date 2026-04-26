@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/widgets.dart' show AppLifecycleState;
@@ -16,6 +17,7 @@ typedef ReinitCallback = Future<void> Function(String reason);
 class MeshDiscoverySupervisor {
   final ReinitCallback reinit;
   final Duration coldStartDelay;
+  final Duration rateLimit;
   final int maxColdStartAttempts;
   final Stream<List<ConnectivityResult>>? connectivityStream;
   final Stream<AppLifecycleState>? lifecycleStream;
@@ -26,10 +28,12 @@ class MeshDiscoverySupervisor {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<AppLifecycleState>? _lifecycleSub;
   AppLifecycleState? _lastLifecycleState;
+  DateTime? _lastReinitAt;
 
   MeshDiscoverySupervisor({
     required this.reinit,
     this.coldStartDelay = const Duration(seconds: 5),
+    this.rateLimit = const Duration(seconds: 3),
     this.maxColdStartAttempts = 3,
     this.connectivityStream,
     this.lifecycleStream,
@@ -52,6 +56,19 @@ class MeshDiscoverySupervisor {
     _coldStartAttempt = 0;
   }
 
+  Future<void> _gatedReinit(String reason) async {
+    final now = clock.now();
+    final last = _lastReinitAt;
+    if (last != null && now.difference(last) < rateLimit) {
+      debugPrint(
+        '[mesh-discovery-supervisor] reinit skipped — within ${rateLimit.inSeconds}s rate-limit (reason=$reason)',
+      );
+      return;
+    }
+    _lastReinitAt = now;
+    await reinit(reason);
+  }
+
   Future<void> _onConnectivity(List<ConnectivityResult> results) async {
     final hasNetwork = results.any((r) =>
         r == ConnectivityResult.wifi ||
@@ -61,7 +78,7 @@ class MeshDiscoverySupervisor {
     debugPrint(
       '[mesh-discovery-supervisor] kick reason=connectivity now=$results',
     );
-    await reinit('connectivity');
+    await _gatedReinit('connectivity');
   }
 
   Future<void> _onLifecycle(AppLifecycleState state) async {
@@ -73,7 +90,7 @@ class MeshDiscoverySupervisor {
             prev == AppLifecycleState.hidden);
     if (!returningFromBackground) return;
     debugPrint('[mesh-discovery-supervisor] kick reason=resumed prev=$prev');
-    await reinit('resumed');
+    await _gatedReinit('resumed');
   }
 
   void _armWatchdog() {
@@ -91,7 +108,7 @@ class MeshDiscoverySupervisor {
       debugPrint(
         '[mesh-discovery-supervisor] kick reason=cold-start attempt=$_coldStartAttempt',
       );
-      await reinit('cold-start');
+      await _gatedReinit('cold-start');
       _armWatchdog();
     });
   }
