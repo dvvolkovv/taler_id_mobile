@@ -115,59 +115,63 @@ class MessengerRepositoryImpl implements IMessengerRepository {
     required String content,
     required String? clientTempId,
   }) async {
-    final conv = _cache.getConversationById(conversationId);
-    if (conv == null) {
-      debugPrint('[mesh-fanout] no cached conversation for $conversationId, skipping mesh');
-      return;
-    }
-    final myUserId = _currentUserIdProvider();
-    final eligible = _meshEligibleParticipants(conv, myUserId);
-    if (eligible.isEmpty) {
-      debugPrint('[mesh-fanout] no eligible peers for $conversationId, server-only');
-      return;
-    }
-    if (eligible.length > _meshGroupSizeCap) {
-      debugPrint('[mesh-fanout] group size ${eligible.length} > $_meshGroupSizeCap, mesh skipped (server-only)');
-      return;
-    }
+    try {
+      final conv = _cache.getConversationById(conversationId);
+      if (conv == null) {
+        debugPrint('[mesh-fanout] no cached conversation for $conversationId, skipping mesh');
+        return;
+      }
+      final myUserId = _currentUserIdProvider();
+      final eligible = _meshEligibleParticipants(conv, myUserId);
+      if (eligible.isEmpty) {
+        debugPrint('[mesh-fanout] no eligible peers for $conversationId, server-only');
+        return;
+      }
+      if (eligible.length > _meshGroupSizeCap) {
+        debugPrint('[mesh-fanout] group size ${eligible.length} > $_meshGroupSizeCap, mesh skipped (server-only)');
+        return;
+      }
 
-    final clientId = clientTempId ?? const Uuid().v4();
-    final now = DateTime.now().toUtc();
-    final envelope = Envelope(
-      version: 1,
-      type: 'text',
-      convId: conversationId,
-      clientId: clientId,
-      text: content,
-      sentAt: now,
-    );
-
-    // Per-peer fire-and-forget; one peer failure does not block others.
-    for (final peer in eligible) {
-      // ignore: unawaited_futures
-      _meshAdapter.sendEnvelopeToPeer(
-        peerDevicePk: peer.devicePk,
-        contactUserId: peer.userId,
-        envelope: envelope,
-      ).catchError((Object e) {
-        debugPrint('[mesh-fanout] send to ${peer.userId} failed: $e');
-      });
-    }
-
-    // ONE outbound event per logical send (not per peer). Phase 1h's
-    // MeshMessageSent handler in MessengerBloc replaces temp_clientId with
-    // a mesh-out MessageEntity exactly once.
-    if (clientTempId != null) {
-      _meshAdapter.emitOutbound(AdaptedOutboundMessage(
-        id: clientId,
-        conversationId: conversationId,
-        contactUserId: eligible.first.userId,  // representative; not used by bloc handler
-        clientTempId: clientTempId,
+      final clientId = clientTempId ?? const Uuid().v4();
+      final now = DateTime.now().toUtc();
+      final envelope = Envelope(
+        version: 1,
+        type: 'text',
+        convId: conversationId,
+        clientId: clientId,
         text: content,
         sentAt: now,
-      ));
-      // Clear pending since the message is now persisted as mesh-out.
-      await _pending.remove(clientTempId);
+      );
+
+      // Per-peer fire-and-forget; one peer failure does not block others.
+      for (final peer in eligible) {
+        // ignore: unawaited_futures
+        _meshAdapter.sendEnvelopeToPeer(
+          peerDevicePk: peer.devicePk,
+          contactUserId: peer.userId,
+          envelope: envelope,
+        ).catchError((Object e) {
+          debugPrint('[mesh-fanout] send to ${peer.userId} failed: $e');
+        });
+      }
+
+      // ONE outbound event per logical send (not per peer). Phase 1h's
+      // MeshMessageSent handler in MessengerBloc replaces temp_clientId with
+      // a mesh-out MessageEntity exactly once.
+      if (clientTempId != null) {
+        _meshAdapter.emitOutbound(AdaptedOutboundMessage(
+          id: clientId,
+          conversationId: conversationId,
+          contactUserId: eligible.first.userId,  // representative; not used by bloc handler
+          clientTempId: clientTempId,
+          text: content,
+          sentAt: now,
+        ));
+        // Clear pending since the message is now persisted as mesh-out.
+        await _pending.remove(clientTempId);
+      }
+    } catch (e, st) {
+      debugPrint('[mesh-fanout] unexpected error: $e\n$st');
     }
   }
 

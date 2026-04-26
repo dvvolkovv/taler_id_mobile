@@ -33,6 +33,12 @@ class AdaptedInboundMessage {
 class AdaptedOutboundMessage {
   final String id;
   final String conversationId;
+  /// Sentinel field for the recipient's userId. For 1:1 sends this is the
+  /// other party's userId. For GROUP sends, the `MessengerRepositoryImpl`
+  /// passes a representative (the first eligible peer) — the bloc handler
+  /// (`_onMeshMessageSent` in Phase 1h) does NOT depend on this field for
+  /// group routing; conversationId carries the routing info. Treat this
+  /// field as "first recipient" for groups, "the other party" for 1:1.
   final String contactUserId;
   final String? clientTempId;
   final String text;
