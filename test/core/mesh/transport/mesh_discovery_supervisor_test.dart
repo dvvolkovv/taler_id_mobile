@@ -39,5 +39,27 @@ void main() {
         expect(reinitCalls, isEmpty);
       });
     });
+
+    test('after maxColdStartAttempts kicks, watchdog disarms', () {
+      fakeAsync((async) {
+        final reinitCalls = <String>[];
+        final supervisor = MeshDiscoverySupervisor(
+          reinit: (reason) async => reinitCalls.add(reason),
+          coldStartDelay: const Duration(seconds: 5),
+          maxColdStartAttempts: 3,
+        );
+
+        supervisor.onDiscoveryStarted();
+        // Walk the exponential schedule: 5s, then 10s, then 15s.
+        async.elapse(const Duration(seconds: 5));
+        async.elapse(const Duration(seconds: 10));
+        async.elapse(const Duration(seconds: 15));
+        expect(reinitCalls.length, 3);
+
+        // Further elapse — no fourth kick.
+        async.elapse(const Duration(seconds: 60));
+        expect(reinitCalls.length, 3);
+      });
+    });
   });
 }
