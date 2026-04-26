@@ -62,6 +62,7 @@ dependencies:
 
   # Mesh network
   bonsoir: ^5.1.10
+  connectivity_plus: ^6.1.0
   cryptography: ^2.7.0
 
   # Mesh BLE (Phase 1d) — central + peripheral
