@@ -190,7 +190,7 @@ class MeshMessagingService {
 
   Future<void> _sendFrame(PeerId peer, FrameType type, Uint8List payload) async {
     final frame = Frame(
-      version: 1,
+      version: Frame.supportedVersion,
       type: type,
       srcPk: PeerId(myDevicePublicKey),
       payload: payload,
