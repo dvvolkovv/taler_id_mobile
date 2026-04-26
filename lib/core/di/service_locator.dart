@@ -370,10 +370,24 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<IMessengerRepository>(
     () => MessengerRepositoryImpl(
       sl<MessengerRemoteDataSource>(),
-      selector: sl<TransportSelector>(),
       meshAdapter: sl<MeshMessengerAdapter>()..start(),
-      resolveContact: _resolveConversationContact,
       pending: sl<PendingMessageService>(),
+      cache: sl<MessengerCacheService>(),
+      hiveContactStore: sl<HiveContactKeyStore>(),
+      isPeerVisibleForContactUserId: (uid) {
+        try {
+          return sl<MeshStatusBloc>().state.visibilityByContactUserId[uid] ?? false;
+        } catch (_) {
+          return false;
+        }
+      },
+      currentUserIdProvider: () {
+        try {
+          return sl<MessengerBloc>().state.currentUserId;
+        } catch (_) {
+          return null;
+        }
+      },
     ),
   );
   sl.registerLazySingleton<HiveFavoritesMigrationService>(

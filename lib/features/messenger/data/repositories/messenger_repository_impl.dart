@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:uuid/uuid.dart';
 
+import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
+import '../../../../core/mesh/services/envelope.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
@@ -11,32 +15,32 @@ import '../../domain/repositories/i_messenger_repository.dart'
     show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import '../datasources/messenger_remote_datasource.dart';
 import '../services/mesh_messenger_adapter.dart';
-import '../services/transport_selector.dart';
-
-/// Resolves a conversationId to `(contactUserId, contactDevicePk)` — needed
-/// by MessengerRepositoryImpl to decide transport per outbound message.
-/// Returns null when the conversation is a group or the contact's
-/// devicePk is not cached.
-typedef ConversationContactResolver = ({String userId, PeerId devicePk})?
-    Function(String conversationId);
 
 class MessengerRepositoryImpl implements IMessengerRepository {
   final MessengerRemoteDataSource _remote;
-  final TransportSelector _selector;
   final MeshMessengerAdapter _meshAdapter;
-  final ConversationContactResolver _resolveContact;
   final PendingMessageService _pending;
+  final MessengerCacheService _cache;
+  final HiveContactKeyStore _hiveContactStore;
+  final bool Function(String contactUserId) _isPeerVisibleForContactUserId;
+  final String? Function() _currentUserIdProvider;
+
+  static const int _meshGroupSizeCap = 50;
 
   MessengerRepositoryImpl(
     this._remote, {
-    required TransportSelector selector,
     required MeshMessengerAdapter meshAdapter,
-    required ConversationContactResolver resolveContact,
     required PendingMessageService pending,
-  })  : _selector = selector,
-        _meshAdapter = meshAdapter,
-        _resolveContact = resolveContact,
-        _pending = pending;
+    required MessengerCacheService cache,
+    required HiveContactKeyStore hiveContactStore,
+    required bool Function(String) isPeerVisibleForContactUserId,
+    required String? Function() currentUserIdProvider,
+  })  : _meshAdapter = meshAdapter,
+        _pending = pending,
+        _cache = cache,
+        _hiveContactStore = hiveContactStore,
+        _isPeerVisibleForContactUserId = isPeerVisibleForContactUserId,
+        _currentUserIdProvider = currentUserIdProvider;
 
   @override
   Future<void> connect(String accessToken) => _remote.connect(accessToken);
@@ -74,100 +78,112 @@ class MessengerRepositoryImpl implements IMessengerRepository {
     String? topicId,
     String? clientTempId,
   }) {
-    final contact = _resolveContact(conversationId);
-    final choice = contact == null
-        ? TransportChoice.server
-        : _selector.chooseFor(contact.userId);
-
-    switch (choice) {
-      case TransportChoice.server:
-      case TransportChoice.offline:
-        _remote.sendMessage(
-          conversationId,
-          content,
-          fileUrl: fileUrl,
-          fileName: fileName,
-          fileSize: fileSize,
-          fileType: fileType,
-          s3Key: s3Key,
-          thumbnailSmallUrl: thumbnailSmallUrl,
-          thumbnailMediumUrl: thumbnailMediumUrl,
-          thumbnailLargeUrl: thumbnailLargeUrl,
-          fileRecordId: fileRecordId,
-          topicId: topicId,
-          clientTempId: clientTempId,
-        );
-        return;
-      case TransportChoice.mesh:
-        // Phase 1g — attachments always via server (mesh is text-only in 1f).
-        if (fileUrl != null || s3Key != null) {
-          _remote.sendMessage(
-            conversationId,
-            content,
-            fileUrl: fileUrl,
-            fileName: fileName,
-            fileSize: fileSize,
-            fileType: fileType,
-            s3Key: s3Key,
-            thumbnailSmallUrl: thumbnailSmallUrl,
-            thumbnailMediumUrl: thumbnailMediumUrl,
-            thumbnailLargeUrl: thumbnailLargeUrl,
-            fileRecordId: fileRecordId,
-            topicId: topicId,
-            clientTempId: clientTempId,
-          );
-          return;
-        }
-        // Fire-and-forget wrapper so the sync `sendMessage` contract stays
-        // intact, but under the hood the mesh send is awaited, failures fall
-        // back to server, and on success the pending temp_* is cleared so
-        // _resendPending on reconnect doesn't duplicate the message.
-        // ignore: unawaited_futures
-        _sendMeshWithFallback(
-          conversationId: conversationId,
-          content: content,
-          contactDevicePk: contact!.devicePk,
-          contactUserId: contact.userId,
-          clientTempId: clientTempId,
-          topicId: topicId,
-        );
-        return;
-    }
-  }
-
-  Future<void> _sendMeshWithFallback({
-    required String conversationId,
-    required String content,
-    required PeerId contactDevicePk,
-    required String contactUserId,
-    required String? clientTempId,
-    required String? topicId,
-  }) async {
-    try {
-      await _meshAdapter.sendMessage(
-        conversationId: conversationId,
-        text: content,
-        contactDevicePk: contactDevicePk,
-        contactUserId: contactUserId,
-        clientTempId: clientTempId,
-      );
-      // Success — clear pending so socket reconnect's _resendPending
-      // doesn't re-send this message through the server.
-      if (clientTempId != null && clientTempId.isNotEmpty) {
-        await _pending.remove(clientTempId);
-      }
-      debugPrint('[mesh-send] success via mesh, cleared pending $clientTempId');
-    } catch (e) {
-      // Mesh send failed (unknown device, handshake timeout, transport).
-      // Fall back to the server so the user's message still gets delivered.
-      debugPrint('[mesh-send] failed ($e), falling back to server');
+    // Always-on server path when socket is connected. Server fans out to all
+    // members of the conversation (1:1 echo or group fanout).
+    if (_remote.isSocketConnected) {
       _remote.sendMessage(
         conversationId,
         content,
+        fileUrl: fileUrl,
+        fileName: fileName,
+        fileSize: fileSize,
+        fileType: fileType,
+        s3Key: s3Key,
+        thumbnailSmallUrl: thumbnailSmallUrl,
+        thumbnailMediumUrl: thumbnailMediumUrl,
+        thumbnailLargeUrl: thumbnailLargeUrl,
+        fileRecordId: fileRecordId,
         topicId: topicId,
         clientTempId: clientTempId,
       );
     }
+    // (When socket is offline, MessengerBloc's _resendPending will retry on
+    //  reconnect — Phase 1g behaviour preserved.)
+
+    // Phase 2 mesh fanout — text-only (attachments stay server-side).
+    if (fileUrl != null || s3Key != null) return;
+    // ignore: unawaited_futures
+    _meshFanout(
+      conversationId: conversationId,
+      content: content,
+      clientTempId: clientTempId,
+    );
+  }
+
+  Future<void> _meshFanout({
+    required String conversationId,
+    required String content,
+    required String? clientTempId,
+  }) async {
+    final conv = _cache.getConversationById(conversationId);
+    if (conv == null) {
+      debugPrint('[mesh-fanout] no cached conversation for $conversationId, skipping mesh');
+      return;
+    }
+    final myUserId = _currentUserIdProvider();
+    final eligible = _meshEligibleParticipants(conv, myUserId);
+    if (eligible.isEmpty) {
+      debugPrint('[mesh-fanout] no eligible peers for $conversationId, server-only');
+      return;
+    }
+    if (eligible.length > _meshGroupSizeCap) {
+      debugPrint('[mesh-fanout] group size ${eligible.length} > $_meshGroupSizeCap, mesh skipped (server-only)');
+      return;
+    }
+
+    final clientId = clientTempId ?? const Uuid().v4();
+    final now = DateTime.now().toUtc();
+    final envelope = Envelope(
+      version: 1,
+      type: 'text',
+      convId: conversationId,
+      clientId: clientId,
+      text: content,
+      sentAt: now,
+    );
+
+    // Per-peer fire-and-forget; one peer failure does not block others.
+    for (final peer in eligible) {
+      // ignore: unawaited_futures
+      _meshAdapter.sendEnvelopeToPeer(
+        peerDevicePk: peer.devicePk,
+        contactUserId: peer.userId,
+        envelope: envelope,
+      ).catchError((Object e) {
+        debugPrint('[mesh-fanout] send to ${peer.userId} failed: $e');
+      });
+    }
+
+    // ONE outbound event per logical send (not per peer). Phase 1h's
+    // MeshMessageSent handler in MessengerBloc replaces temp_clientId with
+    // a mesh-out MessageEntity exactly once.
+    if (clientTempId != null) {
+      _meshAdapter.emitOutbound(AdaptedOutboundMessage(
+        id: clientId,
+        conversationId: conversationId,
+        contactUserId: eligible.first.userId,  // representative; not used by bloc handler
+        clientTempId: clientTempId,
+        text: content,
+        sentAt: now,
+      ));
+      // Clear pending since the message is now persisted as mesh-out.
+      await _pending.remove(clientTempId);
+    }
+  }
+
+  List<_EligiblePeer> _meshEligibleParticipants(
+      ConversationEntity conv, String? myUserId) {
+    final out = <_EligiblePeer>[];
+    for (final p in conv.participantIds) {
+      if (p == myUserId) continue;
+      if (!_isPeerVisibleForContactUserId(p)) continue;
+      final userPk = _hiveContactStore.userPkForContactUserId(p);
+      if (userPk == null) continue;
+      final devices = _hiveContactStore.devicesFor(userPk);
+      if (devices.isEmpty) continue;
+      out.add(_EligiblePeer(userId: p, devicePk: devices.first));
+    }
+    return out;
   }
 
   @override
@@ -331,4 +347,10 @@ class MessengerRepositoryImpl implements IMessengerRepository {
 
   @override
   void dispose() => _remote.dispose();
+}
+
+class _EligiblePeer {
+  final String userId;
+  final PeerId devicePk;
+  _EligiblePeer({required this.userId, required this.devicePk});
 }
