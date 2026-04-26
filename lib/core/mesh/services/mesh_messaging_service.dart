@@ -215,6 +215,20 @@ class MeshMessagingService {
     await transport.send(peer, frame.encode());
   }
 
+  /// Phase 2.1 — fully clear cached handshake/session for a peer so the
+  /// next inbound `handshake_init` from that peer can be processed cleanly.
+  /// Called when peer-side restart is detected.
+  void _resetPeerState(PeerId devicePk) {
+    final state = _peerStates[devicePk];
+    if (state == null) return;
+    debugPrint('[mesh-handshake] reset peer state pk=${devicePk.toHex().substring(0, 12)}...');
+    state.handshake = null;
+    state.session = null;
+    state.isInitiator = false;
+    state.initiating = false;
+    state.sessionEstablished = null;
+  }
+
   Future<void> dispose() async {
     await _frameSub?.cancel();
     await _discoverySub?.cancel();
