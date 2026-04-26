@@ -5,7 +5,11 @@ import 'dart:typed_data';
 import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
+
 import 'frame.dart';
+import 'mesh_discovery_supervisor.dart';
 import 'mesh_transport.dart';
 import 'peer_id.dart';
 
@@ -38,6 +42,10 @@ class BonjourTransport implements MeshTransport {
   final _inboundCtrl = StreamController<InboundFrame>.broadcast();
 
   StreamSubscription<BonsoirDiscoveryEvent>? _discoverySub;
+
+  MeshDiscoverySupervisor? _supervisor;
+  _LifecycleAdapter? _lifecycleAdapter;
+  StreamController<AppLifecycleState>? _lifecycleCtrl;
 
   @override
   Stream<PeerDiscovered> get discoveries => _discoveriesCtrl.stream;
@@ -90,6 +98,29 @@ class BonjourTransport implements MeshTransport {
     await _broadcast!.start();
     debugPrint('[mesh-bonjour] broadcast started');
 
+    _lifecycleCtrl = StreamController<AppLifecycleState>.broadcast();
+    _lifecycleAdapter = _LifecycleAdapter((state) {
+      _lifecycleCtrl?.add(state);
+    });
+    WidgetsBinding.instance.addObserver(_lifecycleAdapter!);
+
+    _supervisor = MeshDiscoverySupervisor(
+      reinit: (reason) async {
+        debugPrint('[mesh-bonjour] supervisor reinit reason=$reason');
+        await _restartDiscovery();
+      },
+      connectivityStream: Connectivity().onConnectivityChanged,
+      lifecycleStream: _lifecycleCtrl!.stream,
+    );
+
+    await _startDiscovery();
+  }
+
+  Future<void> _startDiscovery() async {
+    await _discoverySub?.cancel();
+    _discoverySub = null;
+    await _discovery?.stop();
+
     _discovery = BonsoirDiscovery(type: serviceType);
     await _discovery!.ready;
     await _discovery!.start();
@@ -100,11 +131,11 @@ class BonjourTransport implements MeshTransport {
       return;
     }
     debugPrint('[mesh-bonjour] subscribing to discovery eventStream');
-    // bonsoir surfaces native PlatformException via the stream's error
-    // channel when e.g. resolveService is called on an already-lost
-    // service. Swallow those so they don't become Unhandled Exceptions.
     _discoverySub = stream.listen(
-      _onBonjourEvent,
+      (event) {
+        _supervisor?.onDiscoveryEvent();
+        _onBonjourEvent(event);
+      },
       onError: (Object e) {
         debugPrint('[mesh-bonjour] discovery stream error: $e');
       },
@@ -112,6 +143,11 @@ class BonjourTransport implements MeshTransport {
         debugPrint('[mesh-bonjour] discovery stream CLOSED');
       },
     );
+    _supervisor?.onDiscoveryStarted();
+  }
+
+  Future<void> _restartDiscovery() async {
+    await _startDiscovery();
   }
 
   void _onBonjourEvent(BonsoirDiscoveryEvent event) {
@@ -266,6 +302,14 @@ class BonjourTransport implements MeshTransport {
 
   @override
   Future<void> stopAdvertising() async {
+    await _supervisor?.dispose();
+    _supervisor = null;
+    if (_lifecycleAdapter != null) {
+      WidgetsBinding.instance.removeObserver(_lifecycleAdapter!);
+      _lifecycleAdapter = null;
+    }
+    await _lifecycleCtrl?.close();
+    _lifecycleCtrl = null;
     await _broadcast?.stop();
     _broadcast = null;
     await _discovery?.stop();
@@ -289,5 +333,15 @@ class BonjourTransport implements MeshTransport {
     await _discoveriesCtrl.close();
     await _lossesCtrl.close();
     await _inboundCtrl.close();
+  }
+}
+
+class _LifecycleAdapter with WidgetsBindingObserver {
+  final void Function(AppLifecycleState) onState;
+  _LifecycleAdapter(this.onState);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    onState(state);
   }
 }
