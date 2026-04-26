@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 typedef ReinitCallback = Future<void> Function(String reason);
@@ -15,30 +16,47 @@ class MeshDiscoverySupervisor {
   final ReinitCallback reinit;
   final Duration coldStartDelay;
   final int maxColdStartAttempts;
+  final Stream<List<ConnectivityResult>>? connectivityStream;
 
   Timer? _watchdog;
   int _coldStartAttempt = 0;
   bool _eventSeenSinceStart = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
 
   MeshDiscoverySupervisor({
     required this.reinit,
     this.coldStartDelay = const Duration(seconds: 5),
     this.maxColdStartAttempts = 3,
-  });
+    this.connectivityStream,
+  }) {
+    final stream = connectivityStream;
+    if (stream != null) {
+      _connectivitySub = stream.listen(_onConnectivity);
+    }
+  }
 
-  /// Call after subscribing to the discovery event stream.
   void onDiscoveryStarted() {
     _eventSeenSinceStart = false;
     _armWatchdog();
   }
 
-  /// Call on any Bonsoir discovery event (started, found, resolved, lost).
-  /// Cancels and disarms the watchdog — discovery is alive.
   void onDiscoveryEvent() {
     _eventSeenSinceStart = true;
     _watchdog?.cancel();
     _watchdog = null;
     _coldStartAttempt = 0;
+  }
+
+  Future<void> _onConnectivity(List<ConnectivityResult> results) async {
+    final hasNetwork = results.any((r) =>
+        r == ConnectivityResult.wifi ||
+        r == ConnectivityResult.ethernet ||
+        r == ConnectivityResult.mobile);
+    if (!hasNetwork) return;
+    debugPrint(
+      '[mesh-discovery-supervisor] kick reason=connectivity now=$results',
+    );
+    await reinit('connectivity');
   }
 
   void _armWatchdog() {
@@ -50,7 +68,7 @@ class MeshDiscoverySupervisor {
       return;
     }
     _coldStartAttempt += 1;
-    final delay = coldStartDelay * _coldStartAttempt; // 5s, 10s, 15s
+    final delay = coldStartDelay * _coldStartAttempt;
     _watchdog = Timer(delay, () async {
       if (_eventSeenSinceStart) return;
       debugPrint(
@@ -64,5 +82,7 @@ class MeshDiscoverySupervisor {
   Future<void> dispose() async {
     _watchdog?.cancel();
     _watchdog = null;
+    await _connectivitySub?.cancel();
+    _connectivitySub = null;
   }
 }
