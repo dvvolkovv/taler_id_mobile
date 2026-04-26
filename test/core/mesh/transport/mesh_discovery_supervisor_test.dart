@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fake_async/fake_async.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/mesh/transport/mesh_discovery_supervisor.dart';
 
@@ -89,6 +90,36 @@ void main() {
       expect(reinitCalls, ['connectivity']);
 
       await connectivityCtrl.close();
+      await supervisor.dispose();
+    });
+  });
+
+  group('MeshDiscoverySupervisor lifecycle hook', () {
+    test('reinit fires on paused → resumed', () async {
+      final reinitCalls = <String>[];
+      final lifecycleCtrl = StreamController<AppLifecycleState>.broadcast();
+
+      final supervisor = MeshDiscoverySupervisor(
+        reinit: (reason) async => reinitCalls.add(reason),
+        coldStartDelay: const Duration(seconds: 5),
+        maxColdStartAttempts: 3,
+        lifecycleStream: lifecycleCtrl.stream,
+      );
+
+      lifecycleCtrl.add(AppLifecycleState.paused);
+      await Future<void>.delayed(Duration.zero);
+      expect(reinitCalls, isEmpty);
+
+      lifecycleCtrl.add(AppLifecycleState.resumed);
+      await Future<void>.delayed(Duration.zero);
+      expect(reinitCalls, ['resumed']);
+
+      // resumed → resumed (already in foreground) must not refire.
+      lifecycleCtrl.add(AppLifecycleState.resumed);
+      await Future<void>.delayed(Duration.zero);
+      expect(reinitCalls.length, 1);
+
+      await lifecycleCtrl.close();
       await supervisor.dispose();
     });
   });

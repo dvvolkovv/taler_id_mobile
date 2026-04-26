@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 
 typedef ReinitCallback = Future<void> Function(String reason);
 
@@ -17,22 +18,26 @@ class MeshDiscoverySupervisor {
   final Duration coldStartDelay;
   final int maxColdStartAttempts;
   final Stream<List<ConnectivityResult>>? connectivityStream;
+  final Stream<AppLifecycleState>? lifecycleStream;
 
   Timer? _watchdog;
   int _coldStartAttempt = 0;
   bool _eventSeenSinceStart = false;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<AppLifecycleState>? _lifecycleSub;
+  AppLifecycleState? _lastLifecycleState;
 
   MeshDiscoverySupervisor({
     required this.reinit,
     this.coldStartDelay = const Duration(seconds: 5),
     this.maxColdStartAttempts = 3,
     this.connectivityStream,
+    this.lifecycleStream,
   }) {
-    final stream = connectivityStream;
-    if (stream != null) {
-      _connectivitySub = stream.listen(_onConnectivity);
-    }
+    final cStream = connectivityStream;
+    if (cStream != null) _connectivitySub = cStream.listen(_onConnectivity);
+    final lStream = lifecycleStream;
+    if (lStream != null) _lifecycleSub = lStream.listen(_onLifecycle);
   }
 
   void onDiscoveryStarted() {
@@ -57,6 +62,18 @@ class MeshDiscoverySupervisor {
       '[mesh-discovery-supervisor] kick reason=connectivity now=$results',
     );
     await reinit('connectivity');
+  }
+
+  Future<void> _onLifecycle(AppLifecycleState state) async {
+    final prev = _lastLifecycleState;
+    _lastLifecycleState = state;
+    final returningFromBackground = state == AppLifecycleState.resumed &&
+        (prev == AppLifecycleState.paused ||
+            prev == AppLifecycleState.inactive ||
+            prev == AppLifecycleState.hidden);
+    if (!returningFromBackground) return;
+    debugPrint('[mesh-discovery-supervisor] kick reason=resumed prev=$prev');
+    await reinit('resumed');
   }
 
   void _armWatchdog() {
@@ -84,5 +101,7 @@ class MeshDiscoverySupervisor {
     _watchdog = null;
     await _connectivitySub?.cancel();
     _connectivitySub = null;
+    await _lifecycleSub?.cancel();
+    _lifecycleSub = null;
   }
 }
