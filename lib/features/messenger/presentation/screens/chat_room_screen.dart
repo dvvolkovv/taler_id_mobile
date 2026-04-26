@@ -1234,6 +1234,39 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return conv?.type == 'DIRECT' ? conv?.otherUserId : null;
   }
 
+  /// Returns (badgeState, visibleCount, totalCount) for ChatTransportBadge.
+  /// Group chats use meshGroup + counts; 1:1 chats use the existing logic.
+  (TransportBadgeState, int?, int?) _selectBadgeState(
+      MeshStatus meshState, bool socketConnected) {
+    final conv = _messengerBloc.state.conversations
+        .where((c) => c.id == widget.conversationId)
+        .firstOrNull;
+    final isGroup = conv?.type == 'GROUP';
+    if (isGroup && conv != null) {
+      final myUserId = _messengerBloc.state.currentUserId;
+      final others =
+          conv.participantIds.where((p) => p != myUserId).toList();
+      final visibleCount =
+          sl<MeshStatusBloc>().visibleParticipantsOf(others).length;
+      final totalCount = others.length;
+      if (socketConnected) {
+        return (TransportBadgeState.server, null, null);
+      }
+      if (visibleCount > 0) {
+        return (TransportBadgeState.meshGroup, visibleCount, totalCount);
+      }
+      return (TransportBadgeState.queued, null, null);
+    }
+    // 1:1 path — unchanged
+    final contactId = _resolveContactUserId();
+    final peerVisible = contactId != null &&
+        (meshState.visibilityByContactUserId[contactId] ?? false);
+    final badgeState = socketConnected
+        ? TransportBadgeState.server
+        : (peerVisible ? TransportBadgeState.mesh : TransportBadgeState.queued);
+    return (badgeState, null, null);
+  }
+
   void _onTextChanged() {
     // Persist draft so the user can resume typing later or on another session
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
@@ -1754,15 +1787,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   bloc: sl<MeshStatusBloc>(),
                   builder: (context, meshState) {
                     final socketConnected = sl<MessengerRemoteDataSource>().isSocketConnected;
-                    final contactId = _resolveContactUserId();
-                    final peerVisible = contactId != null &&
-                        (meshState.visibilityByContactUserId[contactId] ?? false);
-                    final badgeState = socketConnected
-                        ? TransportBadgeState.server
-                        : (peerVisible ? TransportBadgeState.mesh : TransportBadgeState.queued);
+                    final (badgeState, visibleCount, totalCount) =
+                        _selectBadgeState(meshState, socketConnected);
                     return Padding(
                       padding: const EdgeInsets.only(left: 4, right: 4),
-                      child: ChatTransportBadge(state: badgeState),
+                      child: ChatTransportBadge(
+                        state: badgeState,
+                        visibleCount: visibleCount,
+                        totalCount: totalCount,
+                      ),
                     );
                   },
                 ),

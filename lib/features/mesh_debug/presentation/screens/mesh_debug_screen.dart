@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
+import '../../../../core/mesh/services/envelope.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/mesh/transport/mesh_transport.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
@@ -32,7 +34,7 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   final List<_LogEntry> _messages = [];
   StreamSubscription<PeerDiscovered>? _discoverySub;
   StreamSubscription<PeerLost>? _lossSub;
-  StreamSubscription<InboundMessage>? _inboundSub;
+  StreamSubscription<InboundEnvelope>? _inboundSub;
 
   @override
   void initState() {
@@ -76,7 +78,7 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
         setState(() => _messages.insert(
               0,
               _LogEntry(
-                text: '← $prefix: ${msg.text}',
+                text: '← $prefix: ${msg.envelope.text}',
                 timestamp: DateTime.now(),
               ),
             ));
@@ -136,7 +138,17 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
     final myPrefix = PeerId(_meshKey.publicKey).toHex().substring(0, 8);
     final text = 'Hello from $myPrefix @ ${DateTime.now().toIso8601String().substring(11, 19)}';
     try {
-      await messaging.sendText(toUserPk: peer, text: text);
+      await messaging.sendEnvelope(
+        toUserPk: peer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'debug',
+          clientId: const Uuid().v4(),
+          text: text,
+          sentAt: DateTime.now().toUtc(),
+        ),
+      );
       final peerPrefix = peer.toHex().substring(0, 16);
       setState(() => _messages.insert(
             0,

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
@@ -54,6 +55,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   /// re-emitting the same message on every reconnect cycle — even when the
   /// socket flaps multiple times before the server ACK round-trips.
   final Set<String> _inFlightTempIds = {};
+
+  /// Phase 2 — window for cross-transport dedup heuristic. When a logical
+  /// message arrives via mesh and the server echo (or vice versa) within
+  /// this window with matching (senderId, content), the second copy is
+  /// dropped. Tuned for typical mobile network jitter; double-taps within
+  /// this window will silently dedup (intentional false-positive).
+  static const Duration _crossTransportDedupWindow = Duration(seconds: 10);
 
   MessengerBloc({required IMessengerRepository repo})
       : _repo = repo,
@@ -606,7 +614,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   }
 
   Future<void> _onSendMessage(SendMessage event, Emitter<MessengerState> emit) async {
-    final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+    final tempId = 'temp_${const Uuid().v4()}';
     final tempMsg = MessageEntity(
       id: tempId,
       conversationId: event.conversationId,
@@ -699,6 +707,17 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         List<MessageEntity>.from(state.messages[msg.conversationId] ?? []);
     if (existing.any((m) => m.id == msg.id)) {
       debugPrint('[MessengerBloc] Duplicate message, skipping');
+      return;
+    }
+    // Phase 2: drop server echo when a mesh entry with matching senderId +
+    // content exists within a 10-second window.
+    final meshDup = existing.any((m) =>
+        m.transport == 'mesh' &&
+        m.senderId == msg.senderId &&
+        m.content == msg.content &&
+        m.sentAt.difference(msg.sentAt).abs() < _crossTransportDedupWindow);
+    if (meshDup) {
+      debugPrint('[MessengerBloc] Server echo deduped against mesh entry, skipping');
       return;
     }
     final removed = <String>[];
@@ -1209,6 +1228,21 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   // keeping the list sorted by sentAt.
   void _onMeshMessageReceived(
       MeshMessageReceived event, Emitter<MessengerState> emit) {
+    final list = state.messages[event.conversationId] ?? const [];
+    // Phase 2: drop mesh inbound when a server-delivered entry with matching
+    // senderId + content exists within a 10-second window.
+    // Note: `transport != 'mesh'` includes null (server-delivered messages
+    // have no `transport` field) AND any future non-mesh transport string.
+    final serverDup = list.any((m) =>
+        m.transport != 'mesh' &&
+        !m.id.startsWith('temp_') &&
+        m.senderId == event.contactUserId &&
+        m.content == event.text &&
+        m.sentAt.difference(event.receivedAt).abs() < _crossTransportDedupWindow);
+    if (serverDup) {
+      debugPrint('[MessengerBloc] Mesh inbound deduped against server entry, skipping');
+      return;
+    }
     final msgId =
         'mesh-in-${event.contactUserId}-${event.receivedAt.millisecondsSinceEpoch}';
     final incoming = MessageEntity(

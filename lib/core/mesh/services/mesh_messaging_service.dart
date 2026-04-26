@@ -10,11 +10,14 @@ import '../crypto/noise/session.dart';
 import '../transport/frame.dart';
 import '../transport/mesh_transport.dart';
 import '../transport/peer_id.dart';
+import 'envelope.dart';
 
-class InboundMessage {
+/// Phase 2 — replaces InboundMessage; carries the full envelope payload
+/// so the messenger layer routes by `envelope.convId` (group support).
+class InboundEnvelope {
   final PeerId fromUserPk;
-  final String text;
-  InboundMessage({required this.fromUserPk, required this.text});
+  final Envelope envelope;
+  InboundEnvelope({required this.fromUserPk, required this.envelope});
 }
 
 /// High-level messaging over a mesh transport.
@@ -34,6 +37,11 @@ class InboundMessage {
 ///
 /// Phase 1a simplification: assumes userPk == devicePk (one device per user).
 /// Phase 1b generalizes to multi-device.
+///
+/// Phase 2: data frame plaintext is now JSON-encoded [Envelope.toJson()].
+/// [sendText] replaced by [sendEnvelope]; [InboundMessage] replaced by
+/// [InboundEnvelope]. Phase 1 1:1 still works — same Noise IK stack,
+/// just JSON-wrapped plaintext.
 class MeshMessagingService {
   final MeshTransport transport;
   final ContactKeyStore contactKeyStore;
@@ -41,7 +49,7 @@ class MeshMessagingService {
   final Uint8List myDevicePublicKey;
 
   final Map<PeerId, _PeerState> _peerStates = {};
-  final _inboundCtrl = StreamController<InboundMessage>.broadcast();
+  final _inboundCtrl = StreamController<InboundEnvelope>.broadcast();
 
   StreamSubscription? _frameSub;
   StreamSubscription? _discoverySub;
@@ -53,7 +61,7 @@ class MeshMessagingService {
     required this.myDevicePublicKey,
   });
 
-  Stream<InboundMessage> get inbound => _inboundCtrl.stream;
+  Stream<InboundEnvelope> get inbound => _inboundCtrl.stream;
 
   Future<void> start({required String serviceName}) async {
     await transport.startAdvertising(DeviceInfo(
@@ -68,10 +76,15 @@ class MeshMessagingService {
     _peerStates.putIfAbsent(p.peerId, () => _PeerState());
   }
 
-  Future<void> sendText({required PeerId toUserPk, required String text}) async {
+  /// Phase 2 — envelope-aware send. Wraps the message in a JSON envelope
+  /// before encryption so receivers can route by conversationId.
+  Future<void> sendEnvelope({
+    required PeerId toUserPk,
+    required Envelope envelope,
+  }) async {
     // Phase 1a: userPk == devicePk.
     final devicePk = toUserPk;
-    debugPrint('[mesh-send] sendText to=${devicePk.toHex().substring(0, 12)}... known=${contactKeyStore.isKnownDevice(devicePk)}');
+    debugPrint('[mesh-send] sendEnvelope to=${devicePk.toHex().substring(0, 12)}... convId=${envelope.convId} clientId=${envelope.clientId} known=${contactKeyStore.isKnownDevice(devicePk)}');
     if (!contactKeyStore.isKnownDevice(devicePk)) {
       throw StateError('Unknown contact device: ${devicePk.toHex()}');
     }
@@ -103,9 +116,9 @@ class MeshMessagingService {
         throw TimeoutException('handshake did not complete');
       }
     }
-    debugPrint('[mesh-send] session established, encrypting payload');
-    final payload = Uint8List.fromList(utf8.encode(text));
-    final ct = await state.session!.encrypt(payload);
+    debugPrint('[mesh-send] session established, encrypting envelope');
+    final plaintext = Uint8List.fromList(utf8.encode(jsonEncode(envelope.toJson())));
+    final ct = await state.session!.encrypt(plaintext);
     await _sendFrame(devicePk, FrameType.data, ct);
     debugPrint('[mesh-send] data frame sent');
   }
@@ -175,11 +188,15 @@ class MeshMessagingService {
       }
       try {
         final pt = await state.session!.decrypt(frame.bytes);
-        debugPrint('[mesh-frame] decrypted data frame, emitting InboundMessage');
-        _inboundCtrl.add(InboundMessage(
+        final envelopeJson = jsonDecode(utf8.decode(pt)) as Map<String, dynamic>;
+        final envelope = Envelope.fromJson(envelopeJson);
+        debugPrint('[mesh-frame] decrypted envelope, emitting InboundEnvelope convId=${envelope.convId}');
+        _inboundCtrl.add(InboundEnvelope(
           fromUserPk: srcDevice,
-          text: utf8.decode(pt),
+          envelope: envelope,
         ));
+      } on FormatException catch (e) {
+        debugPrint('[mesh-frame] envelope decode failed: $e');
       } catch (e) {
         debugPrint('[mesh-frame] decrypt failed: $e');
       }
@@ -190,7 +207,7 @@ class MeshMessagingService {
 
   Future<void> _sendFrame(PeerId peer, FrameType type, Uint8List payload) async {
     final frame = Frame(
-      version: 1,
+      version: Frame.supportedVersion,
       type: type,
       srcPk: PeerId(myDevicePublicKey),
       payload: payload,
@@ -212,9 +229,9 @@ class _PeerState {
   bool isInitiator = false;
   Completer<void>? sessionEstablished;
   /// Phase 1j — guard against parallel handshake init by two rapid
-  /// sendText calls. `putIfAbsent` + null-check on `handshake` is not
+  /// sendEnvelope calls. `putIfAbsent` + null-check on `handshake` is not
   /// enough because `_initiateHandshake` has several awaits before
   /// `state.handshake = ...` lands, leaving a window where a second
-  /// sendText observes `handshake == null` and starts its own.
+  /// sendEnvelope observes `handshake == null` and starts its own.
   bool initiating = false;
 }
