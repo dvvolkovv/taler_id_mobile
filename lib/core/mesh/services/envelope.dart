@@ -59,13 +59,19 @@ class Envelope {
         clientId is! String || text is! String || sentAt is! String) {
       throw const FormatException('Envelope: missing or wrong-typed field');
     }
+    final DateTime parsedAt;
+    try {
+      parsedAt = DateTime.parse(sentAt).toUtc();
+    } on FormatException {
+      throw const FormatException('Envelope: invalid sentAt timestamp');
+    }
     return Envelope(
       version: v,
       type: type,
       convId: convId,
       clientId: clientId,
       text: text,
-      sentAt: DateTime.parse(sentAt),
+      sentAt: parsedAt,
     );
   }
 }

@@ -66,5 +66,47 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('fromJson throws FormatException on malformed sentAt', () {
+      expect(
+        () => Envelope.fromJson({
+          'v': 1,
+          'type': 'text',
+          'convId': 'c-1',
+          'clientId': 'cl-1',
+          'text': 'hi',
+          'sentAt': 'not-a-date',
+        }),
+        throwsFormatException,
+      );
+    });
+
+    test('fromJson throws FormatException on null required field', () {
+      expect(
+        () => Envelope.fromJson({
+          'v': 1,
+          'type': 'text',
+          'convId': 'c-1',
+          'clientId': null,
+          'text': 'hi',
+          'sentAt': '2026-04-26T00:00:00.000Z',
+        }),
+        throwsFormatException,
+      );
+    });
+
+    test('fromJson normalises sentAt to UTC even when input has offset', () {
+      // Input has +05:00 offset; output should be UTC equivalent.
+      final env = Envelope.fromJson({
+        'v': 1,
+        'type': 'text',
+        'convId': 'c-1',
+        'clientId': 'cl-1',
+        'text': 'tz check',
+        'sentAt': '2026-04-26T05:00:00.000+05:00',  // = 00:00 UTC
+      });
+      expect(env.sentAt.isUtc, isTrue);
+      expect(env.sentAt.toIso8601String(), '2026-04-26T00:00:00.000Z');
+    });
   });
 }
