@@ -293,33 +293,56 @@ void _onInbound(InboundEnvelope inbound) {
 
 ### Bloc dedup logic
 
-Both server `_onMessageReceived` and mesh `_onMeshMessageReceived` get the same dedup guard at the top:
+**Backend reality check:** server's `new_message` Socket.IO event currently sends `MessageEntity.fromJson` of the persisted DB row. It does NOT include `clientTempId` in the payload. Phase 1g's pending-removal in `_onMessageReceived` works because it matches `temp_*` ids by `(senderId, content)` heuristic, not by client id echo.
+
+For Phase 2.0 we keep `no backend changes` and lift the same heuristic to cover mesh entries:
 
 ```dart
 void _onMessageReceived(MessageReceived event, Emitter<MessengerState> emit) {
-  final convId = event.message.conversationId;
-  final id = event.message.id;
-  final clientId = event.message.metadata?['clientTempId'] as String?;  // server forwards
+  final msg = event.message;
+  final existing = List<MessageEntity>.from(state.messages[msg.conversationId] ?? []);
 
-  // Phase 2 dedup: if a mesh entry with this clientId is already present, drop the
-  // server echo. clientId is the shared key with the server's clientTempId.
-  if (clientId != null &&
-      (state.messages[convId]?.any((m) => m.id == clientId) ?? false)) {
-    return;
-  }
-  // ... existing handler ...
+  // Existing duplicate-by-id guard.
+  if (existing.any((m) => m.id == msg.id)) return;
+
+  // Phase 1g: drop temp_* with matching senderId + content (already in code).
+  // Phase 2.0 extension: ALSO drop mesh-delivered entries (transport == 'mesh')
+  // with matching senderId + content within a 10-second window. This is the
+  // server echo arriving after the mesh got there first. We keep the mesh
+  // entry (it has the "via mesh" caption) and drop the server copy.
+  final meshDup = existing.any((m) =>
+      m.transport == 'mesh' &&
+      m.senderId == msg.senderId &&
+      m.content == msg.content &&
+      (m.sentAt.difference(msg.sentAt).abs() < const Duration(seconds: 10)));
+  if (meshDup) return;
+
+  // ... existing temp_* removal + state update ...
 }
 
 void _onMeshMessageReceived(MeshMessageReceived event, Emitter<MessengerState> emit) {
   final convId = event.conversationId;
-  if (state.messages[convId]?.any((m) => m.id == event.clientId) ?? false) {
-    return;  // server echo arrived first
-  }
+  final list = state.messages[convId] ?? const [];
+
+  // Phase 2.0 dedup: if a server entry already exists with the same
+  // senderId + content within a 10-second window, the server echo got
+  // here first — drop the mesh copy.
+  final serverDup = list.any((m) =>
+      m.transport != 'mesh' &&
+      !m.id.startsWith('temp_') &&
+      m.senderId == event.contactUserId &&
+      m.content == event.text &&
+      (m.sentAt.difference(event.receivedAt).abs() < const Duration(seconds: 10)));
+  if (serverDup) return;
+
   // ... emit MessageEntity(id: event.clientId, transport: 'mesh', ...) ...
 }
 ```
 
-**Server-side cooperation required:** the server's `new_message` Socket.IO broadcast already carries the original `clientTempId` from the sender's request — confirmed by Phase 1g pending-removal logic that depends on it. No backend change.
+**Trade-offs of the heuristic:**
+- Two distinct messages from the same sender with identical text in <10s would dedup to one. Acceptable for typical UX (rapid-fire identical messages are rare and indistinguishable from the user's perspective).
+- 10-second window covers WiFi → server roundtrip latency including mobile network jitter.
+- A future Phase 2.5 polish: backend echo of `clientTempId` in `new_message` event → switch to strict id-based dedup. Tracked as a follow-up; out of scope here.
 
 ### Self-send sender dedup
 
