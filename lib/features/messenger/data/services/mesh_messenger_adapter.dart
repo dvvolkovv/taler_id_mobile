@@ -10,6 +10,15 @@ class AdaptedInboundMessage {
   final String contactUserId;
   final String conversationId;
   final String text;
+  /// Sender's wall-clock send time (from `envelope.sentAt`), NOT local
+  /// arrival time. Named `receivedAt` for ergonomic alignment with
+  /// `MessageReceived.receivedAt` in the bloc, but semantically this is
+  /// the sender-supplied timestamp. Critical for the Phase 2 dedup
+  /// heuristic in MessengerBloc (§7 of spec): the 10s window comparison
+  /// is between this value and the SERVER's `MessageEntity.sentAt`,
+  /// which is also the sender's wall-clock — so the two clocks align.
+  /// Using `DateTime.now()` here would break the dedup window if the
+  /// receiver's clock is skewed vs the sender's.
   final DateTime receivedAt;
   final String clientId;
   AdaptedInboundMessage({
@@ -114,6 +123,17 @@ class MeshMessengerAdapter {
 
   /// Phase 2 — single-peer mesh send. Caller (MessengerRepositoryImpl)
   /// invokes this once per visible+known peer in the group.
+  ///
+  /// Idempotency note: this method persists a local outbound record on
+  /// every call. For a group fanout to N peers, [persistLocal] is invoked
+  /// N times with the same [envelope.clientId] as the entry id.
+  /// [MessengerCacheService.appendMeshMessage] (Phase 1f T2) dedupes by
+  /// id, so the extra calls are no-ops at the Hive layer — semantically
+  /// equivalent to one write. The N writes per fanout are cheap (Hive
+  /// keeps an in-memory map; each put is ~µs) and bounded by the 50-peer
+  /// group cap in MessengerRepositoryImpl. If group sizes ever grow
+  /// substantially, hoist persistLocal to [emitOutbound] (one call per
+  /// logical send) instead.
   Future<void> sendEnvelopeToPeer({
     required PeerId peerDevicePk,
     required String contactUserId,
