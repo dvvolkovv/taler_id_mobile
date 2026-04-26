@@ -4,6 +4,9 @@ PODS:
   - audioplayers_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
+  - bonsoir_darwin (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - camera_avfoundation (0.0.1):
     - Flutter
   - connectivity_plus (0.0.1):
@@ -81,6 +84,9 @@ PODS:
     - GoogleUtilities/UserDefaults (~> 8.1)
     - nanopb (~> 3.30910.0)
   - Flutter (1.0.0)
+  - flutter_ble_peripheral (2.0.1):
+    - Flutter
+    - FlutterMacOS
   - flutter_callkit_incoming (0.0.1):
     - CryptoSwift
     - Flutter
@@ -203,6 +209,12 @@ PODS:
     - Flutter
     - FlutterMacOS
   - PromisesObjC (2.4.0)
+  - Protobuf (3.29.6)
+  - reactive_ble_mobile (0.0.1):
+    - Flutter
+    - FlutterMacOS
+    - Protobuf (~> 3.5)
+    - SwiftProtobuf (~> 1.0)
   - receive_sharing_intent (1.8.1):
     - Flutter
   - record_darwin (1.0.0):
@@ -219,6 +231,7 @@ PODS:
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
+  - SwiftProtobuf (1.37.0)
   - SwiftyGif (5.4.5)
   - url_launcher_ios (0.0.1):
     - Flutter
@@ -235,6 +248,7 @@ PODS:
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
   - audioplayers_darwin (from `.symlinks/plugins/audioplayers_darwin/darwin`)
+  - bonsoir_darwin (from `.symlinks/plugins/bonsoir_darwin/darwin`)
   - camera_avfoundation (from `.symlinks/plugins/camera_avfoundation/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -242,6 +256,7 @@ DEPENDENCIES:
   - firebase_core (from `.symlinks/plugins/firebase_core/ios`)
   - firebase_messaging (from `.symlinks/plugins/firebase_messaging/ios`)
   - Flutter (from `Flutter`)
+  - flutter_ble_peripheral (from `.symlinks/plugins/flutter_ble_peripheral/darwin`)
   - flutter_callkit_incoming (from `.symlinks/plugins/flutter_callkit_incoming/ios`)
   - flutter_idensic_mobile_sdk_plugin (from `.symlinks/plugins/flutter_idensic_mobile_sdk_plugin/ios`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
@@ -259,6 +274,7 @@ DEPENDENCIES:
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - photo_manager (from `.symlinks/plugins/photo_manager/darwin`)
+  - reactive_ble_mobile (from `.symlinks/plugins/reactive_ble_mobile/darwin`)
   - receive_sharing_intent (from `.symlinks/plugins/receive_sharing_intent/ios`)
   - record_darwin (from `.symlinks/plugins/record_darwin/ios`)
   - share_plus (from `.symlinks/plugins/share_plus/ios`)
@@ -295,7 +311,9 @@ SPEC REPOS:
     - MLKitVision
     - nanopb
     - PromisesObjC
+    - Protobuf
     - SDWebImage
+    - SwiftProtobuf
     - SwiftyGif
     - WebRTC-SDK
 
@@ -304,6 +322,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/app_links/ios"
   audioplayers_darwin:
     :path: ".symlinks/plugins/audioplayers_darwin/darwin"
+  bonsoir_darwin:
+    :path: ".symlinks/plugins/bonsoir_darwin/darwin"
   camera_avfoundation:
     :path: ".symlinks/plugins/camera_avfoundation/ios"
   connectivity_plus:
@@ -318,6 +338,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/firebase_messaging/ios"
   Flutter:
     :path: Flutter
+  flutter_ble_peripheral:
+    :path: ".symlinks/plugins/flutter_ble_peripheral/darwin"
   flutter_callkit_incoming:
     :path: ".symlinks/plugins/flutter_callkit_incoming/ios"
   flutter_idensic_mobile_sdk_plugin:
@@ -352,6 +374,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   photo_manager:
     :path: ".symlinks/plugins/photo_manager/darwin"
+  reactive_ble_mobile:
+    :path: ".symlinks/plugins/reactive_ble_mobile/darwin"
   receive_sharing_intent:
     :path: ".symlinks/plugins/receive_sharing_intent/ios"
   record_darwin:
@@ -374,6 +398,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
   audioplayers_darwin: 4f9ca89d92d3d21cec7ec580e78ca888e5fb68bd
+  bonsoir_darwin: 29c7ccf356646118844721f36e1de4b61f6cbd0e
   camera_avfoundation: 968a9a5323c79a99c166ad9d7866bfd2047b5a9b
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   CryptoSwift: e64e11850ede528a02a0f3e768cec8e9d92ecb90
@@ -391,6 +416,7 @@ SPEC CHECKSUMS:
   FirebaseInstallations: 317270fec08a5d418fdbc8429282238cab3ac843
   FirebaseMessaging: 3b26e2cee503815e01c3701236b020aa9b576f09
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_ble_peripheral: b141df08802a7f8be87a3fcdd1e04b933a5c5a40
   flutter_callkit_incoming: cb8138af67cda6dd981f7101a5d709003af21502
   flutter_idensic_mobile_sdk_plugin: 633a89f8ae7ee028863d2df1da959847b426f0c3
   flutter_local_notifications: 395056b3175ba4f08480a7c5de30cd36d69827e4
@@ -421,12 +447,15 @@ SPEC CHECKSUMS:
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   photo_manager: 25fd77df14f4f0ba5ef99e2c61814dde77e2bceb
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
+  Protobuf: 8d5596f7468be5400861a6bbfb2dfe9d0d1cde34
+  reactive_ble_mobile: ea97709e18fa6f0b0592909725d7ae7e1c595b64
   receive_sharing_intent: 222384f00ffe7e952bbfabaa9e3967cb87e5fe00
   record_darwin: fb1f375f1d9603714f55b8708a903bbb91ffdb0a
   SDWebImage: 1bb6a1b84b6fe87b972a102bdc77dd589df33477
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   speech_to_text: 3b313d98516d3d0406cea424782ec25470c59d19
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  SwiftProtobuf: 3fafd1b2fb97e6d95ad9c8adb2215da9afec7c83
   SwiftyGif: 706c60cf65fa2bc5ee0313beece843c8eb8194d4
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   video_player_avfoundation: dd410b52df6d2466a42d28550e33e4146928280a
