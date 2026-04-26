@@ -43,6 +43,14 @@ class MeshStatusBloc extends Cubit<MeshStatus> {
     emit(state.copyWith(running: running));
   }
 
+  /// Phase 2 — return the subset of [participantIds] that are currently
+  /// visible via mesh. Used by ChatRoomScreen to display "<N>/<M> in mesh"
+  /// for group chats.
+  Iterable<String> visibleParticipantsOf(Iterable<String> participantIds) =>
+      participantIds.where(
+        (p) => state.visibilityByContactUserId[p] ?? false,
+      );
+
   void _onDiscover(PeerDiscovered d) {
     _rawPeerCount++;
     final userPk = lookupUserByDevice(d.peerId);
