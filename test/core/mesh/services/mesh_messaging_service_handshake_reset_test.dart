@@ -229,5 +229,112 @@ void main() {
       await alice.dispose();
       await bob.dispose();
     });
+
+    test('after 5 resets in 60s, 6th init from same peer is suppressed', () async {
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      final aliceTransport = _FakeTransport();
+      var bobTransport = _FakeTransport();
+      aliceTransport.partner = bobTransport;
+      bobTransport.partner = aliceTransport;
+
+      final alice = MeshMessagingService(
+        transport: aliceTransport,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+        peerResetWindow: const Duration(seconds: 60),
+        peerResetThreshold: 5,
+      );
+      var bob = MeshMessagingService(
+        transport: bobTransport,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+      );
+      await alice.start(serviceName: 'alice');
+      await bob.start(serviceName: 'bob');
+
+      Future<void> establishAndRestartBob({required String text}) async {
+        final received = bob.inbound.first;
+        await alice.sendEnvelope(
+          toUserPk: bobPeer,
+          envelope: Envelope(
+            version: 2,
+            type: 'text',
+            convId: 'c1',
+            clientId: 'm-$text',
+            text: text,
+            sentAt: DateTime.parse('2026-04-26T10:00:00Z'),
+          ),
+        );
+        await received;
+        await bob.dispose();
+        bobTransport = _FakeTransport();
+        aliceTransport.partner = bobTransport;
+        bobTransport.partner = aliceTransport;
+        bob = MeshMessagingService(
+          transport: bobTransport,
+          contactKeyStore: bobStore,
+          myDevicePrivateKey: bobPriv,
+          myDevicePublicKey: bobPub,
+        );
+        await bob.start(serviceName: 'bob');
+      }
+
+      // Cycles 1–5: alice→bob, then bob restarts → bob→alice succeeds.
+      for (var i = 0; i < 5; i++) {
+        await establishAndRestartBob(text: 'cycle$i');
+        final aliceReceives = alice.inbound.first;
+        await bob.sendEnvelope(
+          toUserPk: alicePeer,
+          envelope: Envelope(
+            version: 2,
+            type: 'text',
+            convId: 'c1',
+            clientId: 'b-$i',
+            text: 'reply$i',
+            sentAt: DateTime.parse('2026-04-26T10:00:01Z'),
+          ),
+        );
+        await aliceReceives.timeout(const Duration(seconds: 3));
+      }
+
+      // Cycle 6: bob restarts again. Alice should suppress this reset.
+      await establishAndRestartBob(text: 'cycle5');
+      final aliceReceivesAfterBackoff = alice.inbound.first
+          .timeout(const Duration(milliseconds: 500), onTimeout: () {
+        throw TimeoutException('expected — backoff suppresses sixth reset');
+      });
+      // Fire bob's send without awaiting — Alice suppresses the reset, so Bob's
+      // handshake will never complete. We only care that Alice's inbound stream
+      // does NOT deliver a message within 500ms.
+      unawaited(bob.sendEnvelope(
+        toUserPk: alicePeer,
+        envelope: Envelope(
+          version: 2,
+          type: 'text',
+          convId: 'c1',
+          clientId: 'b-5',
+          text: 'reply5',
+          sentAt: DateTime.parse('2026-04-26T10:00:01Z'),
+        ),
+      ).catchError((_) {})); // ignore expected handshake timeout
+      await expectLater(
+        aliceReceivesAfterBackoff,
+        throwsA(isA<TimeoutException>()),
+      );
+
+      await alice.dispose();
+      await bob.dispose();
+    });
   });
 }

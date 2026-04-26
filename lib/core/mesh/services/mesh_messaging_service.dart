@@ -55,7 +55,13 @@ class MeshMessagingService {
   /// and we become responder instead of racing.
   final Duration recoveryInitJitter;
 
+  /// Phase 2.1 — after this many resets within `peerResetWindow`, further
+  /// resets from the same peer are dropped until the window slides past.
+  final int peerResetThreshold;
+  final Duration peerResetWindow;
+
   final Map<PeerId, _PeerState> _peerStates = {};
+  final Map<PeerId, List<DateTime>> _peerResetTimes = {};
   final _inboundCtrl = StreamController<InboundEnvelope>.broadcast();
 
   StreamSubscription? _frameSub;
@@ -67,6 +73,8 @@ class MeshMessagingService {
     required this.myDevicePrivateKey,
     required this.myDevicePublicKey,
     this.recoveryInitJitter = const Duration(milliseconds: 200),
+    this.peerResetThreshold = 5,
+    this.peerResetWindow = const Duration(seconds: 60),
   });
 
   Stream<InboundEnvelope> get inbound => _inboundCtrl.stream;
@@ -186,6 +194,10 @@ class MeshMessagingService {
       final isFreshInitFromPeer =
           hasCachedSession || hasCachedResponderHandshake;
       if (isFreshInitFromPeer) {
+        if (!_allowReset(srcDevice)) {
+          // Drop the frame entirely — peer is in backoff.
+          return;
+        }
         debugPrint(
           '[mesh-handshake] peer reset detected, dropping cached session pk=${srcDevice.toHex().substring(0, 12)}...',
         );
@@ -259,6 +271,22 @@ class MeshMessagingService {
       payload: payload,
     );
     await transport.send(peer, frame.encode());
+  }
+
+  /// Returns true if a reset for [devicePk] is allowed; false if the peer
+  /// has hit the rate threshold within the current window.
+  bool _allowReset(PeerId devicePk) {
+    final now = DateTime.now();
+    final times = _peerResetTimes.putIfAbsent(devicePk, () => <DateTime>[]);
+    times.removeWhere((t) => now.difference(t) > peerResetWindow);
+    if (times.length >= peerResetThreshold) {
+      debugPrint(
+        '[mesh-handshake] reset suppressed — peer pk=${devicePk.toHex().substring(0, 12)}... hit threshold ($peerResetThreshold in ${peerResetWindow.inSeconds}s)',
+      );
+      return false;
+    }
+    times.add(now);
+    return true;
   }
 
   /// Phase 2.1 — fully clear cached handshake/session for a peer so the
