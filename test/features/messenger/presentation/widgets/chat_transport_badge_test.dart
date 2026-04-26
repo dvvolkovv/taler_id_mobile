@@ -38,4 +38,30 @@ void main() {
       expect(find.byIcon(Icons.cloud_off), findsOneWidget);
     });
   });
+
+  group('ChatTransportBadge group state (Phase 2)', () {
+    testWidgets('renders "3/5" when state is meshGroup with counts',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: ChatTransportBadge(
+            state: TransportBadgeState.meshGroup,
+            visibleCount: 3,
+            totalCount: 5,
+          ),
+        ),
+      ));
+      expect(find.text('3/5'), findsOneWidget);
+    });
+
+    testWidgets('1:1 mesh state does not show counts',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: ChatTransportBadge(state: TransportBadgeState.mesh),
+        ),
+      ));
+      expect(find.textContaining('/'), findsNothing);
+    });
+  });
 }
