@@ -56,6 +56,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   /// socket flaps multiple times before the server ACK round-trips.
   final Set<String> _inFlightTempIds = {};
 
+  /// Phase 2 — window for cross-transport dedup heuristic. When a logical
+  /// message arrives via mesh and the server echo (or vice versa) within
+  /// this window with matching (senderId, content), the second copy is
+  /// dropped. Tuned for typical mobile network jitter; double-taps within
+  /// this window will silently dedup (intentional false-positive).
+  static const Duration _crossTransportDedupWindow = Duration(seconds: 10);
+
   MessengerBloc({required IMessengerRepository repo})
       : _repo = repo,
         super(const MessengerState()) {
@@ -708,7 +715,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
         m.transport == 'mesh' &&
         m.senderId == msg.senderId &&
         m.content == msg.content &&
-        m.sentAt.difference(msg.sentAt).abs() < const Duration(seconds: 10));
+        m.sentAt.difference(msg.sentAt).abs() < _crossTransportDedupWindow);
     if (meshDup) {
       debugPrint('[MessengerBloc] Server echo deduped against mesh entry, skipping');
       return;
@@ -1224,12 +1231,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     final list = state.messages[event.conversationId] ?? const [];
     // Phase 2: drop mesh inbound when a server-delivered entry with matching
     // senderId + content exists within a 10-second window.
+    // Note: `transport != 'mesh'` includes null (server-delivered messages
+    // have no `transport` field) AND any future non-mesh transport string.
     final serverDup = list.any((m) =>
         m.transport != 'mesh' &&
         !m.id.startsWith('temp_') &&
         m.senderId == event.contactUserId &&
         m.content == event.text &&
-        m.sentAt.difference(event.receivedAt).abs() < const Duration(seconds: 10));
+        m.sentAt.difference(event.receivedAt).abs() < _crossTransportDedupWindow);
     if (serverDup) {
       debugPrint('[MessengerBloc] Mesh inbound deduped against server entry, skipping');
       return;
