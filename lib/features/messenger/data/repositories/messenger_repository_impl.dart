@@ -159,8 +159,15 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       // MeshMessageSent handler in MessengerBloc replaces temp_clientId with
       // a mesh-out MessageEntity exactly once.
       if (clientTempId != null) {
+        // Phase 2: mesh-out entity must NOT keep the `temp_` prefix or the
+        // sender's bubble will render with a pending-clock icon (see
+        // _isPending check in chat_room_screen.dart). Convert temp_<uuid>
+        // → mesh-out-<uuid> so the entity reads as "sent via mesh".
+        final outboundId = clientId.startsWith('temp_')
+            ? 'mesh-out-${clientId.substring(5)}'
+            : 'mesh-out-$clientId';
         _meshAdapter.emitOutbound(AdaptedOutboundMessage(
-          id: clientId,
+          id: outboundId,
           conversationId: conversationId,
           contactUserId: eligible.first.userId,  // representative; not used by bloc handler
           clientTempId: clientTempId,

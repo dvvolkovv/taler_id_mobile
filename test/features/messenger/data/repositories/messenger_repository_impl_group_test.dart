@@ -150,6 +150,10 @@ void main() {
       expect(calledUsers, {'p1', 'p2', 'p3'});
       expect(adapter.outboundEvents, hasLength(1),
           reason: 'one logical send → one AdaptedOutboundMessage');
+      expect(adapter.outboundEvents.first.id, 'mesh-out-X',
+          reason: 'mesh-out id strips temp_ prefix so sender bubble does not show pending clock');
+      expect(adapter.outboundEvents.first.clientTempId, 'temp_X',
+          reason: 'clientTempId preserved for dedup against server echo');
     });
 
     test('group with mixed visibility — visible get mesh, server still hit',
@@ -226,6 +230,28 @@ void main() {
 
       expect(remote.sentCalls, hasLength(1));
       expect(adapter.perPeerCalls, hasLength(1));
+    });
+
+    test('mesh-out id strips temp_ prefix to avoid pending-clock false positive',
+        () async {
+      cache.seedConversation(ConversationEntity(
+        id: 'conv-1',
+        type: 'GROUP',
+        participantIds: ['me-id', 'p1'],
+      ));
+      final p1Pk = PeerId.fromHex('1' * 64);
+      store.seedContact('p1', p1Pk, [p1Pk]);
+      final repo = buildRepo(visibleUserIds: {'p1'});
+
+      repo.sendMessage('conv-1', 'no clock plz',
+          clientTempId: 'temp_abc-123');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(adapter.outboundEvents, hasLength(1));
+      final id = adapter.outboundEvents.first.id;
+      expect(id.startsWith('temp_'), isFalse,
+          reason: 'must NOT start with temp_ — would render as pending');
+      expect(id, 'mesh-out-abc-123');
     });
 
     test('group > 50 visible peers — mesh skipped, server-only', () async {
