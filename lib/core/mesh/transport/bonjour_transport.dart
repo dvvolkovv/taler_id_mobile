@@ -132,10 +132,7 @@ class BonjourTransport implements MeshTransport {
     }
     debugPrint('[mesh-bonjour] subscribing to discovery eventStream');
     _discoverySub = stream.listen(
-      (event) {
-        _supervisor?.onDiscoveryEvent();
-        _onBonjourEvent(event);
-      },
+      _onBonjourEvent,
       onError: (Object e) {
         debugPrint('[mesh-bonjour] discovery stream error: $e');
       },
@@ -188,6 +185,10 @@ class BonjourTransport implements MeshTransport {
           debugPrint('[mesh-bonjour] resolved SELF (${service.name}), skipping');
           return; // don't announce self as a peer
         }
+        // Phase 2.1 — only count non-self resolves as proof discovery is
+        // healthy. Seeing your own service is not enough on iOS, where the
+        // resolver can echo self while still failing to find others.
+        _supervisor?.onDiscoveryEvent();
         if (service is ResolvedBonsoirService) {
           debugPrint('[mesh-bonjour] resolved peer ${service.name} at ${service.host}:${service.port} pk=${peerId.toHex().substring(0, 12)}...');
           _nameToPeerId[service.name] = peerId;
