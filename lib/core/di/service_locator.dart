@@ -291,21 +291,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<MeshMessengerAdapter>(() {
     final messaging = sl<MeshMessagingService>();
     return MeshMessengerAdapter(
-      meshSendText: ({required toUserPk, required text}) =>
-          messaging.sendText(toUserPk: toUserPk, text: text),
+      meshSendEnvelope: ({required toUserPk, required envelope}) =>
+          messaging.sendEnvelope(toUserPk: toUserPk, envelope: envelope),
       meshInbound: messaging.inbound,
       lookupUserByDevice: (devicePk) =>
           sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
       contactUserIdForUserPk: _contactUserIdByUserPk,
-      resolveConversationId: (contactUserId) {
-        try {
-          final existing = sl<MessengerCacheService>()
-              .getConversationByContact(contactUserId);
-          return existing?.id ?? 'meshOnly:$contactUserId';
-        } catch (_) {
-          return 'meshOnly:$contactUserId';
-        }
-      },
       currentUserIdProvider: () {
         try {
           return sl<MessengerBloc>().state.currentUserId;
