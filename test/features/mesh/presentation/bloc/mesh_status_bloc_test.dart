@@ -112,4 +112,74 @@ void main() {
       await bloc.close();
     });
   });
+
+  group('visibleParticipantsOf helper (Phase 2)', () {
+    test('returns only userIds whose visibility flag is true', () async {
+      // Device hex → user hex mapping for alice and carol (visible),
+      // bob gets a discovery that is then lost (not visible).
+      final transport = _FakeTransport();
+      final deviceToUser = {
+        'a' * 64: '1' * 64, // alice's device
+        'b' * 64: '2' * 64, // bob's device
+        'c' * 64: '3' * 64, // carol's device
+      };
+      final userPkToUserId = {
+        '1' * 64: 'alice',
+        '2' * 64: 'bob',
+        '3' * 64: 'carol',
+      };
+      final lookup = _FakeLookup(deviceToUser);
+      final bloc = MeshStatusBloc(
+        transport: transport,
+        lookupUserByDevice: lookup.lookupUserByDevice,
+        contactUserIdForUserPk: (pk) => userPkToUserId[pk.toHex()],
+      );
+      bloc.start();
+
+      // alice visible
+      transport.discoveriesCtrl.add(PeerDiscovered(
+        peerId: PeerId.fromHex('a' * 64),
+        host: '192.168.0.1',
+        port: 42000,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+      // bob discovered then lost → not visible
+      transport.discoveriesCtrl.add(PeerDiscovered(
+        peerId: PeerId.fromHex('b' * 64),
+        host: '192.168.0.2',
+        port: 42001,
+      ));
+      await Future.delayed(const Duration(milliseconds: 10));
+      transport.lossesCtrl.add(PeerLost(PeerId.fromHex('b' * 64)));
+      await Future.delayed(const Duration(milliseconds: 10));
+      // carol visible
+      transport.discoveriesCtrl.add(PeerDiscovered(
+        peerId: PeerId.fromHex('c' * 64),
+        host: '192.168.0.3',
+        port: 42002,
+      ));
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      // 'dave' is unknown — neither true nor false — counts as not visible.
+      final visible = bloc.visibleParticipantsOf(
+          ['alice', 'bob', 'carol', 'dave']);
+      expect(visible.toSet(), {'alice', 'carol'});
+
+      await bloc.close();
+    });
+
+    test('returns empty when no participants are visible', () async {
+      final transport = _FakeTransport();
+      final bloc = MeshStatusBloc(
+        transport: transport,
+        lookupUserByDevice: (_) => null,
+        contactUserIdForUserPk: (_) => null,
+      );
+      bloc.start();
+      // No discovery events fired — visibility map is empty.
+      final visible = bloc.visibleParticipantsOf(['alice', 'bob']);
+      expect(visible, isEmpty);
+      await bloc.close();
+    });
+  });
 }

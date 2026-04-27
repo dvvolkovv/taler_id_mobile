@@ -2,264 +2,135 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/features/messenger/data/services/mesh_messenger_adapter.dart';
 
-class _FakeMessaging {
-  final _ctrl = StreamController<InboundMessage>.broadcast();
-  final sentCalls = <(PeerId, String)>[];
-  bool fail = false;
-
-  Stream<InboundMessage> get inbound => _ctrl.stream;
-
-  Future<void> sendText({required PeerId toUserPk, required String text}) async {
-    if (fail) throw StateError('send boom');
-    sentCalls.add((toUserPk, text));
-  }
-
-  void pushInbound(PeerId from, String text) {
-    _ctrl.add(InboundMessage(fromUserPk: from, text: text));
-  }
-
-  Future<void> dispose() => _ctrl.close();
-}
-
-class _CacheSpy {
-  final List<Map<String, dynamic>> persisted = [];
-  void persist(Map<String, dynamic> entry) => persisted.add(entry);
-}
-
-MeshMessengerAdapter _adapter(
-  _FakeMessaging m,
-  _CacheSpy cache, {
-  PeerId? Function(PeerId)? lookupUserByDevice,
-  String? Function(PeerId)? contactUserIdForUserPk,
-  String Function(String)? resolveConversationId,
-  String? Function()? currentUserIdProvider,
-}) {
-  return MeshMessengerAdapter(
-    meshSendText: m.sendText,
-    meshInbound: m.inbound,
-    lookupUserByDevice: lookupUserByDevice ?? (_) => null,
-    contactUserIdForUserPk: contactUserIdForUserPk ?? (_) => null,
-    resolveConversationId:
-        resolveConversationId ?? (userId) => 'meshOnly:$userId',
-    currentUserIdProvider: currentUserIdProvider ?? () => null,
-    persistLocal: cache.persist,
-  );
-}
-
 void main() {
-  group('MeshMessengerAdapter', () {
-    test('inbound from known contact emits AdaptedInboundMessage with resolved conversationId',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final events = <AdaptedInboundMessage>[];
-      final adapter = _adapter(
-        messaging,
-        cache,
-        lookupUserByDevice: (dev) =>
-            dev.toHex() == 'a' * 64 ? PeerId.fromHex('b' * 64) : null,
-        contactUserIdForUserPk: (user) =>
-            user.toHex() == 'b' * 64 ? 'contact-1' : null,
-        resolveConversationId: (uid) =>
-            uid == 'contact-1' ? 'server-conv-42' : 'meshOnly:$uid',
+  group('MeshMessengerAdapter Phase 2', () {
+    late StreamController<InboundEnvelope> meshInboundCtrl;
+    final List<({PeerId toUserPk, Envelope envelope})> sentCalls = [];
+    final List<Map<String, dynamic>> persisted = [];
+    final List<AdaptedInboundMessage> emitted = [];
+    final List<AdaptedOutboundMessage> emittedOut = [];
+    late MeshMessengerAdapter adapter;
+    late StreamSubscription sub;
+    late StreamSubscription outSub;
+
+    setUp(() {
+      meshInboundCtrl = StreamController<InboundEnvelope>.broadcast();
+      sentCalls.clear();
+      persisted.clear();
+      emitted.clear();
+      emittedOut.clear();
+      adapter = MeshMessengerAdapter(
+        meshSendEnvelope: ({required toUserPk, required envelope}) async {
+          sentCalls.add((toUserPk: toUserPk, envelope: envelope));
+        },
+        meshInbound: meshInboundCtrl.stream,
+        lookupUserByDevice: (devicePk) =>
+            devicePk == PeerId.fromHex('b' * 64) ? PeerId.fromHex('b' * 64) : null,
+        contactUserIdForUserPk: (userPk) =>
+            userPk == PeerId.fromHex('b' * 64) ? 'contact-1' : null,
+        currentUserIdProvider: () => 'me-user-id',
+        persistLocal: persisted.add,
       );
-      final sub = adapter.inbound.listen(events.add);
+      sub = adapter.inbound.listen(emitted.add);
+      outSub = adapter.outbound.listen(emittedOut.add);
       adapter.start();
+    });
 
-      messaging.pushInbound(PeerId.fromHex('a' * 64), 'Hello');
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-
-      expect(events, hasLength(1));
-      expect(events.first.contactUserId, 'contact-1');
-      expect(events.first.conversationId, 'server-conv-42');
-      expect(events.first.text, 'Hello');
-      expect(cache.persisted, hasLength(1));
-      final e = cache.persisted.first;
-      expect(e['transport'], 'mesh');
-      expect(e['conversationId'], 'server-conv-42');
-      expect(e['content'], 'Hello');
-      expect(e['senderId'], 'contact-1');
-      expect(e['id'], startsWith('mesh-in-contact-1-'),
-          reason: 'persisted entry must carry a id aligned with MessengerBloc dedup scheme');
-
+    tearDown(() async {
       await sub.cancel();
-      await adapter.stop();
-      await messaging.dispose();
+      await outSub.cancel();
+      await adapter.dispose();
+      await meshInboundCtrl.close();
     });
 
-    test('inbound falls back to meshOnly:<userId> when no server chat exists',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final events = <AdaptedInboundMessage>[];
-      final adapter = _adapter(
-        messaging,
-        cache,
-        lookupUserByDevice: (_) => PeerId.fromHex('b' * 64),
-        contactUserIdForUserPk: (_) => 'contact-2',
-        resolveConversationId: (uid) => 'meshOnly:$uid',
-      );
-      final sub = adapter.inbound.listen(events.add);
-      adapter.start();
-      messaging.pushInbound(PeerId.fromHex('a' * 64), 'first contact');
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-
-      expect(events, hasLength(1));
-      expect(events.first.conversationId, 'meshOnly:contact-2');
-      expect(cache.persisted.first['conversationId'], 'meshOnly:contact-2');
-
-      await sub.cancel();
-      await adapter.stop();
-      await messaging.dispose();
-    });
-
-    test('inbound from unknown device is dropped silently', () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final events = <AdaptedInboundMessage>[];
-      final adapter = _adapter(messaging, cache);
-      final sub = adapter.inbound.listen(events.add);
-      adapter.start();
-      messaging.pushInbound(PeerId.fromHex('c' * 64), 'ignore');
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      expect(events, isEmpty);
-      expect(cache.persisted, isEmpty);
-      await sub.cancel();
-      await adapter.stop();
-      await messaging.dispose();
-    });
-
-    test('sendMessage persists outbound entry with deterministic id + caller conversationId',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final adapter = _adapter(
-        messaging,
-        cache,
-        currentUserIdProvider: () => 'user-me',
-      );
-
-      await adapter.sendMessage(
-        conversationId: 'server-conv-42',
-        text: 'Hi there',
-        contactDevicePk: PeerId.fromHex('a' * 64),
-        contactUserId: 'contact-1',
-      );
-
-      expect(messaging.sentCalls, hasLength(1));
-      expect(messaging.sentCalls.first.$1, PeerId.fromHex('a' * 64));
-      expect(messaging.sentCalls.first.$2, 'Hi there');
-      expect(cache.persisted, hasLength(1));
-      final e = cache.persisted.first;
-      expect(e['transport'], 'mesh');
-      expect(e['conversationId'], 'server-conv-42');
-      expect(e['direction'], 'outbound');
-      expect(e['id'], startsWith('mesh-out-'));
-      expect(e['senderId'], 'user-me');
-
-      await messaging.dispose();
-    });
-
-    test('sendMessage stamps persisted senderId with currentUserIdProvider() when available',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final adapter = _adapter(
-        messaging,
-        cache,
-        currentUserIdProvider: () => 'user-abc-123',
-      );
-
-      await adapter.sendMessage(
-        conversationId: 'server-conv-42',
-        text: 'hi',
-        contactDevicePk: PeerId.fromHex('a' * 64),
-        contactUserId: 'contact-1',
-      );
-
-      expect(cache.persisted, hasLength(1));
-      expect(cache.persisted.first['senderId'], 'user-abc-123');
-    });
-
-    test('sendMessage emits AdaptedOutboundMessage on the outbound stream after persist',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final adapter = _adapter(
-        messaging,
-        cache,
-        currentUserIdProvider: () => 'user-abc-123',
-      );
-
-      final outs = <AdaptedOutboundMessage>[];
-      final sub = adapter.outbound.listen(outs.add);
-
-      await adapter.sendMessage(
-        conversationId: 'server-conv-42',
-        text: 'hi',
-        contactDevicePk: PeerId.fromHex('a' * 64),
-        contactUserId: 'contact-1',
-        clientTempId: 'temp_999',
-      );
-
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-      expect(outs, hasLength(1));
-      expect(outs.first.contactUserId, 'contact-1');
-      expect(outs.first.text, 'hi');
-      expect(outs.first.conversationId, 'server-conv-42');
-      expect(outs.first.clientTempId, 'temp_999');
-      expect(outs.first.id, startsWith('mesh-out-'));
-
-      await sub.cancel();
-      await messaging.dispose();
-    });
-
-    test('sendMessage skips persistence when currentUserIdProvider returns null',
-        () async {
-      final messaging = _FakeMessaging();
-      final cache = _CacheSpy();
-      final adapter = _adapter(
-        messaging,
-        cache,
-        currentUserIdProvider: () => null,
-      );
-
-      await adapter.sendMessage(
-        conversationId: 'server-conv-42',
-        text: 'pre-login mesh send',
-        contactDevicePk: PeerId.fromHex('a' * 64),
-        contactUserId: 'contact-1',
-      );
-
-      // Transport send succeeded — message was delivered over the wire.
-      expect(messaging.sentCalls, hasLength(1));
-      // But persistence was skipped to avoid a bogus 'me'-stamped entry that
-      // would render on the wrong side after restart.
-      expect(cache.persisted, isEmpty);
-    });
-
-    test('sendMessage surfaces error from underlying transport and does NOT persist',
-        () async {
-      final messaging = _FakeMessaging()..fail = true;
-      final cache = _CacheSpy();
-      final adapter = _adapter(messaging, cache);
-
-      await expectLater(
-        adapter.sendMessage(
-          conversationId: 'server-conv-42',
-          text: 'boom',
-          contactDevicePk: PeerId.fromHex('a' * 64),
-          contactUserId: 'contact-1',
+    test('inbound envelope routes via envelope.convId (group case)', () async {
+      meshInboundCtrl.add(InboundEnvelope(
+        fromUserPk: PeerId.fromHex('b' * 64),
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'group-conv-42',
+          clientId: 'cl-1',
+          text: 'hi group',
+          sentAt: DateTime.parse('2026-04-26T12:00:00.000Z'),
         ),
-        throwsStateError,
-      );
-      expect(cache.persisted, isEmpty);
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
-      await messaging.dispose();
+      expect(emitted, hasLength(1));
+      expect(emitted.first.contactUserId, 'contact-1');
+      expect(emitted.first.conversationId, 'group-conv-42');
+      expect(emitted.first.text, 'hi group');
+      expect(emitted.first.clientId, 'cl-1');
+      expect(persisted, hasLength(1));
+      expect(persisted.first['id'], 'cl-1');
+      expect(persisted.first['transport'], 'mesh');
+      expect(persisted.first['conversationId'], 'group-conv-42');
+      expect(persisted.first['senderId'], 'contact-1');
+    });
+
+    test('inbound from unknown device drops silently', () async {
+      meshInboundCtrl.add(InboundEnvelope(
+        fromUserPk: PeerId.fromHex('c' * 64),
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'whatever',
+          clientId: 'cl-x',
+          text: 'should be dropped',
+          sentAt: DateTime.parse('2026-04-26T12:00:00.000Z'),
+        ),
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+
+      expect(emitted, isEmpty);
+      expect(persisted, isEmpty);
+    });
+
+    test('sendEnvelopeToPeer wraps params and dispatches to messaging', () async {
+      final envelope = Envelope(
+        version: 1,
+        type: 'text',
+        convId: 'group-conv-42',
+        clientId: 'cl-out',
+        text: 'group send',
+        sentAt: DateTime.parse('2026-04-26T12:00:00.000Z'),
+      );
+      await adapter.sendEnvelopeToPeer(
+        peerDevicePk: PeerId.fromHex('a' * 64),
+        contactUserId: 'contact-X',
+        envelope: envelope,
+      );
+      expect(sentCalls, hasLength(1));
+      expect(sentCalls.first.toUserPk, PeerId.fromHex('a' * 64));
+      expect(sentCalls.first.envelope.clientId, 'cl-out');
+      expect(persisted, hasLength(1));
+      expect(persisted.first['id'], 'cl-out');
+      expect(persisted.first['conversationId'], 'group-conv-42');
+      expect(persisted.first['senderId'], 'me-user-id');
+      expect(persisted.first['transport'], 'mesh');
+      expect(persisted.first['direction'], 'outbound');
+    });
+
+    test('emitOutbound publishes to outbound stream once', () async {
+      final event = AdaptedOutboundMessage(
+        id: 'mesh-out-1',
+        conversationId: 'conv-1',
+        contactUserId: 'contact-1',
+        clientTempId: 'temp_uuid',
+        text: 'hi',
+        sentAt: DateTime.parse('2026-04-26T12:00:00.000Z'),
+      );
+      adapter.emitOutbound(event);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(emittedOut, hasLength(1));
+      expect(emittedOut.first.id, 'mesh-out-1');
+      expect(emittedOut.first.clientTempId, 'temp_uuid');
     });
   });
 }

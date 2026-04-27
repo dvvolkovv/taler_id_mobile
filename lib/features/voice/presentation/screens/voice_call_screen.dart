@@ -192,9 +192,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // Video state
   bool _cameraOn = false;
   bool _screenShareFullscreen = false;
+  bool _userExitedScreenShareFullscreen = false;
   String? _screenShareParticipantName;
   bool _isFrontCamera = true;
   final TransformationController _screenShareTransformCtrl = TransformationController();
+
+  // Auto-hide of bottom call controls
+  bool _callControlsHidden = false;
+  Timer? _callControlsHideTimer;
+  static const Duration _callControlsHideDelay = Duration(milliseconds: 3500);
+  // Tracks whether we've already hidden system status bar for landscape fullscreen
+  bool _systemUiHiddenForFs = false;
 
   static const _audioChannel = MethodChannel('taler_id/audio');
 
@@ -207,6 +215,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     WidgetsBinding.instance.addObserver(this);
     // Dismiss any keyboard left over from the previous screen (e.g. chat input)
     FocusManager.instance.primaryFocus?.unfocus();
+    // Schedule first auto-hide of bottom controls after initial reveal delay
+    _scheduleHideCallControls();
+    // Allow free rotation during a call. iOS 16+ doesn't pick up the new
+    // allowed-orientation set immediately, so we await + apply twice with a
+    // post-frame nudge — that triggers the native rotation refresh path.
+    _enableFreeRotation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _enableFreeRotation();
+    });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     _initTime = DateTime.now();
@@ -830,10 +847,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (mounted) setState(() {});
       })
       ..on<lk.TrackSubscribedEvent>((event) {
-        if (mounted) setState(() {});
+        if (mounted) setState(() { _syncScreenShareFullscreen(); });
       })
       ..on<lk.TrackUnsubscribedEvent>((_) {
-        if (mounted) setState(() {});
+        if (mounted) setState(() { _syncScreenShareFullscreen(); });
       })
       ..on<lk.TrackMutedEvent>((_) {
         if (mounted) setState(() {});
@@ -3224,8 +3241,16 @@ Answer briefly — the user is in the middle of a conversation.''';
     _holdPlayer.stop().catchError((_) {});
     _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
-    // Restore portrait if we were in landscape for screen share
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    _callControlsHideTimer?.cancel();
+    // Restore portrait + native iOS orientation lock for the rest of the app
+    _restorePortraitLock();
+    // Restore system status/navigation bars in case we hid them for landscape fs
+    if (_systemUiHiddenForFs) {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+    }
     // Translation cleanup — server-side, nothing local to stop
     // Do NOT disconnect room — call continues in background via CallStateService
     super.dispose();
@@ -3239,10 +3264,41 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   Widget build(BuildContext context) {
+    // In landscape + screen-share fullscreen: hide AppBar AND system status bar
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool immersiveFs = _screenShareFullscreen && isLandscape;
+    // In any landscape orientation we drop the AppBar to reclaim ~56px for
+    // the video grid; back navigation falls back to the small floating
+    // chevron rendered in the outer Stack below.
+    final bool hideAppBar = isLandscape;
+    // If video/screen-share went away (voice-only state), auto-show the panel
+    // and cancel any pending hide so quick controls stay reachable.
+    if (_callControlsHidden && !_canAutoHideControls) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showCallControls();
+      });
+    }
+    if (immersiveFs != _systemUiHiddenForFs) {
+      _systemUiHiddenForFs = immersiveFs;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (immersiveFs) {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        } else {
+          // Restore status + nav bars; "manual" with all overlays prevents
+          // edge-to-edge from clipping screens that don't use SafeArea
+          // (e.g. Settings → app version line).
+          SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: SystemUiOverlay.values,
+          );
+        }
+      });
+    }
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(
+      appBar: hideAppBar ? null : AppBar(
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
@@ -3325,6 +3381,58 @@ Answer briefly — the user is in the middle of a conversation.''';
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          // Back FAB shown only when AppBar is hidden in landscape (and we
+          // aren't already in immersive fullscreen, which has its own exit btn)
+          if (isLandscape && !immersiveFs)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: MediaQuery.of(context).padding.left + 8,
+              child: GestureDetector(
+                onTap: _minimizeCall,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          // Floating restore button when bottom controls are auto-hidden
+          if (_callControlsHidden && !_screenShareFullscreen)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.of(context).padding.bottom + 12,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _showCallControls,
+                  child: Container(
+                    width: 72,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -3617,14 +3725,68 @@ Answer briefly — the user is in the middle of a conversation.''';
                       : _buildParticipantsList(),
         ),
         // Self is now shown as a circular avatar in _buildParticipantsList
-        // Controls — two rows for small screens (hidden in fullscreen screen share)
+        // Controls — two rows for small screens (hidden in fullscreen screen share).
+        // AnimatedSize collapses the slot so the video Expanded above grows
+        // into the freed space when the panel auto-hides.
         if (!_screenShareFullscreen)
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        ClipRect(
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _callControlsHidden
+                ? SizedBox(
+                    width: double.infinity,
+                    // Reserve bottom safe area so video tiles don't get
+                    // clipped under the iOS home indicator / Android nav bar.
+                    height: MediaQuery.of(context).padding.bottom + 8,
+                  )
+                : GestureDetector(
+                    // Whole-panel swipe-down to hide controls manually.
+                    // Vertical-drag is distinct from button taps so children stay tappable.
+                    behavior: HitTestBehavior.translucent,
+                    onVerticalDragEnd: (details) {
+                      if ((details.primaryVelocity ?? 0) > 200) _hideCallControls();
+                    },
+                    child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _scheduleHideCallControls(),
+                    child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            MediaQuery.of(context).orientation == Orientation.landscape ? 4 : 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drag-handle: visual cue + larger hit area for swipe-down
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragEnd: (details) {
+                  if ((details.primaryVelocity ?? 0) > 100) _hideCallControls();
+                },
+                onTap: _scheduleHideCallControls,
+                child: Container(
+                  width: double.infinity,
+                  // Wider/taller hit area than the visual stripe
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  color: Colors.transparent,
+                  child: Container(
+                    width: 56,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+              ),
               // Secondary row: Record, AI Record, Translate, Audio Output, [Flip Camera], [Bg]
+              // Hidden in landscape to keep the panel within available height.
+              if (MediaQuery.of(context).orientation != Orientation.landscape)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -3704,7 +3866,8 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ],
               ),
               ),
-              const SizedBox(height: 12),
+              if (MediaQuery.of(context).orientation != Orientation.landscape)
+                const SizedBox(height: 12),
               // Assistant active indicator
               if (_assistantActive)
                 Padding(
@@ -3729,7 +3892,10 @@ Answer briefly — the user is in the middle of a conversation.''';
                     ),
                   ),
                 ),
-              // Controls: secondary row
+              // Controls: main row + end call. In landscape we render a single
+              // compact horizontally-scrollable row with ALL buttons including
+              // end call (see further down) — so skip these when landscape.
+              if (MediaQuery.of(context).orientation != Orientation.landscape) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -3805,10 +3971,125 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ),
               ),
+              ],
+              // ── Landscape compact bar: ALL buttons in a single horizontally
+              // scrollable row, icon-only (no labels), with end-call at the right.
+              if (MediaQuery.of(context).orientation == Orientation.landscape)
+                _buildLandscapeControlsRow(),
             ],
           ),
         ),
+                  ),
+                ),
+                  ),
+              ),
       ],
+    );
+  }
+
+  /// Single horizontally scrollable row used for the call controls in
+  /// landscape orientation. All buttons are compact (44px icon, no label).
+  Widget _buildLandscapeControlsRow() {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final children = <Widget>[
+      _ControlButton(
+        compact: true,
+        icon: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
+            ? Icons.stop_circle_rounded
+            : Icons.fiber_manual_record_rounded,
+        label: l10n.voiceRecord,
+        color: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
+            ? Colors.red.withValues(alpha: 0.2)
+            : colors.card,
+        iconColor: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription)) ? Colors.red : null,
+        onTap: ((_consentPending && _consentForTranscription) ||
+                ((_isRecording || _transcriptionActive || _recordingApproved) && _recordingInitiatorId != _room?.localParticipant?.identity))
+            ? null
+            : _toggleRecordingWithConsent,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.translate_rounded,
+        label: l10n.voiceTranslation,
+        color: _translationEnabled ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        iconColor: _translationEnabled ? colors.primary : null,
+        onTap: _showLangPicker,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: _outputIcons[_audioOutputType] ?? Icons.volume_up_rounded,
+        label: l10n.voiceAudio,
+        color: _audioOutputType != 'earpiece' ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        onTap: _showAudioOutputPicker,
+      ),
+      if (_cameraOn)
+        _ControlButton(
+          compact: true,
+          icon: Icons.flip_camera_ios_rounded,
+          label: l10n.voiceFlipCamera,
+          color: colors.card,
+          onTap: _flipCamera,
+        ),
+      if (_cameraOn && _videoEffectsSupported)
+        _ControlButton(
+          compact: true,
+          icon: Icons.blur_on_rounded,
+          label: l10n.voiceBackground,
+          color: sl<VideoEffectsService>().current != VideoEffect.none
+              ? colors.primary.withValues(alpha: 0.2)
+              : colors.card,
+          onTap: _showVideoEffectsPicker,
+        ),
+      _ControlButton(
+        compact: true,
+        icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
+        label: _muted ? l10n.voiceUnmute : l10n.voiceMic,
+        color: _muted ? colors.error : colors.card,
+        onTap: _assistantActive ? null : _toggleMute,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.smart_toy_rounded,
+        label: l10n.voiceAssistantLabel,
+        color: _assistantActive ? colors.primary : colors.card,
+        onTap: _assistantActive ? _stopAssistant : _startAssistant,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+        label: l10n.voiceCameraLabel,
+        color: _cameraOn ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        onTap: _toggleCamera,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.call_end_rounded,
+        label: l10n.voiceEndCall,
+        color: colors.error,
+        onTap: () => _hangUp(userInitiated: true),
+      ),
+    ];
+    // Center the row when buttons fit, fall back to a horizontal scroll when
+    // they don't. The Center wrapper pushes the bar to the middle of the
+    // available width — without it, SingleChildScrollView left-aligned the
+    // bar inside the bottom overlay (visible in landscape fullscreen).
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right > 0 ? 8 : 4,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final w in children) Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: w,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -3949,18 +4230,32 @@ Answer briefly — the user is in the middle of a conversation.''';
 
     final colors = AppColors.of(context);
     final totalCount = _participants.where((p) => p.identity != 'voice-translator').length + 1; // +1 for self
-    final avatarRadius = totalCount <= 2 ? 48.0 : 36.0;
-    final fontSize = totalCount <= 2 ? 32.0 : 24.0;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    // In landscape height is small — shrink avatars so all participants fit
+    // without scrolling/clipping.
+    final avatarRadius = isLandscape
+        ? (totalCount <= 2 ? 36.0 : 26.0)
+        : (totalCount <= 2 ? 48.0 : 36.0);
+    final fontSize = isLandscape
+        ? (totalCount <= 2 ? 24.0 : 18.0)
+        : (totalCount <= 2 ? 32.0 : 24.0);
     final myAvatarUrl = _getMyAvatarUrl();
     final myName = _room?.localParticipant?.name ?? '';
     final myIdentity = _room?.localParticipant?.identity ?? '';
     final mySpeaking = _speakingIdentities.contains(myIdentity);
 
     return Center(
-      child: Wrap(
+      child: Padding(
+        // Avoid notch/edge clipping in landscape (left & right insets).
+        padding: EdgeInsets.symmetric(
+          horizontal: isLandscape
+              ? (MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right) / 2 + 8
+              : 0,
+        ),
+        child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 24,
-        runSpacing: 24,
+        spacing: isLandscape ? 16 : 24,
+        runSpacing: isLandscape ? 12 : 24,
         children: [
           // Local user (self)
           _buildParticipantAvatar(
@@ -4009,6 +4304,7 @@ Answer briefly — the user is in the middle of a conversation.''';
             );
           }),
         ],
+      ),
       ),
     );
   }
@@ -4094,67 +4390,88 @@ Answer briefly — the user is in the middle of a conversation.''';
     );
   }
 
-  /// Screen share layout: large screen share on top, small participant strip at bottom.
+  /// Screen share PiP layout: screen on the main axis, small participant strip
+  /// on the perpendicular axis. In portrait — screen on top, strip below.
+  /// In landscape — screen on the left, vertical strip on the right.
   Widget _buildScreenShareLayout() {
     final screenTrack = _remoteScreenShareTrack;
     final ownerName = _remoteScreenShareOwner ?? '';
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+    final screenView = GestureDetector(
+      onTap: () => setState(() {
+        _screenShareFullscreen = true;
+        _userExitedScreenShareFullscreen = false;
+      }),
+      child: Container(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (screenTrack != null)
+              lk.VideoTrackRenderer(screenTrack),
+            // Screen share label
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.screen_share_rounded, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$ownerName — экран',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Fullscreen hint
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.fullscreen_rounded, color: Colors.white70, size: 20),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (isLandscape) {
+      // Right side strip — must respect notch/safe area on the right edge so
+      // tile thumbnails are not clipped by it.
+      final rightInset = MediaQuery.of(context).padding.right;
+      return Row(
+        children: [
+          Expanded(child: screenView),
+          Padding(
+            padding: EdgeInsets.only(right: rightInset),
+            child: SizedBox(
+              width: 100,
+              child: _buildParticipantStrip(axis: Axis.vertical),
+            ),
+          ),
+        ],
+      );
+    }
 
     return Column(
       children: [
-        // Screen share view (takes most of the space)
-        Expanded(
-          flex: 3,
-          child: GestureDetector(
-            onTap: () => setState(() => _screenShareFullscreen = true),
-            child: Container(
-              color: Colors.black,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (screenTrack != null)
-                    lk.VideoTrackRenderer(screenTrack),
-                  // Screen share label
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.screen_share_rounded, color: Colors.white, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$ownerName — экран',
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Fullscreen hint
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.fullscreen_rounded, color: Colors.white70, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Small participant thumbnails at bottom
+        Expanded(flex: 3, child: screenView),
         SizedBox(
           height: 110,
           child: _buildParticipantStrip(),
@@ -4175,13 +4492,6 @@ Answer briefly — the user is in the middle of a conversation.''';
       });
       return const SizedBox.shrink();
     }
-
-    // Allow landscape when viewing screen share fullscreen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
 
     return Container(
       color: Colors.black,
@@ -4234,6 +4544,68 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
             ),
           ),
+          // Bottom overlay: chevron-up FAB when controls hidden, compact
+          // controls bar when shown — gives access to mic/cam/end-call
+          // without leaving fullscreen.
+          if (_callControlsHidden)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _showCallControls,
+                  child: Container(
+                    width: 72,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _scheduleHideCallControls(),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onVerticalDragEnd: (details) {
+                    if ((details.primaryVelocity ?? 0) > 200) _hideCallControls();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: 8,
+                      bottom: MediaQuery.of(context).padding.bottom + 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0),
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
+                      ),
+                    ),
+                    child: _buildLandscapeControlsRow(),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -4241,12 +4613,85 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   void _exitScreenShareFullscreen() {
     _screenShareTransformCtrl.value = Matrix4.identity();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    setState(() => _screenShareFullscreen = false);
+    // Don't lock orientation here — landscape stays allowed for the rest of
+    // the call (set in initState; restored only on dispose).
+    setState(() {
+      _screenShareFullscreen = false;
+      _userExitedScreenShareFullscreen = true;
+    });
   }
 
-  /// Horizontal strip of participant thumbnails (used below screen share).
-  Widget _buildParticipantStrip() {
+  static const _orientationChannel = MethodChannel('taler_id/orientation');
+
+  /// Allow portrait + both landscape orientations during the call.
+  /// Async-await is required on iOS — synchronous calls were ignored on
+  /// some iOS 16+ devices (the rotation simply didn't happen). Plus we
+  /// flip the iOS-native orientation lock via AppDelegate so SystemChrome
+  /// preferences actually take effect on iPhone.
+  Future<void> _enableFreeRotation() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    if (Platform.isIOS) {
+      try { await _orientationChannel.invokeMethod('setAllowAll', true); } catch (_) {}
+    }
+  }
+
+  Future<void> _restorePortraitLock() async {
+    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    if (Platform.isIOS) {
+      try { await _orientationChannel.invokeMethod('setAllowAll', false); } catch (_) {}
+    }
+  }
+
+  /// Auto-hide only makes sense when there is video to maximize. In a voice-
+  /// only call (no camera, no remote video, no screen share) the panel stays
+  /// pinned so quick controls (mute/hold/end) remain one tap away.
+  bool get _canAutoHideControls => _hasAnyVideo || _remoteScreenShareTrack != null;
+
+  void _showCallControls() {
+    if (_callControlsHidden && mounted) {
+      setState(() => _callControlsHidden = false);
+    }
+    _scheduleHideCallControls();
+  }
+
+  void _hideCallControls() {
+    _callControlsHideTimer?.cancel();
+    _callControlsHideTimer = null;
+    if (!_canAutoHideControls) return;
+    if (!_callControlsHidden && mounted) {
+      setState(() => _callControlsHidden = true);
+    }
+  }
+
+  void _scheduleHideCallControls() {
+    _callControlsHideTimer?.cancel();
+    if (!_canAutoHideControls) return;
+    _callControlsHideTimer = Timer(_callControlsHideDelay, () {
+      if (mounted) _hideCallControls();
+    });
+  }
+
+  /// Auto-enter fullscreen when a remote screen share appears (unless the user
+  /// manually exited it for the current sharing session). Reset on stream end.
+  void _syncScreenShareFullscreen() {
+    final hasScreen = _remoteScreenShareTrack != null;
+    if (hasScreen) {
+      if (!_screenShareFullscreen && !_userExitedScreenShareFullscreen) {
+        _screenShareFullscreen = true;
+      }
+    } else {
+      _screenShareFullscreen = false;
+      _userExitedScreenShareFullscreen = false;
+    }
+  }
+
+  /// Strip of participant thumbnails (below screen share in portrait,
+  /// to the right in landscape). Pass [axis] to switch orientation.
+  Widget _buildParticipantStrip({Axis axis = Axis.horizontal}) {
     final tiles = <_VideoTileData>[];
     for (final p in _participants) {
       if (p.identity == 'voice-translator' || p.identity == 'hold-music') continue;
@@ -4282,15 +4727,19 @@ Answer briefly — the user is in the middle of a conversation.''';
       ));
     }
     if (tiles.isEmpty) return const SizedBox.shrink();
+    final isVertical = axis == Axis.vertical;
     return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      scrollDirection: axis,
+      padding: const EdgeInsets.all(4),
       itemCount: tiles.length,
       itemBuilder: (_, i) {
         final tile = tiles[i];
         return Container(
-          width: 90,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: isVertical ? double.infinity : 90,
+          height: isVertical ? 90 : null,
+          margin: isVertical
+              ? const EdgeInsets.symmetric(vertical: 3)
+              : const EdgeInsets.symmetric(horizontal: 3),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Container(
@@ -4701,6 +5150,7 @@ class _ControlButton extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
   final bool large;
+  final bool compact;
   final Color? iconColor;
   final bool active;
 
@@ -4710,6 +5160,7 @@ class _ControlButton extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.large = false,
+    this.compact = false,
     this.iconColor,
     this.active = false,
   });
@@ -4728,13 +5179,16 @@ class _ControlButton extends StatelessWidget {
         : (color.computeLuminance() > 0.4
             ? appColors.textPrimary
             : Colors.white));
+    final btnSize = large ? 72.0 : (compact ? 44.0 : 56.0);
+    final iconSize = large ? 32.0 : (compact ? 20.0 : 24.0);
     return GestureDetector(
       onTap: onTap,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: large ? 72 : 56,
-            height: large ? 72 : 56,
+            width: btnSize,
+            height: btnSize,
             decoration: BoxDecoration(
               gradient: isColoredAction
                   ? RadialGradient(
@@ -4779,17 +5233,19 @@ class _ControlButton extends StatelessWidget {
               color: onTap == null
                   ? appColors.textSecondary.withValues(alpha: 0.4)
                   : (isColoredAction ? Colors.white : resolvedIconColor),
-              size: large ? 32 : 24,
+              size: iconSize,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: 12,
+          if (!compact) ...[
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: 12,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

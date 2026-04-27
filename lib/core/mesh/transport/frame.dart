@@ -10,7 +10,7 @@ enum FrameType {
 }
 
 class Frame {
-  static const int supportedVersion = 1;
+  static const int supportedVersion = 2;
   static const int headerSize = 1 + 1 + 2 + 32; // 36
   static const int maxPayload = 65535;
 

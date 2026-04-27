@@ -8,8 +8,21 @@ import flutter_callkit_incoming
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private var audioChannel: FlutterMethodChannel?
+  private var orientationChannel: FlutterMethodChannel?
   private var voipRegistry: PKPushRegistry?
   private var videoEffectsPlugin: VideoEffectsPlugin?
+
+  // Orientation lock toggle controlled from Flutter via the
+  // `taler_id/orientation` MethodChannel. Defaults to portrait — only the
+  // call screen flips it on so the device can rotate freely there.
+  static var allowAllOrientations: Bool = false
+
+  override func application(
+    _ application: UIApplication,
+    supportedInterfaceOrientationsFor window: UIWindow?
+  ) -> UIInterfaceOrientationMask {
+    return AppDelegate.allowAllOrientations ? [.portrait, .landscapeLeft, .landscapeRight] : .portrait
+  }
 
   override func application(
     _ application: UIApplication,
@@ -22,6 +35,32 @@ import flutter_callkit_incoming
 
     // Set up audio method channel (safe cast — nil-safe if window not ready on VoIP cold start)
     if let controller = window?.rootViewController as? FlutterViewController {
+      // Orientation channel — Flutter toggles allowAllOrientations on entering
+      // / leaving the call screen. We then nudge iOS to re-evaluate so the
+      // window rotates to the device's current orientation immediately.
+      let oc = FlutterMethodChannel(
+        name: "taler_id/orientation",
+        binaryMessenger: controller.binaryMessenger
+      )
+      orientationChannel = oc
+      oc.setMethodCallHandler { [weak self] call, result in
+        switch call.method {
+        case "setAllowAll":
+          let allow = call.arguments as? Bool ?? false
+          AppDelegate.allowAllOrientations = allow
+          // Force iOS to query supportedInterfaceOrientations again so a
+          // rotation that happened while the toggle was off can take effect.
+          if #available(iOS 16.0, *) {
+            self?.window?.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+          } else {
+            UIViewController.attemptRotationToDeviceOrientation()
+          }
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+
       let channel = FlutterMethodChannel(
         name: "taler_id/audio",
         binaryMessenger: controller.binaryMessenger
