@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
+import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/features/messenger/data/services/mesh_messenger_adapter.dart';
 
@@ -29,6 +30,7 @@ void main() {
           sentCalls.add((toUserPk: toUserPk, envelope: envelope));
         },
         meshInbound: meshInboundCtrl.stream,
+        meshDiscoveries: const Stream<PeerDiscovered>.empty(),
         lookupUserByDevice: (devicePk) =>
             devicePk == PeerId.fromHex('b' * 64) ? PeerId.fromHex('b' * 64) : null,
         contactUserIdForUserPk: (userPk) =>

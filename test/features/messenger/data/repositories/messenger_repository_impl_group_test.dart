@@ -10,6 +10,7 @@ import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_remote_datasource.dart';
 import 'package:taler_id_mobile/features/messenger/data/repositories/messenger_repository_impl.dart';
 import 'package:taler_id_mobile/features/messenger/data/services/mesh_messenger_adapter.dart';
+import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/conversation_entity.dart';
 
 class _FakeRemote implements MessengerRemoteDataSource {
@@ -54,6 +55,10 @@ class _FakeAdapter implements MeshMessengerAdapter {
   @override
   void emitOutbound(AdaptedOutboundMessage event) =>
       outboundEvents.add(event);
+
+  @override
+  Stream<AdaptedPeerDiscovered> get peerDiscovered =>
+      const Stream.empty();
 
   @override
   dynamic noSuchMethod(Invocation i) =>
@@ -120,6 +125,7 @@ void main() {
       hiveContactStore: store,
       isPeerVisibleForContactUserId: visibleUserIds.contains,
       currentUserIdProvider: () => myUserId,
+      pendingMeshQueue: PendingMeshSendQueue(),
     );
   }
 

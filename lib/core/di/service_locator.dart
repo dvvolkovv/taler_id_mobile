@@ -40,6 +40,7 @@ import '../mesh/services/mesh_messaging_service.dart';
 import '../mesh/transport/peer_id.dart';
 import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
 import '../../features/messenger/data/services/mesh_messenger_adapter.dart';
+import '../../features/messenger/data/services/pending_mesh_send_queue.dart';
 
 // Auth
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
@@ -292,6 +293,7 @@ Future<void> setupDependencies() async {
       meshSendEnvelope: ({required toUserPk, required envelope}) =>
           messaging.sendEnvelope(toUserPk: toUserPk, envelope: envelope),
       meshInbound: messaging.inbound,
+      meshDiscoveries: messaging.transport.discoveries,
       lookupUserByDevice: (devicePk) =>
           sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
       contactUserIdForUserPk: _contactUserIdByUserPk,
@@ -346,6 +348,7 @@ Future<void> setupDependencies() async {
 
   // Messenger
   sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton(() => PendingMeshSendQueue());
   sl.registerLazySingleton<IMessengerRepository>(
     () => MessengerRepositoryImpl(
       sl<MessengerRemoteDataSource>(),
@@ -367,6 +370,7 @@ Future<void> setupDependencies() async {
           return null;
         }
       },
+      pendingMeshQueue: sl<PendingMeshSendQueue>(),
     ),
   );
   sl.registerLazySingleton<HiveFavoritesMigrationService>(
