@@ -17,6 +17,7 @@ class PendingMeshSendQueue {
     required String content,
     required DateTime sentAt,
   }) {
+    _purgeExpired();
     _entries[clientId] = _Entry(
       clientId: clientId,
       conversationId: conversationId,
@@ -45,6 +46,7 @@ class PendingMeshSendQueue {
     required String peerUserId,
     required Iterable<String> Function(String conversationId) participantsOf,
   }) sync* {
+    _purgeExpired();
     for (final entry in _entries.values) {
       final participants = participantsOf(entry.conversationId);
       if (!participants.contains(peerUserId)) continue;
@@ -56,6 +58,19 @@ class PendingMeshSendQueue {
         sentAt: entry.sentAt,
       );
     }
+  }
+
+  /// Explicitly remove the entry for [clientId]. No-op if not present.
+  void remove(String clientId) {
+    _entries.remove(clientId);
+  }
+
+  /// Number of entries currently in the queue (after lazy TTL purge).
+  int get pendingCount => _entries.length;
+
+  void _purgeExpired() {
+    final now = clock.now();
+    _entries.removeWhere((_, entry) => entry.expiresAt.isBefore(now));
   }
 }
 
@@ -89,5 +104,3 @@ class _Entry {
   });
 }
 
-// ignore: unused_element
-final _clockRef = clock; // keeps the clock import alive for Tasks 3+
