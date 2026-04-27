@@ -197,6 +197,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _isFrontCamera = true;
   final TransformationController _screenShareTransformCtrl = TransformationController();
 
+  // Auto-hide of bottom call controls
+  bool _callControlsHidden = false;
+  Timer? _callControlsHideTimer;
+  static const Duration _callControlsHideDelay = Duration(milliseconds: 3500);
+  // Tracks whether we've already hidden system status bar for landscape fullscreen
+  bool _systemUiHiddenForFs = false;
+
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   /// Video effects supported on iOS 15+ only (Vision framework).
@@ -208,6 +215,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     WidgetsBinding.instance.addObserver(this);
     // Dismiss any keyboard left over from the previous screen (e.g. chat input)
     FocusManager.instance.primaryFocus?.unfocus();
+    // Schedule first auto-hide of bottom controls after initial reveal delay
+    _scheduleHideCallControls();
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     _initTime = DateTime.now();
@@ -3225,8 +3234,13 @@ Answer briefly — the user is in the middle of a conversation.''';
     _holdPlayer.stop().catchError((_) {});
     _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
+    _callControlsHideTimer?.cancel();
     // Restore portrait if we were in landscape for screen share
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Restore system status/navigation bars in case we hid them for landscape fs
+    if (_systemUiHiddenForFs) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     // Translation cleanup — server-side, nothing local to stop
     // Do NOT disconnect room — call continues in background via CallStateService
     super.dispose();
@@ -3240,10 +3254,22 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   Widget build(BuildContext context) {
+    // In landscape + screen-share fullscreen: hide AppBar AND system status bar
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final bool immersiveFs = _screenShareFullscreen && isLandscape;
+    if (immersiveFs != _systemUiHiddenForFs) {
+      _systemUiHiddenForFs = immersiveFs;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        SystemChrome.setEnabledSystemUIMode(
+          immersiveFs ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
+        );
+      });
+    }
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
-      appBar: AppBar(
+      appBar: immersiveFs ? null : AppBar(
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
@@ -3326,6 +3352,33 @@ Answer briefly — the user is in the middle of a conversation.''';
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          // Floating restore button when bottom controls are auto-hidden
+          if (_callControlsHidden && !_screenShareFullscreen)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.of(context).padding.bottom + 12,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _showCallControls,
+                  child: Container(
+                    width: 72,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -3620,7 +3673,19 @@ Answer briefly — the user is in the middle of a conversation.''';
         // Self is now shown as a circular avatar in _buildParticipantsList
         // Controls — two rows for small screens (hidden in fullscreen screen share)
         if (!_screenShareFullscreen)
-        Padding(
+        AnimatedSlide(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          offset: _callControlsHidden ? const Offset(0, 1.2) : Offset.zero,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 220),
+            opacity: _callControlsHidden ? 0.0 : 1.0,
+            child: IgnorePointer(
+              ignoring: _callControlsHidden,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _scheduleHideCallControls(),
+                child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -3807,6 +3872,10 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ),
               ),
             ],
+          ),
+        ),
+              ),
+            ),
           ),
         ),
       ],
@@ -4246,6 +4315,28 @@ Answer briefly — the user is in the middle of a conversation.''';
     setState(() {
       _screenShareFullscreen = false;
       _userExitedScreenShareFullscreen = true;
+    });
+  }
+
+  void _showCallControls() {
+    if (_callControlsHidden && mounted) {
+      setState(() => _callControlsHidden = false);
+    }
+    _scheduleHideCallControls();
+  }
+
+  void _hideCallControls() {
+    _callControlsHideTimer?.cancel();
+    _callControlsHideTimer = null;
+    if (!_callControlsHidden && mounted) {
+      setState(() => _callControlsHidden = true);
+    }
+  }
+
+  void _scheduleHideCallControls() {
+    _callControlsHideTimer?.cancel();
+    _callControlsHideTimer = Timer(_callControlsHideDelay, () {
+      if (mounted) _hideCallControls();
     });
   }
 
