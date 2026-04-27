@@ -45,15 +45,13 @@ Only messages that satisfy **all** of:
 
 This matches user intent: the queue is the recovery path for the cold-start window, not a generic mesh retransmission layer.
 
-## TTL — how long an entry stays live
+## TTL — none
 
-30 seconds from `sentAt`. Rationale:
+The queue holds entries until either `remove(clientId)` is called or the process dies. Earlier drafts capped retention at 30 s, but the cap was harmful in the realistic case the feature targets: cold-start of the peer's app can take longer than 30 s, and dropping the entry meant the message stayed pending forever even though the peer eventually surfaced.
 
-- Phase 2.1 cold-start watchdog: 5 / 10 / 15 s = up to ~30 s of recovery attempts before discovery is declared dead.
-- Server fanback typically delivers in seconds when up; if both server and mesh fail for 30 s, the user has already moved on and a late mesh delivery would surprise more than help.
-- The cross-transport dedup window is 10 s; running the retry queue past 30 s would risk re-displaying messages on the receiver if mesh delivery races with a slow server delivery. Keeping the queue window inside one window-stretch of dedup-tolerance is intentional.
+Late mesh delivery is safe because `MessengerBloc` already dedupes inbound by `clientId` without a time bound — if the server has delivered the same message earlier, the mesh-arriving copy with the matching `clientId` is dropped silently on the receiver. The cross-transport dedup heuristic (10 s, content-based) covers a different case (different ids, same content) and is unaffected.
 
-Cleanup is **lazy**: every `enqueue` and `dueFor` call purges expired entries first. No background timer.
+Memory growth is bounded in practice: the queue is non-empty only when a peer is offline and the user keeps sending. Typical occupancy is a handful of entries during the cold-start window. If pathological loads ever surface, a max-entries cap is a one-line change.
 
 ## Per-peer fan-out tracking
 

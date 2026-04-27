@@ -1,14 +1,14 @@
-import 'package:clock/clock.dart';
-
 /// Retry queue for text messages that had no eligible mesh peers at first
-/// send. Lives only in memory; entries expire 30 s after `sentAt`.
+/// send. Lives only in memory and persists for the app's lifetime —
+/// entries are removed only via [remove] or process death. Late mesh
+/// delivery is harmless because [MessengerBloc] dedupes by `clientId`
+/// without a time bound.
 ///
 /// See `docs/superpowers/specs/2026-04-27-mesh-phase2-2-pending-mesh-retry-design.md`.
 class PendingMeshSendQueue {
-  final Duration ttl;
   final Map<String, _Entry> _entries = {};
 
-  PendingMeshSendQueue({this.ttl = const Duration(seconds: 30)});
+  PendingMeshSendQueue();
 
   /// Add or overwrite an entry for [clientId].
   void enqueue({
@@ -17,13 +17,11 @@ class PendingMeshSendQueue {
     required String content,
     required DateTime sentAt,
   }) {
-    _purgeExpired();
     _entries[clientId] = _Entry(
       clientId: clientId,
       conversationId: conversationId,
       content: content,
       sentAt: sentAt,
-      expiresAt: sentAt.add(ttl),
     );
   }
 
@@ -40,13 +38,12 @@ class PendingMeshSendQueue {
     return wasEmpty;
   }
 
-  /// Entries currently within TTL whose conversation participants include
-  /// [peerUserId] and that have not yet been fanned out to that peer.
+  /// Entries whose conversation participants include [peerUserId] and that
+  /// have not yet been fanned out to that peer.
   Iterable<PendingMeshSendEntry> dueFor({
     required String peerUserId,
     required Iterable<String> Function(String conversationId) participantsOf,
   }) sync* {
-    _purgeExpired();
     for (final entry in _entries.values) {
       final participants = participantsOf(entry.conversationId);
       if (!participants.contains(peerUserId)) continue;
@@ -65,13 +62,8 @@ class PendingMeshSendQueue {
     _entries.remove(clientId);
   }
 
-  /// Number of entries currently in the queue (after lazy TTL purge).
+  /// Number of entries currently in the queue.
   int get pendingCount => _entries.length;
-
-  void _purgeExpired() {
-    final now = clock.now();
-    _entries.removeWhere((_, entry) => entry.expiresAt.isBefore(now));
-  }
 }
 
 class PendingMeshSendEntry {
@@ -92,7 +84,6 @@ class _Entry {
   final String conversationId;
   final String content;
   final DateTime sentAt;
-  final DateTime expiresAt;
   final Set<String> fannedOutTo = <String>{};
 
   _Entry({
@@ -100,7 +91,5 @@ class _Entry {
     required this.conversationId,
     required this.content,
     required this.sentAt,
-    required this.expiresAt,
   });
 }
-

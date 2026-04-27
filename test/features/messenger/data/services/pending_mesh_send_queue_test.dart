@@ -1,4 +1,3 @@
-import 'package:clock/clock.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 
@@ -121,49 +120,23 @@ void main() {
     });
   });
 
-  group('PendingMeshSendQueue TTL + remove + pendingCount', () {
-    test('expired entries are not returned by dueFor and are purged lazily', () {
-      withClock(Clock.fixed(DateTime.parse('2026-04-27T10:00:00Z')), () {
-        final queue = PendingMeshSendQueue(ttl: const Duration(seconds: 30));
-        queue.enqueue(
-          clientId: 'temp_abc',
-          conversationId: 'conv-1',
-          content: 'hello',
-          sentAt: DateTime.parse('2026-04-27T10:00:00Z'),
-        );
-        expect(queue.pendingCount, 1);
+  group('PendingMeshSendQueue remove + pendingCount', () {
+    test('entries persist indefinitely (no implicit TTL)', () {
+      final queue = PendingMeshSendQueue();
+      queue.enqueue(
+        clientId: 'temp_abc',
+        conversationId: 'conv-1',
+        content: 'hello',
+        sentAt: DateTime.parse('2020-01-01T00:00:00Z'), // ancient sentAt
+      );
 
-        // Advance fake time past TTL.
-        withClock(Clock.fixed(DateTime.parse('2026-04-27T10:00:31Z')), () {
-          final due = queue.dueFor(
-            peerUserId: 'user-bob',
-            participantsOf: (_) => ['user-bob'],
-          ).toList();
-          expect(due, isEmpty);
-          expect(queue.pendingCount, 0,
-              reason: 'lazy purge during dueFor must drop expired entries');
-        });
-      });
-    });
-
-    test('non-expired entries survive a dueFor call', () {
-      withClock(Clock.fixed(DateTime.parse('2026-04-27T10:00:00Z')), () {
-        final queue = PendingMeshSendQueue(ttl: const Duration(seconds: 30));
-        queue.enqueue(
-          clientId: 'temp_abc',
-          conversationId: 'conv-1',
-          content: 'hello',
-          sentAt: DateTime.parse('2026-04-27T10:00:00Z'),
-        );
-
-        withClock(Clock.fixed(DateTime.parse('2026-04-27T10:00:10Z')), () {
-          queue.dueFor(
-            peerUserId: 'user-charlie', // not a participant; just trigger purge
-            participantsOf: (_) => ['user-bob'],
-          ).toList();
-          expect(queue.pendingCount, 1);
-        });
-      });
+      // dueFor must still return it — no TTL purge.
+      final due = queue.dueFor(
+        peerUserId: 'user-bob',
+        participantsOf: (_) => ['user-bob'],
+      ).toList();
+      expect(due, hasLength(1));
+      expect(queue.pendingCount, 1);
     });
 
     test('remove drops the entry explicitly', () {
