@@ -217,13 +217,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
     _scheduleHideCallControls();
-    // Allow free rotation during a call so landscape is supported in PiP
-    // and fullscreen alike (was previously portrait-locked outside fullscreen).
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // Allow free rotation during a call. iOS 16+ doesn't pick up the new
+    // allowed-orientation set immediately, so we await + apply twice with a
+    // post-frame nudge — that triggers the native rotation refresh path.
+    _enableFreeRotation();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _enableFreeRotation();
+    });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     _initTime = DateTime.now();
@@ -4533,6 +4533,17 @@ Answer briefly — the user is in the middle of a conversation.''';
       _screenShareFullscreen = false;
       _userExitedScreenShareFullscreen = true;
     });
+  }
+
+  /// Allow portrait + both landscape orientations during the call.
+  /// Async-await is required on iOS — synchronous calls were ignored on
+  /// some iOS 16+ devices (the rotation simply didn't happen).
+  Future<void> _enableFreeRotation() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
   }
 
   void _showCallControls() {
