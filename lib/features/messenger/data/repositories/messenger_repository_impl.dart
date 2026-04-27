@@ -29,8 +29,6 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   final String? Function() _currentUserIdProvider;
   final PendingMeshSendQueue _pendingMeshQueue;
 
-  StreamSubscription<AdaptedPeerDiscovered>? _peerDiscoveredSub;
-
   static const int _meshGroupSizeCap = 50;
 
   MessengerRepositoryImpl(
@@ -49,7 +47,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         _isPeerVisibleForContactUserId = isPeerVisibleForContactUserId,
         _currentUserIdProvider = currentUserIdProvider,
         _pendingMeshQueue = pendingMeshQueue {
-    _peerDiscoveredSub = _meshAdapter.peerDiscovered.listen(_onMeshPeerDiscovered);
+    _meshAdapter.peerDiscovered.listen(_onMeshPeerDiscovered);
   }
 
   @override
