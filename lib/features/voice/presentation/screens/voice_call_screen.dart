@@ -3264,6 +3264,10 @@ Answer briefly — the user is in the middle of a conversation.''';
     // In landscape + screen-share fullscreen: hide AppBar AND system status bar
     final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     final bool immersiveFs = _screenShareFullscreen && isLandscape;
+    // In any landscape orientation we drop the AppBar to reclaim ~56px for
+    // the video grid; back navigation falls back to the small floating
+    // chevron rendered in the outer Stack below.
+    final bool hideAppBar = isLandscape;
     if (immersiveFs != _systemUiHiddenForFs) {
       _systemUiHiddenForFs = immersiveFs;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -3276,7 +3280,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
-      appBar: immersiveFs ? null : AppBar(
+      appBar: hideAppBar ? null : AppBar(
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
@@ -3359,6 +3363,31 @@ Answer briefly — the user is in the middle of a conversation.''';
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          // Back FAB shown only when AppBar is hidden in landscape (and we
+          // aren't already in immersive fullscreen, which has its own exit btn)
+          if (isLandscape && !immersiveFs)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              left: MediaQuery.of(context).padding.left + 8,
+              child: GestureDetector(
+                onTap: _minimizeCall,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white24),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ),
@@ -3694,7 +3723,14 @@ Answer briefly — the user is in the middle of a conversation.''';
                     // clipped under the iOS home indicator / Android nav bar.
                     height: MediaQuery.of(context).padding.bottom + 8,
                   )
-                : Listener(
+                : GestureDetector(
+                    // Whole-panel swipe-down to hide controls manually.
+                    // Vertical-drag is distinct from button taps so children stay tappable.
+                    behavior: HitTestBehavior.translucent,
+                    onVerticalDragEnd: (details) {
+                      if ((details.primaryVelocity ?? 0) > 200) _hideCallControls();
+                    },
+                    child: Listener(
                     behavior: HitTestBehavior.translucent,
                     onPointerDown: (_) => _scheduleHideCallControls(),
                     child: Padding(
@@ -3707,23 +3743,26 @@ Answer briefly — the user is in the middle of a conversation.''';
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Drag-handle: swipe down to hide controls manually
+              // Drag-handle: visual cue + larger hit area for swipe-down
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onVerticalDragEnd: (details) {
-                  if ((details.primaryVelocity ?? 0) > 150) _hideCallControls();
+                  if ((details.primaryVelocity ?? 0) > 100) _hideCallControls();
                 },
-                onTap: () {
-                  // Reset auto-hide timer on tap, don't hide on a single tap
-                  _scheduleHideCallControls();
-                },
+                onTap: _scheduleHideCallControls,
                 child: Container(
-                  margin: const EdgeInsets.only(top: 6, bottom: 6),
-                  width: 44,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.30),
-                    borderRadius: BorderRadius.circular(2),
+                  width: double.infinity,
+                  // Wider/taller hit area than the visual stripe
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  alignment: Alignment.center,
+                  color: Colors.transparent,
+                  child: Container(
+                    width: 56,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
                 ),
               ),
@@ -3835,7 +3874,10 @@ Answer briefly — the user is in the middle of a conversation.''';
                     ),
                   ),
                 ),
-              // Controls: secondary row
+              // Controls: main row + end call. In landscape we render a single
+              // compact horizontally-scrollable row with ALL buttons including
+              // end call (see further down) — so skip these when landscape.
+              if (MediaQuery.of(context).orientation != Orientation.landscape) ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -3859,9 +3901,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ],
               ),
-              SizedBox(
-                height: MediaQuery.of(context).orientation == Orientation.landscape ? 6 : 16,
-              ),
+              const SizedBox(height: 16),
               // End call button — centered.
               // Long-press shows menu to end all calls when multiple lines are active.
               Center(
@@ -3913,13 +3953,119 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ),
               ),
+              ],
+              // ── Landscape compact bar: ALL buttons in a single horizontally
+              // scrollable row, icon-only (no labels), with end-call at the right.
+              if (MediaQuery.of(context).orientation == Orientation.landscape)
+                _buildLandscapeControlsRow(),
             ],
           ),
         ),
                   ),
                 ),
+                  ),
               ),
       ],
+    );
+  }
+
+  /// Single horizontally scrollable row used for the call controls in
+  /// landscape orientation. All buttons are compact (44px icon, no label).
+  Widget _buildLandscapeControlsRow() {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final children = <Widget>[
+      _ControlButton(
+        compact: true,
+        icon: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
+            ? Icons.stop_circle_rounded
+            : Icons.fiber_manual_record_rounded,
+        label: l10n.voiceRecord,
+        color: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
+            ? Colors.red.withValues(alpha: 0.2)
+            : colors.card,
+        iconColor: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription)) ? Colors.red : null,
+        onTap: ((_consentPending && _consentForTranscription) ||
+                ((_isRecording || _transcriptionActive || _recordingApproved) && _recordingInitiatorId != _room?.localParticipant?.identity))
+            ? null
+            : _toggleRecordingWithConsent,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.translate_rounded,
+        label: l10n.voiceTranslation,
+        color: _translationEnabled ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        iconColor: _translationEnabled ? colors.primary : null,
+        onTap: _showLangPicker,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: _outputIcons[_audioOutputType] ?? Icons.volume_up_rounded,
+        label: l10n.voiceAudio,
+        color: _audioOutputType != 'earpiece' ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        onTap: _showAudioOutputPicker,
+      ),
+      if (_cameraOn)
+        _ControlButton(
+          compact: true,
+          icon: Icons.flip_camera_ios_rounded,
+          label: l10n.voiceFlipCamera,
+          color: colors.card,
+          onTap: _flipCamera,
+        ),
+      if (_cameraOn && _videoEffectsSupported)
+        _ControlButton(
+          compact: true,
+          icon: Icons.blur_on_rounded,
+          label: l10n.voiceBackground,
+          color: sl<VideoEffectsService>().current != VideoEffect.none
+              ? colors.primary.withValues(alpha: 0.2)
+              : colors.card,
+          onTap: _showVideoEffectsPicker,
+        ),
+      _ControlButton(
+        compact: true,
+        icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
+        label: _muted ? l10n.voiceUnmute : l10n.voiceMic,
+        color: _muted ? colors.error : colors.card,
+        onTap: _assistantActive ? null : _toggleMute,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.smart_toy_rounded,
+        label: l10n.voiceAssistantLabel,
+        color: _assistantActive ? colors.primary : colors.card,
+        onTap: _assistantActive ? _stopAssistant : _startAssistant,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: _cameraOn ? Icons.videocam_rounded : Icons.videocam_off_rounded,
+        label: l10n.voiceCameraLabel,
+        color: _cameraOn ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        onTap: _toggleCamera,
+      ),
+      _ControlButton(
+        compact: true,
+        icon: Icons.call_end_rounded,
+        label: l10n.voiceEndCall,
+        color: colors.error,
+        onTap: () => _hangUp(userInitiated: true),
+      ),
+    ];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right > 0 ? 8 : 4,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final w in children) Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: w,
+          ),
+        ],
+      ),
     );
   }
 
@@ -4886,6 +5032,7 @@ class _ControlButton extends StatelessWidget {
   final Color color;
   final VoidCallback? onTap;
   final bool large;
+  final bool compact;
   final Color? iconColor;
   final bool active;
 
@@ -4895,6 +5042,7 @@ class _ControlButton extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.large = false,
+    this.compact = false,
     this.iconColor,
     this.active = false,
   });
@@ -4913,13 +5061,16 @@ class _ControlButton extends StatelessWidget {
         : (color.computeLuminance() > 0.4
             ? appColors.textPrimary
             : Colors.white));
+    final btnSize = large ? 72.0 : (compact ? 44.0 : 56.0);
+    final iconSize = large ? 32.0 : (compact ? 20.0 : 24.0);
     return GestureDetector(
       onTap: onTap,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: large ? 72 : 56,
-            height: large ? 72 : 56,
+            width: btnSize,
+            height: btnSize,
             decoration: BoxDecoration(
               gradient: isColoredAction
                   ? RadialGradient(
@@ -4964,17 +5115,19 @@ class _ControlButton extends StatelessWidget {
               color: onTap == null
                   ? appColors.textSecondary.withValues(alpha: 0.4)
                   : (isColoredAction ? Colors.white : resolvedIconColor),
-              size: large ? 32 : 24,
+              size: iconSize,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.of(context).textSecondary,
-              fontSize: 12,
+          if (!compact) ...[
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppColors.of(context).textSecondary,
+                fontSize: 12,
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
