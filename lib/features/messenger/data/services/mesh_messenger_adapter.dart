@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../../../core/mesh/services/envelope.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
+import '../../../../core/mesh/transport/mesh_transport.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 
 class AdaptedInboundMessage {
@@ -28,6 +29,12 @@ class AdaptedInboundMessage {
     required this.receivedAt,
     required this.clientId,
   });
+}
+
+class AdaptedPeerDiscovered {
+  final PeerId devicePk;
+  final String contactUserId;
+  AdaptedPeerDiscovered({required this.devicePk, required this.contactUserId});
 }
 
 class AdaptedOutboundMessage {
@@ -63,6 +70,7 @@ class MeshMessengerAdapter {
   final Future<void> Function({required PeerId toUserPk, required Envelope envelope})
       meshSendEnvelope;
   final Stream<InboundEnvelope> meshInbound;
+  final Stream<PeerDiscovered> meshDiscoveries;
   final PeerId? Function(PeerId devicePk) lookupUserByDevice;
   final String? Function(PeerId userPk) contactUserIdForUserPk;
   final String? Function() currentUserIdProvider;
@@ -72,11 +80,14 @@ class MeshMessengerAdapter {
 
   final _ctrl = StreamController<AdaptedInboundMessage>.broadcast();
   final _outCtrl = StreamController<AdaptedOutboundMessage>.broadcast();
+  final _peerCtrl = StreamController<AdaptedPeerDiscovered>.broadcast();
   StreamSubscription<InboundEnvelope>? _sub;
+  StreamSubscription<PeerDiscovered>? _peerSub;
 
   MeshMessengerAdapter({
     required this.meshSendEnvelope,
     required this.meshInbound,
+    required this.meshDiscoveries,
     required this.lookupUserByDevice,
     required this.contactUserIdForUserPk,
     required this.currentUserIdProvider,
@@ -85,14 +96,18 @@ class MeshMessengerAdapter {
 
   Stream<AdaptedInboundMessage> get inbound => _ctrl.stream;
   Stream<AdaptedOutboundMessage> get outbound => _outCtrl.stream;
+  Stream<AdaptedPeerDiscovered> get peerDiscovered => _peerCtrl.stream;
 
   void start() {
     _sub ??= meshInbound.listen(_onInbound);
+    _peerSub ??= meshDiscoveries.listen(_onDiscovery);
   }
 
   Future<void> stop() async {
     await _sub?.cancel();
     _sub = null;
+    await _peerSub?.cancel();
+    _peerSub = null;
   }
 
   void _onInbound(InboundEnvelope inbound) {
@@ -168,9 +183,21 @@ class MeshMessengerAdapter {
     _outCtrl.add(event);
   }
 
+  void _onDiscovery(PeerDiscovered ev) {
+    final userPk = lookupUserByDevice(ev.peerId);
+    if (userPk == null) return;
+    final contactUserId = contactUserIdForUserPk(userPk);
+    if (contactUserId == null) return;
+    _peerCtrl.add(AdaptedPeerDiscovered(
+      devicePk: ev.peerId,
+      contactUserId: contactUserId,
+    ));
+  }
+
   Future<void> dispose() async {
     await stop();
     await _ctrl.close();
     await _outCtrl.close();
+    await _peerCtrl.close();
   }
 }
