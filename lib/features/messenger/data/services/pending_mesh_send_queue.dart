@@ -26,6 +26,19 @@ class PendingMeshSendQueue {
     );
   }
 
+  /// Mark [peerUserId] as having received the message identified by
+  /// [clientId]. Returns `true` if this is the first peer to be marked
+  /// for that clientId (the entry's fanout-set was empty before this
+  /// call). Returns `false` if the entry no longer exists or the
+  /// fanout-set was non-empty.
+  bool markFannedOut({required String clientId, required String peerUserId}) {
+    final entry = _entries[clientId];
+    if (entry == null) return false;
+    final wasEmpty = entry.fannedOutTo.isEmpty;
+    entry.fannedOutTo.add(peerUserId);
+    return wasEmpty;
+  }
+
   /// Entries currently within TTL whose conversation participants include
   /// [peerUserId] and that have not yet been fanned out to that peer.
   Iterable<PendingMeshSendEntry> dueFor({

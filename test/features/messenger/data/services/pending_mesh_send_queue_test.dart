@@ -64,4 +64,59 @@ void main() {
       expect(due.single.content, 'second');
     });
   });
+
+  group('PendingMeshSendQueue markFannedOut', () {
+    test('first call returns true, subsequent calls return false', () {
+      final queue = PendingMeshSendQueue();
+      queue.enqueue(
+        clientId: 'temp_abc',
+        conversationId: 'conv-1',
+        content: 'hello',
+        sentAt: DateTime.now().toUtc(),
+      );
+
+      final first = queue.markFannedOut(clientId: 'temp_abc', peerUserId: 'user-bob');
+      final second = queue.markFannedOut(clientId: 'temp_abc', peerUserId: 'user-bob');
+      expect(first, isTrue);
+      expect(second, isFalse);
+    });
+
+    test('first call for second peer also returns false (clientId already had a fanout)', () {
+      final queue = PendingMeshSendQueue();
+      queue.enqueue(
+        clientId: 'temp_abc',
+        conversationId: 'conv-1',
+        content: 'hello',
+        sentAt: DateTime.now().toUtc(),
+      );
+
+      queue.markFannedOut(clientId: 'temp_abc', peerUserId: 'user-bob');
+      final second = queue.markFannedOut(clientId: 'temp_abc', peerUserId: 'user-charlie');
+      expect(second, isFalse);
+    });
+
+    test('marked peer is excluded from subsequent dueFor', () {
+      final queue = PendingMeshSendQueue();
+      queue.enqueue(
+        clientId: 'temp_abc',
+        conversationId: 'conv-1',
+        content: 'hello',
+        sentAt: DateTime.now().toUtc(),
+      );
+      queue.markFannedOut(clientId: 'temp_abc', peerUserId: 'user-bob');
+
+      final due = queue.dueFor(
+        peerUserId: 'user-bob',
+        participantsOf: (_) => ['user-bob', 'user-me'],
+      ).toList();
+
+      expect(due, isEmpty);
+    });
+
+    test('markFannedOut on missing clientId is a no-op and returns false', () {
+      final queue = PendingMeshSendQueue();
+      final r = queue.markFannedOut(clientId: 'no-such-id', peerUserId: 'user-bob');
+      expect(r, isFalse);
+    });
+  });
 }
