@@ -3698,11 +3698,38 @@ Answer briefly — the user is in the middle of a conversation.''';
                     behavior: HitTestBehavior.translucent,
                     onPointerDown: (_) => _scheduleHideCallControls(),
                     child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            MediaQuery.of(context).orientation == Orientation.landscape ? 4 : 16,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Drag-handle: swipe down to hide controls manually
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onVerticalDragEnd: (details) {
+                  if ((details.primaryVelocity ?? 0) > 150) _hideCallControls();
+                },
+                onTap: () {
+                  // Reset auto-hide timer on tap, don't hide on a single tap
+                  _scheduleHideCallControls();
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(top: 6, bottom: 6),
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.30),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
               // Secondary row: Record, AI Record, Translate, Audio Output, [Flip Camera], [Bg]
+              // Hidden in landscape to keep the panel within available height.
+              if (MediaQuery.of(context).orientation != Orientation.landscape)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -3782,7 +3809,8 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ],
               ),
               ),
-              const SizedBox(height: 12),
+              if (MediaQuery.of(context).orientation != Orientation.landscape)
+                const SizedBox(height: 12),
               // Assistant active indicator
               if (_assistantActive)
                 Padding(
@@ -3831,7 +3859,9 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(
+                height: MediaQuery.of(context).orientation == Orientation.landscape ? 6 : 16,
+              ),
               // End call button — centered.
               // Long-press shows menu to end all calls when multiple lines are active.
               Center(
@@ -4030,18 +4060,32 @@ Answer briefly — the user is in the middle of a conversation.''';
 
     final colors = AppColors.of(context);
     final totalCount = _participants.where((p) => p.identity != 'voice-translator').length + 1; // +1 for self
-    final avatarRadius = totalCount <= 2 ? 48.0 : 36.0;
-    final fontSize = totalCount <= 2 ? 32.0 : 24.0;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    // In landscape height is small — shrink avatars so all participants fit
+    // without scrolling/clipping.
+    final avatarRadius = isLandscape
+        ? (totalCount <= 2 ? 36.0 : 26.0)
+        : (totalCount <= 2 ? 48.0 : 36.0);
+    final fontSize = isLandscape
+        ? (totalCount <= 2 ? 24.0 : 18.0)
+        : (totalCount <= 2 ? 32.0 : 24.0);
     final myAvatarUrl = _getMyAvatarUrl();
     final myName = _room?.localParticipant?.name ?? '';
     final myIdentity = _room?.localParticipant?.identity ?? '';
     final mySpeaking = _speakingIdentities.contains(myIdentity);
 
     return Center(
-      child: Wrap(
+      child: Padding(
+        // Avoid notch/edge clipping in landscape (left & right insets).
+        padding: EdgeInsets.symmetric(
+          horizontal: isLandscape
+              ? (MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right) / 2 + 8
+              : 0,
+        ),
+        child: Wrap(
         alignment: WrapAlignment.center,
-        spacing: 24,
-        runSpacing: 24,
+        spacing: isLandscape ? 16 : 24,
+        runSpacing: isLandscape ? 12 : 24,
         children: [
           // Local user (self)
           _buildParticipantAvatar(
@@ -4090,6 +4134,7 @@ Answer briefly — the user is in the middle of a conversation.''';
             );
           }),
         ],
+      ),
       ),
     );
   }
@@ -4237,12 +4282,18 @@ Answer briefly — the user is in the middle of a conversation.''';
     );
 
     if (isLandscape) {
+      // Right side strip — must respect notch/safe area on the right edge so
+      // tile thumbnails are not clipped by it.
+      final rightInset = MediaQuery.of(context).padding.right;
       return Row(
         children: [
           Expanded(child: screenView),
-          SizedBox(
-            width: 110,
-            child: _buildParticipantStrip(axis: Axis.vertical),
+          Padding(
+            padding: EdgeInsets.only(right: rightInset),
+            child: SizedBox(
+              width: 100,
+              child: _buildParticipantStrip(axis: Axis.vertical),
+            ),
           ),
         ],
       );
