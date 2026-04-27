@@ -146,5 +146,101 @@ void main() {
       await alice.dispose();
       await bob.dispose();
     });
+
+    test(
+        'burst of N data frames to one peer all decrypt correctly (Phase 2.2 retry safety)',
+        () async {
+      // Regression: Phase 2.2 retry sends N frames to one peer rapidly.
+      // Without serialised _onInboundFrame, concurrent decrypt calls would
+      // race on Noise session state and produce MAC failures on all but the
+      // first frame.
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      final aliceT = _FakeTransport();
+      final bobT = _FakeTransport();
+      aliceT.partner = bobT;
+      bobT.partner = aliceT;
+
+      final alice = MeshMessagingService(
+        transport: aliceT,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+      );
+      final bob = MeshMessagingService(
+        transport: bobT,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+      );
+
+      await alice.start(serviceName: 'Alice');
+      await bob.start(serviceName: 'Bob');
+
+      aliceT.emitDiscovery(PeerDiscovered(
+        peerId: bobPeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+      bobT.emitDiscovery(PeerDiscovered(
+        peerId: alicePeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+
+      final received = <InboundEnvelope>[];
+      final sub = bob.inbound.listen(received.add);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Establish session with a first message.
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-burst',
+          clientId: 'msg-0',
+          text: 'warm up',
+          sentAt: DateTime.parse('2026-04-27T10:00:00Z'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      // Sequential send (matches Phase 2.2 retry handler:
+      // `for (final entry in due) { await sendEnvelopeToPeer(...) }`).
+      // Receiver sees the frames arriving in rapid succession via the
+      // stream — that is where the concurrency would have raced.
+      for (var i = 1; i <= 10; i++) {
+        await alice.sendEnvelope(
+          toUserPk: bobPeer,
+          envelope: Envelope(
+            version: 1,
+            type: 'text',
+            convId: 'conv-burst',
+            clientId: 'msg-$i',
+            text: 'burst $i',
+            sentAt: DateTime.parse('2026-04-27T10:00:00Z'),
+          ),
+        );
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      expect(received, hasLength(11),
+          reason: 'all warm-up + 10 burst frames must decrypt');
+      final clientIds = received.map((e) => e.envelope.clientId).toList();
+      expect(clientIds, ['msg-0', for (var i = 1; i <= 10; i++) 'msg-$i']);
+
+      await sub.cancel();
+      await alice.dispose();
+      await bob.dispose();
+    });
   });
 }
