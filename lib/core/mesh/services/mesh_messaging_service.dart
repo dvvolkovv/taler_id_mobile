@@ -67,6 +67,12 @@ class MeshMessagingService {
   StreamSubscription? _frameSub;
   StreamSubscription? _discoverySub;
 
+  /// Serializes inbound frame processing. Without this, async `_onInboundFrame`
+  /// invocations run concurrently when frames arrive in burst (e.g. Phase 2.2
+  /// retry sends N data frames to one peer rapidly), corrupting the per-peer
+  /// Noise session state and causing MAC failures on all but the first frame.
+  Future<void> _frameTail = Future.value();
+
   MeshMessagingService({
     required this.transport,
     required this.contactKeyStore,
@@ -84,7 +90,9 @@ class MeshMessagingService {
       devicePk: PeerId(myDevicePublicKey),
       serviceName: serviceName,
     ));
-    _frameSub = transport.inbound.listen(_onInboundFrame);
+    _frameSub = transport.inbound.listen((frame) {
+      _frameTail = _frameTail.then((_) => _onInboundFrame(frame));
+    });
     _discoverySub = transport.discoveries.listen(_onPeerDiscovered);
   }
 
