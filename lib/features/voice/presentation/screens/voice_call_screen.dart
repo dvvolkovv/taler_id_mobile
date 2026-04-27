@@ -3671,21 +3671,21 @@ Answer briefly — the user is in the middle of a conversation.''';
                       : _buildParticipantsList(),
         ),
         // Self is now shown as a circular avatar in _buildParticipantsList
-        // Controls — two rows for small screens (hidden in fullscreen screen share)
+        // Controls — two rows for small screens (hidden in fullscreen screen share).
+        // AnimatedSize collapses the slot so the video Expanded above grows
+        // into the freed space when the panel auto-hides.
         if (!_screenShareFullscreen)
-        AnimatedSlide(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          offset: _callControlsHidden ? const Offset(0, 1.2) : Offset.zero,
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 220),
-            opacity: _callControlsHidden ? 0.0 : 1.0,
-            child: IgnorePointer(
-              ignoring: _callControlsHidden,
-              child: Listener(
-                behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) => _scheduleHideCallControls(),
-                child: Padding(
+        ClipRect(
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            alignment: Alignment.topCenter,
+            child: _callControlsHidden
+                ? const SizedBox(width: double.infinity, height: 0)
+                : Listener(
+                    behavior: HitTestBehavior.translucent,
+                    onPointerDown: (_) => _scheduleHideCallControls(),
+                    child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -3874,10 +3874,9 @@ Answer briefly — the user is in the middle of a conversation.''';
             ],
           ),
         ),
+                  ),
+                ),
               ),
-            ),
-          ),
-        ),
       ],
     );
   }
