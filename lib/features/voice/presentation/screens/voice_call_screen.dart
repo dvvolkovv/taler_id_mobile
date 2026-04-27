@@ -3271,6 +3271,13 @@ Answer briefly — the user is in the middle of a conversation.''';
     // the video grid; back navigation falls back to the small floating
     // chevron rendered in the outer Stack below.
     final bool hideAppBar = isLandscape;
+    // If video/screen-share went away (voice-only state), auto-show the panel
+    // and cancel any pending hide so quick controls stay reachable.
+    if (_callControlsHidden && !_canAutoHideControls) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showCallControls();
+      });
+    }
     if (immersiveFs != _systemUiHiddenForFs) {
       _systemUiHiddenForFs = immersiveFs;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -4639,6 +4646,11 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
   }
 
+  /// Auto-hide only makes sense when there is video to maximize. In a voice-
+  /// only call (no camera, no remote video, no screen share) the panel stays
+  /// pinned so quick controls (mute/hold/end) remain one tap away.
+  bool get _canAutoHideControls => _hasAnyVideo || _remoteScreenShareTrack != null;
+
   void _showCallControls() {
     if (_callControlsHidden && mounted) {
       setState(() => _callControlsHidden = false);
@@ -4649,6 +4661,7 @@ Answer briefly — the user is in the middle of a conversation.''';
   void _hideCallControls() {
     _callControlsHideTimer?.cancel();
     _callControlsHideTimer = null;
+    if (!_canAutoHideControls) return;
     if (!_callControlsHidden && mounted) {
       setState(() => _callControlsHidden = true);
     }
@@ -4656,6 +4669,7 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   void _scheduleHideCallControls() {
     _callControlsHideTimer?.cancel();
+    if (!_canAutoHideControls) return;
     _callControlsHideTimer = Timer(_callControlsHideDelay, () {
       if (mounted) _hideCallControls();
     });
