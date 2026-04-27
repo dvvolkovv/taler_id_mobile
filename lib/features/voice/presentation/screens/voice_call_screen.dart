@@ -217,6 +217,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
     _scheduleHideCallControls();
+    // Allow free rotation during a call so landscape is supported in PiP
+    // and fullscreen alike (was previously portrait-locked outside fullscreen).
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     _initTime = DateTime.now();
@@ -3681,7 +3688,12 @@ Answer briefly — the user is in the middle of a conversation.''';
             curve: Curves.easeOutCubic,
             alignment: Alignment.topCenter,
             child: _callControlsHidden
-                ? const SizedBox(width: double.infinity, height: 0)
+                ? SizedBox(
+                    width: double.infinity,
+                    // Reserve bottom safe area so video tiles don't get
+                    // clipped under the iOS home indicator / Android nav bar.
+                    height: MediaQuery.of(context).padding.bottom + 8,
+                  )
                 : Listener(
                     behavior: HitTestBehavior.translucent,
                     onPointerDown: (_) => _scheduleHideCallControls(),
@@ -4163,67 +4175,82 @@ Answer briefly — the user is in the middle of a conversation.''';
     );
   }
 
-  /// Screen share layout: large screen share on top, small participant strip at bottom.
+  /// Screen share PiP layout: screen on the main axis, small participant strip
+  /// on the perpendicular axis. In portrait — screen on top, strip below.
+  /// In landscape — screen on the left, vertical strip on the right.
   Widget _buildScreenShareLayout() {
     final screenTrack = _remoteScreenShareTrack;
     final ownerName = _remoteScreenShareOwner ?? '';
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+
+    final screenView = GestureDetector(
+      onTap: () => setState(() {
+        _screenShareFullscreen = true;
+        _userExitedScreenShareFullscreen = false;
+      }),
+      child: Container(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (screenTrack != null)
+              lk.VideoTrackRenderer(screenTrack),
+            // Screen share label
+            Positioned(
+              top: 8,
+              left: 8,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.screen_share_rounded, color: Colors.white, size: 16),
+                    const SizedBox(width: 6),
+                    Text(
+                      '$ownerName — экран',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Fullscreen hint
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black38,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.fullscreen_rounded, color: Colors.white70, size: 20),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (isLandscape) {
+      return Row(
+        children: [
+          Expanded(child: screenView),
+          SizedBox(
+            width: 110,
+            child: _buildParticipantStrip(axis: Axis.vertical),
+          ),
+        ],
+      );
+    }
 
     return Column(
       children: [
-        // Screen share view (takes most of the space)
-        Expanded(
-          flex: 3,
-          child: GestureDetector(
-            onTap: () => setState(() => _screenShareFullscreen = true),
-            child: Container(
-              color: Colors.black,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (screenTrack != null)
-                    lk.VideoTrackRenderer(screenTrack),
-                  // Screen share label
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.screen_share_rounded, color: Colors.white, size: 16),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$ownerName — экран',
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Fullscreen hint
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.black38,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.fullscreen_rounded, color: Colors.white70, size: 20),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        // Small participant thumbnails at bottom
+        Expanded(flex: 3, child: screenView),
         SizedBox(
           height: 110,
           child: _buildParticipantStrip(),
@@ -4244,13 +4271,6 @@ Answer briefly — the user is in the middle of a conversation.''';
       });
       return const SizedBox.shrink();
     }
-
-    // Allow landscape when viewing screen share fullscreen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
 
     return Container(
       color: Colors.black,
@@ -4310,7 +4330,8 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   void _exitScreenShareFullscreen() {
     _screenShareTransformCtrl.value = Matrix4.identity();
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Don't lock orientation here — landscape stays allowed for the rest of
+    // the call (set in initState; restored only on dispose).
     setState(() {
       _screenShareFullscreen = false;
       _userExitedScreenShareFullscreen = true;
@@ -4353,8 +4374,9 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
   }
 
-  /// Horizontal strip of participant thumbnails (used below screen share).
-  Widget _buildParticipantStrip() {
+  /// Strip of participant thumbnails (below screen share in portrait,
+  /// to the right in landscape). Pass [axis] to switch orientation.
+  Widget _buildParticipantStrip({Axis axis = Axis.horizontal}) {
     final tiles = <_VideoTileData>[];
     for (final p in _participants) {
       if (p.identity == 'voice-translator' || p.identity == 'hold-music') continue;
@@ -4390,15 +4412,19 @@ Answer briefly — the user is in the middle of a conversation.''';
       ));
     }
     if (tiles.isEmpty) return const SizedBox.shrink();
+    final isVertical = axis == Axis.vertical;
     return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      scrollDirection: axis,
+      padding: const EdgeInsets.all(4),
       itemCount: tiles.length,
       itemBuilder: (_, i) {
         final tile = tiles[i];
         return Container(
-          width: 90,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: isVertical ? double.infinity : 90,
+          height: isVertical ? 90 : null,
+          margin: isVertical
+              ? const EdgeInsets.symmetric(vertical: 3)
+              : const EdgeInsets.symmetric(horizontal: 3),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Container(
