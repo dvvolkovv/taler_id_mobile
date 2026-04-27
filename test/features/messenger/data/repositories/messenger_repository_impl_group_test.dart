@@ -57,6 +57,10 @@ class _FakeAdapter implements MeshMessengerAdapter {
       outboundEvents.add(event);
 
   @override
+  Stream<AdaptedPeerDiscovered> get peerDiscovered =>
+      const Stream.empty();
+
+  @override
   dynamic noSuchMethod(Invocation i) =>
       throw UnimplementedError('not used: ${i.memberName}');
 }

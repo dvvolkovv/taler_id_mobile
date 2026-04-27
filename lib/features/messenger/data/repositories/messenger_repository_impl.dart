@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:uuid/uuid.dart';
 
@@ -27,6 +29,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   final String? Function() _currentUserIdProvider;
   final PendingMeshSendQueue _pendingMeshQueue;
 
+  StreamSubscription<AdaptedPeerDiscovered>? _peerDiscoveredSub;
+
   static const int _meshGroupSizeCap = 50;
 
   MessengerRepositoryImpl(
@@ -44,7 +48,9 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         _hiveContactStore = hiveContactStore,
         _isPeerVisibleForContactUserId = isPeerVisibleForContactUserId,
         _currentUserIdProvider = currentUserIdProvider,
-        _pendingMeshQueue = pendingMeshQueue;
+        _pendingMeshQueue = pendingMeshQueue {
+    _peerDiscoveredSub = _meshAdapter.peerDiscovered.listen(_onMeshPeerDiscovered);
+  }
 
   @override
   Future<void> connect(String accessToken) => _remote.connect(accessToken);
@@ -194,6 +200,53 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       }
     } catch (e, st) {
       debugPrint('[mesh-fanout] unexpected error: $e\n$st');
+    }
+  }
+
+  Future<void> _onMeshPeerDiscovered(AdaptedPeerDiscovered ev) async {
+    final due = _pendingMeshQueue.dueFor(
+      peerUserId: ev.contactUserId,
+      participantsOf: (convId) =>
+          _cache.getConversationById(convId)?.participantIds ?? const [],
+    ).toList();
+    for (final entry in due) {
+      final envelope = Envelope(
+        version: 1,
+        type: 'text',
+        convId: entry.conversationId,
+        clientId: entry.clientId,
+        text: entry.content,
+        sentAt: entry.sentAt,
+      );
+      try {
+        await _meshAdapter.sendEnvelopeToPeer(
+          peerDevicePk: ev.devicePk,
+          contactUserId: ev.contactUserId,
+          envelope: envelope,
+        );
+        final isFirst = _pendingMeshQueue.markFannedOut(
+          clientId: entry.clientId,
+          peerUserId: ev.contactUserId,
+        );
+        if (isFirst) {
+          final outboundId = entry.clientId.startsWith('temp_')
+              ? 'mesh-out-${entry.clientId.substring(5)}'
+              : 'mesh-out-${entry.clientId}';
+          _meshAdapter.emitOutbound(AdaptedOutboundMessage(
+            id: outboundId,
+            conversationId: entry.conversationId,
+            contactUserId: ev.contactUserId,
+            clientTempId: entry.clientId,
+            text: entry.content,
+            sentAt: entry.sentAt,
+          ));
+        }
+        debugPrint(
+            '[mesh-retry] delivered ${entry.clientId} to ${ev.contactUserId}');
+      } catch (e) {
+        debugPrint(
+            '[mesh-retry] send to ${ev.contactUserId} failed: $e (will retry on next discover)');
+      }
     }
   }
 
