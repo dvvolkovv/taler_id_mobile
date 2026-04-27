@@ -3242,8 +3242,8 @@ Answer briefly — the user is in the middle of a conversation.''';
     _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
     _callControlsHideTimer?.cancel();
-    // Restore portrait if we were in landscape for screen share
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    // Restore portrait + native iOS orientation lock for the rest of the app
+    _restorePortraitLock();
     // Restore system status/navigation bars in case we hid them for landscape fs
     if (_systemUiHiddenForFs) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -4535,15 +4535,29 @@ Answer briefly — the user is in the middle of a conversation.''';
     });
   }
 
+  static const _orientationChannel = MethodChannel('taler_id/orientation');
+
   /// Allow portrait + both landscape orientations during the call.
   /// Async-await is required on iOS — synchronous calls were ignored on
-  /// some iOS 16+ devices (the rotation simply didn't happen).
+  /// some iOS 16+ devices (the rotation simply didn't happen). Plus we
+  /// flip the iOS-native orientation lock via AppDelegate so SystemChrome
+  /// preferences actually take effect on iPhone.
   Future<void> _enableFreeRotation() async {
     await SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.portraitUp,
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    if (Platform.isIOS) {
+      try { await _orientationChannel.invokeMethod('setAllowAll', true); } catch (_) {}
+    }
+  }
+
+  Future<void> _restorePortraitLock() async {
+    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    if (Platform.isIOS) {
+      try { await _orientationChannel.invokeMethod('setAllowAll', false); } catch (_) {}
+    }
   }
 
   void _showCallControls() {
