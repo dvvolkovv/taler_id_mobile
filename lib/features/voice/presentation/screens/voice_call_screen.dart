@@ -192,6 +192,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // Video state
   bool _cameraOn = false;
   bool _screenShareFullscreen = false;
+  bool _userExitedScreenShareFullscreen = false;
   String? _screenShareParticipantName;
   bool _isFrontCamera = true;
   final TransformationController _screenShareTransformCtrl = TransformationController();
@@ -830,10 +831,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (mounted) setState(() {});
       })
       ..on<lk.TrackSubscribedEvent>((event) {
-        if (mounted) setState(() {});
+        if (mounted) setState(() { _syncScreenShareFullscreen(); });
       })
       ..on<lk.TrackUnsubscribedEvent>((_) {
-        if (mounted) setState(() {});
+        if (mounted) setState(() { _syncScreenShareFullscreen(); });
       })
       ..on<lk.TrackMutedEvent>((_) {
         if (mounted) setState(() {});
@@ -4242,7 +4243,24 @@ Answer briefly — the user is in the middle of a conversation.''';
   void _exitScreenShareFullscreen() {
     _screenShareTransformCtrl.value = Matrix4.identity();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    setState(() => _screenShareFullscreen = false);
+    setState(() {
+      _screenShareFullscreen = false;
+      _userExitedScreenShareFullscreen = true;
+    });
+  }
+
+  /// Auto-enter fullscreen when a remote screen share appears (unless the user
+  /// manually exited it for the current sharing session). Reset on stream end.
+  void _syncScreenShareFullscreen() {
+    final hasScreen = _remoteScreenShareTrack != null;
+    if (hasScreen) {
+      if (!_screenShareFullscreen && !_userExitedScreenShareFullscreen) {
+        _screenShareFullscreen = true;
+      }
+    } else {
+      _screenShareFullscreen = false;
+      _userExitedScreenShareFullscreen = false;
+    }
   }
 
   /// Horizontal strip of participant thumbnails (used below screen share).
