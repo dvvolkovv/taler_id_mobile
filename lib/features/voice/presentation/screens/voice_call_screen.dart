@@ -3246,7 +3246,10 @@ Answer briefly — the user is in the middle of a conversation.''';
     _restorePortraitLock();
     // Restore system status/navigation bars in case we hid them for landscape fs
     if (_systemUiHiddenForFs) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
     }
     // Translation cleanup — server-side, nothing local to stop
     // Do NOT disconnect room — call continues in background via CallStateService
@@ -3272,9 +3275,17 @@ Answer briefly — the user is in the middle of a conversation.''';
       _systemUiHiddenForFs = immersiveFs;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        SystemChrome.setEnabledSystemUIMode(
-          immersiveFs ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
-        );
+        if (immersiveFs) {
+          SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        } else {
+          // Restore status + nav bars; "manual" with all overlays prevents
+          // edge-to-edge from clipping screens that don't use SafeArea
+          // (e.g. Settings → app version line).
+          SystemChrome.setEnabledSystemUIMode(
+            SystemUiMode.manual,
+            overlays: SystemUiOverlay.values,
+          );
+        }
       });
     }
     return Scaffold(
@@ -4520,6 +4531,68 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
             ),
           ),
+          // Bottom overlay: chevron-up FAB when controls hidden, compact
+          // controls bar when shown — gives access to mic/cam/end-call
+          // without leaving fullscreen.
+          if (_callControlsHidden)
+            Positioned(
+              bottom: MediaQuery.of(context).padding.bottom + 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: _showCallControls,
+                  child: Container(
+                    width: 72,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white24),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(
+                      Icons.keyboard_arrow_up_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => _scheduleHideCallControls(),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onVerticalDragEnd: (details) {
+                    if ((details.primaryVelocity ?? 0) > 200) _hideCallControls();
+                  },
+                  child: Container(
+                    padding: EdgeInsets.only(
+                      top: 8,
+                      bottom: MediaQuery.of(context).padding.bottom + 8,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0),
+                          Colors.black.withValues(alpha: 0.55),
+                        ],
+                      ),
+                    ),
+                    child: _buildLandscapeControlsRow(),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
