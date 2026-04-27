@@ -4063,19 +4063,25 @@ Answer briefly — the user is in the middle of a conversation.''';
         onTap: () => _hangUp(userInitiated: true),
       ),
     ];
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(
-        horizontal: MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right > 0 ? 8 : 4,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final w in children) Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: w,
-          ),
-        ],
+    // Center the row when buttons fit, fall back to a horizontal scroll when
+    // they don't. The Center wrapper pushes the bar to the middle of the
+    // available width — without it, SingleChildScrollView left-aligned the
+    // bar inside the bottom overlay (visible in landscape fullscreen).
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).padding.left + MediaQuery.of(context).padding.right > 0 ? 8 : 4,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final w in children) Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: w,
+            ),
+          ],
+        ),
       ),
     );
   }
