@@ -2780,3 +2780,89 @@ class _SpeedButton extends StatelessWidget {
     );
   }
 }
+
+class ParticipantTile extends StatelessWidget {
+  const ParticipantTile({
+    super.key,
+    required this.data,
+    required this.currentUserId,
+    required this.colors,
+    required this.youSuffix,
+    required this.unknownLabel,
+  });
+
+  final Map<String, dynamic> data;
+  final String? currentUserId;
+  final AppColorsExtension colors;
+  final String youSuffix;
+  final String unknownLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final rawName = data['displayName'] as String?;
+    final name = (rawName == null || rawName.isEmpty) ? unknownLabel : rawName;
+    final userId = data['userId'] as String?;
+    final isSelf = userId != null && userId == currentUserId;
+    final isTappable = userId != null && !isSelf;
+
+    final displayText = isSelf ? '$name $youSuffix' : name;
+
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          _buildAvatar(name),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(displayText, style: TextStyle(color: colors.textPrimary, fontSize: 15)),
+          ),
+        ],
+      ),
+    );
+
+    if (!isTappable) return row;
+
+    return InkWell(
+      onTap: () => context.push('/dashboard/user/$userId'),
+      borderRadius: BorderRadius.circular(8),
+      child: row,
+    );
+  }
+
+  Widget _buildAvatar(String name) {
+    final ringColor = rainbowColorFor(name.isNotEmpty ? name : '$data');
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: ringColor, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: ringColor.withOpacity(0.35), blurRadius: 6),
+        ],
+      ),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: const Alignment(-0.3, -0.4),
+            radius: 1.1,
+            colors: [
+              Color.lerp(ringColor, Colors.white, 0.3)!,
+              ringColor,
+              Color.lerp(ringColor, Colors.black, 0.4)!,
+            ],
+            stops: const [0.0, 0.55, 1.0],
+          ),
+        ),
+        child: Center(
+          child: Text(
+            name.isNotEmpty ? name[0].toUpperCase() : '?',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+        ),
+      ),
+    );
+  }
+}
