@@ -514,8 +514,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     for (final m in [...a, ...b]) {
       if (seen.add(m.id)) out.add(m);
     }
-    out.sort((x, y) => x.sentAt.compareTo(y.sentAt));
-    return out;
+    // Phase 2 dedup hygiene: drop mesh entries that have a server-
+    // delivered counterpart (matching senderId + content within 10s).
+    // The bloc's live-event dedup in _onMeshMessageReceived prevents
+    // the bubble from rendering at runtime, but the adapter's
+    // persistLocal already wrote the mesh entry to Hive before the
+    // bloc decision — so the stale pair resurfaces on chat reload via
+    // getMeshMessagesFor. Applying the same heuristic at merge time
+    // keeps the UI consistent without invasive cache surgery.
+    final filtered = <MessageEntity>[];
+    for (final m in out) {
+      if (m.transport == 'mesh') {
+        final serverMatch = out.any((s) =>
+            s.transport != 'mesh' &&
+            !s.id.startsWith('temp_') &&
+            s.senderId == m.senderId &&
+            s.content == m.content &&
+            s.sentAt.difference(m.sentAt).abs() < _crossTransportDedupWindow);
+        if (serverMatch) continue;
+      }
+      filtered.add(m);
+    }
+    filtered.sort((x, y) => x.sentAt.compareTo(y.sentAt));
+    return filtered;
   }
 
 
