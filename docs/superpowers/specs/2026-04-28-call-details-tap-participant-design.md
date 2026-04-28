@@ -52,18 +52,16 @@ Behavior:
 
 ### `_CallDetailScreenState` changes
 
-- Add field `String? _currentUserId`.
-- In `initState`, read it from `AuthBloc`:
+- Read `currentUserId` directly from `MessengerBloc` inside `build()` — the established pattern across the messenger/calls features (e.g., `chat_room_screen.dart:2537`, `topics_list_screen.dart:334`):
   ```dart
-  final authState = context.read<AuthBloc>().state;
-  _currentUserId = authState is Authenticated ? authState.user.id : null;
+  final currentUserId = context.read<MessengerBloc>().state.currentUserId;
   ```
-  (Exact `AuthBloc` state class name to be confirmed during implementation; if `AuthBloc` is not provided in this route's widget tree, fall back to `getIt<SecureStorageService>().getUserId()` in an async init and call `setState(() => _currentUserId = ...)` after resolution. Until resolution, all tiles are tappable — acceptable transient state.)
+- `MessengerBloc` is provided at the dashboard ShellRoute (`app_router.dart:183` — `BlocProvider.value(value: sl<MessengerBloc>())`), so it's available in the call details route subtree. No new state field, no async init, no `SecureStorageService` fallback needed.
 - Replace the inline `participants.map((p) { return Padding(Row(...)) })` with:
   ```dart
   participants.map((p) => _ParticipantTile(
     data: p,
-    currentUserId: _currentUserId,
+    currentUserId: currentUserId,
     colors: colors,
     youSuffix: l10n.callDetailYouSuffix,
   )).toList()
@@ -96,7 +94,7 @@ CallDetailScreen.build
 ## Edge Cases
 
 - **`userId` missing in `data`** — render static (non-tappable) tile. Defensive: avoids navigating to `/dashboard/user/null`.
-- **`currentUserId == null`** (AuthBloc not yet hydrated, or fallback failed) — every tile is tappable, no `(You)` suffix shown. Tapping one's own row in this case opens `UserProfileScreen` viewing self-as-other, which is a valid (if slightly odd) state — `UserProfileScreen` handles "not a contact" / "this is you" via existing logic.
+- **`currentUserId == null`** (`MessengerBloc` not yet hydrated — possible immediately after login before the bloc emits its first state with `currentUserId` populated) — every tile is tappable, no `(You)` suffix shown. Tapping one's own row in this case opens `UserProfileScreen` viewing self-as-other, which is a valid (if slightly odd) state — `UserProfileScreen` handles "not a contact" / "this is you" via existing logic.
 - **Blocked / removed peer** — `UserProfileScreen` already handles these states (shows "You are blocked" / "Add to Contacts" / etc.). No new logic needed in the call details screen.
 - **AI-twin participant** — if a future AI-twin agent appears in `participants` with a non-user identity (e.g., `agent-xyz`), the navigation will hit the user route. Out of scope: AI-twin agents are not currently included in `participants` in the call-history API response. If that changes, a follow-up will filter them.
 
