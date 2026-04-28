@@ -55,6 +55,13 @@ class _FakeTransport implements MeshTransport {
   }
 
   void emitDiscovery(PeerDiscovered d) => _discoveries.add(d);
+
+  /// Test-only: inject a frame as if the partner had sent it. Used by
+  /// stale-session recovery tests where we need to deliver garbage that
+  /// causes a MAC failure on decrypt.
+  void injectInboundFrame(InboundFrame frame) {
+    _inbound.add(frame);
+  }
 }
 
 Future<(Uint8List, Uint8List)> _x25519Keys() async {
@@ -374,6 +381,104 @@ void main() {
       expect(got.envelope.clientId, 'msg-recovered');
       expect(got.envelope.text, 'after recovery');
 
+      await alice.dispose();
+      await bob.dispose();
+    });
+
+    test('decrypt-failed triggers recovery (rate-limit also caps the storm)',
+        () async {
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      final aliceT = _FakeTransport();
+      final bobT = _FakeTransport();
+      aliceT.partner = bobT;
+      bobT.partner = aliceT;
+
+      // Override threshold so the test runs fast and assertion is precise.
+      final alice = MeshMessagingService(
+        transport: aliceT,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+      );
+      final bob = MeshMessagingService(
+        transport: bobT,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+        peerResetThreshold: 3,
+        peerResetWindow: const Duration(seconds: 60),
+      );
+      await alice.start(serviceName: 'Alice');
+      await bob.start(serviceName: 'Bob');
+
+      aliceT.emitDiscovery(PeerDiscovered(
+        peerId: bobPeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+      bobT.emitDiscovery(PeerDiscovered(
+        peerId: alicePeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+
+      // Establish a session so Bob has state.session != null. This lets
+      // the next bad frame fall into the `try { decrypt(...) } catch`
+      // branch (decrypt-failed), not the `session == null` branch.
+      final firstAtBob = bob.inbound.first;
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-mac',
+          clientId: 'msg-warmup',
+          text: 'warm up',
+          sentAt: DateTime.parse('2026-04-28T10:00:00Z'),
+        ),
+      );
+      await firstAtBob;
+
+      // Count how many handshake frames Alice receives from Bob across
+      // the whole test. Recovery msg1's are observable as inbound
+      // FrameType.handshake on Alice's transport.
+      var bobHandshakesArrivedAtAlice = 0;
+      final aliceFrameSub = aliceT.inbound.listen((f) {
+        if (f.type == FrameType.handshake) bobHandshakesArrivedAtAlice++;
+      });
+
+      // Push 5 frames of pure garbage as data frames into Bob's inbound.
+      // Bob's session.decrypt will throw MAC; recovery will fire 3 times
+      // (peerResetThreshold), then be capped.
+      for (var i = 0; i < 5; i++) {
+        bobT.injectInboundFrame(InboundFrame(
+          srcPeer: alicePeer,
+          type: FrameType.data,
+          bytes: Uint8List.fromList(List<int>.generate(80, (j) => i * 7 + j)),
+        ));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      // Each accepted recovery resets and inits one handshake → one msg1
+      // arrives at Alice. With threshold=3, expect at most 3 (the
+      // existing warm-up handshake's msg1+msg2 already counted before
+      // we attached the listener, so we look only at frames *after*
+      // listener attach).
+      expect(bobHandshakesArrivedAtAlice, lessThanOrEqualTo(3),
+          reason: 'rate-limit caps recovery storm at peerResetThreshold');
+      expect(bobHandshakesArrivedAtAlice, greaterThanOrEqualTo(1),
+          reason: 'at least one recovery must have fired');
+
+      await aliceFrameSub.cancel();
       await alice.dispose();
       await bob.dispose();
     });

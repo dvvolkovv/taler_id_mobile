@@ -265,7 +265,8 @@ class MeshMessagingService {
       } on FormatException catch (e) {
         debugPrint('[mesh-frame] envelope decode failed: $e');
       } catch (e) {
-        debugPrint('[mesh-frame] decrypt failed: $e');
+        debugPrint('[mesh-frame] decrypt failed: $e — triggering recovery');
+        _triggerStaleRecovery(srcDevice, state, reason: 'mac-error');
       }
       return;
     }
