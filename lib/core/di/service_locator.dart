@@ -246,6 +246,12 @@ Future<void> setupDependencies() async {
   // flag MeshConfig.bleEnabled is true. MultiTransport picks the best path
   // per peer — Bonjour preferred for bandwidth, BLE fallback for offline.
   final bonjourTransport = BonjourTransport();
+  // Register the concrete BonjourTransport separately so debug/diagnostic
+  // tooling (Mesh Debug screen) can reach `discoveryReinitCount`. This is
+  // the SAME instance that lives inside MultiTransport — registering it
+  // twice via different types is fine for get_it.
+  sl.registerSingleton<BonjourTransport>(bonjourTransport);
+
   final transports = <TransportId, MeshTransport>{
     TransportId.bonjour: bonjourTransport,
   };
