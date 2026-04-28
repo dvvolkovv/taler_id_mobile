@@ -16,6 +16,7 @@ import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
 import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_remote_datasource.dart';
+import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 
 class _FakeMessengerRemoteDataSource implements MessengerRemoteDataSource {
   final _reconnectCtrl = StreamController<void>.broadcast();
@@ -249,6 +250,11 @@ void main() {
       sl.unregister<MessengerRemoteDataSource>();
     }
     sl.registerSingleton<MessengerRemoteDataSource>(_FakeMessengerRemoteDataSource());
+
+    if (sl.isRegistered<PendingMeshSendQueue>()) {
+      sl.unregister<PendingMeshSendQueue>();
+    }
+    sl.registerSingleton<PendingMeshSendQueue>(PendingMeshSendQueue());
   });
 
   // ── Connect ───────────────────────────────────────────────────────────────
@@ -741,6 +747,43 @@ void main() {
         final msgs = b.state.messages['conv-1'] ?? [];
         final count = msgs.where((m) => m.id == 'msg-1').length;
         expect(count, equals(1), reason: 'Duplicate message should not be added twice');
+      },
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'echo drains matching mesh-pending entry',
+      setUp: () {
+        sl<PendingMeshSendQueue>().enqueue(
+          clientId: 'temp_mesh-1',
+          conversationId: 'conv-1',
+          content: 'mesh hi',
+          sentAt: DateTime(2024, 1, 15, 10, 0),
+        );
+      },
+      build: buildBloc,
+      seed: () => MessengerState(messages: {
+        'conv-1': [
+          MessageEntity(
+            id: 'temp_mesh-1',
+            conversationId: 'conv-1',
+            senderId: 'user-1',
+            senderName: 'Me',
+            content: 'mesh hi',
+            sentAt: DateTime(2024, 1, 15, 10, 0),
+          ),
+        ],
+      }),
+      act: (b) => b.add(MessageReceived(MessageEntity(
+        id: 'srv-mesh-1',
+        conversationId: 'conv-1',
+        senderId: 'user-1',
+        senderName: 'Me',
+        content: 'mesh hi',
+        sentAt: DateTime(2024, 1, 15, 10, 0),
+      ))),
+      verify: (_) {
+        expect(sl<PendingMeshSendQueue>().pendingCount, 0,
+            reason: 'echo with matching senderId+content should drain mesh-pending entry');
       },
     );
   });
