@@ -30,6 +30,7 @@ class MeshDiscoverySupervisor {
   StreamSubscription<AppLifecycleState>? _lifecycleSub;
   AppLifecycleState? _lastLifecycleState;
   DateTime? _lastReinitAt;
+  int _reinitCount = 0;
 
   MeshDiscoverySupervisor({
     required this.reinit,
@@ -44,6 +45,8 @@ class MeshDiscoverySupervisor {
     final lStream = lifecycleStream;
     if (lStream != null) _lifecycleSub = lStream.listen(_onLifecycle);
   }
+
+  int get reinitCount => _reinitCount;
 
   void onDiscoveryStarted() {
     _eventSeenSinceStart = false;
@@ -68,6 +71,7 @@ class MeshDiscoverySupervisor {
       return;
     }
     _lastReinitAt = now;
+    _reinitCount++;
     await reinit(reason);
   }
 

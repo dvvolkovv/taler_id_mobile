@@ -192,4 +192,49 @@ void main() {
       });
     });
   });
+
+  group('MeshDiscoverySupervisor reinitCount', () {
+    test('increments on accepted reinit, not on rate-limited skip', () {
+      fakeAsync((async) {
+        final reinitCalls = <String>[];
+        final lifecycleCtrl = StreamController<AppLifecycleState>.broadcast();
+
+        final supervisor = MeshDiscoverySupervisor(
+          reinit: (reason) async => reinitCalls.add(reason),
+          coldStartDelay: const Duration(seconds: 5),
+          maxColdStartAttempts: 3,
+          lifecycleStream: lifecycleCtrl.stream,
+          rateLimit: const Duration(seconds: 3),
+        );
+        supervisor.onDiscoveryStarted();
+
+        expect(supervisor.reinitCount, 0);
+
+        // First lifecycle resume — accepted.
+        lifecycleCtrl
+          ..add(AppLifecycleState.paused)
+          ..add(AppLifecycleState.resumed);
+        async.flushMicrotasks();
+        expect(reinitCalls.length, 1);
+        expect(supervisor.reinitCount, 1);
+
+        // Second resume within rate-limit — skipped, counter unchanged.
+        lifecycleCtrl
+          ..add(AppLifecycleState.paused)
+          ..add(AppLifecycleState.resumed);
+        async.flushMicrotasks();
+        expect(reinitCalls.length, 1);
+        expect(supervisor.reinitCount, 1);
+
+        // After rate-limit window — accepted again.
+        async.elapse(const Duration(seconds: 4));
+        lifecycleCtrl
+          ..add(AppLifecycleState.paused)
+          ..add(AppLifecycleState.resumed);
+        async.flushMicrotasks();
+        expect(reinitCalls.length, 2);
+        expect(supervisor.reinitCount, 2);
+      });
+    });
+  });
 }
