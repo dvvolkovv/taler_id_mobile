@@ -4244,6 +4244,12 @@ abstract class AppLocalizations {
   /// **'Participants'**
   String get callHistoryParticipants;
 
+  /// Suffix appended to the current user's display name in the call details participants list.
+  ///
+  /// In en, this message translates to:
+  /// **'(You)'**
+  String get callDetailYouSuffix;
+
   /// No description provided for @callHistoryMeetingSummary.
   ///
   /// In en, this message translates to:

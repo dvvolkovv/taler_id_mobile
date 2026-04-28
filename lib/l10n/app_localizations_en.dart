@@ -2191,6 +2191,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callHistoryParticipants => 'Participants';
 
   @override
+  String get callDetailYouSuffix => '(You)';
+
+  @override
   String get callHistoryMeetingSummary => 'Meeting summary';
 
   @override

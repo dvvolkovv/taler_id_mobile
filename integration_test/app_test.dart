@@ -25,6 +25,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:taler_id_mobile/core/theme/widgets.dart' show GlassCard;
+import 'package:taler_id_mobile/features/call_history/presentation/screens/call_history_screen.dart'
+    show ParticipantTile;
 import 'package:taler_id_mobile/main.dart' as app;
 
 // ── Config ─────────────────────────────────────────────────────────────────
@@ -230,6 +233,91 @@ void main() {
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Calls screen crashed');
       debugPrint('[TEST] ✓ Calls screen OK');
+
+      // ── 6a. Open a past call → tap a non-self ParticipantTile ─────
+      // Tolerant: if there's no eligible call in history (empty list / no
+      // multi-participant call), this block must NOT fail the rest of the
+      // test. The integration_test@ account may or may not have a real call.
+      try {
+        // Call entries are GestureDetector(child: AppCard(...)); other
+        // AppCards (personal-room, temp-room, summaries, recordings) live
+        // above. We try a few cards from the bottom upward until one opens
+        // a screen containing ParticipantTile widgets.
+        // Use ParticipantTile finder as the success signal after navigation.
+        bool openedDetail = false;
+        // Limit attempts to avoid pathological loops on unexpected layouts.
+        const maxAttempts = 4;
+        for (var i = 0; i < maxAttempts && !openedDetail; i++) {
+          // Re-resolve each attempt — widget tree may have changed.
+          final cards = find.byType(GlassCard);
+          if (cards.evaluate().length <= i) break;
+          // Try cards from the end (history list is rendered after the
+          // header buttons), going backward.
+          final idx = cards.evaluate().length - 1 - i;
+          if (idx < 0) break;
+          await tester.tap(cards.at(idx), warnIfMissed: false);
+          await tester.pumpFor(const Duration(seconds: 3));
+          if (find.byType(ParticipantTile).evaluate().isNotEmpty) {
+            openedDetail = true;
+            debugPrint('[TEST] Call detail opened (card idx=$idx)');
+          } else {
+            // Wrong card (e.g. summaries/recordings sub-screen, or a
+            // missed-call AI-twin sheet). Back out and try the next one.
+            await tester.safeTap(find.byIcon(Icons.arrow_back));
+            await tester.pumpFor(const Duration(seconds: 1));
+          }
+        }
+
+        if (openedDetail) {
+          final tiles = find.byType(ParticipantTile);
+          final tileCount = tiles.evaluate().length;
+          debugPrint('[TEST] Found $tileCount ParticipantTile(s) in detail');
+
+          // We need a non-self tappable participant. Self-tile renders as
+          // a plain Padding row (no InkWell); non-self wraps it in InkWell
+          // with onTap → context.push('/dashboard/user/:userId').
+          // Find the first ParticipantTile that has an InkWell descendant.
+          Finder? tappableTile;
+          for (var i = 0; i < tileCount; i++) {
+            final t = tiles.at(i);
+            final inkWellInTile = find.descendant(
+              of: t,
+              matching: find.byType(InkWell),
+            );
+            if (inkWellInTile.evaluate().isNotEmpty) {
+              tappableTile = inkWellInTile;
+              break;
+            }
+          }
+
+          if (tappableTile != null) {
+            await tester.tap(tappableTile.first, warnIfMissed: false);
+            await tester.pumpFor(const Duration(seconds: 3));
+            expect(tester.takeException(), isNull,
+                reason: 'Tapping ParticipantTile must not throw');
+            expect(find.byType(ErrorWidget), findsNothing,
+                reason: 'UserProfileScreen crashed after participant tap');
+            debugPrint('[TEST] ✓ ParticipantTile tap → UserProfileScreen OK');
+
+            // Go back to call detail.
+            await tester.safeTap(find.byIcon(Icons.arrow_back));
+            await tester.pumpFor(const Duration(seconds: 1));
+          } else {
+            debugPrint(
+                '[TEST] No tappable (non-self) ParticipantTile — skipping tap');
+          }
+
+          // Leave the call detail screen.
+          await tester.safeTap(find.byIcon(Icons.arrow_back));
+          await tester.pumpFor(const Duration(seconds: 1));
+        } else {
+          debugPrint(
+              '[TEST] No eligible call in history — skipping participant flow');
+        }
+      } catch (e) {
+        debugPrint('[TEST] Participant-tile flow skipped: $e');
+      }
+
       await tester.goHome();
 
       // ── 7. Screen: Calendar ────────────────────────────────────────

@@ -2199,6 +2199,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get callHistoryParticipants => 'Участники';
 
   @override
+  String get callDetailYouSuffix => '(Вы)';
+
+  @override
   String get callHistoryMeetingSummary => 'Резюме встречи';
 
   @override

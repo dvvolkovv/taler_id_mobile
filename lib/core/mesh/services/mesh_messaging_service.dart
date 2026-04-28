@@ -249,7 +249,8 @@ class MeshMessagingService {
 
     if (frame.type == FrameType.data) {
       if (state.session == null) {
-        debugPrint('[mesh-frame] data frame but no session — dropped');
+        debugPrint('[mesh-frame] data frame but no session — triggering recovery');
+        _triggerStaleRecovery(srcDevice, state, reason: 'no-session');
         return;
       }
       try {
@@ -264,7 +265,8 @@ class MeshMessagingService {
       } on FormatException catch (e) {
         debugPrint('[mesh-frame] envelope decode failed: $e');
       } catch (e) {
-        debugPrint('[mesh-frame] decrypt failed: $e');
+        debugPrint('[mesh-frame] decrypt failed: $e — triggering recovery');
+        _triggerStaleRecovery(srcDevice, state, reason: 'mac-error');
       }
       return;
     }
@@ -295,6 +297,50 @@ class MeshMessagingService {
     }
     times.add(now);
     return true;
+  }
+
+  /// Mesh Debug — total reset count across all peers in the current
+  /// `peerResetWindow`. Sliding window via DateTime comparison; matches
+  /// the budget that `_allowReset` enforces. Cheap: `_peerResetTimes`
+  /// is bounded by `peerResetThreshold` entries per peer plus the peer
+  /// count.
+  int get peerResetCountTotal {
+    final now = DateTime.now();
+    var total = 0;
+    for (final times in _peerResetTimes.values) {
+      for (final t in times) {
+        if (now.difference(t) <= peerResetWindow) total++;
+      }
+    }
+    return total;
+  }
+
+  /// Phase 2.3 — peer's data frame can't be decrypted (no session OR MAC
+  /// failure). The most likely cause is that one side restarted while the
+  /// other kept a cached Noise session, so keys no longer match. Reset
+  /// our own state and initiate a fresh handshake; Phase 2.1's
+  /// accept-latest-init on the peer side handles the rest.
+  ///
+  /// Rate-limited via _allowReset (5 in 60s per peer) — same backoff
+  /// budget Phase 2.1 uses for peer-initiated resets, so a flapping or
+  /// adversarial peer can't drive a handshake storm.
+  void _triggerStaleRecovery(
+    PeerId devicePk,
+    _PeerState state, {
+    required String reason,
+  }) {
+    if (!_allowReset(devicePk)) return;
+    debugPrint(
+      '[mesh-handshake] receiver-side stale recovery '
+      '(reason=$reason) pk=${devicePk.toHex().substring(0, 12)}...',
+    );
+    _resetPeerState(devicePk);
+    // Fire-and-forget; if init fails (transport issue) the next bad frame
+    // will retry.
+    // ignore: unawaited_futures
+    _initiateHandshake(devicePk, state).catchError((Object e) {
+      debugPrint('[mesh-handshake] stale recovery init failed: $e');
+    });
   }
 
   /// Phase 2.1 — fully clear cached handshake/session for a peer so the

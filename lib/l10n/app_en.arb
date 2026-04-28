@@ -940,6 +940,10 @@
   },
   "callHistoryWithAI": "With AI assistant",
   "callHistoryParticipants": "Participants",
+  "callDetailYouSuffix": "(You)",
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
   "callHistoryMeetingSummary": "Meeting summary",
   "callHistoryMoreDetails": "More details",
   "callHistorySummaryProcessing": "Summary processing...",

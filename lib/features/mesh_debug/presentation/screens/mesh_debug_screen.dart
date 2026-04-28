@@ -8,8 +8,10 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
 import '../../../../core/mesh/services/envelope.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
+import '../../../../core/mesh/transport/bonjour_transport.dart';
 import '../../../../core/mesh/transport/mesh_transport.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../messenger/data/services/pending_mesh_send_queue.dart';
 
 /// Phase 1d debug screen — live visibility into the mesh transport + Noise
 /// messaging stack. Start/stop the stack, see discovered peers, send test
@@ -35,16 +37,26 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   StreamSubscription<PeerDiscovered>? _discoverySub;
   StreamSubscription<PeerLost>? _lossSub;
   StreamSubscription<InboundEnvelope>? _inboundSub;
+  Timer? _refreshTicker;
 
   @override
   void initState() {
     super.initState();
     _transport = sl<MeshTransport>();
     _meshKey = sl<MeshStaticKey>();
+    // Mesh Debug counters (Pending / Resets / Reinits) read fresh from DI on
+    // each rebuild. Outbound mesh-fanout, supervisor reinits, and peer
+    // resets on the receive side don't always coincide with a discovery /
+    // inbound event, so we drive a 1 Hz tick to keep the status card honest.
+    _refreshTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _refreshTicker?.cancel();
     _discoverySub?.cancel();
     _lossSub?.cancel();
     _inboundSub?.cancel();
@@ -185,6 +197,15 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
               bleEnabled: MeshConfig.bleEnabled,
               myPrefix: myPrefix,
               peerCount: _peers.length,
+              pendingCount: sl.isRegistered<PendingMeshSendQueue>()
+                  ? sl<PendingMeshSendQueue>().pendingCount
+                  : 0,
+              resetCountTotal: sl.isRegistered<MeshMessagingService>()
+                  ? sl<MeshMessagingService>().peerResetCountTotal
+                  : 0,
+              discoveryReinitCount: sl.isRegistered<BonjourTransport>()
+                  ? sl<BonjourTransport>().discoveryReinitCount
+                  : 0,
             ),
             const SizedBox(height: 12),
             Row(
@@ -288,12 +309,18 @@ class _StatusCard extends StatelessWidget {
   final bool bleEnabled;
   final String myPrefix;
   final int peerCount;
+  final int pendingCount;
+  final int resetCountTotal;
+  final int discoveryReinitCount;
 
   const _StatusCard({
     required this.running,
     required this.bleEnabled,
     required this.myPrefix,
     required this.peerCount,
+    required this.pendingCount,
+    required this.resetCountTotal,
+    required this.discoveryReinitCount,
   });
 
   @override
@@ -322,6 +349,9 @@ class _StatusCard extends StatelessWidget {
             _kv('BLE', bleEnabled ? 'ON' : 'off'),
             _kv('Me', myPrefix),
             _kv('Peers', '$peerCount'),
+            _kv('Pending', '$pendingCount'),
+            _kv('Resets', '$resetCountTotal (60s)'),
+            _kv('Reinits', '$discoveryReinitCount'),
           ],
         ),
       ),

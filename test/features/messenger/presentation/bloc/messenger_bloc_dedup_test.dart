@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
 import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
+import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/message_entity.dart';
 import 'package:taler_id_mobile/features/messenger/domain/repositories/i_messenger_repository.dart';
 import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_bloc.dart';
@@ -45,6 +46,10 @@ void main() {
     if (!sl.isRegistered<PendingMessageService>()) {
       sl.registerSingleton<PendingMessageService>(_FakePending());
     }
+    if (sl.isRegistered<PendingMeshSendQueue>()) {
+      sl.unregister<PendingMeshSendQueue>();
+    }
+    sl.registerSingleton<PendingMeshSendQueue>(PendingMeshSendQueue());
   });
 
   late _StubRepo repo;

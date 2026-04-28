@@ -940,6 +940,10 @@
   },
   "callHistoryWithAI": "С AI-ассистентом",
   "callHistoryParticipants": "Участники",
+  "callDetailYouSuffix": "(Вы)",
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
   "callHistoryMeetingSummary": "Резюме встречи",
   "callHistoryMoreDetails": "Подробнее",
   "callHistorySummaryProcessing": "Резюме обрабатывается...",

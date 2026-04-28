@@ -16,6 +16,7 @@ import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
 import 'package:taler_id_mobile/core/services/pending_message_service.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_remote_datasource.dart';
+import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 
 class _FakeMessengerRemoteDataSource implements MessengerRemoteDataSource {
   final _reconnectCtrl = StreamController<void>.broadcast();
@@ -116,6 +117,10 @@ class _CapturingCacheService extends MessengerCacheService {
 
 /// Fake без Hive — возвращает пустые данные, игнорирует записи
 class FakeMessengerCacheService extends MessengerCacheService {
+  /// Test-only mesh history (per conversationId). Tests that need to
+  /// exercise the merge-time dedup populate this directly.
+  final Map<String, List<Map<String, dynamic>>> meshHistory = {};
+
   @override
   List<Map<String, dynamic>>? getConversations() => null;
 
@@ -136,6 +141,20 @@ class FakeMessengerCacheService extends MessengerCacheService {
 
   @override
   Future<void> removeMessage(String conversationId, String messageId) async {}
+
+  @override
+  Future<void> appendMeshMessage(Map<String, dynamic> entry) async {
+    final convId = entry['conversationId'] as String?;
+    if (convId == null) return;
+    final list = meshHistory.putIfAbsent(convId, () => []);
+    if (list.any((m) => m['id'] == entry['id'])) return;
+    list.add(entry);
+  }
+
+  @override
+  List<Map<String, dynamic>> getMeshMessagesFor(String conversationId) {
+    return List<Map<String, dynamic>>.from(meshHistory[conversationId] ?? const []);
+  }
 
   @override
   Future<void> clearAll() async {}
@@ -231,6 +250,11 @@ void main() {
       sl.unregister<MessengerRemoteDataSource>();
     }
     sl.registerSingleton<MessengerRemoteDataSource>(_FakeMessengerRemoteDataSource());
+
+    if (sl.isRegistered<PendingMeshSendQueue>()) {
+      sl.unregister<PendingMeshSendQueue>();
+    }
+    sl.registerSingleton<PendingMeshSendQueue>(PendingMeshSendQueue());
   });
 
   // ── Connect ───────────────────────────────────────────────────────────────
@@ -351,6 +375,57 @@ void main() {
         expect(b.state.isLoading, isFalse);
       },
     );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'merge dedups mesh entry that has matching server counterpart (regression)',
+      build: () {
+        // The bloc's live-event dedup in _onMeshMessageReceived already
+        // skips the bubble at runtime, but the adapter writes mesh
+        // entries to Hive BEFORE the bloc's dedup decision. On chat
+        // reload, _loadMeshHistory pulls the stale mesh entry out and
+        // _mergeSortedById would otherwise emit two bubbles (different
+        // ids: server uuid vs mesh clientId). Phase 2 dedup hygiene at
+        // merge time keeps the UI consistent.
+        final fakeCache = FakeMessengerCacheService();
+        fakeCache.meshHistory['conv-1'] = [
+          {
+            'id': 'mesh-client-id-aaa',
+            'conversationId': 'conv-1',
+            'senderId': 'user-2',
+            'content': 'Привет',
+            'transport': 'mesh',
+            'sentAt': '2024-01-15T10:00:00.000Z',
+          },
+        ];
+        sl.unregister<MessengerCacheService>();
+        sl.registerSingleton<MessengerCacheService>(fakeCache);
+
+        when(() => repo.getMessages('conv-1', cursor: null)).thenAnswer(
+          (_) async => {
+            'messages': [
+              MessageEntity(
+                id: 'server-uuid-xyz',
+                conversationId: 'conv-1',
+                senderId: 'user-2',
+                content: 'Привет',
+                sentAt: DateTime.parse('2024-01-15T10:00:01.000Z'),
+              ).toJson(),
+            ],
+            'nextCursor': null,
+          },
+        );
+        when(() => repo.joinConversation('conv-1')).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) => b.add(const OpenConversation('conv-1')),
+      verify: (b) {
+        final msgs = b.state.messages['conv-1'] ?? const [];
+        expect(msgs, hasLength(1),
+            reason: 'mesh entry must be deduped against server counterpart at merge time');
+        expect(msgs.single.id, 'server-uuid-xyz',
+            reason: 'server entry survives, mesh entry filtered');
+      },
+    );
   });
 
   // ── Send message ──────────────────────────────────────────────────────────
@@ -465,6 +540,59 @@ void main() {
   });
 
   // ── Reconnect storm recovery ──────────────────────────────────────────────
+
+  group('Pending preservation on ack (regression)', () {
+    test(
+        'message_acked alone must NOT drop pending entry — only echo removes it',
+        () async {
+      final pending = _PopulatedPendingMessageService();
+      sl.unregister<PendingMessageService>();
+      sl.registerSingleton<PendingMessageService>(pending);
+
+      final ackCtrl = StreamController<Map<String, dynamic>>.broadcast();
+      when(() => repo.messageAckedStream).thenAnswer((_) => ackCtrl.stream);
+      when(() => repo.joinConversation(any())).thenReturn(null);
+      when(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          )).thenReturn(null);
+
+      final bloc = buildBloc();
+      bloc.add(const ConnectMessenger('token', userId: 'user-1'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      bloc.add(const SendMessage('conv-1', 'Привет'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      expect(pending.getAll(), hasLength(1),
+          reason: 'pending saved on send');
+      final tempId = pending.getAll().first['id'] as String;
+
+      ackCtrl.add({'clientTempId': tempId});
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      // Pre-fix bug: ack handler removed pending immediately, causing the
+      // bubble to vanish on next chat reload if the echo (`new_message`)
+      // never arrived. Post-fix: ack only clears in-flight tracking; the
+      // persistent entry stays until the echo confirms the message was
+      // stored server-side.
+      expect(pending.getAll(), hasLength(1),
+          reason: 'message_acked must keep pending until echo arrives');
+
+      await bloc.close();
+      await ackCtrl.close();
+    });
+  });
 
   group('Reconnect recovery', () {
     blocTest<MessengerBloc, MessengerState>(
@@ -619,6 +747,43 @@ void main() {
         final msgs = b.state.messages['conv-1'] ?? [];
         final count = msgs.where((m) => m.id == 'msg-1').length;
         expect(count, equals(1), reason: 'Duplicate message should not be added twice');
+      },
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'echo drains matching mesh-pending entry',
+      setUp: () {
+        sl<PendingMeshSendQueue>().enqueue(
+          clientId: 'temp_mesh-1',
+          conversationId: 'conv-1',
+          content: 'mesh hi',
+          sentAt: DateTime(2024, 1, 15, 10, 0),
+        );
+      },
+      build: buildBloc,
+      seed: () => MessengerState(messages: {
+        'conv-1': [
+          MessageEntity(
+            id: 'temp_mesh-1',
+            conversationId: 'conv-1',
+            senderId: 'user-1',
+            senderName: 'Me',
+            content: 'mesh hi',
+            sentAt: DateTime(2024, 1, 15, 10, 0),
+          ),
+        ],
+      }),
+      act: (b) => b.add(MessageReceived(MessageEntity(
+        id: 'srv-mesh-1',
+        conversationId: 'conv-1',
+        senderId: 'user-1',
+        senderName: 'Me',
+        content: 'mesh hi',
+        sentAt: DateTime(2024, 1, 15, 10, 0),
+      ))),
+      verify: (_) {
+        expect(sl<PendingMeshSendQueue>().pendingCount, 0,
+            reason: 'echo with matching senderId+content should drain mesh-pending entry');
       },
     );
   });
