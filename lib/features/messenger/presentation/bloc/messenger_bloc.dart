@@ -12,6 +12,7 @@ import '../../domain/repositories/i_messenger_repository.dart'
 import '../../../../core/services/messenger_cache_service.dart';
 import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/services/share_suggestions_service.dart';
+import '../../data/services/pending_mesh_send_queue.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
@@ -23,6 +24,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   final IMessengerRepository _repo;
   final MessengerCacheService _cache = sl<MessengerCacheService>();
   final PendingMessageService _pending = sl<PendingMessageService>();
+  final PendingMeshSendQueue _pendingMeshQueue = sl<PendingMeshSendQueue>();
   StreamSubscription? _msgSub;
   StreamSubscription? _callSub;
   StreamSubscription? _msgUpdatedSub;
@@ -759,10 +761,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     });
     // Clear these from the persistent pending queue — server has acknowledged.
     // Also clear from in-flight set so a future _resendPending() can emit them
-    // if they're ever re-queued.
+    // if they're ever re-queued. Mesh-pending drain: server echo ⇒ message
+    // reached the broker and was routed to all online recipients; mesh
+    // fanout retry is no longer required for this clientId. (Edge case:
+    // multi-device user with one device offline — server only delivered to
+    // online devices; the mesh-only path to the offline device is bypassed.
+    // Acceptable today since most users have one device per account.)
     for (final tempId in removed) {
       _pending.remove(tempId);
       _inFlightTempIds.remove(tempId);
+      _pendingMeshQueue.remove(tempId);
     }
     existing.add(msg);
     final newMessages =
