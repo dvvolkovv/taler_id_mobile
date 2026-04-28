@@ -243,4 +243,139 @@ void main() {
       await bob.dispose();
     });
   });
+
+  group('Phase 2.3 stale-session recovery', () {
+    test('session==null on receiver triggers re-handshake; next send delivers',
+        () async {
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      // Step 1: establish a session between Alice and Bob.
+      final aliceT = _FakeTransport();
+      var bobT = _FakeTransport();
+      aliceT.partner = bobT;
+      bobT.partner = aliceT;
+
+      final alice = MeshMessagingService(
+        transport: aliceT,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+      );
+      var bob = MeshMessagingService(
+        transport: bobT,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+      );
+      await alice.start(serviceName: 'Alice');
+      await bob.start(serviceName: 'Bob');
+
+      aliceT.emitDiscovery(PeerDiscovered(
+        peerId: bobPeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+      bobT.emitDiscovery(PeerDiscovered(
+        peerId: alicePeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+
+      final firstAtBob = bob.inbound.first;
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-recovery',
+          clientId: 'msg-warmup',
+          text: 'warm up',
+          sentAt: DateTime.parse('2026-04-28T10:00:00Z'),
+        ),
+      );
+      await firstAtBob;
+
+      // Step 2: simulate Bob restart. Build a fresh Bob with the same
+      // keys but a new transport. Update Alice's partner pointer to the
+      // new Bob transport. Crucially: Alice still holds her cached
+      // session for Bob — that's the stale state we're testing.
+      await bob.dispose();
+      final newBobT = _FakeTransport();
+      aliceT.partner = newBobT;
+      newBobT.partner = aliceT;
+      bobT = newBobT;
+
+      bob = MeshMessagingService(
+        transport: bobT,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+      );
+      await bob.start(serviceName: 'Bob');
+
+      // Step 3: tell Bob about Alice via discovery so Bob's _peerStates
+      // gets seeded. (Without this, Bob's recovery init wouldn't find a
+      // _PeerState slot — _onInboundFrame creates one on demand, so this
+      // is belt-and-suspenders.)
+      bobT.emitDiscovery(PeerDiscovered(
+        peerId: alicePeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+
+      // Step 4: Alice (with stale session) sends a new envelope. Bob's
+      // session==null path triggers recovery. After re-handshake, the
+      // NEXT envelope from Alice should decrypt cleanly.
+      final receivedAfterRecovery = bob.inbound.first;
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-recovery',
+          clientId: 'msg-stale',
+          text: 'sent with stale keys',
+          sentAt: DateTime.parse('2026-04-28T10:00:01Z'),
+        ),
+      );
+
+      // Bob's recovery happens on this incoming frame. The frame itself
+      // is dropped (it can't be decrypted), but Bob immediately fires
+      // msg1 to Alice. Alice's Phase 2.1 logic resets and responds with
+      // msg2. Bob finalises. Then Alice's NEXT send arrives cleanly.
+      // We give the round-trip a moment to settle, then send again.
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-recovery',
+          clientId: 'msg-recovered',
+          text: 'after recovery',
+          sentAt: DateTime.parse('2026-04-28T10:00:02Z'),
+        ),
+      );
+
+      final got = await receivedAfterRecovery
+          .timeout(const Duration(seconds: 3));
+      // The first inbound after recovery is whichever decrypted first.
+      // It must NOT be the stale 'msg-stale' (that one MAC-failed and
+      // was dropped) — it must be 'msg-recovered'.
+      expect(got.envelope.clientId, 'msg-recovered');
+      expect(got.envelope.text, 'after recovery');
+
+      await alice.dispose();
+      await bob.dispose();
+    });
+  });
 }
