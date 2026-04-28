@@ -37,16 +37,26 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
   StreamSubscription<PeerDiscovered>? _discoverySub;
   StreamSubscription<PeerLost>? _lossSub;
   StreamSubscription<InboundEnvelope>? _inboundSub;
+  Timer? _refreshTicker;
 
   @override
   void initState() {
     super.initState();
     _transport = sl<MeshTransport>();
     _meshKey = sl<MeshStaticKey>();
+    // Mesh Debug counters (Pending / Resets / Reinits) read fresh from DI on
+    // each rebuild. Outbound mesh-fanout, supervisor reinits, and peer
+    // resets on the receive side don't always coincide with a discovery /
+    // inbound event, so we drive a 1 Hz tick to keep the status card honest.
+    _refreshTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _refreshTicker?.cancel();
     _discoverySub?.cancel();
     _lossSub?.cancel();
     _inboundSub?.cancel();
