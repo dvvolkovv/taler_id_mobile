@@ -36,6 +36,19 @@ import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
 
+@visibleForTesting
+String? mapAudioRouteEvent(Object? event) {
+  if (event is! Map) return null;
+  switch (event['event']) {
+    case 'bluetoothConnected':
+      return 'bluetooth';
+    case 'bluetoothDisconnected':
+      return 'earpiece';
+    default:
+      return null;
+  }
+}
+
 class VoiceCallScreen extends StatefulWidget {
   final String? roomName; // null = create new room with AI
   final String? conversationId; // for sending call_ended when hanging up
@@ -67,6 +80,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _connecting = true;
   bool _muted = false;
   String _audioOutputType = 'earpiece'; // earpiece, speaker, bluetooth, headphones
+  static const _audioRouteChannel = EventChannel('taler_id/audio_route');
+  StreamSubscription<dynamic>? _audioRouteSub;
   bool _reconnecting = false;
   bool _manualReconnecting = false;
   bool _hadRemoteParticipant = false; // true once at least one remote participant joined
@@ -333,6 +348,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (mounted) setState(() => _aiTwinActive = false);
       CallStateService.instance.unmarkAiTwinActive(leftRoom);
     });
+    _audioRouteSub = _audioRouteChannel
+        .receiveBroadcastStream()
+        .listen(_onAudioRouteEvent);
     _initCall();
   }
 
@@ -2467,6 +2485,13 @@ Answer briefly — the user is in the middle of a conversation.''';
     );
   }
 
+  void _onAudioRouteEvent(Object? event) {
+    if (!mounted) return;
+    final mapped = mapAudioRouteEvent(event);
+    if (mapped == null || mapped == _audioOutputType) return;
+    setState(() => _audioOutputType = mapped);
+  }
+
   Future<void> _setAudioOutput(String type) async {
     setState(() => _audioOutputType = type);
     // Apply immediately
@@ -3221,6 +3246,8 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   void dispose() {
+    _audioRouteSub?.cancel();
+    _audioRouteSub = null;
     WidgetsBinding.instance.removeObserver(this);
     _callEndedSub?.cancel();
     _callkitEndedSub?.cancel();
