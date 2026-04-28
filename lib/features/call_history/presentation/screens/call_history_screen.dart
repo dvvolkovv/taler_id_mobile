@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
@@ -21,6 +22,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../billing/presentation/widgets/balance_chip.dart';
 
 const _kIncomingColor = Color(0xFF4CAF50);
@@ -1681,56 +1683,16 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
           const SizedBox(height: 8),
           AppCard(
             child: Column(
-              children: participants.map((p) {
-                final name = p['displayName'] as String? ?? l10n.callHistoryUnknown;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      () {
-                        final ringColor = rainbowColorFor(name.isNotEmpty ? name : '$p');
-                        return Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: ringColor, width: 1.5),
-                            boxShadow: [
-                              BoxShadow(color: ringColor.withOpacity(0.35), blurRadius: 6),
-                            ],
-                          ),
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                center: const Alignment(-0.3, -0.4),
-                                radius: 1.1,
-                                colors: [
-                                  Color.lerp(ringColor, Colors.white, 0.3)!,
-                                  ringColor,
-                                  Color.lerp(ringColor, Colors.black, 0.4)!,
-                                ],
-                                stops: const [0.0, 0.55, 1.0],
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                              ),
-                            ),
-                          ),
-                        );
-                      }(),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(name, style: TextStyle(color: colors.textPrimary, fontSize: 15)),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+              children: () {
+                final currentUserId = context.read<MessengerBloc>().state.currentUserId;
+                return participants.map((p) => ParticipantTile(
+                  data: p as Map<String, dynamic>,
+                  currentUserId: currentUserId,
+                  colors: colors,
+                  youSuffix: l10n.callDetailYouSuffix,
+                  unknownLabel: l10n.callHistoryUnknown,
+                )).toList();
+              }(),
             ),
           ),
           const SizedBox(height: 12),
