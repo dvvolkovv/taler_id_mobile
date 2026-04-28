@@ -36,10 +36,12 @@ Constructor:
 const _ParticipantTile({
   required Map<String, dynamic> data,
   required String? currentUserId,
-  required AppColors colors,
+  required AppColorsExtension colors,
   required String youSuffix,
 });
 ```
+
+(`AppColorsExtension` is the project's color palette type — `AppColors.of(context)` resolves to it; defined in `lib/core/theme/app_theme.dart`.)
 
 Behavior:
 
