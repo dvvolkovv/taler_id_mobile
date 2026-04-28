@@ -466,6 +466,59 @@ void main() {
 
   // ── Reconnect storm recovery ──────────────────────────────────────────────
 
+  group('Pending preservation on ack (regression)', () {
+    test(
+        'message_acked alone must NOT drop pending entry — only echo removes it',
+        () async {
+      final pending = _PopulatedPendingMessageService();
+      sl.unregister<PendingMessageService>();
+      sl.registerSingleton<PendingMessageService>(pending);
+
+      final ackCtrl = StreamController<Map<String, dynamic>>.broadcast();
+      when(() => repo.messageAckedStream).thenAnswer((_) => ackCtrl.stream);
+      when(() => repo.joinConversation(any())).thenReturn(null);
+      when(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          )).thenReturn(null);
+
+      final bloc = buildBloc();
+      bloc.add(const ConnectMessenger('token', userId: 'user-1'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      bloc.add(const SendMessage('conv-1', 'Привет'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      expect(pending.getAll(), hasLength(1),
+          reason: 'pending saved on send');
+      final tempId = pending.getAll().first['id'] as String;
+
+      ackCtrl.add({'clientTempId': tempId});
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      // Pre-fix bug: ack handler removed pending immediately, causing the
+      // bubble to vanish on next chat reload if the echo (`new_message`)
+      // never arrived. Post-fix: ack only clears in-flight tracking; the
+      // persistent entry stays until the echo confirms the message was
+      // stored server-side.
+      expect(pending.getAll(), hasLength(1),
+          reason: 'message_acked must keep pending until echo arrives');
+
+      await bloc.close();
+      await ackCtrl.close();
+    });
+  });
+
   group('Reconnect recovery', () {
     blocTest<MessengerBloc, MessengerState>(
       'clears in-flight set on disconnect so pending messages re-emit on next reconnect',

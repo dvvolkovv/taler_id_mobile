@@ -230,11 +230,19 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     _msgAckedSub = _repo.messageAckedStream.listen((data) {
       final tempId = data['clientTempId'] as String?;
       if (tempId == null) return;
-      // Server confirmed it received the message (either fresh or as duplicate).
-      // Stop the retry storm: drop from persistent queue and in-flight set.
-      _pending.remove(tempId);
+      // Server confirmed receipt (`message_acked`). Stop in-flight tracking
+      // so a future reconnect storm doesn't double-emit. We do NOT drop the
+      // persistent pending entry here — the ack means "the socket frame
+      // landed", but the corresponding `new_message` echo may still be in
+      // flight. If we cleared `_pending` now and the app restarted before
+      // the echo arrived, the bubble would vanish on next chat open
+      // (because `_appendPending` would find nothing in Hive and the
+      // server's GET /messages list wouldn't yet include the new id).
+      // The persistent entry is dropped only by `_onMessageReceived` when
+      // the echo arrives, and the server's Redis 1h dedup catches any
+      // duplicate that a between-restart resend triggers.
       _inFlightTempIds.remove(tempId);
-      debugPrint('[MessengerBloc] message_acked: cleared tempId=$tempId');
+      debugPrint('[MessengerBloc] message_acked: cleared in-flight tempId=$tempId (pending kept until echo)');
     });
     _typingSub?.cancel();
     _typingSub = _repo.typingStream.listen((data) {
