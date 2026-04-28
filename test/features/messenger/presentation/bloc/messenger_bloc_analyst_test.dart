@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/services/messenger_cache_service.dart';
 import 'package:taler_id_mobile/core/services/pending_message_service.dart';
+import 'package:taler_id_mobile/features/messenger/data/services/pending_mesh_send_queue.dart';
 import 'package:taler_id_mobile/features/messenger/data/datasources/messenger_remote_datasource.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/analyst_events.dart';
 import 'package:taler_id_mobile/features/messenger/domain/entities/message_entity.dart';
@@ -45,6 +46,10 @@ void main() {
     sl.registerSingleton<MessengerCacheService>(mockCache);
     sl.registerSingleton<PendingMessageService>(mockPending);
     sl.registerSingleton<MessengerRemoteDataSource>(mockRemote);
+    if (sl.isRegistered<PendingMeshSendQueue>()) {
+      sl.unregister<PendingMeshSendQueue>();
+    }
+    sl.registerSingleton<PendingMeshSendQueue>(PendingMeshSendQueue());
 
     repo = _MockRepo();
     chunkCtrl = StreamController<AnalystChunk>.broadcast();
