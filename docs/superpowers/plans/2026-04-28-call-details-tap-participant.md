@@ -4,7 +4,7 @@
 
 **Goal:** Make participant rows in the Call Details screen tappable; tap opens existing `UserProfileScreen` for non-self users.
 
-**Architecture:** Extract a private `_ParticipantTile` widget inside [call_history_screen.dart](lib/features/call_history/presentation/screens/call_history_screen.dart). Wire `currentUserId` from `MessengerBloc.state.currentUserId`. Add localized `(Вы) / (You)` suffix for self-row. No backend, API, route, or domain changes.
+**Architecture:** Extract a private `ParticipantTile` widget inside [call_history_screen.dart](lib/features/call_history/presentation/screens/call_history_screen.dart). Wire `currentUserId` from `MessengerBloc.state.currentUserId`. Add localized `(Вы) / (You)` suffix for self-row. No backend, API, route, or domain changes.
 
 **Tech Stack:** Flutter, flutter_bloc (`MessengerBloc`), GoRouter (existing route `/dashboard/user/:userId`), AppLocalizations (ARB).
 
@@ -18,8 +18,8 @@
 - **Modify** `lib/l10n/app_en.arb` — add key `callDetailYouSuffix`
 - **Modify** `lib/features/call_history/presentation/screens/call_history_screen.dart`:
   - Add import for `flutter_bloc` (likely already present) and `MessengerBloc`
-  - Replace inline participants block (lines 1682-1734) with `_ParticipantTile` mapping
-  - Append new `_ParticipantTile` widget class to end of file
+  - Replace inline participants block (lines 1682-1734) with `ParticipantTile` mapping
+  - Append new `ParticipantTile` widget class to end of file
 - **Create** `test/features/call_history/participant_tile_test.dart` — widget test for the decision tree
 - **Modify** `integration_test/app_test.dart` — add navigation step into call details and tap
 
@@ -103,7 +103,7 @@ git commit -m "i18n(call-history): add callDetailYouSuffix key"
 
 ---
 
-## Task 2: Add `_ParticipantTile` widget (no behavior change yet)
+## Task 2: Add `ParticipantTile` widget (no behavior change yet)
 
 **Files:**
 - Modify: `lib/features/call_history/presentation/screens/call_history_screen.dart` — append new widget class
@@ -125,13 +125,13 @@ Note which of these are already imported:
 - `rainbowColorFor` helper import path
 - `l10n` / `AppLocalizations` import path
 
-- [ ] **Step 2.2: Append `_ParticipantTile` to the bottom of `call_history_screen.dart`**
+- [ ] **Step 2.2: Append `ParticipantTile` to the bottom of `call_history_screen.dart`**
 
 Add at the very end of the file (after the last closing brace of any existing widget, just before EOF):
 
 ```dart
-class _ParticipantTile extends StatelessWidget {
-  const _ParticipantTile({
+class ParticipantTile extends StatelessWidget {
+  const ParticipantTile({
     required this.data,
     required this.currentUserId,
     required this.colors,
@@ -244,19 +244,19 @@ Then add the matching import.
 cd ~/Downloads/taler_id_mobile && flutter analyze lib/features/call_history/presentation/screens/call_history_screen.dart
 ```
 
-Expected: zero errors. Possibly a warning about `_ParticipantTile` being unused — that's expected, will be wired in Task 3. If the analyzer treats unused private classes as errors in this project, it's still acceptable to commit and immediately wire it in Task 3.
+Expected: zero errors. Possibly a warning about `ParticipantTile` being unused — that's expected, will be wired in Task 3. If the analyzer treats unused private classes as errors in this project, it's still acceptable to commit and immediately wire it in Task 3.
 
 - [ ] **Step 2.5: Commit**
 
 ```bash
 cd ~/Downloads/taler_id_mobile
 git add lib/features/call_history/presentation/screens/call_history_screen.dart
-git commit -m "feat(call-history): add _ParticipantTile widget (not yet wired)"
+git commit -m "feat(call-history): add ParticipantTile widget (not yet wired)"
 ```
 
 ---
 
-## Task 3: Wire `_ParticipantTile` into the participants list
+## Task 3: Wire `ParticipantTile` into the participants list
 
 **Files:**
 - Modify: `lib/features/call_history/presentation/screens/call_history_screen.dart` — replace lines 1682-1734 region
@@ -269,7 +269,7 @@ cd ~/Downloads/taler_id_mobile && sed -n '1672,1738p' lib/features/call_history/
 
 Confirm you see the `// Participants` comment, the `if (participants.isNotEmpty) ...[` block, the inline `participants.map((p) { return Padding(Row( ...` body, and the closing `]`.
 
-- [ ] **Step 3.2: Replace the inline body with `_ParticipantTile` mapping**
+- [ ] **Step 3.2: Replace the inline body with `ParticipantTile` mapping**
 
 Find the section starting from `// Participants` (around line 1673). Replace the inner `AppCard(child: Column(...))` body so the surrounding section header stays intact. The AppCard should become:
 
@@ -278,7 +278,7 @@ AppCard(
   child: Column(
     children: () {
       final currentUserId = context.read<MessengerBloc>().state.currentUserId;
-      return participants.map((p) => _ParticipantTile(
+      return participants.map((p) => ParticipantTile(
         data: p as Map<String, dynamic>,
         currentUserId: currentUserId,
         colors: colors,
@@ -298,7 +298,7 @@ AppCard(
 cd ~/Downloads/taler_id_mobile && flutter analyze lib/features/call_history/presentation/screens/call_history_screen.dart
 ```
 
-Expected: zero errors, zero warnings. (`_ParticipantTile` should now register as used.)
+Expected: zero errors, zero warnings. (`ParticipantTile` should now register as used.)
 
 - [ ] **Step 3.4: Run full Flutter test suite to catch regressions**
 
@@ -318,33 +318,12 @@ git commit -m "feat(call-history): tap participant in call details opens user pr
 
 ---
 
-## Task 4: Widget test for `_ParticipantTile`
+## Task 4: Widget test for `ParticipantTile`
 
 **Files:**
 - Create: `test/features/call_history/participant_tile_test.dart`
 
-This is the project's first widget test. We test widget-tree structure (presence of `InkWell`, displayed text), not navigation behavior — navigation goes through `GoRouter` and is covered by the integration test in Task 5. Because `_ParticipantTile` is private, we test it indirectly by re-declaring an identical public test fixture, OR by adding a test-only export. The simpler path: change `_ParticipantTile` to package-private `ParticipantTile` (drop the leading underscore) and add a `// ignore: library_private_types_in_public_api` if needed. We choose this path.
-
-- [ ] **Step 4.1: Rename `_ParticipantTile` → `ParticipantTile` in `call_history_screen.dart`**
-
-Two replacements in `lib/features/call_history/presentation/screens/call_history_screen.dart`:
-1. Class declaration: `class _ParticipantTile extends StatelessWidget {` → `class ParticipantTile extends StatelessWidget {`
-2. Constructor: `const _ParticipantTile({` → `const ParticipantTile({`
-3. Usage in `.map((p) => _ParticipantTile(...))` → `.map((p) => ParticipantTile(...))`
-
-```bash
-cd ~/Downloads/taler_id_mobile && grep -n "_ParticipantTile\|ParticipantTile" lib/features/call_history/presentation/screens/call_history_screen.dart
-```
-
-Expected: 3 occurrences, all now `ParticipantTile` (without underscore).
-
-- [ ] **Step 4.2: Verify analyzer still clean**
-
-```bash
-cd ~/Downloads/taler_id_mobile && flutter analyze lib/features/call_history/presentation/screens/call_history_screen.dart
-```
-
-Expected: zero errors.
+We test widget-tree structure (presence of `InkWell`, displayed text), not navigation behavior — navigation goes through `GoRouter` and is covered by the integration test in Task 5. The project already has widget tests as precedent (e.g., `test/features/messenger/presentation/widgets/analyst_seam_widget_test.dart`, `test/features/billing/widgets/balance_chip_test.dart`) — follow their wrapping pattern. Since `ParticipantTile` is package-public from Task 2 onwards, no rename is needed.
 
 - [ ] **Step 4.3: Create test directory if missing**
 
@@ -448,7 +427,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 4.5: Run tests — expect them to pass since the implementation already exists from Task 3**
+- [ ] **Step 4.5: Run tests — expect them to pass (implementation already exists from Tasks 2-3)**
 
 ```bash
 cd ~/Downloads/taler_id_mobile && flutter test test/features/call_history/participant_tile_test.dart
@@ -468,8 +447,7 @@ Expected: all green.
 
 ```bash
 cd ~/Downloads/taler_id_mobile
-git add test/features/call_history/participant_tile_test.dart \
-  lib/features/call_history/presentation/screens/call_history_screen.dart
+git add test/features/call_history/participant_tile_test.dart
 git commit -m "test(call-history): widget tests for ParticipantTile"
 ```
 
