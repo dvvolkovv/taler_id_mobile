@@ -299,6 +299,22 @@ class MeshMessagingService {
     return true;
   }
 
+  /// Mesh Debug — total reset count across all peers in the current
+  /// `peerResetWindow`. Sliding window via DateTime comparison; matches
+  /// the budget that `_allowReset` enforces. Cheap: `_peerResetTimes`
+  /// is bounded by `peerResetThreshold` entries per peer plus the peer
+  /// count.
+  int get peerResetCountTotal {
+    final now = DateTime.now();
+    var total = 0;
+    for (final times in _peerResetTimes.values) {
+      for (final t in times) {
+        if (now.difference(t) <= peerResetWindow) total++;
+      }
+    }
+    return total;
+  }
+
   /// Phase 2.3 — peer's data frame can't be decrypted (no session OR MAC
   /// failure). The most likely cause is that one side restarted while the
   /// other kept a cached Noise session, so keys no longer match. Reset
