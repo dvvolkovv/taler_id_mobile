@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
+import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.os.Build
@@ -20,7 +21,9 @@ import com.cloudwebrtc.webrtc.LocalTrack
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.atomic.AtomicReference
 
 class MainActivity : FlutterFragmentActivity() {
     private var audioFocusRequest: AudioFocusRequest? = null
@@ -35,10 +38,17 @@ class MainActivity : FlutterFragmentActivity() {
     private var wakeWordChannel: MethodChannel? = null
     // Capture the correct FlutterWebRTCPlugin instance right after plugin registration
     private var webrtcPlugin: FlutterWebRTCPlugin? = null
+    private val audioRouteEventSink = AtomicReference<EventChannel.EventSink?>(null)
+    private var audioDeviceCallback: AudioDeviceCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannels()
+    }
+
+    override fun onDestroy() {
+        unregisterAudioRouteCallback()
+        super.onDestroy()
     }
 
     private fun createNotificationChannels() {
@@ -253,6 +263,18 @@ class MainActivity : FlutterFragmentActivity() {
                 }
             }
 
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/audio_route")
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    audioRouteEventSink.set(events)
+                }
+                override fun onCancel(arguments: Any?) {
+                    audioRouteEventSink.set(null)
+                }
+            })
+
+        registerAudioRouteCallback()
+
         // Wake word channel (separate from audio to avoid handler conflicts)
         val wwCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/wake_word")
         wakeWordChannel = wwCh
@@ -354,6 +376,61 @@ class MainActivity : FlutterFragmentActivity() {
             am.abandonAudioFocus(focusListener)
         }
         focusListener = null
+    }
+
+    private fun registerAudioRouteCallback() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        val cb = object : AudioDeviceCallback() {
+            override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>) {
+                val bt = addedDevices.firstOrNull { isBluetoothHeadset(it) } ?: return
+                if (am.mode != AudioManager.MODE_IN_COMMUNICATION) return
+                try {
+                    am.isSpeakerphoneOn = false
+                    am.startBluetoothSco()
+                    am.isBluetoothScoOn = true
+                    requestAudioFocus(am)
+                } catch (e: Exception) {
+                    Log.w("AudioRoute", "BT SCO start failed: ${e.message}")
+                }
+                sendRouteEvent(mapOf(
+                    "event" to "bluetoothConnected",
+                    "name" to (bt.productName?.toString() ?: "Bluetooth")
+                ))
+            }
+
+            override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>) {
+                val hadBt = removedDevices.any { isBluetoothHeadset(it) }
+                if (!hadBt) return
+                if (am.mode != AudioManager.MODE_IN_COMMUNICATION) return
+                try {
+                    am.stopBluetoothSco()
+                    am.isBluetoothScoOn = false
+                    am.isSpeakerphoneOn = false
+                } catch (e: Exception) {
+                    Log.w("AudioRoute", "BT SCO stop failed: ${e.message}")
+                }
+                sendRouteEvent(mapOf("event" to "bluetoothDisconnected"))
+            }
+
+            private fun isBluetoothHeadset(d: AudioDeviceInfo): Boolean =
+                d.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        d.type == AudioDeviceInfo.TYPE_BLE_HEADSET)
+        }
+        am.registerAudioDeviceCallback(cb, null)
+        audioDeviceCallback = cb
+    }
+
+    private fun unregisterAudioRouteCallback() {
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+        audioDeviceCallback?.let { am.unregisterAudioDeviceCallback(it) }
+        audioDeviceCallback = null
+    }
+
+    private fun sendRouteEvent(payload: Map<String, Any?>) {
+        runOnUiThread { audioRouteEventSink.get()?.success(payload) }
     }
 
     private var callAudioFocusRequest: AudioFocusRequest? = null
