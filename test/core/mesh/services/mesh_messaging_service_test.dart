@@ -482,5 +482,91 @@ void main() {
       await alice.dispose();
       await bob.dispose();
     });
+
+    test('peerResetCountTotal counts resets within the window', () async {
+      final (alicePriv, alicePub) = await _x25519Keys();
+      final (bobPriv, bobPub) = await _x25519Keys();
+      final alicePeer = PeerId(alicePub);
+      final bobPeer = PeerId(bobPub);
+
+      final aliceStore = ContactKeyStore()
+        ..addContact(userPk: bobPeer, devicePks: [bobPeer]);
+      final bobStore = ContactKeyStore()
+        ..addContact(userPk: alicePeer, devicePks: [alicePeer]);
+
+      final aliceT = _FakeTransport();
+      final bobT = _FakeTransport();
+      aliceT.partner = bobT;
+      bobT.partner = aliceT;
+
+      final alice = MeshMessagingService(
+        transport: aliceT,
+        contactKeyStore: aliceStore,
+        myDevicePrivateKey: alicePriv,
+        myDevicePublicKey: alicePub,
+      );
+      final bob = MeshMessagingService(
+        transport: bobT,
+        contactKeyStore: bobStore,
+        myDevicePrivateKey: bobPriv,
+        myDevicePublicKey: bobPub,
+        peerResetThreshold: 5,
+        peerResetWindow: const Duration(seconds: 60),
+      );
+      await alice.start(serviceName: 'Alice');
+      await bob.start(serviceName: 'Bob');
+
+      aliceT.emitDiscovery(PeerDiscovered(
+        peerId: bobPeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+      bobT.emitDiscovery(PeerDiscovered(
+        peerId: alicePeer,
+        host: '127.0.0.1',
+        port: 0,
+      ));
+
+      // Establish Bob's session so MAC-fail path triggers (not session==null).
+      final firstAtBob = bob.inbound.first;
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'conv-counter',
+          clientId: 'msg-warmup',
+          text: 'warm up',
+          sentAt: DateTime.parse('2026-04-28T10:00:00Z'),
+        ),
+      );
+      await firstAtBob;
+
+      expect(bob.peerResetCountTotal, 0,
+          reason: 'no resets before garbage frames arrive');
+
+      // Sever Alice→Bob link so Bob's recovery handshakes never get a
+      // response from Alice. This prevents Alice from re-establishing
+      // Bob's session mid-injection and thus avoids an extra _allowReset
+      // hit on Bob when it processes Alice's msg2 while already holding
+      // a fresh session.
+      bobT.partner = null;
+
+      // Inject 4 garbage data frames into Bob (within threshold=5).
+      for (var i = 0; i < 4; i++) {
+        bobT.injectInboundFrame(InboundFrame(
+          srcPeer: alicePeer,
+          type: FrameType.data,
+          bytes: Uint8List.fromList(List<int>.generate(80, (j) => i * 11 + j)),
+        ));
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      expect(bob.peerResetCountTotal, 4,
+          reason: 'all 4 garbage frames triggered resets within window');
+
+      await alice.dispose();
+      await bob.dispose();
+    });
   });
 }

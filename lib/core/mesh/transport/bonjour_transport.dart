@@ -58,6 +58,11 @@ class BonjourTransport implements MeshTransport {
   /// Returns 0 if [startAdvertising] has not been called yet.
   int get listenPort => _server?.port ?? 0;
 
+  /// Mesh Debug — total Bonsoir discovery reinits the supervisor has
+  /// fired since this transport was started. Returns 0 when the
+  /// supervisor is not yet attached (e.g., transport stopped).
+  int get discoveryReinitCount => _supervisor?.reinitCount ?? 0;
+
   /// Manually inject a peer's address, bypassing mDNS discovery.
   ///
   /// This is useful for integration tests running on environments where
