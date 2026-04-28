@@ -116,6 +116,10 @@ class _CapturingCacheService extends MessengerCacheService {
 
 /// Fake без Hive — возвращает пустые данные, игнорирует записи
 class FakeMessengerCacheService extends MessengerCacheService {
+  /// Test-only mesh history (per conversationId). Tests that need to
+  /// exercise the merge-time dedup populate this directly.
+  final Map<String, List<Map<String, dynamic>>> meshHistory = {};
+
   @override
   List<Map<String, dynamic>>? getConversations() => null;
 
@@ -136,6 +140,20 @@ class FakeMessengerCacheService extends MessengerCacheService {
 
   @override
   Future<void> removeMessage(String conversationId, String messageId) async {}
+
+  @override
+  Future<void> appendMeshMessage(Map<String, dynamic> entry) async {
+    final convId = entry['conversationId'] as String?;
+    if (convId == null) return;
+    final list = meshHistory.putIfAbsent(convId, () => []);
+    if (list.any((m) => m['id'] == entry['id'])) return;
+    list.add(entry);
+  }
+
+  @override
+  List<Map<String, dynamic>> getMeshMessagesFor(String conversationId) {
+    return List<Map<String, dynamic>>.from(meshHistory[conversationId] ?? const []);
+  }
 
   @override
   Future<void> clearAll() async {}
@@ -349,6 +367,57 @@ void main() {
               'server is unreachable, otherwise the user thinks it disappeared.',
         );
         expect(b.state.isLoading, isFalse);
+      },
+    );
+
+    blocTest<MessengerBloc, MessengerState>(
+      'merge dedups mesh entry that has matching server counterpart (regression)',
+      build: () {
+        // The bloc's live-event dedup in _onMeshMessageReceived already
+        // skips the bubble at runtime, but the adapter writes mesh
+        // entries to Hive BEFORE the bloc's dedup decision. On chat
+        // reload, _loadMeshHistory pulls the stale mesh entry out and
+        // _mergeSortedById would otherwise emit two bubbles (different
+        // ids: server uuid vs mesh clientId). Phase 2 dedup hygiene at
+        // merge time keeps the UI consistent.
+        final fakeCache = FakeMessengerCacheService();
+        fakeCache.meshHistory['conv-1'] = [
+          {
+            'id': 'mesh-client-id-aaa',
+            'conversationId': 'conv-1',
+            'senderId': 'user-2',
+            'content': 'Привет',
+            'transport': 'mesh',
+            'sentAt': '2024-01-15T10:00:00.000Z',
+          },
+        ];
+        sl.unregister<MessengerCacheService>();
+        sl.registerSingleton<MessengerCacheService>(fakeCache);
+
+        when(() => repo.getMessages('conv-1', cursor: null)).thenAnswer(
+          (_) async => {
+            'messages': [
+              MessageEntity(
+                id: 'server-uuid-xyz',
+                conversationId: 'conv-1',
+                senderId: 'user-2',
+                content: 'Привет',
+                sentAt: DateTime.parse('2024-01-15T10:00:01.000Z'),
+              ).toJson(),
+            ],
+            'nextCursor': null,
+          },
+        );
+        when(() => repo.joinConversation('conv-1')).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) => b.add(const OpenConversation('conv-1')),
+      verify: (b) {
+        final msgs = b.state.messages['conv-1'] ?? const [];
+        expect(msgs, hasLength(1),
+            reason: 'mesh entry must be deduped against server counterpart at merge time');
+        expect(msgs.single.id, 'server-uuid-xyz',
+            reason: 'server entry survives, mesh entry filtered');
       },
     );
   });
