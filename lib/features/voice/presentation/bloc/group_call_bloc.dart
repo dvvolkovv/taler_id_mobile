@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/services/call_state_service.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../domain/entities/group_call_invite.dart';
 import '../../domain/repositories/group_call_repository.dart';
@@ -223,6 +224,23 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
         return GroupCallInviteStatus.left;
       default:
         return GroupCallInviteStatus.calling;
+    }
+  }
+
+  @override
+  void onTransition(Transition<GroupCallEvent, GroupCallState> transition) {
+    super.onTransition(transition);
+    final next = transition.nextState;
+    final svc = CallStateService.instance;
+    if (next is InLobby) {
+      svc.setActiveGroupCall(next.groupCall.id);
+    } else if (next is InActive) {
+      svc.setActiveGroupCall(next.groupCall.id);
+    } else {
+      // Idle, Ended, ErrorState, Creating — all imply "not in a call".
+      // (Creating is a transient pre-LOBBY state; clearing is fine since the
+      // next emission will be either InLobby (set) or ErrorState (stay null).)
+      svc.setActiveGroupCall(null);
     }
   }
 
