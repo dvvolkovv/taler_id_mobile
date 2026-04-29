@@ -23,6 +23,8 @@ class HiveMeshCallHistoryRepository implements MeshCallHistoryRepository {
   // Latest known snapshot — used to replay to new subscribers immediately.
   List<MeshCallHistoryEntry> _latest = const [];
 
+  bool _disposed = false;
+
   Future<void> init() async {
     try {
       _box = await Hive.openBox<String>(_boxName);
@@ -37,6 +39,8 @@ class HiveMeshCallHistoryRepository implements MeshCallHistoryRepository {
   }
 
   Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
     await _ctrl.close();
     await _box?.close();
     _box = null;
@@ -108,6 +112,7 @@ class HiveMeshCallHistoryRepository implements MeshCallHistoryRepository {
   }
 
   Future<void> _refreshAndEmit() async {
+    if (_disposed) return;
     _latest = await getAll();
     if (!_ctrl.isClosed) _ctrl.add(_latest);
   }
