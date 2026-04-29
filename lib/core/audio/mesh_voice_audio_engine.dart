@@ -50,52 +50,22 @@ class MeshVoiceAudioEngine {
   Stream<Uint8List> get outbound => _outboundCtrl.stream;
 
   Future<void> start() async {
-    debugPrint('[MeshVoiceAudioEngine] start() begin');
     await capture.start();
-    debugPrint('[MeshVoiceAudioEngine] capture.start() returned');
     await playback.start();
-    debugPrint('[MeshVoiceAudioEngine] playback.start() returned');
-    int captureFrames = 0;
-    int encodeErrors = 0;
-    int lastReportAt = DateTime.now().millisecondsSinceEpoch;
     _captureSub = capture.frames.listen((pcm) {
-      captureFrames++;
       try {
         final encoded = _encoder.encode(pcm);
         _outboundCtrl.add(encoded);
       } catch (e) {
-        encodeErrors++;
-        if (encodeErrors <= 3) {
-          debugPrint('[MeshVoiceAudioEngine] encode error: $e (pcm.len=${pcm.length})');
-        }
-      }
-      final now = DateTime.now().millisecondsSinceEpoch;
-      if (now - lastReportAt > 1000) {
-        debugPrint('[MeshVoiceAudioEngine] captureFrames=$captureFrames encodeErrors=$encodeErrors');
-        lastReportAt = now;
+        debugPrint('[MeshVoiceAudioEngine] encode error: $e (pcm.len=${pcm.length})');
       }
     }, onError: (e, st) {
-      debugPrint('[MeshVoiceAudioEngine] capture stream error: $e\n$st');
+      debugPrint('[MeshVoiceAudioEngine] capture stream error: $e');
     });
-    debugPrint('[MeshVoiceAudioEngine] subscribed to capture.frames');
-    int drainPulls = 0;
-    int drainPlayed = 0;
-    int drainEmpty = 0;
-    int drainErrors = 0;
-    int lastDrainReport = DateTime.now().millisecondsSinceEpoch;
     // Drain jitter buffer at frame cadence.
     _drainTimer = Timer.periodic(Duration(milliseconds: 1000 * frameSamples ~/ sampleRate), (_) {
-      drainPulls++;
       final next = _jb.pull();
-      final now = DateTime.now().millisecondsSinceEpoch;
-      if (next == null) {
-        drainEmpty++;
-        if (now - lastDrainReport > 1000) {
-          debugPrint('[MeshVoiceAudioEngine] drainPulls=$drainPulls drainEmpty=$drainEmpty drainPlayed=$drainPlayed drainErrors=$drainErrors');
-          lastDrainReport = now;
-        }
-        return;
-      }
+      if (next == null) return;
       try {
         final pcm = next.kind == JitterFrameKind.payload && next.payload != null
             ? _decoder.decode(next.payload!, frameSize: frameSamples)
@@ -103,19 +73,10 @@ class MeshVoiceAudioEngine {
                 ? _decoder.decode(Uint8List(0), frameSize: frameSamples) // PLC
                 : Int16List(frameSamples)); // silence
         playback.push(pcm);
-        drainPlayed++;
       } catch (e) {
-        drainErrors++;
-        if (drainErrors <= 3) {
-          debugPrint('[MeshVoiceAudioEngine] decode/push error: $e');
-        }
-      }
-      if (now - lastDrainReport > 1000) {
-        debugPrint('[MeshVoiceAudioEngine] drainPulls=$drainPulls drainEmpty=$drainEmpty drainPlayed=$drainPlayed drainErrors=$drainErrors');
-        lastDrainReport = now;
+        debugPrint('[MeshVoiceAudioEngine] decode/push error: $e');
       }
     });
-    debugPrint('[MeshVoiceAudioEngine] drain timer armed');
   }
 
   /// Inject an inbound encoded Opus packet identified by [seq].
