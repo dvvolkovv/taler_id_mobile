@@ -46,8 +46,17 @@ typedef OpusDecode = int Function(ffi.Pointer<ffi.Void> st,
 typedef _OpusDecoderDestroyNative = ffi.Void Function(ffi.Pointer<ffi.Void>);
 typedef OpusDecoderDestroy = void Function(ffi.Pointer<ffi.Void>);
 
+// opus_encoder_ctl is variadic in C: `int opus_encoder_ctl(OpusEncoder*, int, ...)`.
+// On iOS arm64 the calling convention for variadic args differs from regular
+// args (variadic args go on the stack with specific alignment, not in scalar
+// registers like AAPCS64 does for fixed args). We MUST declare the int value
+// as a VarArgs argument so dart:ffi emits the correct ABI; otherwise the
+// passed bitrate is read from the wrong location and opus_encoder_ctl
+// returns OPUS_BAD_ARG (-1).
 typedef _OpusEncoderCtlNative = ffi.Int32 Function(
-    ffi.Pointer<ffi.Void> st, ffi.Int32 request, ffi.Int32 value);
+    ffi.Pointer<ffi.Void> st,
+    ffi.Int32 request,
+    ffi.VarArgs<(ffi.Int32,)>);
 typedef OpusEncoderCtl = int Function(ffi.Pointer<ffi.Void> st, int request, int value);
 
 class OpusBindings {

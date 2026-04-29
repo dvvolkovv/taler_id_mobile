@@ -4,20 +4,27 @@ import Flutter
 class AudioPlaybackChannel: NSObject {
   static let methodChannelName = "tirol.taler/mesh_audio_playback"
 
+  // Strong reference so the instance survives after register() returns.
+  // AudioIOSession keeps only a weak ref; the MethodChannel handler closure
+  // also captured it weakly previously, which led to immediate dealloc and
+  // hung MethodChannel calls on Dart side.
+  private static var sharedInstance: AudioPlaybackChannel?
+
   private var pendingFrames: [Data] = []
   private let lock = NSLock()
   private var started = false
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let instance = AudioPlaybackChannel()
+    sharedInstance = instance
     let methodChannel = FlutterMethodChannel(name: methodChannelName, binaryMessenger: registrar.messenger())
-    methodChannel.setMethodCallHandler { [weak instance] call, result in
+    methodChannel.setMethodCallHandler { call, result in
       switch call.method {
-      case "start": instance?.start(result: result)
-      case "stop":  instance?.stop(result: result)
+      case "start": instance.start(result: result)
+      case "stop":  instance.stop(result: result)
       case "push":
         if let bytes = call.arguments as? FlutterStandardTypedData {
-          instance?.push(bytes.data); result(nil)
+          instance.push(bytes.data); result(nil)
         } else {
           result(FlutterError(code: "bad_args", message: "expected typed bytes", details: nil))
         }

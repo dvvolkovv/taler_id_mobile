@@ -21,6 +21,7 @@
 		A1B2C3D401000004AABBCCDD /* AudioCaptureChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */; };
 		A1B2C3D401000005AABBCCDD /* AudioIOSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */; };
 		A1B2C3D401000006AABBCCDD /* AudioPlaybackChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */; };
+		A1B2C3D401000007AABBCCDD /* OpusSymbolsKeeper.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */; };
 		A1B2C3D401000001AABBCCDD /* VideoBackgroundProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */; };
 		A1B2C3D401000002AABBCCDD /* VideoEffectsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */; };
 		A1B2C3D401000003AABBCCDD /* bumer_ringtone.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */; };
@@ -98,6 +99,7 @@
 		A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioCaptureChannel.swift; path = Audio/AudioCaptureChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioIOSession.swift; path = Audio/AudioIOSession.swift; sourceTree = "<group>"; };
 		A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioPlaybackChannel.swift; path = Audio/AudioPlaybackChannel.swift; sourceTree = "<group>"; };
+		A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = OpusSymbolsKeeper.m; path = Audio/OpusSymbolsKeeper.m; sourceTree = "<group>"; };
 		A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundProcessor.swift; sourceTree = "<group>"; };
 		A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEffectsPlugin.swift; sourceTree = "<group>"; };
 		A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = bumer_ringtone.caf; sourceTree = "<group>"; };
@@ -225,6 +227,7 @@
 				A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */,
 				A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */,
 				A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */,
+				A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */,
 				A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */,
 				A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */,
 				A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */,
@@ -535,6 +538,7 @@
 				A1B2C3D401000004AABBCCDD /* AudioCaptureChannel.swift in Sources */,
 				A1B2C3D401000005AABBCCDD /* AudioIOSession.swift in Sources */,
 				A1B2C3D401000006AABBCCDD /* AudioPlaybackChannel.swift in Sources */,
+				A1B2C3D401000007AABBCCDD /* OpusSymbolsKeeper.m in Sources */,
 				A1B2C3D401000001AABBCCDD /* VideoBackgroundProcessor.swift in Sources */,
 				A1B2C3D401000002AABBCCDD /* VideoEffectsPlugin.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
