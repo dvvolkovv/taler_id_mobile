@@ -1052,6 +1052,15 @@
   "incomingCallLabel": "Incoming call",
   "incomingCallDecline": "Decline",
   "incomingCallAccept": "Accept",
+  "meshIncomingCallLabel": "📡 Incoming mesh call",
+  "meshDeviceFallback": "Mesh device {hexPrefix}",
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
   "groupCamera": "Camera",
   "groupGallery": "Gallery",
   "groupAvatarUpdated": "Group avatar updated",

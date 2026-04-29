@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/features/voice/presentation/widgets/mesh_incoming_call_sheet.dart';
+import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
 PeerId _peer() =>
     PeerId(Uint8List.fromList(List<int>.generate(32, (i) => i + 100)));
@@ -13,6 +14,9 @@ void main() {
     testWidgets('renders peer name and avatar URL when provided',
         (tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
         home: Scaffold(
           body: MeshIncomingCallSheet(
             peer: _peer(),
@@ -30,6 +34,9 @@ void main() {
     testWidgets('falls back to "Mesh-устройство <hex>" when peerName is null',
         (tester) async {
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
         home: Scaffold(
           body: MeshIncomingCallSheet(
             peer: _peer(),
@@ -46,6 +53,9 @@ void main() {
     testWidgets('Accept button fires onAccept', (tester) async {
       var accepted = 0;
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
         home: Scaffold(
           body: MeshIncomingCallSheet(
             peer: _peer(),
@@ -64,6 +74,9 @@ void main() {
     testWidgets('Decline button fires onDecline', (tester) async {
       var declined = 0;
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
         home: Scaffold(
           body: MeshIncomingCallSheet(
             peer: _peer(),
@@ -83,6 +96,9 @@ void main() {
         (tester) async {
       var declined = 0;
       await tester.pumpWidget(MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('ru'),
         home: Scaffold(
           body: MeshIncomingCallSheet(
             peer: _peer(),

@@ -2433,6 +2433,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get incomingCallAccept => 'Принять';
 
   @override
+  String get meshIncomingCallLabel => '📡 Входящий mesh-звонок';
+
+  @override
+  String meshDeviceFallback(String hexPrefix) {
+    return 'Mesh-устройство $hexPrefix';
+  }
+
+  @override
   String get groupCamera => 'Камера';
 
   @override

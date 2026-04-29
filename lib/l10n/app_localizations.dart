@@ -4688,6 +4688,18 @@ abstract class AppLocalizations {
   /// **'Accept'**
   String get incomingCallAccept;
 
+  /// No description provided for @meshIncomingCallLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Incoming mesh call'**
+  String get meshIncomingCallLabel;
+
+  /// No description provided for @meshDeviceFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Mesh device {hexPrefix}'**
+  String meshDeviceFallback(String hexPrefix);
+
   /// No description provided for @groupCamera.
   ///
   /// In en, this message translates to:

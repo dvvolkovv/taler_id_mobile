@@ -1052,6 +1052,15 @@
   "incomingCallLabel": "Входящий звонок",
   "incomingCallDecline": "Отклонить",
   "incomingCallAccept": "Принять",
+  "meshIncomingCallLabel": "📡 Входящий mesh-звонок",
+  "meshDeviceFallback": "Mesh-устройство {hexPrefix}",
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
   "groupCamera": "Камера",
   "groupGallery": "Галерея",
   "groupAvatarUpdated": "Аватар группы обновлён",

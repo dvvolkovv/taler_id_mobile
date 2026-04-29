@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class _AvatarWidget extends StatelessWidget {
   final String displayName;
@@ -92,16 +93,18 @@ class _MeshIncomingCallSheetState extends State<MeshIncomingCallSheet> {
     widget.onDecline();
   }
 
-  String _displayName() {
+  String _displayName(AppLocalizations l10n) {
     final n = widget.peerName;
     if (n != null && n.isNotEmpty) return n;
     final hex = widget.peer.toHex();
-    return 'Mesh-устройство ${hex.substring(0, 8)}';
+    return l10n.meshDeviceFallback(hex.substring(0, 8));
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final avatarUrl = widget.peerAvatarUrl;
+    final displayName = _displayName(l10n);
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
@@ -109,14 +112,14 @@ class _MeshIncomingCallSheetState extends State<MeshIncomingCallSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _AvatarWidget(
-              displayName: _displayName(),
+              displayName: displayName,
               avatarUrl: avatarUrl,
             ),
             const SizedBox(height: 16),
-            Text(_displayName(),
+            Text(displayName,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 4),
-            Text('📡 Входящий mesh-звонок',
+            Text(l10n.meshIncomingCallLabel,
                 style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 24),
             Row(
@@ -126,7 +129,7 @@ class _MeshIncomingCallSheetState extends State<MeshIncomingCallSheet> {
                   key: const Key('mesh-incoming-decline'),
                   onPressed: _handleDecline,
                   icon: const Icon(Icons.call_end),
-                  label: const Text('Отклонить'),
+                  label: Text(l10n.incomingCallDecline),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white),
@@ -135,7 +138,7 @@ class _MeshIncomingCallSheetState extends State<MeshIncomingCallSheet> {
                   key: const Key('mesh-incoming-accept'),
                   onPressed: _handleAccept,
                   icon: const Icon(Icons.call),
-                  label: const Text('Принять'),
+                  label: Text(l10n.incomingCallAccept),
                   style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white),

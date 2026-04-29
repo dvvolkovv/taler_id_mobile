@@ -2424,6 +2424,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomingCallAccept => 'Accept';
 
   @override
+  String get meshIncomingCallLabel => '📡 Incoming mesh call';
+
+  @override
+  String meshDeviceFallback(String hexPrefix) {
+    return 'Mesh device $hexPrefix';
+  }
+
+  @override
   String get groupCamera => 'Camera';
 
   @override
