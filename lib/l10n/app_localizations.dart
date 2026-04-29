@@ -6157,6 +6157,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'call'**
   String get billingUnitCall;
+
+  /// No description provided for @groupCallSelectParticipants.
+  ///
+  /// In en, this message translates to:
+  /// **'Select participants'**
+  String get groupCallSelectParticipants;
+
+  /// No description provided for @groupCallSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}/7'**
+  String groupCallSelectedCount(int n);
+
+  /// No description provided for @groupCallSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get groupCallSearch;
+
+  /// No description provided for @groupCallMaxReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum 7 participants'**
+  String get groupCallMaxReached;
+
+  /// No description provided for @groupCallLobbyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group • Lobby'**
+  String get groupCallLobbyTitle;
+
+  /// No description provided for @groupCallHostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Host: {name}'**
+  String groupCallHostLabel(String name);
+
+  /// No description provided for @groupCallMicHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Mic will activate on connect'**
+  String get groupCallMicHint;
+
+  /// No description provided for @groupCallCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get groupCallCancel;
+
+  /// No description provided for @groupCallNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No one answered'**
+  String get groupCallNoAnswer;
+
+  /// No description provided for @groupCallEndedByHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended by host'**
+  String get groupCallEndedByHost;
+
+  /// No description provided for @groupCallAllLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone left the call'**
+  String get groupCallAllLeft;
+
+  /// No description provided for @groupCallEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get groupCallEnded;
+
+  /// No description provided for @groupCallActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group • {count}'**
+  String groupCallActiveTitle(int count);
+
+  /// No description provided for @groupCallConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get groupCallConnectionLost;
+
+  /// No description provided for @groupCallMuteRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Host asked everyone to mute'**
+  String get groupCallMuteRequested;
+
+  /// No description provided for @groupCallUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get groupCallUnmute;
+
+  /// No description provided for @groupCallMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get groupCallMute;
+
+  /// No description provided for @groupCallMuteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute all'**
+  String get groupCallMuteAll;
+
+  /// No description provided for @groupCallLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get groupCallLeave;
+
+  /// No description provided for @groupCallStatusCalling.
+  ///
+  /// In en, this message translates to:
+  /// **'calling…'**
+  String get groupCallStatusCalling;
+
+  /// No description provided for @groupCallStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'declined'**
+  String get groupCallStatusDeclined;
+
+  /// No description provided for @groupCallStatusTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'no answer'**
+  String get groupCallStatusTimeout;
+
+  /// No description provided for @groupCallStatusLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'left'**
+  String get groupCallStatusLeft;
+
+  /// No description provided for @groupCallKickConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from call'**
+  String groupCallKickConfirm(String name);
+
+  /// No description provided for @groupCallCancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get groupCallCancelAction;
+
+  /// No description provided for @groupCallActiveBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Active call'**
+  String get groupCallActiveBanner;
+
+  /// No description provided for @groupCallBannerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Group: {host} + {count}'**
+  String groupCallBannerSummary(String host, int count);
+
+  /// No description provided for @groupCallBannerSummaryAlone.
+  ///
+  /// In en, this message translates to:
+  /// **'Group: {host}'**
+  String groupCallBannerSummaryAlone(String host);
+
+  /// No description provided for @groupCallCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create call'**
+  String get groupCallCreateError;
+
+  /// No description provided for @groupCallJoinError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not join call'**
+  String get groupCallJoinError;
+
+  /// No description provided for @groupCallLivekitError.
+  ///
+  /// In en, this message translates to:
+  /// **'LiveKit error'**
+  String get groupCallLivekitError;
 }
 
 class _AppLocalizationsDelegate

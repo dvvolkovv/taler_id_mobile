@@ -3279,4 +3279,109 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get billingUnitCall => 'звонок';
+
+  @override
+  String get groupCallSelectParticipants => 'Выбрать участников';
+
+  @override
+  String groupCallSelectedCount(int n) {
+    return '$n/7';
+  }
+
+  @override
+  String get groupCallSearch => 'Поиск';
+
+  @override
+  String get groupCallMaxReached => 'Максимум 7 участников';
+
+  @override
+  String get groupCallLobbyTitle => 'Группа • Lobby';
+
+  @override
+  String groupCallHostLabel(String name) {
+    return 'Хост: $name';
+  }
+
+  @override
+  String get groupCallMicHint => 'Микрофон активируется при подключении';
+
+  @override
+  String get groupCallCancel => 'Отменить';
+
+  @override
+  String get groupCallNoAnswer => 'Никто не ответил';
+
+  @override
+  String get groupCallEndedByHost => 'Звонок завершён хостом';
+
+  @override
+  String get groupCallAllLeft => 'Все вышли из звонка';
+
+  @override
+  String get groupCallEnded => 'Звонок завершён';
+
+  @override
+  String groupCallActiveTitle(int count) {
+    return 'Группа • $count';
+  }
+
+  @override
+  String get groupCallConnectionLost => 'Соединение потеряно';
+
+  @override
+  String get groupCallMuteRequested => 'Хост попросил всех замьютиться';
+
+  @override
+  String get groupCallUnmute => 'Включить микрофон';
+
+  @override
+  String get groupCallMute => 'Заглушить';
+
+  @override
+  String get groupCallMuteAll => 'Заглушить всех';
+
+  @override
+  String get groupCallLeave => 'Уйти';
+
+  @override
+  String get groupCallStatusCalling => 'звоним…';
+
+  @override
+  String get groupCallStatusDeclined => 'отклонил';
+
+  @override
+  String get groupCallStatusTimeout => 'не ответил';
+
+  @override
+  String get groupCallStatusLeft => 'покинул';
+
+  @override
+  String groupCallKickConfirm(String name) {
+    return 'Удалить $name из звонка';
+  }
+
+  @override
+  String get groupCallCancelAction => 'Отмена';
+
+  @override
+  String get groupCallActiveBanner => 'Активный звонок';
+
+  @override
+  String groupCallBannerSummary(String host, int count) {
+    return 'Группа: $host + $count';
+  }
+
+  @override
+  String groupCallBannerSummaryAlone(String host) {
+    return 'Группа: $host';
+  }
+
+  @override
+  String get groupCallCreateError => 'Не удалось создать звонок';
+
+  @override
+  String get groupCallJoinError => 'Не удалось присоединиться';
+
+  @override
+  String get groupCallLivekitError => 'Ошибка LiveKit';
 }

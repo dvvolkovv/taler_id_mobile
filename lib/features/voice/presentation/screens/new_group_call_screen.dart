@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../bloc/group_call_bloc.dart';
 import '../bloc/group_call_event.dart';
 import '../bloc/group_call_state.dart';
@@ -68,7 +69,9 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     }
     if (_selected.length >= _maxSelected) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Максимум 7 участников')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.groupCallMaxReached),
+        ),
       );
       return;
     }
@@ -102,13 +105,15 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
         },
         builder: (context, state) {
           final colors = AppColors.of(context);
+          final l10n = AppLocalizations.of(context)!;
           final isCreating = state is Creating;
           return Scaffold(
             backgroundColor: colors.background,
             appBar: AppBar(
               backgroundColor: colors.background,
               title: Text(
-                'Выбрать участников (${_selected.length}/$_maxSelected)',
+                '${l10n.groupCallSelectParticipants} '
+                '(${l10n.groupCallSelectedCount(_selected.length)})',
               ),
               actions: [
                 IconButton(
@@ -154,7 +159,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
         controller: _searchCtrl,
         style: TextStyle(color: colors.textPrimary, fontSize: 14),
         decoration: InputDecoration(
-          hintText: 'Поиск',
+          hintText: AppLocalizations.of(context)!.groupCallSearch,
           hintStyle: TextStyle(color: colors.textSecondary, fontSize: 14),
           prefixIcon: Icon(Icons.search, color: colors.textSecondary, size: 20),
           suffixIcon: _searchQuery.isNotEmpty

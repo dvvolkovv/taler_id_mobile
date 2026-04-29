@@ -3260,4 +3260,109 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get billingUnitCall => 'call';
+
+  @override
+  String get groupCallSelectParticipants => 'Select participants';
+
+  @override
+  String groupCallSelectedCount(int n) {
+    return '$n/7';
+  }
+
+  @override
+  String get groupCallSearch => 'Search';
+
+  @override
+  String get groupCallMaxReached => 'Maximum 7 participants';
+
+  @override
+  String get groupCallLobbyTitle => 'Group • Lobby';
+
+  @override
+  String groupCallHostLabel(String name) {
+    return 'Host: $name';
+  }
+
+  @override
+  String get groupCallMicHint => 'Mic will activate on connect';
+
+  @override
+  String get groupCallCancel => 'Cancel';
+
+  @override
+  String get groupCallNoAnswer => 'No one answered';
+
+  @override
+  String get groupCallEndedByHost => 'Call ended by host';
+
+  @override
+  String get groupCallAllLeft => 'Everyone left the call';
+
+  @override
+  String get groupCallEnded => 'Call ended';
+
+  @override
+  String groupCallActiveTitle(int count) {
+    return 'Group • $count';
+  }
+
+  @override
+  String get groupCallConnectionLost => 'Connection lost';
+
+  @override
+  String get groupCallMuteRequested => 'Host asked everyone to mute';
+
+  @override
+  String get groupCallUnmute => 'Unmute';
+
+  @override
+  String get groupCallMute => 'Mute';
+
+  @override
+  String get groupCallMuteAll => 'Mute all';
+
+  @override
+  String get groupCallLeave => 'Leave';
+
+  @override
+  String get groupCallStatusCalling => 'calling…';
+
+  @override
+  String get groupCallStatusDeclined => 'declined';
+
+  @override
+  String get groupCallStatusTimeout => 'no answer';
+
+  @override
+  String get groupCallStatusLeft => 'left';
+
+  @override
+  String groupCallKickConfirm(String name) {
+    return 'Remove $name from call';
+  }
+
+  @override
+  String get groupCallCancelAction => 'Cancel';
+
+  @override
+  String get groupCallActiveBanner => 'Active call';
+
+  @override
+  String groupCallBannerSummary(String host, int count) {
+    return 'Group: $host + $count';
+  }
+
+  @override
+  String groupCallBannerSummaryAlone(String host) {
+    return 'Group: $host';
+  }
+
+  @override
+  String get groupCallCreateError => 'Could not create call';
+
+  @override
+  String get groupCallJoinError => 'Could not join call';
+
+  @override
+  String get groupCallLivekitError => 'LiveKit error';
 }

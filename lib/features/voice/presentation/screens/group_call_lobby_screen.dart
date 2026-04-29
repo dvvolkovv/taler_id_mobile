@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../bloc/group_call_bloc.dart';
 // Alias the event import: `GroupCallEvent.ended` and `GroupCallState.ended`
 // both freezed-generate a top-level class named `Ended`, so we hide the event
@@ -31,7 +32,7 @@ class GroupCallLobbyScreen extends StatelessWidget {
             context.go('/group-call/$callId');
           } else if (state is Ended) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_endedLabel(state.reason))),
+              SnackBar(content: Text(_endedLabel(context, state.reason))),
             );
             // Navigate back. Use a microtask so the SnackBar gets a frame.
             Future.microtask(() {
@@ -53,16 +54,17 @@ class GroupCallLobbyScreen extends StatelessWidget {
     );
   }
 
-  String _endedLabel(String reason) {
+  String _endedLabel(BuildContext context, String reason) {
+    final l10n = AppLocalizations.of(context)!;
     switch (reason) {
       case 'timeout':
-        return 'Никто не ответил';
+        return l10n.groupCallNoAnswer;
       case 'host_ended':
-        return 'Звонок завершён';
+        return l10n.groupCallEndedByHost;
       case 'all_left':
-        return 'Все вышли из звонка';
+        return l10n.groupCallAllLeft;
       default:
-        return 'Звонок завершён';
+        return l10n.groupCallEnded;
     }
   }
 }
@@ -74,9 +76,10 @@ class _LobbyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Группа • Lobby'),
+        title: Text(l10n.groupCallLobbyTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -92,7 +95,7 @@ class _LobbyView extends StatelessWidget {
           child: Column(
             children: [
               Text(
-                'Хост: ${state.groupCall.hostDisplayName}',
+                l10n.groupCallHostLabel(state.groupCall.hostDisplayName),
                 style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 16),
@@ -126,7 +129,7 @@ class _LobbyView extends StatelessWidget {
                       foregroundColor: Colors.white,
                     ),
                     icon: const Icon(Icons.call_end),
-                    label: const Text('Отменить'),
+                    label: Text(l10n.groupCallCancel),
                     onPressed: () {
                       context.read<GroupCallBloc>().add(
                             gce.GroupCallEvent.endCall(state.groupCall.id),
@@ -151,14 +154,14 @@ class _MicStatusRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.mic_none, size: 20),
-        SizedBox(width: 4),
+        const Icon(Icons.mic_none, size: 20),
+        const SizedBox(width: 4),
         Text(
-          'Микрофон активируется при подключении',
-          style: TextStyle(fontSize: 12),
+          AppLocalizations.of(context)!.groupCallMicHint,
+          style: const TextStyle(fontSize: 12),
         ),
       ],
     );

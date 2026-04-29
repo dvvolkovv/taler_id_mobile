@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/group_call_invite.dart';
 import '../bloc/group_call_bloc.dart';
 // Alias the event import: `GroupCallEvent.ended` and `GroupCallState.ended`
@@ -66,7 +67,10 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
       ..on<lk.RoomDisconnectedEvent>((_) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Соединение потеряно')),
+          SnackBar(
+            content:
+                Text(AppLocalizations.of(context)!.groupCallConnectionLost),
+          ),
         );
       });
 
@@ -78,7 +82,11 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
       if (mounted) {
         setState(() => _connecting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка LiveKit: $e')),
+          SnackBar(
+            content: Text(
+              '${AppLocalizations.of(context)!.groupCallLivekitError}: $e',
+            ),
+          ),
         );
       }
     }
@@ -113,7 +121,7 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
             await _room?.disconnect();
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(_endedLabel(state.reason))),
+                SnackBar(content: Text(_endedLabel(context, state.reason))),
               );
               Future.microtask(() {
                 if (context.mounted) context.go('/calls');
@@ -131,8 +139,11 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
             }
             if (!_muteRequestedToastShown && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Хост попросил всех замьютиться')),
+                SnackBar(
+                  content: Text(
+                    AppLocalizations.of(context)!.groupCallMuteRequested,
+                  ),
+                ),
               );
               _muteRequestedToastShown = true;
             }
@@ -158,16 +169,17 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
     );
   }
 
-  String _endedLabel(String reason) {
+  String _endedLabel(BuildContext context, String reason) {
+    final l10n = AppLocalizations.of(context)!;
     switch (reason) {
       case 'timeout':
-        return 'Никто не ответил';
+        return l10n.groupCallNoAnswer;
       case 'host_ended':
-        return 'Звонок завершён хостом';
+        return l10n.groupCallEndedByHost;
       case 'all_left':
-        return 'Все вышли из звонка';
+        return l10n.groupCallAllLeft;
       default:
-        return 'Звонок завершён';
+        return l10n.groupCallEnded;
     }
   }
 }
@@ -193,6 +205,7 @@ class _ActiveView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isHost = state.groupCall.hostUserId == myUserId;
     final activeInvites = state.groupCall.invites
         .where((i) =>
@@ -202,7 +215,7 @@ class _ActiveView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Группа • ${activeInvites.length + 1}'),
+        title: Text(l10n.groupCallActiveTitle(activeInvites.length + 1)),
       ),
       body: SafeArea(
         child: Padding(
@@ -256,14 +269,16 @@ class _ActiveView extends StatelessWidget {
                   IconButton(
                     icon: Icon(muted ? Icons.mic_off : Icons.mic),
                     iconSize: 28,
-                    tooltip: muted ? 'Включить микрофон' : 'Заглушить',
+                    tooltip: muted
+                        ? l10n.groupCallUnmute
+                        : l10n.groupCallMute,
                     onPressed: onToggleMute,
                   ),
                   if (isHost)
                     IconButton(
                       icon: const Icon(Icons.volume_off),
                       iconSize: 28,
-                      tooltip: 'Заглушить всех',
+                      tooltip: l10n.groupCallMuteAll,
                       onPressed: () => context.read<GroupCallBloc>().add(
                             gce.GroupCallEvent.muteAll(state.groupCall.id),
                           ),
@@ -274,7 +289,7 @@ class _ActiveView extends StatelessWidget {
                       foregroundColor: Colors.white,
                     ),
                     icon: const Icon(Icons.call_end),
-                    label: const Text('Уйти'),
+                    label: Text(l10n.groupCallLeave),
                     onPressed: onLeave,
                   ),
                 ],

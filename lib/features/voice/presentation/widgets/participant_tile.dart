@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/group_call_invite.dart';
 
 /// Reusable tile for a participant in a group call.
@@ -30,6 +31,7 @@ class ParticipantTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     Widget? overlay;
     String? statusLabel;
@@ -39,27 +41,27 @@ class ParticipantTile extends StatelessWidget {
         overlay = const Center(
           child: _PulsingPhoneIcon(),
         );
-        statusLabel = 'звоним…';
+        statusLabel = l10n.groupCallStatusCalling;
         break;
       case GroupCallInviteStatus.declined:
         overlay = const Center(
           child: Icon(Icons.close, color: Colors.redAccent, size: 32),
         );
-        statusLabel = 'отклонил';
+        statusLabel = l10n.groupCallStatusDeclined;
         labelColor = Colors.redAccent;
         break;
       case GroupCallInviteStatus.timeout:
         overlay = const Center(
           child: Icon(Icons.access_time, color: Colors.orangeAccent, size: 32),
         );
-        statusLabel = 'не ответил';
+        statusLabel = l10n.groupCallStatusTimeout;
         labelColor = Colors.orangeAccent;
         break;
       case GroupCallInviteStatus.left:
         overlay = const Center(
           child: Icon(Icons.exit_to_app, color: Colors.grey, size: 32),
         );
-        statusLabel = 'покинул';
+        statusLabel = l10n.groupCallStatusLeft;
         labelColor = Colors.grey;
         break;
       case GroupCallInviteStatus.joined:

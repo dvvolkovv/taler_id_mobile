@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/group_call.dart';
 import '../../domain/repositories/group_call_repository.dart';
 
@@ -65,11 +66,12 @@ class _ActiveGroupCallBannerState extends State<ActiveGroupCallBanner>
     if (_calls.isEmpty) return const SizedBox.shrink();
     final c = _calls.first;
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     final inviteCount = c.invites.length;
     final summary = inviteCount > 0
-        ? 'Группа: ${c.hostDisplayName} + $inviteCount'
-        : 'Группа: ${c.hostDisplayName}';
+        ? l10n.groupCallBannerSummary(c.hostDisplayName, inviteCount)
+        : l10n.groupCallBannerSummaryAlone(c.hostDisplayName);
 
     return Material(
       color: theme.colorScheme.primary,
@@ -87,7 +89,7 @@ class _ActiveGroupCallBannerState extends State<ActiveGroupCallBanner>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Активный звонок',
+                      l10n.groupCallActiveBanner,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white70,
                       ),
