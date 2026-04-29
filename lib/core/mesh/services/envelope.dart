@@ -8,8 +8,10 @@ class Envelope {
   /// Bump when the field set changes incompatibly.
   final int version;
 
-  /// Logical message type. Phase 2.0 supports only `'text'`. Future:
-  /// `'system'` for membership change notices.
+  /// Logical message type. Phase 2.0 supports only `'text'`. Phase 3c adds
+  /// `'call_invite'`, `'call_accept'`, `'call_reject'`, `'call_end'`,
+  /// `'call_keepalive'` for mesh voice signaling. Future: `'system'` for
+  /// membership change notices.
   final String type;
 
   /// Conversation id the message belongs to (server-side conversation UUID).
@@ -23,12 +25,18 @@ class Envelope {
   /// uses heuristic dedup, not strict id-match — see spec §7).
   final String clientId;
 
-  /// Message body (UTF-8).
+  /// Message body (UTF-8). Empty string for non-text envelopes (call signaling).
   final String text;
 
   /// Send timestamp (UTC). Used for receiver-side ordering and the
   /// 10-second dedup window heuristic.
   final DateTime sentAt;
+
+  /// Optional typed payload for non-text envelopes (e.g., call signaling).
+  /// Null for legacy v1 text envelopes; populated for `call_*` types in
+  /// Phase 3 mesh voice. Forward-compatible: legacy peers parse the
+  /// envelope with `extra=null` and ignore the field.
+  final Map<String, dynamic>? extra;
 
   Envelope({
     required this.version,
@@ -37,16 +45,23 @@ class Envelope {
     required this.clientId,
     required this.text,
     required this.sentAt,
+    this.extra,
   });
 
-  Map<String, dynamic> toJson() => {
-        'v': version,
-        'type': type,
-        'convId': convId,
-        'clientId': clientId,
-        'text': text,
-        'sentAt': sentAt.toUtc().toIso8601String(),
-      };
+  Map<String, dynamic> toJson() {
+    final json = <String, dynamic>{
+      'v': version,
+      'type': type,
+      'convId': convId,
+      'clientId': clientId,
+      'text': text,
+      'sentAt': sentAt.toUtc().toIso8601String(),
+    };
+    if (extra != null) {
+      json['extra'] = extra;
+    }
+    return json;
+  }
 
   factory Envelope.fromJson(Map<String, dynamic> json) {
     final v = json['v'];
@@ -65,6 +80,10 @@ class Envelope {
     } on FormatException {
       throw const FormatException('Envelope: invalid sentAt timestamp');
     }
+    final extraRaw = json['extra'];
+    final Map<String, dynamic>? extra = extraRaw is Map<String, dynamic>
+        ? extraRaw
+        : (extraRaw is Map ? Map<String, dynamic>.from(extraRaw) : null);
     return Envelope(
       version: v,
       type: type,
@@ -72,6 +91,7 @@ class Envelope {
       clientId: clientId,
       text: text,
       sentAt: parsedAt,
+      extra: extra,
     );
   }
 }
