@@ -110,7 +110,50 @@ class MeshVoiceService {
 
   /// Callee-side: accept the current INCOMING call.
   Future<void> accept() async {
-    throw UnimplementedError('accept — implemented in Task 7');
+    final st = _state;
+    if (st is! IncomingState) {
+      throw StateError('accept(): not in IncomingState (current=$st)');
+    }
+    final envelope = Envelope(
+      version: 1,
+      type: 'call_accept',
+      convId: 'call-${st.callId.toRadixString(16)}',
+      clientId: st.callId.toRadixString(16),
+      text: '',
+      sentAt: DateTime.now().toUtc(),
+      extra: {
+        'call_id': st.callId,
+        'codec_params': _defaultCodecParams,
+        'datagram_seq_init': _generateSeqInit(),
+      },
+    );
+    await messaging.sendEnvelope(toUserPk: st.callerDevicePk, envelope: envelope);
+    _setState(ConnectingState(
+      peerDevicePk: st.callerDevicePk,
+      callId: st.callId,
+      isCaller: false,
+    ));
+  }
+
+  /// Callee-side: reject the current INCOMING call.
+  Future<void> reject({String reason = 'declined'}) async {
+    final st = _state;
+    if (st is! IncomingState) {
+      throw StateError('reject(): not in IncomingState (current=$st)');
+    }
+    await messaging.sendEnvelope(
+      toUserPk: st.callerDevicePk,
+      envelope: Envelope(
+        version: 1,
+        type: 'call_reject',
+        convId: 'call-${st.callId.toRadixString(16)}',
+        clientId: st.callId.toRadixString(16),
+        text: '',
+        sentAt: DateTime.now().toUtc(),
+        extra: {'call_id': st.callId, 'reason': reason},
+      ),
+    );
+    _setState(EndedState(callId: st.callId, reason: EndReason.userHangup));
   }
 
   /// Either side: end the active or pending call.
@@ -138,6 +181,9 @@ class MeshVoiceService {
     final callId = extra?['call_id'];
     if (callId is! int) return;
     switch (type) {
+      case 'call_invite':
+        _onCallInvite(msg.fromUserPk, callId, extra!);
+        break;
       case 'call_accept':
         _onCallAccept(msg.fromUserPk, callId);
         break;
@@ -147,8 +193,32 @@ class MeshVoiceService {
       case 'call_end':
         _onCallEnd(callId);
         break;
-      // call_invite / call_setup / call_keepalive — Tasks 7-9.
+      // call_setup / call_keepalive — Tasks 8-9.
     }
+  }
+
+  void _onCallInvite(PeerId from, int callId, Map<String, dynamic> extra) {
+    if (_state is! IdleState) {
+      // Busy — auto-reject.
+      messaging.sendEnvelope(
+        toUserPk: from,
+        envelope: Envelope(
+          version: 1,
+          type: 'call_reject',
+          convId: 'call-${callId.toRadixString(16)}',
+          clientId: callId.toRadixString(16),
+          text: '',
+          sentAt: DateTime.now().toUtc(),
+          extra: {'call_id': callId, 'reason': 'busy'},
+        ),
+      ).catchError((_) {});
+      return;
+    }
+    _setState(IncomingState(
+      callerDevicePk: from,
+      callId: callId,
+      receivedAt: DateTime.now().toUtc(),
+    ));
   }
 
   void _onCallAccept(PeerId from, int callId) {
