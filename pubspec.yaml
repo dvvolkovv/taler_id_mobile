@@ -126,6 +126,9 @@ dependencies:
   # Clock (used by mesh supervisor for fakeAsync-compatible rate-limiting)
   clock: ^1.1.2
 
+  # FFI (for libopus bindings)
+  ffi: ^2.1.0
+
   # Utils
   intl: any
   package_info_plus: ^8.1.3

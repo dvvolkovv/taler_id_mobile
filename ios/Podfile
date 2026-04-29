@@ -32,6 +32,9 @@ flutter_ios_podfile_setup
 target 'Runner' do
   use_frameworks!
 
+  # Vendored libopus for mesh voice calls (Phase 3)
+  pod 'opus', :path => 'LocalPods/opus'
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   target 'RunnerTests' do
     inherit! :search_paths
@@ -51,4 +54,7 @@ post_install do |installer|
       ]
     end
   end
+
+  # libopus 1.4 is linked as a static library (vendored_libraries in opus.podspec).
+  # No xcframework embedding needed — symbols are merged directly into the app binary.
 end

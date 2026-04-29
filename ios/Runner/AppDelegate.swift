@@ -5,6 +5,14 @@ import PushKit
 import Intents
 import flutter_callkit_incoming
 
+// Phase 3 mesh voice: force the linker to keep libopus symbols so Dart FFI
+// can find them via DynamicLibrary.process(). The keeper is a C function
+// in OpusSymbolsKeeper.m that takes addresses of every opus_* function we
+// need; calling it from didFinishLaunching makes the chain reachable from
+// main and prevents dead-strip from removing any of those symbols.
+@_silgen_name("taler_force_keep_opus_symbols")
+func taler_force_keep_opus_symbols()
+
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private var audioChannel: FlutterMethodChannel?
@@ -32,6 +40,19 @@ import flutter_callkit_incoming
     // is non-nil before PushKit delegate fires (critical for killed-app VoIP push handling).
     // Also must happen before accessing binaryMessenger below.
     GeneratedPluginRegistrant.register(with: self)
+
+    // Force-keep libopus symbols (see top of file).
+    taler_force_keep_opus_symbols()
+
+    // Register mesh audio capture channel (VoiceProcessingIO capture for mesh voice calls)
+    if let registrar = self.registrar(forPlugin: "AudioCaptureChannel") {
+      AudioCaptureChannel.register(with: registrar)
+    }
+
+    // Register mesh audio playback channel (shares the same AudioIOSession as capture)
+    if let registrar = self.registrar(forPlugin: "AudioPlaybackChannel") {
+      AudioPlaybackChannel.register(with: registrar)
+    }
 
     // Set up audio method channel (safe cast — nil-safe if window not ready on VoIP cold start)
     if let controller = window?.rootViewController as? FlutterViewController {
