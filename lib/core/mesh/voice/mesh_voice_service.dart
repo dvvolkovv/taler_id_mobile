@@ -249,7 +249,15 @@ class MeshVoiceService {
       case 'call_end':
         _onCallEnd(callId);
         break;
-      // call_setup / call_keepalive — Tasks 8-9.
+      case 'call_keepalive':
+        // Refresh the datagram watchdog from the signaling channel too.
+        // If UDP datagrams are blocked but envelopes flow (TCP via Bonjour),
+        // keepalives keep the call alive — at the cost of audio. UI shows
+        // "no audio" indication separately.
+        if (_state is ActiveState && (_state as ActiveState).callId == callId) {
+          _resetDatagramWatchdog();
+        }
+        break;
     }
   }
 
