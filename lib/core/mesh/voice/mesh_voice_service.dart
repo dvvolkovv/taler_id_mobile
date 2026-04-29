@@ -211,6 +211,19 @@ class MeshVoiceService {
   void _setState(CallState next) {
     _state = next;
     _stateCtrl.add(next);
+    if (next is EndedState) {
+      // After a call ends, return to IdleState so the next invite() can
+      // proceed. We delay 2s so UI consumers can render the "ended"
+      // status before the screen auto-pops.
+      final endedCallId = next.callId;
+      Timer(const Duration(seconds: 2), () {
+        final cur = _state;
+        if (cur is EndedState && cur.callId == endedCallId) {
+          _state = const IdleState();
+          if (!_stateCtrl.isClosed) _stateCtrl.add(const IdleState());
+        }
+      });
+    }
   }
 
   void _onEnvelope(InboundEnvelope msg) {

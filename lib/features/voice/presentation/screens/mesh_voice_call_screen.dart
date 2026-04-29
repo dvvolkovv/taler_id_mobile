@@ -58,6 +58,10 @@ class _MeshVoiceCallScreenState extends State<MeshVoiceCallScreen> {
   }
 
   void _onState(CallState st) {
+    // Ignore IdleState after EndedState — service auto-resets to Idle 2s
+    // post-Ended so the next call can proceed, but the screen should
+    // keep showing the "ended" status until popDelay fires.
+    if (_state is EndedState && st is IdleState) return;
     setState(() => _state = st);
     if (st is ActiveState) {
       _activeStartedAt ??= st.startedAt;
