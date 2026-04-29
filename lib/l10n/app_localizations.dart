@@ -4700,6 +4700,66 @@ abstract class AppLocalizations {
   /// **'Mesh device {hexPrefix}'**
   String meshDeviceFallback(String hexPrefix);
 
+  /// No description provided for @meshCallStatusInviting.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling…'**
+  String get meshCallStatusInviting;
+
+  /// No description provided for @meshCallStatusConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get meshCallStatusConnecting;
+
+  /// No description provided for @meshCallEndedUserHangup.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get meshCallEndedUserHangup;
+
+  /// No description provided for @meshCallEndedRemoteHangup.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended by peer'**
+  String get meshCallEndedRemoteHangup;
+
+  /// No description provided for @meshCallEndedRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get meshCallEndedRejected;
+
+  /// No description provided for @meshCallEndedNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get meshCallEndedNoAnswer;
+
+  /// No description provided for @meshCallEndedConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get meshCallEndedConnectionLost;
+
+  /// No description provided for @meshCallEndedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection error'**
+  String get meshCallEndedError;
+
+  /// No description provided for @meshCallTransportBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh · {transport}'**
+  String meshCallTransportBadge(String transport);
+
+  /// No description provided for @meshCallTransportBadgePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh'**
+  String get meshCallTransportBadgePlain;
+
   /// No description provided for @groupCamera.
   ///
   /// In en, this message translates to:

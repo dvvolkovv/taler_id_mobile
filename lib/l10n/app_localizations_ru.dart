@@ -2441,6 +2441,38 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get meshCallStatusInviting => 'Вызов…';
+
+  @override
+  String get meshCallStatusConnecting => 'Соединение…';
+
+  @override
+  String get meshCallEndedUserHangup => 'Звонок завершён';
+
+  @override
+  String get meshCallEndedRemoteHangup => 'Завершён собеседником';
+
+  @override
+  String get meshCallEndedRejected => 'Отклонён';
+
+  @override
+  String get meshCallEndedNoAnswer => 'Не отвечает';
+
+  @override
+  String get meshCallEndedConnectionLost => 'Соединение потеряно';
+
+  @override
+  String get meshCallEndedError => 'Ошибка соединения';
+
+  @override
+  String meshCallTransportBadge(String transport) {
+    return '📡 Mesh · $transport';
+  }
+
+  @override
+  String get meshCallTransportBadgePlain => '📡 Mesh';
+
+  @override
   String get groupCamera => 'Камера';
 
   @override

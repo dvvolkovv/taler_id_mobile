@@ -1061,6 +1061,21 @@
       }
     }
   },
+  "meshCallStatusInviting": "Calling…",
+  "meshCallStatusConnecting": "Connecting…",
+  "meshCallEndedUserHangup": "Call ended",
+  "meshCallEndedRemoteHangup": "Ended by peer",
+  "meshCallEndedRejected": "Declined",
+  "meshCallEndedNoAnswer": "No answer",
+  "meshCallEndedConnectionLost": "Connection lost",
+  "meshCallEndedError": "Connection error",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": { "type": "String" }
+    }
+  },
+  "meshCallTransportBadgePlain": "📡 Mesh",
   "groupCamera": "Camera",
   "groupGallery": "Gallery",
   "groupAvatarUpdated": "Group avatar updated",
