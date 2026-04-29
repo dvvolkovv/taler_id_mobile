@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bonsoir/bonsoir.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
@@ -28,6 +28,9 @@ class _PeerAddress {
 
 class BonjourTransport implements MeshTransport {
   static const String serviceType = '_talermesh._tcp';
+
+  BonjourTransport();
+  BonjourTransport._();
 
   BonsoirBroadcast? _broadcast;
   BonsoirDiscovery? _discovery;
@@ -403,6 +406,24 @@ class BonjourTransport implements MeshTransport {
     await _lossesCtrl.close();
     await _inboundCtrl.close();
     await _datagramCtrl.close();
+  }
+
+  /// Test-only constructor: builds a `BonjourTransport` with a pre-bound
+  /// UDP socket and skips Bonsoir advertise/discovery. Use only from
+  /// `test/` files. Pairs with `testRegisterPeer`.
+  @visibleForTesting
+  factory BonjourTransport.testHarness({required RawDatagramSocket udpSocket}) {
+    final t = BonjourTransport._();
+    t._udpSocket = udpSocket;
+    udpSocket.listen(t._handleDatagramEvent);
+    return t;
+  }
+
+  /// Test-only: pre-populate the peer UDP endpoint cache. Use only from
+  /// `test/` files. Production populates via `bonsoir`-resolved TXT.
+  @visibleForTesting
+  void testRegisterPeer(PeerId peer, String host, int port) {
+    _peerUdpEndpoints[peer] = (host: host, port: port);
   }
 }
 
