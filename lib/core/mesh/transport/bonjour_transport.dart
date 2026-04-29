@@ -307,6 +307,14 @@ class BonjourTransport implements MeshTransport {
   }
 
   @override
+  Stream<InboundDatagram> get inboundDatagrams => const Stream.empty();
+
+  @override
+  Future<void> sendDatagram(PeerId peer, Uint8List data) async {
+    throw TransportUnavailable('Bonjour datagram not yet implemented');
+  }
+
+  @override
   Future<void> stopAdvertising() async {
     await _supervisor?.dispose();
     _supervisor = null;

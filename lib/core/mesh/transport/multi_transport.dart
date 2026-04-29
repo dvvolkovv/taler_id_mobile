@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:async/async.dart' show StreamGroup;
 import 'package:flutter/foundation.dart';
 
 import 'mesh_transport.dart';
@@ -108,6 +109,15 @@ class MultiTransport implements MeshTransport {
       }
     }
     throw StateError('All transports failed to connect to $peer');
+  }
+
+  @override
+  Stream<InboundDatagram> get inboundDatagrams =>
+      StreamGroup.merge(_children.values.map((c) => c.inboundDatagrams));
+
+  @override
+  Future<void> sendDatagram(PeerId peer, Uint8List data) async {
+    throw TransportUnavailable('MultiTransport.sendDatagram not yet routed');
   }
 
   @override
