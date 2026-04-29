@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 
 import '../../audio/mesh_voice_audio_engine.dart';
+import '../services/envelope.dart';
 import '../services/mesh_messaging_service.dart';
 import '../transport/mesh_transport.dart';
 import '../transport/peer_id.dart';
@@ -25,6 +27,18 @@ class MeshVoiceService {
 
   StreamSubscription<InboundEnvelope>? _envelopeSub;
   StreamSubscription<InboundDatagram>? _datagramSub;
+  Timer? _inviteTimeoutTimer;
+
+  static const Duration _inviteTimeout = Duration(seconds: 30);
+
+  static const Map<String, dynamic> _defaultCodecParams = {
+    'audio': 'opus',
+    'rate': 16000,
+    'channels': 1,
+    'frame_ms': 20,
+    'bitrate': 24000,
+    'fec': false,
+  };
 
   MeshVoiceService({
     required this.messaging,
@@ -48,7 +62,50 @@ class MeshVoiceService {
   /// Caller-side: initiate a call to [calleeDevicePk]. Returns the
   /// generated call_id. Throws if not currently IDLE.
   Future<int> invite(PeerId calleeDevicePk) async {
-    throw UnimplementedError('invite — implemented in Task 6');
+    if (_state is! IdleState) {
+      throw StateError('cannot invite: already in $_state');
+    }
+    final callId = _generateCallId();
+    final inviteSentAt = DateTime.now().toUtc();
+    final envelope = Envelope(
+      version: 1,
+      type: 'call_invite',
+      convId: 'call-${callId.toRadixString(16)}',
+      clientId: callId.toRadixString(16),
+      text: '',
+      sentAt: inviteSentAt,
+      extra: {
+        'call_id': callId,
+        'codec_params': _defaultCodecParams,
+        'datagram_seq_init': _generateSeqInit(),
+      },
+    );
+    await messaging.sendEnvelope(toUserPk: calleeDevicePk, envelope: envelope);
+    _setState(InvitingState(
+      calleeDevicePk: calleeDevicePk,
+      callId: callId,
+      sentAt: inviteSentAt,
+    ));
+    _inviteTimeoutTimer?.cancel();
+    _inviteTimeoutTimer = Timer(_inviteTimeout, () {
+      if (_state is InvitingState && (_state as InvitingState).callId == callId) {
+        _setState(EndedState(callId: callId, reason: EndReason.inviteTimeout));
+        // Best-effort end notice (fire-and-forget).
+        messaging.sendEnvelope(
+          toUserPk: calleeDevicePk,
+          envelope: Envelope(
+            version: 1,
+            type: 'call_end',
+            convId: 'call-${callId.toRadixString(16)}',
+            clientId: callId.toRadixString(16),
+            text: '',
+            sentAt: DateTime.now().toUtc(),
+            extra: {'call_id': callId, 'reason': 'timeout'},
+          ),
+        ).catchError((_) {});
+      }
+    });
+    return callId;
   }
 
   /// Callee-side: accept the current INCOMING call.
@@ -63,6 +120,7 @@ class MeshVoiceService {
 
   /// Cleanup on app shutdown.
   Future<void> dispose() async {
+    _inviteTimeoutTimer?.cancel();
     await _envelopeSub?.cancel();
     await _datagramSub?.cancel();
     await _stateCtrl.close();
@@ -74,10 +132,72 @@ class MeshVoiceService {
   }
 
   void _onEnvelope(InboundEnvelope msg) {
-    // Routed by `type` to per-type handlers in T6/T7.
+    final type = msg.envelope.type;
+    if (!type.startsWith('call_')) return;
+    final extra = msg.envelope.extra;
+    final callId = extra?['call_id'];
+    if (callId is! int) return;
+    switch (type) {
+      case 'call_accept':
+        _onCallAccept(msg.fromUserPk, callId);
+        break;
+      case 'call_reject':
+        _onCallReject(callId, extra);
+        break;
+      case 'call_end':
+        _onCallEnd(callId);
+        break;
+      // call_invite / call_setup / call_keepalive — Tasks 7-9.
+    }
+  }
+
+  void _onCallAccept(PeerId from, int callId) {
+    final st = _state;
+    if (st is! InvitingState || st.callId != callId) return;
+    _inviteTimeoutTimer?.cancel();
+    _setState(ConnectingState(
+      peerDevicePk: from,
+      callId: callId,
+      isCaller: true,
+    ));
+    // T8 wires audio + datagram pipe here (will replace ConnectingState with ActiveState).
+  }
+
+  void _onCallReject(int callId, Map<String, dynamic>? extra) {
+    final st = _state;
+    if (st is InvitingState && st.callId == callId) {
+      _inviteTimeoutTimer?.cancel();
+      _setState(EndedState(callId: callId, reason: EndReason.rejectedByCallee));
+    }
+  }
+
+  void _onCallEnd(int callId) {
+    final st = _state;
+    if (st is EndedState) return;
+    if (_callIdOf(st) != callId) return;
+    _inviteTimeoutTimer?.cancel();
+    _setState(EndedState(callId: callId, reason: EndReason.remoteHangup));
+  }
+
+  int? _callIdOf(CallState s) {
+    if (s is InvitingState) return s.callId;
+    if (s is IncomingState) return s.callId;
+    if (s is ConnectingState) return s.callId;
+    if (s is ActiveState) return s.callId;
+    return null;
   }
 
   void _onDatagram(InboundDatagram dg) {
     // Decrypt + dispatch in T8.
+  }
+
+  static int _generateCallId() {
+    final rng = Random.secure();
+    return rng.nextInt(0xFFFFFFFF);
+  }
+
+  static int _generateSeqInit() {
+    final rng = Random.secure();
+    return rng.nextInt(0xFFFFFFFF);
   }
 }
