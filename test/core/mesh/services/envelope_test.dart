@@ -109,4 +109,48 @@ void main() {
       expect(env.sentAt.toIso8601String(), '2026-04-26T00:00:00.000Z');
     });
   });
+
+  group('Envelope.extra', () {
+    test('roundtrip preserves extra map', () {
+      final e = Envelope(
+        version: 1,
+        type: 'call_invite',
+        convId: 'conv-1',
+        clientId: 'call-uuid-1',
+        text: '',
+        sentAt: DateTime.utc(2026, 4, 29, 12),
+        extra: {'codec': 'opus', 'rate': 16000},
+      );
+      final json = e.toJson();
+      expect(json['extra'], {'codec': 'opus', 'rate': 16000});
+
+      final back = Envelope.fromJson(json);
+      expect(back.extra, {'codec': 'opus', 'rate': 16000});
+    });
+
+    test('fromJson tolerates missing extra (backward compat with v1 peers)', () {
+      final e = Envelope.fromJson({
+        'v': 1,
+        'type': 'text',
+        'convId': 'conv-1',
+        'clientId': 'msg-1',
+        'text': 'hi',
+        'sentAt': '2026-04-29T12:00:00.000Z',
+      });
+      expect(e.extra, isNull);
+    });
+
+    test('toJson omits extra when null', () {
+      final e = Envelope(
+        version: 1,
+        type: 'text',
+        convId: 'conv-1',
+        clientId: 'msg-1',
+        text: 'hi',
+        sentAt: DateTime.utc(2026, 4, 29, 12),
+      );
+      final json = e.toJson();
+      expect(json.containsKey('extra'), isFalse);
+    });
+  });
 }

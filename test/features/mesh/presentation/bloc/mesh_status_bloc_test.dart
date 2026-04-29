@@ -32,6 +32,8 @@ class _FakeTransport implements MeshTransport {
     throw UnimplementedError('test stub');
   }
   @override
+  PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
+  @override
   Future<void> dispose() async {}
 }
 

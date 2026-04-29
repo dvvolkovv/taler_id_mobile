@@ -53,6 +53,14 @@ class DeviceInfo {
   DeviceInfo({required this.devicePk, required this.serviceName});
 }
 
+/// Reachability state for a given peer at the moment of the query.
+/// `online` = visible in active discovery on at least one transport.
+/// `offline` = not currently discovered (used to be, or never was).
+/// `unknown` = transport has no state for this peer (e.g., never advertised
+/// here). Currently we collapse `offline` and `unknown` for callers; the
+/// distinction is reserved for future BLE-only peer tracking.
+enum PeerStatus { online, offline, unknown }
+
 /// Transport layer — provides authenticated byte channel between peers.
 abstract class MeshTransport {
   Stream<PeerDiscovered> get discoveries;
@@ -70,6 +78,10 @@ abstract class MeshTransport {
   /// datagram path to [peer] exists right now.
   Stream<InboundDatagram> get inboundDatagrams;
   Future<void> sendDatagram(PeerId peer, Uint8List data);
+
+  /// Synchronous reachability query. Used by UI eligibility checks (e.g.,
+  /// "show mesh-call button only if the peer is reachable").
+  PeerStatus peerStatus(PeerId peer);
 
   Future<void> dispose();
 }

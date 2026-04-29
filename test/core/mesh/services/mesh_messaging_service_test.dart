@@ -56,6 +56,9 @@ class _FakeTransport implements MeshTransport {
   }
 
   @override
+  PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
+
+  @override
   Future<void> dispose() async {
     await _discoveries.close();
     await _losses.close();

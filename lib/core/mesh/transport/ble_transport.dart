@@ -228,6 +228,11 @@ class BleTransport implements MeshTransport {
   }
 
   @override
+  PeerStatus peerStatus(PeerId peer) {
+    return PeerStatus.unknown;
+  }
+
+  @override
   Future<void> send(PeerId peer, Uint8List data) async {
     if (!_started) throw StateError('BleTransport not started');
     final device = _deviceCache[peer];
