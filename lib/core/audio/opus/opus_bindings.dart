@@ -5,6 +5,7 @@ import 'package:ffi/ffi.dart';
 /// Opus C API constants (from `opus_defines.h`).
 const int opusOk = 0;
 const int opusApplicationVoip = 2048;
+const int opusApplicationAudio = 2049; // music / generic audio — no aggressive speech processing
 const int opusSetBitrateRequest = 4002;
 const int opusSetInbandFecRequest = 4012;
 
