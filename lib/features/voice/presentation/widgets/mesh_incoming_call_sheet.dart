@@ -105,49 +105,44 @@ class _MeshIncomingCallSheetState extends State<MeshIncomingCallSheet> {
     final l10n = AppLocalizations.of(context)!;
     final avatarUrl = widget.peerAvatarUrl;
     final displayName = _displayName(l10n);
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _AvatarWidget(
-              displayName: displayName,
-              avatarUrl: avatarUrl,
-            ),
-            const SizedBox(height: 16),
-            Text(displayName,
-                style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 4),
-            Text(l10n.meshIncomingCallLabel,
-                style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  key: const Key('mesh-incoming-decline'),
-                  onPressed: _handleDecline,
-                  icon: const Icon(Icons.call_end),
-                  label: Text(l10n.incomingCallDecline),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white),
-                ),
-                ElevatedButton.icon(
-                  key: const Key('mesh-incoming-accept'),
-                  onPressed: _handleAccept,
-                  icon: const Icon(Icons.call),
-                  label: Text(l10n.incomingCallAccept),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return AlertDialog(
+      contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _AvatarWidget(displayName: displayName, avatarUrl: avatarUrl),
+          const SizedBox(height: 16),
+          Text(displayName,
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center),
+          const SizedBox(height: 4),
+          Text(l10n.meshIncomingCallLabel,
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center),
+        ],
       ),
+      actionsAlignment: MainAxisAlignment.spaceEvenly,
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: [
+        ElevatedButton.icon(
+          key: const Key('mesh-incoming-decline'),
+          onPressed: _handleDecline,
+          icon: const Icon(Icons.call_end),
+          label: Text(l10n.incomingCallDecline),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white),
+        ),
+        ElevatedButton.icon(
+          key: const Key('mesh-incoming-accept'),
+          onPressed: _handleAccept,
+          icon: const Icon(Icons.call),
+          label: Text(l10n.incomingCallAccept),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white),
+        ),
+      ],
     );
   }
 }

@@ -542,13 +542,12 @@ class _GlobalKeyMeshNavigator implements MeshNavigator {
   Future<void> showSheet(Widget sheet) async {
     final ctx = globalNavigatorKey.currentContext;
     if (ctx == null) return;
+    // Sheet is itself an AlertDialog (see MeshIncomingCallSheet). showDialog
+    // wraps it in a route that handles barrier + back-button dismissal.
     await showDialog<void>(
       context: ctx,
       barrierDismissible: false,
-      builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 48),
-        child: SingleChildScrollView(child: sheet),
-      ),
+      builder: (_) => sheet,
     );
   }
 
