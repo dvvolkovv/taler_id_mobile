@@ -17,6 +17,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
+import tirol.taler.taler_id_mobile.audio.AudioCaptureChannel
 import com.cloudwebrtc.webrtc.LocalTrack
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -274,6 +275,9 @@ class MainActivity : FlutterFragmentActivity() {
             })
 
         registerAudioRouteCallback()
+
+        // Mesh audio capture channel (PCM-16 frames, 16 kHz, AEC + NS)
+        AudioCaptureChannel(flutterEngine)
 
         // Wake word channel (separate from audio to avoid handler conflicts)
         val wwCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/wake_word")
