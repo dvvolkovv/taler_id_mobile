@@ -115,9 +115,33 @@ class MultiTransport implements MeshTransport {
   Stream<InboundDatagram> get inboundDatagrams =>
       StreamGroup.merge(_children.values.map((c) => c.inboundDatagrams));
 
+  /// Datagram preference order — same as the existing reliable-send order.
+  /// Bonjour preferred over BLE: higher bandwidth, lower latency.
+  static const List<TransportId> _datagramPreference = [
+    TransportId.bonjour,
+    TransportId.ble,
+  ];
+
   @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {
-    throw TransportUnavailable('MultiTransport.sendDatagram not yet routed');
+    final knownOn = _knownBy[peer];
+    if (knownOn == null || knownOn.isEmpty) {
+      throw TransportUnavailable('MultiTransport: peer ${peer.toHex().substring(0, 12)} not on any child');
+    }
+    for (final id in _datagramPreference) {
+      if (!knownOn.contains(id)) continue;
+      final child = _children[id];
+      if (child == null) continue;
+      try {
+        await child.sendDatagram(peer, data);
+        return;
+      } on TransportUnavailable {
+        // Try the next transport in preference order.
+        continue;
+      }
+    }
+    throw TransportUnavailable(
+        'MultiTransport: no datagram-capable transport for peer ${peer.toHex().substring(0, 12)} among ${knownOn.toList()}');
   }
 
   @override
