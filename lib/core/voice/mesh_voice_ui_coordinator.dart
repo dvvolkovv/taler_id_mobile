@@ -105,6 +105,7 @@ class MeshVoiceUiCoordinator {
     _screenPushed = true;
     await navigator.pushScreen(MeshVoiceCallScreen(
       stateStream: stateStream,
+      initialState: st,
       peer: st.calleeDevicePk,
       peerName: info.name,
       peerAvatarUrl: info.avatarUrl,
@@ -146,6 +147,7 @@ class MeshVoiceUiCoordinator {
     _screenPushed = true;
     await navigator.pushScreen(MeshVoiceCallScreen(
       stateStream: stateStream,
+      initialState: st,
       peer: st.peerDevicePk,
       peerName: p?.peerName,
       peerAvatarUrl: p?.peerAvatarUrl,

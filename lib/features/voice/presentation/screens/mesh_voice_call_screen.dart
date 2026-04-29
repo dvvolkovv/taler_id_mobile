@@ -9,6 +9,7 @@ import '../widgets/pulsing_avatar.dart';
 
 class MeshVoiceCallScreen extends StatefulWidget {
   final Stream<CallState> stateStream;
+  final CallState? initialState; // current snapshot (broadcast stream doesn't replay)
   final PeerId peer;
   final String? peerName;
   final String? peerAvatarUrl;
@@ -20,6 +21,7 @@ class MeshVoiceCallScreen extends StatefulWidget {
   const MeshVoiceCallScreen({
     super.key,
     required this.stateStream,
+    this.initialState,
     required this.peer,
     required this.peerName,
     required this.peerAvatarUrl,
@@ -47,6 +49,13 @@ class _MeshVoiceCallScreenState extends State<MeshVoiceCallScreen> {
   void initState() {
     super.initState();
     _sub = widget.stateStream.listen(_onState);
+    final initial = widget.initialState;
+    if (initial != null && initial is! IdleState) {
+      // Apply the snapshot immediately so a screen pushed AFTER an
+      // ActiveState was already emitted on the broadcast stream still
+      // sees the timer / status text.
+      _onState(initial);
+    }
   }
 
   @override
