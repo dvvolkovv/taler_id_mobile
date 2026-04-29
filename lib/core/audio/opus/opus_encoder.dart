@@ -13,11 +13,10 @@ class OpusEncoder {
     required this.sampleRate,
     required this.channels,
     required int bitrate,
-    int application = opusApplicationVoip,
   }) {
     final err = calloc<ffi.Int32>();
     try {
-      _state = _b.opusEncoderCreate(sampleRate, channels, application, err);
+      _state = _b.opusEncoderCreate(sampleRate, channels, opusApplicationVoip, err);
       if (err.value != opusOk || _state == ffi.nullptr) {
         throw StateError('opus_encoder_create failed: ${err.value}');
       }
