@@ -63,9 +63,16 @@ class FakeAudioEngine implements MeshVoiceAudioEngine {
   final _outboundCtrl = StreamController<Uint8List>.broadcast();
   final inboundFrames = <(int seq, Uint8List payload)>[];
 
+  /// If non-null, [start] awaits this future before completing.
+  /// Tests use this to simulate slow audio init and trigger races.
+  Completer<void>? startBlocker;
+
   @override Stream<Uint8List> get outbound => _outboundCtrl.stream;
 
-  @override Future<void> start() async { started = true; }
+  @override Future<void> start() async {
+    if (startBlocker != null) await startBlocker!.future;
+    started = true;
+  }
   @override Future<void> stop() async { stopped = true; }
   @override
   void inbound({required int seq, required Uint8List payload}) {

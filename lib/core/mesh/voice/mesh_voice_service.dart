@@ -37,6 +37,11 @@ class MeshVoiceService {
   ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})? _activeCiphers;
   int _outSeq = 0;
 
+  // Generation counter for cancelling an in-flight _enterActive when
+  // hangup/_onCallEnd runs concurrently (e.g., user mashes hangup
+  // between accept() awaits). Bumped by _exitActive.
+  int _enterGen = 0;
+
   static const Duration _inviteTimeout = Duration(seconds: 30);
   static const Duration _datagramTimeoutDuration = Duration(seconds: 3);
   static const Duration _keepaliveInterval = Duration(seconds: 1);
@@ -259,7 +264,12 @@ class MeshVoiceService {
     final st = _state;
     if (st is! InvitingState || st.callId != callId) return;
     _inviteTimeoutTimer?.cancel();
-    _enterActive(from, callId, isCaller: true);
+    _enterActive(from, callId, isCaller: true).catchError((Object _) {
+      if (_callIdOf(_state) == callId && _state is! EndedState) {
+        _setState(EndedState(callId: callId, reason: EndReason.error));
+      }
+      _exitActive();
+    });
   }
 
   void _onCallReject(int callId, Map<String, dynamic>? extra) {
@@ -313,17 +323,29 @@ class MeshVoiceService {
   }
 
   Future<void> _enterActive(PeerId peer, int callId, {required bool isCaller}) async {
+    final gen = ++_enterGen;
+
+    ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})? ciphers;
     try {
-      _activeCiphers = await messaging.datagramCiphersFor(peer);
+      ciphers = await messaging.datagramCiphersFor(peer);
     } catch (_) {
       // TEST-ONLY mitigation: FakeMessagingService.datagramCiphersFor is not
       // stubbed so noSuchMethod throws. Production MeshMessagingService never
       // throws here — it returns non-null when a Noise session exists.
-      _activeCiphers = null;
+      ciphers = null;
     }
+    if (gen != _enterGen) return; // cancelled by hangup/_onCallEnd during await
+
     final engine = audioEngineFactory();
-    _activeEngine = engine;
     await engine.start();
+    if (gen != _enterGen) {
+      // Cancelled while engine was starting — dispose without publishing.
+      await engine.stop().catchError((_) {});
+      return;
+    }
+
+    _activeCiphers = ciphers;
+    _activeEngine = engine;
     _audioOutSub = engine.outbound.listen((opus) async {
       final ciphers = _activeCiphers;
       Uint8List ct;
@@ -362,6 +384,7 @@ class MeshVoiceService {
   }
 
   Future<void> _exitActive() async {
+    _enterGen++; // invalidate any in-flight _enterActive
     _datagramWatchdog?.cancel();
     _datagramWatchdog = null;
     _keepaliveTimer?.cancel();
