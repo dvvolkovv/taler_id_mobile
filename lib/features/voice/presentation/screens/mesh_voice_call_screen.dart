@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 import '../../../../core/mesh/voice/mesh_voice_state.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../widgets/pulsing_avatar.dart';
 
 class MeshVoiceCallScreen extends StatefulWidget {
   final Stream<CallState> stateStream;
@@ -132,26 +133,30 @@ class _MeshVoiceCallScreenState extends State<MeshVoiceCallScreen> {
         child: Column(
           children: [
             const SizedBox(height: 60),
-            CircleAvatar(
+            PulsingAvatar(
               radius: 64,
-              backgroundColor: Colors.white24,
-              child: (avatarUrl != null && avatarUrl.isNotEmpty)
-                  ? ClipOval(
-                      child: Image.network(
-                        avatarUrl,
-                        width: 128,
-                        height: 128,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Text(
-                          displayName.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 36, color: Colors.white),
+              glowColor: rainbowColorFor(widget.peer.toHex()),
+              child: CircleAvatar(
+                radius: 64,
+                backgroundColor: Colors.white24,
+                child: (avatarUrl != null && avatarUrl.isNotEmpty)
+                    ? ClipOval(
+                        child: Image.network(
+                          avatarUrl,
+                          width: 128,
+                          height: 128,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Text(
+                            displayName.substring(0, 1).toUpperCase(),
+                            style: const TextStyle(
+                                fontSize: 36, color: Colors.white),
+                          ),
                         ),
-                      ),
-                    )
-                  : Text(displayName.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(
-                          fontSize: 36, color: Colors.white)),
+                      )
+                    : Text(displayName.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 36, color: Colors.white)),
+              ),
             ),
             const SizedBox(height: 24),
             Text(displayName,

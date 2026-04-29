@@ -132,7 +132,6 @@ void main() {
         (tester) async {
       final ctrl = StreamController<CallState>.broadcast();
       addTearDown(ctrl.close);
-      final navObserver = _PopObserver();
       await tester.pumpWidget(_wrap(Builder(
         builder: (ctx) => Scaffold(
           body: ElevatedButton(
@@ -152,26 +151,21 @@ void main() {
           ),
         ),
       )));
-      // Note: the navObserver is attached via the navigator inside MaterialApp,
-      // but _wrap doesn't give us a way to attach navigatorObservers. Instead,
-      // test that the screen pops by checking pumpAndSettle removes it.
+      // Note: pumpAndSettle cannot be used here because PulsingAvatar runs a
+      // continuous AnimationController (repeat) that never settles. Use explicit
+      // pump durations instead.
       await tester.tap(find.text('go'));
-      await tester.pumpAndSettle();
+      // Let the push navigation transition complete (~300 ms default route duration).
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
       expect(find.byKey(const Key('mesh-call-hangup')), findsOneWidget);
       ctrl.add(EndedState(callId: 1, reason: EndReason.userHangup));
       await tester.pump();
+      // Advance past popDelay (50 ms) and let the pop transition fully complete.
       await tester.pump(const Duration(milliseconds: 100));
-      await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.byKey(const Key('mesh-call-hangup')), findsNothing);
     });
   });
-}
-
-class _PopObserver extends NavigatorObserver {
-  bool popped = false;
-  @override
-  void didPop(Route route, Route? previousRoute) {
-    popped = true;
-    super.didPop(route, previousRoute);
-  }
 }
