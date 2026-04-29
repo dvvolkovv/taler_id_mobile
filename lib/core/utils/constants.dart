@@ -47,4 +47,9 @@ class RouteConstants {
   static const translator = '/dashboard/translator';
   static const profileSections = '/dashboard/profile/sections';
   static const aiTwin = '/dashboard/profile/ai-twin';
+
+  // Group voice rooms (Phase 1)
+  static const newGroupCall = '/new-group-call';
+  static const groupCallLobby = '/group-call/:id/lobby';
+  static const groupCallActive = '/group-call/:id';
 }

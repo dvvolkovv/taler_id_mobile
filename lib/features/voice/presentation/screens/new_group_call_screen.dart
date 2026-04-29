@@ -93,7 +93,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
       child: BlocConsumer<GroupCallBloc, GroupCallState>(
         listener: (context, state) {
           if (state is InLobby) {
-            context.go('/group-call/${state.groupCall.id}');
+            context.go('/group-call/${state.groupCall.id}/lobby');
           } else if (state is ErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
