@@ -158,10 +158,12 @@ class MeshVoiceUiCoordinator {
 
   Future<void> _handleEnded(EndedState st) async {
     final p = _pending;
-    _pending = null;
     navigator.popSheet();
     if (p == null) return;
     if (p.callId != st.callId) return;
+    // callId match confirmed — claim _pending now so concurrent EndedState
+    // for a stale callId doesn't reuse it.
+    _pending = null;
     final endedAt = DateTime.now().toUtc();
     final dur = p.activatedAt == null
         ? null
