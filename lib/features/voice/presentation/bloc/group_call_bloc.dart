@@ -134,7 +134,21 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
     final invitesRaw = e.payload['invites'] as List? ?? const [];
     if (s is InLobby && s.groupCall.id == updatedId) {
       final invites = _parseInvites(invitesRaw);
-      emit(s.copyWith(groupCall: s.groupCall.copyWith(invites: invites)));
+      final updatedCall = s.groupCall.copyWith(invites: invites);
+      // First invitee transitioned to JOINED -> auto-promote host's lobby
+      // to active screen. Token + ws URL carry over from InLobby.
+      final anyJoined = invites.any(
+        (i) => i.status == GroupCallInviteStatus.joined,
+      );
+      if (anyJoined) {
+        emit(GroupCallState.inActive(
+          groupCall: updatedCall,
+          livekitToken: s.livekitToken,
+          livekitWsUrl: s.livekitWsUrl,
+        ));
+      } else {
+        emit(s.copyWith(groupCall: updatedCall));
+      }
     } else if (s is InActive && s.groupCall.id == updatedId) {
       final invites = _parseInvites(invitesRaw);
       emit(s.copyWith(groupCall: s.groupCall.copyWith(invites: invites)));

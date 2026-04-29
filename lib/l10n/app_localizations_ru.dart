@@ -3384,4 +3384,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get groupCallLivekitError => 'Ошибка LiveKit';
+
+  @override
+  String get groupCallDone => 'Готово';
+
+  @override
+  String get groupCallNoResults => 'Ничего не найдено';
+
+  @override
+  String get groupCallNoContacts => 'Нет контактов';
 }

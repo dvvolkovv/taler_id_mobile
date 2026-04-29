@@ -154,7 +154,45 @@ void main() {
   );
 
   blocTest<GroupCallBloc, GroupCallState>(
-    'StatusUpdated event in InLobby -> updates invites',
+    'StatusUpdated event in InLobby (non-JOINED) -> updates invites, stays in lobby',
+    build: () => GroupCallBloc(repo, socket),
+    seed: () => GroupCallState.inLobby(
+      groupCall: fakeCall(),
+      livekitToken: 'jwt',
+      livekitWsUrl: 'ws://lk',
+    ),
+    act: (bloc) => bloc.add(GroupCallEvent.statusUpdated({
+      'groupCallId': 'c1',
+      'invites': [
+        {
+          'id': 'i1',
+          'userId': 'u1',
+          'status': 'DECLINED',
+          'invitedAt': DateTime.now().toIso8601String(),
+          'user': {
+            'id': 'u1',
+            'profile': {'firstName': 'Alice', 'lastName': 'Smith'},
+          },
+        },
+      ],
+    })),
+    expect: () => [
+      isA<InLobby>()
+          .having(
+            (s) => s.groupCall.invites.length,
+            'invites.length',
+            1,
+          )
+          .having(
+            (s) => s.groupCall.invites.first.status,
+            'invites.first.status',
+            GroupCallInviteStatus.declined,
+          ),
+    ],
+  );
+
+  blocTest<GroupCallBloc, GroupCallState>(
+    'StatusUpdated event in InLobby with JOINED invitee -> auto-promotes to InActive',
     build: () => GroupCallBloc(repo, socket),
     seed: () => GroupCallState.inLobby(
       groupCall: fakeCall(),
@@ -177,12 +215,10 @@ void main() {
       ],
     })),
     expect: () => [
-      isA<InLobby>()
-          .having(
-            (s) => s.groupCall.invites.length,
-            'invites.length',
-            1,
-          )
+      isA<InActive>()
+          .having((s) => s.groupCall.id, 'groupCall.id', 'c1')
+          .having((s) => s.livekitToken, 'livekitToken', 'jwt')
+          .having((s) => s.livekitWsUrl, 'livekitWsUrl', 'ws://lk')
           .having(
             (s) => s.groupCall.invites.first.status,
             'invites.first.status',

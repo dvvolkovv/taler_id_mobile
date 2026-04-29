@@ -118,7 +118,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.check_rounded),
-                  tooltip: 'Готово',
+                  tooltip: l10n.groupCallDone,
                   onPressed: (_selected.isEmpty || isCreating) ? null : _create,
                 ),
               ],
@@ -237,11 +237,14 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
             .toList();
 
     if (filtered.isEmpty) {
+      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Text(
-            _searchQuery.isNotEmpty ? 'Ничего не найдено' : 'Нет контактов',
+            _searchQuery.isNotEmpty
+                ? l10n.groupCallNoResults
+                : l10n.groupCallNoContacts,
             style: TextStyle(color: colors.textSecondary, fontSize: 14),
             textAlign: TextAlign.center,
           ),

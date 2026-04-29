@@ -1528,5 +1528,8 @@
   },
   "groupCallCreateError": "Could not create call",
   "groupCallJoinError": "Could not join call",
-  "groupCallLivekitError": "LiveKit error"
+  "groupCallLivekitError": "LiveKit error",
+  "groupCallDone": "Done",
+  "groupCallNoResults": "No results",
+  "groupCallNoContacts": "No contacts"
 }

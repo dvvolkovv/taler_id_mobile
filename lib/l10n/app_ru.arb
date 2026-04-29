@@ -1528,5 +1528,8 @@
   },
   "groupCallCreateError": "Не удалось создать звонок",
   "groupCallJoinError": "Не удалось присоединиться",
-  "groupCallLivekitError": "Ошибка LiveKit"
+  "groupCallLivekitError": "Ошибка LiveKit",
+  "groupCallDone": "Готово",
+  "groupCallNoResults": "Ничего не найдено",
+  "groupCallNoContacts": "Нет контактов"
 }

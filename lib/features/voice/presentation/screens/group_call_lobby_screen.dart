@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/group_call_bloc.dart';
 // Alias the event import: `GroupCallEvent.ended` and `GroupCallState.ended`
@@ -36,10 +37,10 @@ class GroupCallLobbyScreen extends StatelessWidget {
             );
             // Navigate back. Use a microtask so the SnackBar gets a frame.
             Future.microtask(() {
-              if (context.mounted) context.go('/calls');
+              if (context.mounted) context.go(RouteConstants.callHistory);
             });
           } else if (state is Idle) {
-            context.go('/calls');
+            context.go(RouteConstants.callHistory);
           }
         },
         builder: (context, state) {

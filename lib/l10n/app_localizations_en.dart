@@ -3365,4 +3365,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupCallLivekitError => 'LiveKit error';
+
+  @override
+  String get groupCallDone => 'Done';
+
+  @override
+  String get groupCallNoResults => 'No results';
+
+  @override
+  String get groupCallNoContacts => 'No contacts';
 }

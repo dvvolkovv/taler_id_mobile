@@ -6343,6 +6343,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'LiveKit error'**
   String get groupCallLivekitError;
+
+  /// No description provided for @groupCallDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get groupCallDone;
+
+  /// No description provided for @groupCallNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get groupCallNoResults;
+
+  /// No description provided for @groupCallNoContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'No contacts'**
+  String get groupCallNoContacts;
 }
 
 class _AppLocalizationsDelegate

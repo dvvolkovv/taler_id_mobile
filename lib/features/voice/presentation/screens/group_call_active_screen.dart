@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/group_call_invite.dart';
 import '../bloc/group_call_bloc.dart';
@@ -44,8 +45,22 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
   void initState() {
     super.initState();
     _bloc = sl<GroupCallBloc>();
-    // Connect to LiveKit on first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) => _connectIfNeeded());
+    // On first frame: if BLoC isn't already in an InActive state for this
+    // callId, dispatch JoinCall (this is the deep-link / cold-start /
+    // CallKit-accept invitee path — there is no picker→lobby flow that
+    // already populated the BLoC). Then connect to LiveKit.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final s = _bloc.state;
+      final needsJoin = s is Idle ||
+          s is Creating ||
+          s is ErrorState ||
+          (s is InLobby && s.groupCall.id != widget.callId) ||
+          (s is InActive && s.groupCall.id != widget.callId);
+      if (needsJoin) {
+        _bloc.add(gce.GroupCallEvent.joinCall(widget.callId));
+      }
+      _connectIfNeeded();
+    });
   }
 
   Future<void> _connectIfNeeded() async {
@@ -124,28 +139,34 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
                 SnackBar(content: Text(_endedLabel(context, state.reason))),
               );
               Future.microtask(() {
-                if (context.mounted) context.go('/calls');
+                if (context.mounted) context.go(RouteConstants.callHistory);
               });
             }
           } else if (state is Idle) {
             await _room?.disconnect();
-            if (context.mounted) context.go('/calls');
-          } else if (state is InActive && state.muteRequestedByHost) {
-            // Soft mute — disable local mic if currently publishing.
-            // Show the toast at most once per request to avoid spam.
-            if (!_muted && _room != null) {
-              await _room!.localParticipant?.setMicrophoneEnabled(false);
-              if (mounted) setState(() => _muted = true);
-            }
-            if (!_muteRequestedToastShown && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    AppLocalizations.of(context)!.groupCallMuteRequested,
+            if (context.mounted) context.go(RouteConstants.callHistory);
+          } else if (state is InActive && state.groupCall.id == widget.callId) {
+            // State just became InActive (e.g. after JoinCall completed for
+            // a deep-link invitee, or host's lobby auto-promoted). Try to
+            // open the LiveKit connection if we haven't yet.
+            if (_room == null) await _connectIfNeeded();
+            if (state.muteRequestedByHost) {
+              // Soft mute — disable local mic if currently publishing.
+              // Show the toast at most once per request to avoid spam.
+              if (!_muted && _room != null) {
+                await _room!.localParticipant?.setMicrophoneEnabled(false);
+                if (mounted) setState(() => _muted = true);
+              }
+              if (!_muteRequestedToastShown && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.groupCallMuteRequested,
+                    ),
                   ),
-                ),
-              );
-              _muteRequestedToastShown = true;
+                );
+                _muteRequestedToastShown = true;
+              }
             }
           }
         },

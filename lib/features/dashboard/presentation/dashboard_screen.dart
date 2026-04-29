@@ -53,6 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _disconnectSub;
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callAnsweredSub;
+  StreamSubscription? _gcEndedSub;
   StreamSubscription? _callkitSub;
   StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
@@ -215,6 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForDisconnect();
       _listenForCallEnded();
       _listenForCallAnswered();
+      _listenForGroupCallEnded();
       _listenForShareIntent();
       _checkForUpdate();
       _startWakeWord();
@@ -275,6 +277,24 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
       // User is NOT on the voice screen (banner mode) — end call state and hide banner.
       CallStateService.instance.endCall();
+    });
+  }
+
+  /// Group-call analogue of [_listenForCallEnded]: when the server broadcasts
+  /// `group_call_ended` (host_ended / all_left / timeout), every device of
+  /// every participant gets the event. We must dismiss any still-ringing
+  /// CallKit invite for this group call so Phone B doesn't keep ringing for
+  /// the full 30 s timeout. The BLoC emits its own [Ended] state for the
+  /// in-app screen; this listener handles only the OS-level CallKit cleanup.
+  void _listenForGroupCallEnded() {
+    _gcEndedSub?.cancel();
+    _gcEndedSub = sl<MessengerRemoteDataSource>()
+        .gcEndedStream
+        .listen((payload) async {
+      debugPrint('[Dashboard] gcEndedStream fired: $payload');
+      try {
+        await FlutterCallkitIncoming.endAllCalls();
+      } catch (_) {}
     });
   }
 
@@ -449,6 +469,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _disconnectSub?.cancel();
     _callEndedSub?.cancel();
     _callAnsweredSub?.cancel();
+    _gcEndedSub?.cancel();
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
