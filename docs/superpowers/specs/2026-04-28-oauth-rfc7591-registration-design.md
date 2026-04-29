@@ -149,8 +149,13 @@ export class OAuthRegistrationController {
 
   @Post('register')
   @Throttle({ short: { limit: 3, ttl: 60_000 } })  // 3 registrations/min/IP
-  register(@CurrentUser() user: any, @Body() dto: RegisterClientDto) {
-    return this.svc.register(user.sub, dto);
+  register(
+    @CurrentUser() user: any,
+    @Body() dto: RegisterClientDto,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.svc.register(user.sub, dto, ip, ua ?? '');
   }
 
   @Get('clients')
@@ -166,13 +171,20 @@ export class OAuthRegistrationController {
     @CurrentUser() user: any,
     @Param('clientId') clientId: string,
     @Body() dto: UpdateClientDto,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
   ) {
-    return this.svc.updateMine(user.sub, clientId, dto);
+    return this.svc.updateMine(user.sub, clientId, dto, ip, ua ?? '');
   }
 
   @Delete('clients/:clientId')
-  remove(@CurrentUser() user: any, @Param('clientId') clientId: string) {
-    return this.svc.deleteMine(user.sub, clientId);
+  remove(
+    @CurrentUser() user: any,
+    @Param('clientId') clientId: string,
+    @Ip() ip: string,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.svc.deleteMine(user.sub, clientId, ip, ua ?? '');
   }
 }
 ```
@@ -218,24 +230,25 @@ export const SELF_REGISTRATION_ALLOWED_SCOPES = ['openid', 'profile', 'email', '
 export const MAX_CLIENTS_PER_USER = 10;
 ```
 
-Methods:
-- `register(userId, dto)`:
+Methods (controller passes `ip` and `userAgent` via `@Ip()` and `@Headers('user-agent')` decorators so audit logging gets full request context):
+
+- `register(userId, dto, ip, userAgent)`:
   1. Look up the user via `prisma.user.findUnique({ where: { id: userId }, select: { emailVerified: true } })`. If `!user || !user.emailVerified` → throw `ForbiddenException` with `error: 'email_not_verified'`. (The JWT payload contains `sub/email/phone/kyc_status/session_id` — `emailVerified` is NOT in the token, so we must check the DB.)
   2. Count user's clients. If `>= MAX_CLIENTS_PER_USER` → throw with `error: 'client_limit_exceeded'`.
   3. Parse `dto.scope` (or default), validate every scope is in the whitelist; otherwise → throw with `error: 'invalid_scope'` and `error_description` listing allowed scopes.
   4. Validate `redirect_uris` further (no duplicates; localhost on http only).
   5. Generate `clientId = randomUUID()`, `clientSecret = randomBytes(32).toString('base64url')`. Retry once on `clientId` collision (UNIQUE constraint).
   6. `prisma.oAuthClient.create({ data: { clientId, clientSecret, name, redirectUris, allowedScopes, logoUri, userId } })`.
-  7. `auditLog(userId, 'OAUTH_CLIENT_REGISTERED', ip, ua, { clientId, name, scopes })`.
+  7. Write to AuditLog directly via `prisma.auditLog.create(...)` with action `OAUTH_CLIENT_REGISTERED`, `meta: { clientId, name, scopes }`. Mirrors the pattern in `auth.service.ts:339-349` (the `auditLog` method there is private to AuthService — no shared helper exists, so we inline the same Prisma call).
   8. Return RFC 7591 response object (see below).
 
 - `listMine(userId)`: `prisma.oAuthClient.findMany({ where: { userId }, orderBy: { createdAt: 'desc' } })` → array of public-shape Client objects (NO `client_secret` in list view; only on registration response).
 
 - `getMine(userId, clientId)`: `findFirst({ where: { clientId, userId } })`. Returns 404 if not found OR not owned by user (no info leak).
 
-- `updateMine(userId, clientId, dto)`: same `findFirst` ownership check → update allowed fields → `auditLog('OAUTH_CLIENT_UPDATED')`.
+- `updateMine(userId, clientId, dto, ip, userAgent)`: same `findFirst` ownership check → update allowed fields → `prisma.auditLog.create(...)` with action `OAUTH_CLIENT_UPDATED`.
 
-- `deleteMine(userId, clientId)`: ownership check → `prisma.oAuthClient.delete({ where: { clientId } })` → `auditLog('OAUTH_CLIENT_DELETED')`. Existing access tokens / grants in Redis are NOT proactively revoked (out of scope for Phase 1; they expire naturally within 30 days max).
+- `deleteMine(userId, clientId, ip, userAgent)`: ownership check → `prisma.oAuthClient.delete({ where: { clientId } })` → `prisma.auditLog.create(...)` with action `OAUTH_CLIENT_DELETED`. Existing access tokens / grants in Redis are NOT proactively revoked (out of scope for Phase 1; they expire naturally within 30 days max).
 
 #### RFC 7591 response shape (POST /oauth/register, 201 Created)
 
