@@ -19,6 +19,7 @@ import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/active_group_call_banner.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -360,6 +361,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 ),
               ],
             ),
+            const SliverToBoxAdapter(child: ActiveGroupCallBanner()),
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
