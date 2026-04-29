@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'mesh_voice_self_test_screen.dart';
 
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
@@ -215,6 +216,22 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
                     icon: Icon(_running ? Icons.stop : Icons.play_arrow),
                     label: Text(_running ? 'Stop' : 'Start'),
                     onPressed: _running ? _stop : _start,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.mic_outlined),
+                    label: const Text('Voice self-test'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const MeshVoiceSelfTestScreen(),
+                      ),
+                    ),
                   ),
                 ),
               ],
