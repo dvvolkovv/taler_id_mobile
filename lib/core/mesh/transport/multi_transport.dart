@@ -145,6 +145,20 @@ class MultiTransport implements MeshTransport {
   }
 
   @override
+  PeerStatus peerStatus(PeerId peer) {
+    final knownOn = _knownBy[peer];
+    if (knownOn == null || knownOn.isEmpty) return PeerStatus.offline;
+    // Online if any child reports online for this peer.
+    for (final id in knownOn) {
+      final child = _children[id];
+      if (child != null && child.peerStatus(peer) == PeerStatus.online) {
+        return PeerStatus.online;
+      }
+    }
+    return PeerStatus.offline;
+  }
+
+  @override
   Future<void> send(PeerId peer, Uint8List data) async {
     final set = _knownBy[peer] ?? const <TransportId>{};
     if (set.isEmpty) {

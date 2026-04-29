@@ -328,6 +328,13 @@ class BonjourTransport implements MeshTransport {
   Stream<InboundDatagram> get inboundDatagrams => _datagramCtrl.stream;
 
   @override
+  PeerStatus peerStatus(PeerId peer) {
+    return _peerUdpEndpoints.containsKey(peer)
+        ? PeerStatus.online
+        : PeerStatus.offline;
+  }
+
+  @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {
     final endpoint = _peerUdpEndpoints[peer];
     final socket = _udpSocket;

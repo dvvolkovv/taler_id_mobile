@@ -35,6 +35,9 @@ class _FakeChild implements MeshTransport {
     sentDatagrams.add((peer, data));
   }
 
+  @override
+  PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
+
   void emitDiscover(PeerId peer) =>
       _discCtrl.add(PeerDiscovered(peerId: peer, host: '127.0.0.1', port: 0));
   void emitDatagram(InboundDatagram dg) => _datagramCtrl.add(dg);
