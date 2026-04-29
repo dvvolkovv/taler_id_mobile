@@ -33,6 +33,11 @@ import flutter_callkit_incoming
     // Also must happen before accessing binaryMessenger below.
     GeneratedPluginRegistrant.register(with: self)
 
+    // Register mesh audio capture channel (VoiceProcessingIO capture for mesh voice calls)
+    if let registrar = self.registrar(forPlugin: "AudioCaptureChannel") {
+      AudioCaptureChannel.register(with: registrar)
+    }
+
     // Set up audio method channel (safe cast — nil-safe if window not ready on VoIP cold start)
     if let controller = window?.rootViewController as? FlutterViewController {
       // Orientation channel — Flutter toggles allowAllOrientations on entering
