@@ -546,6 +546,7 @@ class _GlobalKeyMeshNavigator implements MeshNavigator {
       context: ctx,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       builder: (_) => sheet,
     );
   }

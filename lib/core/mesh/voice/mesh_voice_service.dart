@@ -181,7 +181,11 @@ class MeshVoiceService {
     if (st is ConnectingState) peer = st.peerDevicePk;
     if (st is ActiveState) peer = st.peerDevicePk;
     if (peer != null) {
-      await messaging.sendEnvelope(
+      // Fire-and-forget: don't block hangup on network delivery. If
+      // handshake is stuck (ContactKeyStore behind, peer offline), an
+      // awaited sendEnvelope can hang up to 10s — unacceptable for the
+      // hangup button. State transition must be immediate.
+      messaging.sendEnvelope(
         toUserPk: peer,
         envelope: Envelope(
           version: 1,
@@ -192,7 +196,7 @@ class MeshVoiceService {
           sentAt: DateTime.now().toUtc(),
           extra: {'call_id': cid, 'reason': reason.name},
         ),
-      );
+      ).catchError((_) {});
     }
     _setState(EndedState(callId: cid, reason: reason));
     await _exitActive();
