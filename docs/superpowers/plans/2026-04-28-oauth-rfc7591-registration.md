@@ -144,13 +144,13 @@ Expected: `ALTER TABLE "OAuthClient" ADD COLUMN "userId" TEXT, ADD COLUMN "updat
 
 If `updatedAt NOT NULL` without `DEFAULT` — Prisma may produce that. If so, edit the migration SQL to include `DEFAULT CURRENT_TIMESTAMP` so the column populates for existing rows.
 
-- [ ] **Step 1.6: Apply the migration locally and regenerate the Prisma client**
+- [ ] **Step 1.6: Regenerate the Prisma client (do NOT apply locally — no local DB in this dev setup)**
 
 ```bash
-cd ~/taler-id && npx prisma migrate dev
+cd ~/taler-id && npx prisma generate
 ```
 
-Expected: migration applies, `prisma generate` runs, `Database is now in sync with your schema`.
+Expected: `Generated Prisma Client (vX.Y.Z) ...`. The migration SQL stays unapplied locally — it applies on DEV server during deploy via `npx prisma migrate deploy` (Task 8.1). This avoids requiring a local Postgres just for type generation.
 
 - [ ] **Step 1.7: Verify build still succeeds**
 
