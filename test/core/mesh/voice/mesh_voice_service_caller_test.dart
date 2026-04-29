@@ -32,13 +32,12 @@ void main() {
       expect(sent.envelope.extra!['call_id'], callId);
     });
 
-    test('on call_accept envelope, transitions to ConnectingState', () async {
+    test('on call_accept envelope, transitions to ActiveState', () async {
       final h = MeshVoiceTestHarness.build();
       h.svc.start();
       final callee = PeerId(Uint8List.fromList(List<int>.generate(32, (i) => 200 + i)));
       final callId = await h.svc.invite(callee);
 
-      // Simulate inbound accept.
       h.fakeMessaging.emitInbound(InboundEnvelope(
         fromUserPk: callee,
         envelope: Envelope(
@@ -51,9 +50,10 @@ void main() {
           extra: {'call_id': callId},
         ),
       ));
-      await Future<void>.delayed(Duration.zero);
+      // Allow async _enterActive (which awaits datagramCiphersFor + audio start) to run.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(h.svc.state, isA<ConnectingState>());
+      expect(h.svc.state, isA<ActiveState>());
     });
 
     test('on call_reject envelope, transitions to EndedState(rejectedByCallee)', () async {

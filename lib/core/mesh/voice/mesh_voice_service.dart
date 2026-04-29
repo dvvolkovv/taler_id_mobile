@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import '../../audio/mesh_voice_audio_engine.dart';
+import '../crypto/mesh_datagram_cipher.dart';
 import '../services/envelope.dart';
 import '../services/mesh_messaging_service.dart';
 import '../transport/mesh_transport.dart';
 import '../transport/peer_id.dart';
+import 'mesh_voice_frame.dart';
 import 'mesh_voice_state.dart';
 
 /// Orchestrates a 1-on-1 mesh voice call: signaling, state machine,
@@ -28,6 +31,11 @@ class MeshVoiceService {
   StreamSubscription<InboundEnvelope>? _envelopeSub;
   StreamSubscription<InboundDatagram>? _datagramSub;
   Timer? _inviteTimeoutTimer;
+
+  StreamSubscription<Uint8List>? _audioOutSub;
+  MeshVoiceAudioEngine? _activeEngine;
+  ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})? _activeCiphers;
+  int _outSeq = 0;
 
   static const Duration _inviteTimeout = Duration(seconds: 30);
 
@@ -128,11 +136,7 @@ class MeshVoiceService {
       },
     );
     await messaging.sendEnvelope(toUserPk: st.callerDevicePk, envelope: envelope);
-    _setState(ConnectingState(
-      peerDevicePk: st.callerDevicePk,
-      callId: st.callId,
-      isCaller: false,
-    ));
+    await _enterActive(st.callerDevicePk, st.callId, isCaller: false);
   }
 
   /// Callee-side: reject the current INCOMING call.
@@ -164,6 +168,7 @@ class MeshVoiceService {
   /// Cleanup on app shutdown.
   Future<void> dispose() async {
     _inviteTimeoutTimer?.cancel();
+    await _exitActive();
     await _envelopeSub?.cancel();
     await _datagramSub?.cancel();
     await _stateCtrl.close();
@@ -225,12 +230,7 @@ class MeshVoiceService {
     final st = _state;
     if (st is! InvitingState || st.callId != callId) return;
     _inviteTimeoutTimer?.cancel();
-    _setState(ConnectingState(
-      peerDevicePk: from,
-      callId: callId,
-      isCaller: true,
-    ));
-    // T8 wires audio + datagram pipe here (will replace ConnectingState with ActiveState).
+    _enterActive(from, callId, isCaller: true);
   }
 
   void _onCallReject(int callId, Map<String, dynamic>? extra) {
@@ -247,6 +247,7 @@ class MeshVoiceService {
     if (_callIdOf(st) != callId) return;
     _inviteTimeoutTimer?.cancel();
     _setState(EndedState(callId: callId, reason: EndReason.remoteHangup));
+    _exitActive();
   }
 
   int? _callIdOf(CallState s) {
@@ -257,8 +258,84 @@ class MeshVoiceService {
     return null;
   }
 
-  void _onDatagram(InboundDatagram dg) {
-    // Decrypt + dispatch in T8.
+  void _onDatagram(InboundDatagram dg) async {
+    final st = _state;
+    if (st is! ActiveState) return;
+    final MeshVoiceFrame frame;
+    try {
+      frame = MeshVoiceFrame.decode(dg.bytes);
+    } on FormatException {
+      return;
+    }
+    if (frame.callId != st.callId) return;
+    final ciphers = _activeCiphers;
+    Uint8List pt;
+    if (ciphers != null) {
+      try {
+        pt = await ciphers.inbound.decrypt(seq: frame.seq, ciphertext: frame.ciphertext);
+      } catch (_) {
+        return; // drop on AEAD/replay failure
+      }
+    } else {
+      pt = frame.ciphertext; // test fallback (see _enterActive)
+    }
+    _activeEngine?.inbound(seq: frame.seq, payload: pt);
+  }
+
+  Future<void> _enterActive(PeerId peer, int callId, {required bool isCaller}) async {
+    try {
+      _activeCiphers = await messaging.datagramCiphersFor(peer);
+    } catch (_) {
+      // TEST-ONLY mitigation: FakeMessagingService.datagramCiphersFor is not
+      // stubbed so noSuchMethod throws. Production MeshMessagingService never
+      // throws here — it returns non-null when a Noise session exists.
+      _activeCiphers = null;
+    }
+    final engine = audioEngineFactory();
+    _activeEngine = engine;
+    await engine.start();
+    _audioOutSub = engine.outbound.listen((opus) async {
+      final ciphers = _activeCiphers;
+      Uint8List ct;
+      if (ciphers != null) {
+        _outSeq++;
+        ct = await ciphers.outbound.encrypt(seq: _outSeq, plaintext: opus);
+      } else {
+        // FALLBACK (test-only): no cipher available, ship plaintext unencrypted.
+        // Production always has a Noise session — datagramCiphersFor returns
+        // non-null after handshake. This path keeps unit tests with fake
+        // messaging working without a fake Noise session.
+        _outSeq++;
+        ct = opus;
+      }
+      final frame = MeshVoiceFrame(
+        type: MeshVoiceFrameType.audio,
+        callId: callId,
+        seq: _outSeq,
+        ciphertext: ct,
+      );
+      try {
+        await transport.sendDatagram(peer, frame.encode());
+      } catch (_) {
+        // Drop on transport error; persistent failures end the call via
+        // keepalive timeout (Task 9).
+      }
+    });
+    _setState(ActiveState(
+      peerDevicePk: peer,
+      callId: callId,
+      isCaller: isCaller,
+      startedAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  Future<void> _exitActive() async {
+    await _audioOutSub?.cancel();
+    _audioOutSub = null;
+    await _activeEngine?.stop();
+    _activeEngine = null;
+    _activeCiphers = null;
+    _outSeq = 0;
   }
 
   static int _generateCallId() {

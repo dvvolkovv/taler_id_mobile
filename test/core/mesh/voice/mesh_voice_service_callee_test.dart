@@ -39,7 +39,7 @@ void main() {
       expect((h.svc.state as IncomingState).callId, callId);
     });
 
-    test('accept() sends call_accept and transitions to ConnectingState', () async {
+    test('accept() sends call_accept and transitions to ActiveState', () async {
       final h = MeshVoiceTestHarness.build();
       h.svc.start();
 
@@ -59,7 +59,7 @@ void main() {
       h.fakeMessaging.sentEnvelopes.clear();
 
       await h.svc.accept();
-      expect(h.svc.state, isA<ConnectingState>());
+      expect(h.svc.state, isA<ActiveState>());
       expect(h.fakeMessaging.sentEnvelopes, hasLength(1));
       expect(h.fakeMessaging.sentEnvelopes.first.envelope.type, 'call_accept');
     });
@@ -109,7 +109,7 @@ void main() {
         ),
       ));
       await Future<void>.delayed(Duration.zero);
-      await h.svc.accept(); // → ConnectingState
+      await h.svc.accept(); // → ActiveState
 
       h.fakeMessaging.sentEnvelopes.clear();
 
