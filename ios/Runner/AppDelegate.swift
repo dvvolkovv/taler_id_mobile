@@ -38,6 +38,11 @@ import flutter_callkit_incoming
       AudioCaptureChannel.register(with: registrar)
     }
 
+    // Register mesh audio playback channel (shares the same AudioIOSession as capture)
+    if let registrar = self.registrar(forPlugin: "AudioPlaybackChannel") {
+      AudioPlaybackChannel.register(with: registrar)
+    }
+
     // Set up audio method channel (safe cast — nil-safe if window not ready on VoIP cold start)
     if let controller = window?.rootViewController as? FlutterViewController {
       // Orientation channel — Flutter toggles allowAllOrientations on entering
