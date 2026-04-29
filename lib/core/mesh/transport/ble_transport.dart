@@ -220,6 +220,14 @@ class BleTransport implements MeshTransport {
   }
 
   @override
+  Stream<InboundDatagram> get inboundDatagrams => const Stream.empty();
+
+  @override
+  Future<void> sendDatagram(PeerId peer, Uint8List data) async {
+    throw TransportUnavailable('BLE datagram not yet implemented (Phase 3b.2)');
+  }
+
+  @override
   Future<void> send(PeerId peer, Uint8List data) async {
     if (!_started) throw StateError('BleTransport not started');
     final device = _deviceCache[peer];

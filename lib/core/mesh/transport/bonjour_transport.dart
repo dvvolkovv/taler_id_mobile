@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:bonsoir/bonsoir.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
@@ -12,6 +12,7 @@ import 'frame.dart';
 import 'mesh_discovery_supervisor.dart';
 import 'mesh_transport.dart';
 import 'peer_id.dart';
+import 'transport_preference.dart';
 
 class _ConnectedPeer {
   final Socket socket;
@@ -28,10 +29,17 @@ class _PeerAddress {
 class BonjourTransport implements MeshTransport {
   static const String serviceType = '_talermesh._tcp';
 
+  BonjourTransport();
+  BonjourTransport._();
+
   BonsoirBroadcast? _broadcast;
   BonsoirDiscovery? _discovery;
   ServerSocket? _server;
   PeerId? _selfPk;
+
+  RawDatagramSocket? _udpSocket;
+  final Map<PeerId, ({String host, int port})> _peerUdpEndpoints = {};
+  final _datagramCtrl = StreamController<InboundDatagram>.broadcast();
 
   final Map<PeerId, _ConnectedPeer> _connections = {};
   final Map<String, PeerId> _nameToPeerId = {};
@@ -89,6 +97,10 @@ class BonjourTransport implements MeshTransport {
     _server!.listen(_handleIncomingSocket);
     debugPrint('[mesh-bonjour] TCP server listening on port ${_server!.port}');
 
+    _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+    debugPrint('[mesh-bonjour] UDP socket listening on port ${_udpSocket!.port}');
+    _udpSocket!.listen(_handleDatagramEvent);
+
     final service = BonsoirService(
       name: self.serviceName,
       type: serviceType,
@@ -96,6 +108,7 @@ class BonjourTransport implements MeshTransport {
       attributes: {
         'pk': self.devicePk.toHex(),
         'ver': '1',
+        'udp_port': _udpSocket!.port.toString(),
       },
     );
     _broadcast = BonsoirBroadcast(service: service);
@@ -201,6 +214,11 @@ class BonjourTransport implements MeshTransport {
             host: service.host ?? '',
             port: service.port,
           );
+          final udpPortStr = service.attributes['udp_port'];
+          final udpPort = udpPortStr != null ? int.tryParse(udpPortStr) : null;
+          if (udpPort != null && service.host != null) {
+            _peerUdpEndpoints[peerId] = (host: service.host!, port: udpPort);
+          }
           _discoveriesCtrl.add(PeerDiscovered(
             peerId: peerId,
             host: service.host ?? '',
@@ -307,6 +325,51 @@ class BonjourTransport implements MeshTransport {
   }
 
   @override
+  Stream<InboundDatagram> get inboundDatagrams => _datagramCtrl.stream;
+
+  @override
+  Future<void> sendDatagram(PeerId peer, Uint8List data) async {
+    final endpoint = _peerUdpEndpoints[peer];
+    final socket = _udpSocket;
+    if (endpoint == null || socket == null) {
+      throw TransportUnavailable('Bonjour: no UDP endpoint for peer ${peer.toHex().substring(0, 12)}');
+    }
+    if (data.length > 1200) {
+      throw ArgumentError('datagram too large: ${data.length} bytes (max 1200 to avoid IPv4 fragmentation)');
+    }
+    socket.send(data, InternetAddress(endpoint.host), endpoint.port);
+  }
+
+  void _handleDatagramEvent(RawSocketEvent event) {
+    if (event != RawSocketEvent.read) return;
+    final socket = _udpSocket;
+    if (socket == null) return;
+    final dg = socket.receive();
+    if (dg == null) return;
+
+    // Reverse-lookup: find which peer this came from by matching source
+    // (host, port) against `_peerUdpEndpoints`. Slow O(N) but N = peer
+    // count which is small (few-to-tens for 1-hop direct mesh).
+    PeerId? srcPeer;
+    for (final entry in _peerUdpEndpoints.entries) {
+      if (entry.value.host == dg.address.address && entry.value.port == dg.port) {
+        srcPeer = entry.key;
+        break;
+      }
+    }
+    if (srcPeer == null) {
+      // Datagram from an unknown source — ignore. Could be a peer that
+      // hasn't completed Bonjour discovery yet, or just stray UDP.
+      return;
+    }
+    _datagramCtrl.add(InboundDatagram(
+      srcPeer: srcPeer,
+      bytes: Uint8List.fromList(dg.data),
+      via: TransportId.bonjour,
+    ));
+  }
+
+  @override
   Future<void> stopAdvertising() async {
     await _supervisor?.dispose();
     _supervisor = null;
@@ -324,6 +387,9 @@ class BonjourTransport implements MeshTransport {
     _discovery = null;
     await _server?.close();
     _server = null;
+    _udpSocket?.close();
+    _udpSocket = null;
+    _peerUdpEndpoints.clear();
   }
 
   @override
@@ -339,6 +405,25 @@ class BonjourTransport implements MeshTransport {
     await _discoveriesCtrl.close();
     await _lossesCtrl.close();
     await _inboundCtrl.close();
+    await _datagramCtrl.close();
+  }
+
+  /// Test-only constructor: builds a `BonjourTransport` with a pre-bound
+  /// UDP socket and skips Bonsoir advertise/discovery. Use only from
+  /// `test/` files. Pairs with `testRegisterPeer`.
+  @visibleForTesting
+  factory BonjourTransport.testHarness({required RawDatagramSocket udpSocket}) {
+    final t = BonjourTransport._();
+    t._udpSocket = udpSocket;
+    udpSocket.listen(t._handleDatagramEvent);
+    return t;
+  }
+
+  /// Test-only: pre-populate the peer UDP endpoint cache. Use only from
+  /// `test/` files. Production populates via `bonsoir`-resolved TXT.
+  @visibleForTesting
+  void testRegisterPeer(PeerId peer, String host, int port) {
+    _peerUdpEndpoints[peer] = (host: host, port: port);
   }
 }
 
