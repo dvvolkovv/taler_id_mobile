@@ -407,7 +407,10 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<GroupCallRepository>(
     () => GroupCallRepositoryImpl(sl<GroupCallRemoteDatasource>()),
   );
-  sl.registerFactory<GroupCallBloc>(
+  // Singleton: GroupCallBloc state must persist across screen transitions
+  // (picker → lobby → active). A factory registration would build a fresh
+  // Idle-state BLoC for each `sl<GroupCallBloc>()` call, breaking the flow.
+  sl.registerLazySingleton<GroupCallBloc>(
     () => GroupCallBloc(
       sl<GroupCallRepository>(),
       sl<MessengerRemoteDataSource>(),
