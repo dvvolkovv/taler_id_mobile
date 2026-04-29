@@ -38,6 +38,11 @@ class MeshVoiceService {
   int _outSeq = 0;
 
   static const Duration _inviteTimeout = Duration(seconds: 30);
+  static const Duration _datagramTimeoutDuration = Duration(seconds: 3);
+  static const Duration _keepaliveInterval = Duration(seconds: 1);
+
+  Timer? _datagramWatchdog;
+  Timer? _keepaliveTimer;
 
   static const Map<String, dynamic> _defaultCodecParams = {
     'audio': 'opus',
@@ -162,7 +167,31 @@ class MeshVoiceService {
 
   /// Either side: end the active or pending call.
   Future<void> hangup({EndReason reason = EndReason.userHangup}) async {
-    throw UnimplementedError('hangup — implemented in Task 9');
+    final st = _state;
+    final cid = _callIdOf(st);
+    if (cid == null) return;
+    PeerId? peer;
+    if (st is InvitingState) peer = st.calleeDevicePk;
+    if (st is IncomingState) peer = st.callerDevicePk;
+    if (st is ConnectingState) peer = st.peerDevicePk;
+    if (st is ActiveState) peer = st.peerDevicePk;
+    if (peer != null) {
+      await messaging.sendEnvelope(
+        toUserPk: peer,
+        envelope: Envelope(
+          version: 1,
+          type: 'call_end',
+          convId: 'call-${cid.toRadixString(16)}',
+          clientId: cid.toRadixString(16),
+          text: '',
+          sentAt: DateTime.now().toUtc(),
+          extra: {'call_id': cid, 'reason': reason.name},
+        ),
+      );
+    }
+    _setState(EndedState(callId: cid, reason: reason));
+    await _exitActive();
+    _inviteTimeoutTimer?.cancel();
   }
 
   /// Cleanup on app shutdown.
@@ -261,6 +290,7 @@ class MeshVoiceService {
   void _onDatagram(InboundDatagram dg) async {
     final st = _state;
     if (st is! ActiveState) return;
+    _resetDatagramWatchdog();
     final MeshVoiceFrame frame;
     try {
       frame = MeshVoiceFrame.decode(dg.bytes);
@@ -327,15 +357,50 @@ class MeshVoiceService {
       isCaller: isCaller,
       startedAt: DateTime.now().toUtc(),
     ));
+    _resetDatagramWatchdog();
+    _startKeepalive(peer, callId);
   }
 
   Future<void> _exitActive() async {
+    _datagramWatchdog?.cancel();
+    _datagramWatchdog = null;
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = null;
     await _audioOutSub?.cancel();
     _audioOutSub = null;
     await _activeEngine?.stop();
     _activeEngine = null;
     _activeCiphers = null;
     _outSeq = 0;
+  }
+
+  void _resetDatagramWatchdog() {
+    _datagramWatchdog?.cancel();
+    _datagramWatchdog = Timer(_datagramTimeoutDuration, () {
+      final st = _state;
+      if (st is ActiveState) {
+        _setState(EndedState(callId: st.callId, reason: EndReason.noKeepalive));
+        _exitActive();
+      }
+    });
+  }
+
+  void _startKeepalive(PeerId peer, int callId) {
+    _keepaliveTimer?.cancel();
+    _keepaliveTimer = Timer.periodic(_keepaliveInterval, (_) {
+      messaging.sendEnvelope(
+        toUserPk: peer,
+        envelope: Envelope(
+          version: 1,
+          type: 'call_keepalive',
+          convId: 'call-${callId.toRadixString(16)}',
+          clientId: callId.toRadixString(16),
+          text: '',
+          sentAt: DateTime.now().toUtc(),
+          extra: {'call_id': callId},
+        ),
+      ).catchError((_) {});
+    });
   }
 
   static int _generateCallId() {
