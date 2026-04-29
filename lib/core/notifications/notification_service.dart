@@ -237,6 +237,30 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       convId: message.data['conversationId'] ?? '',
       fromAvatar: message.data['fromAvatar'] as String?,
     );
+  } else if (type == 'group_call_invite') {
+    // Group call: display host name + group suffix ("Алиса + N").
+    // APNs payload may pre-format `nameCaller` ("Алиса + 2 ещё");
+    // FCM data-only payload sends raw `hostDisplayName` + `inviteeCount`.
+    final hostDisplayName = (message.data['hostDisplayName'] as String?) ??
+        (message.data['nameCaller'] as String?) ??
+        (await _notifStrings()).incomingCall;
+    final inviteeCount = int.tryParse(
+          (message.data['inviteeCount'] ?? '1').toString(),
+        ) ??
+        1;
+    final formattedCaller = inviteeCount > 1
+        ? '$hostDisplayName + ${inviteeCount - 1}'
+        : hostDisplayName;
+    final groupCallId = message.data['groupCallId'] as String? ?? '';
+    await showCallkitIncoming(
+      // `group-<id>` prefix lets the CallKit accept handler in main.dart
+      // discriminate group vs 1-on-1 routes.
+      roomName: 'group-$groupCallId',
+      fromName: formattedCaller,
+      // Group calls are not tied to a Conversation row.
+      convId: '',
+      fromAvatar: message.data['hostAvatarUrl'] as String?,
+    );
   } else if (type == 'call_cancelled') {
     // Caller hung up before answer — dismiss CallKit UI
     await FlutterCallkitIncoming.endAllCalls();
@@ -458,6 +482,13 @@ String? notificationToRoute(RemoteMessage message) {
         final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
         final avatarParam = fromAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(fromAvatar)}' : '';
         return '/dashboard/voice?room=$roomName&convId=$convId&incoming=1$e2eeParam$calleeParam$avatarParam';
+      }
+      return null;
+    case 'group_call_invite':
+      final groupCallId = data['groupCallId'] as String?;
+      if (groupCallId != null && groupCallId.isNotEmpty) {
+        // Active screen handles lobby fallback via BLoC state.
+        return '/group-call/$groupCallId';
       }
       return null;
     case 'new_message':

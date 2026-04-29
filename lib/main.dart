@@ -56,6 +56,18 @@ void _setupCallkitListener() {
     final callerName = event.body['nameCaller'] as String? ?? '';
     final callerAvatar = extra?['callerAvatar'] as String? ?? '';
     if (roomName == null || roomName.isEmpty) return;
+    // Group call invites use a `group-<groupCallId>` roomName (set by the
+    // background handler in notification_service.dart). Route to the group
+    // active screen — it falls back to the lobby via BLoC state when needed.
+    if (roomName.startsWith('group-')) {
+      final groupCallId = roomName.substring('group-'.length);
+      if (groupCallId.isEmpty) return;
+      final route = '/group-call/$groupCallId';
+      debugPrint('[CallKit] accept (group): groupCallId=$groupCallId, setting pending route');
+      NotificationService.setPendingCallRoute(route);
+      _navigateWhenResumed(route, 0);
+      return;
+    }
     final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
     final calleeParam = callerName.isNotEmpty ? '&callee=${Uri.encodeComponent(callerName)}' : '';
     final avatarParam = callerAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(callerAvatar)}' : '';
@@ -138,6 +150,16 @@ Future<void> _checkInitialCallKitCall() async {
       if (roomName == null || roomName.isEmpty) continue;
       // Only set if EventChannel hasn't already set it
       if (NotificationService.hasPendingCallRoute) return;
+      // Group call cold-start: route directly to the group active screen.
+      if (roomName.startsWith('group-')) {
+        final groupCallId = roomName.substring('group-'.length);
+        if (groupCallId.isEmpty) continue;
+        final route = '/group-call/$groupCallId';
+        debugPrint('[CallKit] _checkInitialCallKitCall: found active group call, route=$route');
+        NotificationService.setPendingCallRoute(route);
+        _navigateWhenResumed(route, 0);
+        return;
+      }
       final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
       final route =
           '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam';
