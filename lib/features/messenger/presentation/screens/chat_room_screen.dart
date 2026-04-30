@@ -61,6 +61,7 @@ import '../../../../core/mesh/transport/peer_id.dart';
 import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
 import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
 import '../../../voice/presentation/widgets/ios_mesh_onboarding_tooltip.dart';
+import '../../../voice/presentation/widgets/mesh_eligibility_dot.dart';
 import 'chat_room_auto_pick.dart';
 
 /// Per-process cache of "user explicitly used LiveKit with this peer at time T".
@@ -510,6 +511,70 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         });
       }
     } catch (_) {}
+  }
+
+  Future<void> _showTransportPopup() async {
+    final l10n = AppLocalizations.of(context)!;
+    final conv = _resolveConv(context.read<MessengerBloc>().state.conversations);
+    if (conv?.type != 'DIRECT') return;
+    final otherUserId = conv?.otherUserId;
+    if (otherUserId == null) return;
+
+    if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.callConflictAlreadyInCall),
+        backgroundColor: AppColors.of(context).error,
+      ));
+      return;
+    }
+
+    final watcher = sl<MeshPeerEligibilityWatcher>();
+    final isMeshAvailable = watcher.isUserOnline(otherUserId);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(l10n.callPopupTransportTitle,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 16),
+              ListTile(
+                key: const Key('chat-popup-mesh'),
+                leading: Icon(
+                  Icons.wifi_tethering,
+                  color: isMeshAvailable ? Colors.green : Colors.grey,
+                ),
+                title: Text(l10n.callPopupTransportMesh),
+                subtitle: isMeshAvailable
+                    ? null
+                    : Text(l10n.callPopupTransportMeshUnavailable),
+                enabled: isMeshAvailable,
+                onTap: !isMeshAvailable
+                    ? null
+                    : () async {
+                        Navigator.of(ctx).pop();
+                        await IosMeshOnboardingTooltip.showIfNeeded(context);
+                        if (mounted) await _startMeshCall(otherUserId);
+                      },
+              ),
+              ListTile(
+                key: const Key('chat-popup-lk'),
+                leading: Icon(Icons.phone, color: AppColors.of(context).primary),
+                title: Text(l10n.callPopupTransportLk),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _startLkCall();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _autoPickCall() async {
@@ -1879,10 +1944,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     if (conv?.type != 'AI_ANALYST' &&
                         conv?.type != 'AI_OUTBOUND' &&
                         conv?.type != 'CHANNEL')
-                      return IconButton(
-                        icon: const Icon(Icons.phone_outlined),
-                        onPressed: _autoPickCall,
-                        tooltip: AppLocalizations.of(context)!.chatCall,
+                      return GestureDetector(
+                        onLongPress: _showTransportPopup,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.phone_outlined),
+                              onPressed: _autoPickCall,
+                              tooltip: AppLocalizations.of(context)!.chatCall,
+                            ),
+                            if (conv?.type == 'DIRECT' && conv?.otherUserId != null)
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: MeshEligibilityDot(userId: conv!.otherUserId!),
+                              ),
+                          ],
+                        ),
                       );
                     return const SizedBox.shrink();
                   },
