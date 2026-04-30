@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding;
 
+import '../../features/voice/presentation/widgets/battery_exemption_dialog.dart';
+import '../../main.dart' show globalNavigatorKey;
 import 'mesh_peer_eligibility_watcher.dart';
 
 /// Anchors the Android process via a foreground Service when at least one
@@ -19,6 +22,7 @@ class MeshForegroundController {
   StreamSubscription<({String userId, bool isOnline})>? _sub;
   Timer? _stopTimer;
   bool _serviceRunning = false;
+  bool _batteryPromptScheduled = false;
 
   MeshForegroundController({required this.watcher});
 
@@ -45,6 +49,16 @@ class MeshForegroundController {
     }
   }
 
+  void _maybeScheduleBatteryPrompt() {
+    if (_batteryPromptScheduled) return;
+    _batteryPromptScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final ctx = globalNavigatorKey.currentContext;
+      if (ctx == null) return;
+      await BatteryExemptionDialog.showIfNeeded(ctx);
+    });
+  }
+
   Future<void> _ensureRunning() async {
     if (_serviceRunning) return;
     _serviceRunning = true;
@@ -53,6 +67,7 @@ class MeshForegroundController {
         'start',
         {'peerCount': watcher.onlinePeerCount},
       );
+      _maybeScheduleBatteryPrompt();
     } catch (e) {
       _serviceRunning = false;
       debugPrint('[mesh-fg] service start failed: $e');

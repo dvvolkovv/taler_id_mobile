@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 
 import '../di/service_locator.dart';
 import '../storage/secure_storage_service.dart';
+import '../voice/mesh_foreground_controller.dart';
 import '../voice/mesh_peer_eligibility_watcher.dart';
 import '../voice/mesh_voice_ui_coordinator.dart';
 import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
@@ -86,6 +88,15 @@ Future<void> runMeshBootstrap(String userId) async {
         debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() ok');
       } catch (e) {
         debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() failed: $e');
+      }
+    }
+
+    if (!kIsWeb && Platform.isAndroid && sl.isRegistered<MeshForegroundController>()) {
+      try {
+        sl<MeshForegroundController>().start();
+        debugPrint('[mesh-boot] MeshForegroundController.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshForegroundController.start() failed: $e');
       }
     }
 
