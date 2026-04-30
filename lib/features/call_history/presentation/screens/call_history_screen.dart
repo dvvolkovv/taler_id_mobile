@@ -441,13 +441,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(RouteConstants.newGroupCall),
-        backgroundColor: colors.primary,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.group_add_rounded),
-        label: Text(l10n.groupCallSelectParticipants),
-      ),
+      // Group calls are dev-flavor only until Phase 1.4 polish lands.
+      // Hides the New Group Call entry point on production builds.
+      floatingActionButton: AppConfig.isDev
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push(RouteConstants.newGroupCall),
+              backgroundColor: colors.primary,
+              foregroundColor: Colors.black,
+              icon: const Icon(Icons.group_add_rounded),
+              label: Text(l10n.groupCallSelectParticipants),
+            )
+          : null,
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
