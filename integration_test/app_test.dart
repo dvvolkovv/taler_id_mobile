@@ -436,7 +436,7 @@ void main() {
       final fab = find.byKey(const Key('messenger_new_chat_fab'));
       expect(fab, findsOneWidget, reason: 'Messenger new-chat FAB not found by key');
       await tester.tap(fab, warnIfMissed: true);
-      await tester.pumpAndSettle(const Duration(seconds: 2));
+      await tester.pumpFor(const Duration(seconds: 2));
 
       {
         // Tap "Найти канал" ListTile in the bottom sheet
