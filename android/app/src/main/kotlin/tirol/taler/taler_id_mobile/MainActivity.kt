@@ -318,6 +318,32 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/mesh_fg_service")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        val peerCount = call.argument<Int>("peerCount") ?: 0
+                        val intent = Intent(this, MeshForegroundService::class.java).apply {
+                            putExtra(MeshForegroundService.EXTRA_PEER_COUNT, peerCount)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        result.success(null)
+                    }
+                    "stop" -> {
+                        val intent = Intent(this, MeshForegroundService::class.java).apply {
+                            action = MeshForegroundService.ACTION_STOP
+                        }
+                        startService(intent)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun requestAudioFocus(am: AudioManager) {
