@@ -56,6 +56,17 @@ import '../../../../core/mesh/services/device_key_sync_service.dart';
 import '../../../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
 import '../../../../features/mesh/domain/entities/mesh_status.dart';
 import '../widgets/chat_transport_badge.dart';
+import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
+import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
+import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
+import '../../../voice/presentation/widgets/ios_mesh_onboarding_tooltip.dart';
+import 'chat_room_auto_pick.dart';
+
+/// Per-process cache of "user explicitly used LiveKit with this peer at time T".
+/// Drives the 30-minute sticky-LK heuristic in chatRoomAutoPickDecision.
+/// In-memory only: a cold restart resets the heuristic, which is acceptable.
+final Map<String, int> _recentLkCallMs = {};
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -501,8 +512,59 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     } catch (_) {}
   }
 
-  Future<void> _startCall() async {
-    debugPrint('[ChatRoom] _startCall called');
+  Future<void> _autoPickCall() async {
+    final l10n = AppLocalizations.of(context)!;
+    final conv = _resolveConv(context.read<MessengerBloc>().state.conversations);
+    final otherUserId = conv?.type == 'DIRECT' ? conv?.otherUserId : null;
+    final watcher = sl<MeshPeerEligibilityWatcher>();
+
+    final decision = chatRoomAutoPickDecision(
+      convType: conv?.type,
+      otherUserId: otherUserId,
+      isInCall: CallStateService.instance.isInCall,
+      canAddLine: CallStateService.instance.canAddLine,
+      isUserOnline: otherUserId != null && watcher.isUserOnline(otherUserId),
+      recentLkCallMs: otherUserId == null ? null : _recentLkCallMs[otherUserId],
+      nowMs: DateTime.now().millisecondsSinceEpoch,
+    );
+
+    switch (decision) {
+      case AutoPickDecision.conflict:
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.callConflictAlreadyInCall),
+          backgroundColor: AppColors.of(context).error,
+        ));
+        return;
+      case AutoPickDecision.lk:
+        return _startLkCall();
+      case AutoPickDecision.mesh:
+        await IosMeshOnboardingTooltip.showIfNeeded(context);
+        if (mounted) await _startMeshCall(otherUserId!);
+        return;
+    }
+  }
+
+  Future<void> _startMeshCall(String userId) async {
+    final keyStore = sl<HiveContactKeyStore>();
+    final userPk = keyStore.userPkForContactUserId(userId);
+    if (userPk == null) {
+      debugPrint('[chat-room] mesh fallback: userPk for $userId not in store, falling back to LK');
+      return _startLkCall();
+    }
+    final devices = keyStore.devicesFor(userPk);
+    if (devices.isEmpty) return _startLkCall();
+    final ordered = devices.toList()
+      ..sort((a, b) => a.toHex().compareTo(b.toHex()));
+    await sl<MeshVoiceUiCoordinator>().placeCall(ordered.first);
+  }
+
+  Future<void> _startLkCall() async {
+    debugPrint('[ChatRoom] _startLkCall called');
+    // Record this LK call for the 30-minute sticky-transport heuristic.
+    final convForRecency = _resolveConv(context.read<MessengerBloc>().state.conversations);
+    if (convForRecency?.type == 'DIRECT' && convForRecency?.otherUserId != null) {
+      _recentLkCallMs[convForRecency!.otherUserId!] = DateTime.now().millisecondsSinceEpoch;
+    }
     // Guard: only block when max lines reached
     if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
@@ -529,11 +591,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       sl<MessengerRemoteDataSource>()
           .sendCallInvite(widget.conversationId, roomName);
       final allConvs = context.read<MessengerBloc>().state.conversations;
-      debugPrint('[ChatRoom] _startCall: convCount=${allConvs.length}, looking for convId=${widget.conversationId}');
+      debugPrint('[ChatRoom] _startLkCall: convCount=${allConvs.length}, looking for convId=${widget.conversationId}');
       final _conv = allConvs
           .where((c) => c.id == widget.conversationId)
           .firstOrNull;
-      debugPrint('[ChatRoom] _startCall: found conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}');
+      debugPrint('[ChatRoom] _startLkCall: found conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}');
       final calleeName = _conv?.type == 'GROUP' ? _conv?.name : _conv?.otherUserName;
       final calleeAvatar = _conv?.type == 'GROUP' ? _conv?.avatarUrl : _conv?.otherUserAvatar;
       final calleeParam = calleeName != null && calleeName.isNotEmpty
@@ -543,7 +605,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           ? '&calleeAvatar=${Uri.encodeComponent(calleeAvatar)}'
           : '';
       var calleeId = _conv?.type == 'DIRECT' ? _conv?.otherUserId : null;
-      debugPrint('[ChatRoom] _startCall: conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}, calleeAvatar=$calleeAvatar');
+      debugPrint('[ChatRoom] _startLkCall: conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}, calleeAvatar=$calleeAvatar');
       // Fallback: get otherUserId from participantIds if otherUserId is null
       if (calleeId == null && _conv != null && _conv.type == 'DIRECT' && _conv.participantIds.length == 2) {
         final myId = await sl<SecureStorageService>().getUserId();
@@ -1814,7 +1876,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         conv?.type != 'CHANNEL')
                       return IconButton(
                         icon: const Icon(Icons.phone_outlined),
-                        onPressed: _startCall,
+                        onPressed: _autoPickCall,
                         tooltip: AppLocalizations.of(context)!.chatCall,
                       );
                     return const SizedBox.shrink();
@@ -2091,7 +2153,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                   ));
                                 },
                                 currentUserId: state.currentUserId,
-                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startCall : null,
+                                onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
                               );
 
