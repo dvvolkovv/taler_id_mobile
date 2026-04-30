@@ -1052,6 +1052,30 @@
   "incomingCallLabel": "Входящий звонок",
   "incomingCallDecline": "Отклонить",
   "incomingCallAccept": "Принять",
+  "meshIncomingCallLabel": "📡 Входящий mesh-звонок",
+  "meshDeviceFallback": "Mesh-устройство {hexPrefix}",
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "meshCallStatusInviting": "Вызов…",
+  "meshCallStatusConnecting": "Соединение…",
+  "meshCallEndedUserHangup": "Звонок завершён",
+  "meshCallEndedRemoteHangup": "Завершён собеседником",
+  "meshCallEndedRejected": "Отклонён",
+  "meshCallEndedNoAnswer": "Не отвечает",
+  "meshCallEndedConnectionLost": "Соединение потеряно",
+  "meshCallEndedError": "Ошибка соединения",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": { "type": "String" }
+    }
+  },
+  "meshCallTransportBadgePlain": "📡 Mesh",
   "groupCamera": "Камера",
   "groupGallery": "Галерея",
   "groupAvatarUpdated": "Аватар группы обновлён",

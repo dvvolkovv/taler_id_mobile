@@ -2424,6 +2424,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomingCallAccept => 'Accept';
 
   @override
+  String get meshIncomingCallLabel => '📡 Incoming mesh call';
+
+  @override
+  String meshDeviceFallback(String hexPrefix) {
+    return 'Mesh device $hexPrefix';
+  }
+
+  @override
+  String get meshCallStatusInviting => 'Calling…';
+
+  @override
+  String get meshCallStatusConnecting => 'Connecting…';
+
+  @override
+  String get meshCallEndedUserHangup => 'Call ended';
+
+  @override
+  String get meshCallEndedRemoteHangup => 'Ended by peer';
+
+  @override
+  String get meshCallEndedRejected => 'Declined';
+
+  @override
+  String get meshCallEndedNoAnswer => 'No answer';
+
+  @override
+  String get meshCallEndedConnectionLost => 'Connection lost';
+
+  @override
+  String get meshCallEndedError => 'Connection error';
+
+  @override
+  String meshCallTransportBadge(String transport) {
+    return '📡 Mesh · $transport';
+  }
+
+  @override
+  String get meshCallTransportBadgePlain => '📡 Mesh';
+
+  @override
   String get groupCamera => 'Camera';
 
   @override

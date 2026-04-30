@@ -181,7 +181,11 @@ class MeshVoiceService {
     if (st is ConnectingState) peer = st.peerDevicePk;
     if (st is ActiveState) peer = st.peerDevicePk;
     if (peer != null) {
-      await messaging.sendEnvelope(
+      // Fire-and-forget: don't block hangup on network delivery. If
+      // handshake is stuck (ContactKeyStore behind, peer offline), an
+      // awaited sendEnvelope can hang up to 10s — unacceptable for the
+      // hangup button. State transition must be immediate.
+      messaging.sendEnvelope(
         toUserPk: peer,
         envelope: Envelope(
           version: 1,
@@ -192,7 +196,7 @@ class MeshVoiceService {
           sentAt: DateTime.now().toUtc(),
           extra: {'call_id': cid, 'reason': reason.name},
         ),
-      );
+      ).catchError((_) {});
     }
     _setState(EndedState(callId: cid, reason: reason));
     await _exitActive();
@@ -211,6 +215,19 @@ class MeshVoiceService {
   void _setState(CallState next) {
     _state = next;
     _stateCtrl.add(next);
+    if (next is EndedState) {
+      // After a call ends, return to IdleState so the next invite() can
+      // proceed. We delay 2s so UI consumers can render the "ended"
+      // status before the screen auto-pops.
+      final endedCallId = next.callId;
+      Timer(const Duration(seconds: 2), () {
+        final cur = _state;
+        if (cur is EndedState && cur.callId == endedCallId) {
+          _state = const IdleState();
+          if (!_stateCtrl.isClosed) _stateCtrl.add(const IdleState());
+        }
+      });
+    }
   }
 
   void _onEnvelope(InboundEnvelope msg) {
@@ -232,7 +249,15 @@ class MeshVoiceService {
       case 'call_end':
         _onCallEnd(callId);
         break;
-      // call_setup / call_keepalive — Tasks 8-9.
+      case 'call_keepalive':
+        // Refresh the datagram watchdog from the signaling channel too.
+        // If UDP datagrams are blocked but envelopes flow (TCP via Bonjour),
+        // keepalives keep the call alive — at the cost of audio. UI shows
+        // "no audio" indication separately.
+        if (_state is ActiveState && (_state as ActiveState).callId == callId) {
+          _resetDatagramWatchdog();
+        }
+        break;
     }
   }
 
@@ -334,12 +359,11 @@ class MeshVoiceService {
       // throws here — it returns non-null when a Noise session exists.
       ciphers = null;
     }
-    if (gen != _enterGen) return; // cancelled by hangup/_onCallEnd during await
+    if (gen != _enterGen) return;
 
     final engine = audioEngineFactory();
     await engine.start();
     if (gen != _enterGen) {
-      // Cancelled while engine was starting — dispose without publishing.
       await engine.stop().catchError((_) {});
       return;
     }
@@ -353,10 +377,6 @@ class MeshVoiceService {
         _outSeq++;
         ct = await ciphers.outbound.encrypt(seq: _outSeq, plaintext: opus);
       } else {
-        // FALLBACK (test-only): no cipher available, ship plaintext unencrypted.
-        // Production always has a Noise session — datagramCiphersFor returns
-        // non-null after handshake. This path keeps unit tests with fake
-        // messaging working without a fake Noise session.
         _outSeq++;
         ct = opus;
       }
@@ -370,7 +390,7 @@ class MeshVoiceService {
         await transport.sendDatagram(peer, frame.encode());
       } catch (_) {
         // Drop on transport error; persistent failures end the call via
-        // keepalive timeout (Task 9).
+        // the keepalive watchdog.
       }
     });
     _setState(ActiveState(
