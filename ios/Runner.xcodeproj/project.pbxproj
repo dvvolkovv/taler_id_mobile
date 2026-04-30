@@ -18,13 +18,13 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		A1B2C3D401000001AABBCCDD /* VideoBackgroundProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */; };
+		A1B2C3D401000002AABBCCDD /* VideoEffectsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */; };
+		A1B2C3D401000003AABBCCDD /* bumer_ringtone.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */; };
 		A1B2C3D401000004AABBCCDD /* AudioCaptureChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */; };
 		A1B2C3D401000005AABBCCDD /* AudioIOSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */; };
 		A1B2C3D401000006AABBCCDD /* AudioPlaybackChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */; };
 		A1B2C3D401000007AABBCCDD /* OpusSymbolsKeeper.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */; };
-		A1B2C3D401000001AABBCCDD /* VideoBackgroundProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */; };
-		A1B2C3D401000002AABBCCDD /* VideoEffectsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */; };
-		A1B2C3D401000003AABBCCDD /* bumer_ringtone.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */; };
 		AEAC2806219256D39C2812FA /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8067FC52EEB5679D1A10E46 /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
@@ -96,13 +96,13 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundProcessor.swift; sourceTree = "<group>"; };
+		A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEffectsPlugin.swift; sourceTree = "<group>"; };
+		A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = bumer_ringtone.caf; sourceTree = "<group>"; };
 		A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioCaptureChannel.swift; path = Audio/AudioCaptureChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioIOSession.swift; path = Audio/AudioIOSession.swift; sourceTree = "<group>"; };
 		A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioPlaybackChannel.swift; path = Audio/AudioPlaybackChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = OpusSymbolsKeeper.m; path = Audio/OpusSymbolsKeeper.m; sourceTree = "<group>"; };
-		A1B2C3D402000001AABBCCDD /* VideoBackgroundProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoBackgroundProcessor.swift; sourceTree = "<group>"; };
-		A1B2C3D402000002AABBCCDD /* VideoEffectsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoEffectsPlugin.swift; sourceTree = "<group>"; };
-		A1B2C3D402000003AABBCCDD /* bumer_ringtone.caf */ = {isa = PBXFileReference; lastKnownFileType = audio.caf; path = bumer_ringtone.caf; sourceTree = "<group>"; };
 		A60365C9C053BCBCA3708F57 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		AA110000000001000000BEEF /* Debug-dev.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug-dev.xcconfig"; path = "Flutter/Debug-dev.xcconfig"; sourceTree = "<group>"; };
 		AA220000000002000000BEEF /* Release-dev.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release-dev.xcconfig"; path = "Flutter/Release-dev.xcconfig"; sourceTree = "<group>"; };
@@ -661,6 +661,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -968,6 +969,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -993,6 +995,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1186,6 +1189,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -1211,6 +1215,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -1235,6 +1240,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = tirol.taler.talerIdMobile.dev;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_STYLE = "non-global";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";

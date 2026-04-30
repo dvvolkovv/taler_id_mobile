@@ -102,11 +102,28 @@ class HiveContactKeyStore implements ContactKeyStoreLookup {
   /// Store a Taler ID contactUserId → userPk (Ed25519 hex) mapping.
   /// Called by DeviceKeySyncService.fetchContactKeys after it learns the
   /// userPk from server-returned certs.
+  ///
+  /// Phase 3d hotfix: server data sometimes returns multiple verified certs
+  /// for one contactUserId where the embedded userPk differs (user-rotated
+  /// identity, multi-account history). We persist EVERY unique verified
+  /// userPk under a parallel `userIdAlt:contactUserId:userPkHex` key so that
+  /// `allUserIdMappings()` yields each pair. Without this, lookups by an
+  /// alternate userPk returned `null` and the mesh adapter dropped envelopes
+  /// from the second device with `inbound from unknown userPk, dropped`.
   Future<void> putContactUserIdMapping({
     required String contactUserId,
     required PeerId userPk,
   }) async {
-    await _box.put('userId:$contactUserId', userPk.toHex());
+    final hex = userPk.toHex();
+    final primaryKey = 'userId:$contactUserId';
+    if (_box.get(primaryKey) == null) {
+      // First call — set the canonical primary mapping (preserves
+      // existing call sites that rely on `userPkForContactUserId`).
+      await _box.put(primaryKey, hex);
+    }
+    // Always record this userPk in the alt set so subsequent calls with
+    // a different userPk for the same contact don't get lost.
+    await _box.put('userIdAlt:$contactUserId:$hex', hex);
   }
 
   /// Returns the userPk (Ed25519 hex) for a Taler ID contactUserId, or null.
@@ -121,19 +138,29 @@ class HiveContactKeyStore implements ContactKeyStoreLookup {
   }
 
   /// List all (contactUserId, userPk) mappings stored by
-  /// putContactUserIdMapping. O(n) scan of the `userId:` prefixed keys.
+  /// putContactUserIdMapping. Yields the primary mapping plus any alts
+  /// recorded for contacts whose server certs reference multiple userPks.
   @override
   Iterable<(String, PeerId)> allUserIdMappings() sync* {
     for (final key in _box.keys) {
       if (key is! String) continue;
-      if (!key.startsWith('userId:')) continue;
-      final userId = key.substring('userId:'.length);
-      final hex = _box.get(key);
-      if (hex == null) continue;
-      try {
-        yield (userId, PeerId.fromHex(hex));
-      } catch (_) {
-        // skip malformed
+      if (key.startsWith('userId:')) {
+        final userId = key.substring('userId:'.length);
+        final hex = _box.get(key);
+        if (hex == null) continue;
+        try {
+          yield (userId, PeerId.fromHex(hex));
+        } catch (_) {/* skip malformed */}
+      } else if (key.startsWith('userIdAlt:')) {
+        // Format: userIdAlt:<contactUserId>:<userPkHex>
+        final rest = key.substring('userIdAlt:'.length);
+        final colon = rest.lastIndexOf(':');
+        if (colon <= 0) continue;
+        final userId = rest.substring(0, colon);
+        final hex = rest.substring(colon + 1);
+        try {
+          yield (userId, PeerId.fromHex(hex));
+        } catch (_) {/* skip malformed */}
       }
     }
   }

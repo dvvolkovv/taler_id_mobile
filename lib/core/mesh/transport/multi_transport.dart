@@ -43,7 +43,32 @@ class MultiTransport implements MeshTransport {
       final t = entry.value;
       _subs.add(t.discoveries.listen((d) => _onDiscover(id, d)));
       _subs.add(t.losses.listen((l) => _onLoss(id, l)));
-      _subs.add(t.inbound.listen(_inboundCtrl.add));
+      _subs.add(t.inbound.listen((frame) {
+        // Phase 3d hotfix: receiving traffic from a peer means the transport
+        // CAN reach it (the connection / UDP socket is alive). Mark the peer
+        // as known on this transport so subsequent send() / sendDatagram()
+        // calls don't fail with "No transport knows" — Bonjour discovery is
+        // asymmetric (Bonsoir on iOS sometimes resolves only one side of an
+        // iPhone↔iPhone or iPhone↔Android pair) and without learning from
+        // inbound traffic, the call_accept envelope can't reach the caller.
+        _learnFromInbound(id, frame.srcPeer);
+        _inboundCtrl.add(frame);
+      }));
+      _subs.add(t.inboundDatagrams.listen((dg) {
+        _learnFromInbound(id, dg.srcPeer);
+      }));
+    }
+  }
+
+  void _learnFromInbound(TransportId id, PeerId peer) {
+    final set = _knownBy.putIfAbsent(peer, () => <TransportId>{});
+    if (set.add(id)) {
+      // Synthetic discovery so `eligibility watcher` and other consumers
+      // see the peer as online. We don't have host/port here — those came
+      // (or didn't come) from the actual discovery layer; consumers that
+      // need them must use the original Bonjour event. The 📡 dot only
+      // needs presence.
+      _discoveriesCtrl.add(PeerDiscovered(peerId: peer, host: '', port: 0));
     }
   }
 
