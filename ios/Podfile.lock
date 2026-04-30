@@ -446,7 +446,7 @@ SPEC CHECKSUMS:
   mobile_scanner: af8f71879eaba2bbcb4d86c6a462c3c0e7f23036
   nanopb: fad817b59e0457d11a5dfbde799381cd727c1275
   open_filex: 432f3cd11432da3e39f47fcc0df2b1603854eff1
-  opus: 34680fa31f9f3e554dcceab5733609b56b52081d
+  opus: 8723b3c73153cd3b7ee4c90892884b9936e31296
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   path_provider_foundation: 608fcb11be570ce83519b076ab6a1fffe2474f05
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
@@ -468,6 +468,6 @@ SPEC CHECKSUMS:
   wakelock_plus: e29112ab3ef0b318e58cfa5c32326458be66b556
   WebRTC-SDK: 79942c006ea64f6fb48d7da8a4786dfc820bc1db
 
-PODFILE CHECKSUM: 91544540a09721455074770e2792dbb469ca5631
+PODFILE CHECKSUM: c4608ecdcac9e39ad5755e323f7ff7b8b99c547e
 
 COCOAPODS: 1.16.2

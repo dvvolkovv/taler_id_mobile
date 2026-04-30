@@ -59,6 +59,7 @@ class DeviceKeySyncService {
       return;
     }
     PeerId? firstVerifiedUserPk;
+    final seenUserPks = <String>{};
     var verifiedCount = 0;
     var legacyCount = 0;
     for (final cert in certs) {
@@ -91,6 +92,23 @@ class DeviceKeySyncService {
           );
         }
 
+        // Phase 3d hotfix: persist a userId mapping for EVERY unique verified
+        // userPk. Server data sometimes has multiple userPks per contactUserId
+        // (user re-registered, multi-account history). Without this, the mesh
+        // adapter dropped inbound envelopes from devices whose userPk didn't
+        // match the first one we saved.
+        if (seenUserPks.add(userPeer.toHex())) {
+          try {
+            await store.putContactUserIdMapping(
+              contactUserId: contactUserId,
+              userPk: userPeer,
+            );
+            debugPrint(
+              '[mesh-sync] saved userId mapping $contactUserId -> ${userPeer.toHex().substring(0, 12)}...',
+            );
+          } catch (_) {/* defensive: PeerId.fromHex above already guards */}
+        }
+
         firstVerifiedUserPk ??= userPeer;
         verifiedCount++;
       } else {
@@ -103,24 +121,7 @@ class DeviceKeySyncService {
       }
     }
 
-    // Phase 1e — persist the Taler ID contactUserId → userPk mapping using a
-    // cert whose signature VERIFIED. Pre-T3 logic wrote this for any cert
-    // with a non-null userPk, which let a malicious server poison the index
-    // with an unverified pk. The single-pass verification above is the gate.
-    if (firstVerifiedUserPk != null) {
-      try {
-        await store.putContactUserIdMapping(
-          contactUserId: contactUserId,
-          userPk: firstVerifiedUserPk,
-        );
-        debugPrint(
-          '[mesh-sync] saved userId mapping $contactUserId -> ${firstVerifiedUserPk.toHex().substring(0, 12)}...',
-        );
-      } catch (_) {
-        // malformed hex already impossible here — userPeer came from
-        // PeerId.fromHex above — but keep the guard defensive.
-      }
-    } else {
+    if (firstVerifiedUserPk == null) {
       debugPrint(
         '[mesh-sync] WARNING: no verified cert for $contactUserId — no userId mapping written',
       );

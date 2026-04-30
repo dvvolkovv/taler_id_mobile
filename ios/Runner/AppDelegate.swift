@@ -5,13 +5,13 @@ import PushKit
 import Intents
 import flutter_callkit_incoming
 
-// Phase 3 mesh voice: force the linker to keep libopus symbols so Dart FFI
-// can find them via DynamicLibrary.process(). The keeper is a C function
-// in OpusSymbolsKeeper.m that takes addresses of every opus_* function we
-// need; calling it from didFinishLaunching makes the chain reachable from
-// main and prevents dead-strip from removing any of those symbols.
-@_silgen_name("taler_force_keep_opus_symbols")
-func taler_force_keep_opus_symbols()
+// Phase 3 mesh voice: libopus is force-loaded into Runner via the local
+// pod, but iOS strips the app's export trie so dlsym(RTLD_DEFAULT, "opus_*")
+// returns NULL. We instead expose `taler_opus_*` Objective-C wrappers from
+// OpusSymbolsKeeper.m with __attribute__((used,visibility("default"))) —
+// those names DO end up in the export trie and Dart FFI looks them up.
+// No code is needed in AppDelegate; the wrappers are referenced by their
+// own attributes.
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -40,9 +40,6 @@ func taler_force_keep_opus_symbols()
     // is non-nil before PushKit delegate fires (critical for killed-app VoIP push handling).
     // Also must happen before accessing binaryMessenger below.
     GeneratedPluginRegistrant.register(with: self)
-
-    // Force-keep libopus symbols (see top of file).
-    taler_force_keep_opus_symbols()
 
     // Register mesh audio capture channel (VoiceProcessingIO capture for mesh voice calls)
     if let registrar = self.registrar(forPlugin: "AudioCaptureChannel") {

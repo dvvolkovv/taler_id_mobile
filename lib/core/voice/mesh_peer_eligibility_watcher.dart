@@ -49,6 +49,15 @@ class MeshPeerEligibilityWatcher {
   bool isUserOnline(String userId) =>
       _onlineDevices[userId]?.isNotEmpty ?? false;
 
+  /// Phase 3d hotfix: returns the discovered device PKs for [userId], or
+  /// an empty set if the user has no devices in the local network. The
+  /// chat-header mesh placeCall uses this to pick an ONLINE device — without
+  /// it, the auto-pick blindly takes the first device sorted by hex which is
+  /// often offline (e.g. iPhone Dmitry's other phone) and the call hangs on
+  /// Noise handshake until 10s timeout.
+  Set<PeerId> onlineDevicesForUser(String userId) =>
+      Set<PeerId>.unmodifiable(_onlineDevices[userId] ?? const <PeerId>{});
+
   bool get hasAnyOnlinePeer => _onlineDevices.isNotEmpty;
   int get onlinePeerCount => _onlineDevices.length;
 

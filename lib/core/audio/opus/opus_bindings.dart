@@ -53,10 +53,14 @@ typedef OpusDecoderDestroy = void Function(ffi.Pointer<ffi.Void>);
 // as a VarArgs argument so dart:ffi emits the correct ABI; otherwise the
 // passed bitrate is read from the wrong location and opus_encoder_ctl
 // returns OPUS_BAD_ARG (-1).
-typedef _OpusEncoderCtlNative = ffi.Int32 Function(
+typedef _OpusEncoderCtlNativeVar = ffi.Int32 Function(
     ffi.Pointer<ffi.Void> st,
     ffi.Int32 request,
     ffi.VarArgs<(ffi.Int32,)>);
+// iOS wrapper `taler_opus_encoder_ctl_int` is non-variadic — its signature is
+// (state, request, int_value) with all args fixed. Dart binding must match.
+typedef _OpusEncoderCtlNativeFixed = ffi.Int32 Function(
+    ffi.Pointer<ffi.Void> st, ffi.Int32 request, ffi.Int32 value);
 typedef OpusEncoderCtl = int Function(ffi.Pointer<ffi.Void> st, int request, int value);
 
 class OpusBindings {
@@ -71,20 +75,32 @@ class OpusBindings {
   final OpusDecoderDestroy opusDecoderDestroy;
   final OpusEncoderCtl opusEncoderCtl;
 
-  OpusBindings._(this._lib)
-      : opusEncoderCreate = _lib.lookupFunction<_OpusEncoderCreateNative, OpusEncoderCreate>('opus_encoder_create'),
-        opusEncode = _lib.lookupFunction<_OpusEncodeNative, OpusEncode>('opus_encode'),
-        opusEncoderDestroy = _lib.lookupFunction<_OpusEncoderDestroyNative, OpusEncoderDestroy>('opus_encoder_destroy'),
-        opusDecoderCreate = _lib.lookupFunction<_OpusDecoderCreateNative, OpusDecoderCreate>('opus_decoder_create'),
-        opusDecode = _lib.lookupFunction<_OpusDecodeNative, OpusDecode>('opus_decode'),
-        opusDecoderDestroy = _lib.lookupFunction<_OpusDecoderDestroyNative, OpusDecoderDestroy>('opus_decoder_destroy'),
-        opusEncoderCtl = _lib.lookupFunction<_OpusEncoderCtlNative, OpusEncoderCtl>('opus_encoder_ctl');
+  OpusBindings._(this._lib, {required bool useIosWrappers})
+      : opusEncoderCreate = _lib.lookupFunction<_OpusEncoderCreateNative, OpusEncoderCreate>(
+            useIosWrappers ? 'taler_opus_encoder_create' : 'opus_encoder_create'),
+        opusEncode = _lib.lookupFunction<_OpusEncodeNative, OpusEncode>(
+            useIosWrappers ? 'taler_opus_encode' : 'opus_encode'),
+        opusEncoderDestroy = _lib.lookupFunction<_OpusEncoderDestroyNative, OpusEncoderDestroy>(
+            useIosWrappers ? 'taler_opus_encoder_destroy' : 'opus_encoder_destroy'),
+        opusDecoderCreate = _lib.lookupFunction<_OpusDecoderCreateNative, OpusDecoderCreate>(
+            useIosWrappers ? 'taler_opus_decoder_create' : 'opus_decoder_create'),
+        opusDecode = _lib.lookupFunction<_OpusDecodeNative, OpusDecode>(
+            useIosWrappers ? 'taler_opus_decode' : 'opus_decode'),
+        opusDecoderDestroy = _lib.lookupFunction<_OpusDecoderDestroyNative, OpusDecoderDestroy>(
+            useIosWrappers ? 'taler_opus_decoder_destroy' : 'opus_decoder_destroy'),
+        opusEncoderCtl = useIosWrappers
+            ? _lib.lookupFunction<_OpusEncoderCtlNativeFixed, OpusEncoderCtl>('taler_opus_encoder_ctl_int')
+            : _lib.lookupFunction<_OpusEncoderCtlNativeVar, OpusEncoderCtl>('opus_encoder_ctl');
 
   factory OpusBindings.load() {
     if (_instance != null) return _instance!;
     final lib = Platform.isIOS
         ? ffi.DynamicLibrary.process()
         : ffi.DynamicLibrary.open('libopus.so');
-    return _instance = OpusBindings._(lib);
+    // On iOS the libopus symbols are not in the export trie of the stripped
+    // app binary. We export Objective-C wrappers (`taler_opus_*`) from
+    // OpusSymbolsKeeper.m which dlsym CAN find. On Android we look up the
+    // raw opus_* names from the .so (.so exports work normally there).
+    return _instance = OpusBindings._(lib, useIosWrappers: Platform.isIOS);
   }
 }

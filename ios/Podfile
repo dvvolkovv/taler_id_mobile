@@ -57,4 +57,21 @@ post_install do |installer|
 
   # libopus 1.4 is linked as a static library (vendored_libraries in opus.podspec).
   # No xcframework embedding needed — symbols are merged directly into the app binary.
+
+  # Phase 3d hotfix: keep `taler_opus_*` wrapper symbols (and the underlying
+  # libopus globals) in the Runner binary's symbol table so `dlsym(RTLD_DEFAULT, ...)`
+  # via `DynamicLibrary.process()` can resolve them. The Flutter template
+  # ships Runner with `STRIP_STYLE = all`, which strips ALL symbols — even
+  # globals — from the installed binary; with our wrappers stripped, FFI
+  # lookup throws "symbol not found" and mesh-call accept() never starts the
+  # audio engine. `non-global` keeps externs (T) and only strips file-locals.
+  installer.aggregate_targets.each do |aggregate|
+    aggregate.user_project.targets.each do |t|
+      next unless t.name == 'Runner'
+      t.build_configurations.each do |config|
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+      end
+    end
+    aggregate.user_project.save
+  end
 end

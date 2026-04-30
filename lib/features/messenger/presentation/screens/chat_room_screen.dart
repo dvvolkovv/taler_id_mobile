@@ -611,6 +611,29 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   Future<void> _startMeshCall(String userId) async {
     final keyStore = sl<HiveContactKeyStore>();
+    // Phase 3d hotfix: prefer a device the watcher has CURRENTLY discovered
+    // on the local network. Server data sometimes returns multiple userPks
+    // per contact (re-registration / multi-account history); the previous
+    // logic picked the first device sorted by hex under the primary userPk
+    // only, which often pointed to an offline phone — Noise handshake then
+    // hung the full 10s before falling back to LK.
+    final watcher = sl<MeshPeerEligibilityWatcher>();
+    final online = watcher.onlineDevicesForUser(userId);
+    if (online.isNotEmpty) {
+      final pick = (online.toList()
+            ..sort((a, b) => a.toHex().compareTo(b.toHex())))
+          .first;
+      try {
+        await sl<MeshVoiceUiCoordinator>().placeCall(pick);
+        return;
+      } catch (e) {
+        debugPrint('[chat-room] mesh placeCall (online) failed: $e — falling back to LK');
+        return _startLkCall();
+      }
+    }
+    // No discovered device — fall back to the legacy "primary userPk" path
+    // (still useful when the watcher hasn't bridged yet but a stored cert
+    // has a known device). If even that has nothing, hand off to LK.
     final userPk = keyStore.userPkForContactUserId(userId);
     if (userPk == null) {
       debugPrint('[chat-room] mesh fallback: userPk for $userId not in store, falling back to LK');
