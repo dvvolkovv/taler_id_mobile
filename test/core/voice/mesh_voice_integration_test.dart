@@ -34,6 +34,8 @@ PeerId _peer(int seed) =>
     PeerId(Uint8List.fromList(List<int>.generate(32, (i) => i + seed)));
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('full flow: invite → accept → ACTIVE → hangup → history written on receiver',
       () async {
     final aliceHarness = MeshVoiceTestHarness.build();
