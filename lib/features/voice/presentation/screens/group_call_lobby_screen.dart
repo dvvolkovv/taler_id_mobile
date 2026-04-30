@@ -121,23 +121,20 @@ class _LobbyView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                    ),
-                    icon: const Icon(Icons.call_end),
-                    label: Text(l10n.groupCallCancel),
-                    onPressed: () {
-                      context.read<GroupCallBloc>().add(
-                            gce.GroupCallEvent.endCall(state.groupCall.id),
-                          );
-                    },
+              Center(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
                   ),
-                ],
+                  icon: const Icon(Icons.call_end),
+                  label: Text(l10n.groupCallCancel),
+                  onPressed: () {
+                    context.read<GroupCallBloc>().add(
+                          gce.GroupCallEvent.endCall(state.groupCall.id),
+                        );
+                  },
+                ),
               ),
             ],
           ),
