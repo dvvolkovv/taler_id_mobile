@@ -354,14 +354,16 @@ class _ActiveView extends StatelessWidget {
                             gce.GroupCallEvent.muteAll(state.groupCall.id),
                           ),
                     ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.call_end),
+                      label: Text(l10n.groupCallLeave),
+                      onPressed: onLeave,
                     ),
-                    icon: const Icon(Icons.call_end),
-                    label: Text(l10n.groupCallLeave),
-                    onPressed: onLeave,
                   ),
                 ],
               ),
