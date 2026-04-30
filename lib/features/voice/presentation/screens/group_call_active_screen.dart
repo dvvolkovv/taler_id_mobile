@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +40,7 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
   bool _muted = false;
   bool _connecting = true;
   bool _muteRequestedToastShown = false;
+  StreamSubscription<GroupCallState>? _stateSub;
 
   late final GroupCallBloc _bloc;
 
@@ -47,10 +50,22 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
     _bloc = sl<GroupCallBloc>();
     // ignore: avoid_print
     print('[ActiveScreen] initState callId=${widget.callId} initialState=${_bloc.state.runtimeType}');
-    // On first frame: if BLoC isn't already in an InActive state for this
-    // callId, dispatch JoinCall (this is the deep-link / cold-start /
-    // CallKit-accept invitee path — there is no picker→lobby flow that
-    // already populated the BLoC). Then connect to LiveKit.
+
+    // The screen mounts in two paths:
+    //   (a) Host: BLoC already InActive (lobby auto-promoted on first JOIN).
+    //       `_connectIfNeeded` from the postFrame callback below succeeds.
+    //   (b) Invitee: CallKit/deep-link mounts us with state=Idle. We dispatch
+    //       JoinCall, but the REST round-trip + `inActive` emit completes
+    //       *after* the postFrame callback has already returned. Without a
+    //       state listener the screen would sit on a spinner forever — so we
+    //       subscribe to the bloc's state stream and re-run `_connectIfNeeded`
+    //       on every emission. Idempotent via `_room != null` early-return.
+    _stateSub = _bloc.stream.listen((s) {
+      // ignore: avoid_print
+      print('[ActiveScreen] state stream emit ${s.runtimeType}');
+      _connectIfNeeded();
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final s = _bloc.state;
       final needsJoin = s is Idle ||
@@ -141,6 +156,7 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
 
   @override
   void dispose() {
+    _stateSub?.cancel();
     _eventsListener?.dispose();
     _room?.disconnect();
     super.dispose();
