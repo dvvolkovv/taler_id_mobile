@@ -4820,6 +4820,30 @@ abstract class AppLocalizations {
   /// **'📡 Mesh'**
   String get meshCallTransportBadgePlain;
 
+  /// No description provided for @batteryExemptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Reliable mesh calls'**
+  String get batteryExemptionTitle;
+
+  /// No description provided for @batteryExemptionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow the app to run without battery restrictions so Android doesn\'t kill the mesh in the background.'**
+  String get batteryExemptionBody;
+
+  /// No description provided for @batteryExemptionAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get batteryExemptionAccept;
+
+  /// No description provided for @batteryExemptionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get batteryExemptionDismiss;
+
   /// No description provided for @groupCamera.
   ///
   /// In en, this message translates to:

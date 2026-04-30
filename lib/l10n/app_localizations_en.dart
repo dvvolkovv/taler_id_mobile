@@ -2496,6 +2496,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get meshCallTransportBadgePlain => '📡 Mesh';
 
   @override
+  String get batteryExemptionTitle => '📡 Reliable mesh calls';
+
+  @override
+  String get batteryExemptionBody =>
+      'Allow the app to run without battery restrictions so Android doesn\'t kill the mesh in the background.';
+
+  @override
+  String get batteryExemptionAccept => 'Open settings';
+
+  @override
+  String get batteryExemptionDismiss => 'Not now';
+
+  @override
   String get groupCamera => 'Camera';
 
   @override

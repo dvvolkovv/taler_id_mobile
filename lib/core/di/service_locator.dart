@@ -18,6 +18,7 @@ import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
+import '../voice/mesh_foreground_controller.dart';
 import '../voice/mesh_peer_eligibility_watcher.dart';
 import '../voice/mesh_prefs_service.dart';
 import '../voice/mesh_voice_ui_coordinator.dart';
@@ -345,6 +346,12 @@ Future<void> setupDependencies() async {
     () => MeshPeerEligibilityWatcher(
       transport: sl<MeshTransport>(),
       contactKeyStore: sl<HiveContactKeyStore>(),
+    ),
+  );
+
+  sl.registerLazySingleton<MeshForegroundController>(
+    () => MeshForegroundController(
+      watcher: sl<MeshPeerEligibilityWatcher>(),
     ),
   );
 

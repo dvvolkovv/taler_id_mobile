@@ -161,4 +161,28 @@ void main() {
       expect(transport.loss.hasListener, isFalse);
     });
   });
+
+  group('MeshPeerEligibilityWatcher.hasAnyOnlinePeer', () {
+    test('false when no peer online', () {
+      watcher.start();
+      expect(watcher.hasAnyOnlinePeer, isFalse);
+      expect(watcher.onlinePeerCount, 0);
+    });
+
+    test('true after first PeerDiscovered', () async {
+      watcher.start();
+      transport.disc.add(PeerDiscovered(peerId: aliceDevice1, host: 'h', port: 1, attributes: {}));
+      await Future<void>.delayed(Duration.zero);
+      expect(watcher.hasAnyOnlinePeer, isTrue);
+      expect(watcher.onlinePeerCount, 1);
+    });
+
+    test('counts distinct userIds, not devices', () async {
+      watcher.start();
+      transport.disc.add(PeerDiscovered(peerId: aliceDevice1, host: 'h', port: 1, attributes: {}));
+      transport.disc.add(PeerDiscovered(peerId: aliceDevice2, host: 'h', port: 1, attributes: {}));
+      await Future<void>.delayed(Duration.zero);
+      expect(watcher.onlinePeerCount, 1, reason: 'two devices, one userId');
+    });
+  });
 }

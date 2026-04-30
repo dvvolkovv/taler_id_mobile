@@ -71,6 +71,8 @@ PeerId _peer(int seed) =>
     PeerId(Uint8List.fromList(List<int>.generate(32, (i) => i + seed)));
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('MeshVoiceUiCoordinator scaffold', () {
     test('start() subscribes to stateStream; dispose() cancels', () async {
       final ctrl = StreamController<CallState>.broadcast();

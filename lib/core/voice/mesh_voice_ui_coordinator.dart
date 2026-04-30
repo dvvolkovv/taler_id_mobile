@@ -1,7 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_callkit_incoming/entities/call_event.dart'
+    as ck_event;
+import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 import '../mesh/transport/peer_id.dart';
 import '../mesh/voice/mesh_voice_state.dart';
@@ -40,7 +46,14 @@ class MeshVoiceUiCoordinator {
   final String? Function(PeerId peer) transportLabelForPeer;
 
   StreamSubscription<CallState>? _sub;
+  StreamSubscription<dynamic>? _callkitSub;
   _PendingCall? _pending;
+
+  /// For tests: override the lifecycle state. Production reads from WidgetsBinding.
+  AppLifecycleState? debugLifecycleState;
+
+  /// For tests: override platform detection. Production uses Platform.isAndroid.
+  bool? debugIsAndroid;
 
   MeshVoiceUiCoordinator({
     required this.stateStream,
@@ -57,11 +70,79 @@ class MeshVoiceUiCoordinator {
 
   void start() {
     _sub ??= stateStream.listen(_onState);
+    try {
+      _callkitSub ??=
+          FlutterCallkitIncoming.onEvent.listen(_onCallkitEvent);
+    } catch (_) {
+      // EventChannel requires ServicesBinding; silently skip in unit tests.
+    }
   }
 
   Future<void> dispose() async {
     await _sub?.cancel();
+    try {
+      await _callkitSub?.cancel();
+    } catch (_) {
+      // EventChannel cancel may fail in tests without a platform mock.
+    }
     _sub = null;
+    _callkitSub = null;
+  }
+
+  bool _isAppInForeground() {
+    if (debugLifecycleState != null) {
+      return debugLifecycleState == AppLifecycleState.resumed;
+    }
+    AppLifecycleState? state;
+    try {
+      state = WidgetsBinding.instance.lifecycleState;
+    } catch (_) {
+      // Binding not yet initialized (e.g. unit tests without ensureInitialized).
+      // Default to foreground so the existing sheet path is used.
+      return true;
+    }
+    // null means the app has not yet received a lifecycle event — treat as
+    // foreground so the sheet path (the pre-existing behavior) is preserved.
+    if (state == null) return true;
+    return state == AppLifecycleState.resumed;
+  }
+
+  bool _isAndroid() => debugIsAndroid ?? (!kIsWeb && Platform.isAndroid);
+
+  Future<void> _showCallkitIncoming(
+      IncomingState st, MeshPeerInfo info) async {
+    if (!_isAndroid()) return;
+    final fallback =
+        'Mesh-устройство ${st.callerDevicePk.toHex().substring(0, 8)}';
+    try {
+      await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
+        id: st.callId.toString(),
+        nameCaller: info.name ?? fallback,
+        handle: '📡 Mesh',
+        type: 0,
+        avatar: info.avatarUrl,
+        extra: {'mesh_call_id': st.callId},
+      ));
+    } catch (_) {
+      // Plugin may throw if FCM-only mode or notification permission denied.
+      // Fall through silently — mesh state machine still tracks the call.
+    }
+  }
+
+  void _onCallkitEvent(dynamic event) {
+    if (event == null) return;
+    final body = (event as ck_event.CallEvent).body;
+    if (body is! Map) return;
+    final extra = body['extra'];
+    if (extra is! Map) return;
+    if (extra['mesh_call_id'] == null) return;
+    final eventType = event.event;
+    if (eventType == ck_event.Event.actionCallAccept) {
+      accept();
+    } else if (eventType == ck_event.Event.actionCallDecline ||
+        eventType == ck_event.Event.actionCallTimeout) {
+      reject();
+    }
   }
 
   /// Initiate a mesh call to [peer]. Returns the generated call id, or
@@ -126,13 +207,17 @@ class MeshVoiceUiCoordinator {
       startedAt: st.receivedAt,
       transport: transportLabelForPeer(st.callerDevicePk),
     );
-    await navigator.showSheet(MeshIncomingCallSheet(
-      peer: st.callerDevicePk,
-      peerName: info.name,
-      peerAvatarUrl: info.avatarUrl,
-      onAccept: () => accept(),
-      onDecline: () => reject(),
-    ));
+    if (_isAppInForeground()) {
+      await navigator.showSheet(MeshIncomingCallSheet(
+        peer: st.callerDevicePk,
+        peerName: info.name,
+        peerAvatarUrl: info.avatarUrl,
+        onAccept: () => accept(),
+        onDecline: () => reject(),
+      ));
+    } else {
+      await _showCallkitIncoming(st, info);
+    }
   }
 
   Future<void> _handleActive(ActiveState st) async {
@@ -180,6 +265,13 @@ class MeshVoiceUiCoordinator {
       endReason: st.reason.name,
       transport: p.transport,
     ));
+    // Dismiss any callkit overlay that was shown while the app was backgrounded.
+    if (_isAndroid()) {
+      unawaited(
+        FlutterCallkitIncoming.endCall(p.callId.toString())
+            .catchError((_) {}),
+      );
+    }
   }
 
   static bool _bytesEqual(List<int> a, List<int> b) {
