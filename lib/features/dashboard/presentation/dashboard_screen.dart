@@ -54,6 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callAnsweredSub;
   StreamSubscription? _gcEndedSub;
+  StreamSubscription? _gcInviteSub;
   StreamSubscription? _callkitSub;
   StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
@@ -217,6 +218,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForCallEnded();
       _listenForCallAnswered();
       _listenForGroupCallEnded();
+      _listenForGroupCallInvite();
       _listenForShareIntent();
       _checkForUpdate();
       _startWakeWord();
@@ -295,6 +297,40 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       try {
         await FlutterCallkitIncoming.endAllCalls();
       } catch (_) {}
+    });
+  }
+
+  /// Foreground-app analogue of the FCM background `group_call_invite`
+  /// handler. The 1-on-1 path (see `_handleCallInvite`) shows CallKit even when
+  /// the app is foregrounded so the OS rings; group calls were missing this
+  /// hook, so an in-foreground invitee saw nothing.
+  void _listenForGroupCallInvite() {
+    _gcInviteSub?.cancel();
+    _gcInviteSub = sl<MessengerRemoteDataSource>()
+        .gcInviteStream
+        .listen((payload) async {
+      debugPrint('[Dashboard] gcInviteStream fired: $payload');
+      final groupCallId = payload['groupCallId'] as String?;
+      if (groupCallId == null || groupCallId.isEmpty) return;
+      final host = payload['host'] as Map?;
+      final hostName = (host?['displayName'] as String?) ?? 'Group Call';
+      final hostAvatar = host?['avatarUrl'] as String?;
+      final invitees = payload['invitees'] as List? ?? const [];
+      final fromName = invitees.length > 1
+          ? '$hostName + ${invitees.length - 1}'
+          : hostName;
+      try {
+        await showCallkitIncoming(
+          // `group-<id>` prefix lets main.dart's CallKit accept handler
+          // discriminate group vs 1-on-1 routes (mirrors the FCM/APNs path).
+          roomName: 'group-$groupCallId',
+          fromName: fromName,
+          convId: '',
+          fromAvatar: hostAvatar,
+        );
+      } catch (e) {
+        debugPrint('[Dashboard] gc CallKit show failed: $e');
+      }
     });
   }
 
@@ -470,6 +506,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callEndedSub?.cancel();
     _callAnsweredSub?.cancel();
     _gcEndedSub?.cancel();
+    _gcInviteSub?.cancel();
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();

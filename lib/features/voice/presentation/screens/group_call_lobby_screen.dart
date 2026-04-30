@@ -28,8 +28,12 @@ class GroupCallLobbyScreen extends StatelessWidget {
       value: sl<GroupCallBloc>(),
       child: BlocConsumer<GroupCallBloc, GroupCallState>(
         listener: (context, state) {
+          // ignore: avoid_print
+          print('[LobbyScreen] listener state=${state.runtimeType} callId=$callId');
           if (state is InActive && state.groupCall.id == callId) {
             // First invitee joined → switch to active screen
+            // ignore: avoid_print
+            print('[LobbyScreen] navigating to /group-call/$callId (active)');
             context.go('/group-call/$callId');
           } else if (state is Ended) {
             ScaffoldMessenger.of(context).showSnackBar(

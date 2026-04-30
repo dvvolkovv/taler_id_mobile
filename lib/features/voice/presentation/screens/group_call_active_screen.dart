@@ -45,6 +45,8 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
   void initState() {
     super.initState();
     _bloc = sl<GroupCallBloc>();
+    // ignore: avoid_print
+    print('[ActiveScreen] initState callId=${widget.callId} initialState=${_bloc.state.runtimeType}');
     // On first frame: if BLoC isn't already in an InActive state for this
     // callId, dispatch JoinCall (this is the deep-link / cold-start /
     // CallKit-accept invitee path — there is no picker→lobby flow that
@@ -56,6 +58,8 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
           s is ErrorState ||
           (s is InLobby && s.groupCall.id != widget.callId) ||
           (s is InActive && s.groupCall.id != widget.callId);
+      // ignore: avoid_print
+      print('[ActiveScreen] postFrame state=${s.runtimeType} needsJoin=$needsJoin');
       if (needsJoin) {
         _bloc.add(gce.GroupCallEvent.joinCall(widget.callId));
       }
@@ -64,10 +68,22 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
   }
 
   Future<void> _connectIfNeeded() async {
+    // ignore: avoid_print
+    print('[ActiveScreen] _connectIfNeeded callId=${widget.callId} state=${_bloc.state.runtimeType} _room=${_room != null}');
     if (_room != null) return;
     final state = _bloc.state;
-    if (state is! InActive) return;
-    if (state.groupCall.id != widget.callId) return;
+    if (state is! InActive) {
+      // ignore: avoid_print
+      print('[ActiveScreen] state not InActive — skipping connect');
+      return;
+    }
+    if (state.groupCall.id != widget.callId) {
+      // ignore: avoid_print
+      print('[ActiveScreen] state.id=${state.groupCall.id} != widget.callId=${widget.callId} — skipping connect');
+      return;
+    }
+    // ignore: avoid_print
+    print('[ActiveScreen] connecting wsUrl=${state.livekitWsUrl} tokenLen=${state.livekitToken.length}');
 
     final room = lk.Room();
     _room = room;
@@ -91,9 +107,13 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
 
     try {
       await room.connect(state.livekitWsUrl, state.livekitToken);
+      // ignore: avoid_print
+      print('[ActiveScreen] room.connect OK');
       await room.localParticipant?.setMicrophoneEnabled(true);
       if (mounted) setState(() => _connecting = false);
     } catch (e) {
+      // ignore: avoid_print
+      print('[ActiveScreen] room.connect FAILED: $e');
       if (mounted) {
         setState(() => _connecting = false);
         ScaffoldMessenger.of(context).showSnackBar(

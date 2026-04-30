@@ -132,6 +132,8 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
     final s = state;
     final updatedId = e.payload['groupCallId'];
     final invitesRaw = e.payload['invites'] as List? ?? const [];
+    // ignore: avoid_print
+    print('[GroupCallBloc] _onStatusUpdated id=$updatedId state=${s.runtimeType} invitesCount=${invitesRaw.length}');
     if (s is InLobby && s.groupCall.id == updatedId) {
       final invites = _parseInvites(invitesRaw);
       final updatedCall = s.groupCall.copyWith(invites: invites);
@@ -140,6 +142,8 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
       final anyJoined = invites.any(
         (i) => i.status == GroupCallInviteStatus.joined,
       );
+      // ignore: avoid_print
+      print('[GroupCallBloc] anyJoined=$anyJoined statuses=${invites.map((i) => i.status).toList()}');
       if (anyJoined) {
         emit(GroupCallState.inActive(
           groupCall: updatedCall,
