@@ -555,7 +555,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (devices.isEmpty) return _startLkCall();
     final ordered = devices.toList()
       ..sort((a, b) => a.toHex().compareTo(b.toHex()));
-    await sl<MeshVoiceUiCoordinator>().placeCall(ordered.first);
+    try {
+      await sl<MeshVoiceUiCoordinator>().placeCall(ordered.first);
+    } catch (e) {
+      debugPrint('[chat-room] mesh placeCall failed: $e — falling back to LK');
+      return _startLkCall();
+    }
   }
 
   Future<void> _startLkCall() async {
