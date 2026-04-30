@@ -181,6 +181,20 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
           } else if (state is Idle) {
             await _room?.disconnect();
             if (context.mounted) context.go(RouteConstants.callHistory);
+          } else if (state is ErrorState) {
+            // JoinCall failed (call already ended / network blip / no invite
+            // for this user). Without this branch the screen would sit on a
+            // spinner forever — observed when CallKit fires for a stale
+            // invite that the server has already TIMEOUT'd.
+            await _room?.disconnect();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message)),
+              );
+              Future.microtask(() {
+                if (context.mounted) context.go(RouteConstants.callHistory);
+              });
+            }
           } else if (state is InActive && state.groupCall.id == widget.callId) {
             // State just became InActive (e.g. after JoinCall completed for
             // a deep-link invitee, or host's lobby auto-promoted). Try to
