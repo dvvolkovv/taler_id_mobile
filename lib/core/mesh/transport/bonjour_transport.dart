@@ -98,9 +98,15 @@ class BonjourTransport implements MeshTransport {
     debugPrint('[mesh-bonjour] TCP server listening on port ${_server!.port}');
 
     _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
+    // iOS quirk: RawDatagramSocket.send returns 0 (silent drop) for unicast
+    // outbound on the local network unless broadcastEnabled is true. Setting
+    // it to true is a no-op on Android and unblocks LAN UDP on iOS.
+    try {
+      _udpSocket!.broadcastEnabled = true;
+    } catch (_) {}
     debugPrint('[mesh-bonjour] UDP socket listening on port ${_udpSocket!.port}');
     // ignore: avoid_print
-    print('[mesh-bonjour/diag] my UDP socket bound to ${_udpSocket!.address.address}:${_udpSocket!.port}');
+    print('[mesh-bonjour/diag] my UDP socket bound to ${_udpSocket!.address.address}:${_udpSocket!.port} broadcastEnabled=${_udpSocket!.broadcastEnabled} writeEventsEnabled=${_udpSocket!.writeEventsEnabled}');
     _udpSocket!.listen(_handleDatagramEvent);
 
     final service = BonsoirService(
