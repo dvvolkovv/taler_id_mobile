@@ -1061,6 +1061,16 @@
       }
     }
   },
+  "callConflictAlreadyInCall": "Завершите текущий звонок",
+  "callPopupTransportTitle": "Способ звонка",
+  "callPopupTransportMesh": "📡 По сети (mesh)",
+  "callPopupTransportLk": "📞 Через сервер",
+  "callPopupTransportMeshUnavailable": "Контакт не доступен через mesh",
+  "meshOnboardingTitle": "📡 Mesh-звонки требуют активного приложения",
+  "meshOnboardingBody": "Когда телефон заблокирован, mesh-звонки могут прерываться через ~30 секунд (iOS ограничение).",
+  "meshOnboardingAck": "Понятно",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Контакт не в списке",
   "meshCallStatusInviting": "Вызов…",
   "meshCallStatusConnecting": "Соединение…",
   "meshCallEndedUserHangup": "Звонок завершён",

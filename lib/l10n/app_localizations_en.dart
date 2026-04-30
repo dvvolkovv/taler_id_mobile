@@ -2432,6 +2432,38 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get callConflictAlreadyInCall => 'Finish the current call first';
+
+  @override
+  String get callPopupTransportTitle => 'Call via';
+
+  @override
+  String get callPopupTransportMesh => '📡 Mesh (peer-to-peer)';
+
+  @override
+  String get callPopupTransportLk => '📞 Server';
+
+  @override
+  String get callPopupTransportMeshUnavailable =>
+      'Contact not reachable via mesh';
+
+  @override
+  String get meshOnboardingTitle => '📡 Mesh calls need the app open';
+
+  @override
+  String get meshOnboardingBody =>
+      'When the phone is locked, mesh calls may drop after ~30 seconds (iOS limitation).';
+
+  @override
+  String get meshOnboardingAck => 'Got it';
+
+  @override
+  String get meshHistoryBadge => '📡 Mesh';
+
+  @override
+  String get meshHistoryNoChatAvailable => 'Contact is not in your list';
+
+  @override
   String get meshCallStatusInviting => 'Calling…';
 
   @override
