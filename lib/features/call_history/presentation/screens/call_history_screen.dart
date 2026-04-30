@@ -29,6 +29,9 @@ import '../../../billing/presentation/widgets/balance_chip.dart';
 import '../../data/mesh_call_history_entry.dart';
 import '../../data/mesh_call_history_repository.dart';
 import 'call_history_merge.dart';
+import 'dart:convert' show base64Decode;
+import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
+import '../../../../core/mesh/transport/peer_id.dart';
 
 const _kIncomingColor = Color(0xFF4CAF50);
 
@@ -93,20 +96,64 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   ) {
     final all = <_CallEntry>[
       ...server,
-      ...mesh.map(_callEntryFromMesh),
+      ...mesh.map((m) => _callEntryFromMesh(m, context)),
     ];
     all.sort((a, b) => b.startedAt.compareTo(a.startedAt));
     return all;
   }
 
   /// Convert a [MeshCallHistoryEntry] to a [_CallEntry] for display.
-  static _CallEntry _callEntryFromMesh(MeshCallHistoryEntry m) {
+  ///
+  /// At call-time the contact lookup may have failed (DeviceKeySync behind,
+  /// /device-keys 429 rate-limited) → entry persists with `peerUserId=null`
+  /// and fallback name `Mesh-устройство <hex>`. At render-time we retry the
+  /// lookup against the now-current ContactKeyStore + MessengerBloc, so a
+  /// later sync that resolved the contact upgrades stale rows on the fly.
+  static _CallEntry _callEntryFromMesh(MeshCallHistoryEntry m, BuildContext context) {
     final displayRow = displayRowFromMesh(m);
+    String name = displayRow.otherPartyName;
+    String? avatar;
+    String? userId = displayRow.otherPartyId;
+
+    if (userId == null) {
+      // Late lookup — possibly succeeds now even if it failed at call-time.
+      try {
+        final bytes = base64Decode(m.peerDevicePkBase64);
+        final devicePk = PeerId(bytes);
+        final keyStore = sl<HiveContactKeyStore>();
+        final userPk = keyStore.lookupUserByDevice(devicePk);
+        if (userPk != null) {
+          final userPkHex = userPk.toHex();
+          for (final (mappedUserId, mappedUserPk) in keyStore.allUserIdMappings()) {
+            if (mappedUserPk.toHex() == userPkHex) {
+              userId = mappedUserId;
+              break;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (userId != null) {
+      try {
+        final convs = context.read<MessengerBloc>().state.conversations;
+        for (final c in convs) {
+          if (c.type == 'DIRECT' && c.otherUserId == userId) {
+            if (c.otherUserName != null && c.otherUserName!.isNotEmpty) {
+              name = c.otherUserName!;
+            }
+            avatar = c.otherUserAvatar;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
     return _CallEntry(
       id: displayRow.id,
-      otherPartyName: displayRow.otherPartyName,
-      otherPartyAvatar: null,
-      otherPartyId: displayRow.otherPartyId,
+      otherPartyName: name,
+      otherPartyAvatar: avatar,
+      otherPartyId: userId,
       startedAt: displayRow.startedAt,
       durationSec: displayRow.durationSec,
       isOutgoing: displayRow.isOutgoing,
