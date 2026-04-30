@@ -343,36 +343,59 @@ class _ActiveView extends StatelessWidget {
                   child: LinearProgressIndicator(),
                 ),
               Expanded(
-                child: GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: activeInvites.length <= 4 ? 2 : 3,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: activeInvites.length,
-                  itemBuilder: (_, i) {
-                    final inv = activeInvites[i];
-                    final isParticipantHost =
-                        inv.userId == state.groupCall.hostUserId;
-                    return ParticipantTile(
-                      displayName: inv.displayName,
-                      avatarUrl: inv.avatarUrl,
-                      status: inv.status,
-                      isHost: isParticipantHost,
-                      isActiveSpeaker: activeSpeakers.contains(inv.userId),
-                      onLongPress: isHost && inv.userId != myUserId
-                          ? () => showModalBottomSheet<void>(
-                                context: context,
-                                builder: (_) => HostActionsSheet(
-                                  targetName: inv.displayName,
-                                  onKick: () =>
-                                      context.read<GroupCallBloc>().add(
-                                            gce.GroupCallEvent.kick(
-                                                state.groupCall.id,
-                                                inv.userId),
-                                          ),
-                                ),
-                              )
-                          : null,
+                child: Builder(
+                  builder: (_) {
+                    // The host has no invite row — synthesize a tile so peers
+                    // can see who's calling. Skip when *I* am the host
+                    // (otherwise I'd see my own avatar in the grid).
+                    final tiles = <_ParticipantData>[
+                      if (state.groupCall.hostUserId != myUserId)
+                        _ParticipantData(
+                          userId: state.groupCall.hostUserId,
+                          displayName: state.groupCall.hostDisplayName,
+                          avatarUrl: state.groupCall.hostAvatarUrl,
+                          status: GroupCallInviteStatus.joined,
+                          isHost: true,
+                        ),
+                      for (final inv in activeInvites)
+                        _ParticipantData(
+                          userId: inv.userId,
+                          displayName: inv.displayName,
+                          avatarUrl: inv.avatarUrl,
+                          status: inv.status,
+                          isHost: false,
+                        ),
+                    ];
+                    return GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: tiles.length <= 4 ? 2 : 3,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemCount: tiles.length,
+                      itemBuilder: (_, i) {
+                        final t = tiles[i];
+                        return ParticipantTile(
+                          displayName: t.displayName,
+                          avatarUrl: t.avatarUrl,
+                          status: t.status,
+                          isHost: t.isHost,
+                          isActiveSpeaker: activeSpeakers.contains(t.userId),
+                          onLongPress: isHost && t.userId != myUserId && !t.isHost
+                              ? () => showModalBottomSheet<void>(
+                                    context: context,
+                                    builder: (_) => HostActionsSheet(
+                                      targetName: t.displayName,
+                                      onKick: () =>
+                                          context.read<GroupCallBloc>().add(
+                                                gce.GroupCallEvent.kick(
+                                                    state.groupCall.id,
+                                                    t.userId),
+                                              ),
+                                    ),
+                                  )
+                              : null,
+                        );
+                      },
                     );
                   },
                 ),
@@ -417,4 +440,19 @@ class _ActiveView extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ParticipantData {
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final GroupCallInviteStatus status;
+  final bool isHost;
+  const _ParticipantData({
+    required this.userId,
+    required this.displayName,
+    required this.avatarUrl,
+    required this.status,
+    required this.isHost,
+  });
 }
