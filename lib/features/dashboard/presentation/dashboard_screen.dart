@@ -206,7 +206,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
       // Re-register FCM token now that the user is authenticated.
       // NotificationService.init() runs before login so the initial save fails with 401.
-      NotificationService.refreshToken();
+      // force:true unconditionally re-uploads even if the device-local token
+      // hasn't rotated — backend may have auto-purged a stale row, in which
+      // case we must re-register or push silently stops working.
+      NotificationService.refreshToken(force: true);
       NotificationService.setMissedCallCallback(() {
         if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
       });
