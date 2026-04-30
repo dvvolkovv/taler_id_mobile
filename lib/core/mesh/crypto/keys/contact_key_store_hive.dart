@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 
 import '../../transport/peer_id.dart';
+import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
 import 'contact_key_store.dart';
 import 'device_cert.dart';
 
@@ -14,7 +15,7 @@ import 'device_cert.dart';
 ///
 /// Provides the same lookup semantics as the Phase 1a in-memory
 /// `ContactKeyStore`, but survives app restarts.
-class HiveContactKeyStore {
+class HiveContactKeyStore implements ContactKeyStoreLookup {
   final Box<String> _box;
 
   HiveContactKeyStore._(this._box);
@@ -42,6 +43,7 @@ class HiveContactKeyStore {
   bool isKnownDevice(PeerId devicePk) =>
       _box.containsKey(devicePk.toHex().toLowerCase());
 
+  @override
   PeerId? lookupUserByDevice(PeerId devicePk) {
     final raw = _box.get(devicePk.toHex().toLowerCase());
     if (raw == null) return null;
@@ -120,6 +122,7 @@ class HiveContactKeyStore {
 
   /// List all (contactUserId, userPk) mappings stored by
   /// putContactUserIdMapping. O(n) scan of the `userId:` prefixed keys.
+  @override
   Iterable<(String, PeerId)> allUserIdMappings() sync* {
     for (final key in _box.keys) {
       if (key is! String) continue;

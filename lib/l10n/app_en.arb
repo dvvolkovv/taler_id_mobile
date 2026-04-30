@@ -1061,6 +1061,16 @@
       }
     }
   },
+  "callConflictAlreadyInCall": "Finish the current call first",
+  "callPopupTransportTitle": "Call via",
+  "callPopupTransportMesh": "📡 Mesh (peer-to-peer)",
+  "callPopupTransportLk": "📞 Server",
+  "callPopupTransportMeshUnavailable": "Contact not reachable via mesh",
+  "meshOnboardingTitle": "📡 Mesh calls need the app open",
+  "meshOnboardingBody": "When the phone is locked, mesh calls may drop after ~30 seconds (iOS limitation).",
+  "meshOnboardingAck": "Got it",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Contact is not in your list",
   "meshCallStatusInviting": "Calling…",
   "meshCallStatusConnecting": "Connecting…",
   "meshCallEndedUserHangup": "Call ended",

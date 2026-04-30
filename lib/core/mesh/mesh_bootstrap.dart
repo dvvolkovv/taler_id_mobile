@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../di/service_locator.dart';
 import '../storage/secure_storage_service.dart';
+import '../voice/mesh_peer_eligibility_watcher.dart';
 import '../voice/mesh_voice_ui_coordinator.dart';
 import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
 import 'crypto/keys/contact_key_store.dart';
@@ -77,6 +78,14 @@ Future<void> runMeshBootstrap(String userId) async {
         debugPrint('[mesh-boot] MeshVoiceUiCoordinator.start() ok');
       } catch (e) {
         debugPrint('[mesh-boot] MeshVoiceUiCoordinator.start() failed: $e');
+      }
+    }
+    if (sl.isRegistered<MeshPeerEligibilityWatcher>()) {
+      try {
+        sl<MeshPeerEligibilityWatcher>().start();
+        debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() failed: $e');
       }
     }
 

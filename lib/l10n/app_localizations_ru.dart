@@ -2441,6 +2441,39 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get callConflictAlreadyInCall => 'Завершите текущий звонок';
+
+  @override
+  String get callPopupTransportTitle => 'Способ звонка';
+
+  @override
+  String get callPopupTransportMesh => '📡 По сети (mesh)';
+
+  @override
+  String get callPopupTransportLk => '📞 Через сервер';
+
+  @override
+  String get callPopupTransportMeshUnavailable =>
+      'Контакт не доступен через mesh';
+
+  @override
+  String get meshOnboardingTitle =>
+      '📡 Mesh-звонки требуют активного приложения';
+
+  @override
+  String get meshOnboardingBody =>
+      'Когда телефон заблокирован, mesh-звонки могут прерываться через ~30 секунд (iOS ограничение).';
+
+  @override
+  String get meshOnboardingAck => 'Понятно';
+
+  @override
+  String get meshHistoryBadge => '📡 Mesh';
+
+  @override
+  String get meshHistoryNoChatAvailable => 'Контакт не в списке';
+
+  @override
   String get meshCallStatusInviting => 'Вызов…';
 
   @override

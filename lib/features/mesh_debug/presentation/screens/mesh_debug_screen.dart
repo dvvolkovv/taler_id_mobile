@@ -7,7 +7,6 @@ import 'mesh_voice_self_test_screen.dart';
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/crypto/keys/mesh_static_key.dart';
-import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
 import '../../../../core/mesh/services/envelope.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../../core/mesh/transport/bonjour_transport.dart';
@@ -146,28 +145,6 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
     });
   }
 
-  Future<void> _placeMeshCall(PeerId peerId) async {
-    try {
-      final coord = sl<MeshVoiceUiCoordinator>();
-      final id = await coord.placeCall(peerId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(id == null
-              ? 'Call not started (loopback or busy)'
-              : 'Calling… (call_id=0x${id.toRadixString(16)})'),
-          duration: const Duration(seconds: 2),
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Place call error: $e'),
-          backgroundColor: Colors.red,
-        ));
-      }
-    }
-  }
-
   Future<void> _sendTestMessage(PeerId peer) async {
     final messaging = _messaging;
     if (messaging == null) return;
@@ -292,7 +269,6 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
               ..._peers.values.map((p) => _PeerTile(
                     entry: p,
                     onSendTest: p.canMessage ? () => _sendTestMessage(p.peerId) : null,
-                    onPlaceCall: p.canMessage ? () => _placeMeshCall(p.peerId) : null,
                   )),
             const SizedBox(height: 16),
             Text(
@@ -425,11 +401,9 @@ class _StatusCard extends StatelessWidget {
 class _PeerTile extends StatelessWidget {
   final _PeerEntry entry;
   final VoidCallback? onSendTest;
-  final VoidCallback? onPlaceCall;
   const _PeerTile({
     required this.entry,
     required this.onSendTest,
-    required this.onPlaceCall,
   });
 
   @override
@@ -458,27 +432,15 @@ class _PeerTile extends StatelessWidget {
           '$transport  ·  ${entry.host}:${entry.port}',
           style: const TextStyle(fontSize: 11),
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (onPlaceCall != null)
-              IconButton(
-                tooltip: 'Place mesh call',
-                icon: const Icon(Icons.call, color: Colors.green),
-                onPressed: onPlaceCall,
-              ),
-            if (onSendTest != null)
-              TextButton(
+        trailing: onSendTest != null
+            ? TextButton(
                 onPressed: onSendTest,
                 child: const Text('Send test'),
               )
-            else
-              const Text(
+            : const Text(
                 'no pk',
                 style: TextStyle(fontSize: 10, color: Colors.grey),
               ),
-          ],
-        ),
       ),
     );
   }

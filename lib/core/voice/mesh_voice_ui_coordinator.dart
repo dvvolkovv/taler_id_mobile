@@ -41,7 +41,6 @@ class MeshVoiceUiCoordinator {
 
   StreamSubscription<CallState>? _sub;
   _PendingCall? _pending;
-  bool _screenPushed = false;
 
   MeshVoiceUiCoordinator({
     required this.stateStream,
@@ -101,8 +100,8 @@ class MeshVoiceUiCoordinator {
       startedAt: st.sentAt,
       transport: transportLabelForPeer(st.calleeDevicePk),
     );
-    if (_screenPushed) return;
-    _screenPushed = true;
+    if (_pending?.screenPushed == true) return;
+    _pending?.screenPushed = true;
     await navigator.pushScreen(MeshVoiceCallScreen(
       stateStream: stateStream,
       initialState: st,
@@ -113,7 +112,6 @@ class MeshVoiceUiCoordinator {
       onMuteToggle: () async {},
       onHangup: hangup,
     ));
-    _screenPushed = false;
   }
 
   Future<void> _handleIncoming(IncomingState st) async {
@@ -142,9 +140,9 @@ class MeshVoiceUiCoordinator {
     if (p != null && p.callId == st.callId) {
       p.activatedAt = st.startedAt;
     }
-    if (_screenPushed) return; // caller side already has the screen
+    if (p?.screenPushed == true) return; // caller side already has the screen
     navigator.popSheet();
-    _screenPushed = true;
+    p?.screenPushed = true;
     await navigator.pushScreen(MeshVoiceCallScreen(
       stateStream: stateStream,
       initialState: st,
@@ -155,7 +153,6 @@ class MeshVoiceUiCoordinator {
       onMuteToggle: () async {},
       onHangup: hangup,
     ));
-    _screenPushed = false;
   }
 
   Future<void> _handleEnded(EndedState st) async {
@@ -203,6 +200,7 @@ class _PendingCall {
   final bool isOutgoing;
   final DateTime startedAt;
   DateTime? activatedAt;
+  bool screenPushed = false;
   final String? transport;
 
   _PendingCall({

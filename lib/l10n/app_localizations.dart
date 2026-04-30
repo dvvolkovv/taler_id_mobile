@@ -4700,6 +4700,66 @@ abstract class AppLocalizations {
   /// **'Mesh device {hexPrefix}'**
   String meshDeviceFallback(String hexPrefix);
 
+  /// No description provided for @callConflictAlreadyInCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the current call first'**
+  String get callConflictAlreadyInCall;
+
+  /// No description provided for @callPopupTransportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call via'**
+  String get callPopupTransportTitle;
+
+  /// No description provided for @callPopupTransportMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh (peer-to-peer)'**
+  String get callPopupTransportMesh;
+
+  /// No description provided for @callPopupTransportLk.
+  ///
+  /// In en, this message translates to:
+  /// **'📞 Server'**
+  String get callPopupTransportLk;
+
+  /// No description provided for @callPopupTransportMeshUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact not reachable via mesh'**
+  String get callPopupTransportMeshUnavailable;
+
+  /// No description provided for @meshOnboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh calls need the app open'**
+  String get meshOnboardingTitle;
+
+  /// No description provided for @meshOnboardingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When the phone is locked, mesh calls may drop after ~30 seconds (iOS limitation).'**
+  String get meshOnboardingBody;
+
+  /// No description provided for @meshOnboardingAck.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get meshOnboardingAck;
+
+  /// No description provided for @meshHistoryBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh'**
+  String get meshHistoryBadge;
+
+  /// No description provided for @meshHistoryNoChatAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact is not in your list'**
+  String get meshHistoryNoChatAvailable;
+
   /// No description provided for @meshCallStatusInviting.
   ///
   /// In en, this message translates to:
