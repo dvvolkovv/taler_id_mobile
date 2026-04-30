@@ -99,6 +99,8 @@ class BonjourTransport implements MeshTransport {
 
     _udpSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     debugPrint('[mesh-bonjour] UDP socket listening on port ${_udpSocket!.port}');
+    // ignore: avoid_print
+    print('[mesh-bonjour/diag] my UDP socket bound to ${_udpSocket!.address.address}:${_udpSocket!.port}');
     _udpSocket!.listen(_handleDatagramEvent);
 
     final service = BonsoirService(
@@ -218,6 +220,11 @@ class BonjourTransport implements MeshTransport {
           final udpPort = udpPortStr != null ? int.tryParse(udpPortStr) : null;
           if (udpPort != null && service.host != null) {
             _peerUdpEndpoints[peerId] = (host: service.host!, port: udpPort);
+            // ignore: avoid_print
+            print('[mesh-bonjour/diag] resolved udp_port: peer=${peerId.toHex().substring(0, 12)} ${service.host}:$udpPort');
+          } else {
+            // ignore: avoid_print
+            print('[mesh-bonjour/diag] resolved WITHOUT udp_port: peer=${peerId.toHex().substring(0, 12)} attrs=${service.attributes}');
           }
           _discoveriesCtrl.add(PeerDiscovered(
             peerId: peerId,
@@ -334,19 +341,28 @@ class BonjourTransport implements MeshTransport {
         : PeerStatus.offline;
   }
 
+  int _bonjourTxCounter = 0;
   @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {
     final endpoint = _peerUdpEndpoints[peer];
     final socket = _udpSocket;
     if (endpoint == null || socket == null) {
+      // ignore: avoid_print
+      print('[mesh-bonjour/diag] sendDatagram: NO ENDPOINT peer=${peer.toHex().substring(0, 12)} endpoint=$endpoint socket=${socket != null} known_peers=${_peerUdpEndpoints.keys.map((k) => k.toHex().substring(0, 12)).toList()}');
       throw TransportUnavailable('Bonjour: no UDP endpoint for peer ${peer.toHex().substring(0, 12)}');
     }
     if (data.length > 1200) {
       throw ArgumentError('datagram too large: ${data.length} bytes (max 1200 to avoid IPv4 fragmentation)');
     }
-    socket.send(data, InternetAddress(endpoint.host), endpoint.port);
+    final sent = socket.send(data, InternetAddress(endpoint.host), endpoint.port);
+    _bonjourTxCounter++;
+    if (_bonjourTxCounter == 1 || _bonjourTxCounter % 50 == 0) {
+      // ignore: avoid_print
+      print('[mesh-bonjour/diag] sendDatagram: tx=$_bonjourTxCounter sent=$sent bytes peer=${peer.toHex().substring(0, 12)} → ${endpoint.host}:${endpoint.port}');
+    }
   }
 
+  int _bonjourRxCounter = 0;
   void _handleDatagramEvent(RawSocketEvent event) {
     if (event != RawSocketEvent.read) return;
     final socket = _udpSocket;
@@ -354,9 +370,6 @@ class BonjourTransport implements MeshTransport {
     final dg = socket.receive();
     if (dg == null) return;
 
-    // Reverse-lookup: find which peer this came from by matching source
-    // (host, port) against `_peerUdpEndpoints`. Slow O(N) but N = peer
-    // count which is small (few-to-tens for 1-hop direct mesh).
     PeerId? srcPeer;
     for (final entry in _peerUdpEndpoints.entries) {
       if (entry.value.host == dg.address.address && entry.value.port == dg.port) {
@@ -364,10 +377,15 @@ class BonjourTransport implements MeshTransport {
         break;
       }
     }
+    _bonjourRxCounter++;
     if (srcPeer == null) {
-      // Datagram from an unknown source — ignore. Could be a peer that
-      // hasn't completed Bonjour discovery yet, or just stray UDP.
+      // ignore: avoid_print
+      print('[mesh-bonjour/diag] rx UNKNOWN SRC count=$_bonjourRxCounter from=${dg.address.address}:${dg.port} bytes=${dg.data.length} known_peers=${_peerUdpEndpoints.entries.map((e) => "${e.key.toHex().substring(0, 8)}@${e.value.host}:${e.value.port}").toList()}');
       return;
+    }
+    if (_bonjourRxCounter == 1 || _bonjourRxCounter % 50 == 0) {
+      // ignore: avoid_print
+      print('[mesh-bonjour/diag] rx OK count=$_bonjourRxCounter from=${srcPeer.toHex().substring(0, 12)} bytes=${dg.data.length}');
     }
     _datagramCtrl.add(InboundDatagram(
       srcPeer: srcPeer,
