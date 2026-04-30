@@ -790,55 +790,79 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             final ringColor = isMissed
                 ? colors.error
                 : rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id);
-            return Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
-                    blurRadius: isMissed ? 12 : 8,
-                    spreadRadius: isMissed ? 1 : 0,
-                  ),
-                ],
-              ),
-              child: e.otherPartyAvatar != null
-                  ? CircleAvatar(
-                      radius: 22,
-                      backgroundColor: colors.primary.withOpacity(0.12),
-                      backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
-                    )
-                  : Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          center: const Alignment(-0.3, -0.4),
-                          radius: 1.1,
-                          colors: [
-                            Color.lerp(ringColor, Colors.white, 0.3)!,
-                            ringColor,
-                            Color.lerp(ringColor, Colors.black, 0.4)!,
-                          ],
-                          stops: const [0.0, 0.55, 1.0],
-                        ),
+            final avatarStack = Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
+                        blurRadius: isMissed ? 12 : 8,
+                        spreadRadius: isMissed ? 1 : 0,
                       ),
-                      child: Center(
-                        child: e.withAi
-                            ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
-                            : Text(
-                                e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
+                    ],
+                  ),
+                  child: e.otherPartyAvatar != null
+                      ? CircleAvatar(
+                          radius: 22,
+                          backgroundColor: colors.primary.withOpacity(0.12),
+                          backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+                        )
+                      : Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              center: const Alignment(-0.3, -0.4),
+                              radius: 1.1,
+                              colors: [
+                                Color.lerp(ringColor, Colors.white, 0.3)!,
+                                ringColor,
+                                Color.lerp(ringColor, Colors.black, 0.4)!,
+                              ],
+                              stops: const [0.0, 0.55, 1.0],
+                            ),
+                          ),
+                          child: Center(
+                            child: e.withAi
+                                ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
+                                : Text(
+                                    e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                ),
+                if (e.isMesh)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: colors.card,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.green, width: 1.5),
+                      ),
+                      child: const Icon(
+                        Icons.wifi_tethering,
+                        size: 12,
+                        color: Colors.green,
                       ),
                     ),
+                  ),
+              ],
             );
+            return avatarStack;
           }(),
           const SizedBox(width: 14),
           Expanded(
