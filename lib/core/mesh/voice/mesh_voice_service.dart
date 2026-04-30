@@ -322,45 +322,27 @@ class MeshVoiceService {
     return null;
   }
 
-  int _dgRxCounter = 0;
   void _onDatagram(InboundDatagram dg) async {
     final st = _state;
-    if (st is! ActiveState) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _onDatagram: dropped (state=$st)');
-      return;
-    }
+    if (st is! ActiveState) return;
     _resetDatagramWatchdog();
     final MeshVoiceFrame frame;
     try {
       frame = MeshVoiceFrame.decode(dg.bytes);
-    } on FormatException catch (e) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _onDatagram: decode FormatException: $e (bytes.len=${dg.bytes.length})');
+    } on FormatException {
       return;
     }
-    if (frame.callId != st.callId) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _onDatagram: callId mismatch frame=${frame.callId.toRadixString(16)} active=${st.callId.toRadixString(16)}');
-      return;
-    }
+    if (frame.callId != st.callId) return;
     final ciphers = _activeCiphers;
     Uint8List pt;
     if (ciphers != null) {
       try {
         pt = await ciphers.inbound.decrypt(seq: frame.seq, ciphertext: frame.ciphertext);
-      } catch (e) {
-        // ignore: avoid_print
-        print('[mesh-voice/diag] _onDatagram: decrypt FAILED seq=${frame.seq}: $e');
+      } catch (_) {
         return; // drop on AEAD/replay failure
       }
     } else {
       pt = frame.ciphertext; // test fallback (see _enterActive)
-    }
-    _dgRxCounter++;
-    if (_dgRxCounter == 1 || _dgRxCounter % 50 == 0) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _onDatagram: OK rx=$_dgRxCounter seq=${frame.seq} pt.len=${pt.length} (cipher=${ciphers != null})');
     }
     _activeEngine?.inbound(seq: frame.seq, payload: pt);
   }
@@ -371,25 +353,16 @@ class MeshVoiceService {
     ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})? ciphers;
     try {
       ciphers = await messaging.datagramCiphersFor(peer);
-    } catch (e) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _enterActive: datagramCiphersFor THREW: $e');
+    } catch (_) {
+      // TEST-ONLY mitigation: FakeMessagingService.datagramCiphersFor is not
+      // stubbed so noSuchMethod throws. Production MeshMessagingService never
+      // throws here — it returns non-null when a Noise session exists.
       ciphers = null;
     }
-    // ignore: avoid_print
-    print('[mesh-voice/diag] _enterActive: peer=${peer.toHex().substring(0, 12)} callId=${callId.toRadixString(16)} isCaller=$isCaller ciphers=${ciphers != null}');
     if (gen != _enterGen) return;
 
     final engine = audioEngineFactory();
-    try {
-      await engine.start();
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _enterActive: engine.start() OK');
-    } catch (e) {
-      // ignore: avoid_print
-      print('[mesh-voice/diag] _enterActive: engine.start() FAILED: $e');
-      rethrow;
-    }
+    await engine.start();
     if (gen != _enterGen) {
       await engine.stop().catchError((_) {});
       return;
@@ -397,7 +370,6 @@ class MeshVoiceService {
 
     _activeCiphers = ciphers;
     _activeEngine = engine;
-    var txCounter = 0;
     _audioOutSub = engine.outbound.listen((opus) async {
       final ciphers = _activeCiphers;
       Uint8List ct;
@@ -414,18 +386,11 @@ class MeshVoiceService {
         seq: _outSeq,
         ciphertext: ct,
       );
-      txCounter++;
       try {
         await transport.sendDatagram(peer, frame.encode());
-        if (txCounter == 1 || txCounter % 50 == 0) {
-          // ignore: avoid_print
-          print('[mesh-voice/diag] tx OK count=$txCounter seq=$_outSeq frame.bytes=${frame.encode().length}');
-        }
-      } catch (e) {
-        if (txCounter == 1 || txCounter % 20 == 0) {
-          // ignore: avoid_print
-          print('[mesh-voice/diag] tx FAILED count=$txCounter: $e');
-        }
+      } catch (_) {
+        // Drop on transport error; persistent failures end the call via
+        // the keepalive watchdog.
       }
     });
     _setState(ActiveState(
