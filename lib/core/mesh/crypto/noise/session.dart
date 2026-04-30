@@ -10,12 +10,24 @@ class NoiseSession {
 
   final Uint8List sendKey;
   final Uint8List recvKey;
+
+  /// The Noise handshake hash `h` at the end of the IK handshake (channel
+  /// binding value, 32 bytes). Identical on both initiator and responder —
+  /// used as the transport secret for [MeshDatagramCipher.derive] so that
+  /// both peers derive the same per-direction voice subkeys.
+  ///
+  /// Null for sessions created before Phase 3c (backward compat); callers
+  /// that need voice ciphers must ensure the session was constructed with
+  /// this value.
+  final Uint8List? handshakeHash;
+
   int _sendCounter = 0;
   int _recvCounter = 0;
 
   NoiseSession({
     required this.sendKey,
     required this.recvKey,
+    this.handshakeHash,
   });
 
   Future<Uint8List> encrypt(Uint8List plaintext) async {

@@ -48,6 +48,17 @@ class _FakeTransport implements MeshTransport {
   }
 
   @override
+  Stream<InboundDatagram> get inboundDatagrams => const Stream<InboundDatagram>.empty();
+
+  @override
+  Future<void> sendDatagram(PeerId peer, Uint8List data) async {
+    throw UnimplementedError('test stub');
+  }
+
+  @override
+  PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
+
+  @override
   Future<void> dispose() async {
     await _discoveries.close();
     await _losses.close();

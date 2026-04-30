@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 
 import '../di/service_locator.dart';
 import '../storage/secure_storage_service.dart';
+import '../voice/mesh_foreground_controller.dart';
+import '../voice/mesh_peer_eligibility_watcher.dart';
+import '../voice/mesh_voice_ui_coordinator.dart';
 import '../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
 import 'crypto/keys/contact_key_store.dart';
 import 'crypto/keys/contact_key_store_hive.dart';
@@ -12,6 +16,7 @@ import 'crypto/keys/user_identity_key.dart';
 import 'services/device_key_sync_service.dart';
 import 'services/device_keys_api_client.dart';
 import 'services/mesh_messaging_service.dart';
+import 'voice/mesh_voice_service.dart';
 
 /// Phase 1g — run the mesh bootstrap for the authenticated user.
 ///
@@ -59,6 +64,40 @@ Future<void> runMeshBootstrap(String userId) async {
       }
     } else {
       debugPrint('[mesh-boot] MeshMessagingService not registered');
+    }
+
+    if (sl.isRegistered<MeshVoiceService>()) {
+      try {
+        sl<MeshVoiceService>().start();
+        debugPrint('[mesh-boot] MeshVoiceService.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshVoiceService.start() failed: $e');
+      }
+    }
+    if (sl.isRegistered<MeshVoiceUiCoordinator>()) {
+      try {
+        sl<MeshVoiceUiCoordinator>().start();
+        debugPrint('[mesh-boot] MeshVoiceUiCoordinator.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshVoiceUiCoordinator.start() failed: $e');
+      }
+    }
+    if (sl.isRegistered<MeshPeerEligibilityWatcher>()) {
+      try {
+        sl<MeshPeerEligibilityWatcher>().start();
+        debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshPeerEligibilityWatcher.start() failed: $e');
+      }
+    }
+
+    if (!kIsWeb && Platform.isAndroid && sl.isRegistered<MeshForegroundController>()) {
+      try {
+        sl<MeshForegroundController>().start();
+        debugPrint('[mesh-boot] MeshForegroundController.start() ok');
+      } catch (e) {
+        debugPrint('[mesh-boot] MeshForegroundController.start() failed: $e');
+      }
     }
 
     try {

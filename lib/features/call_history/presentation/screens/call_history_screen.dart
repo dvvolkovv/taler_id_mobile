@@ -17,13 +17,21 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_history_cache_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/active_group_call_banner.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../billing/presentation/widgets/balance_chip.dart';
+import '../../data/mesh_call_history_entry.dart';
+import '../../data/mesh_call_history_repository.dart';
+import 'call_history_merge.dart';
+import 'dart:convert' show base64Decode;
+import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
+import '../../../../core/mesh/transport/peer_id.dart';
 
 const _kIncomingColor = Color(0xFF4CAF50);
 
@@ -45,24 +53,125 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
   final _searchCtrl = TextEditingController();
   String _searchQuery = '';
 
+  // Mesh history integration
+  StreamSubscription<List<MeshCallHistoryEntry>>? _meshHistorySub;
+  List<MeshCallHistoryEntry> _meshLatest = const [];
+  List<_CallEntry> _serverLatest = const [];
+
   @override
   void initState() {
     super.initState();
     _hydrateFromCache();
     _refreshHistory();
     _refreshPersonalRoom();
+    // Subscribe to mesh call history changes
+    _meshHistorySub = sl<MeshCallHistoryRepository>().watch().listen((mesh) {
+      _meshLatest = mesh;
+      _recomputeMerged();
+    });
+    sl<MeshCallHistoryRepository>().getAll().then((mesh) {
+      _meshLatest = mesh;
+      _recomputeMerged();
+    });
   }
 
   @override
   void dispose() {
+    _meshHistorySub?.cancel();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  void _recomputeMerged() {
+    if (!mounted) return;
+    setState(() {
+      _history = _mergeEntries(_serverLatest, _meshLatest);
+    });
+  }
+
+  /// Merge server entries with mesh entries, sorted by startedAt desc.
+  List<_CallEntry> _mergeEntries(
+    List<_CallEntry> server,
+    List<MeshCallHistoryEntry> mesh,
+  ) {
+    final all = <_CallEntry>[
+      ...server,
+      ...mesh.map((m) => _callEntryFromMesh(m, context)),
+    ];
+    all.sort((a, b) => b.startedAt.compareTo(a.startedAt));
+    return all;
+  }
+
+  /// Convert a [MeshCallHistoryEntry] to a [_CallEntry] for display.
+  ///
+  /// At call-time the contact lookup may have failed (DeviceKeySync behind,
+  /// /device-keys 429 rate-limited) → entry persists with `peerUserId=null`
+  /// and fallback name `Mesh-устройство <hex>`. At render-time we retry the
+  /// lookup against the now-current ContactKeyStore + MessengerBloc, so a
+  /// later sync that resolved the contact upgrades stale rows on the fly.
+  static _CallEntry _callEntryFromMesh(MeshCallHistoryEntry m, BuildContext context) {
+    final displayRow = displayRowFromMesh(m);
+    String name = displayRow.otherPartyName;
+    String? avatar;
+    String? userId = displayRow.otherPartyId;
+
+    if (userId == null) {
+      // Late lookup — possibly succeeds now even if it failed at call-time.
+      try {
+        final bytes = base64Decode(m.peerDevicePkBase64);
+        final devicePk = PeerId(bytes);
+        final keyStore = sl<HiveContactKeyStore>();
+        final userPk = keyStore.lookupUserByDevice(devicePk);
+        if (userPk != null) {
+          final userPkHex = userPk.toHex();
+          for (final (mappedUserId, mappedUserPk) in keyStore.allUserIdMappings()) {
+            if (mappedUserPk.toHex() == userPkHex) {
+              userId = mappedUserId;
+              break;
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (userId != null) {
+      try {
+        final convs = context.read<MessengerBloc>().state.conversations;
+        for (final c in convs) {
+          if (c.type == 'DIRECT' && c.otherUserId == userId) {
+            if (c.otherUserName != null && c.otherUserName!.isNotEmpty) {
+              name = c.otherUserName!;
+            }
+            avatar = c.otherUserAvatar;
+            break;
+          }
+        }
+      } catch (_) {}
+    }
+
+    return _CallEntry(
+      id: displayRow.id,
+      otherPartyName: name,
+      otherPartyAvatar: avatar,
+      otherPartyId: userId,
+      startedAt: displayRow.startedAt,
+      durationSec: displayRow.durationSec,
+      isOutgoing: displayRow.isOutgoing,
+      isMissed: displayRow.isMissed,
+      withAi: false,
+      conversationId: null,
+      hasSummary: false,
+      hasRecording: false,
+      isMesh: true,
+      meshEndReason: m.endReason,
+    );
   }
 
   void _hydrateFromCache() {
     final hist = _cache.getHistory();
     if (hist != null) {
-      _history = hist.map((e) => _CallEntry.fromJson(e)).toList();
+      _serverLatest = hist.map((e) => _CallEntry.fromJson(e)).toList();
+      _history = _mergeEntries(_serverLatest, _meshLatest);
     }
     final room = _cache.getPersonalRoom();
     if (room != null) {
@@ -84,8 +193,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       final raw = items.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       await _cache.saveHistory(raw);
       if (!mounted) return;
+      _serverLatest = raw.map(_CallEntry.fromJson).toList();
       setState(() {
-        _history = raw.map(_CallEntry.fromJson).toList();
+        _history = _mergeEntries(_serverLatest, _meshLatest);
         _historyError = false;
       });
     } catch (_) {
@@ -331,6 +441,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
+      // Group calls are dev-flavor only until Phase 1.4 polish lands.
+      // Hides the New Group Call entry point on production builds.
+      floatingActionButton: AppConfig.isDev
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push(RouteConstants.newGroupCall),
+              backgroundColor: colors.primary,
+              foregroundColor: Colors.black,
+              icon: const Icon(Icons.group_add_rounded),
+              label: Text(l10n.groupCallSelectParticipants),
+            )
+          : null,
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
@@ -360,6 +481,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 ),
               ],
             ),
+            const SliverToBoxAdapter(child: ActiveGroupCallBanner()),
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(
@@ -642,11 +764,35 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final isMissed = e.isMissed;
     return GestureDetector(
       onTap: () {
+        // Mesh entries without a linked user cannot open a chat.
+        if (e.isMesh && e.otherPartyId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(AppLocalizations.of(context)!.meshHistoryNoChatAvailable),
+          ));
+          return;
+        }
         // If an AI twin answered this call, show the transcript sheet
         // instead of the generic call detail screen — the transcript is
         // the whole reason this entry exists.
         if (e.hasAiTwinSummary) {
           _showAiTwinTranscriptSheet(e);
+          return;
+        }
+        // Mesh entries with a known user go to the chat room. Resolve
+        // userId → DIRECT-conversation id via MessengerBloc; the router
+        // takes a conversationId, not a userId.
+        if (e.isMesh) {
+          final convs = context.read<MessengerBloc>().state.conversations;
+          final conv = convs.where(
+            (c) => c.type == 'DIRECT' && c.otherUserId == e.otherPartyId,
+          ).firstOrNull;
+          if (conv != null) {
+            context.push('/dashboard/messenger/${conv.id}');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.meshHistoryNoChatAvailable),
+            ));
+          }
           return;
         }
         Navigator.of(context).push(
@@ -660,55 +806,79 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             final ringColor = isMissed
                 ? colors.error
                 : rainbowColorFor(e.otherPartyName.isNotEmpty ? e.otherPartyName : e.id);
-            return Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
-                    blurRadius: isMissed ? 12 : 8,
-                    spreadRadius: isMissed ? 1 : 0,
-                  ),
-                ],
-              ),
-              child: e.otherPartyAvatar != null
-                  ? CircleAvatar(
-                      radius: 22,
-                      backgroundColor: colors.primary.withOpacity(0.12),
-                      backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
-                    )
-                  : Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          center: const Alignment(-0.3, -0.4),
-                          radius: 1.1,
-                          colors: [
-                            Color.lerp(ringColor, Colors.white, 0.3)!,
-                            ringColor,
-                            Color.lerp(ringColor, Colors.black, 0.4)!,
-                          ],
-                          stops: const [0.0, 0.55, 1.0],
-                        ),
+            final avatarStack = Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: ringColor, width: isMissed ? 2.5 : 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: ringColor.withOpacity(isMissed ? 0.55 : 0.35),
+                        blurRadius: isMissed ? 12 : 8,
+                        spreadRadius: isMissed ? 1 : 0,
                       ),
-                      child: Center(
-                        child: e.withAi
-                            ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
-                            : Text(
-                                e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                              ),
+                    ],
+                  ),
+                  child: e.otherPartyAvatar != null
+                      ? CircleAvatar(
+                          radius: 22,
+                          backgroundColor: colors.primary.withOpacity(0.12),
+                          backgroundImage: CachedNetworkImageProvider(e.otherPartyAvatar!),
+                        )
+                      : Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              center: const Alignment(-0.3, -0.4),
+                              radius: 1.1,
+                              colors: [
+                                Color.lerp(ringColor, Colors.white, 0.3)!,
+                                ringColor,
+                                Color.lerp(ringColor, Colors.black, 0.4)!,
+                              ],
+                              stops: const [0.0, 0.55, 1.0],
+                            ),
+                          ),
+                          child: Center(
+                            child: e.withAi
+                                ? const Icon(Icons.smart_toy_outlined, color: Colors.white, size: 20)
+                                : Text(
+                                    e.otherPartyName.isNotEmpty ? e.otherPartyName[0].toUpperCase() : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                ),
+                if (e.isMesh)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: colors.card,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.green, width: 1.5),
+                      ),
+                      child: const Icon(
+                        Icons.wifi_tethering,
+                        size: 12,
+                        color: Colors.green,
                       ),
                     ),
+                  ),
+              ],
             );
+            return avatarStack;
           }(),
           const SizedBox(width: 14),
           Expanded(
@@ -733,6 +903,24 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   Text(
                     AppLocalizations.of(context)!.callHistoryMissed,
                     style: TextStyle(color: colors.error, fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ],
+                if (e.isMesh) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: Colors.green.withOpacity(0.35),
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.meshHistoryBadge,
+                      style: const TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ],
                 if (e.hasAiTwinSummary) ...[
@@ -811,22 +999,25 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             ),
             const SizedBox(width: 8),
           ],
-          _calling
-              ? SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: Padding(
-                    padding: EdgeInsets.all(8),
-                    child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
-                  ),
-                )
-              : IconButton(
-                  icon: Icon(Icons.call_outlined, color: colors.primary, size: 22),
-                  tooltip: AppLocalizations.of(context)!.callHistoryCallAgain,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                  onPressed: () => _callBack(e),
+          if (!e.isMesh) ...[
+            if (_calling)
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
                 ),
+              )
+            else
+              IconButton(
+                icon: Icon(Icons.call_outlined, color: colors.primary, size: 22),
+                tooltip: AppLocalizations.of(context)!.callHistoryCallAgain,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                onPressed: () => _callBack(e),
+              ),
+          ],
         ],
       ),
       ),
@@ -1314,6 +1505,9 @@ class _CallEntry {
   final bool hasRecording;
   final String? aiTwinSummary;
   final List<Map<String, dynamic>>? aiTwinTranscript;
+  // Mesh-local entries
+  final bool isMesh;
+  final String? meshEndReason;
 
   const _CallEntry({
     required this.id,
@@ -1330,6 +1524,8 @@ class _CallEntry {
     this.hasRecording = false,
     this.aiTwinSummary,
     this.aiTwinTranscript,
+    this.isMesh = false,
+    this.meshEndReason,
   });
 
   bool get hasAiTwinSummary =>

@@ -237,6 +237,30 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       convId: message.data['conversationId'] ?? '',
       fromAvatar: message.data['fromAvatar'] as String?,
     );
+  } else if (type == 'group_call_invite') {
+    // Group call: display host name + group suffix ("Алиса + N").
+    // APNs payload may pre-format `nameCaller` ("Алиса + 2 ещё");
+    // FCM data-only payload sends raw `hostDisplayName` + `inviteeCount`.
+    final hostDisplayName = (message.data['hostDisplayName'] as String?) ??
+        (message.data['nameCaller'] as String?) ??
+        (await _notifStrings()).incomingCall;
+    final inviteeCount = int.tryParse(
+          (message.data['inviteeCount'] ?? '1').toString(),
+        ) ??
+        1;
+    final formattedCaller = inviteeCount > 1
+        ? '$hostDisplayName + ${inviteeCount - 1}'
+        : hostDisplayName;
+    final groupCallId = message.data['groupCallId'] as String? ?? '';
+    await showCallkitIncoming(
+      // `group-<id>` prefix lets the CallKit accept handler in main.dart
+      // discriminate group vs 1-on-1 routes.
+      roomName: 'group-$groupCallId',
+      fromName: formattedCaller,
+      // Group calls are not tied to a Conversation row.
+      convId: '',
+      fromAvatar: message.data['hostAvatarUrl'] as String?,
+    );
   } else if (type == 'call_cancelled') {
     // Caller hung up before answer — dismiss CallKit UI
     await FlutterCallkitIncoming.endAllCalls();
@@ -344,24 +368,44 @@ class NotificationService {
     }
   }
 
-  static Future<void> _saveTokenToBackend(String token) async {
+  /// Persist [token] to the backend via PUT /profile.
+  ///
+  /// [force] is reserved for future symmetry: today we always PUT, but the
+  /// flag documents intent so a future cache-skip optimisation cannot
+  /// accidentally short-circuit the post-login re-registration. Backend may
+  /// auto-purge stale FCM tokens (NotRegistered/InvalidRegistration), so a
+  /// fresh login MUST re-upload even when the device-local token is unchanged.
+  static Future<void> _saveTokenToBackend(String token, {bool force = false}) async {
     try {
       final client = sl<DioClient>();
       await client.put('/profile', data: {'fcmToken': token});
-      debugPrint('FCM token saved to backend');
+      debugPrint('FCM token saved to backend (force=$force)');
     } catch (e) {
       debugPrint('Failed to save FCM token: $e');
     }
   }
 
-  /// Call this after the user logs in to ensure FCM token is registered.
+  /// Call this after the user logs in to ensure FCM/VoIP tokens are registered.
   /// Needed because init() runs before login and the PUT /profile call fails with 401.
-  static Future<void> refreshToken() async {
+  ///
+  /// Pass [force]=true on every successful login to bypass any caching and
+  /// guarantee the backend has a current token row. This is required because
+  /// the backend may have auto-purged the row after a stale-token push error;
+  /// without a forced re-register the device thinks it's still registered while
+  /// the server has forgotten it, and push silently stops working.
+  ///
+  /// [onTokenRefresh] (FCM rotation) and other passive paths can keep calling
+  /// this with the default [force]=false.
+  static Future<void> refreshToken({bool force = false}) async {
     try {
-      final token = _currentToken ?? await _fcm.getToken();
+      // When forced, always re-fetch from FCM SDK to avoid relying on a stale
+      // in-memory cache. Otherwise reuse cached value to skip the SDK round-trip.
+      final token = force
+          ? (await _fcm.getToken() ?? _currentToken)
+          : (_currentToken ?? await _fcm.getToken());
       if (token != null) {
         _currentToken = token;
-        await _saveTokenToBackend(token);
+        await _saveTokenToBackend(token, force: force);
       }
     } catch (e) {
       debugPrint('FCM getToken failed (simulator?): $e');
@@ -375,7 +419,7 @@ class NotificationService {
         if (voipToken != null && voipToken.isNotEmpty) {
           final client = sl<DioClient>();
           await client.put('/profile', data: {'voipToken': voipToken}, fromJson: (d) => d);
-          debugPrint('VoIP token refreshed to backend');
+          debugPrint('VoIP token refreshed to backend (force=$force)');
         }
       } catch (e) {
         debugPrint('Failed to refresh VoIP token: $e');
@@ -458,6 +502,13 @@ String? notificationToRoute(RemoteMessage message) {
         final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
         final avatarParam = fromAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(fromAvatar)}' : '';
         return '/dashboard/voice?room=$roomName&convId=$convId&incoming=1$e2eeParam$calleeParam$avatarParam';
+      }
+      return null;
+    case 'group_call_invite':
+      final groupCallId = data['groupCallId'] as String?;
+      if (groupCallId != null && groupCallId.isNotEmpty) {
+        // Active screen handles lobby fallback via BLoC state.
+        return '/group-call/$groupCallId';
       }
       return null;
     case 'new_message':

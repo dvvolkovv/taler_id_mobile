@@ -1,10 +1,12 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
+import '../audio/default_mesh_voice_audio_engine.dart';
 import '../config/app_config.dart';
+import '../mesh/voice/mesh_voice_service.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
@@ -16,7 +18,13 @@ import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
+import '../voice/mesh_foreground_controller.dart';
+import '../voice/mesh_peer_eligibility_watcher.dart';
+import '../voice/mesh_prefs_service.dart';
+import '../voice/mesh_voice_ui_coordinator.dart';
+import '../../features/call_history/data/mesh_call_history_repository.dart';
 import '../../features/messenger/services/hive_favorites_migration_service.dart';
+import '../../main.dart' show globalNavigatorKey;
 
 // Mesh Phase 1b/1c
 import '../config/mesh_config.dart';
@@ -83,6 +91,12 @@ import '../../features/profile_sections/data/datasources/profile_sections_remote
 import '../../features/profile_sections/data/repositories/profile_sections_repository_impl.dart';
 import '../../features/profile_sections/domain/repositories/i_profile_sections_repository.dart';
 
+// Group Call (Phase 1) — voice multi-party rooms
+import '../../features/voice/data/datasources/group_call_remote_datasource.dart';
+import '../../features/voice/data/repositories/group_call_repository_impl.dart';
+import '../../features/voice/domain/repositories/group_call_repository.dart';
+import '../../features/voice/presentation/bloc/group_call_bloc.dart';
+
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
@@ -114,6 +128,16 @@ Future<void> setupDependencies() async {
   // Messenger cache (Hive)
   await MessengerCacheService.init();
   sl.registerSingleton<MessengerCacheService>(MessengerCacheService());
+
+  // Mesh call history (Hive) — local-only journal of mesh voice calls
+  final meshCallHistory = HiveMeshCallHistoryRepository();
+  await meshCallHistory.init();
+  sl.registerSingleton<MeshCallHistoryRepository>(meshCallHistory);
+
+  // Mesh prefs (Hive) — small flag store for mesh-related UI state
+  final meshPrefs = MeshPrefsService();
+  await meshPrefs.init();
+  sl.registerSingleton<MeshPrefsService>(meshPrefs);
 
   // Message drafts (Hive) — persisted unsent text per conversation
   final drafts = MessageDraftService();
@@ -279,6 +303,58 @@ Future<void> setupDependencies() async {
     ),
   );
 
+  // MeshVoiceService — Phase 3c orchestrator. start() is called by
+  // runMeshBootstrap after MeshMessagingService.start() succeeds.
+  sl.registerLazySingleton<MeshVoiceService>(() {
+    final messaging = sl<MeshMessagingService>();
+    return MeshVoiceService(
+      messaging: messaging,
+      transport: sl<MeshTransport>(),
+      audioEngineFactory: defaultMeshVoiceAudioEngine,
+    );
+  });
+
+  // MeshVoiceUiCoordinator — singleton bridging MeshVoiceService state
+  // transitions to UI (modal sheet, active-call screen, history writes).
+  sl.registerLazySingleton<MeshVoiceUiCoordinator>(() {
+    final voice = sl<MeshVoiceService>();
+    final messaging = sl<MeshMessagingService>();
+    final keyStore = sl<HiveContactKeyStore>();
+    return MeshVoiceUiCoordinator(
+      stateStream: voice.stateStream,
+      invite: voice.invite,
+      accept: voice.accept,
+      reject: voice.reject,
+      hangup: () => voice.hangup(),
+      repo: sl<MeshCallHistoryRepository>(),
+      navigator: _GlobalKeyMeshNavigator(),
+      peerInfoLookup: (peer) async => _resolvePeerInfo(
+        devicePk: peer,
+        keyStore: keyStore,
+      ),
+      selfDevicePk: PeerId(messaging.myDevicePublicKey),
+      transportLabelForPeer: (peer) {
+        // Phase 3d.2 will surface this from MeshTransport.peerStatus +
+        // discovery attributes. Phase 3d.1 returns null (badge says
+        // just "📡 Mesh"). This is intentional — see spec Risks #4.
+        return null;
+      },
+    );
+  });
+
+  sl.registerLazySingleton<MeshPeerEligibilityWatcher>(
+    () => MeshPeerEligibilityWatcher(
+      transport: sl<MeshTransport>(),
+      contactKeyStore: sl<HiveContactKeyStore>(),
+    ),
+  );
+
+  sl.registerLazySingleton<MeshForegroundController>(
+    () => MeshForegroundController(
+      watcher: sl<MeshPeerEligibilityWatcher>(),
+    ),
+  );
+
   // Phase 1e — mesh status cubit + messenger adapter + transport selector
   sl.registerLazySingleton<MeshStatusBloc>(
     () {
@@ -392,6 +468,25 @@ Future<void> setupDependencies() async {
     () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
   );
 
+  // Group Call (Phase 1) — voice multi-party rooms.
+  // BLoC is a factory: a fresh instance per screen so subscriptions don't
+  // leak between calls. Repository + datasource are lazy singletons.
+  sl.registerLazySingleton<GroupCallRemoteDatasource>(
+    () => GroupCallRemoteDatasource(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<GroupCallRepository>(
+    () => GroupCallRepositoryImpl(sl<GroupCallRemoteDatasource>()),
+  );
+  // Singleton: GroupCallBloc state must persist across screen transitions
+  // (picker → lobby → active). A factory registration would build a fresh
+  // Idle-state BLoC for each `sl<GroupCallBloc>()` call, breaking the flow.
+  sl.registerLazySingleton<GroupCallBloc>(
+    () => GroupCallBloc(
+      sl<GroupCallRepository>(),
+      sl<MessengerRemoteDataSource>(),
+    ),
+  );
+
   // Billing
   sl.registerLazySingleton(() => BillingRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<BillingRepository>(
@@ -479,4 +574,82 @@ String? _contactUserIdByUserPk(PeerId userPk) {
   } catch (_) {
     return null;
   }
+}
+
+class _GlobalKeyMeshNavigator implements MeshNavigator {
+  @override
+  Future<T?> pushScreen<T>(Widget screen) async {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return null;
+    return Navigator.of(ctx).push<T>(MaterialPageRoute(builder: (_) => screen));
+  }
+
+  @override
+  Future<void> showSheet(Widget sheet) async {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return;
+    // Sheet is itself an AlertDialog (see MeshIncomingCallSheet). showDialog
+    // wraps it in a route that handles barrier + back-button dismissal.
+    await showDialog<void>(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => sheet,
+    );
+  }
+
+  @override
+  void popSheet() {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return;
+    final nav = Navigator.of(ctx);
+    if (nav.canPop()) nav.pop();
+  }
+
+  @override
+  void popScreen() {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return;
+    final nav = Navigator.of(ctx);
+    if (nav.canPop()) nav.pop();
+  }
+
+  @override
+  void showSnackbar(String message) {
+    final ctx = globalNavigatorKey.currentContext;
+    if (ctx == null) return;
+    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+Future<MeshPeerInfo> _resolvePeerInfo({
+  required PeerId devicePk,
+  required HiveContactKeyStore keyStore,
+}) async {
+  // Phase 1a: userPk == devicePk. Resolve userId by scanning Hive
+  // contactUserId mappings.
+  String? userId;
+  try {
+    final hex = devicePk.toHex();
+    for (final entry in keyStore.allUserIdMappings()) {
+      if (entry.$2.toHex() == hex) {
+        userId = entry.$1;
+        break;
+      }
+    }
+  } catch (_) {}
+  if (userId == null) return const MeshPeerInfo();
+  // Resolve name + avatar from MessengerBloc.state.conversations.
+  String? name;
+  String? avatar;
+  try {
+    final convs = sl<MessengerBloc>().state.conversations;
+    for (final c in convs) {
+      if (c.type == 'DIRECT' && c.otherUserId == userId) {
+        name = c.otherUserName;
+        avatar = c.otherUserAvatar;
+        break;
+      }
+    }
+  } catch (_) {}
+  return MeshPeerInfo(userId: userId, name: name, avatarUrl: avatar);
 }

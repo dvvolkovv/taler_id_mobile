@@ -4688,6 +4688,162 @@ abstract class AppLocalizations {
   /// **'Accept'**
   String get incomingCallAccept;
 
+  /// No description provided for @meshIncomingCallLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Incoming mesh call'**
+  String get meshIncomingCallLabel;
+
+  /// No description provided for @meshDeviceFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Mesh device {hexPrefix}'**
+  String meshDeviceFallback(String hexPrefix);
+
+  /// No description provided for @callConflictAlreadyInCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish the current call first'**
+  String get callConflictAlreadyInCall;
+
+  /// No description provided for @callPopupTransportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call via'**
+  String get callPopupTransportTitle;
+
+  /// No description provided for @callPopupTransportMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh (peer-to-peer)'**
+  String get callPopupTransportMesh;
+
+  /// No description provided for @callPopupTransportLk.
+  ///
+  /// In en, this message translates to:
+  /// **'📞 Server'**
+  String get callPopupTransportLk;
+
+  /// No description provided for @callPopupTransportMeshUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact not reachable via mesh'**
+  String get callPopupTransportMeshUnavailable;
+
+  /// No description provided for @meshOnboardingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh calls need the app open'**
+  String get meshOnboardingTitle;
+
+  /// No description provided for @meshOnboardingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'When the phone is locked, mesh calls may drop after ~30 seconds (iOS limitation).'**
+  String get meshOnboardingBody;
+
+  /// No description provided for @meshOnboardingAck.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get meshOnboardingAck;
+
+  /// No description provided for @meshHistoryBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh'**
+  String get meshHistoryBadge;
+
+  /// No description provided for @meshHistoryNoChatAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact is not in your list'**
+  String get meshHistoryNoChatAvailable;
+
+  /// No description provided for @meshCallStatusInviting.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling…'**
+  String get meshCallStatusInviting;
+
+  /// No description provided for @meshCallStatusConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting…'**
+  String get meshCallStatusConnecting;
+
+  /// No description provided for @meshCallEndedUserHangup.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get meshCallEndedUserHangup;
+
+  /// No description provided for @meshCallEndedRemoteHangup.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended by peer'**
+  String get meshCallEndedRemoteHangup;
+
+  /// No description provided for @meshCallEndedRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get meshCallEndedRejected;
+
+  /// No description provided for @meshCallEndedNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get meshCallEndedNoAnswer;
+
+  /// No description provided for @meshCallEndedConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get meshCallEndedConnectionLost;
+
+  /// No description provided for @meshCallEndedError.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection error'**
+  String get meshCallEndedError;
+
+  /// No description provided for @meshCallTransportBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh · {transport}'**
+  String meshCallTransportBadge(String transport);
+
+  /// No description provided for @meshCallTransportBadgePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Mesh'**
+  String get meshCallTransportBadgePlain;
+
+  /// No description provided for @batteryExemptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'📡 Reliable mesh calls'**
+  String get batteryExemptionTitle;
+
+  /// No description provided for @batteryExemptionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow the app to run without battery restrictions so Android doesn\'t kill the mesh in the background.'**
+  String get batteryExemptionBody;
+
+  /// No description provided for @batteryExemptionAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get batteryExemptionAccept;
+
+  /// No description provided for @batteryExemptionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get batteryExemptionDismiss;
+
   /// No description provided for @groupCamera.
   ///
   /// In en, this message translates to:
@@ -6157,6 +6313,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'call'**
   String get billingUnitCall;
+
+  /// No description provided for @groupCallSelectParticipants.
+  ///
+  /// In en, this message translates to:
+  /// **'Select participants'**
+  String get groupCallSelectParticipants;
+
+  /// No description provided for @groupCallSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n}/7'**
+  String groupCallSelectedCount(int n);
+
+  /// No description provided for @groupCallSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get groupCallSearch;
+
+  /// No description provided for @groupCallMaxReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum 7 participants'**
+  String get groupCallMaxReached;
+
+  /// No description provided for @groupCallLobbyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group • Lobby'**
+  String get groupCallLobbyTitle;
+
+  /// No description provided for @groupCallHostLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Host: {name}'**
+  String groupCallHostLabel(String name);
+
+  /// No description provided for @groupCallMicHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Mic will activate on connect'**
+  String get groupCallMicHint;
+
+  /// No description provided for @groupCallCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get groupCallCancel;
+
+  /// No description provided for @groupCallNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No one answered'**
+  String get groupCallNoAnswer;
+
+  /// No description provided for @groupCallEndedByHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended by host'**
+  String get groupCallEndedByHost;
+
+  /// No description provided for @groupCallAllLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone left the call'**
+  String get groupCallAllLeft;
+
+  /// No description provided for @groupCallEnded.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get groupCallEnded;
+
+  /// No description provided for @groupCallActiveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Group • {count}'**
+  String groupCallActiveTitle(int count);
+
+  /// No description provided for @groupCallConnectionLost.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection lost'**
+  String get groupCallConnectionLost;
+
+  /// No description provided for @groupCallMuteRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Host asked everyone to mute'**
+  String get groupCallMuteRequested;
+
+  /// No description provided for @groupCallUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get groupCallUnmute;
+
+  /// No description provided for @groupCallMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get groupCallMute;
+
+  /// No description provided for @groupCallMuteAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute all'**
+  String get groupCallMuteAll;
+
+  /// No description provided for @groupCallLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get groupCallLeave;
+
+  /// No description provided for @groupCallStatusCalling.
+  ///
+  /// In en, this message translates to:
+  /// **'calling…'**
+  String get groupCallStatusCalling;
+
+  /// No description provided for @groupCallStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'declined'**
+  String get groupCallStatusDeclined;
+
+  /// No description provided for @groupCallStatusTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'no answer'**
+  String get groupCallStatusTimeout;
+
+  /// No description provided for @groupCallStatusLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'left'**
+  String get groupCallStatusLeft;
+
+  /// No description provided for @groupCallKickConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from call'**
+  String groupCallKickConfirm(String name);
+
+  /// No description provided for @groupCallCancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get groupCallCancelAction;
+
+  /// No description provided for @groupCallActiveBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Active call'**
+  String get groupCallActiveBanner;
+
+  /// No description provided for @groupCallBannerSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Group: {host} + {count}'**
+  String groupCallBannerSummary(String host, int count);
+
+  /// No description provided for @groupCallBannerSummaryAlone.
+  ///
+  /// In en, this message translates to:
+  /// **'Group: {host}'**
+  String groupCallBannerSummaryAlone(String host);
+
+  /// No description provided for @groupCallCreateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not create call'**
+  String get groupCallCreateError;
+
+  /// No description provided for @groupCallJoinError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not join call'**
+  String get groupCallJoinError;
+
+  /// No description provided for @groupCallLivekitError.
+  ///
+  /// In en, this message translates to:
+  /// **'LiveKit error'**
+  String get groupCallLivekitError;
+
+  /// No description provided for @groupCallDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get groupCallDone;
+
+  /// No description provided for @groupCallNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get groupCallNoResults;
+
+  /// No description provided for @groupCallNoContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'No contacts'**
+  String get groupCallNoContacts;
 }
 
 class _AppLocalizationsDelegate

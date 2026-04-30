@@ -2433,6 +2433,92 @@ class AppLocalizationsRu extends AppLocalizations {
   String get incomingCallAccept => 'Принять';
 
   @override
+  String get meshIncomingCallLabel => '📡 Входящий mesh-звонок';
+
+  @override
+  String meshDeviceFallback(String hexPrefix) {
+    return 'Mesh-устройство $hexPrefix';
+  }
+
+  @override
+  String get callConflictAlreadyInCall => 'Завершите текущий звонок';
+
+  @override
+  String get callPopupTransportTitle => 'Способ звонка';
+
+  @override
+  String get callPopupTransportMesh => '📡 По сети (mesh)';
+
+  @override
+  String get callPopupTransportLk => '📞 Через сервер';
+
+  @override
+  String get callPopupTransportMeshUnavailable =>
+      'Контакт не доступен через mesh';
+
+  @override
+  String get meshOnboardingTitle =>
+      '📡 Mesh-звонки требуют активного приложения';
+
+  @override
+  String get meshOnboardingBody =>
+      'Когда телефон заблокирован, mesh-звонки могут прерываться через ~30 секунд (iOS ограничение).';
+
+  @override
+  String get meshOnboardingAck => 'Понятно';
+
+  @override
+  String get meshHistoryBadge => '📡 Mesh';
+
+  @override
+  String get meshHistoryNoChatAvailable => 'Контакт не в списке';
+
+  @override
+  String get meshCallStatusInviting => 'Вызов…';
+
+  @override
+  String get meshCallStatusConnecting => 'Соединение…';
+
+  @override
+  String get meshCallEndedUserHangup => 'Звонок завершён';
+
+  @override
+  String get meshCallEndedRemoteHangup => 'Завершён собеседником';
+
+  @override
+  String get meshCallEndedRejected => 'Отклонён';
+
+  @override
+  String get meshCallEndedNoAnswer => 'Не отвечает';
+
+  @override
+  String get meshCallEndedConnectionLost => 'Соединение потеряно';
+
+  @override
+  String get meshCallEndedError => 'Ошибка соединения';
+
+  @override
+  String meshCallTransportBadge(String transport) {
+    return '📡 Mesh · $transport';
+  }
+
+  @override
+  String get meshCallTransportBadgePlain => '📡 Mesh';
+
+  @override
+  String get batteryExemptionTitle => '📡 Бесперебойные mesh-звонки';
+
+  @override
+  String get batteryExemptionBody =>
+      'Чтобы Android не убивал mesh-сеть в фоне, разреши приложению работать без ограничений батареи.';
+
+  @override
+  String get batteryExemptionAccept => 'Открыть настройки';
+
+  @override
+  String get batteryExemptionDismiss => 'Не сейчас';
+
+  @override
   String get groupCamera => 'Камера';
 
   @override
@@ -3279,4 +3365,118 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get billingUnitCall => 'звонок';
+
+  @override
+  String get groupCallSelectParticipants => 'Выбрать участников';
+
+  @override
+  String groupCallSelectedCount(int n) {
+    return '$n/7';
+  }
+
+  @override
+  String get groupCallSearch => 'Поиск';
+
+  @override
+  String get groupCallMaxReached => 'Максимум 7 участников';
+
+  @override
+  String get groupCallLobbyTitle => 'Группа • Lobby';
+
+  @override
+  String groupCallHostLabel(String name) {
+    return 'Хост: $name';
+  }
+
+  @override
+  String get groupCallMicHint => 'Микрофон активируется при подключении';
+
+  @override
+  String get groupCallCancel => 'Отменить';
+
+  @override
+  String get groupCallNoAnswer => 'Никто не ответил';
+
+  @override
+  String get groupCallEndedByHost => 'Звонок завершён хостом';
+
+  @override
+  String get groupCallAllLeft => 'Все вышли из звонка';
+
+  @override
+  String get groupCallEnded => 'Звонок завершён';
+
+  @override
+  String groupCallActiveTitle(int count) {
+    return 'Группа • $count';
+  }
+
+  @override
+  String get groupCallConnectionLost => 'Соединение потеряно';
+
+  @override
+  String get groupCallMuteRequested => 'Хост попросил всех замьютиться';
+
+  @override
+  String get groupCallUnmute => 'Включить микрофон';
+
+  @override
+  String get groupCallMute => 'Заглушить';
+
+  @override
+  String get groupCallMuteAll => 'Заглушить всех';
+
+  @override
+  String get groupCallLeave => 'Уйти';
+
+  @override
+  String get groupCallStatusCalling => 'звоним…';
+
+  @override
+  String get groupCallStatusDeclined => 'отклонил';
+
+  @override
+  String get groupCallStatusTimeout => 'не ответил';
+
+  @override
+  String get groupCallStatusLeft => 'покинул';
+
+  @override
+  String groupCallKickConfirm(String name) {
+    return 'Удалить $name из звонка';
+  }
+
+  @override
+  String get groupCallCancelAction => 'Отмена';
+
+  @override
+  String get groupCallActiveBanner => 'Активный звонок';
+
+  @override
+  String groupCallBannerSummary(String host, int count) {
+    return 'Группа: $host + $count';
+  }
+
+  @override
+  String groupCallBannerSummaryAlone(String host) {
+    return 'Группа: $host';
+  }
+
+  @override
+  String get groupCallCreateError => 'Не удалось создать звонок';
+
+  @override
+  String get groupCallJoinError => 'Не удалось присоединиться';
+
+  @override
+  String get groupCallLivekitError => 'Ошибка LiveKit';
+
+  @override
+  String get groupCallDone => 'Готово';
+
+  @override
+  String get groupCallNoResults => 'Ничего не найдено';
+
+  @override
+  String get groupCallNoContacts => 'Нет контактов';
 }

@@ -267,6 +267,21 @@ class NoiseIKHandshake {
   ///   - Responder: k1 = recv key, k2 = send key
   (Uint8List, Uint8List) finalize() => _ss.split();
 
+  /// Like [finalize] but also returns the handshake hash `h` (32 bytes).
+  ///
+  /// The handshake hash is the Noise channel-binding value: it is identical
+  /// on both initiator and responder after a successful handshake, making it
+  /// a clean symmetric secret for deriving per-direction subkeys (e.g. for
+  /// [MeshDatagramCipher]).
+  ///
+  /// Returns `(k1, k2, h)` where `h` is `_ss.handshakeHash` captured at the
+  /// moment of split (before any further mutation of `_ss`).
+  (Uint8List, Uint8List, Uint8List) finalizeWithHash() {
+    final h = Uint8List.fromList(_ss.handshakeHash);
+    final (k1, k2) = _ss.split();
+    return (k1, k2, h);
+  }
+
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------

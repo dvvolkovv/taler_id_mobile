@@ -1052,6 +1052,44 @@
   "incomingCallLabel": "Входящий звонок",
   "incomingCallDecline": "Отклонить",
   "incomingCallAccept": "Принять",
+  "meshIncomingCallLabel": "📡 Входящий mesh-звонок",
+  "meshDeviceFallback": "Mesh-устройство {hexPrefix}",
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "callConflictAlreadyInCall": "Завершите текущий звонок",
+  "callPopupTransportTitle": "Способ звонка",
+  "callPopupTransportMesh": "📡 По сети (mesh)",
+  "callPopupTransportLk": "📞 Через сервер",
+  "callPopupTransportMeshUnavailable": "Контакт не доступен через mesh",
+  "meshOnboardingTitle": "📡 Mesh-звонки требуют активного приложения",
+  "meshOnboardingBody": "Когда телефон заблокирован, mesh-звонки могут прерываться через ~30 секунд (iOS ограничение).",
+  "meshOnboardingAck": "Понятно",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Контакт не в списке",
+  "meshCallStatusInviting": "Вызов…",
+  "meshCallStatusConnecting": "Соединение…",
+  "meshCallEndedUserHangup": "Звонок завершён",
+  "meshCallEndedRemoteHangup": "Завершён собеседником",
+  "meshCallEndedRejected": "Отклонён",
+  "meshCallEndedNoAnswer": "Не отвечает",
+  "meshCallEndedConnectionLost": "Соединение потеряно",
+  "meshCallEndedError": "Ошибка соединения",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": { "type": "String" }
+    }
+  },
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Бесперебойные mesh-звонки",
+  "batteryExemptionBody": "Чтобы Android не убивал mesh-сеть в фоне, разреши приложению работать без ограничений батареи.",
+  "batteryExemptionAccept": "Открыть настройки",
+  "batteryExemptionDismiss": "Не сейчас",
   "groupCamera": "Камера",
   "groupGallery": "Галерея",
   "groupAvatarUpdated": "Аватар группы обновлён",
@@ -1452,5 +1490,84 @@
   "billingUnitRequest": "запрос",
   "billingUnitToken": "токен",
   "billingUnitTokens1k": "1К токенов",
-  "billingUnitCall": "звонок"
+  "billingUnitCall": "звонок",
+  "groupCallSelectParticipants": "Выбрать участников",
+  "groupCallSelectedCount": "{n}/7",
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallSearch": "Поиск",
+  "groupCallMaxReached": "Максимум 7 участников",
+  "groupCallLobbyTitle": "Группа • Lobby",
+  "groupCallHostLabel": "Хост: {name}",
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallMicHint": "Микрофон активируется при подключении",
+  "groupCallCancel": "Отменить",
+  "groupCallNoAnswer": "Никто не ответил",
+  "groupCallEndedByHost": "Звонок завершён хостом",
+  "groupCallAllLeft": "Все вышли из звонка",
+  "groupCallEnded": "Звонок завершён",
+  "groupCallActiveTitle": "Группа • {count}",
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallConnectionLost": "Соединение потеряно",
+  "groupCallMuteRequested": "Хост попросил всех замьютиться",
+  "groupCallUnmute": "Включить микрофон",
+  "groupCallMute": "Заглушить",
+  "groupCallMuteAll": "Заглушить всех",
+  "groupCallLeave": "Уйти",
+  "groupCallStatusCalling": "звоним…",
+  "groupCallStatusDeclined": "отклонил",
+  "groupCallStatusTimeout": "не ответил",
+  "groupCallStatusLeft": "покинул",
+  "groupCallKickConfirm": "Удалить {name} из звонка",
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallCancelAction": "Отмена",
+  "groupCallActiveBanner": "Активный звонок",
+  "groupCallBannerSummary": "Группа: {host} + {count}",
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallBannerSummaryAlone": "Группа: {host}",
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallCreateError": "Не удалось создать звонок",
+  "groupCallJoinError": "Не удалось присоединиться",
+  "groupCallLivekitError": "Ошибка LiveKit",
+  "groupCallDone": "Готово",
+  "groupCallNoResults": "Ничего не найдено",
+  "groupCallNoContacts": "Нет контактов"
 }

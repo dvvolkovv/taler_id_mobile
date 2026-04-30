@@ -34,6 +34,17 @@ class MessengerRemoteDataSource {
   // Group call events
   final _groupCallStartedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _groupCallEndedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  // Phase 1 GroupCall events (new, separate from legacy group_call_started/ended).
+  // The 'group_call_ended' wire-event is shared with the legacy flow; we
+  // discriminate by payload-field presence ('groupCallId' vs 'conversationId').
+  final _gcInviteCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcStatusCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcJoinedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcLeftCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcKickedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcMuteRequestCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcHostChangedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _gcEndedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageDeletedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageAckedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _typingCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -146,7 +157,39 @@ class MessengerRemoteDataSource {
       try { _groupCallStartedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
     _socket!.on('group_call_ended', (d) {
-      try { _groupCallEndedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+      try {
+        final payload = Map<String, dynamic>.from(d as Map);
+        // Phase 1 group-call ended payload: {groupCallId, reason}.
+        // Legacy ended payload: {conversationId, roomName}. Disambiguate by
+        // presence of 'groupCallId' so the two flows don't crosstalk.
+        if (payload.containsKey('groupCallId')) {
+          _gcEndedCtrl.add(payload);
+        } else {
+          _groupCallEndedCtrl.add(payload);
+        }
+      } catch (_) {}
+    });
+    // Phase 1 GroupCall socket events (no collision with legacy events)
+    _socket!.on('group_call_invite', (d) {
+      try { _gcInviteCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_status', (d) {
+      try { _gcStatusCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_joined', (d) {
+      try { _gcJoinedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_left', (d) {
+      try { _gcLeftCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_kicked', (d) {
+      try { _gcKickedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_mute_request', (d) {
+      try { _gcMuteRequestCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('group_call_host_changed', (d) {
+      try { _gcHostChangedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
     _socket!.on('message_deleted', (d) {
       try { _messageDeletedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
@@ -234,6 +277,15 @@ class MessengerRemoteDataSource {
   // Group call streams
   Stream<Map<String, dynamic>> get groupCallStartedStream => _groupCallStartedCtrl.stream;
   Stream<Map<String, dynamic>> get groupCallEndedStream => _groupCallEndedCtrl.stream;
+  // Phase 1 GroupCall streams
+  Stream<Map<String, dynamic>> get gcInviteStream => _gcInviteCtrl.stream;
+  Stream<Map<String, dynamic>> get gcStatusStream => _gcStatusCtrl.stream;
+  Stream<Map<String, dynamic>> get gcJoinedStream => _gcJoinedCtrl.stream;
+  Stream<Map<String, dynamic>> get gcLeftStream => _gcLeftCtrl.stream;
+  Stream<Map<String, dynamic>> get gcKickedStream => _gcKickedCtrl.stream;
+  Stream<Map<String, dynamic>> get gcMuteRequestStream => _gcMuteRequestCtrl.stream;
+  Stream<Map<String, dynamic>> get gcHostChangedStream => _gcHostChangedCtrl.stream;
+  Stream<Map<String, dynamic>> get gcEndedStream => _gcEndedCtrl.stream;
   Stream<Map<String, dynamic>> get messageDeletedStream => _messageDeletedCtrl.stream;
   Stream<Map<String, dynamic>> get messageAckedStream => _messageAckedCtrl.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingCtrl.stream;
@@ -616,6 +668,14 @@ class MessengerRemoteDataSource {
     _groupDeletedCtrl.close();
     _groupCallStartedCtrl.close();
     _groupCallEndedCtrl.close();
+    _gcInviteCtrl.close();
+    _gcStatusCtrl.close();
+    _gcJoinedCtrl.close();
+    _gcLeftCtrl.close();
+    _gcKickedCtrl.close();
+    _gcMuteRequestCtrl.close();
+    _gcHostChangedCtrl.close();
+    _gcEndedCtrl.close();
     _messageDeletedCtrl.close();
     _typingCtrl.close();
     _contactRequestCtrl.close();

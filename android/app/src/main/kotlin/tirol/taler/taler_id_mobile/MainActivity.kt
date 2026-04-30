@@ -17,6 +17,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
 import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
+import tirol.taler.taler_id_mobile.audio.AudioCaptureChannel
+import tirol.taler.taler_id_mobile.audio.AudioPlaybackChannel
 import com.cloudwebrtc.webrtc.LocalTrack
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -275,6 +277,12 @@ class MainActivity : FlutterFragmentActivity() {
 
         registerAudioRouteCallback()
 
+        // Mesh audio capture channel (PCM-16 frames, 16 kHz, AEC + NS)
+        AudioCaptureChannel(flutterEngine)
+
+        // Mesh audio playback channel (PCM-16, 16 kHz, USAGE_VOICE_COMMUNICATION)
+        AudioPlaybackChannel(flutterEngine)
+
         // Wake word channel (separate from audio to avoid handler conflicts)
         val wwCh = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/wake_word")
         wakeWordChannel = wwCh
@@ -310,6 +318,32 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/mesh_fg_service")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> {
+                        val peerCount = call.argument<Int>("peerCount") ?: 0
+                        val intent = Intent(this, MeshForegroundService::class.java).apply {
+                            putExtra(MeshForegroundService.EXTRA_PEER_COUNT, peerCount)
+                        }
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        result.success(null)
+                    }
+                    "stop" -> {
+                        val intent = Intent(this, MeshForegroundService::class.java).apply {
+                            action = MeshForegroundService.ACTION_STOP
+                        }
+                        startService(intent)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun requestAudioFocus(am: AudioManager) {

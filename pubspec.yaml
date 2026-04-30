@@ -1,7 +1,7 @@
 name: taler_id_mobile
 description: Taler ID — мобильное приложение для iOS и Android
 publish_to: 'none'
-version: 1.0.65+158
+version: 1.0.66+159
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -21,6 +21,7 @@ dependencies:
 
   # Utilities
   collection: ^1.18.0
+  async: ^2.11.0
 
   # HTTP
   dio: ^5.7.0
@@ -125,6 +126,9 @@ dependencies:
 
   # Clock (used by mesh supervisor for fakeAsync-compatible rate-limiting)
   clock: ^1.1.2
+
+  # FFI (for libopus bindings)
+  ffi: ^2.1.0
 
   # Utils
   intl: any

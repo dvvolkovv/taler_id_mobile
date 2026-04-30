@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../crypto/keys/contact_key_store.dart';
+import '../crypto/mesh_datagram_cipher.dart';
 import '../crypto/noise/noise_ik_handshake.dart';
 import '../crypto/noise/session.dart';
 import '../transport/frame.dart';
@@ -224,9 +225,9 @@ class MeshMessagingService {
         state.isInitiator = false;
         await responder.readMessage1(frame.bytes);
         final msg2 = await responder.writeMessage2(payload: Uint8List(0));
-        final (k1, k2) = responder.finalize();
+        final (k1, k2, h) = responder.finalizeWithHash();
         // Responder: k1 = recv (initiator→responder), k2 = send (responder→initiator).
-        state.session = NoiseSession(sendKey: k2, recvKey: k1);
+        state.session = NoiseSession(sendKey: k2, recvKey: k1, handshakeHash: h);
         state.hadPriorSession = true;
         state.sessionEstablished?.complete();
         await _sendFrame(srcDevice, FrameType.handshake, msg2);
@@ -235,9 +236,9 @@ class MeshMessagingService {
         debugPrint('[mesh-frame] initiator receiving msg2');
         // Initiator receiving msg2.
         await state.handshake!.readMessage2(frame.bytes);
-        final (k1, k2) = state.handshake!.finalize();
+        final (k1, k2, h) = state.handshake!.finalizeWithHash();
         // Initiator: k1 = send (initiator→responder), k2 = recv (responder→initiator).
-        state.session = NoiseSession(sendKey: k1, recvKey: k2);
+        state.session = NoiseSession(sendKey: k1, recvKey: k2, handshakeHash: h);
         state.hadPriorSession = true;
         state.sessionEstablished?.complete();
         debugPrint('[mesh-frame] initiator handshake complete, session established');
@@ -355,6 +356,62 @@ class MeshMessagingService {
     state.isInitiator = false;
     state.initiating = false;
     state.sessionEstablished = null;
+  }
+
+  /// Returns the AEAD cipher pair for sending/receiving voice datagrams to
+  /// [peer]. Null if no Noise session has been established for that peer
+  /// yet. Both peers derive identical sub-keys from the Noise handshake's
+  /// channel-binding value ([NoiseSession.handshakeHash]) via HKDF with a
+  /// direction-tagged info string.
+  ///
+  /// Secret-source choice: we use Option (a) — the Noise IK handshake hash
+  /// `h`, captured at `finalize()` via [NoiseIKHandshake.finalizeWithHash].
+  /// This is the canonical Noise "channel binding" value: it is computed
+  /// identically by both initiator and responder as the SHA-256 of the full
+  /// handshake transcript, making it a symmetric 32-byte secret that neither
+  /// party can unilaterally manipulate. No key-ordering tricks are needed.
+  ///
+  /// Direction convention: the peer with the lexicographically smaller
+  /// devicePk (byte-wise) is "a"; the other is "b". The local peer's
+  /// outbound cipher uses its outgoing direction (aToB if local is "a",
+  /// bToA otherwise), so alice's outbound cipher exactly matches bob's
+  /// inbound cipher on the same direction.
+  ///
+  /// Returns null if:
+  ///   - No [_PeerState] exists for [peer] (never discovered or sent to)
+  ///   - The Noise session is not yet established ([session] is null)
+  ///   - The session was created without a handshake hash (legacy / test stub)
+  Future<({MeshDatagramCipher outbound, MeshDatagramCipher inbound})?>
+      datagramCiphersFor(PeerId peer) async {
+    final state = _peerStates[peer];
+    if (state == null || state.session == null) return null;
+    final secret = state.session!.handshakeHash;
+    if (secret == null) return null;
+
+    final myBytes = myDevicePublicKey;
+    final theirBytes = peer.bytes;
+    final iAmA = _compareBytes(myBytes, theirBytes) < 0;
+    final outboundDir = iAmA ? CipherDirection.aToB : CipherDirection.bToA;
+    final inboundDir = iAmA ? CipherDirection.bToA : CipherDirection.aToB;
+
+    final outbound = await MeshDatagramCipher.derive(
+      transportSecret: secret,
+      direction: outboundDir,
+    );
+    final inbound = await MeshDatagramCipher.derive(
+      transportSecret: secret,
+      direction: inboundDir,
+    );
+    return (outbound: outbound, inbound: inbound);
+  }
+
+  static int _compareBytes(Uint8List a, Uint8List b) {
+    final minLen = a.length < b.length ? a.length : b.length;
+    for (var i = 0; i < minLen; i++) {
+      final c = a[i] - b[i];
+      if (c != 0) return c;
+    }
+    return a.length - b.length;
   }
 
   Future<void> dispose() async {

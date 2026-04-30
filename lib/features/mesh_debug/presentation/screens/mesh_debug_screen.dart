@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'mesh_voice_self_test_screen.dart';
 
 import '../../../../core/config/mesh_config.dart';
 import '../../../../core/di/service_locator.dart';
@@ -219,6 +220,22 @@ class _MeshDebugScreenState extends State<MeshDebugScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.mic_outlined),
+                    label: const Text('Voice self-test'),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const MeshVoiceSelfTestScreen(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
             if (_lastError != null) ...[
               const SizedBox(height: 8),
               Container(
@@ -384,7 +401,10 @@ class _StatusCard extends StatelessWidget {
 class _PeerTile extends StatelessWidget {
   final _PeerEntry entry;
   final VoidCallback? onSendTest;
-  const _PeerTile({required this.entry, required this.onSendTest});
+  const _PeerTile({
+    required this.entry,
+    required this.onSendTest,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -406,7 +426,8 @@ class _PeerTile extends StatelessWidget {
             ),
           ),
         ),
-        title: Text(prefix, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
+        title: Text(prefix,
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 13)),
         subtitle: Text(
           '$transport  ·  ${entry.host}:${entry.port}',
           style: const TextStyle(fontSize: 11),

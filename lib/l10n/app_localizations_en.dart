@@ -2424,6 +2424,91 @@ class AppLocalizationsEn extends AppLocalizations {
   String get incomingCallAccept => 'Accept';
 
   @override
+  String get meshIncomingCallLabel => '📡 Incoming mesh call';
+
+  @override
+  String meshDeviceFallback(String hexPrefix) {
+    return 'Mesh device $hexPrefix';
+  }
+
+  @override
+  String get callConflictAlreadyInCall => 'Finish the current call first';
+
+  @override
+  String get callPopupTransportTitle => 'Call via';
+
+  @override
+  String get callPopupTransportMesh => '📡 Mesh (peer-to-peer)';
+
+  @override
+  String get callPopupTransportLk => '📞 Server';
+
+  @override
+  String get callPopupTransportMeshUnavailable =>
+      'Contact not reachable via mesh';
+
+  @override
+  String get meshOnboardingTitle => '📡 Mesh calls need the app open';
+
+  @override
+  String get meshOnboardingBody =>
+      'When the phone is locked, mesh calls may drop after ~30 seconds (iOS limitation).';
+
+  @override
+  String get meshOnboardingAck => 'Got it';
+
+  @override
+  String get meshHistoryBadge => '📡 Mesh';
+
+  @override
+  String get meshHistoryNoChatAvailable => 'Contact is not in your list';
+
+  @override
+  String get meshCallStatusInviting => 'Calling…';
+
+  @override
+  String get meshCallStatusConnecting => 'Connecting…';
+
+  @override
+  String get meshCallEndedUserHangup => 'Call ended';
+
+  @override
+  String get meshCallEndedRemoteHangup => 'Ended by peer';
+
+  @override
+  String get meshCallEndedRejected => 'Declined';
+
+  @override
+  String get meshCallEndedNoAnswer => 'No answer';
+
+  @override
+  String get meshCallEndedConnectionLost => 'Connection lost';
+
+  @override
+  String get meshCallEndedError => 'Connection error';
+
+  @override
+  String meshCallTransportBadge(String transport) {
+    return '📡 Mesh · $transport';
+  }
+
+  @override
+  String get meshCallTransportBadgePlain => '📡 Mesh';
+
+  @override
+  String get batteryExemptionTitle => '📡 Reliable mesh calls';
+
+  @override
+  String get batteryExemptionBody =>
+      'Allow the app to run without battery restrictions so Android doesn\'t kill the mesh in the background.';
+
+  @override
+  String get batteryExemptionAccept => 'Open settings';
+
+  @override
+  String get batteryExemptionDismiss => 'Not now';
+
+  @override
   String get groupCamera => 'Camera';
 
   @override
@@ -3260,4 +3345,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get billingUnitCall => 'call';
+
+  @override
+  String get groupCallSelectParticipants => 'Select participants';
+
+  @override
+  String groupCallSelectedCount(int n) {
+    return '$n/7';
+  }
+
+  @override
+  String get groupCallSearch => 'Search';
+
+  @override
+  String get groupCallMaxReached => 'Maximum 7 participants';
+
+  @override
+  String get groupCallLobbyTitle => 'Group • Lobby';
+
+  @override
+  String groupCallHostLabel(String name) {
+    return 'Host: $name';
+  }
+
+  @override
+  String get groupCallMicHint => 'Mic will activate on connect';
+
+  @override
+  String get groupCallCancel => 'Cancel';
+
+  @override
+  String get groupCallNoAnswer => 'No one answered';
+
+  @override
+  String get groupCallEndedByHost => 'Call ended by host';
+
+  @override
+  String get groupCallAllLeft => 'Everyone left the call';
+
+  @override
+  String get groupCallEnded => 'Call ended';
+
+  @override
+  String groupCallActiveTitle(int count) {
+    return 'Group • $count';
+  }
+
+  @override
+  String get groupCallConnectionLost => 'Connection lost';
+
+  @override
+  String get groupCallMuteRequested => 'Host asked everyone to mute';
+
+  @override
+  String get groupCallUnmute => 'Unmute';
+
+  @override
+  String get groupCallMute => 'Mute';
+
+  @override
+  String get groupCallMuteAll => 'Mute all';
+
+  @override
+  String get groupCallLeave => 'Leave';
+
+  @override
+  String get groupCallStatusCalling => 'calling…';
+
+  @override
+  String get groupCallStatusDeclined => 'declined';
+
+  @override
+  String get groupCallStatusTimeout => 'no answer';
+
+  @override
+  String get groupCallStatusLeft => 'left';
+
+  @override
+  String groupCallKickConfirm(String name) {
+    return 'Remove $name from call';
+  }
+
+  @override
+  String get groupCallCancelAction => 'Cancel';
+
+  @override
+  String get groupCallActiveBanner => 'Active call';
+
+  @override
+  String groupCallBannerSummary(String host, int count) {
+    return 'Group: $host + $count';
+  }
+
+  @override
+  String groupCallBannerSummaryAlone(String host) {
+    return 'Group: $host';
+  }
+
+  @override
+  String get groupCallCreateError => 'Could not create call';
+
+  @override
+  String get groupCallJoinError => 'Could not join call';
+
+  @override
+  String get groupCallLivekitError => 'LiveKit error';
+
+  @override
+  String get groupCallDone => 'Done';
+
+  @override
+  String get groupCallNoResults => 'No results';
+
+  @override
+  String get groupCallNoContacts => 'No contacts';
 }

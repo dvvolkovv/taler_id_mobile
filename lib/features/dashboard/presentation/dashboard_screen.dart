@@ -53,6 +53,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _disconnectSub;
   StreamSubscription? _callEndedSub;
   StreamSubscription? _callAnsweredSub;
+  StreamSubscription? _gcEndedSub;
+  StreamSubscription? _gcInviteSub;
   StreamSubscription? _callkitSub;
   StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
@@ -204,7 +206,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
       // Re-register FCM token now that the user is authenticated.
       // NotificationService.init() runs before login so the initial save fails with 401.
-      NotificationService.refreshToken();
+      // force:true unconditionally re-uploads even if the device-local token
+      // hasn't rotated — backend may have auto-purged a stale row, in which
+      // case we must re-register or push silently stops working.
+      NotificationService.refreshToken(force: true);
       NotificationService.setMissedCallCallback(() {
         if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
       });
@@ -215,6 +220,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       _listenForDisconnect();
       _listenForCallEnded();
       _listenForCallAnswered();
+      _listenForGroupCallEnded();
+      _listenForGroupCallInvite();
       _listenForShareIntent();
       _checkForUpdate();
       _startWakeWord();
@@ -275,6 +282,58 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
       // User is NOT on the voice screen (banner mode) — end call state and hide banner.
       CallStateService.instance.endCall();
+    });
+  }
+
+  /// Group-call analogue of [_listenForCallEnded]: when the server broadcasts
+  /// `group_call_ended` (host_ended / all_left / timeout), every device of
+  /// every participant gets the event. We must dismiss any still-ringing
+  /// CallKit invite for this group call so Phone B doesn't keep ringing for
+  /// the full 30 s timeout. The BLoC emits its own [Ended] state for the
+  /// in-app screen; this listener handles only the OS-level CallKit cleanup.
+  void _listenForGroupCallEnded() {
+    _gcEndedSub?.cancel();
+    _gcEndedSub = sl<MessengerRemoteDataSource>()
+        .gcEndedStream
+        .listen((payload) async {
+      debugPrint('[Dashboard] gcEndedStream fired: $payload');
+      try {
+        await FlutterCallkitIncoming.endAllCalls();
+      } catch (_) {}
+    });
+  }
+
+  /// Foreground-app analogue of the FCM background `group_call_invite`
+  /// handler. The 1-on-1 path (see `_handleCallInvite`) shows CallKit even when
+  /// the app is foregrounded so the OS rings; group calls were missing this
+  /// hook, so an in-foreground invitee saw nothing.
+  void _listenForGroupCallInvite() {
+    _gcInviteSub?.cancel();
+    _gcInviteSub = sl<MessengerRemoteDataSource>()
+        .gcInviteStream
+        .listen((payload) async {
+      debugPrint('[Dashboard] gcInviteStream fired: $payload');
+      final groupCallId = payload['groupCallId'] as String?;
+      if (groupCallId == null || groupCallId.isEmpty) return;
+      final host = payload['host'] as Map?;
+      final hostName = (host?['displayName'] as String?) ?? 'Group Call';
+      final hostAvatar = host?['avatarUrl'] as String?;
+      final invitees = payload['invitees'] as List? ?? const [];
+      final fromName = invitees.length > 1
+          ? '$hostName + ${invitees.length - 1}'
+          : hostName;
+      try {
+        await showCallkitIncoming(
+          // `group-<id>` prefix lets main.dart's CallKit accept handler
+          // discriminate group vs 1-on-1 routes (mirrors the FCM/APNs path).
+          roomName: 'group-$groupCallId',
+          fromName: fromName,
+          convId: '',
+          fromAvatar: hostAvatar,
+        );
+      } catch (e) {
+        debugPrint('[Dashboard] gc CallKit show failed: $e');
+      }
     });
   }
 
@@ -421,7 +480,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         if (roomName == null || roomName.isEmpty) continue;
         debugPrint('[CallKit] _checkActiveCallKitCalls: found orphaned call, room=$roomName');
         _waitingForCallAccept = true;
-        // Connect to LiveKit immediately if not already connected
+        // Group call orphan: route to the group active screen, NOT the
+        // 1-on-1 voice screen. The 1-on-1 path below would call
+        // `connectInBackground` which hits `/voice/rooms/{room}/join` —
+        // wrong endpoint for a group LiveKit room — and push
+        // `/dashboard/voice`, which renders the 1-on-1 UI on top of a
+        // group room. The group active screen owns its own LiveKit
+        // connection via the BLoC.
+        if (roomName.startsWith('group-')) {
+          final groupCallId = roomName.substring('group-'.length);
+          if (groupCallId.isEmpty) continue;
+          if (mounted) {
+            context.push('/group-call/$groupCallId');
+          }
+          return true;
+        }
+        // Connect to LiveKit immediately if not already connected (1-on-1)
         if (!CallStateService.instance.isInCall) {
           CallStateService.instance.connectInBackground(roomName, convId, e2eeKey: e2eeKey);
         }
@@ -449,6 +523,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _disconnectSub?.cancel();
     _callEndedSub?.cancel();
     _callAnsweredSub?.cancel();
+    _gcEndedSub?.cancel();
+    _gcInviteSub?.cancel();
     _callkitSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();

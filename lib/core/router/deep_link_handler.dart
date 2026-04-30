@@ -56,16 +56,5 @@ class DeepLinkHandler {
         return;
       }
     }
-
-    // Handle OAuth callback:
-    // talerid://oauth/callback?code=X
-    if (uri.path.contains('oauth/callback')) {
-      final code = uri.queryParameters['code'];
-      if (code != null) {
-        debugPrint('OAuth callback code: $code');
-        // Handle OAuth code exchange
-      }
-      return;
-    }
   }
 }
