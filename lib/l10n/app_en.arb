@@ -1086,6 +1086,10 @@
     }
   },
   "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Reliable mesh calls",
+  "batteryExemptionBody": "Allow the app to run without battery restrictions so Android doesn't kill the mesh in the background.",
+  "batteryExemptionAccept": "Open settings",
+  "batteryExemptionDismiss": "Not now",
   "groupCamera": "Camera",
   "groupGallery": "Gallery",
   "groupAvatarUpdated": "Group avatar updated",

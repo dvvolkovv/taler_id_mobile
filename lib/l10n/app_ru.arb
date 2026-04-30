@@ -1086,6 +1086,10 @@
     }
   },
   "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Бесперебойные mesh-звонки",
+  "batteryExemptionBody": "Чтобы Android не убивал mesh-сеть в фоне, разреши приложению работать без ограничений батареи.",
+  "batteryExemptionAccept": "Открыть настройки",
+  "batteryExemptionDismiss": "Не сейчас",
   "groupCamera": "Камера",
   "groupGallery": "Галерея",
   "groupAvatarUpdated": "Аватар группы обновлён",

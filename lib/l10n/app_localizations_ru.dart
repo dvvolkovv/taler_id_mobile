@@ -2506,6 +2506,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get meshCallTransportBadgePlain => '📡 Mesh';
 
   @override
+  String get batteryExemptionTitle => '📡 Бесперебойные mesh-звонки';
+
+  @override
+  String get batteryExemptionBody =>
+      'Чтобы Android не убивал mesh-сеть в фоне, разреши приложению работать без ограничений батареи.';
+
+  @override
+  String get batteryExemptionAccept => 'Открыть настройки';
+
+  @override
+  String get batteryExemptionDismiss => 'Не сейчас';
+
+  @override
   String get groupCamera => 'Камера';
 
   @override

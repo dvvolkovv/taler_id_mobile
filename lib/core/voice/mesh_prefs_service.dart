@@ -1,13 +1,15 @@
 import 'package:hive/hive.dart';
 
-/// Tiny persistent prefs for mesh-related UI state. Currently only the
-/// iOS onboarding-tooltip flag, but kept as a separate service so future
-/// flags (e.g. user-preferred transport) have a clear home.
+/// Tiny persistent prefs for mesh-related UI state. Currently holds the
+/// iOS onboarding-tooltip flag and the Android battery-exemption prompt flag.
+/// Kept as a separate service so future flags (e.g. user-preferred transport)
+/// have a clear home.
 ///
-/// Hive box: 'mesh_prefs'. Single key 'onboarding_shown_v1'.
+/// Hive box: 'mesh_prefs'.
 class MeshPrefsService {
   static const _boxName = 'mesh_prefs';
   static const _onboardingKey = 'onboarding_shown_v1';
+  static const _batteryPromptKey = 'battery_prompt_shown_v1';
 
   Box? _box;
 
@@ -31,5 +33,13 @@ class MeshPrefsService {
 
   Future<void> markOnboardingShown() async {
     await _box?.put(_onboardingKey, true);
+  }
+
+  Future<bool> isBatteryPromptShown() async {
+    return (_box?.get(_batteryPromptKey) as bool?) ?? false;
+  }
+
+  Future<void> markBatteryPromptShown() async {
+    await _box?.put(_batteryPromptKey, true);
   }
 }
