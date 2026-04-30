@@ -1944,21 +1944,31 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     if (conv?.type != 'AI_ANALYST' &&
                         conv?.type != 'AI_OUTBOUND' &&
                         conv?.type != 'CHANNEL')
-                      return GestureDetector(
-                        onLongPress: _showTransportPopup,
+                      // InkWell natively handles both onTap and onLongPress.
+                      // GestureDetector wrapping IconButton lost the long-press
+                      // because IconButton's internal InkWell wins the gesture
+                      // arena on tap-down — the outer GestureDetector never sees it.
+                      return Tooltip(
+                        message: AppLocalizations.of(context)!.chatCall,
                         child: Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.phone_outlined),
-                              onPressed: _autoPickCall,
-                              tooltip: AppLocalizations.of(context)!.chatCall,
+                            InkWell(
+                              onTap: _autoPickCall,
+                              onLongPress: _showTransportPopup,
+                              customBorder: const CircleBorder(),
+                              child: const Padding(
+                                padding: EdgeInsets.all(8),
+                                child: Icon(Icons.phone_outlined),
+                              ),
                             ),
                             if (conv?.type == 'DIRECT' && conv?.otherUserId != null)
                               Positioned(
                                 top: 6,
                                 right: 6,
-                                child: MeshEligibilityDot(userId: conv!.otherUserId!),
+                                child: IgnorePointer(
+                                  child: MeshEligibilityDot(userId: conv!.otherUserId!),
+                                ),
                               ),
                           ],
                         ),
