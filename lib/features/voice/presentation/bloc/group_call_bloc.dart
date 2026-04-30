@@ -30,6 +30,14 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
   final MessengerRemoteDataSource _socket;
   final List<StreamSubscription<dynamic>> _subs = [];
 
+  /// True while [_onJoin] is awaiting the backend round-trip (POST `/:id/join`
+  /// + GET `/:id`). Server-pushed `group_call_status` events that arrive in
+  /// this window are suppressed, because the join's own `getCall` response is
+  /// the authoritative invite list and a racing StatusUpdated could clobber
+  /// the InActive payload before it's emitted. See Defect #4 in the
+  /// 2026-04-30 group-call phase-1.2 plan.
+  bool _joinInProgress = false;
+
   GroupCallBloc(this._repo, this._socket) : super(const GroupCallState.idle()) {
     on<CreateCall>(_onCreate);
     on<JoinCall>(_onJoin);
@@ -76,6 +84,7 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
   }
 
   Future<void> _onJoin(JoinCall e, Emitter<GroupCallState> emit) async {
+    _joinInProgress = true;
     try {
       final r = await _repo.join(e.callId);
       final call = await _repo.getCall(e.callId);
@@ -86,6 +95,8 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
       ));
     } catch (_) {
       emit(const GroupCallState.error('Не удалось присоединиться'));
+    } finally {
+      _joinInProgress = false;
     }
   }
 
@@ -129,6 +140,11 @@ class GroupCallBloc extends Bloc<GroupCallEvent, GroupCallState> {
   }
 
   void _onStatusUpdated(StatusUpdated e, Emitter<GroupCallState> emit) {
+    if (_joinInProgress) {
+      // ignore: avoid_print
+      print('[GroupCallBloc] _onStatusUpdated suppressed during JoinCall');
+      return;
+    }
     final s = state;
     final updatedId = e.payload['groupCallId'];
     final invitesRaw = e.payload['invites'] as List? ?? const [];
