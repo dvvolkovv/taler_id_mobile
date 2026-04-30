@@ -480,7 +480,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         if (roomName == null || roomName.isEmpty) continue;
         debugPrint('[CallKit] _checkActiveCallKitCalls: found orphaned call, room=$roomName');
         _waitingForCallAccept = true;
-        // Connect to LiveKit immediately if not already connected
+        // Group call orphan: route to the group active screen, NOT the
+        // 1-on-1 voice screen. The 1-on-1 path below would call
+        // `connectInBackground` which hits `/voice/rooms/{room}/join` —
+        // wrong endpoint for a group LiveKit room — and push
+        // `/dashboard/voice`, which renders the 1-on-1 UI on top of a
+        // group room. The group active screen owns its own LiveKit
+        // connection via the BLoC.
+        if (roomName.startsWith('group-')) {
+          final groupCallId = roomName.substring('group-'.length);
+          if (groupCallId.isEmpty) continue;
+          if (mounted) {
+            context.push('/group-call/$groupCallId');
+          }
+          return true;
+        }
+        // Connect to LiveKit immediately if not already connected (1-on-1)
         if (!CallStateService.instance.isInCall) {
           CallStateService.instance.connectInBackground(roomName, convId, e2eeKey: e2eeKey);
         }
