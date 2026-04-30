@@ -22,23 +22,31 @@ class BatteryExemptionDialog {
     final accepted = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(l10n.batteryExemptionTitle),
-        content: Text(l10n.batteryExemptionBody),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l10n.batteryExemptionDismiss),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(l10n.batteryExemptionAccept),
-          ),
-        ],
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(l10n.batteryExemptionTitle),
+          content: Text(l10n.batteryExemptionBody),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.batteryExemptionDismiss),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.batteryExemptionAccept),
+            ),
+          ],
+        ),
       ),
     );
+    // Only persist the "shown" flag if the user explicitly chose either
+    // button. If the dialog was auto-dismissed (back gesture, app
+    // backgrounded, route swap), keep the flag false so it surfaces again
+    // on the next foreground-service start.
+    if (accepted == null) return false;
     await prefs.markBatteryPromptShown();
-    if (accepted == true) {
+    if (accepted) {
       try {
         await Permission.ignoreBatteryOptimizations.request();
       } catch (_) {}
