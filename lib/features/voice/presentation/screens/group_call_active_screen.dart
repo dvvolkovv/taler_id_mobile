@@ -9,6 +9,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/group_call_invite.dart';
+import '../../domain/repositories/group_call_repository.dart';
 import '../bloc/group_call_bloc.dart';
 // Alias the event import: `GroupCallEvent.ended` and `GroupCallState.ended`
 // both freezed-generate a top-level class named `Ended`, so we hide the event
@@ -76,10 +77,53 @@ class _GroupCallActiveScreenState extends State<GroupCallActiveScreen> {
       // ignore: avoid_print
       print('[ActiveScreen] postFrame state=${s.runtimeType} needsJoin=$needsJoin');
       if (needsJoin) {
-        _bloc.add(gce.GroupCallEvent.joinCall(widget.callId));
+        // Cold-start guard: GoRouter restores the last URL, so we may mount
+        // for a callId that has already TIMEOUT'd / ENDED. Without this
+        // pre-flight the user sees a spinner → "call not found" snackbar →
+        // bounce to call-history. Skip the pre-flight when state is already
+        // InActive for this callId (host's lobby→active path has fresh
+        // state and shouldn't pay the round-trip).
+        _preflightThenJoin();
+      } else {
+        _connectIfNeeded();
       }
-      _connectIfNeeded();
     });
+  }
+
+  /// Verify the call is still active server-side before dispatching JoinCall.
+  /// On any failure (network blip, parse error) we fall through to the normal
+  /// JoinCall path — the BLoC's existing 410-Gone → ErrorState handler will
+  /// still bounce the user back to call-history, just with the spinner flicker
+  /// we are trying to avoid in the happy path.
+  Future<void> _preflightThenJoin() async {
+    try {
+      final repo = sl<GroupCallRepository>();
+      final activeCalls = await repo.getActiveCallsForMe();
+      // ignore: avoid_print
+      print(
+          '[ActiveScreen] preflight got ${activeCalls.length} active calls; looking for ${widget.callId}');
+      final isStillActive =
+          activeCalls.any((c) => c.id == widget.callId);
+      if (!isStillActive) {
+        // ignore: avoid_print
+        print(
+            '[ActiveScreen] preflight: call ${widget.callId} not active — bouncing to call-history');
+        if (!mounted) return;
+        Future.microtask(() {
+          if (!mounted) return;
+          context.go(RouteConstants.callHistory);
+        });
+        return;
+      }
+    } catch (e) {
+      // Pre-flight is best-effort; if it fails we still try JoinCall and
+      // let the existing error-handling path take over.
+      // ignore: avoid_print
+      print('[ActiveScreen] preflight failed: $e — proceeding with JoinCall');
+    }
+    if (!mounted) return;
+    _bloc.add(gce.GroupCallEvent.joinCall(widget.callId));
+    _connectIfNeeded();
   }
 
   Future<void> _connectIfNeeded() async {
