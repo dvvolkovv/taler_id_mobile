@@ -88,6 +88,12 @@ import '../../features/profile_sections/data/datasources/profile_sections_remote
 import '../../features/profile_sections/data/repositories/profile_sections_repository_impl.dart';
 import '../../features/profile_sections/domain/repositories/i_profile_sections_repository.dart';
 
+// Group Call (Phase 1) — voice multi-party rooms
+import '../../features/voice/data/datasources/group_call_remote_datasource.dart';
+import '../../features/voice/data/repositories/group_call_repository_impl.dart';
+import '../../features/voice/domain/repositories/group_call_repository.dart';
+import '../../features/voice/presentation/bloc/group_call_bloc.dart';
+
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
@@ -439,6 +445,25 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => ProfileSectionsRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton<IProfileSectionsRepository>(
     () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
+  );
+
+  // Group Call (Phase 1) — voice multi-party rooms.
+  // BLoC is a factory: a fresh instance per screen so subscriptions don't
+  // leak between calls. Repository + datasource are lazy singletons.
+  sl.registerLazySingleton<GroupCallRemoteDatasource>(
+    () => GroupCallRemoteDatasource(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<GroupCallRepository>(
+    () => GroupCallRepositoryImpl(sl<GroupCallRemoteDatasource>()),
+  );
+  // Singleton: GroupCallBloc state must persist across screen transitions
+  // (picker → lobby → active). A factory registration would build a fresh
+  // Idle-state BLoC for each `sl<GroupCallBloc>()` call, breaking the flow.
+  sl.registerLazySingleton<GroupCallBloc>(
+    () => GroupCallBloc(
+      sl<GroupCallRepository>(),
+      sl<MessengerRemoteDataSource>(),
+    ),
   );
 
   // Billing

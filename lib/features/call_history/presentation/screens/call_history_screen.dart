@@ -17,8 +17,10 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_history_cache_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../voice/presentation/widgets/active_group_call_banner.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -331,6 +333,13 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.push(RouteConstants.newGroupCall),
+        backgroundColor: colors.primary,
+        foregroundColor: Colors.black,
+        icon: const Icon(Icons.group_add_rounded),
+        label: Text(l10n.groupCallSelectParticipants),
+      ),
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {
@@ -360,6 +369,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 ),
               ],
             ),
+            const SliverToBoxAdapter(child: ActiveGroupCallBanner()),
             SliverPadding(
               padding: const EdgeInsets.all(16),
               sliver: SliverList(

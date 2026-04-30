@@ -37,6 +37,9 @@ import '../../features/messenger/presentation/screens/add_group_members_screen.d
 import '../../features/messenger/presentation/screens/channel_directory_screen.dart';
 import '../../features/messenger/presentation/screens/channel_settings_screen.dart';
 import '../../features/voice/presentation/screens/voice_call_screen.dart';
+import '../../features/voice/presentation/screens/new_group_call_screen.dart';
+import '../../features/voice/presentation/screens/group_call_lobby_screen.dart';
+import '../../features/voice/presentation/screens/group_call_active_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
 import '../../features/billing/presentation/screens/wallet_screen.dart';
@@ -133,6 +136,29 @@ final appRouter = GoRouter(
           e2eeKey: e2eeKey,
           publicCode: publicCode,
         );
+      },
+    ),
+    // Group voice room — picker (Phase 1)
+    GoRoute(
+      path: RouteConstants.newGroupCall,
+      builder: (_, __) => const NewGroupCallScreen(),
+    ),
+    // Group voice room — lobby (declared before /group-call/:id so the
+    // longer pattern matches first regardless of GoRouter version semantics).
+    GoRoute(
+      path: RouteConstants.groupCallLobby,
+      builder: (_, state) {
+        final id = state.pathParameters['id']!;
+        return GroupCallLobbyScreen(callId: id);
+      },
+    ),
+    // Group voice room — active (also reached from lobby on InActive,
+    // and used directly by active-call banner / push notifications).
+    GoRoute(
+      path: RouteConstants.groupCallActive,
+      builder: (_, state) {
+        final id = state.pathParameters['id']!;
+        return GroupCallActiveScreen(callId: id);
       },
     ),
     // Share-in recipient picker (full-screen, outside shell)

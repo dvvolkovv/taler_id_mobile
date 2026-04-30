@@ -1476,5 +1476,84 @@
   "billingUnitRequest": "request",
   "billingUnitToken": "token",
   "billingUnitTokens1k": "1K tokens",
-  "billingUnitCall": "call"
+  "billingUnitCall": "call",
+  "groupCallSelectParticipants": "Select participants",
+  "groupCallSelectedCount": "{n}/7",
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallSearch": "Search",
+  "groupCallMaxReached": "Maximum 7 participants",
+  "groupCallLobbyTitle": "Group • Lobby",
+  "groupCallHostLabel": "Host: {name}",
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallMicHint": "Mic will activate on connect",
+  "groupCallCancel": "Cancel",
+  "groupCallNoAnswer": "No one answered",
+  "groupCallEndedByHost": "Call ended by host",
+  "groupCallAllLeft": "Everyone left the call",
+  "groupCallEnded": "Call ended",
+  "groupCallActiveTitle": "Group • {count}",
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallConnectionLost": "Connection lost",
+  "groupCallMuteRequested": "Host asked everyone to mute",
+  "groupCallUnmute": "Unmute",
+  "groupCallMute": "Mute",
+  "groupCallMuteAll": "Mute all",
+  "groupCallLeave": "Leave",
+  "groupCallStatusCalling": "calling…",
+  "groupCallStatusDeclined": "declined",
+  "groupCallStatusTimeout": "no answer",
+  "groupCallStatusLeft": "left",
+  "groupCallKickConfirm": "Remove {name} from call",
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallCancelAction": "Cancel",
+  "groupCallActiveBanner": "Active call",
+  "groupCallBannerSummary": "Group: {host} + {count}",
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "groupCallBannerSummaryAlone": "Group: {host}",
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "groupCallCreateError": "Could not create call",
+  "groupCallJoinError": "Could not join call",
+  "groupCallLivekitError": "LiveKit error",
+  "groupCallDone": "Done",
+  "groupCallNoResults": "No results",
+  "groupCallNoContacts": "No contacts"
 }

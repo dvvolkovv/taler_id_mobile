@@ -42,6 +42,11 @@ class CallStateService {
   /// Currently active (foreground) line.
   String? _activeRoomName;
 
+  /// Active group-call id (Phase 1) — null if user is not in a group call.
+  /// Independent from [_activeRoomName] (which tracks 1-on-1 voice rooms).
+  String? _activeGroupCallId;
+  final _activeGroupCallCtrl = StreamController<String?>.broadcast();
+
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
@@ -79,6 +84,26 @@ class CallStateService {
 
   bool get isInCall => _lines.isNotEmpty;
   bool get isBackgroundConnecting => _bgConnecting;
+
+  // ── Group-call API (Phase 1) ─────────────────────────────────────
+
+  /// Active group-call id (Phase 1) — null if user is not in a group call.
+  /// Independent from [roomName] (1-on-1 voice rooms).
+  String? get activeGroupCallId => _activeGroupCallId;
+
+  /// Broadcast stream of group-call id changes (null/id transitions).
+  Stream<String?> get activeGroupCallStream => _activeGroupCallCtrl.stream;
+
+  /// True if user is in any kind of call — 1-on-1 voice OR group voice.
+  bool get isInAnyCall => _lines.isNotEmpty || _activeGroupCallId != null;
+
+  void setActiveGroupCall(String? id) {
+    if (_activeGroupCallId == id) return;
+    _activeGroupCallId = id;
+    if (!_activeGroupCallCtrl.isClosed) {
+      _activeGroupCallCtrl.add(id);
+    }
+  }
 
   // ── Multi-line API ───────────────────────────────────────────────
 
