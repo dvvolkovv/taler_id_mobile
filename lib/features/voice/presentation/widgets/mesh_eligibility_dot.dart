@@ -36,11 +36,13 @@ class _MeshEligibilityDotState extends State<MeshEligibilityDot> {
       if (e.userId != widget.userId) return;
       if (!mounted) return;
       setState(() => _isOnline = e.isOnline);
-      // Schedule a post-frame callback that requests one extra frame after
-      // the rebuild renders. This ensures the next tester.pump() sees
-      // hasScheduledFrame=true and processes pending stream events correctly
-      // in widget tests. In production this costs one additional no-op frame
-      // per state change (acceptable for a static indicator).
+      // Empirically required: without this, widget tests using sequential
+      // tester.pump() calls don't pick up the second stream-driven setState
+      // (test "updates render when watcher emits change" fails without it,
+      // verified by removing this block and re-running). The post-frame
+      // callback re-arms hasScheduledFrame for the next pump. Production
+      // cost: one no-op vsync per online/offline transition (~1/min typical),
+      // negligible for a status indicator.
       if (!_postFramePending) {
         _postFramePending = true;
         SchedulerBinding.instance.addPostFrameCallback((_) {
