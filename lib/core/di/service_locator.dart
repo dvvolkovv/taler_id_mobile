@@ -18,6 +18,8 @@ import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
 import '../services/wake_word_service.dart';
+import '../voice/mesh_peer_eligibility_watcher.dart';
+import '../voice/mesh_prefs_service.dart';
 import '../voice/mesh_voice_ui_coordinator.dart';
 import '../../features/call_history/data/mesh_call_history_repository.dart';
 import '../../features/messenger/services/hive_favorites_migration_service.dart';
@@ -124,6 +126,11 @@ Future<void> setupDependencies() async {
   final meshCallHistory = HiveMeshCallHistoryRepository();
   await meshCallHistory.init();
   sl.registerSingleton<MeshCallHistoryRepository>(meshCallHistory);
+
+  // Mesh prefs (Hive) — small flag store for mesh-related UI state
+  final meshPrefs = MeshPrefsService();
+  await meshPrefs.init();
+  sl.registerSingleton<MeshPrefsService>(meshPrefs);
 
   // Message drafts (Hive) — persisted unsent text per conversation
   final drafts = MessageDraftService();
@@ -327,6 +334,13 @@ Future<void> setupDependencies() async {
       },
     );
   });
+
+  sl.registerLazySingleton<MeshPeerEligibilityWatcher>(
+    () => MeshPeerEligibilityWatcher(
+      transport: sl<MeshTransport>(),
+      contactKeyStore: sl<HiveContactKeyStore>(),
+    ),
+  );
 
   // Phase 1e — mesh status cubit + messenger adapter + transport selector
   sl.registerLazySingleton<MeshStatusBloc>(
