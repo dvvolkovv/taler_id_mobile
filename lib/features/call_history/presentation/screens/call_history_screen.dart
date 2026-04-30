@@ -774,9 +774,21 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
           _showAiTwinTranscriptSheet(e);
           return;
         }
-        // Mesh entries with a known user go to the chat room.
+        // Mesh entries with a known user go to the chat room. Resolve
+        // userId → DIRECT-conversation id via MessengerBloc; the router
+        // takes a conversationId, not a userId.
         if (e.isMesh) {
-          context.push('/dashboard/messenger/chat/${e.otherPartyId}');
+          final convs = context.read<MessengerBloc>().state.conversations;
+          final conv = convs.where(
+            (c) => c.type == 'DIRECT' && c.otherUserId == e.otherPartyId,
+          ).firstOrNull;
+          if (conv != null) {
+            context.push('/dashboard/messenger/${conv.id}');
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(AppLocalizations.of(context)!.meshHistoryNoChatAvailable),
+            ));
+          }
           return;
         }
         Navigator.of(context).push(
