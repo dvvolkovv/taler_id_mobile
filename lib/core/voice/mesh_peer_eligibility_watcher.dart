@@ -49,6 +49,9 @@ class MeshPeerEligibilityWatcher {
   bool isUserOnline(String userId) =>
       _onlineDevices[userId]?.isNotEmpty ?? false;
 
+  bool get hasAnyOnlinePeer => _onlineDevices.isNotEmpty;
+  int get onlinePeerCount => _onlineDevices.length;
+
   String? _userIdForDevice(PeerId devicePk) {
     final userPk = contactKeyStore.lookupUserByDevice(devicePk);
     if (userPk == null) return null;
