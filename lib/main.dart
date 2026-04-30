@@ -85,18 +85,38 @@ void _setupCallkitListener() {
   });
 }
 
-/// Polls WidgetsBinding lifecycle every 300 ms (up to 3 s) until the app is
+/// Polls WidgetsBinding lifecycle every 300 ms (up to 30 s) until the app is
 /// fully resumed, then pushes the voice route via the global [appRouter].
 /// DashboardScreen may also navigate via [didChangeAppLifecycleState]; the
 /// [NotificationService.consumePendingCallRoute] call acts as a one-shot latch
 /// so only the first navigator wins.
+///
+/// On Android emulators the lifecycle sometimes oscillates `paused ↔ inactive`
+/// after CallKit's UI overlays the app and never reaches `resumed`. To avoid
+/// the user being stranded, after 30 attempts (10 s) we fall through and push
+/// the route anyway — worst case the navigator queues it for the next frame.
 void _navigateWhenResumed(String route, int attempt) {
   if (attempt > 100) {
     debugPrint('[CallKit] _navigateWhenResumed: gave up after 100 attempts');
     return;
   }
+  if (attempt > 0 && attempt % 10 == 0) {
+    debugPrint(
+      '[CallKit] _navigateWhenResumed: still polling (attempt=$attempt, '
+      'lifecycle=${WidgetsBinding.instance.lifecycleState})',
+    );
+  }
   final lifecycle = WidgetsBinding.instance.lifecycleState;
-  if (lifecycle == AppLifecycleState.resumed) {
+  // Fallback: after 30 attempts (10 s) without seeing `resumed`, push anyway.
+  // Covers Android-emulator lifecycle oscillation where `resumed` never fires.
+  final shouldForcePush = attempt >= 30 && lifecycle != AppLifecycleState.resumed;
+  if (lifecycle == AppLifecycleState.resumed || shouldForcePush) {
+    if (shouldForcePush) {
+      debugPrint(
+        '[CallKit] _navigateWhenResumed: forcing push after $attempt attempts '
+        '(lifecycle=$lifecycle, never reached resumed)',
+      );
+    }
     // Small delay so the router/navigator finishes initialising after resume.
     Future.delayed(const Duration(milliseconds: 200), () {
       // Only push if DashboardScreen hasn't already consumed the route.
