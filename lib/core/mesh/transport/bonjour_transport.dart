@@ -219,9 +219,11 @@ class BonjourTransport implements MeshTransport {
           final udpPortStr = service.attributes['udp_port'];
           final udpPort = udpPortStr != null ? int.tryParse(udpPortStr) : null;
           if (udpPort != null && service.host != null) {
-            _peerUdpEndpoints[peerId] = (host: service.host!, port: udpPort);
-            // ignore: avoid_print
-            print('[mesh-bonjour/diag] resolved udp_port: peer=${peerId.toHex().substring(0, 12)} ${service.host}:$udpPort');
+            // iOS Bonsoir returns mDNS hostname (e.g. "Android_X.local.").
+            // RawDatagramSocket.send takes InternetAddress which only accepts
+            // numeric IPs — and our reverse-lookup compares to dg.address.address
+            // which is also numeric. Resolve hostname → IP and cache the IP.
+            unawaited(_cacheUdpEndpoint(peerId, service.host!, udpPort));
           } else {
             // ignore: avoid_print
             print('[mesh-bonjour/diag] resolved WITHOUT udp_port: peer=${peerId.toHex().substring(0, 12)} attrs=${service.attributes}');
@@ -339,6 +341,36 @@ class BonjourTransport implements MeshTransport {
     return _peerUdpEndpoints.containsKey(peer)
         ? PeerStatus.online
         : PeerStatus.offline;
+  }
+
+  /// Resolve [host] (which may be an mDNS hostname like "X.local.") to a
+  /// numeric IP and cache `(ip, udpPort)` in [_peerUdpEndpoints]. Required
+  /// because `InternetAddress` does not accept hostnames (used in
+  /// [sendDatagram] and reverse-lookup in [_handleDatagramEvent]).
+  Future<void> _cacheUdpEndpoint(PeerId peerId, String host, int udpPort) async {
+    String ip = host;
+    bool isLiteral = false;
+    try {
+      InternetAddress(host); // throws if not a numeric IP
+      isLiteral = true;
+    } catch (_) {}
+    if (!isLiteral) {
+      try {
+        final addrs = await InternetAddress.lookup(host);
+        final ipv4 = addrs.firstWhere(
+          (a) => a.type == InternetAddressType.IPv4,
+          orElse: () => addrs.first,
+        );
+        ip = ipv4.address;
+      } catch (e) {
+        // ignore: avoid_print
+        print('[mesh-bonjour/diag] _cacheUdpEndpoint: lookup($host) failed: $e — peer=${peerId.toHex().substring(0, 12)} skipped');
+        return;
+      }
+    }
+    _peerUdpEndpoints[peerId] = (host: ip, port: udpPort);
+    // ignore: avoid_print
+    print('[mesh-bonjour/diag] resolved udp_port: peer=${peerId.toHex().substring(0, 12)} host="$host" → $ip:$udpPort');
   }
 
   int _bonjourTxCounter = 0;
