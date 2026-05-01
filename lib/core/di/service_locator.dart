@@ -80,6 +80,13 @@ import '../../features/sessions/data/repositories/sessions_repository_impl.dart'
 import '../../features/sessions/domain/repositories/i_session_repository.dart';
 import '../../features/sessions/presentation/bloc/sessions_bloc.dart';
 
+// OAuth (native mobile login)
+import '../../features/oauth/data/datasources/oauth_remote_datasource.dart';
+import '../../features/oauth/data/oauth_pending_request.dart';
+import '../../features/oauth/data/repositories/oauth_repository_impl.dart';
+import '../../features/oauth/domain/repositories/oauth_repository.dart';
+import '../../features/oauth/presentation/bloc/oauth_authorize_bloc.dart';
+
 // Messenger
 import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../features/messenger/data/repositories/messenger_repository_impl.dart';
@@ -397,6 +404,7 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => KycRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => TenantRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => SessionsRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton(() => OAuthRemoteDatasource(sl<DioClient>()));
 
   // Repositories
   sl.registerLazySingleton<IAuthRepository>(
@@ -426,6 +434,14 @@ Future<void> setupDependencies() async {
   );
   sl.registerLazySingleton<ISessionRepository>(
     () => SessionsRepositoryImpl(sl<SessionsRemoteDataSource>()),
+  );
+
+  // OAuth (native mobile login)
+  sl.registerLazySingleton<OAuthRepository>(
+    () => OAuthRepositoryImpl(sl<OAuthRemoteDatasource>()),
+  );
+  sl.registerLazySingleton<OAuthPendingRequest>(
+    () => OAuthPendingRequest(storage: SecureStorageOAuthPending()),
   );
 
   // Messenger
@@ -519,6 +535,7 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => KycBloc(repo: sl<IKycRepository>()));
   sl.registerFactory(() => TenantBloc(repo: sl<ITenantRepository>()));
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
+  sl.registerFactory(() => OAuthAuthorizeBloc(sl<OAuthRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
 
   // Billing BLoCs (factory: new instance per screen).
