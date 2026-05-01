@@ -2747,7 +2747,31 @@ Answer briefly — the user is in the middle of a conversation.''';
     _eventsListener?.dispose();
     _eventsListener = null;
     _room?.removeListener(_onRoomChanged);
+    // Phase 1.0.68 hotfix: explicitly disconnect the LiveKit room. Without
+    // this the underlying WebRTC peer connection (and its audio engine)
+    // stays alive after _room=null, holding the iOS AVAudioSession in an
+    // interrupted state. On the next call's connect(), audio playback is
+    // silent for ~3 seconds until the iOS interruption-restore cycle fires
+    // (`_restoreAudioAfterInterruption: complete`). With explicit disconnect
+    // the previous engine releases the session immediately.
+    //
+    // Wrapped in a 2-second guard: a stuck disconnect must not block the
+    // outer 8-second teardown timeout. Caller's hangup path treats this
+    // as fire-and-forget — we still null out _room either way.
+    final roomToClose = _room;
     _room = null;
+    if (roomToClose != null) {
+      try {
+        await roomToClose.disconnect().timeout(
+              const Duration(seconds: 2),
+              onTimeout: () {
+                debugPrint('[VoiceCall] room.disconnect() timed out — proceeding anyway');
+              },
+            );
+      } catch (e) {
+        debugPrint('[VoiceCall] room.disconnect() error (ignored): $e');
+      }
+    }
 
     // End only this line — CallStateService will auto-switch to next held line
     if (rName != null) {
