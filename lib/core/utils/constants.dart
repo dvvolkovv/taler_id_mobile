@@ -32,6 +32,7 @@ class RouteConstants {
   static const settings = '/dashboard/settings';
   static const wallpaper = '/dashboard/settings/wallpaper';
   static const invite = '/invite';
+  static const oauthAuthorize = '/oauth/authorize';
   static const pinSetup = '/auth/pin-setup';
   static const pinEntry = '/auth/pin-entry';
   static const assistant = '/dashboard/assistant';

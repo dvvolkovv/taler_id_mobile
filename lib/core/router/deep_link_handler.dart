@@ -26,6 +26,16 @@ class DeepLinkHandler {
   static void _handleUri(GoRouter router, Uri uri) {
     debugPrint('Deep link received: $uri');
 
+    // OAuth native login (Universal Links / App Links):
+    // https://id.taler.tirol/oauth/authorize?...
+    // https://staging.id.taler.tirol/oauth/authorize?...
+    if (uri.path == '/oauth/authorize' &&
+        (uri.host == 'id.taler.tirol' || uri.host == 'staging.id.taler.tirol')) {
+      final query = uri.query.isEmpty ? '' : '?${uri.query}';
+      router.push('/oauth/authorize$query');
+      return;
+    }
+
     // Handle invite links:
     // https://id.taler.tirol/ui/invite.html?token=X
     // talerid://invite?token=X

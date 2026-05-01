@@ -47,6 +47,10 @@ import '../../features/billing/presentation/screens/transactions_screen.dart';
 import '../../features/billing/presentation/screens/pricebook_screen.dart';
 import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
+import '../../features/oauth/data/oauth_pending_request.dart';
+import '../../features/oauth/domain/entities/oauth_authorize_params.dart';
+import '../../features/oauth/presentation/bloc/oauth_authorize_bloc.dart';
+import '../../features/oauth/presentation/screens/oauth_authorize_screen.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
@@ -105,6 +109,16 @@ final appRouter = GoRouter(
         final token = state.uri.queryParameters['token'] ?? '';
         return InviteScreen(token: token);
       },
+    ),
+    // Native OAuth login: /oauth/authorize?... (Universal Link / App Link)
+    GoRoute(
+      path: RouteConstants.oauthAuthorize,
+      builder: (_, state) => BlocProvider(
+        create: (_) => sl<OAuthAuthorizeBloc>(),
+        child: OAuthAuthorizeScreen(
+          params: OAuthAuthorizeParams.fromUri(state.uri),
+        ),
+      ),
     ),
     // Public room deep link: /room/{code} → redirect to voice screen
     GoRoute(
@@ -387,6 +401,22 @@ Future<String?> _globalRedirect(BuildContext context, GoRouterState state) async
   // right after the device unlocks (between CallKit accept and app resume).
   if (state.uri.path == RouteConstants.voice &&
       state.uri.queryParameters['incoming'] == '1') {
+    return null;
+  }
+
+  // Native OAuth flow: if user not authenticated, save params to consume
+  // post-login (Task 18 resume) then send them to login.
+  if (state.matchedLocation == RouteConstants.oauthAuthorize) {
+    try {
+      final storage = sl<SecureStorageService>();
+      final hasToken = await storage.hasRefreshToken;
+      if (!hasToken) {
+        await sl<OAuthPendingRequest>().save(state.uri);
+        return RouteConstants.login;
+      }
+    } catch (_) {
+      // Storage briefly unavailable — let it through; the screen will fail-fast.
+    }
     return null;
   }
 
