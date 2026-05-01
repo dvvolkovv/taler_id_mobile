@@ -50,7 +50,10 @@ class OAuthPendingRequest {
     try {
       final payload = jsonDecode(raw) as Map<String, dynamic>;
       final savedAt = DateTime.parse(payload['savedAt'] as String);
-      if (_now().difference(savedAt) > _ttl) {
+      final age = _now().difference(savedAt);
+      // Reject negative ages too — guards against device clock corrected
+      // backwards between save and consume, which would otherwise bypass TTL.
+      if (age < Duration.zero || age >= _ttl) {
         await _storage.clear();
         return null;
       }

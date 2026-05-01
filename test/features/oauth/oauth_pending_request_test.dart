@@ -76,5 +76,31 @@ void main() {
       final result = await pending.consume();
       expect(result!.queryParameters['client_id'], 'B');
     });
+
+    test('consume returns null and clears storage on exact TTL boundary', () async {
+      final uri = Uri.parse('https://id.taler.tirol/oauth/authorize?client_id=mybook');
+      await pending.save(uri);
+      fakeNow = fakeNow.add(const Duration(minutes: 5));
+      final result = await pending.consume();
+      expect(result, isNull);
+      expect(await storage.read(), isNull);
+    });
+
+    test('consume returns null and clears storage when savedAt is in the future', () async {
+      final uri = Uri.parse('https://id.taler.tirol/oauth/authorize?client_id=mybook');
+      await pending.save(uri);
+      // Device clock corrected backwards by 1 minute between save and consume.
+      fakeNow = fakeNow.subtract(const Duration(minutes: 1));
+      final result = await pending.consume();
+      expect(result, isNull);
+      expect(await storage.read(), isNull);
+    });
+
+    test('consume returns null and clears storage on malformed payload', () async {
+      await storage.write('not-valid-json{{{');
+      final result = await pending.consume();
+      expect(result, isNull);
+      expect(await storage.read(), isNull);
+    });
   });
 }
