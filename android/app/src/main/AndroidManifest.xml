@@ -69,6 +69,20 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="id.taler.tirol" android:pathPrefix="/room/"/>
             </intent-filter>
+            <!-- Deep links: https://id.taler.tirol/oauth/authorize -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="id.taler.tirol" android:pathPrefix="/oauth/authorize"/>
+            </intent-filter>
+            <!-- Deep links: https://staging.id.taler.tirol/oauth/authorize -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/oauth/authorize"/>
+            </intent-filter>
             <!-- Deep links: https://id.taler.tirol/ui/invite.html -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
