@@ -44,7 +44,7 @@ void main() {
       });
     });
 
-    test('after maxColdStartAttempts kicks, watchdog disarms', () {
+    test('after maxColdStartAttempts kicks, watchdog keeps retrying at cap', () {
       fakeAsync((async) {
         final reinitCalls = <String>[];
         final supervisor = MeshDiscoverySupervisor(
@@ -54,15 +54,25 @@ void main() {
         );
 
         supervisor.onDiscoveryStarted();
-        // Walk the exponential schedule: 5s, then 10s, then 15s.
+        // Linear ramp for the first three attempts: 5s, 10s, 15s.
         async.elapse(const Duration(seconds: 5));
         async.elapse(const Duration(seconds: 10));
         async.elapse(const Duration(seconds: 15));
         expect(reinitCalls.length, 3);
 
-        // Further elapse — no fourth kick.
+        // 1.0.69 fix: after the ramp, watchdog must keep retrying with the
+        // delay capped at 30s. iOS Bonsoir sometimes recovers only after
+        // many minutes; we must not silently give up.
+        // attempt=4 → 20s, attempt=5 → 25s, attempt=6 → 30s, attempt=7+ → 30s.
+        async.elapse(const Duration(seconds: 20));
+        expect(reinitCalls.length, 4);
+        async.elapse(const Duration(seconds: 25));
+        expect(reinitCalls.length, 5);
+        async.elapse(const Duration(seconds: 30));
+        expect(reinitCalls.length, 6);
+        // Further 60s — two more kicks at the 30s cap.
         async.elapse(const Duration(seconds: 60));
-        expect(reinitCalls.length, 3);
+        expect(reinitCalls.length, 8);
       });
     });
   });

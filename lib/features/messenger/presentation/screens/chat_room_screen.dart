@@ -25,6 +25,8 @@ import 'package:gal/gal.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:share_plus/share_plus.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import '../../../../core/utils/share_helper.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:camera/camera.dart';
 import '../../../../core/config/app_config.dart';
@@ -1004,9 +1006,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void _addSharedFiles(List sharedFiles) {
     const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
     const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
+    final textParts = <String>[];
     setState(() {
       for (final file in sharedFiles) {
-        var path = file.path as String? ?? '';
+        // 1.0.69 fix: detect text / url shares (e.g. "Share new meeting link"
+        // from VoiceCallScreen) and append them to the compose field instead
+        // of treating the URL string as a file path. Without this, the room
+        // link was uploaded as an attachment, which silently failed (no valid
+        // file at that path) and nothing appeared in the chat.
+        if (file is SharedMediaFile &&
+            (file.type == SharedMediaType.text ||
+                file.type == SharedMediaType.url)) {
+          if (file.path.isNotEmpty) textParts.add(file.path);
+          // iOS sometimes sends an accompanying message alongside a URL share.
+          final msg = file.message;
+          if (msg != null && msg.isNotEmpty && msg != file.path) {
+            textParts.add(msg);
+          }
+          continue;
+        }
+        var path = (file is SharedMediaFile)
+            ? file.path
+            : (file.path as String? ?? '');
         if (path.isEmpty) continue;
         // Normalize: strip file:// prefix
         if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
@@ -1017,8 +1038,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         if (videoExts.contains(ext)) typeOverride = 'video';
         _pendingFiles.add(_PendingFile(path: path, name: name, type: typeOverride));
       }
+      if (textParts.isNotEmpty) {
+        // Append shared text into the compose field. Preserve any draft the
+        // user already had — separate with a newline. Don't auto-send: text
+        // shares are typically previews the user wants to confirm before
+        // sending (vs. file shares which auto-upload).
+        final existing = _ctrl.text;
+        final addition = textParts.join('\n');
+        _ctrl.text = existing.isEmpty ? addition : '$existing\n$addition';
+        _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
+      }
     });
-    // Auto-send if files came from share intent (no user interaction needed)
+    // Auto-send only file attachments — text shares stay in compose for review.
     if (_pendingFiles.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _pendingFiles.isNotEmpty) _sendPendingAttachment();
@@ -5069,7 +5100,7 @@ class _FullScreenImageGalleryState extends State<_FullScreenImageGallery> {
       final dir = await getTemporaryDirectory();
       final filePath = '${dir.path}/share_img_${DateTime.now().millisecondsSinceEpoch}.jpg';
       await Dio().download(widget.imageUrls[_currentIndex], filePath);
-      await Share.shareXFiles([XFile(filePath)]);
+      if (mounted) await shareFiles(context, [XFile(filePath)]);
       try { await File(filePath).delete(); } catch (_) {}
     } catch (_) {}
     if (mounted) setState(() => _sharing = false);
@@ -6018,12 +6049,10 @@ class _RecordingPlayerState extends State<_RecordingPlayer> {
     if (mounted) setState(() => _downloading = true);
     try {
       final file = await DefaultCacheManager().getSingleFile(widget.url);
-      // sharePositionOrigin required on iOS 26+
-      final box = context.findRenderObject() as RenderBox?;
-      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
-      await Share.shareXFiles(
+      if (!mounted) return;
+      await shareFiles(
+        context,
         [XFile(file.path, mimeType: 'audio/mpeg', name: 'запись.mp3')],
-        sharePositionOrigin: origin,
       );
     } catch (e) {
       debugPrint('[RecordingPlayer] Download error: $e');

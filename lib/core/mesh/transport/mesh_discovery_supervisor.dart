@@ -109,20 +109,30 @@ class MeshDiscoverySupervisor {
     await _gatedReinit('resumed');
   }
 
+  /// Maximum delay between cold-start retries once the early ramp is
+  /// exhausted. Bonsoir on iOS sometimes stays in a defunct state for
+  /// minutes after a Wi-Fi switch, network handoff, or NSNetServiceBrowser
+  /// internal error — we used to stop trying after 3 attempts (~30s total),
+  /// which left peers invisible until the user toggled Wi-Fi manually.
+  /// Now we keep retrying forever at this cap.
+  static const _maxColdStartDelay = Duration(seconds: 30);
+
   void _armWatchdog() {
     _watchdog?.cancel();
-    if (_coldStartAttempt >= maxColdStartAttempts) {
-      debugPrint(
-        '[mesh-discovery-supervisor] cold-start attempts exhausted (max=$maxColdStartAttempts)',
-      );
-      return;
-    }
     _coldStartAttempt += 1;
-    final delay = coldStartDelay * _coldStartAttempt;
+    // Linear ramp for the first `maxColdStartAttempts` (5s, 10s, 15s) so
+    // the early case — Bonsoir simply needs a couple of nudges before
+    // events flow — recovers fast. After that, switch to a steady cap
+    // ([_maxColdStartDelay], default 30s) and keep trying indefinitely.
+    final ramp = coldStartDelay * _coldStartAttempt;
+    final delay = ramp > _maxColdStartDelay ? _maxColdStartDelay : ramp;
+    final attempt = _coldStartAttempt;
+    final beyondRamp = attempt > maxColdStartAttempts;
     _watchdog = Timer(delay, () async {
       if (_eventSeenSinceStart) return;
       debugPrint(
-        '[mesh-discovery-supervisor] kick reason=cold-start attempt=$_coldStartAttempt',
+        '[mesh-discovery-supervisor] kick reason=cold-start attempt=$attempt'
+        '${beyondRamp ? ' (long-tail)' : ''}',
       );
       await _gatedReinit('cold-start');
       _armWatchdog();

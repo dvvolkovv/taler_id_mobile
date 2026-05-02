@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/utils/share_helper.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
@@ -286,12 +287,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               leading: Icon(Icons.share_rounded, color: AppColors.of(context).primary),
               title: Text(AppLocalizations.of(context)!.userProfileShareContact, style: TextStyle(color: AppColors.of(context).textPrimary)),
               subtitle: Text(AppLocalizations.of(context)!.userProfileShareContactDesc, style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 12)),
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(ctx);
-                final shareText = username != null
+                await Future.delayed(const Duration(milliseconds: 250));
+                if (!context.mounted) return;
+                final text = username != null
                     ? '${AppLocalizations.of(context)!.messengerShareContact(fullName)} (@$username)\nhttps://id.taler.tirol/u/$username'
                     : AppLocalizations.of(context)!.messengerShareContact(fullName);
-                Share.share(shareText);
+                shareText(context, text);
               },
             ),
             ListTile(
