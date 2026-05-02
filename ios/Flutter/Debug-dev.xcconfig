@@ -1,2 +1,10 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug-dev.xcconfig"
 #include "Generated.xcconfig"
+
+// Disable Xcode 26 debug-dylib + PreviewsJITStubExecutor model.
+// Flutter 3.38.9 does not pass entry-point env on `simctl launch`,
+// so the stub aborts with "abort_could_not_find_entry_point___debug_dylib".
+// Setting this to NO falls back to the legacy debug pipeline (Runner is a
+// normal executable with main baked in). Remove once Flutter 3.39+ supports
+// the new model.
+ENABLE_DEBUG_DYLIB = NO
