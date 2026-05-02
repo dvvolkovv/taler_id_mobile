@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/utils/share_helper.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -205,11 +206,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () => Share.share(
-                              l10n.profileAddMeShare(user.id),
+                          Builder(
+                            builder: (btnCtx) => GestureDetector(
+                              onTap: () => shareText(btnCtx, l10n.profileAddMeShare(user.id)),
+                              child: Icon(Icons.share_outlined, color: AppColors.of(context).primary, size: 18),
                             ),
-                            child: Icon(Icons.share_outlined, color: AppColors.of(context).primary, size: 18),
                           ),
                         ],
                       ),
@@ -815,16 +816,16 @@ class _QrCodeSheet extends StatelessWidget {
             const SizedBox(height: 28),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Share.share(
-                  AppLocalizations.of(context)!.profileAddMeShare(user.id),
-                ),
-                icon: const Icon(Icons.share_outlined, color: Colors.black),
-                label: Text(AppLocalizations.of(context)!.profileShareLabel, style: const TextStyle(color: Colors.black)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.of(context).primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Builder(
+                builder: (btnCtx) => ElevatedButton.icon(
+                  onPressed: () => shareText(btnCtx, AppLocalizations.of(context)!.profileAddMeShare(user.id)),
+                  icon: const Icon(Icons.share_outlined, color: Colors.black),
+                  label: Text(AppLocalizations.of(context)!.profileShareLabel, style: const TextStyle(color: Colors.black)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.of(context).primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
             ),

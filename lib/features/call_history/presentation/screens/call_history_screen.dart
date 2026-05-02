@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../../core/utils/share_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/linkified_text.dart';
@@ -306,11 +307,33 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _ActionButton(
-                    icon: Icons.share_rounded,
-                    label: l10n.callHistoryShare,
-                    accent: const Color(0xFFA855F7),
-                    onTap: () => Share.share(link),
+                  child: Builder(
+                    builder: (btnCtx) => _ActionButton(
+                      icon: Icons.share_rounded,
+                      label: l10n.callHistoryShare,
+                      accent: const Color(0xFFA855F7),
+                      onTap: () async {
+                        // 1.0.69 fix: share_plus 10.x on iOS REQUIRES a
+                        // non-zero `sharePositionOrigin` Rect — without it
+                        // iOS throws `PlatformException: sharePositionOrigin
+                        // argument must be set ... must be non-zero`.
+                        // Capture the button's frame before popping the sheet
+                        // (after pop the RenderBox detaches). Pop the sheet
+                        // first so iOS presents the share UI on a clean top
+                        // view controller, then call Share with the rect.
+                        final box = btnCtx.findRenderObject() as RenderBox?;
+                        final origin = box != null && box.attached
+                            ? box.localToGlobal(Offset.zero) & box.size
+                            : const Rect.fromLTWH(0, 0, 1, 1);
+                        Navigator.pop(ctx);
+                        await Future.delayed(const Duration(milliseconds: 250));
+                        try {
+                          await Share.share(link, sharePositionOrigin: origin);
+                        } catch (e) {
+                          debugPrint('[ShareBtn] error=$e');
+                        }
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -597,11 +620,25 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _ActionButton(
-                      icon: Icons.share_rounded,
-                      label: l10n.callHistoryShare,
-                      accent: const Color(0xFFA855F7),
-                      onTap: () => Share.share(room.link),
+                    child: Builder(
+                      builder: (btnCtx) => _ActionButton(
+                        icon: Icons.share_rounded,
+                        label: l10n.callHistoryShare,
+                        accent: const Color(0xFFA855F7),
+                        onTap: () async {
+                          // share_plus 10.x on iOS requires non-zero
+                          // sharePositionOrigin (see fix on temp-meeting share).
+                          final box = btnCtx.findRenderObject() as RenderBox?;
+                          final origin = box != null && box.attached
+                              ? box.localToGlobal(Offset.zero) & box.size
+                              : const Rect.fromLTWH(0, 0, 1, 1);
+                          try {
+                            await Share.share(room.link, sharePositionOrigin: origin);
+                          } catch (e) {
+                            debugPrint('[ShareBtn personal] error=$e');
+                          }
+                        },
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1662,7 +1699,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     try {
       final file = await _downloadToTemp(url);
       if (!mounted) return;
-      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+      await shareFiles(context, [XFile(file.path)], text: 'Taler ID — Recording');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2039,10 +2076,12 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
                   onPressed: _downloading ? null : () => _downloadRecording(recordingUrl),
                   tooltip: 'Download',
                 ),
-                IconButton(
-                  icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
-                  onPressed: () => Share.share(recordingUrl),
-                  tooltip: l10n.callHistoryShare,
+                Builder(
+                  builder: (btnCtx) => IconButton(
+                    icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
+                    onPressed: () => shareText(btnCtx, recordingUrl),
+                    tooltip: l10n.callHistoryShare,
+                  ),
                 ),
               ],
             ),
@@ -2354,7 +2393,7 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
     final text = summary.isNotEmpty
         ? '${l10n.callHistoryMeetingSummary}:\n${summary.length > 200 ? '${summary.substring(0, 200)}...' : summary}\n\n$url'
         : url;
-    Share.share(text);
+    shareText(context, text);
   }
 
   @override
@@ -2567,7 +2606,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     try {
       final file = await _downloadToTemp(url);
       if (!mounted) return;
-      await Share.shareXFiles([XFile(file.path)], text: 'Taler ID — Recording');
+      await shareFiles(context, [XFile(file.path)], text: 'Taler ID — Recording');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2819,13 +2858,16 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                       : () => _downloadRecording(id, recordingUrl),
                   tooltip: 'Download',
                 ),
-                IconButton(
-                  icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
-                  onPressed: () => Share.share(
-                    '${l10n.callHistoryMeetingRecording} ${_formatDate(createdAt)}\n${l10n.callHistoryParticipants}: $participants\n\n$recordingUrl',
-                    subject: l10n.callHistoryMeetingRecording,
+                Builder(
+                  builder: (btnCtx) => IconButton(
+                    icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
+                    onPressed: () => shareText(
+                      btnCtx,
+                      '${l10n.callHistoryMeetingRecording} ${_formatDate(createdAt)}\n${l10n.callHistoryParticipants}: $participants\n\n$recordingUrl',
+                      subject: l10n.callHistoryMeetingRecording,
+                    ),
+                    tooltip: l10n.callHistoryShare,
                   ),
-                  tooltip: l10n.callHistoryShare,
                 ),
               ],
             ),
