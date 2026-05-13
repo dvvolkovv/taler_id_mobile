@@ -163,4 +163,23 @@ void main() {
     expect(received.first.envelope.type, MeshGcEnvelopeType.invite);
     await sub.cancel();
   });
+
+  test('leave() during lobby cancels timer before fanout, no double Ended',
+      () async {
+    final endedReasons = <GMCEndReason>[];
+    final sub = svc.stateStream.listen((s) {
+      if (s is GMCEnded) endedReasons.add(s.reason);
+    });
+
+    await svc.start(invitees: {hex(peerBPk): 'userB'});
+    await svc.leave();
+
+    // Wait past the original lobby timeout to confirm timer did not fire.
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+
+    expect(endedReasons, [GMCEndReason.userHangup],
+        reason: 'exactly one Ended emission expected — userHangup');
+
+    await sub.cancel();
+  });
 }

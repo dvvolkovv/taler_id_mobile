@@ -164,6 +164,7 @@ class GroupMeshCallService {
   Future<void> leave() async {
     final s = _state;
     if (s is! GMCLobby && s is! GMCActive) return;
+    _lobbyTimer?.cancel();
     final roomId = s is GMCLobby ? s.roomId : (s as GMCActive).roomId;
     final roster = s is GMCLobby ? s.roster : (s as GMCActive).roster;
     for (final p in roster) {
@@ -181,7 +182,6 @@ class GroupMeshCallService {
         ),
       );
     }
-    _lobbyTimer?.cancel();
     _emit(const GMCEnded(reason: GMCEndReason.userHangup));
   }
 
