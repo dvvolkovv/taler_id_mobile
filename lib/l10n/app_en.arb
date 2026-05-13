@@ -1581,5 +1581,6 @@
   "meshGcStatusNoAnswer": "No answer",
   "meshGcStatusConnectionFailed": "Connection failed",
   "meshGcStatusLeft": "Left",
-  "meshGcTopTitle": "Mesh"
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Finish your current call first."
 }

@@ -343,6 +343,9 @@ Future<void> setupDependencies() async {
       messaging: messaging,
       transport: sl<MeshTransport>(),
       audioEngineFactory: defaultMeshVoiceAudioEngine,
+      // Lazy callback: evaluated at invite-arrival time, safe because
+      // GroupMeshCallService is a lazy singleton registered below.
+      isGroupCallBusy: () => sl<GroupMeshCallService>().isBusy,
     );
   });
 

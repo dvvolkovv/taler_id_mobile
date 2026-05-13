@@ -3496,4 +3496,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meshGcTopTitle => 'Mesh';
+
+  @override
+  String get meshGcBusyOneOnOne => 'Finish your current call first.';
 }

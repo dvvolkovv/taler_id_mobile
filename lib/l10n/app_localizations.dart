@@ -6589,6 +6589,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mesh'**
   String get meshGcTopTitle;
+
+  /// No description provided for @meshGcBusyOneOnOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish your current call first.'**
+  String get meshGcBusyOneOnOne;
 }
 
 class _AppLocalizationsDelegate

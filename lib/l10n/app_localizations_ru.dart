@@ -3516,4 +3516,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meshGcTopTitle => 'Mesh';
+
+  @override
+  String get meshGcBusyOneOnOne => 'Сначала завершите текущий звонок.';
 }

@@ -70,6 +70,12 @@ class GroupMeshCallService {
   final _outboundSeqByPeer = <String, int>{};
 
   GroupMeshCallState get state => _state;
+
+  /// True while a group mesh call is in progress (joining, active, in lobby,
+  /// etc.). False only when the service is idle, ended, or in an error state.
+  bool get isBusy =>
+      _state is! GMCIdle && _state is! GMCEnded && _state is! GMCError;
+
   Stream<GroupMeshCallState> get stateStream => _stateCtrl.stream;
   Stream<InboundEnvelope> get incomingInviteStream =>
       _incomingInviteCtrl.stream;

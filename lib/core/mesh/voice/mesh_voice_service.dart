@@ -62,13 +62,21 @@ class MeshVoiceService {
     required this.messaging,
     required this.transport,
     required this.audioEngineFactory,
-  });
+    bool Function()? isGroupCallBusy,
+  }) : _isGroupCallBusy = isGroupCallBusy ?? (() => false);
+
+  final bool Function() _isGroupCallBusy;
 
   /// Current call state.
   CallState get state => _state;
 
   /// Stream of state transitions.
   Stream<CallState> get stateStream => _stateCtrl.stream;
+
+  /// True while a 1-on-1 mesh call is in progress (inviting, incoming,
+  /// connecting, or active). False only when the state is [IdleState] or
+  /// [EndedState].
+  bool get isBusy => _state is! IdleState && _state is! EndedState;
 
   /// Wire up signaling + datagram listeners. Call once at app start
   /// (typically from DI bootstrap, after MeshMessagingService.start).
@@ -262,8 +270,11 @@ class MeshVoiceService {
   }
 
   void _onCallInvite(PeerId from, int callId, Map<String, dynamic> extra) {
-    if (_state is! IdleState) {
-      // Busy — auto-reject.
+    // Mic-conflict guard: if a group mesh call is active on this device, a
+    // simultaneous 1-on-1 invite must be auto-rejected immediately so two
+    // callers don't fight for the microphone / audio session.
+    final groupBusy = _isGroupCallBusy();
+    if (_state is! IdleState || groupBusy) {
       messaging.sendEnvelope(
         toUserPk: from,
         envelope: Envelope(

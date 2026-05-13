@@ -15,6 +15,8 @@ import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/voice/mesh_voice_service.dart';
+import '../../../../core/mesh/voice/mesh_voice_state.dart';
 import '../../../../core/services/call_history_cache_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
@@ -464,12 +466,25 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(RouteConstants.newGroupCall),
-        backgroundColor: colors.primary,
-        foregroundColor: Colors.black,
-        icon: const Icon(Icons.group_add_rounded),
-        label: Text(l10n.groupCallSelectParticipants),
+      floatingActionButton: StreamBuilder<CallState>(
+        stream: sl<MeshVoiceService>().stateStream,
+        initialData: sl<MeshVoiceService>().state,
+        builder: (context, snapshot) {
+          final busy = sl<MeshVoiceService>().isBusy;
+          return FloatingActionButton.extended(
+            onPressed: busy
+                ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(l10n.meshGcBusyOneOnOne)),
+                    );
+                  }
+                : () => context.push(RouteConstants.newGroupCall),
+            backgroundColor: busy ? Colors.grey : colors.primary,
+            foregroundColor: Colors.black,
+            icon: const Icon(Icons.group_add_rounded),
+            label: Text(l10n.groupCallSelectParticipants),
+          );
+        },
       ),
       body: RefreshIndicator(
         color: colors.primary,

@@ -1581,5 +1581,6 @@
   "meshGcStatusNoAnswer": "Нет ответа",
   "meshGcStatusConnectionFailed": "Соединение не удалось",
   "meshGcStatusLeft": "Вышел",
-  "meshGcTopTitle": "Mesh"
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Сначала завершите текущий звонок."
 }
