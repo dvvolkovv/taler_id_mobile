@@ -1,5 +1,7 @@
 import 'package:collection/collection.dart';
 
+const _participantListEq = ListEquality<GMCParticipant>();
+
 class GMCParticipant {
   const GMCParticipant({
     required this.devicePk,
@@ -74,7 +76,7 @@ sealed class GroupMeshCallState {
   const GroupMeshCallState();
 }
 
-class GMCIdle extends GroupMeshCallState {
+final class GMCIdle extends GroupMeshCallState {
   const GMCIdle();
 
   @override
@@ -84,7 +86,7 @@ class GMCIdle extends GroupMeshCallState {
   int get hashCode => 'GMCIdle'.hashCode;
 }
 
-class GMCInviting extends GroupMeshCallState {
+final class GMCInviting extends GroupMeshCallState {
   const GMCInviting({
     required this.roomId,
     required this.invitees,
@@ -97,13 +99,13 @@ class GMCInviting extends GroupMeshCallState {
   bool operator ==(Object other) =>
       other is GMCInviting &&
       other.roomId == roomId &&
-      const ListEquality().equals(other.invitees, invitees);
+      _participantListEq.equals(other.invitees, invitees);
 
   @override
   int get hashCode => Object.hash(roomId, Object.hashAll(invitees));
 }
 
-class GMCLobby extends GroupMeshCallState {
+final class GMCLobby extends GroupMeshCallState {
   const GMCLobby({
     required this.roomId,
     required this.hostDevicePk,
@@ -125,7 +127,7 @@ class GMCLobby extends GroupMeshCallState {
       other is GMCLobby &&
       other.roomId == roomId &&
       other.hostDevicePk == hostDevicePk &&
-      const ListEquality().equals(other.roster, roster);
+      _participantListEq.equals(other.roster, roster);
 
   @override
   int get hashCode => Object.hash(
@@ -135,7 +137,7 @@ class GMCLobby extends GroupMeshCallState {
       );
 }
 
-class GMCActive extends GroupMeshCallState {
+final class GMCActive extends GroupMeshCallState {
   const GMCActive({
     required this.roomId,
     required this.roster,
@@ -166,7 +168,7 @@ class GMCActive extends GroupMeshCallState {
       other.roomId == roomId &&
       other.durationSec == durationSec &&
       other.selfMuted == selfMuted &&
-      const ListEquality().equals(other.roster, roster);
+      _participantListEq.equals(other.roster, roster);
 
   @override
   int get hashCode => Object.hash(
@@ -177,7 +179,7 @@ class GMCActive extends GroupMeshCallState {
       );
 }
 
-class GMCEnded extends GroupMeshCallState {
+final class GMCEnded extends GroupMeshCallState {
   const GMCEnded({required this.reason});
 
   final GMCEndReason reason;
@@ -190,7 +192,7 @@ class GMCEnded extends GroupMeshCallState {
   int get hashCode => reason.hashCode;
 }
 
-class GMCError extends GroupMeshCallState {
+final class GMCError extends GroupMeshCallState {
   const GMCError({required this.message});
 
   final String message;
