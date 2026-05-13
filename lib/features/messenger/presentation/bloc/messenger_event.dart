@@ -458,3 +458,7 @@ class MeshMessageSent extends MessengerEvent {
   @override
   List<Object?> get props => [id, conversationId, contactUserId, clientTempId, text, sentAt];
 }
+
+class SyncMessagesRequested extends MessengerEvent {
+  const SyncMessagesRequested();
+}
