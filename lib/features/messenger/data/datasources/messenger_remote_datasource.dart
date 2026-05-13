@@ -12,6 +12,7 @@ import '../../domain/entities/group_member_entity.dart';
 import '../../domain/entities/channel_summary.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/analyst_events.dart';
+import '../../domain/entities/sync_result.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -650,6 +651,16 @@ class MessengerRemoteDataSource {
       throw const FormatException('SAVED conversation: missing conversationId in response');
     }
     return id;
+  }
+
+  Future<SyncResult> sync({String? cursor, int limit = 200}) async {
+    final qp = <String, dynamic>{'limit': limit};
+    if (cursor != null) qp['cursor'] = cursor;
+    final res = await _http.dio.get<Map<String, dynamic>>(
+      '/messenger/sync',
+      queryParameters: qp,
+    );
+    return SyncResult.fromJson(res.data ?? const {});
   }
 
   void dispose() {
