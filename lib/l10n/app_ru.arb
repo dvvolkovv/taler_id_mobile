@@ -1573,5 +1573,12 @@
   "meshGcContactOffline": "Не в этой Wi-Fi сети",
   "meshGcOnlineViaMesh": "В сети через mesh",
   "meshGcMaxInvitees": "В групповом звонке до 4 приглашённых (5 всего).",
-  "meshGcStart": "Начать групповой звонок"
+  "meshGcStart": "Начать групповой звонок",
+  "meshGcCancel": "Отмена",
+  "meshGcStatusCalling": "Вызов…",
+  "meshGcStatusJoined": "Подключён",
+  "meshGcStatusDeclined": "Отклонил",
+  "meshGcStatusNoAnswer": "Нет ответа",
+  "meshGcStatusConnectionFailed": "Соединение не удалось",
+  "meshGcStatusLeft": "Вышел"
 }

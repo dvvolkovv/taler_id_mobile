@@ -110,8 +110,8 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<GroupMeshCallBloc>(
-      create: (_) => sl<GroupMeshCallBloc>(),
+    return BlocProvider<GroupMeshCallBloc>.value(
+      value: sl<GroupMeshCallBloc>(),
       child: Builder(
         builder: (ctx) {
           final bloc = ctx.read<GroupMeshCallBloc>();

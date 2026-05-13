@@ -1573,5 +1573,12 @@
   "meshGcContactOffline": "Not on this Wi-Fi",
   "meshGcOnlineViaMesh": "Online via mesh",
   "meshGcMaxInvitees": "Group calls support up to 4 invitees (5 people total).",
-  "meshGcStart": "Start group call"
+  "meshGcStart": "Start group call",
+  "meshGcCancel": "Cancel",
+  "meshGcStatusCalling": "Calling…",
+  "meshGcStatusJoined": "Joined",
+  "meshGcStatusDeclined": "Declined",
+  "meshGcStatusNoAnswer": "No answer",
+  "meshGcStatusConnectionFailed": "Connection failed",
+  "meshGcStatusLeft": "Left"
 }

@@ -3472,4 +3472,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meshGcStart => 'Start group call';
+
+  @override
+  String get meshGcCancel => 'Cancel';
+
+  @override
+  String get meshGcStatusCalling => 'Calling…';
+
+  @override
+  String get meshGcStatusJoined => 'Joined';
+
+  @override
+  String get meshGcStatusDeclined => 'Declined';
+
+  @override
+  String get meshGcStatusNoAnswer => 'No answer';
+
+  @override
+  String get meshGcStatusConnectionFailed => 'Connection failed';
+
+  @override
+  String get meshGcStatusLeft => 'Left';
 }

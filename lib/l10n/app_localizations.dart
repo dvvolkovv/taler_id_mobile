@@ -6541,6 +6541,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start group call'**
   String get meshGcStart;
+
+  /// No description provided for @meshGcCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get meshGcCancel;
+
+  /// No description provided for @meshGcStatusCalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling…'**
+  String get meshGcStatusCalling;
+
+  /// No description provided for @meshGcStatusJoined.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined'**
+  String get meshGcStatusJoined;
+
+  /// No description provided for @meshGcStatusDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Declined'**
+  String get meshGcStatusDeclined;
+
+  /// No description provided for @meshGcStatusNoAnswer.
+  ///
+  /// In en, this message translates to:
+  /// **'No answer'**
+  String get meshGcStatusNoAnswer;
+
+  /// No description provided for @meshGcStatusConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get meshGcStatusConnectionFailed;
+
+  /// No description provided for @meshGcStatusLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left'**
+  String get meshGcStatusLeft;
 }
 
 class _AppLocalizationsDelegate

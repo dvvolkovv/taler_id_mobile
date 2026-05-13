@@ -3,142 +3,101 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/utils/constants.dart';
+import '../../../../core/mesh/voice/group_mesh_call_state.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../bloc/group_call_bloc.dart';
-// Alias the event import: `GroupCallEvent.ended` and `GroupCallState.ended`
-// both freezed-generate a top-level class named `Ended`, so we hide the event
-// one here and reach for it via the alias when needed.
-import '../bloc/group_call_event.dart' as gce;
-import '../bloc/group_call_state.dart';
-import '../widgets/participant_tile.dart';
+import '../bloc/group_mesh_call_bloc.dart';
+import '../bloc/group_mesh_call_event.dart';
 
-/// Host's "waiting for invitees to accept" screen.
+/// Host's "waiting for invitees to accept" screen (mesh group call lobby).
 ///
-/// Listens for [InActive] (first invitee joined → switch to active screen) and
-/// [Ended] (toast + back to /calls). Cancel button dispatches
-/// [GroupCallEvent.endCall].
+/// Listens for [GMCActive] (first invitee joined → switch to active screen),
+/// [GMCEnded] (navigate to call history), [GMCError] (show snackbar).
+/// Cancel button dispatches [GMCLeavePressed].
 class GroupCallLobbyScreen extends StatelessWidget {
   final String callId;
   const GroupCallLobbyScreen({super.key, required this.callId});
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<GroupCallBloc>.value(
-      value: sl<GroupCallBloc>(),
-      child: BlocConsumer<GroupCallBloc, GroupCallState>(
+    return BlocProvider<GroupMeshCallBloc>.value(
+      value: sl<GroupMeshCallBloc>(),
+      child: BlocConsumer<GroupMeshCallBloc, GroupMeshCallState>(
         listener: (context, state) {
-          // ignore: avoid_print
-          print('[LobbyScreen] listener state=${state.runtimeType} callId=$callId');
-          if (state is InActive && state.groupCall.id == callId) {
-            // First invitee joined → switch to active screen
-            // ignore: avoid_print
-            print('[LobbyScreen] navigating to /group-call/$callId (active)');
-            context.go('/group-call/$callId');
-          } else if (state is Ended) {
+          if (state is GMCActive) {
+            context.go('/group-call/${state.roomId}');
+          } else if (state is GMCEnded) {
+            context.go('/call-history');
+          } else if (state is GMCError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_endedLabel(context, state.reason))),
+              SnackBar(content: Text(state.message)),
             );
-            // Navigate back. Use a microtask so the SnackBar gets a frame.
-            Future.microtask(() {
-              if (context.mounted) context.go(RouteConstants.callHistory);
-            });
-          } else if (state is Idle) {
-            context.go(RouteConstants.callHistory);
           }
         },
         builder: (context, state) {
-          if (state is InLobby && state.groupCall.id == callId) {
-            return _LobbyView(state: state);
+          if (state is! GMCLobby) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
           }
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return _LobbyView(state: state);
         },
       ),
     );
   }
-
-  String _endedLabel(BuildContext context, String reason) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (reason) {
-      case 'timeout':
-        return l10n.groupCallNoAnswer;
-      case 'host_ended':
-        return l10n.groupCallEndedByHost;
-      case 'all_left':
-        return l10n.groupCallAllLeft;
-      default:
-        return l10n.groupCallEnded;
-    }
-  }
 }
 
 class _LobbyView extends StatelessWidget {
-  final InLobby state;
   const _LobbyView({required this.state});
+  final GMCLobby state;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.groupCallLobbyTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            context
-                .read<GroupCallBloc>()
-                .add(gce.GroupCallEvent.endCall(state.groupCall.id));
-          },
-        ),
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                l10n.groupCallHostLabel(state.groupCall.hostDisplayName),
-                style: theme.textTheme.titleMedium,
-              ),
-              const SizedBox(height: 16),
-              const _MicStatusRow(),
-              const SizedBox(height: 16),
               Expanded(
-                child: GridView.builder(
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: state.groupCall.invites.length,
-                  itemBuilder: (_, i) {
-                    final inv = state.groupCall.invites[i];
-                    return ParticipantTile(
-                      displayName: inv.displayName,
-                      avatarUrl: inv.avatarUrl,
-                      status: inv.status,
+                child: ListView.separated(
+                  itemCount: state.roster.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    final p = state.roster[i];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundImage: (p.avatarUrl != null &&
+                                p.avatarUrl!.isNotEmpty)
+                            ? NetworkImage(p.avatarUrl!)
+                            : null,
+                        child: (p.avatarUrl == null || p.avatarUrl!.isEmpty)
+                            ? Text(
+                                (p.displayName ?? p.userId)
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                              )
+                            : null,
+                      ),
+                      title: Text(p.displayName ?? p.userId),
+                      subtitle: Text(_subtitleForStatus(p, l10n)),
+                      trailing:
+                          p.isSelf ? const Icon(Icons.star_border) : null,
                     );
                   },
                 ),
               ),
               const SizedBox(height: 16),
-              Center(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: const Icon(Icons.call_end),
-                  label: Text(l10n.groupCallCancel),
-                  onPressed: () {
-                    context.read<GroupCallBloc>().add(
-                          gce.GroupCallEvent.endCall(state.groupCall.id),
-                        );
-                  },
-                ),
+              OutlinedButton.icon(
+                onPressed: () => context
+                    .read<GroupMeshCallBloc>()
+                    .add(const GMCLeavePressed()),
+                icon: const Icon(Icons.close),
+                label: Text(l10n.meshGcCancel),
               ),
             ],
           ),
@@ -146,26 +105,21 @@ class _LobbyView extends StatelessWidget {
       ),
     );
   }
-}
 
-/// Placeholder for mic status — Task 25 wires LiveKit local mic mute/unmute.
-/// In Lobby the host hasn't joined the LiveKit room as a publisher yet
-/// (token is in InLobby state but mic toggle UX lives in Active).
-class _MicStatusRow extends StatelessWidget {
-  const _MicStatusRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(Icons.mic_none, size: 20),
-        const SizedBox(width: 4),
-        Text(
-          AppLocalizations.of(context)!.groupCallMicHint,
-          style: const TextStyle(fontSize: 12),
-        ),
-      ],
-    );
+  String _subtitleForStatus(GMCParticipant p, AppLocalizations l10n) {
+    switch (p.status) {
+      case GMCStatus.calling:
+        return l10n.meshGcStatusCalling;
+      case GMCStatus.joined:
+        return l10n.meshGcStatusJoined;
+      case GMCStatus.declined:
+        return l10n.meshGcStatusDeclined;
+      case GMCStatus.noAnswer:
+        return l10n.meshGcStatusNoAnswer;
+      case GMCStatus.connectionFailed:
+        return l10n.meshGcStatusConnectionFailed;
+      case GMCStatus.left:
+        return l10n.meshGcStatusLeft;
+    }
   }
 }

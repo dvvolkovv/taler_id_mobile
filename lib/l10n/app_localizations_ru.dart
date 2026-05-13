@@ -3492,4 +3492,25 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meshGcStart => 'Начать групповой звонок';
+
+  @override
+  String get meshGcCancel => 'Отмена';
+
+  @override
+  String get meshGcStatusCalling => 'Вызов…';
+
+  @override
+  String get meshGcStatusJoined => 'Подключён';
+
+  @override
+  String get meshGcStatusDeclined => 'Отклонил';
+
+  @override
+  String get meshGcStatusNoAnswer => 'Нет ответа';
+
+  @override
+  String get meshGcStatusConnectionFailed => 'Соединение не удалось';
+
+  @override
+  String get meshGcStatusLeft => 'Вышел';
 }
