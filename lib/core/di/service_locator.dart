@@ -106,6 +106,11 @@ import '../../features/voice/data/repositories/group_call_repository_impl.dart';
 import '../../features/voice/domain/repositories/group_call_repository.dart';
 import '../../features/voice/presentation/bloc/group_call_bloc.dart';
 
+// Group Mesh Voice (Phase: group mesh voice room v1)
+import '../audio/default_group_mesh_voice_audio_engine.dart';
+import '../mesh/voice/group_mesh_call_service.dart';
+import '../../features/voice/presentation/bloc/group_mesh_call_bloc.dart';
+
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
@@ -327,6 +332,17 @@ Future<void> setupDependencies() async {
     );
   });
 
+  // GroupMeshCallService — Phase: group mesh voice room v1. Multi-peer
+  // orchestrator (host + ≤4 invitees). One active call at a time.
+  sl.registerLazySingleton<GroupMeshCallService>(() {
+    return GroupMeshCallService(
+      messaging: sl<MeshMessagingService>(),
+      transport: sl<MeshTransport>(),
+      myDevicePk: sl<MeshStaticKey>().publicKey,
+      audioEngineFactory: defaultGroupMeshVoiceAudioEngine,
+    );
+  });
+
   // MeshVoiceUiCoordinator — singleton bridging MeshVoiceService state
   // transitions to UI (modal sheet, active-call screen, history writes).
   sl.registerLazySingleton<MeshVoiceUiCoordinator>(() {
@@ -507,6 +523,10 @@ Future<void> setupDependencies() async {
       sl<GroupCallRepository>(),
       sl<MessengerRemoteDataSource>(),
     ),
+  );
+
+  sl.registerFactory<GroupMeshCallBloc>(
+    () => GroupMeshCallBloc(service: sl<GroupMeshCallService>()),
   );
 
   // Billing
