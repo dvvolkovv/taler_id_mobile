@@ -6,19 +6,20 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/services/simple_list_cache.dart';
+import '../../../../core/services/outbox_replay_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../data/datasources/notes_remote_datasource.dart';
+import '../../domain/entities/note_entity.dart';
+import '../../domain/repositories/i_notes_repository.dart';
+import '../widgets/conflict_resolution_dialog.dart';
 
 class NotesScreen extends StatefulWidget {
   const NotesScreen({super.key});
@@ -28,8 +29,11 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  final _cache = sl<SimpleListCache>(instanceName: 'notes');
-  List<Map<String, dynamic>> _notes = [];
+  final INotesRepository _repo = sl<INotesRepository>();
+  StreamSubscription<List<NoteEntity>>? _notesSub;
+  StreamSubscription<int>? _conflictSub;
+  List<NoteEntity> _items = [];
+  int _conflictCount = 0;
   bool _loading = true;
 
   // Voice assistant state
@@ -41,19 +45,18 @@ class _NotesScreenState extends State<NotesScreen> {
   StreamSubscription<Uint8List>? _recordSub;
   final _player = AudioPlayer();
   final List<int> _audioBuffer = [];
-  bool _sessionConfigured = false;
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   @override
   void initState() {
     super.initState();
-    // Hydrate from cache instantly, then refresh.
-    final cached = _cache.get();
-    if (cached != null && cached.isNotEmpty) {
-      _notes = cached;
-      _loading = false;
-    }
-    _load();
+    _notesSub = _repo.watchAll().listen((notes) {
+      if (mounted) setState(() { _items = notes; _loading = false; });
+    });
+    _conflictSub = _repo.watchConflictCount().listen((c) {
+      if (mounted) setState(() => _conflictCount = c);
+    });
+    _repo.refresh(); // fire-and-forget; UI already shows cached
     _player.onPlayerComplete.listen((_) async {
       if (mounted) setState(() => _aiSpeaking = false);
       if (_ws != null && _voiceActive) {
@@ -67,39 +70,90 @@ class _NotesScreenState extends State<NotesScreen> {
 
   @override
   void dispose() {
+    _notesSub?.cancel();
+    _conflictSub?.cancel();
     _voiceCleanup();
     _player.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    if (_notes.isEmpty) setState(() => _loading = true);
-    try {
-      final fresh = await NotesRemoteDataSource(sl<DioClient>()).getAll();
-      _notes = fresh;
-      _cache.save(fresh); // fire-and-forget persist
-    } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+  Future<void> _onCreate(String title, String content) async {
+    await _repo.create(title, content);
   }
 
-  Future<void> _deleteNote(String id) async {
-    try {
-      await NotesRemoteDataSource(sl<DioClient>()).delete(id);
-      _notes.removeWhere((n) => n['id'] == id);
-      _cache.remove(id);
-      if (mounted) setState(() {});
-    } catch (_) {}
+  Future<void> _onUpdate(String id, {String? title, String? content}) async {
+    await _repo.update(id, title: title, content: content);
   }
 
-  void _openEditor({Map<String, dynamic>? note}) async {
-    final result = await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => _NoteEditScreen(note: note)));
-    if (result == true) _load();
+  Future<void> _onDelete(String id) async {
+    await _repo.delete(id);
+  }
+
+  Future<void> _onRefresh() async {
+    await _repo.refresh();
+    await sl<OutboxReplayService>().drain();
+  }
+
+  void _openEditor({NoteEntity? note}) async {
+    await Navigator.push<bool>(context, MaterialPageRoute(builder: (_) => _NoteEditScreen(note: note, onCreate: _onCreate, onUpdate: _onUpdate)));
+  }
+
+  void _showConflictDialog(NoteEntity note) {
+    showDialog(
+      context: context,
+      builder: (_) => ConflictResolutionDialog(
+        local: note,
+        onResolve: (choice) async {
+          await _repo.resolveConflict(note.id, choice);
+        },
+      ),
+    );
+  }
+
+  Widget _pendingIndicator(NoteEntity note) {
+    if (note.conflictedWith != null) {
+      return GestureDetector(
+        onTap: () => _showConflictDialog(note),
+        child: const Padding(
+          padding: EdgeInsets.only(left: 6),
+          child: Icon(Icons.error_outline, size: 16, color: Colors.orange),
+        ),
+      );
+    } else if (note.localPending) {
+      return const Padding(
+        padding: EdgeInsets.only(left: 6),
+        child: Icon(Icons.sync, size: 12, color: Colors.grey),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildConflictBanner() {
+    if (_conflictCount == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      color: Colors.orange.shade50,
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber, color: Colors.orange, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$_conflictCount заметок ждут вашего решения',
+              style: const TextStyle(color: Colors.orange),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Voice assistant ──
 
   Future<void> _startVoice() async {
     setState(() => _voiceConnecting = true);
+    // Capture context-dependent values before any await
+    final locale = Localizations.localeOf(context).languageCode;
     try {
       final token = await sl<SecureStorageService>().getAccessToken();
       if (token == null) throw Exception('Not authenticated');
@@ -107,12 +161,11 @@ class _NotesScreenState extends State<NotesScreen> {
       _ws = await WebSocket.connect(wsUrl);
       _ws!.listen((data) => _onVoiceMessage(data as String), onDone: () { if (mounted && _voiceActive) _stopVoice(); }, onError: (_) { if (mounted) _stopVoice(); });
 
-      _sessionConfigured = false;
       _ws!.add(jsonEncode({
         'type': 'session.update',
         'session': {
           'modalities': ['text', 'audio'],
-          'instructions': Localizations.localeOf(context).languageCode == 'ru'
+          'instructions': locale == 'ru'
               ? 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
                 'Ты — помощник для записи заметок и управления календарём. Пользователь будет диктовать мысли или ставить встречи. '
                 'Для заметок: внимательно выслушай, сформулируй краткий заголовок (title) и подробное содержание (content), '
@@ -136,7 +189,7 @@ class _NotesScreenState extends State<NotesScreen> {
           'voice': 'alloy',
           'input_audio_format': 'pcm16',
           'output_audio_format': 'pcm16',
-          'input_audio_transcription': {'model': 'whisper-1', 'language': Localizations.localeOf(context).languageCode},
+          'input_audio_transcription': {'model': 'whisper-1', 'language': locale},
           'turn_detection': {'type': 'server_vad', 'threshold': 0.5, 'prefix_padding_ms': 300, 'silence_duration_ms': 700},
           'tools': [
             {
@@ -181,8 +234,6 @@ class _NotesScreenState extends State<NotesScreen> {
           'tool_choice': 'auto',
         },
       }));
-      _sessionConfigured = true;
-
       try { await _audioChannel.invokeMethod('setSpeaker', true); } catch (_) {}
       const config = RecordConfig(encoder: AudioEncoder.pcm16bits, sampleRate: 24000, numChannels: 1);
       final stream = await _recorder.startStream(config);
@@ -196,8 +247,9 @@ class _NotesScreenState extends State<NotesScreen> {
       _ws!.add(jsonEncode({'type': 'response.create'}));
     } catch (e) {
       await _voiceCleanup();
+      if (!mounted) return;
       setState(() => _voiceConnecting = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString()))));
     }
   }
 
@@ -215,11 +267,10 @@ class _NotesScreenState extends State<NotesScreen> {
     await _voiceCleanup();
     try { await _audioChannel.invokeMethod('setSpeaker', false); } catch (_) {}
     if (mounted) setState(() { _voiceActive = false; _aiSpeaking = false; });
-    _load(); // Refresh notes after voice session
+    _repo.refresh(); // Refresh notes after voice session
   }
 
   Future<void> _voiceCleanup() async {
-    _sessionConfigured = false;
     _audioBuffer.clear();
     await _recordSub?.cancel();
     _recordSub = null;
@@ -270,7 +321,7 @@ class _NotesScreenState extends State<NotesScreen> {
     final byteRate = sampleRate * channels * bitsPerSample ~/ 8;
     final blockAlign = channels * bitsPerSample ~/ 8;
     final buf = ByteData(44);
-    void writeStr(int o, String s) { for (var i = 0; i < s.length; i++) buf.setUint8(o + i, s.codeUnitAt(i)); }
+    void writeStr(int o, String s) { for (var i = 0; i < s.length; i++) { buf.setUint8(o + i, s.codeUnitAt(i)); } }
     writeStr(0, 'RIFF'); buf.setUint32(4, 36 + dataSize, Endian.little);
     writeStr(8, 'WAVE'); writeStr(12, 'fmt ');
     buf.setUint32(16, 16, Endian.little); buf.setUint16(20, 1, Endian.little);
@@ -286,8 +337,7 @@ class _NotesScreenState extends State<NotesScreen> {
     try {
       if (name == 'create_note') {
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await sl<DioClient>().post('/notes', data: {'title': args['title'], 'content': args['content'], 'source': 'ASSISTANT'}, fromJson: (d) => d);
-        _load(); // Refresh list immediately
+        await _repo.create(args['title'] as String? ?? '', args['content'] as String? ?? '', source: NoteSource.assistant);
         output = jsonEncode({'ok': true});
       } else if (name == 'get_notes') {
         final data = await sl<DioClient>().get<dynamic>('/notes');
@@ -371,10 +421,11 @@ class _NotesScreenState extends State<NotesScreen> {
                 ],
               ),
             ),
+          _buildConflictBanner(),
           Expanded(
             child: _loading
                 ? Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary))
-                : _notes.isEmpty
+                : _items.isEmpty
                     ? EmptyStateView(
                         icon: Icons.sticky_note_2_rounded,
                         title: l10n.notesEmpty,
@@ -382,12 +433,12 @@ class _NotesScreenState extends State<NotesScreen> {
                         gradient: const [Color(0xFFFB7185), Color(0xFFA855F7)],
                       )
                     : RefreshIndicator(
-                        onRefresh: _load,
+                        onRefresh: _onRefresh,
                         color: colors.primary,
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
-                          itemCount: _notes.length,
-                          itemBuilder: (context, i) => _buildNoteCard(_notes[i], colors),
+                          itemCount: _items.length,
+                          itemBuilder: (context, i) => _buildNoteCard(_items[i], colors),
                         ),
                       ),
           ),
@@ -396,12 +447,11 @@ class _NotesScreenState extends State<NotesScreen> {
     );
   }
 
-  Widget _buildNoteCard(Map<String, dynamic> note, AppColorsExtension colors) {
-    final date = DateTime.tryParse(note['createdAt'] as String? ?? '');
-    final dateStr = date != null ? DateFormat('dd.MM.yyyy HH:mm').format(date.toLocal()) : '';
-    final source = note['source'] as String? ?? 'MANUAL';
-    final title = note['title'] as String? ?? '';
-    final accentColor = rainbowColorFor(title.isNotEmpty ? title : (note['id'] as String? ?? 'note'));
+  Widget _buildNoteCard(NoteEntity note, AppColorsExtension colors) {
+    final dateStr = DateFormat('dd.MM.yyyy HH:mm').format(note.createdAt.toLocal());
+    final source = note.source;
+    final title = note.title;
+    final accentColor = rainbowColorFor(title.isNotEmpty ? title : note.id);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -439,7 +489,7 @@ class _NotesScreenState extends State<NotesScreen> {
               children: [
                 Row(
                   children: [
-                    if (source == 'ASSISTANT')
+                    if (source == NoteSource.assistant)
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: Container(
@@ -459,12 +509,19 @@ class _NotesScreenState extends State<NotesScreen> {
                           child: const Icon(Icons.headset_mic_rounded, size: 12, color: Colors.white),
                         ),
                       ),
-                    Expanded(child: Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), softWrap: true)),
-                    IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note['id'] as String), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(title, style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600), softWrap: true)),
+                          _pendingIndicator(note),
+                        ],
+                      ),
+                    ),
+                    IconButton(icon: Icon(Icons.delete_outline, size: 18, color: colors.textSecondary), onPressed: () => _confirmDelete(note.id), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(note['content'] as String? ?? '', style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
+                Text(note.content, style: TextStyle(color: colors.textSecondary, fontSize: 14, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 8),
                 Text(dateStr, style: TextStyle(color: colors.textSecondary.withValues(alpha: 0.6), fontSize: 11)),
               ],
@@ -485,7 +542,7 @@ class _NotesScreenState extends State<NotesScreen> {
         title: Text(l10n.notesDeleteConfirm, style: TextStyle(color: colors.textPrimary)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary))),
-          TextButton(onPressed: () { Navigator.pop(ctx); _deleteNote(id); }, child: Text(l10n.delete, style: TextStyle(color: colors.error))),
+          TextButton(onPressed: () { Navigator.pop(ctx); _onDelete(id); }, child: Text(l10n.delete, style: TextStyle(color: colors.error))),
         ],
       ),
     );
@@ -493,8 +550,12 @@ class _NotesScreenState extends State<NotesScreen> {
 }
 
 class _NoteEditScreen extends StatefulWidget {
-  final Map<String, dynamic>? note;
-  const _NoteEditScreen({this.note});
+  final NoteEntity? note;
+  final Future<void> Function(String title, String content) onCreate;
+  final Future<void> Function(String id, {String? title, String? content}) onUpdate;
+
+  const _NoteEditScreen({this.note, required this.onCreate, required this.onUpdate});
+
   @override
   State<_NoteEditScreen> createState() => _NoteEditScreenState();
 }
@@ -507,8 +568,8 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
   @override
   void initState() {
     super.initState();
-    _titleCtrl = TextEditingController(text: widget.note?['title'] as String? ?? '');
-    _contentCtrl = TextEditingController(text: widget.note?['content'] as String? ?? '');
+    _titleCtrl = TextEditingController(text: widget.note?.title ?? '');
+    _contentCtrl = TextEditingController(text: widget.note?.content ?? '');
   }
 
   @override
@@ -518,11 +579,10 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
     if (_titleCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
-      final ds = NotesRemoteDataSource(sl<DioClient>());
       if (widget.note != null) {
-        await ds.update(widget.note!['id'] as String, title: _titleCtrl.text.trim(), content: _contentCtrl.text.trim());
+        await widget.onUpdate(widget.note!.id, title: _titleCtrl.text.trim(), content: _contentCtrl.text.trim());
       } else {
-        await ds.create(title: _titleCtrl.text.trim(), content: _contentCtrl.text.trim());
+        await widget.onCreate(_titleCtrl.text.trim(), _contentCtrl.text.trim());
       }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
@@ -540,7 +600,7 @@ class _NoteEditScreenState extends State<_NoteEditScreen> {
     final accent = rainbowColorFor(
       title.isNotEmpty
           ? title
-          : (widget.note?['id'] as String? ?? 'note-new'),
+          : (widget.note?.id ?? 'note-new'),
     );
     return Scaffold(
       backgroundColor: colors.background,
