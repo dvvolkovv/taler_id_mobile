@@ -95,3 +95,20 @@ class Envelope {
     );
   }
 }
+
+/// Group voice call envelope types (group mesh voice room v1).
+///
+/// Wire shape is identical to the existing v1 [Envelope]. Payload-specific
+/// fields live in [Envelope.extra]. See spec at
+/// docs/superpowers/specs/2026-05-13-group-mesh-voice-room-design.md.
+class MeshGcEnvelopeType {
+  static const invite = 'mesh_gc_invite';
+  static const accept = 'mesh_gc_accept';
+  static const decline = 'mesh_gc_decline';
+  static const leave = 'mesh_gc_leave';
+  static const keepalive = 'mesh_gc_keepalive';
+
+  static const _all = {invite, accept, decline, leave, keepalive};
+
+  static bool isMeshGc(String type) => _all.contains(type);
+}
