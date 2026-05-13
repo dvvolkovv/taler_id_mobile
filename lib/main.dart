@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
@@ -24,6 +23,10 @@ import 'features/profile/presentation/bloc/profile_bloc.dart';
 import 'features/kyc/presentation/bloc/kyc_bloc.dart';
 import 'features/tenant/presentation/bloc/tenant_bloc.dart';
 import 'features/sessions/presentation/bloc/sessions_bloc.dart';
+import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_service.dart';
+import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_bloc.dart';
+import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -48,6 +51,15 @@ void _setupCallkitListener() {
     // Forward to all other subscribers (DashboardScreen etc.)
     NotificationService.addCallEvent(event);
 
+    // === Mesh group call branch ===
+    final extraMaybe = event?.body['extra'] as Map?;
+    final kind = extraMaybe?['kind'] as String?;
+    if (kind == 'mesh_gc') {
+      _handleMeshGroupCallEvent(event!, extraMaybe!);
+      return;
+    }
+
+    // === Existing 1-on-1 and LiveKit-group branches ===
     if (event?.event != Event.actionCallAccept) return;
     final extra = event!.body['extra'] as Map?;
     final roomName = extra?['roomName'] as String?;
@@ -83,6 +95,38 @@ void _setupCallkitListener() {
     // This is the primary navigation mechanism for incoming calls.
     _navigateWhenResumed(route, 0);
   });
+}
+
+/// Handle CallKit accept/decline for mesh group call invites.
+///
+/// The [extra] map contains: kind='mesh_gc', roomId, hostDevicePkHex,
+/// participantDevicePks (List of String).
+void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
+  final roomId = extra['roomId'] as String?;
+  final hostHex = extra['hostDevicePkHex'] as String?;
+  final participantsRaw = extra['participantDevicePks'];
+  final participants = participantsRaw is List
+      ? participantsRaw.whereType<String>().toList()
+      : null;
+  if (roomId == null || hostHex == null || participants == null) return;
+
+  try {
+    final bloc = sl<GroupMeshCallBloc>();
+    if (event.event == Event.actionCallAccept) {
+      bloc.add(GMCAcceptInvite(
+        roomId: roomId,
+        hostDevicePkHex: hostHex,
+        participantDevicePks: participants,
+      ));
+      final route = '/group-call/$roomId/lobby';
+      NotificationService.setPendingCallRoute(route);
+      _navigateWhenResumed(route, 0);
+    } else if (event.event == Event.actionCallDecline) {
+      bloc.add(GMCDeclineInvite(roomId: roomId, hostDevicePkHex: hostHex));
+    }
+  } catch (e) {
+    debugPrint('[mesh-gc] CallKit handler: bloc unavailable ($e)');
+  }
 }
 
 /// Polls WidgetsBinding lifecycle every 300 ms (up to 30 s) until the app is
@@ -136,6 +180,46 @@ void _navigateWhenResumed(String route, int attempt) {
     Future.delayed(const Duration(milliseconds: 300), () {
       _navigateWhenResumed(route, attempt + 1);
     });
+  }
+}
+
+/// Subscribe to [GroupMeshCallService.incomingInviteStream] and surface the
+/// native incoming UI via CallKit for mesh group call invites.
+///
+/// Must be called AFTER [setupDependencies()] so the DI graph is ready.
+/// On iOS the CallKit sheet is shown; on Android the flutter_callkit_incoming
+/// overlay (or foreground notification) is displayed.
+void _setupMeshGroupCallIncoming() {
+  if (kIsWeb) return;
+  try {
+    final svc = sl<GroupMeshCallService>();
+    svc.incomingInviteStream.listen((evt) async {
+      final extra = evt.envelope.extra;
+      if (extra == null) return;
+      final roomId = extra['roomId'] as String?;
+      final hostHex = extra['hostDevicePk'] as String?;
+      final participantsRaw = extra['participants'];
+      final participants = participantsRaw is List
+          ? participantsRaw.whereType<String>().toList()
+          : null;
+      if (roomId == null || hostHex == null || participants == null) return;
+
+      // Surface native incoming UI. The accept/decline handler in
+      // _setupCallkitListener and the dashboard route handle the rest.
+      await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
+        id: roomId,
+        nameCaller: 'Group call',
+        type: 0, // 0 = audio
+        extra: <String, dynamic>{
+          'kind': 'mesh_gc',
+          'roomId': roomId,
+          'hostDevicePkHex': hostHex,
+          'participantDevicePks': participants,
+        },
+      ));
+    });
+  } catch (e) {
+    debugPrint('[mesh-gc] _setupMeshGroupCallIncoming: DI not ready ($e)');
   }
 }
 
@@ -216,6 +300,9 @@ Future<void> main() async {
   // Setup DI first — must happen before NotificationService.init() so that
   // DioClient is registered when we try to save FCM/VoIP tokens.
   await setupDependencies();
+
+  // Wire mesh group call incoming notifications (requires DI to be ready).
+  _setupMeshGroupCallIncoming();
 
   // One-shot migration: move legacy Hive saved_messages → server SAVED conversation.
   unawaited(sl<HiveFavoritesMigrationService>().runOnce());
