@@ -188,6 +188,8 @@ final _message1 = MessageEntity(
 );
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late MockMessengerRepository repo;
 
   // Helper: create a closed (never-emitting) broadcast stream
