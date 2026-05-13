@@ -1580,5 +1580,6 @@
   "meshGcStatusDeclined": "Declined",
   "meshGcStatusNoAnswer": "No answer",
   "meshGcStatusConnectionFailed": "Connection failed",
-  "meshGcStatusLeft": "Left"
+  "meshGcStatusLeft": "Left",
+  "meshGcTopTitle": "Mesh"
 }

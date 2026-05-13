@@ -1580,5 +1580,6 @@
   "meshGcStatusDeclined": "Отклонил",
   "meshGcStatusNoAnswer": "Нет ответа",
   "meshGcStatusConnectionFailed": "Соединение не удалось",
-  "meshGcStatusLeft": "Вышел"
+  "meshGcStatusLeft": "Вышел",
+  "meshGcTopTitle": "Mesh"
 }

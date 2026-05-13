@@ -3493,4 +3493,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meshGcStatusLeft => 'Left';
+
+  @override
+  String get meshGcTopTitle => 'Mesh';
 }

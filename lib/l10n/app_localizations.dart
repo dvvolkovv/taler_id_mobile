@@ -6583,6 +6583,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Left'**
   String get meshGcStatusLeft;
+
+  /// No description provided for @meshGcTopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mesh'**
+  String get meshGcTopTitle;
 }
 
 class _AppLocalizationsDelegate
