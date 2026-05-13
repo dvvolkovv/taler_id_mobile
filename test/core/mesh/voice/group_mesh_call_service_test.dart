@@ -5,11 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
+import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_service.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_state.dart';
 
 class _MockMessaging extends Mock implements MeshMessagingService {}
+
+class _MockTransport extends Mock implements MeshTransport {}
 
 class _FakeEnvelope extends Fake implements Envelope {}
 
@@ -41,9 +44,16 @@ void main() {
           toUserPk: any(named: 'toUserPk'),
           envelope: any(named: 'envelope'),
         )).thenAnswer((_) async {});
+    when(() => messaging.datagramCiphersFor(any()))
+        .thenAnswer((_) async => null);
+
+    final transport = _MockTransport();
+    when(() => transport.inboundDatagrams)
+        .thenAnswer((_) => const Stream.empty());
 
     svc = GroupMeshCallService(
       messaging: messaging,
+      transport: transport,
       myDevicePk: myPk,
       lobbyTimeout: const Duration(milliseconds: 200),
     );
@@ -181,5 +191,30 @@ void main() {
         reason: 'exactly one Ended emission expected — userHangup');
 
     await sub.cancel();
+  });
+
+  group('Noise role assignment', () {
+    test('peer with lexicographically smaller devicePk initiates', () {
+      final smaller =
+          Uint8List.fromList(List<int>.generate(32, (_) => 0xAA));
+      final larger =
+          Uint8List.fromList(List<int>.generate(32, (_) => 0xBB));
+      expect(GroupMeshCallService.shouldInitiateNoise(smaller, larger), isTrue);
+      expect(
+          GroupMeshCallService.shouldInitiateNoise(larger, smaller), isFalse);
+    });
+
+    test('equal devicePk byte-strings returns false (degenerate self-pair)',
+        () {
+      final pk = Uint8List.fromList(List<int>.generate(32, (_) => 0x42));
+      expect(GroupMeshCallService.shouldInitiateNoise(pk, pk), isFalse);
+    });
+
+    test('first-byte tie broken by later bytes', () {
+      final a = Uint8List(32)..[0] = 0x10..[31] = 0x05;
+      final b = Uint8List(32)..[0] = 0x10..[31] = 0x06;
+      expect(GroupMeshCallService.shouldInitiateNoise(a, b), isTrue);
+      expect(GroupMeshCallService.shouldInitiateNoise(b, a), isFalse);
+    });
   });
 }

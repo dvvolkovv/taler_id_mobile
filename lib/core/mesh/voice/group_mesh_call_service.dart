@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:taler_id_mobile/core/mesh/crypto/mesh_datagram_cipher.dart';
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
+import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_state.dart';
 
@@ -20,14 +22,29 @@ const int kGmcMaxInvitees = kGmcMaxParticipants - 1;
 class GroupMeshCallService {
   GroupMeshCallService({
     required this.messaging,
+    required this.transport,
     required this.myDevicePk,
     this.lobbyTimeout = const Duration(seconds: 30),
     Random? random,
   }) : _random = random ?? Random() {
     _inboundSub = messaging.inbound.listen(_onInbound);
+    _datagramSub = transport.inboundDatagrams.listen(_onInboundDatagram);
+  }
+
+  /// Deterministic Noise-IK role assignment to avoid concurrent-handshake races.
+  /// The peer with the numerically smaller devicePk byte-string is the sole
+  /// initiator. Equal pks are a degenerate self-pair and yield false.
+  static bool shouldInitiateNoise(Uint8List myPk, Uint8List peerPk) {
+    if (myPk.length != peerPk.length) return false;
+    for (var i = 0; i < myPk.length; i++) {
+      if (myPk[i] < peerPk[i]) return true;
+      if (myPk[i] > peerPk[i]) return false;
+    }
+    return false;
   }
 
   final MeshMessagingService messaging;
+  final MeshTransport transport;
   final Uint8List myDevicePk;
   final Duration lobbyTimeout;
   final Random _random;
@@ -35,7 +52,11 @@ class GroupMeshCallService {
   GroupMeshCallState _state = const GMCIdle();
   final _stateCtrl = StreamController<GroupMeshCallState>.broadcast();
   StreamSubscription<InboundEnvelope>? _inboundSub;
+  StreamSubscription<InboundDatagram>? _datagramSub;
   Timer? _lobbyTimer;
+
+  final _peerCiphers =
+      <String, ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})>{};
 
   final _incomingInviteCtrl = StreamController<InboundEnvelope>.broadcast();
 
@@ -288,6 +309,27 @@ class GroupMeshCallService {
   void _emit(GroupMeshCallState s) {
     _state = s;
     _stateCtrl.add(s);
+    if (s is GMCActive) {
+      unawaited(_bootstrapActiveSessions(s));
+    }
+  }
+
+  void _onInboundDatagram(InboundDatagram dg) {
+    // Audio path wired in Task 7. Task 6 leaves this empty.
+  }
+
+  Future<void> _bootstrapActiveSessions(GMCActive active) async {
+    for (final p in active.roster) {
+      if (p.isSelf) continue;
+      final peerBytes = PeerId.fromHex(p.devicePk);
+      final ciphers = await messaging.datagramCiphersFor(peerBytes);
+      if (ciphers != null) {
+        _peerCiphers[p.devicePk] = ciphers;
+      }
+      // null means Noise session not yet established. Task 7 will add a retry
+      // loop. For Task 6 we simply skip — outbound encrypt will refuse for that
+      // peer until ciphers materialise.
+    }
   }
 
   String _generateRoomId() {
@@ -301,6 +343,7 @@ class GroupMeshCallService {
   Future<void> dispose() async {
     _lobbyTimer?.cancel();
     await _inboundSub?.cancel();
+    await _datagramSub?.cancel();
     await _stateCtrl.close();
     await _incomingInviteCtrl.close();
   }
