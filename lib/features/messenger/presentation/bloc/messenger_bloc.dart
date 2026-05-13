@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
+import '../../domain/entities/sync_result.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../../domain/repositories/i_messenger_repository.dart'
@@ -15,6 +16,7 @@ import '../../../../core/services/share_suggestions_service.dart';
 import '../../data/services/pending_mesh_send_queue.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
+import '../../../../core/storage/sync_cursor_storage.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
 import 'messenger_event.dart';
@@ -51,6 +53,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
   StreamSubscription? _meshMsgSub;
   StreamSubscription? _meshOutSub;
   final Map<String, Timer> _typingTimers = {}; // auto-clear typing after timeout
+  late final SyncCursorStorage _syncCursorStorage = sl<SyncCursorStorage>();
+  bool _syncInProgress = false;
 
   /// Tracks pending clientTempIds that have been emitted to the server and
   /// are awaiting a `new_message` broadcast. Prevents _resendPending() from
@@ -133,6 +137,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<MeshMessageReceived>(_onMeshMessageReceived);
     // Phase 1h — mesh outbound: replace temp_* bubble with mesh-out entity.
     on<MeshMessageSent>(_onMeshMessageSent);
+    // Sync delta handler — drains /messenger/sync with pagination.
+    on<SyncMessagesRequested>(_onSyncMessages);
   }
 
   Future<void> _onConnect(
@@ -1402,6 +1408,42 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     if (!state.pendingAnalystText.containsKey(e.conversationId)) return;
     final next = Map<String, String>.from(state.pendingAnalystText)..remove(e.conversationId);
     emit(state.copyWith(pendingAnalystText: next));
+  }
+
+  Future<void> _onSyncMessages(
+    SyncMessagesRequested event,
+    Emitter<MessengerState> emit,
+  ) async {
+    if (_syncInProgress) return;
+    _syncInProgress = true;
+    try {
+      var cursor = await _syncCursorStorage.read();
+      if (cursor == null) {
+        // First run — no stored cursor yet; fetch with no cursor to get
+        // an initial checkpoint for future delta syncs.
+        final SyncResult init = await _repo.sync(limit: 200);
+        if (init.nextCursor != null) {
+          await _syncCursorStorage.write(init.nextCursor!);
+        }
+        return;
+      }
+      // Delta run — paginate until hasMore=false (capped at 10 pages).
+      for (var page = 0; page < 10; page++) {
+        final SyncResult res = await _repo.sync(cursor: cursor, limit: 200);
+        for (final m in res.messages) {
+          add(MessageReceived(m));
+        }
+        if (res.nextCursor != null) {
+          cursor = res.nextCursor!;
+          await _syncCursorStorage.write(cursor);
+        }
+        if (!res.hasMore) break;
+      }
+    } catch (e) {
+      debugPrint('[messenger-sync] failed: $e');
+    } finally {
+      _syncInProgress = false;
+    }
   }
 
   Future<void> _onUpdateBadgeCounts(UpdateBadgeCounts event, Emitter<MessengerState> emit) async {
