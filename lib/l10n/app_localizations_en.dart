@@ -3459,4 +3459,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get groupCallNoContacts => 'No contacts';
+
+  @override
+  String get meshGcContactOffline => 'Not on this Wi-Fi';
+
+  @override
+  String get meshGcOnlineViaMesh => 'Online via mesh';
+
+  @override
+  String get meshGcMaxInvitees =>
+      'Group calls support up to 4 invitees (5 people total).';
+
+  @override
+  String get meshGcStart => 'Start group call';
 }

@@ -6517,6 +6517,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No contacts'**
   String get groupCallNoContacts;
+
+  /// No description provided for @meshGcContactOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Not on this Wi-Fi'**
+  String get meshGcContactOffline;
+
+  /// No description provided for @meshGcOnlineViaMesh.
+  ///
+  /// In en, this message translates to:
+  /// **'Online via mesh'**
+  String get meshGcOnlineViaMesh;
+
+  /// No description provided for @meshGcMaxInvitees.
+  ///
+  /// In en, this message translates to:
+  /// **'Group calls support up to 4 invitees (5 people total).'**
+  String get meshGcMaxInvitees;
+
+  /// No description provided for @meshGcStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start group call'**
+  String get meshGcStart;
 }
 
 class _AppLocalizationsDelegate

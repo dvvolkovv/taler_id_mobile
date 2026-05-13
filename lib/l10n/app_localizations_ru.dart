@@ -3479,4 +3479,17 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get groupCallNoContacts => 'Нет контактов';
+
+  @override
+  String get meshGcContactOffline => 'Не в этой Wi-Fi сети';
+
+  @override
+  String get meshGcOnlineViaMesh => 'В сети через mesh';
+
+  @override
+  String get meshGcMaxInvitees =>
+      'В групповом звонке до 4 приглашённых (5 всего).';
+
+  @override
+  String get meshGcStart => 'Начать групповой звонок';
 }

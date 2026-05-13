@@ -1569,5 +1569,9 @@
   "groupCallLivekitError": "Ошибка LiveKit",
   "groupCallDone": "Готово",
   "groupCallNoResults": "Ничего не найдено",
-  "groupCallNoContacts": "Нет контактов"
+  "groupCallNoContacts": "Нет контактов",
+  "meshGcContactOffline": "Не в этой Wi-Fi сети",
+  "meshGcOnlineViaMesh": "В сети через mesh",
+  "meshGcMaxInvitees": "В групповом звонке до 4 приглашённых (5 всего).",
+  "meshGcStart": "Начать групповой звонок"
 }

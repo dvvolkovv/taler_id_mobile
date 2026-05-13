@@ -1569,5 +1569,9 @@
   "groupCallLivekitError": "LiveKit error",
   "groupCallDone": "Done",
   "groupCallNoResults": "No results",
-  "groupCallNoContacts": "No contacts"
+  "groupCallNoContacts": "No contacts",
+  "meshGcContactOffline": "Not on this Wi-Fi",
+  "meshGcOnlineViaMesh": "Online via mesh",
+  "meshGcMaxInvitees": "Group calls support up to 4 invitees (5 people total).",
+  "meshGcStart": "Start group call"
 }

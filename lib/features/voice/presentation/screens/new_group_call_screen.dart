@@ -4,20 +4,23 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/transport/peer_id.dart';
+import '../../../../core/mesh/voice/group_mesh_call_state.dart';
 import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../bloc/group_call_bloc.dart';
-import '../bloc/group_call_event.dart';
-import '../bloc/group_call_state.dart';
+import '../bloc/group_mesh_call_bloc.dart';
+import '../bloc/group_mesh_call_event.dart';
 import '../widgets/pulsing_avatar.dart' show rainbowColorFor;
 
-/// Multi-select contacts picker for starting a group voice call.
+/// Multi-select contacts picker for starting a mesh group voice call.
 ///
-/// Loads contacts from [ContactsCacheService] (only `accepted` status) and
-/// lets the user pick up to 7 invitees (host + 7 = 8 cap per Phase 1 spec).
-/// On confirm, dispatches [CreateCall] to the [GroupCallBloc] and navigates
-/// to the lobby/active screen on [InLobby].
+/// Loads contacts from [ContactsCacheService] (only `accepted` status), filters
+/// them by mesh reachability via [MeshPeerEligibilityWatcher], and lets the
+/// user pick up to 4 invitees (host + 4 = 5 cap).
+/// On confirm, dispatches [GMCStartRequested] to the [GroupMeshCallBloc] and
+/// navigates to the lobby screen on [GMCLobby].
 class NewGroupCallScreen extends StatefulWidget {
   const NewGroupCallScreen({super.key});
 
@@ -26,11 +29,12 @@ class NewGroupCallScreen extends StatefulWidget {
 }
 
 class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
-  static const int _maxSelected = 7;
+  static const int _maxSelected = 4;
 
   final ContactsCacheService _cache = sl<ContactsCacheService>();
+  final MeshPeerEligibilityWatcher _eligibility =
+      sl<MeshPeerEligibilityWatcher>();
   final TextEditingController _searchCtrl = TextEditingController();
-  late final GroupCallBloc _bloc;
 
   List<_PickerContact> _contacts = [];
   final Set<String> _selected = <String>{};
@@ -39,8 +43,12 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
   @override
   void initState() {
     super.initState();
-    _bloc = sl<GroupCallBloc>();
     _loadContacts();
+
+    // Rebuild when mesh peer online status changes.
+    _eligibility.userChanges.listen((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   void _loadContacts() {
@@ -70,7 +78,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     if (_selected.length >= _maxSelected) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.groupCallMaxReached),
+          content: Text(AppLocalizations.of(context)!.meshGcMaxInvitees),
         ),
       );
       return;
@@ -78,9 +86,20 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     setState(() => _selected.add(contactId));
   }
 
-  void _create() {
+  Future<void> _create(GroupMeshCallBloc bloc) async {
     if (_selected.isEmpty) return;
-    _bloc.add(GroupCallEvent.createCall(_selected.toList()));
+
+    // Build devicePkHex → userId map for each selected contact.
+    final invitees = <String, String>{};
+    for (final userId in _selected) {
+      final devices = _eligibility.onlineDevicesForUser(userId);
+      if (devices.isEmpty) continue; // race: contact went offline, skip
+      final PeerId device = devices.first;
+      invitees[device.toHex()] = userId;
+    }
+
+    if (invitees.isEmpty) return;
+    bloc.add(GMCStartRequested(invitees: invitees));
   }
 
   @override
@@ -91,60 +110,70 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<GroupCallBloc>.value(
-      value: _bloc,
-      child: BlocConsumer<GroupCallBloc, GroupCallState>(
-        listener: (context, state) {
-          if (state is InLobby) {
-            context.go('/group-call/${state.groupCall.id}/lobby');
-          } else if (state is ErrorState) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message)),
-            );
-          }
-        },
-        builder: (context, state) {
-          final colors = AppColors.of(context);
-          final l10n = AppLocalizations.of(context)!;
-          final isCreating = state is Creating;
-          return Scaffold(
-            backgroundColor: colors.background,
-            appBar: AppBar(
-              backgroundColor: colors.background,
-              title: Text(
-                '${l10n.groupCallSelectParticipants} '
-                '(${l10n.groupCallSelectedCount(_selected.length)})',
-              ),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.check_rounded),
-                  tooltip: l10n.groupCallDone,
-                  onPressed: (_selected.isEmpty || isCreating) ? null : _create,
-                ),
-              ],
-            ),
-            body: Stack(
-              children: [
-                Column(
-                  children: [
-                    _searchField(colors),
-                    if (_selected.isNotEmpty) _selectedRow(colors),
-                    Expanded(child: _contactsList(colors)),
-                  ],
-                ),
-                if (isCreating)
-                  Positioned.fill(
-                    child: ColoredBox(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: colors.primary,
-                        ),
-                      ),
+    return BlocProvider<GroupMeshCallBloc>(
+      create: (_) => sl<GroupMeshCallBloc>(),
+      child: Builder(
+        builder: (ctx) {
+          final bloc = ctx.read<GroupMeshCallBloc>();
+          return BlocListener<GroupMeshCallBloc, GroupMeshCallState>(
+            listener: (context, state) {
+              if (state is GMCLobby) {
+                context.go('/group-call/${state.roomId}/lobby');
+              } else if (state is GMCError) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(state.message)),
+                );
+              }
+            },
+            child: BlocBuilder<GroupMeshCallBloc, GroupMeshCallState>(
+              builder: (context, state) {
+                final colors = AppColors.of(context);
+                final l10n = AppLocalizations.of(context)!;
+                final isStarting = state is GMCInviting;
+                return Scaffold(
+                  backgroundColor: colors.background,
+                  appBar: AppBar(
+                    backgroundColor: colors.background,
+                    title: Text(
+                      '${l10n.groupCallSelectParticipants} '
+                      '(${_selected.length}/$_maxSelected)',
                     ),
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.check_rounded),
+                        tooltip: l10n.meshGcStart,
+                        onPressed:
+                            (_selected.isEmpty || isStarting)
+                                ? null
+                                : () => _create(bloc),
+                      ),
+                    ],
                   ),
-              ],
+                  body: Stack(
+                    children: [
+                      Column(
+                        children: [
+                          _searchField(colors),
+                          if (_selected.isNotEmpty) _selectedRow(colors),
+                          Expanded(child: _contactsList(colors, l10n)),
+                        ],
+                      ),
+                      if (isStarting)
+                        Positioned.fill(
+                          child: ColoredBox(
+                            color: Colors.black.withValues(alpha: 0.5),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           );
         },
@@ -228,7 +257,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     );
   }
 
-  Widget _contactsList(AppColorsExtension colors) {
+  Widget _contactsList(AppColorsExtension colors, AppLocalizations l10n) {
     final q = _searchQuery.toLowerCase();
     final filtered = q.isEmpty
         ? _contacts
@@ -237,7 +266,6 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
             .toList();
 
     if (filtered.isEmpty) {
-      final l10n = AppLocalizations.of(context)!;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -256,19 +284,32 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
       itemCount: filtered.length,
       itemBuilder: (_, i) {
         final c = filtered[i];
+        final isOnline = _eligibility.isUserOnline(c.id);
         final picked = _selected.contains(c.id);
         final ringColor = rainbowColorFor(c.displayName);
         return CheckboxListTile(
           value: picked,
           controlAffinity: ListTileControlAffinity.trailing,
-          activeColor: colors.primary,
+          activeColor: isOnline ? colors.primary : colors.textSecondary,
+          enabled: isOnline,
           title: Text(
             c.displayName,
-            style: TextStyle(color: colors.textPrimary, fontSize: 15),
+            style: TextStyle(
+              color: isOnline ? colors.textPrimary : colors.textSecondary,
+              fontSize: 15,
+            ),
+          ),
+          subtitle: Text(
+            isOnline ? l10n.meshGcOnlineViaMesh : l10n.meshGcContactOffline,
+            style: TextStyle(
+              color: isOnline ? colors.primary : colors.textSecondary,
+              fontSize: 12,
+            ),
           ),
           secondary: CircleAvatar(
             radius: 20,
-            backgroundColor: ringColor,
+            backgroundColor:
+                isOnline ? ringColor : ringColor.withValues(alpha: 0.4),
             backgroundImage: c.avatarUrl != null && c.avatarUrl!.isNotEmpty
                 ? CachedNetworkImageProvider(c.avatarUrl!)
                 : null,
@@ -283,7 +324,7 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
                   )
                 : null,
           ),
-          onChanged: (_) => _toggle(c.id),
+          onChanged: isOnline ? (_) => _toggle(c.id) : null,
         );
       },
     );
