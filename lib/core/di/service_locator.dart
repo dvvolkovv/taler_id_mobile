@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../api/auth_interceptor.dart';
@@ -14,6 +15,7 @@ import '../services/call_history_cache_service.dart';
 import '../services/contacts_cache_service.dart';
 import '../services/message_draft_service.dart';
 import '../services/messenger_cache_service.dart';
+import '../storage/sync_cursor_storage.dart';
 import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
@@ -135,6 +137,10 @@ Future<void> setupDependencies() async {
   // Messenger cache (Hive)
   await MessengerCacheService.init();
   sl.registerSingleton<MessengerCacheService>(MessengerCacheService());
+
+  // Sync cursor storage (Hive) — persists the last /messenger/sync cursor
+  await Hive.openBox<String>(SyncCursorStorage.boxName);
+  sl.registerLazySingleton<SyncCursorStorage>(() => SyncCursorStorage());
 
   // Mesh call history (Hive) — local-only journal of mesh voice calls
   final meshCallHistory = HiveMeshCallHistoryRepository();
