@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:taler_id_mobile/core/audio/group_mesh_voice_audio_engine.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/mesh_datagram_cipher.dart';
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
 import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_state.dart';
+import 'package:taler_id_mobile/core/mesh/voice/mesh_voice_frame.dart';
 
 /// Maximum participants including self.
 const int kGmcMaxParticipants = 5;
@@ -24,6 +26,7 @@ class GroupMeshCallService {
     required this.messaging,
     required this.transport,
     required this.myDevicePk,
+    required this.audioEngineFactory,
     this.lobbyTimeout = const Duration(seconds: 30),
     Random? random,
   }) : _random = random ?? Random() {
@@ -46,6 +49,7 @@ class GroupMeshCallService {
   final MeshMessagingService messaging;
   final MeshTransport transport;
   final Uint8List myDevicePk;
+  final GroupMeshVoiceAudioEngine Function() audioEngineFactory;
   final Duration lobbyTimeout;
   final Random _random;
 
@@ -59,6 +63,11 @@ class GroupMeshCallService {
       <String, ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})>{};
 
   final _incomingInviteCtrl = StreamController<InboundEnvelope>.broadcast();
+
+  GroupMeshVoiceAudioEngine? _audio;
+  StreamSubscription<Uint8List>? _audioOutSub;
+  bool _selfMuted = false;
+  final _outboundSeqByPeer = <String, int>{};
 
   GroupMeshCallState get state => _state;
   Stream<GroupMeshCallState> get stateStream => _stateCtrl.stream;
@@ -206,6 +215,14 @@ class GroupMeshCallService {
     _emit(const GMCEnded(reason: GMCEndReason.userHangup));
   }
 
+  Future<void> toggleMute() async {
+    _selfMuted = !_selfMuted;
+    final s = _state;
+    if (s is GMCActive) {
+      _emit(s.copyWith(selfMuted: _selfMuted));
+    }
+  }
+
   void _onInbound(InboundEnvelope evt) {
     final type = evt.envelope.type;
     if (!MeshGcEnvelopeType.isMeshGc(type)) return;
@@ -307,15 +324,99 @@ class GroupMeshCallService {
   }
 
   void _emit(GroupMeshCallState s) {
+    final previous = _state;
     _state = s;
     _stateCtrl.add(s);
+
+    if (s is GMCActive && previous is! GMCActive) {
+      unawaited(_startAudio(s));
+    } else if (s is! GMCActive && previous is GMCActive) {
+      unawaited(_stopAudio());
+    }
     if (s is GMCActive) {
       unawaited(_bootstrapActiveSessions(s));
     }
   }
 
-  void _onInboundDatagram(InboundDatagram dg) {
-    // Audio path wired in Task 7. Task 6 leaves this empty.
+  Future<void> _startAudio(GMCActive active) async {
+    final engine = audioEngineFactory();
+    _audio = engine;
+    await engine.start();
+    for (final p in active.roster) {
+      if (p.isSelf) continue;
+      engine.addPeer(p.devicePk);
+      _outboundSeqByPeer[p.devicePk] = 0;
+    }
+    _audioOutSub = engine.outbound.listen(_onEncodedAudioFrame);
+  }
+
+  Future<void> _stopAudio() async {
+    await _audioOutSub?.cancel();
+    _audioOutSub = null;
+    await _audio?.stop();
+    await _audio?.dispose();
+    _audio = null;
+    _peerCiphers.clear();
+    _outboundSeqByPeer.clear();
+  }
+
+  Future<void> _onEncodedAudioFrame(Uint8List opusPayload) async {
+    final s = _state;
+    if (s is! GMCActive) return;
+    if (_selfMuted) return;
+    final roomIdInt = int.parse(s.roomId, radix: 16);
+    for (final p in s.roster) {
+      if (p.isSelf) continue;
+      final ciphers = _peerCiphers[p.devicePk];
+      if (ciphers == null) continue;
+      final seq = (_outboundSeqByPeer[p.devicePk] ?? 0) + 1;
+      _outboundSeqByPeer[p.devicePk] = seq;
+      try {
+        final ciphertext = await ciphers.outbound.encrypt(
+          seq: seq,
+          plaintext: opusPayload,
+        );
+        final frame = MeshVoiceFrame(
+          type: MeshVoiceFrameType.audio,
+          callId: roomIdInt,
+          seq: seq,
+          ciphertext: ciphertext,
+        ).encode();
+        unawaited(transport.sendDatagram(PeerId.fromHex(p.devicePk), frame));
+      } catch (_) {
+        // Encrypt or send failure for this peer this frame — skip silently.
+        // Next frame will retry.
+      }
+    }
+  }
+
+  Future<void> _onInboundDatagram(InboundDatagram dg) async {
+    final engine = _audio;
+    if (engine == null) return;
+    final s = _state;
+    if (s is! GMCActive) return;
+    final MeshVoiceFrame frame;
+    try {
+      frame = MeshVoiceFrame.decode(dg.bytes);
+    } catch (_) {
+      return;
+    }
+    final roomIdInt = int.parse(s.roomId, radix: 16);
+    if (frame.callId != roomIdInt) return;
+    if (frame.type != MeshVoiceFrameType.audio) return;
+
+    final senderHex = dg.srcPeer.toHex();
+    final ciphers = _peerCiphers[senderHex];
+    if (ciphers == null) return;
+    try {
+      final plaintext = await ciphers.inbound.decrypt(
+        seq: frame.seq,
+        ciphertext: frame.ciphertext,
+      );
+      engine.inbound(senderHex, seq: frame.seq, payload: plaintext);
+    } catch (_) {
+      // Decrypt failure (replay / MAC mismatch / cipher missing) — drop.
+    }
   }
 
   Future<void> _bootstrapActiveSessions(GMCActive active) async {
@@ -342,6 +443,7 @@ class GroupMeshCallService {
 
   Future<void> dispose() async {
     _lobbyTimer?.cancel();
+    await _stopAudio();
     await _inboundSub?.cancel();
     await _datagramSub?.cancel();
     await _stateCtrl.close();

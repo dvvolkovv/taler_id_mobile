@@ -3,6 +3,9 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:taler_id_mobile/core/audio/group_mesh_voice_audio_engine.dart';
+import 'package:taler_id_mobile/core/audio/mesh_voice_audio_engine.dart'
+    show AudioCaptureSource, AudioPlaybackSink;
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
 import 'package:taler_id_mobile/core/mesh/transport/mesh_transport.dart';
@@ -17,6 +20,47 @@ class _MockTransport extends Mock implements MeshTransport {}
 class _FakeEnvelope extends Fake implements Envelope {}
 
 class _FakePeerId extends Fake implements PeerId {}
+
+class _NoopCapture implements AudioCaptureSource {
+  @override
+  Stream<Int16List> get frames => const Stream.empty();
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> setMicEnabled(bool enabled) async {}
+}
+
+class _NoopPlayback implements AudioPlaybackSink {
+  @override
+  Future<void> start() async {}
+  @override
+  Future<void> stop() async {}
+  @override
+  Future<void> push(Int16List pcm) async {}
+}
+
+class _NoopEncoder implements GroupMeshOpusEncoder {
+  @override
+  Uint8List encode(Int16List pcm) => Uint8List(0);
+  @override
+  void dispose() {}
+}
+
+class _NoopDecoder implements GroupMeshOpusDecoder {
+  @override
+  Int16List decode(Uint8List payload) => Int16List(0);
+  @override
+  void dispose() {}
+}
+
+GroupMeshVoiceAudioEngine _noopEngineFactory() => GroupMeshVoiceAudioEngine(
+      capture: _NoopCapture(),
+      playback: _NoopPlayback(),
+      encoderFactory: () => _NoopEncoder(),
+      decoderFactory: () => _NoopDecoder(),
+    );
 
 void main() {
   late _MockMessaging messaging;
@@ -55,6 +99,7 @@ void main() {
       messaging: messaging,
       transport: transport,
       myDevicePk: myPk,
+      audioEngineFactory: _noopEngineFactory,
       lobbyTimeout: const Duration(milliseconds: 200),
     );
   });
@@ -191,6 +236,34 @@ void main() {
         reason: 'exactly one Ended emission expected — userHangup');
 
     await sub.cancel();
+  });
+
+  test('toggleMute flips selfMuted in GMCActive state', () async {
+    await svc.start(invitees: {hex(peerBPk): 'userB'});
+    inboundCtrl.add(InboundEnvelope(
+      fromUserPk: PeerId(peerBPk),
+      envelope: Envelope(
+        version: 1,
+        type: MeshGcEnvelopeType.accept,
+        convId: (svc.state as GMCLobby).roomId,
+        clientId: 'c',
+        text: '',
+        sentAt: DateTime.now().toUtc(),
+        extra: {
+          'roomId': (svc.state as GMCLobby).roomId,
+          'devicePk': hex(peerBPk),
+        },
+      ),
+    ));
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    expect(svc.state, isA<GMCActive>());
+    expect((svc.state as GMCActive).selfMuted, isFalse);
+
+    await svc.toggleMute();
+    expect((svc.state as GMCActive).selfMuted, isTrue);
+
+    await svc.toggleMute();
+    expect((svc.state as GMCActive).selfMuted, isFalse);
   });
 
   group('Noise role assignment', () {
