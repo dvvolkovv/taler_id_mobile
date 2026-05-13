@@ -140,18 +140,19 @@ void main() {
 
     // ── Tap call button ───────────────────────────────────────────
     // NOTE: tester.tap() misses due to hit-test interception by underlying widget.
-    // We find the IconButton ancestor and invoke onPressed directly.
+    // In chat_room_screen the phone icon is wrapped in InkWell (not IconButton)
+    // so onLongPress and onTap can coexist — invoke onTap directly.
     final callBtn = find.byIcon(Icons.phone_outlined);
     debugPrint('[CALLER] phone_outlined icons: ${callBtn.evaluate().length}');
     expect(callBtn, findsWidgets, reason: 'Call button not found in chat');
-    final iconBtns = find.ancestor(
+    final inkWells = find.ancestor(
       of: find.byIcon(Icons.phone_outlined),
-      matching: find.byType(IconButton),
+      matching: find.byType(InkWell),
     );
-    expect(iconBtns, findsWidgets, reason: 'Phone IconButton not found');
-    final callIconBtn = tester.widget<IconButton>(iconBtns.first);
-    expect(callIconBtn.onPressed, isNotNull, reason: 'Call button is disabled');
-    callIconBtn.onPressed!();
+    expect(inkWells, findsWidgets, reason: 'Phone InkWell not found');
+    final callInkWell = tester.widget<InkWell>(inkWells.first);
+    expect(callInkWell.onTap, isNotNull, reason: 'Call button is disabled');
+    callInkWell.onTap!();
     await tester.pump(const Duration(milliseconds: 500));
     debugPrint('[CALLER] Call button invoked');
 
