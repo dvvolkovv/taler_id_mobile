@@ -49,6 +49,15 @@
 **Files:**
 - Create: `~/taler-id/src/messenger/dto/sync.dto.ts`
 
+- [ ] **Step 0: Switch backend repo to `dev` branch**
+
+```bash
+cd ~/taler-id
+git checkout dev && git pull origin dev
+```
+
+(Per CLAUDE.md feedback: always work on `dev`, never on `main`.)
+
 - [ ] **Step 1: Create the DTO file**
 
 ```typescript
@@ -418,19 +427,19 @@ git commit -m "feat(messenger): add GET /messenger/sync route"
 
 **Files:** none (deploy + smoke).
 
-- [ ] **Step 1: Push to GitHub**
+- [ ] **Step 1: Push `dev` to GitHub**
 
 ```bash
 cd ~/taler-id
-git push origin main
+git push origin dev
 ```
 
-(Backend deploys from `main`; if dev branch exists, also push there. Confirm with `git branch -r`.)
+(Per CLAUDE.md feedback: work continues on `dev`; PROD merge to `main` happens later, only after explicit user approval.)
 
 - [ ] **Step 2: SSH to DEV and pull + restart**
 
 ```bash
-ssh dvolkov@89.169.55.217 'cd ~/taler-id && git pull && npm run build && pm2 restart taler-id-dev'
+ssh dvolkov@89.169.55.217 'cd ~/taler-id && git checkout dev && git pull origin dev && npm run build && pm2 restart taler-id-dev'
 ```
 
 Expected: PM2 reports `taler-id-dev` online.
@@ -693,13 +702,10 @@ npm run test:sync
 
 Expected: 4/4 passed.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Skip commit**
 
-```bash
-cd ~/Downloads/taler_id_tests
-git add sync_test.ts package.json
-git commit -m "test(sync): add E2E test for /messenger/sync"
-```
+`~/Downloads/taler_id_tests` is not a git repository. The new file simply
+lives on disk and is run via the `test:sync` / `test:sync:prod` npm scripts.
 
 ---
 
