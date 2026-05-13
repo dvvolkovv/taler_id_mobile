@@ -40,6 +40,7 @@ Stream<T> _empty<T>() => const Stream.empty();
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     if (!sl.isRegistered<MessengerCacheService>()) {
       sl.registerSingleton<MessengerCacheService>(_FakeCache());
     }

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mocktail/mocktail.dart';
@@ -205,6 +206,18 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 200));
 
     expect(bloc.state.messages['conv-1']?.length, 1);
+    await bloc.close();
+  });
+
+  test('AppLifecycleState.resumed dispatches SyncMessagesRequested', () async {
+    when(() => repo.sync(limit: any(named: 'limit'))).thenAnswer((_) async =>
+        const SyncResult(messages: [], nextCursor: '2026-05-13T11:00:00.000Z|x', hasMore: false));
+
+    final bloc = MessengerBloc(repo: repo);
+    bloc.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    verify(() => repo.sync(limit: 200)).called(1);
     await bloc.close();
   });
 }

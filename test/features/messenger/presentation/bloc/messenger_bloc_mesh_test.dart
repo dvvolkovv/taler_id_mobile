@@ -51,6 +51,7 @@ class _FakePending implements PendingMessageService {
 
 void main() {
   setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
     if (!sl.isRegistered<MessengerCacheService>()) {
       sl.registerSingleton<MessengerCacheService>(_FakeCache());
     }

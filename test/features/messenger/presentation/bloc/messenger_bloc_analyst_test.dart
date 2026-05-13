@@ -23,6 +23,10 @@ void main() {
   late StreamController<AnalystSeam> seamCtrl;
   final sl = GetIt.instance;
 
+  setUpAll(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+  });
+
   setUp(() {
     // Reset GetIt for each test
     sl.reset();

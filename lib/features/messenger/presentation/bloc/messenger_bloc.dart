@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/message_entity.dart';
@@ -22,7 +23,8 @@ import '../../../../core/mesh/services/device_key_sync_service.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
-class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
+class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
+    with WidgetsBindingObserver {
   final IMessengerRepository _repo;
   final MessengerCacheService _cache = sl<MessengerCacheService>();
   final PendingMessageService _pending = sl<PendingMessageService>();
@@ -139,6 +141,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     on<MeshMessageSent>(_onMeshMessageSent);
     // Sync delta handler — drains /messenger/sync with pagination.
     on<SyncMessagesRequested>(_onSyncMessages);
+    WidgetsBinding.instance.addObserver(this);
   }
 
   Future<void> _onConnect(
@@ -1126,6 +1129,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
 
   @override
   Future<void> close() {
+    WidgetsBinding.instance.removeObserver(this);
     _msgSub?.cancel();
     _callSub?.cancel();
     _msgUpdatedSub?.cancel();
@@ -1445,6 +1449,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
       debugPrint('[messenger-sync] failed: $e');
     } finally {
       _syncInProgress = false;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      add(const SyncMessagesRequested());
     }
   }
 
