@@ -13,6 +13,7 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import '../../domain/entities/group_member_entity.dart';
 import '../../domain/entities/analyst_events.dart';
+import '../../domain/entities/sync_result.dart';
 import '../../domain/repositories/i_messenger_repository.dart'
     show IMessengerRepository, MeshInboundMessage, MeshOutboundMessage;
 import '../datasources/messenger_remote_datasource.dart';
@@ -63,6 +64,10 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   @override
   Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor, String? topicId}) =>
       _remote.getMessages(conversationId, cursor: cursor, topicId: topicId);
+
+  @override
+  Future<SyncResult> sync({String? cursor, int limit = 200}) =>
+      _remote.sync(cursor: cursor, limit: limit);
 
   @override
   Future<List<UserSearchEntity>> searchUsers(String query) => _remote.searchUsers(query);

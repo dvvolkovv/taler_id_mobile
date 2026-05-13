@@ -1,5 +1,6 @@
 import '../entities/conversation_entity.dart';
 import '../entities/message_entity.dart';
+import '../entities/sync_result.dart';
 import '../entities/user_search_entity.dart';
 import '../entities/group_member_entity.dart';
 import '../entities/analyst_events.dart';
@@ -9,6 +10,7 @@ abstract class IMessengerRepository {
   Future<List<ConversationEntity>> getConversations();
   Future<ConversationEntity> createConversation(String participantId);
   Future<Map<String, dynamic>> getMessages(String conversationId, {String? cursor, String? topicId});
+  Future<SyncResult> sync({String? cursor, int limit});
   Future<List<UserSearchEntity>> searchUsers(String query);
   void joinConversation(String id);
   void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId});
