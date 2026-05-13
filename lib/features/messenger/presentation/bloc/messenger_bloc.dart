@@ -146,12 +146,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState> {
     await _repo.connect(event.accessToken);
     // Flush any pending messages (queued while offline) now that we're connected.
     _resendPending();
+    add(const SyncMessagesRequested());
     // Re-send on each reconnect too.
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
       debugPrint('[mesh-reconnect] socket reconnected — resending pending + refreshing contact keys');
       _resendPending();
       _refreshMeshContactKeys();
+      add(const SyncMessagesRequested());
     });
     // Clear in-flight set on disconnect so the next reconnect re-emits any
     // pending messages. Without this, a message that was emitted into a
