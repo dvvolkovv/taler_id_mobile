@@ -111,6 +111,16 @@ import '../audio/default_group_mesh_voice_audio_engine.dart';
 import '../mesh/voice/group_mesh_call_service.dart';
 import '../../features/voice/presentation/bloc/group_mesh_call_bloc.dart';
 
+// Notes offline
+import '../storage/outbox_queue.dart';
+import '../services/outbox_replay_service.dart';
+import '../services/connectivity_watcher.dart';
+import '../../features/notes/data/datasources/notes_local_datasource.dart';
+import '../../features/notes/data/datasources/notes_remote_datasource.dart';
+import '../../features/notes/data/repositories/notes_repository_impl.dart';
+import '../../features/notes/data/services/notes_outbox_replay_handler.dart';
+import '../../features/notes/domain/repositories/i_notes_repository.dart';
+
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
 import '../../features/billing/data/repositories/billing_repository_impl.dart';
@@ -146,6 +156,10 @@ Future<void> setupDependencies() async {
   // Sync cursor storage (Hive) — persists the last /messenger/sync cursor
   await Hive.openBox<String>(SyncCursorStorage.boxName);
   sl.registerLazySingleton<SyncCursorStorage>(() => SyncCursorStorage());
+
+  // Notes offline: outbox queue + local note store (Hive)
+  await Hive.openBox<String>(OutboxQueue.boxName);
+  await Hive.openBox<String>(NotesLocalDataSource.boxName);
 
   // Mesh call history (Hive) — local-only journal of mesh voice calls
   final meshCallHistory = HiveMeshCallHistoryRepository();
@@ -525,7 +539,10 @@ Future<void> setupDependencies() async {
     ),
   );
 
-  sl.registerFactory<GroupMeshCallBloc>(
+  // Singleton: GroupMeshCallBloc state must persist across screen transitions
+  // (new-group-call picker → lobby → active). A factory would create a fresh
+  // Idle-state BLoC for each sl<GroupMeshCallBloc>() call, breaking the flow.
+  sl.registerLazySingleton<GroupMeshCallBloc>(
     () => GroupMeshCallBloc(service: sl<GroupMeshCallService>()),
   );
 
@@ -548,6 +565,23 @@ Future<void> setupDependencies() async {
       eventBus: sl<BillingEventBus>(),
     ),
   );
+
+  // Outbox infrastructure
+  sl.registerLazySingleton<OutboxQueue>(() => OutboxQueue());
+  sl.registerLazySingleton<OutboxReplayService>(() => OutboxReplayService(queue: sl<OutboxQueue>()));
+  sl.registerLazySingleton<ConnectivityWatcher>(() => ConnectivityWatcher(sl<OutboxReplayService>()));
+
+  // Notes feature
+  sl.registerLazySingleton<NotesLocalDataSource>(() => NotesLocalDataSource());
+  sl.registerLazySingleton<NotesRemoteDataSource>(() => NotesRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton<INotesRepository>(() => NotesRepositoryImpl(
+        local: sl<NotesLocalDataSource>(),
+        remote: sl<NotesRemoteDataSource>(),
+        outbox: sl<OutboxQueue>(),
+      ));
+  sl.registerLazySingleton<NotesOutboxReplayHandler>(() => NotesOutboxReplayHandler(
+        remote: sl<NotesRemoteDataSource>(),
+      ));
 
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
@@ -584,6 +618,14 @@ Future<void> setupDependencies() async {
     )..add(LoadBalance()),
     instanceName: 'globalBalance',
   );
+
+  // Boot outbox: reset any inflight ops, register handlers, start connectivity watch
+  await sl<OutboxQueue>().onBoot();
+  sl<OutboxReplayService>().registerHandler(sl<NotesOutboxReplayHandler>());
+  sl<ConnectivityWatcher>().start();
+  // First drain on app boot (in case we were offline last session)
+  // ignore: discarded_futures
+  sl<OutboxReplayService>().drain();
 
   // Phase 1g — if the user is already authenticated from a prior session
   // (JWT cached in SecureStorage), run the mesh bootstrap immediately so
