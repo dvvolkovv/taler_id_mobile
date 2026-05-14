@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
-import 'package:flutter_idensic_mobile_sdk_plugin/flutter_idensic_mobile_sdk_plugin.dart';
+import '../../../../core/platform/kyc_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/error_keys.dart';
@@ -417,17 +417,21 @@ class _KycScreenState extends State<KycScreen> {
     }
 
     final bloc = context.read<KycBloc>();
-    final onTokenExpiration = () async => await bloc.repo.startKyc();
-    final snsMobileSDK = SNSMobileSDK.init(sdkToken, onTokenExpiration)
-        .withLocale(const Locale('ru'))
-        .withDebug(true)
-        .build();
-    final SNSMobileSDKResult result = await snsMobileSDK.launch();
+    final result = await KycLauncherPlatform.instance.launch(
+      sdkToken: sdkToken,
+      onTokenExpiration: () async => await bloc.repo.startKyc(),
+    );
     if (!mounted) return;
+    if (result.skipped) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('KYC verification is not available on this platform')),
+      );
+      return;
+    }
     if (result.success) {
       bloc.add(KycSdkCompleted());
-    } else if (result.errorMsg != null) {
-      bloc.add(KycSdkFailed(result.errorType?.toString() ?? 'unknown'));
+    } else if (result.errorMessage != null) {
+      bloc.add(KycSdkFailed(result.errorType ?? 'unknown'));
     }
     bloc.add(KycStatusRequested());
   }
