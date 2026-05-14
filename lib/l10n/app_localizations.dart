@@ -6595,6 +6595,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finish your current call first.'**
   String get meshGcBusyOneOnOne;
+
+  /// No description provided for @presenceOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'online'**
+  String get presenceOnline;
+
+  /// No description provided for @presenceLastSeenJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen just now'**
+  String get presenceLastSeenJustNow;
+
+  /// No description provided for @presenceLastSeenMinutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen {minutes} min ago'**
+  String presenceLastSeenMinutesAgo(int minutes);
+
+  /// No description provided for @presenceLastSeenToday.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen today at {time}'**
+  String presenceLastSeenToday(String time);
+
+  /// No description provided for @presenceLastSeenYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen yesterday at {time}'**
+  String presenceLastSeenYesterday(String time);
+
+  /// No description provided for @presenceLastSeenOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen {date}'**
+  String presenceLastSeenOnDate(String date);
+
+  /// No description provided for @presenceLastSeenRecently.
+  ///
+  /// In en, this message translates to:
+  /// **'last seen recently'**
+  String get presenceLastSeenRecently;
 }
 
 class _AppLocalizationsDelegate

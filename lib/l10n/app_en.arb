@@ -1582,5 +1582,24 @@
   "meshGcStatusConnectionFailed": "Connection failed",
   "meshGcStatusLeft": "Left",
   "meshGcTopTitle": "Mesh",
-  "meshGcBusyOneOnOne": "Finish your current call first."
+  "meshGcBusyOneOnOne": "Finish your current call first.",
+  "presenceOnline": "online",
+  "presenceLastSeenJustNow": "last seen just now",
+  "presenceLastSeenMinutesAgo": "last seen {minutes} min ago",
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "presenceLastSeenToday": "last seen today at {time}",
+  "@presenceLastSeenToday": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "presenceLastSeenYesterday": "last seen yesterday at {time}",
+  "@presenceLastSeenYesterday": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "presenceLastSeenOnDate": "last seen {date}",
+  "@presenceLastSeenOnDate": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "presenceLastSeenRecently": "last seen recently"
 }

@@ -1582,5 +1582,24 @@
   "meshGcStatusConnectionFailed": "Соединение не удалось",
   "meshGcStatusLeft": "Вышел",
   "meshGcTopTitle": "Mesh",
-  "meshGcBusyOneOnOne": "Сначала завершите текущий звонок."
+  "meshGcBusyOneOnOne": "Сначала завершите текущий звонок.",
+  "presenceOnline": "в сети",
+  "presenceLastSeenJustNow": "был(а) в сети только что",
+  "presenceLastSeenMinutesAgo": "был(а) в сети {minutes} мин назад",
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "presenceLastSeenToday": "был(а) в сети сегодня в {time}",
+  "@presenceLastSeenToday": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "presenceLastSeenYesterday": "был(а) в сети вчера в {time}",
+  "@presenceLastSeenYesterday": {
+    "placeholders": { "time": { "type": "String" } }
+  },
+  "presenceLastSeenOnDate": "был(а) в сети {date}",
+  "@presenceLastSeenOnDate": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "presenceLastSeenRecently": "был(а) в сети недавно"
 }

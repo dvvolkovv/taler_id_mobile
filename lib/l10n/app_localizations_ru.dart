@@ -3519,4 +3519,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get meshGcBusyOneOnOne => 'Сначала завершите текущий звонок.';
+
+  @override
+  String get presenceOnline => 'в сети';
+
+  @override
+  String get presenceLastSeenJustNow => 'был(а) в сети только что';
+
+  @override
+  String presenceLastSeenMinutesAgo(int minutes) {
+    return 'был(а) в сети $minutes мин назад';
+  }
+
+  @override
+  String presenceLastSeenToday(String time) {
+    return 'был(а) в сети сегодня в $time';
+  }
+
+  @override
+  String presenceLastSeenYesterday(String time) {
+    return 'был(а) в сети вчера в $time';
+  }
+
+  @override
+  String presenceLastSeenOnDate(String date) {
+    return 'был(а) в сети $date';
+  }
+
+  @override
+  String get presenceLastSeenRecently => 'был(а) в сети недавно';
 }

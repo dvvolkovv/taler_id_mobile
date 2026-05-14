@@ -3499,4 +3499,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get meshGcBusyOneOnOne => 'Finish your current call first.';
+
+  @override
+  String get presenceOnline => 'online';
+
+  @override
+  String get presenceLastSeenJustNow => 'last seen just now';
+
+  @override
+  String presenceLastSeenMinutesAgo(int minutes) {
+    return 'last seen $minutes min ago';
+  }
+
+  @override
+  String presenceLastSeenToday(String time) {
+    return 'last seen today at $time';
+  }
+
+  @override
+  String presenceLastSeenYesterday(String time) {
+    return 'last seen yesterday at $time';
+  }
+
+  @override
+  String presenceLastSeenOnDate(String date) {
+    return 'last seen $date';
+  }
+
+  @override
+  String get presenceLastSeenRecently => 'last seen recently';
 }
