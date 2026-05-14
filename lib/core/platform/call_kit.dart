@@ -89,4 +89,9 @@ abstract class CallKitPlatform {
 
   @visibleForTesting
   static void debugResetForTest() => _instance = null;
+
+  @visibleForTesting
+  static set debugInstance(CallKitPlatform instance) {
+    _instance = instance;
+  }
 }
