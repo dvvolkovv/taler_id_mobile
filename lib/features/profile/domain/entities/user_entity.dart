@@ -31,6 +31,7 @@ class UserEntity with _$UserEntity {
     @Default(30) int aiTwinTimeoutSeconds,
     String? aiTwinPrompt,
     String? aiTwinVoiceId,
+    @Default('EVERYONE') String lastSeenPrivacy,
   }) = _UserEntity;
 
   factory UserEntity.fromJson(Map<String, dynamic> json) =>

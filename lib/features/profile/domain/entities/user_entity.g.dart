@@ -28,6 +28,7 @@ _$UserEntityImpl _$$UserEntityImplFromJson(Map<String, dynamic> json) =>
           (json['aiTwinTimeoutSeconds'] as num?)?.toInt() ?? 30,
       aiTwinPrompt: json['aiTwinPrompt'] as String?,
       aiTwinVoiceId: json['aiTwinVoiceId'] as String?,
+      lastSeenPrivacy: json['lastSeenPrivacy'] as String? ?? 'EVERYONE',
     );
 
 Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
@@ -50,6 +51,7 @@ Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
       'aiTwinTimeoutSeconds': instance.aiTwinTimeoutSeconds,
       'aiTwinPrompt': instance.aiTwinPrompt,
       'aiTwinVoiceId': instance.aiTwinVoiceId,
+      'lastSeenPrivacy': instance.lastSeenPrivacy,
     };
 
 const _$KycStatusEnumMap = {

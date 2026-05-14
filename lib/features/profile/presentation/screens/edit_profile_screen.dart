@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -11,7 +10,6 @@ import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
 import '../../domain/entities/user_entity.dart';
-import '../../../presence/domain/repositories/i_presence_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -64,6 +62,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
     _statusCtrl.text = user.status ?? '';
+    _lastSeenPrivacy = user.lastSeenPrivacy;
     _initialized = true;
   }
 
@@ -332,8 +331,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    // ignore: deprecated_member_use
-                    value: _lastSeenPrivacy,
+                    initialValue: _lastSeenPrivacy,
                     decoration: InputDecoration(
                       labelText: l10n.privacyLastSeenLabel,
                     ),
@@ -355,12 +353,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'lastName': _lastNameCtrl.text.trim(),
                           'middleName': _middleNameCtrl.text.trim(),
                           'status': _statusCtrl.text.trim(),
+                          'lastSeenPrivacy': _lastSeenPrivacy,
                           if (_phoneCtrl.text.trim().isNotEmpty) 'phone': _phoneCtrl.text.trim(),
                           if (_selectedCountry != null) 'country': _selectedCountry,
                           if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().split('T').first,
                         };
                         context.read<ProfileBloc>().add(ProfileUpdateSubmitted(data));
-                        GetIt.instance<IPresenceRepository>().updatePrivacy(_lastSeenPrivacy);
                       }
                     },
                   ),

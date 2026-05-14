@@ -10,7 +10,11 @@ String formatLastSeen(
   if (entity.hidden || entity.lastSeenAt == null) {
     return l10n.presenceLastSeenRecently;
   }
-  final last = entity.lastSeenAt!;
+  // `lastSeenAt` is parsed as UTC by PresenceEntity.fromJson. Convert to the
+  // device's local time before any day-boundary math; `now` is already local
+  // (DateTime.now()), so without this conversion every nightly UTC/local
+  // boundary would misclassify "today" vs "yesterday" and render UTC hours.
+  final last = entity.lastSeenAt!.toLocal();
   final delta = now.difference(last);
   if (delta.inSeconds < 60) return l10n.presenceLastSeenJustNow;
   if (delta.inMinutes < 60) {

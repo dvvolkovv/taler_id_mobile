@@ -38,6 +38,7 @@ mixin _$UserEntity {
   int get aiTwinTimeoutSeconds => throw _privateConstructorUsedError;
   String? get aiTwinPrompt => throw _privateConstructorUsedError;
   String? get aiTwinVoiceId => throw _privateConstructorUsedError;
+  String get lastSeenPrivacy => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -69,7 +70,8 @@ abstract class $UserEntityCopyWith<$Res> {
       bool aiTwinEnabled,
       int aiTwinTimeoutSeconds,
       String? aiTwinPrompt,
-      String? aiTwinVoiceId});
+      String? aiTwinVoiceId,
+      String lastSeenPrivacy});
 }
 
 /// @nodoc
@@ -103,6 +105,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? aiTwinTimeoutSeconds = null,
     Object? aiTwinPrompt = freezed,
     Object? aiTwinVoiceId = freezed,
+    Object? lastSeenPrivacy = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -177,6 +180,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
           ? _value.aiTwinVoiceId
           : aiTwinVoiceId // ignore: cast_nullable_to_non_nullable
               as String?,
+      lastSeenPrivacy: null == lastSeenPrivacy
+          ? _value.lastSeenPrivacy
+          : lastSeenPrivacy // ignore: cast_nullable_to_non_nullable
+              as String,
     ) as $Val);
   }
 }
@@ -207,7 +214,8 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       bool aiTwinEnabled,
       int aiTwinTimeoutSeconds,
       String? aiTwinPrompt,
-      String? aiTwinVoiceId});
+      String? aiTwinVoiceId,
+      String lastSeenPrivacy});
 }
 
 /// @nodoc
@@ -239,6 +247,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? aiTwinTimeoutSeconds = null,
     Object? aiTwinPrompt = freezed,
     Object? aiTwinVoiceId = freezed,
+    Object? lastSeenPrivacy = null,
   }) {
     return _then(_$UserEntityImpl(
       id: null == id
@@ -313,6 +322,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
           ? _value.aiTwinVoiceId
           : aiTwinVoiceId // ignore: cast_nullable_to_non_nullable
               as String?,
+      lastSeenPrivacy: null == lastSeenPrivacy
+          ? _value.lastSeenPrivacy
+          : lastSeenPrivacy // ignore: cast_nullable_to_non_nullable
+              as String,
     ));
   }
 }
@@ -338,7 +351,8 @@ class _$UserEntityImpl implements _UserEntity {
       this.aiTwinEnabled = false,
       this.aiTwinTimeoutSeconds = 30,
       this.aiTwinPrompt,
-      this.aiTwinVoiceId});
+      this.aiTwinVoiceId,
+      this.lastSeenPrivacy = 'EVERYONE'});
 
   factory _$UserEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserEntityImplFromJson(json);
@@ -382,10 +396,13 @@ class _$UserEntityImpl implements _UserEntity {
   final String? aiTwinPrompt;
   @override
   final String? aiTwinVoiceId;
+  @override
+  @JsonKey()
+  final String lastSeenPrivacy;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId, lastSeenPrivacy: $lastSeenPrivacy)';
   }
 
   @override
@@ -423,31 +440,35 @@ class _$UserEntityImpl implements _UserEntity {
             (identical(other.aiTwinPrompt, aiTwinPrompt) ||
                 other.aiTwinPrompt == aiTwinPrompt) &&
             (identical(other.aiTwinVoiceId, aiTwinVoiceId) ||
-                other.aiTwinVoiceId == aiTwinVoiceId));
+                other.aiTwinVoiceId == aiTwinVoiceId) &&
+            (identical(other.lastSeenPrivacy, lastSeenPrivacy) ||
+                other.lastSeenPrivacy == lastSeenPrivacy));
   }
 
   @JsonKey(ignore: true)
   @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      email,
-      phone,
-      firstName,
-      lastName,
-      middleName,
-      country,
-      avatarUrl,
-      postalCode,
-      dateOfBirth,
-      kycStatus,
-      fcmToken,
-      username,
-      status,
-      aiTwinEnabled,
-      aiTwinTimeoutSeconds,
-      aiTwinPrompt,
-      aiTwinVoiceId);
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        email,
+        phone,
+        firstName,
+        lastName,
+        middleName,
+        country,
+        avatarUrl,
+        postalCode,
+        dateOfBirth,
+        kycStatus,
+        fcmToken,
+        username,
+        status,
+        aiTwinEnabled,
+        aiTwinTimeoutSeconds,
+        aiTwinPrompt,
+        aiTwinVoiceId,
+        lastSeenPrivacy
+      ]);
 
   @JsonKey(ignore: true)
   @override
@@ -482,7 +503,8 @@ abstract class _UserEntity implements UserEntity {
       final bool aiTwinEnabled,
       final int aiTwinTimeoutSeconds,
       final String? aiTwinPrompt,
-      final String? aiTwinVoiceId}) = _$UserEntityImpl;
+      final String? aiTwinVoiceId,
+      final String lastSeenPrivacy}) = _$UserEntityImpl;
 
   factory _UserEntity.fromJson(Map<String, dynamic> json) =
       _$UserEntityImpl.fromJson;
@@ -523,6 +545,8 @@ abstract class _UserEntity implements UserEntity {
   String? get aiTwinPrompt;
   @override
   String? get aiTwinVoiceId;
+  @override
+  String get lastSeenPrivacy;
   @override
   @JsonKey(ignore: true)
   _$$UserEntityImplCopyWith<_$UserEntityImpl> get copyWith =>
