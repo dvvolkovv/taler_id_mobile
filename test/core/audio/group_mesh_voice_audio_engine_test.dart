@@ -76,7 +76,10 @@ void main() {
     final outbound = <Uint8List>[];
     final sub = engine.outbound.listen(outbound.add);
 
-    capture.emit(Int16List.fromList([1, 2, 3]));
+    // Engine rebuffers captures into `frameSamples`-sized chunks before
+    // encoding (defends against iOS delivering 10ms chunks on iPhone 17).
+    // Send a full 20ms (320-sample) frame so one encode emission is expected.
+    capture.emit(Int16List(320));
     await Future<void>.delayed(const Duration(milliseconds: 10));
 
     expect(outbound.length, 1);

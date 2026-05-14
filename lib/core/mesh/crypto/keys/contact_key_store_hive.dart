@@ -140,28 +140,37 @@ class HiveContactKeyStore implements ContactKeyStoreLookup {
   /// List all (contactUserId, userPk) mappings stored by
   /// putContactUserIdMapping. Yields the primary mapping plus any alts
   /// recorded for contacts whose server certs reference multiple userPks.
+  ///
+  /// De-duplicates by (userId, userPkHex) because putContactUserIdMapping
+  /// always writes the same userPk under BOTH the primary `userId:` key AND
+  /// the alt `userIdAlt:userId:userPkHex` key — without de-dup, every single
+  /// call to putContactUserIdMapping would surface as two identical
+  /// mappings here. Distinct alt userPks for the same userId (the
+  /// rotated-identity case the alt-set was added for) still surface
+  /// because they have different userPkHex.
   @override
   Iterable<(String, PeerId)> allUserIdMappings() sync* {
+    final seen = <String>{};
     for (final key in _box.keys) {
       if (key is! String) continue;
+      String? userId;
+      String? hex;
       if (key.startsWith('userId:')) {
-        final userId = key.substring('userId:'.length);
-        final hex = _box.get(key);
-        if (hex == null) continue;
-        try {
-          yield (userId, PeerId.fromHex(hex));
-        } catch (_) {/* skip malformed */}
+        userId = key.substring('userId:'.length);
+        hex = _box.get(key);
       } else if (key.startsWith('userIdAlt:')) {
         // Format: userIdAlt:<contactUserId>:<userPkHex>
         final rest = key.substring('userIdAlt:'.length);
         final colon = rest.lastIndexOf(':');
         if (colon <= 0) continue;
-        final userId = rest.substring(0, colon);
-        final hex = rest.substring(colon + 1);
-        try {
-          yield (userId, PeerId.fromHex(hex));
-        } catch (_) {/* skip malformed */}
+        userId = rest.substring(0, colon);
+        hex = rest.substring(colon + 1);
       }
+      if (userId == null || hex == null) continue;
+      if (!seen.add('$userId:$hex')) continue;
+      try {
+        yield (userId, PeerId.fromHex(hex));
+      } catch (_) {/* skip malformed */}
     }
   }
 

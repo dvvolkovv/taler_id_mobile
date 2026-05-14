@@ -21,7 +21,20 @@ class AudioIOSession {
   func acquire() throws {
     refcount += 1
     if refcount > 1 { return }
-    try start()
+    do {
+      try start()
+    } catch {
+      // Tear down any partial AudioUnit/session state that start() may have
+      // left around — otherwise subsequent acquire() leaks the old unit (it
+      // overwrites self.audioUnit blindly) and AVAudioSession stays half-
+      // active so the OS rejects the next setActive(true) again.
+      stop()
+      // Roll back the refcount so a subsequent release() doesn't see a
+      // phantom owner and skip teardown — and so the next acquire() actually
+      // attempts start() again instead of short-circuiting on refcount > 1.
+      refcount = max(0, refcount - 1)
+      throw error
+    }
   }
 
   func release() {
@@ -33,6 +46,14 @@ class AudioIOSession {
 
   private func start() throws {
     let session = AVAudioSession.sharedInstance()
+    // Forcibly deactivate any half-active session left over from a previous
+    // CallKit cycle BEFORE setting category. Rapid start/end cycles let iOS
+    // hold the previous voiceChat session in a "blacklisted" state where
+    // setActive(true) below fails with OSStatus 560557684 (audio_session_
+    // failed) and the AudioUnit then produces no input frames. Doing this
+    // pre-deactivate ourselves (rather than relying on the previous release()
+    // to have done it) gives the OS audio graph a clean slate.
+    try? session.setActive(false, options: .notifyOthersOnDeactivation)
     // Forcibly deactivate any stale session first. Rapid CallKit cycling can
     // leave the previous voiceChat session in a half-released state, and the
     // subsequent setActive(true) then succeeds but never produces input
