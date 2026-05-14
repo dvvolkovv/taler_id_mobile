@@ -16,6 +16,7 @@ import '../services/contacts_cache_service.dart';
 import '../services/message_draft_service.dart';
 import '../services/messenger_cache_service.dart';
 import '../storage/sync_cursor_storage.dart';
+import '../storage/saved_conversation_id_cache.dart';
 import '../services/pending_message_service.dart';
 import '../services/simple_list_cache.dart';
 import '../services/video_effects_service.dart';
@@ -171,6 +172,12 @@ Future<void> setupDependencies() async {
   await Hive.openBox<String>(NotesLocalDataSource.boxName);
   await Hive.openBox<String>(CalendarLocalDataSource.boxName);
   await Hive.openBox<String>(ContactsLocalDataSource.boxName);
+
+  // Favorites offline: cached SAVED-conversation id (Hive)
+  await Hive.openBox<String>(SavedConversationIdCache.boxName);
+  sl.registerLazySingleton<SavedConversationIdCache>(
+    () => SavedConversationIdCache(),
+  );
 
   // Mesh call history (Hive) — local-only journal of mesh voice calls
   final meshCallHistory = HiveMeshCallHistoryRepository();
