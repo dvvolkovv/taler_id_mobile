@@ -472,6 +472,11 @@ class GroupMeshCallService {
     _bootstrapRetryByRoom.clear();
   }
 
+  int _audioOutFrameCount = 0;
+  int _audioOutSkipNoCipher = 0;
+  int _audioOutSendError = 0;
+  DateTime? _audioOutStatsLast;
+
   Future<void> _onEncodedAudioFrame(Uint8List opusPayload) async {
     final s = _state;
     if (s is! GMCActive) return;
@@ -480,7 +485,10 @@ class GroupMeshCallService {
     for (final p in s.roster) {
       if (p.isSelf) continue;
       final ciphers = _peerCiphers[p.devicePk];
-      if (ciphers == null) continue;
+      if (ciphers == null) {
+        _audioOutSkipNoCipher++;
+        continue;
+      }
       final seq = (_outboundSeqByPeer[p.devicePk] ?? 0) + 1;
       _outboundSeqByPeer[p.devicePk] = seq;
       try {
@@ -495,16 +503,45 @@ class GroupMeshCallService {
           ciphertext: ciphertext,
         ).encode();
         unawaited(transport.sendDatagram(PeerId.fromHex(p.devicePk), frame));
+        _audioOutFrameCount++;
       } catch (_) {
-        // Encrypt or send failure for this peer this frame — skip silently.
-        // Next frame will retry.
+        _audioOutSendError++;
       }
+    }
+    // Throttled audio I/O counters — one line every 5 s lets us see at a
+    // glance how many opus frames went out, how many were skipped because
+    // a peer had no cipher (Noise session not derived), and how many
+    // encrypt/send errors happened. Without this it's impossible to tell
+    // "no audio" apart from "ciphers missing" / "send failing" / "frames
+    // landing but the peer's playback is broken".
+    final now = DateTime.now();
+    if (_audioOutStatsLast == null ||
+        now.difference(_audioOutStatsLast!) > const Duration(seconds: 5)) {
+      _audioOutStatsLast = now;
+      debugPrint(
+        '[mesh-gc] audio out 5s: sent=$_audioOutFrameCount '
+        'skipNoCipher=$_audioOutSkipNoCipher err=$_audioOutSendError '
+        'ciphers=${_peerCiphers.length} roster=${s.roster.length}',
+      );
+      _audioOutFrameCount = 0;
+      _audioOutSkipNoCipher = 0;
+      _audioOutSendError = 0;
     }
   }
 
+  int _audioInFrameCount = 0;
+  int _audioInDropNoEngine = 0;
+  int _audioInDropNoCipher = 0;
+  int _audioInDecryptError = 0;
+  DateTime? _audioInStatsLast;
+
   Future<void> _onInboundDatagram(InboundDatagram dg) async {
     final engine = _audio;
-    if (engine == null) return;
+    if (engine == null) {
+      _audioInDropNoEngine++;
+      _logAudioInStats();
+      return;
+    }
     final s = _state;
     if (s is! GMCActive) return;
     final MeshVoiceFrame frame;
@@ -519,16 +556,41 @@ class GroupMeshCallService {
 
     final senderHex = dg.srcPeer.toHex();
     final ciphers = _peerCiphers[senderHex];
-    if (ciphers == null) return;
+    if (ciphers == null) {
+      _audioInDropNoCipher++;
+      _logAudioInStats();
+      return;
+    }
     try {
       final plaintext = await ciphers.inbound.decrypt(
         seq: frame.seq,
         ciphertext: frame.ciphertext,
       );
       engine.inbound(senderHex, seq: frame.seq, payload: plaintext);
+      _audioInFrameCount++;
     } catch (_) {
-      // Decrypt failure (replay / MAC mismatch / cipher missing) — drop.
+      _audioInDecryptError++;
     }
+    _logAudioInStats();
+  }
+
+  void _logAudioInStats() {
+    final now = DateTime.now();
+    if (_audioInStatsLast != null &&
+        now.difference(_audioInStatsLast!) <= const Duration(seconds: 5)) {
+      return;
+    }
+    _audioInStatsLast = now;
+    debugPrint(
+      '[mesh-gc] audio in  5s: ok=$_audioInFrameCount '
+      'dropNoEngine=$_audioInDropNoEngine '
+      'dropNoCipher=$_audioInDropNoCipher '
+      'decryptErr=$_audioInDecryptError',
+    );
+    _audioInFrameCount = 0;
+    _audioInDropNoEngine = 0;
+    _audioInDropNoCipher = 0;
+    _audioInDecryptError = 0;
   }
 
   Future<void> _bootstrapActiveSessions(GMCActive active) async {
