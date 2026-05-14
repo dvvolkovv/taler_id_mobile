@@ -9,6 +9,8 @@ import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'dart:async';
 import 'core/api/dio_client.dart';
 import 'core/di/service_locator.dart';
+import 'features/auth/presentation/bloc/auth_state.dart';
+import 'features/presence/presentation/services/presence_heartbeat_service.dart';
 import 'core/notifications/notification_service.dart';
 import 'core/services/call_state_service.dart';
 import 'core/services/share_intent_service.dart';
@@ -424,24 +426,29 @@ class _TalerIdAppState extends State<TalerIdApp> {
         BlocProvider(create: (_) => sl<TenantBloc>()),
         BlocProvider(create: (_) => sl<SessionsBloc>()),
       ],
-      child: MaterialApp.router(
-        title: 'Taler ID',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: _themeMode,
-        routerConfig: appRouter,
-        debugShowCheckedModeBanner: false,
-        locale: _locale,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [
-          Locale('ru'),
-          Locale('en'),
-        ],
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          sl<PresenceHeartbeatService>().setLoggedIn(state is AuthSuccess);
+        },
+        child: MaterialApp.router(
+          title: 'Taler ID',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: _themeMode,
+          routerConfig: appRouter,
+          debugShowCheckedModeBanner: false,
+          locale: _locale,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('ru'),
+            Locale('en'),
+          ],
+        ),
       ),
     );
   }

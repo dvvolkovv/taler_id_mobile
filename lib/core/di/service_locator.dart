@@ -148,6 +148,7 @@ import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 import '../../features/presence/data/datasources/presence_remote_datasource.dart';
 import '../../features/presence/data/repositories/presence_repository_impl.dart';
 import '../../features/presence/domain/repositories/i_presence_repository.dart';
+import '../../features/presence/presentation/services/presence_heartbeat_service.dart';
 
 final sl = GetIt.instance;
 
@@ -545,6 +546,9 @@ Future<void> setupDependencies() async {
   );
   sl.registerLazySingleton<IPresenceRepository>(
     () => PresenceRepositoryImpl(sl<PresenceRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<PresenceHeartbeatService>(
+    () => PresenceHeartbeatService(sl<IPresenceRepository>()),
   );
 
   // Profile Sections
