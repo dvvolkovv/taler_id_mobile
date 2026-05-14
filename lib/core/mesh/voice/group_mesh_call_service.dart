@@ -450,15 +450,40 @@ class GroupMeshCallService {
   }
 
   Future<void> _startAudio(GMCActive active) async {
-    final engine = audioEngineFactory();
-    _audio = engine;
-    await engine.start();
-    for (final p in active.roster) {
-      if (p.isSelf) continue;
-      engine.addPeer(p.devicePk);
-      _outboundSeqByPeer[p.devicePk] = 0;
+    // First tear down any leftover engine from a previous call lifecycle —
+    // overlapping CallKit accept paths (user starts own call AND accepts an
+    // incoming one in the same window) leave _audio non-null which causes the
+    // fresh capture stream subscription below to silently fight a stale one.
+    if (_audio != null) {
+      debugPrint('[mesh-gc] _startAudio: stale engine found, tearing down before fresh start');
+      await _stopAudio();
     }
-    _audioOutSub = engine.outbound.listen(_onEncodedAudioFrame);
+    try {
+      final engine = audioEngineFactory();
+      _audio = engine;
+      await engine.start();
+      for (final p in active.roster) {
+        if (p.isSelf) continue;
+        engine.addPeer(p.devicePk);
+        _outboundSeqByPeer[p.devicePk] = 0;
+      }
+      _audioOutSub = engine.outbound.listen(_onEncodedAudioFrame);
+      debugPrint('[mesh-gc] _startAudio OK roomId=${active.roomId} peers=${active.roster.where((p) => !p.isSelf).length}');
+    } catch (e, st) {
+      // Without this log, an engine.start() failure on Android (e.g., the
+      // `record` plugin can't acquire the mic because a prior call hasn't
+      // fully released it) would silently leave the device deaf and mute for
+      // the entire call. Surface it loudly so the next run's adb logcat
+      // catches the root cause.
+      debugPrint('[mesh-gc] _startAudio FAILED: $e\n$st');
+      // Try to clean up partial state so subsequent calls have a fighting
+      // chance.
+      try {
+        await _audio?.stop();
+        await _audio?.dispose();
+      } catch (_) {}
+      _audio = null;
+    }
   }
 
   Future<void> _stopAudio() async {
