@@ -61,6 +61,9 @@ class GroupMeshCallService {
 
   final _peerCiphers =
       <String, ({MeshDatagramCipher outbound, MeshDatagramCipher inbound})>{};
+  // Bounded retry counter for `_bootstrapActiveSessions` so a peer whose
+  // Noise session lands after GMCActive emit still gets audio ciphers.
+  final _bootstrapRetryByRoom = <String, int>{};
 
   final _incomingInviteCtrl = StreamController<InboundEnvelope>.broadcast();
 
@@ -395,6 +398,7 @@ class GroupMeshCallService {
     _audio = null;
     _peerCiphers.clear();
     _outboundSeqByPeer.clear();
+    _bootstrapRetryByRoom.clear();
   }
 
   Future<void> _onEncodedAudioFrame(Uint8List opusPayload) async {
@@ -459,15 +463,28 @@ class GroupMeshCallService {
   Future<void> _bootstrapActiveSessions(GMCActive active) async {
     for (final p in active.roster) {
       if (p.isSelf) continue;
+      if (_peerCiphers.containsKey(p.devicePk)) continue;
       final peerBytes = PeerId.fromHex(p.devicePk);
       final ciphers = await messaging.datagramCiphersFor(peerBytes);
       if (ciphers != null) {
         _peerCiphers[p.devicePk] = ciphers;
       }
-      // null means Noise session not yet established. Task 7 will add a retry
-      // loop. For Task 6 we simply skip — outbound encrypt will refuse for that
-      // peer until ciphers materialise.
     }
+    // If any peer is still missing ciphers (Noise session not yet derived
+    // when GMCActive was first entered), retry after a short delay so the
+    // call doesn't silently lose audio in either direction.
+    final stillMissing = active.roster.any(
+        (p) => !p.isSelf && !_peerCiphers.containsKey(p.devicePk));
+    if (!stillMissing) return;
+    final attempt = (_bootstrapRetryByRoom[active.roomId] ?? 0) + 1;
+    _bootstrapRetryByRoom[active.roomId] = attempt;
+    // ~12 s total: 6 retries × 2 s. Audio dialer drops the call anyway after
+    // its own watchdog, so bounded retry is fine.
+    if (attempt > 6) return;
+    await Future<void>.delayed(const Duration(seconds: 2));
+    final s = _state;
+    if (s is! GMCActive || s.roomId != active.roomId) return;
+    unawaited(_bootstrapActiveSessions(s));
   }
 
   String _generateRoomId() {

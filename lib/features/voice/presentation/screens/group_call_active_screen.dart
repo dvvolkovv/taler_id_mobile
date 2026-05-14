@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_state.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_bloc.dart';
@@ -22,7 +23,12 @@ class GroupCallActiveScreen extends StatelessWidget {
       child: BlocConsumer<GroupMeshCallBloc, GroupMeshCallState>(
         listener: (context, state) {
           if (state is GMCEnded) {
-            Navigator.of(context).maybePop();
+            // The lobby uses `context.go('/group-call/$roomId')` which REPLACES
+            // the route stack — there is no lobby underneath to pop back to.
+            // maybePop() then no-ops, leaving the screen on the non-Active
+            // CircularProgressIndicator branch. Push the call-history route
+            // explicitly so both ends actually leave the active screen.
+            context.go('/dashboard/call-history');
           }
         },
         builder: (context, state) {
