@@ -334,6 +334,11 @@ class GroupMeshCallService {
                   ? p.copyWith(status: GMCStatus.joined)
                   : p)
               .toList();
+          // Reset the bootstrap retry budget — the new joiner needs a fresh
+          // chance to derive Noise datagram ciphers, otherwise the per-room
+          // counter (already exhausted by the original 12 s window) would
+          // silently abandon late peers and they'd remain audio-isolated.
+          _bootstrapRetryByRoom.remove(roomId);
           _emit(s.copyWith(roster: updated));
         }
         return;

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:taler_id_mobile/core/audio/group_mesh_voice_mixer.dart';
@@ -59,7 +60,12 @@ class FfiGroupMeshOpusDecoder implements GroupMeshOpusDecoder {
 class _PeerSlot {
   _PeerSlot({required this.decoder});
   final GroupMeshOpusDecoder decoder;
-  Int16List? latestPcm;
+  /// Small jitter buffer — out-of-order or bursty arrivals were chopping audio
+  /// into prerývanýia because the previous "latestPcm slot" overwrote on burst
+  /// and emitted silence on jitter. With a 3-frame FIFO at 20 ms each the
+  /// playback tolerates ±60 ms of network jitter without dropouts.
+  static const int maxBuffered = 3;
+  final Queue<Int16List> jitter = Queue<Int16List>();
   int lastSeqAccepted = -1;
 }
 
@@ -138,11 +144,17 @@ class GroupMeshVoiceAudioEngine {
     if (seq <= slot.lastSeqAccepted) return;
     slot.lastSeqAccepted = seq;
     try {
-      slot.latestPcm = slot.decoder.decode(payload);
+      final pcm = slot.decoder.decode(payload);
+      slot.jitter.add(pcm);
+      // Cap buffer at `maxBuffered` frames (~60 ms). When network briefly
+      // bursts, we keep the freshest data and drop the oldest so latency
+      // doesn't grow unbounded.
+      while (slot.jitter.length > _PeerSlot.maxBuffered) {
+        slot.jitter.removeFirst();
+      }
     } catch (_) {
-      // Decode errors keep the prior latestPcm; next tick mixes silence for
-      // this peer if no new frame arrives.
-      slot.latestPcm = null;
+      // Decode error: leave the jitter buffer alone — playback will mix
+      // whatever's already queued for this peer.
     }
   }
 
@@ -154,12 +166,11 @@ class GroupMeshVoiceAudioEngine {
       // Encoder hiccup: skip this frame's outbound, but still mix inbound.
     }
 
+    // Pop one frame from each peer's jitter buffer (or null = silence).
     final sources = <Int16List?>[
-      for (final slot in _peers.values) slot.latestPcm,
+      for (final slot in _peers.values)
+        slot.jitter.isEmpty ? null : slot.jitter.removeFirst(),
     ];
-    for (final slot in _peers.values) {
-      slot.latestPcm = null;
-    }
     final mixed = GroupMeshVoiceMixer.mix(sources, frameSamples);
     playback.push(mixed);
   }
