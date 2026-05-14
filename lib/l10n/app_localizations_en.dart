@@ -3528,4 +3528,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get presenceLastSeenRecently => 'last seen recently';
+
+  @override
+  String get privacySectionTitle => 'Privacy';
+
+  @override
+  String get privacyLastSeenLabel => 'Who sees your last seen time';
+
+  @override
+  String get privacyEveryone => 'Everyone';
+
+  @override
+  String get privacyContacts => 'Contacts only';
+
+  @override
+  String get privacyNobody => 'Nobody';
 }

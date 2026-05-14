@@ -3548,4 +3548,19 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get presenceLastSeenRecently => 'был(а) в сети недавно';
+
+  @override
+  String get privacySectionTitle => 'Конфиденциальность';
+
+  @override
+  String get privacyLastSeenLabel => 'Кто видит время последнего входа';
+
+  @override
+  String get privacyEveryone => 'Все';
+
+  @override
+  String get privacyContacts => 'Только контакты';
+
+  @override
+  String get privacyNobody => 'Никто';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import '../bloc/profile_bloc.dart';
 import '../bloc/profile_event.dart';
 import '../bloc/profile_state.dart';
 import '../../domain/entities/user_entity.dart';
+import '../../../presence/domain/repositories/i_presence_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -30,6 +32,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedCountry;
   DateTime? _dateOfBirth;
   bool _initialized = false;
+  String _lastSeenPrivacy = 'EVERYONE';
 
   @override
   void dispose() {
@@ -318,6 +321,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n.privacySectionTitle,
+                    style: TextStyle(
+                      color: AppColors.of(context).textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
+                    value: _lastSeenPrivacy,
+                    decoration: InputDecoration(
+                      labelText: l10n.privacyLastSeenLabel,
+                    ),
+                    items: [
+                      DropdownMenuItem(value: 'EVERYONE', child: Text(l10n.privacyEveryone)),
+                      DropdownMenuItem(value: 'CONTACTS', child: Text(l10n.privacyContacts)),
+                      DropdownMenuItem(value: 'NOBODY', child: Text(l10n.privacyNobody)),
+                    ],
+                    onChanged: (v) => setState(() => _lastSeenPrivacy = v ?? 'EVERYONE'),
+                  ),
                   const SizedBox(height: 32),
                   LoadingButton(
                     text: l10n.save,
@@ -334,6 +360,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().split('T').first,
                         };
                         context.read<ProfileBloc>().add(ProfileUpdateSubmitted(data));
+                        GetIt.instance<IPresenceRepository>().updatePrivacy(_lastSeenPrivacy);
                       }
                     },
                   ),

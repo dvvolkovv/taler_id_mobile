@@ -1601,5 +1601,10 @@
   "@presenceLastSeenOnDate": {
     "placeholders": { "date": { "type": "String" } }
   },
-  "presenceLastSeenRecently": "last seen recently"
+  "presenceLastSeenRecently": "last seen recently",
+  "privacySectionTitle": "Privacy",
+  "privacyLastSeenLabel": "Who sees your last seen time",
+  "privacyEveryone": "Everyone",
+  "privacyContacts": "Contacts only",
+  "privacyNobody": "Nobody"
 }

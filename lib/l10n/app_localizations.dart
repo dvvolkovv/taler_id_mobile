@@ -6637,6 +6637,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'last seen recently'**
   String get presenceLastSeenRecently;
+
+  /// No description provided for @privacySectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacySectionTitle;
+
+  /// No description provided for @privacyLastSeenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Who sees your last seen time'**
+  String get privacyLastSeenLabel;
+
+  /// No description provided for @privacyEveryone.
+  ///
+  /// In en, this message translates to:
+  /// **'Everyone'**
+  String get privacyEveryone;
+
+  /// No description provided for @privacyContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts only'**
+  String get privacyContacts;
+
+  /// No description provided for @privacyNobody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody'**
+  String get privacyNobody;
 }
 
 class _AppLocalizationsDelegate

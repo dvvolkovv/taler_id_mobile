@@ -1601,5 +1601,10 @@
   "@presenceLastSeenOnDate": {
     "placeholders": { "date": { "type": "String" } }
   },
-  "presenceLastSeenRecently": "был(а) в сети недавно"
+  "presenceLastSeenRecently": "был(а) в сети недавно",
+  "privacySectionTitle": "Конфиденциальность",
+  "privacyLastSeenLabel": "Кто видит время последнего входа",
+  "privacyEveryone": "Все",
+  "privacyContacts": "Только контакты",
+  "privacyNobody": "Никто"
 }
