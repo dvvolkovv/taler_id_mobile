@@ -120,6 +120,11 @@ import '../../features/notes/data/datasources/notes_remote_datasource.dart';
 import '../../features/notes/data/repositories/notes_repository_impl.dart';
 import '../../features/notes/data/services/notes_outbox_replay_handler.dart';
 import '../../features/notes/domain/repositories/i_notes_repository.dart';
+import '../../features/calendar/data/datasources/calendar_local_datasource.dart';
+import '../../features/calendar/data/datasources/calendar_remote_datasource.dart';
+import '../../features/calendar/data/repositories/calendar_repository_impl.dart';
+import '../../features/calendar/data/services/calendar_outbox_replay_handler.dart';
+import '../../features/calendar/domain/repositories/i_calendar_repository.dart';
 
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
@@ -160,6 +165,7 @@ Future<void> setupDependencies() async {
   // Notes offline: outbox queue + local note store (Hive)
   await Hive.openBox<String>(OutboxQueue.boxName);
   await Hive.openBox<String>(NotesLocalDataSource.boxName);
+  await Hive.openBox<String>(CalendarLocalDataSource.boxName);
 
   // Mesh call history (Hive) — local-only journal of mesh voice calls
   final meshCallHistory = HiveMeshCallHistoryRepository();
@@ -586,6 +592,20 @@ Future<void> setupDependencies() async {
         remote: sl<NotesRemoteDataSource>(),
       ));
 
+  // Calendar feature
+  sl.registerLazySingleton<CalendarLocalDataSource>(() => CalendarLocalDataSource());
+  if (!sl.isRegistered<CalendarRemoteDataSource>()) {
+    sl.registerLazySingleton<CalendarRemoteDataSource>(() => CalendarRemoteDataSource(sl<DioClient>()));
+  }
+  sl.registerLazySingleton<ICalendarRepository>(() => CalendarRepositoryImpl(
+        local: sl<CalendarLocalDataSource>(),
+        remote: sl<CalendarRemoteDataSource>(),
+        outbox: sl<OutboxQueue>(),
+      ));
+  sl.registerLazySingleton<CalendarOutboxReplayHandler>(() => CalendarOutboxReplayHandler(
+        remote: sl<CalendarRemoteDataSource>(),
+      ));
+
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
 
@@ -625,6 +645,7 @@ Future<void> setupDependencies() async {
   // Boot outbox: reset any inflight ops, register handlers, start connectivity watch
   await sl<OutboxQueue>().onBoot();
   sl<OutboxReplayService>().registerHandler(sl<NotesOutboxReplayHandler>());
+  sl<OutboxReplayService>().registerHandler(sl<CalendarOutboxReplayHandler>());
   sl<ConnectivityWatcher>().start();
   // First drain on app boot (in case we were offline last session)
   // ignore: discarded_futures
