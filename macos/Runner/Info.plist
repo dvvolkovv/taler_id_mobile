@@ -28,5 +28,11 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Taler ID использует микрофон для голосовых звонков и AI-ассистента</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Taler ID использует камеру для видеозвонков</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Taler ID использует распознавание речи для голосового ассистента</string>
 </dict>
 </plist>
