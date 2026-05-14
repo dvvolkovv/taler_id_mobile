@@ -125,6 +125,10 @@ import '../../features/calendar/data/datasources/calendar_remote_datasource.dart
 import '../../features/calendar/data/repositories/calendar_repository_impl.dart';
 import '../../features/calendar/data/services/calendar_outbox_replay_handler.dart';
 import '../../features/calendar/domain/repositories/i_calendar_repository.dart';
+import '../../features/contacts/data/datasources/contacts_local_datasource.dart';
+import '../../features/contacts/data/repositories/contacts_repository_impl.dart';
+import '../../features/contacts/data/services/contacts_outbox_replay_handler.dart';
+import '../../features/contacts/domain/repositories/i_contacts_repository.dart';
 
 // Billing
 import '../../features/billing/data/datasources/billing_remote_datasource.dart';
@@ -166,6 +170,7 @@ Future<void> setupDependencies() async {
   await Hive.openBox<String>(OutboxQueue.boxName);
   await Hive.openBox<String>(NotesLocalDataSource.boxName);
   await Hive.openBox<String>(CalendarLocalDataSource.boxName);
+  await Hive.openBox<String>(ContactsLocalDataSource.boxName);
 
   // Mesh call history (Hive) — local-only journal of mesh voice calls
   final meshCallHistory = HiveMeshCallHistoryRepository();
@@ -606,6 +611,17 @@ Future<void> setupDependencies() async {
         remote: sl<CalendarRemoteDataSource>(),
       ));
 
+  // Contacts feature
+  sl.registerLazySingleton<ContactsLocalDataSource>(() => ContactsLocalDataSource());
+  sl.registerLazySingleton<IContactsRepository>(() => ContactsRepositoryImpl(
+        local: sl<ContactsLocalDataSource>(),
+        remote: sl<MessengerRemoteDataSource>(),
+        outbox: sl<OutboxQueue>(),
+      ));
+  sl.registerLazySingleton<ContactsOutboxReplayHandler>(() => ContactsOutboxReplayHandler(
+        remote: sl<MessengerRemoteDataSource>(),
+      ));
+
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService());
 
@@ -646,6 +662,7 @@ Future<void> setupDependencies() async {
   await sl<OutboxQueue>().onBoot();
   sl<OutboxReplayService>().registerHandler(sl<NotesOutboxReplayHandler>());
   sl<OutboxReplayService>().registerHandler(sl<CalendarOutboxReplayHandler>());
+  sl<OutboxReplayService>().registerHandler(sl<ContactsOutboxReplayHandler>());
   sl<ConnectivityWatcher>().start();
   // First drain on app boot (in case we were offline last session)
   // ignore: discarded_futures
