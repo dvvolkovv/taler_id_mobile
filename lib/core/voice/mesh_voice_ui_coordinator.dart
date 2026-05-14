@@ -11,6 +11,7 @@ import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 
 import '../mesh/transport/peer_id.dart';
 import '../mesh/voice/mesh_voice_state.dart';
+import '../notifications/notification_service.dart';
 import '../../features/call_history/data/mesh_call_history_entry.dart';
 import '../../features/call_history/data/mesh_call_history_repository.dart';
 import '../../features/voice/presentation/screens/mesh_voice_call_screen.dart';
@@ -71,8 +72,12 @@ class MeshVoiceUiCoordinator {
   void start() {
     _sub ??= stateStream.listen(_onState);
     try {
-      _callkitSub ??=
-          FlutterCallkitIncoming.onEvent.listen(_onCallkitEvent);
+      // Subscribe to the broadcast stream fed by main.dart's single
+      // `FlutterCallkitIncoming.onEvent` listener — accessing `.onEvent`
+      // directly REPLACES the underlying EventChannel handler, which
+      // silently disconnected main.dart's central router so 1-on-1 and
+      // server-routed group call accepts no longer triggered any navigation.
+      _callkitSub ??= NotificationService.callEvents.listen(_onCallkitEvent);
     } catch (_) {
       // EventChannel requires ServicesBinding; silently skip in unit tests.
     }

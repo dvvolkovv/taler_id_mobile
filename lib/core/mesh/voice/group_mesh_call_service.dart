@@ -111,30 +111,47 @@ class GroupMeshCallService {
 
     _emit(GMCInviting(roomId: roomId, invitees: participants));
 
+    // Per-invitee try/catch — `MultiTransport.send` throws StateError when the
+    // peer isn't yet registered on any child transport (Bonjour resolve race).
+    // Failing the whole loop strands the host in GMCInviting forever; instead
+    // we mark the failed invitee as connectionFailed and continue, so the
+    // lobby still renders and other peers can join.
+    var lobbyRoster = participants;
     for (final entry in invitees.entries) {
-      await messaging.sendEnvelope(
-        toUserPk: PeerId.fromHex(entry.key),
-        envelope: Envelope(
-          version: 1,
-          type: MeshGcEnvelopeType.invite,
-          convId: roomId,
-          clientId: _randomClientId(),
-          text: '',
-          sentAt: DateTime.now().toUtc(),
-          extra: {
-            'roomId': roomId,
-            'hostDevicePk': _myPkHex,
-            'participants': [for (final p in participants) p.devicePk],
-            'startedAt': DateTime.now().toUtc().toIso8601String(),
-          },
-        ),
-      );
+      try {
+        await messaging.sendEnvelope(
+          toUserPk: PeerId.fromHex(entry.key),
+          envelope: Envelope(
+            version: 1,
+            type: MeshGcEnvelopeType.invite,
+            convId: roomId,
+            clientId: _randomClientId(),
+            text: '',
+            sentAt: DateTime.now().toUtc(),
+            extra: {
+              'roomId': roomId,
+              'hostDevicePk': _myPkHex,
+              'participants': [for (final p in participants) p.devicePk],
+              'startedAt': DateTime.now().toUtc().toIso8601String(),
+            },
+          ),
+        );
+      } catch (e) {
+        // Mark just this invitee as failed; do not abort the whole call.
+        lobbyRoster = [
+          for (final p in lobbyRoster)
+            if (p.devicePk == entry.key)
+              p.copyWith(status: GMCStatus.connectionFailed)
+            else
+              p,
+        ];
+      }
     }
 
     _emit(GMCLobby(
       roomId: roomId,
       hostDevicePk: _myPkHex,
-      roster: participants,
+      roster: lobbyRoster,
     ));
     _startLobbyTimer();
   }
@@ -160,20 +177,27 @@ class GroupMeshCallService {
       roster: roster,
     ));
 
+    // Per-peer try/catch — invitee may not yet know all other participants'
+    // transports (Bonjour resolve race); proceed with accept even if some
+    // notifications drop, the host will see this invitee via its own delivery.
     for (final p in roster) {
       if (p.isSelf) continue;
-      await messaging.sendEnvelope(
-        toUserPk: PeerId.fromHex(p.devicePk),
-        envelope: Envelope(
-          version: 1,
-          type: MeshGcEnvelopeType.accept,
-          convId: roomId,
-          clientId: _randomClientId(),
-          text: '',
-          sentAt: DateTime.now().toUtc(),
-          extra: {'roomId': roomId, 'devicePk': _myPkHex},
-        ),
-      );
+      try {
+        await messaging.sendEnvelope(
+          toUserPk: PeerId.fromHex(p.devicePk),
+          envelope: Envelope(
+            version: 1,
+            type: MeshGcEnvelopeType.accept,
+            convId: roomId,
+            clientId: _randomClientId(),
+            text: '',
+            sentAt: DateTime.now().toUtc(),
+            extra: {'roomId': roomId, 'devicePk': _myPkHex},
+          ),
+        );
+      } catch (_) {
+        // Peer transport not (yet) known — skip this fan-out notification.
+      }
     }
     _startLobbyTimer();
   }
@@ -203,20 +227,27 @@ class GroupMeshCallService {
     _lobbyTimer?.cancel();
     final roomId = s is GMCLobby ? s.roomId : (s as GMCActive).roomId;
     final roster = s is GMCLobby ? s.roster : (s as GMCActive).roster;
+    // Per-peer try/catch — a single StateError ("No transport knows ...")
+    // would otherwise abort the loop before _emit(GMCEnded) and leave the
+    // Cancel button effectively dead.
     for (final p in roster) {
       if (p.isSelf) continue;
-      await messaging.sendEnvelope(
-        toUserPk: PeerId.fromHex(p.devicePk),
-        envelope: Envelope(
-          version: 1,
-          type: MeshGcEnvelopeType.leave,
-          convId: roomId,
-          clientId: _randomClientId(),
-          text: '',
-          sentAt: DateTime.now().toUtc(),
-          extra: {'roomId': roomId, 'devicePk': _myPkHex},
-        ),
-      );
+      try {
+        await messaging.sendEnvelope(
+          toUserPk: PeerId.fromHex(p.devicePk),
+          envelope: Envelope(
+            version: 1,
+            type: MeshGcEnvelopeType.leave,
+            convId: roomId,
+            clientId: _randomClientId(),
+            text: '',
+            sentAt: DateTime.now().toUtc(),
+            extra: {'roomId': roomId, 'devicePk': _myPkHex},
+          ),
+        );
+      } catch (_) {
+        // Peer transport not (yet) known — skip the leave notification.
+      }
     }
     _emit(const GMCEnded(reason: GMCEndReason.userHangup));
   }
