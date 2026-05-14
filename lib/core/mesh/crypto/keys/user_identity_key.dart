@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../../../core/platform/secure_storage.dart';
 
 /// Permanent per-device Ed25519 identity keypair for the mesh PKI.
 ///
-/// Stored in [FlutterSecureStorage] under [storageKey] as base64-encoded
+/// Stored in [SecureStorage] under [storageKey] as base64-encoded
 /// 32-byte private seed. Public key is derived on load. Generated once on
 /// first app launch and never rotated — this is the stable `userPk` that
 /// contacts use to verify this device's self-issued DeviceCerts.
@@ -52,9 +53,9 @@ class UserIdentityKey {
   /// generate a new keypair, persist it, and return it. This call is
   /// idempotent across app launches.
   static Future<UserIdentityKey> loadOrCreate(
-    FlutterSecureStorage storage,
+    SecureStorage storage,
   ) async {
-    final encoded = await storage.read(key: storageKey);
+    final encoded = await storage.read(storageKey);
     if (encoded != null && encoded.isNotEmpty) {
       final bytes = Uint8List.fromList(base64Decode(encoded));
       if (bytes.length == 32) {
@@ -63,10 +64,7 @@ class UserIdentityKey {
       // Length mismatch — treat as corrupted, regenerate.
     }
     final fresh = await generate();
-    await storage.write(
-      key: storageKey,
-      value: base64Encode(fresh.privateKeyBytes),
-    );
+    await storage.write(storageKey, base64Encode(fresh.privateKeyBytes));
     return fresh;
   }
 

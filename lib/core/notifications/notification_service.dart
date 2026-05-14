@@ -11,9 +11,9 @@ import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
+import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../../firebase_options.dart';
 
@@ -78,11 +78,7 @@ const _enStrings = _NotifStrings(
 Future<_NotifStrings> _notifStrings() async {
   String? lang;
   try {
-    const storage = FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    );
-    lang = await storage.read(key: 'app_language');
+    lang = await SecureStorage.instance.read('app_language');
   } catch (_) {}
   lang ??= (!kIsWeb ? Platform.localeName : 'en').split('_').first;
   return lang == 'ru' ? _ruStrings : _enStrings;

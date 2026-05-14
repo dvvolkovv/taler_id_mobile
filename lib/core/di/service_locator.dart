@@ -1,13 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../audio/default_mesh_voice_audio_engine.dart';
 import '../config/app_config.dart';
 import '../mesh/voice/mesh_voice_service.dart';
+import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
@@ -242,16 +242,13 @@ Future<void> setupDependencies() async {
   // Mesh Phase 1c — persistent identity + rotating device keys
   // ---------------------------------------------------------------------------
   //
-  // UserIdentityKey is permanent per device (FlutterSecureStorage). DeviceKey
+  // UserIdentityKey is permanent per device (SecureStorage). DeviceKey
   // and MeshStaticKey are rotated every 30 days — the rotation check runs at
   // startup and triggers a fresh POST /profile/device-keys if any key was
   // regenerated. Phase 1e will wire _placeholderUserId() to the real JWT user
   // id; until then registerOwnDevice() is still dormant.
   final userIdentityKey = await UserIdentityKey.loadOrCreate(
-    const FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    ),
+    SecureStorage.instance,
   );
   sl.registerSingleton<UserIdentityKey>(userIdentityKey);
 

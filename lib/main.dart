@@ -15,6 +15,7 @@ import 'core/notifications/notification_service.dart';
 import 'core/services/call_state_service.dart';
 import 'core/services/share_intent_service.dart';
 import 'firebase_options.dart';
+import 'core/platform/secure_storage.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'features/messenger/services/hive_favorites_migration_service.dart';
 import 'core/router/app_router.dart';
@@ -315,6 +316,10 @@ Future<void> main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+
+  // Initialize platform-appropriate secure storage (encrypted Hive on desktop,
+  // FlutterSecureStorage on mobile). Must run before any read/write calls.
+  await SecureStorage.instance.initialize();
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();
