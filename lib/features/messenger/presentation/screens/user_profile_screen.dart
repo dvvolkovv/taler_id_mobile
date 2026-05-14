@@ -14,6 +14,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
 import '../../../../l10n/app_localizations.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
+import '../../../presence/presentation/widgets/presence_label.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
@@ -471,6 +472,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                         ),
                       ),
                     ],
+                    const SizedBox(height: 4),
+                    Center(
+                      child: PresenceLabel(
+                        userId: widget.userId,
+                        style: TextStyle(
+                          color: AppColors.of(context).textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 32),
                     _buildActionButtons(colors),
                     const SizedBox(height: 24),

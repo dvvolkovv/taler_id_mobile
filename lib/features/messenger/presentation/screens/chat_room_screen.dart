@@ -65,6 +65,7 @@ import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
 import '../../../voice/presentation/widgets/ios_mesh_onboarding_tooltip.dart';
 import '../../../voice/presentation/widgets/mesh_eligibility_dot.dart';
 import 'chat_room_auto_pick.dart';
+import '../../../presence/presentation/widgets/presence_label.dart';
 
 /// Per-process cache of "user explicitly used LiveKit with this peer at time T".
 /// Drives the 30-minute sticky-LK heuristic in chatRoomAutoPickDecision.
@@ -1935,6 +1936,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             conv.otherUserStatus!,
                             style: TextStyle(fontSize: 12, color: AppColors.of(context).textSecondary, fontWeight: FontWeight.normal),
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        if (conv?.type == 'DIRECT' && otherUserId != null)
+                          PresenceLabel(
+                            userId: otherUserId,
+                            style: TextStyle(
+                              color: AppColors.of(context).textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
                       ],
                     ),
