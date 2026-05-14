@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/platform/biometric_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:taler_id_mobile/core/platform/fcm_messaging.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
@@ -73,9 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     if (kIsWeb) return;
     bool notif = false;
     try {
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
-      notif = settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
+      notif = await FcmMessagingPlatform.instance.hasPermission();
     } catch (_) {}
     final mic = await Permission.microphone.status;
     final cam = await Permission.camera.status;
@@ -118,9 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       await openAppSettings();
     } else {
       try {
-        await FirebaseMessaging.instance.requestPermission(
-          alert: true, badge: true, sound: true,
-        );
+        await FcmMessagingPlatform.instance.requestPermissions();
       } catch (_) {}
     }
     await _loadPermissions();

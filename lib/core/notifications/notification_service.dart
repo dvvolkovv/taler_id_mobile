@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
 import '../platform/call_kit.dart';
+import '../platform/fcm_messaging.dart';
 import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../../firebase_options.dart';
@@ -238,7 +239,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
-  static final _fcm = FirebaseMessaging.instance;
   static String? _currentToken;
   static VoidCallback? _onCalendarUpdated;
   static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
@@ -277,7 +277,7 @@ class NotificationService {
     await _initLocalNotifications();
 
     // Set up token refresh listener.
-    _fcm.onTokenRefresh.listen((token) async {
+    FcmMessagingPlatform.instance.onTokenRefresh.listen((token) async {
       _currentToken = token;
       await _saveTokenToBackend(token);
     });
@@ -290,11 +290,7 @@ class NotificationService {
   /// Request notification permission explicitly (called from onboarding or init).
   static Future<void> requestPermission() async {
     try {
-      await _fcm.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await FcmMessagingPlatform.instance.requestPermissions();
     } catch (e) {
       debugPrint('FCM permission request failed: $e');
     }
@@ -310,7 +306,7 @@ class NotificationService {
       if (onboardingSeen) {
         await requestPermission();
       }
-      final token = await _fcm.getToken();
+      final token = await FcmMessagingPlatform.instance.getToken();
       if (token != null) {
         _currentToken = token;
         await _saveTokenToBackend(token);
@@ -367,8 +363,8 @@ class NotificationService {
       // When forced, always re-fetch from FCM SDK to avoid relying on a stale
       // in-memory cache. Otherwise reuse cached value to skip the SDK round-trip.
       final token = force
-          ? (await _fcm.getToken() ?? _currentToken)
-          : (_currentToken ?? await _fcm.getToken());
+          ? (await FcmMessagingPlatform.instance.getToken() ?? _currentToken)
+          : (_currentToken ?? await FcmMessagingPlatform.instance.getToken());
       if (token != null) {
         _currentToken = token;
         await _saveTokenToBackend(token, force: force);
@@ -437,7 +433,7 @@ class NotificationService {
 
   /// Check if app was opened from a notification (terminated state)
   static Future<RemoteMessage?> getInitialMessage() =>
-      _fcm.getInitialMessage();
+      FirebaseMessaging.instance.getInitialMessage();
 
   static String? get token => _currentToken;
 }
