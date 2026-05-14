@@ -144,6 +144,10 @@ import '../../features/billing/presentation/bloc/packages_bloc.dart';
 import '../../features/billing/presentation/bloc/toggles_bloc.dart';
 import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 
+// Presence (online/last-seen)
+import '../../features/presence/data/datasources/presence_remote_datasource.dart';
+import '../../features/presence/data/repositories/presence_repository_impl.dart';
+import '../../features/presence/domain/repositories/i_presence_repository.dart';
 
 final sl = GetIt.instance;
 
@@ -533,6 +537,14 @@ Future<void> setupDependencies() async {
       repo: sl<IMessengerRepository>(),
       storage: sl<SecureStorageService>(),
     ),
+  );
+
+  // Presence (online/last-seen) feature
+  sl.registerLazySingleton<PresenceRemoteDataSource>(
+    () => PresenceRemoteDataSource(sl<DioClient>().dio),
+  );
+  sl.registerLazySingleton<IPresenceRepository>(
+    () => PresenceRepositoryImpl(sl<PresenceRemoteDataSource>()),
   );
 
   // Profile Sections

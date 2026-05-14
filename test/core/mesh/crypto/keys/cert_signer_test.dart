@@ -104,7 +104,7 @@ void main() {
         userId: 'user-1',
         userPk: null,
         algorithm: 'X25519',
-        validUntilEpochMs: 1_800_000_000_000,
+        validUntilEpochMs: 1800000000000,
         signature: 'ff' * 64,
       );
       final ok = await CertSigner.verifyWithEmbeddedUserPk(cert: cert);

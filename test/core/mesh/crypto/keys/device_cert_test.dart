@@ -81,7 +81,7 @@ void main() {
         userId: 'user-1',
         userPk: 'cd' * 32,
         algorithm: 'X25519',
-        validUntilEpochMs: 1_800_000_000_000,
+        validUntilEpochMs: 1800000000000,
         signature: 'ff' * 64,
       );
       final json = cert.toCanonicalJsonWithoutSignature();
@@ -104,7 +104,7 @@ void main() {
         userId: 'user-1',
         userPk: null,
         algorithm: 'X25519',
-        validUntilEpochMs: 1_800_000_000_000,
+        validUntilEpochMs: 1800000000000,
         signature: 'ff' * 64,
       );
       final json = cert.toCanonicalJsonWithoutSignature();
@@ -117,7 +117,7 @@ void main() {
         userId: 'user-1',
         userPk: 'cd' * 32,
         algorithm: 'X25519',
-        validUntilEpochMs: 1_800_000_000_000,
+        validUntilEpochMs: 1800000000000,
         signature: 'ff' * 64,
       );
       final revived = DeviceCert.fromJson(cert.toJson());
@@ -130,7 +130,7 @@ void main() {
         'devicePk': 'ab' * 32,
         'userId': 'user-1',
         'algorithm': 'X25519',
-        'validUntilEpochMs': 1_800_000_000_000,
+        'validUntilEpochMs': 1800000000000,
         'signature': 'ff' * 64,
       };
       final cert = DeviceCert.fromJson(map);
