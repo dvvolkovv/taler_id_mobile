@@ -1,4 +1,10 @@
+import 'package:dio/dio.dart';
 import '../../../../core/api/dio_client.dart';
+
+class CalendarConflictException implements Exception {
+  final Map<String, dynamic> currentEvent;
+  CalendarConflictException(this.currentEvent);
+}
 
 class CalendarRemoteDataSource {
   final DioClient _http;
@@ -13,16 +19,45 @@ class CalendarRemoteDataSource {
     return (data as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
-  Future<Map<String, dynamic>> create(Map<String, dynamic> data) async {
-    return _http.post('/calendar', data: data, fromJson: (d) => Map<String, dynamic>.from(d as Map));
+  Future<Map<String, dynamic>> create(Map<String, dynamic> data, {String? id}) async {
+    final body = <String, dynamic>{
+      if (id != null) 'id': id,
+      ...data,
+    };
+    return _http.post('/calendar', data: body, fromJson: (d) => Map<String, dynamic>.from(d as Map));
   }
 
-  Future<Map<String, dynamic>> update(String id, Map<String, dynamic> data) async {
-    return _http.patch('/calendar/$id', data: data, fromJson: (d) => Map<String, dynamic>.from(d as Map));
+  Future<Map<String, dynamic>> update(
+    String id,
+    Map<String, dynamic> data, {
+    DateTime? expectedUpdatedAt,
+  }) async {
+    final body = <String, dynamic>{
+      ...data,
+      if (expectedUpdatedAt != null)
+        'expectedUpdatedAt': expectedUpdatedAt.toUtc().toIso8601String(),
+    };
+    try {
+      return await _http.patch('/calendar/$id', data: body, fromJson: (d) => Map<String, dynamic>.from(d as Map));
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        final responseBody = e.response!.data;
+        final current = (responseBody is Map && responseBody['currentEvent'] is Map)
+            ? Map<String, dynamic>.from(responseBody['currentEvent'] as Map)
+            : <String, dynamic>{};
+        throw CalendarConflictException(current);
+      }
+      rethrow;
+    }
   }
 
   Future<void> delete(String id) async {
-    await _http.delete('/calendar/$id');
+    try {
+      await _http.delete('/calendar/$id');
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return; // idempotent
+      rethrow;
+    }
   }
 
   Future<List<Map<String, dynamic>>> getMyInvites() async {
