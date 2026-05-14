@@ -227,7 +227,10 @@ class BonjourTransport implements MeshTransport {
             // RawDatagramSocket.send takes InternetAddress which only accepts
             // numeric IPs — and our reverse-lookup compares to dg.address.address
             // which is also numeric. Resolve hostname → IP and cache the IP.
+            debugPrint('[mesh-bonjour] caching UDP endpoint for ${peerId.toHex().substring(0, 12)}: ${service.host}:$udpPort');
             unawaited(_cacheUdpEndpoint(peerId, service.host!, udpPort));
+          } else {
+            debugPrint('[mesh-bonjour] peer ${peerId.toHex().substring(0, 12)} has no udp_port TXT (attrs=${service.attributes.keys.toList()}) — datagrams from this peer will be dropped as srcPeer=null');
           }
           _discoveriesCtrl.add(PeerDiscovered(
             peerId: peerId,
@@ -404,6 +407,8 @@ class BonjourTransport implements MeshTransport {
     if (srcPeer == null) {
       // Datagram from an unknown source — ignore. Could be a peer that
       // hasn't completed Bonjour discovery yet, or just stray UDP.
+      _datagramSrcUnknownCount++;
+      _maybeLogDatagramDrop(dg.address.address, dg.port);
       return;
     }
     _datagramCtrl.add(InboundDatagram(
@@ -411,6 +416,23 @@ class BonjourTransport implements MeshTransport {
       bytes: Uint8List.fromList(dg.data),
       via: TransportId.bonjour,
     ));
+  }
+
+  int _datagramSrcUnknownCount = 0;
+  DateTime? _datagramSrcUnknownLast;
+
+  void _maybeLogDatagramDrop(String host, int port) {
+    final now = DateTime.now();
+    if (_datagramSrcUnknownLast != null &&
+        now.difference(_datagramSrcUnknownLast!) <= const Duration(seconds: 5)) {
+      return;
+    }
+    _datagramSrcUnknownLast = now;
+    debugPrint(
+      '[mesh-bonjour] dropped $_datagramSrcUnknownCount datagrams in last 5s from unknown source (last $host:$port); '
+      'known endpoints: ${_peerUdpEndpoints.entries.map((e) => "${e.key.toHex().substring(0, 12)}@${e.value.host}:${e.value.port}").join(", ")}',
+    );
+    _datagramSrcUnknownCount = 0;
   }
 
   @override
