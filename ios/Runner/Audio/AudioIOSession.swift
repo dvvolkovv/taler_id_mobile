@@ -33,10 +33,18 @@ class AudioIOSession {
 
   private func start() throws {
     let session = AVAudioSession.sharedInstance()
+    // Forcibly deactivate any stale session first. Rapid CallKit cycling can
+    // leave the previous voiceChat session in a half-released state, and the
+    // subsequent setActive(true) then succeeds but never produces input
+    // callbacks (the "iOS VoIP blacklist" symptom — peers see no audio out
+    // from this device). notifyOthersOnDeactivation tells the system audio
+    // routing graph to fully tear down before we re-arm.
+    try? session.setActive(false, options: .notifyOthersOnDeactivation)
     try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
     try session.setPreferredSampleRate(sampleRate)
     try session.setPreferredIOBufferDuration(0.02)
     try session.setActive(true)
+    NSLog("[AudioIOSession] AVAudioSession active sampleRate=\(session.sampleRate) bufferDuration=\(session.ioBufferDuration)")
 
     var desc = AudioComponentDescription(
       componentType: kAudioUnitType_Output,
@@ -53,10 +61,19 @@ class AudioIOSession {
     }
     self.audioUnit = audioUnit
 
+    func check(_ status: OSStatus, _ op: String) throws {
+      if status != noErr {
+        throw NSError(domain: "AudioIOSession", code: Int(status),
+                      userInfo: [NSLocalizedDescriptionKey: "\(op) failed: OSStatus=\(status)"])
+      }
+    }
+
     // Enable input bus (1) and output bus (0) for capture+playback.
     var enableIO: UInt32 = 1
-    AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, &enableIO, UInt32(MemoryLayout<UInt32>.size))
-    AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &enableIO, UInt32(MemoryLayout<UInt32>.size))
+    try check(AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, 1, &enableIO, UInt32(MemoryLayout<UInt32>.size)),
+              "EnableIO input")
+    try check(AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, 0, &enableIO, UInt32(MemoryLayout<UInt32>.size)),
+              "EnableIO output")
 
     // Common 16 kHz mono S16LE format for both buses.
     var format = AudioStreamBasicDescription(
@@ -65,33 +82,48 @@ class AudioIOSession {
       mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
       mBytesPerPacket: 2, mFramesPerPacket: 1, mBytesPerFrame: 2,
       mChannelsPerFrame: 1, mBitsPerChannel: 16, mReserved: 0)
-    AudioUnitSetProperty(audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &format, UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
-    AudioUnitSetProperty(audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, UInt32(MemoryLayout<AudioStreamBasicDescription>.size))
+    try check(AudioUnitSetProperty(audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Output, 1, &format, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)),
+              "StreamFormat input-scope-output")
+    try check(AudioUnitSetProperty(audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 0, &format, UInt32(MemoryLayout<AudioStreamBasicDescription>.size)),
+              "StreamFormat output-scope-input")
 
     // Input callback (mic → us)
     var inputCb = AURenderCallbackStruct(
       inputProc: AudioIOSession.inputCallback,
       inputProcRefCon: Unmanaged.passUnretained(self).toOpaque())
-    AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 1, &inputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size))
+    try check(AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 1, &inputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size)),
+              "SetInputCallback")
 
     // Output (render) callback (us → speaker)
     var outputCb = AURenderCallbackStruct(
       inputProc: AudioIOSession.renderCallback,
       inputProcRefCon: Unmanaged.passUnretained(self).toOpaque())
-    AudioUnitSetProperty(audioUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0, &outputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size))
+    try check(AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0, &outputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size)),
+              "SetRenderCallback")
 
-    AudioUnitInitialize(audioUnit)
-    AudioOutputUnitStart(audioUnit)
+    try check(AudioUnitInitialize(audioUnit), "AudioUnitInitialize")
+    try check(AudioOutputUnitStart(audioUnit), "AudioOutputUnitStart")
+    NSLog("[AudioIOSession] AudioUnit started — VoiceProcessingIO ready")
   }
 
   private func stop() {
     if let unit = audioUnit {
-      AudioOutputUnitStop(unit)
-      AudioUnitUninitialize(unit)
-      AudioComponentInstanceDispose(unit)
+      let stopStatus = AudioOutputUnitStop(unit)
+      let uninitStatus = AudioUnitUninitialize(unit)
+      let disposeStatus = AudioComponentInstanceDispose(unit)
+      NSLog("[AudioIOSession] AudioUnit teardown stop=\(stopStatus) uninit=\(uninitStatus) dispose=\(disposeStatus)")
       audioUnit = nil
     }
-    try? AVAudioSession.sharedInstance().setActive(false)
+    // notifyOthersOnDeactivation: lets the OS audio graph fully release the
+    // voiceChat session so the NEXT acquire() can re-activate cleanly. Without
+    // this, rapid mesh-gc start/stop cycles leave the session "half-active"
+    // and the next setActive(true) silently fails to enable mic capture.
+    do {
+      try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+      NSLog("[AudioIOSession] AVAudioSession deactivated cleanly")
+    } catch {
+      NSLog("[AudioIOSession] AVAudioSession deactivation failed: \(error)")
+    }
   }
 
   // MARK: callbacks
