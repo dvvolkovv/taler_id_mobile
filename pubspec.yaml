@@ -96,7 +96,7 @@ dependencies:
   uuid: ^4.5.2
 
   # Audio recording and playback (voice messages)
-  record: ^5.1.2
+  record: ^6.0.0
   audioplayers: ^6.1.0
   path_provider: ^2.1.5
   open_filex: ^4.5.0
