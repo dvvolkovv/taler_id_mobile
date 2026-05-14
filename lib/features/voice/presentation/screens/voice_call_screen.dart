@@ -9,9 +9,8 @@ import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/platform/call_kit.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:permission_handler/permission_handler.dart';
@@ -263,14 +262,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     // Listen for CallKit end — user pressed "End" on native CallKit UI.
     // Skip during _settingUp — endAllCalls() in _connect() fires actionCallEnded
     // which would immediately tear down the room we just connected to.
-    _callkitEndedSub = NotificationService.callEvents.listen((CallEvent? event) {
+    _callkitEndedSub = NotificationService.callEvents.listen((CallKitEvent? event) {
       if (event == null || !mounted || _navigatedAway) return;
-      debugPrint('[VoiceCall] CallKit event: ${event.event}, _aiTwinActive=$_aiTwinActive, _settingUp=$_settingUp');
-      if (event.event == Event.actionCallEnded ||
-          event.event == Event.actionCallTimeout ||
-          event.event == Event.actionCallDecline) {
+      debugPrint('[VoiceCall] CallKit event: ${event.type}, _aiTwinActive=$_aiTwinActive, _settingUp=$_settingUp');
+      if (event.type == CallKitEvent.typeEnded ||
+          event.type == CallKitEvent.typeTimeout ||
+          event.type == CallKitEvent.typeDecline) {
         if (_settingUp) {
-          debugPrint('[VoiceCall] CallKit ${event.event} SKIPPED (still setting up)');
+          debugPrint('[VoiceCall] CallKit ${event.type} SKIPPED (still setting up)');
           return;
         }
         // When the AI voice twin is active, iOS CallKit's own ~60s outgoing
@@ -282,12 +281,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         // as part of the "end" action and the user would otherwise go
         // silent (reported symptom: "we stopped hearing each other").
         if (_aiTwinActive) {
-          debugPrint('[VoiceCall] CallKit ${event.event} IGNORED (AI twin active) — restoring audio');
+          debugPrint('[VoiceCall] CallKit ${event.type} IGNORED (AI twin active) — restoring audio');
           _restoreAudioAfterInterruption();
           return;
         }
         if (_room != null) {
-          debugPrint('[VoiceCall] CallKit ${event.event} — calling _hangUp()');
+          debugPrint('[VoiceCall] CallKit ${event.type} — calling _hangUp()');
           _hangUp();
         }
       }
@@ -504,7 +503,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _restoreAudioAfterCallKit() async {
     debugPrint('[VoiceCall] _restoreAudioAfterCallKit: starting');
     try {
-      await FlutterCallkitIncoming.endAllCalls();
+      await CallKitPlatform.instance.endAllCalls();
       debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls done');
     } catch (e) {
       debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls error: $e');
@@ -558,7 +557,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // When accepting from locked screen, CallKit activates the audio session
       // but continues to "own" it — this blocks LiveKit's WebRTC audio stack.
       try {
-        await FlutterCallkitIncoming.endAllCalls();
+        await CallKitPlatform.instance.endAllCalls();
         debugPrint('[VoiceCall] endAllCalls() done');
       } catch (e) {
         debugPrint('[VoiceCall] endAllCalls() error: $e');
@@ -2629,7 +2628,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     // Release audio & navigate
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
     try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
-    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+    try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}
     if (!mounted) return;
     try {
       if (context.canPop()) { context.pop(); } else { context.go(RouteConstants.messenger); }
@@ -2671,7 +2670,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _navigatedAway = true;
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
     try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
-    try { await FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+    try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}
     debugPrint('[VoiceCall] audio cleanup done, navigating back...');
     if (!mounted) return;
     try {

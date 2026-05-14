@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import '../../../../core/platform/call_kit.dart';
 import '../../domain/entities/auth_entities.dart';
 import '../../domain/repositories/i_auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -115,7 +115,7 @@ class AuthRepositoryImpl implements IAuthRepository {
       try {
         fcmToken = await FirebaseMessaging.instance.getToken();
         if (!kIsWeb && Platform.isIOS) {
-          voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+          voipToken = await CallKitPlatform.instance.getDevicePushTokenVoIP();
         }
       } catch (_) {}
       await remote

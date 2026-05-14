@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'dart:async';
@@ -29,7 +28,7 @@ import 'features/sessions/presentation/bloc/sessions_bloc.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_service.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_bloc.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
-import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'core/platform/call_kit.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -49,26 +48,26 @@ final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>()
 /// fed from here) to safely receive CallKit events.
 void _setupCallkitListener() {
   if (kIsWeb) return;
-  FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
-    debugPrint('[CallKit] event: ${event?.event}');
+  CallKitPlatform.instance.events.listen((CallKitEvent event) {
+    debugPrint('[CallKit] event: ${event.type}');
     // Forward to all other subscribers (DashboardScreen etc.)
     NotificationService.addCallEvent(event);
 
     // === Mesh group call branch ===
-    final extraMaybe = event?.body['extra'] as Map?;
+    final extraMaybe = event.data?['extra'] as Map?;
     final kind = extraMaybe?['kind'] as String?;
     if (kind == 'mesh_gc') {
-      _handleMeshGroupCallEvent(event!, extraMaybe!);
+      _handleMeshGroupCallEvent(event, extraMaybe!);
       return;
     }
 
     // === Existing 1-on-1 and LiveKit-group branches ===
-    if (event?.event != Event.actionCallAccept) return;
-    final extra = event!.body['extra'] as Map?;
+    if (event.type != CallKitEvent.typeAccept) return;
+    final extra = event.data?['extra'] as Map?;
     final roomName = extra?['roomName'] as String?;
     final convId = extra?['conversationId'] as String?;
     final e2eeKey = extra?['e2eeKey'] as String?;
-    final callerName = event.body['nameCaller'] as String? ?? '';
+    final callerName = event.data?['nameCaller'] as String? ?? '';
     final callerAvatar = extra?['callerAvatar'] as String? ?? '';
     if (roomName == null || roomName.isEmpty) return;
     // Group call invites use a `group-<groupCallId>` roomName (set by the
@@ -104,7 +103,7 @@ void _setupCallkitListener() {
 ///
 /// The [extra] map contains: kind='mesh_gc', roomId, hostDevicePkHex,
 /// participantDevicePks (List of String).
-void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
+void _handleMeshGroupCallEvent(CallKitEvent event, Map extra) {
   final roomId = extra['roomId'] as String?;
   final hostHex = extra['hostDevicePkHex'] as String?;
   final hostDisplayName = extra['hostDisplayName'] as String?;
@@ -116,7 +115,7 @@ void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
 
   try {
     final bloc = sl<GroupMeshCallBloc>();
-    if (event.event == Event.actionCallAccept) {
+    if (event.type == CallKitEvent.typeAccept) {
       bloc.add(GMCAcceptInvite(
         roomId: roomId,
         hostDevicePkHex: hostHex,
@@ -131,7 +130,7 @@ void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
       final route = '/group-call/$roomId';
       NotificationService.setPendingCallRoute(route);
       _navigateWhenResumed(route, 0);
-    } else if (event.event == Event.actionCallDecline) {
+    } else if (event.type == CallKitEvent.typeDecline) {
       bloc.add(GMCDeclineInvite(roomId: roomId, hostDevicePkHex: hostHex));
     }
   } catch (e) {
@@ -225,12 +224,12 @@ void _setupMeshGroupCallIncoming() {
       // hostDisplayName comes from the invite envelope — receivers cannot
       // trust their local contact cache for the name (the inviter may have
       // changed accounts on the same device), so we propagate the truth.
-      await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
-        id: toCallkitId(roomId),
-        nameCaller: (hostDisplayName != null && hostDisplayName.isNotEmpty)
+      await CallKitPlatform.instance.showIncomingCall(
+        uuid: toCallkitId(roomId),
+        callerName: (hostDisplayName != null && hostDisplayName.isNotEmpty)
             ? hostDisplayName
             : 'Group call',
-        type: 0, // 0 = audio
+        roomName: roomId,
         extra: <String, dynamic>{
           'kind': 'mesh_gc',
           'roomId': roomId,
@@ -239,7 +238,7 @@ void _setupMeshGroupCallIncoming() {
           if (hostDisplayName != null && hostDisplayName.isNotEmpty)
             'hostDisplayName': hostDisplayName,
         },
-      ));
+      );
     });
   } catch (e) {
     debugPrint('[mesh-gc] _setupMeshGroupCallIncoming: DI not ready ($e)');
@@ -266,8 +265,8 @@ void _connectCallInBackground(String roomName, String? convId, {String? e2eeKey}
 /// but the Flutter EventChannel may miss it during cold start.
 Future<void> _checkInitialCallKitCall() async {
   try {
-    final calls = await FlutterCallkitIncoming.activeCalls();
-    if (calls is! List || calls.isEmpty) return;
+    final calls = await CallKitPlatform.instance.activeCalls();
+    if (calls.isEmpty) return;
     for (final raw in calls) {
       final call = Map<String, dynamic>.from(raw as Map);
       final extra = call['extra'] as Map?;
