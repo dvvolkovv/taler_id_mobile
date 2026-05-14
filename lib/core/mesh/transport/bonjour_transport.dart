@@ -39,6 +39,13 @@ class BonjourTransport implements MeshTransport {
 
   RawDatagramSocket? _udpSocket;
   final Map<PeerId, ({String host, int port})> _peerUdpEndpoints = {};
+  // Index of peers by the first 8 bytes of their pubkey (16 hex chars).
+  // Built from Bonjour resolves AND upper-layer `registerKnownPeer` calls.
+  // Used to identify the sender of an unknown-source datagram via the
+  // 8-byte sender prefix carried in every outgoing datagram. Without this,
+  // Bonjour discovery asymmetry (where peer A resolves B but B doesn't
+  // resolve A) makes audio one-way for the unresolved direction.
+  final Map<String, PeerId> _peerByPrefix = {};
   final _datagramCtrl = StreamController<InboundDatagram>.broadcast();
 
   final Map<PeerId, _ConnectedPeer> _connections = {};
@@ -372,19 +379,40 @@ class BonjourTransport implements MeshTransport {
       }
     }
     _peerUdpEndpoints[peerId] = (host: ip, port: udpPort);
+    _peerByPrefix[peerId.toHex().substring(0, 16)] = peerId;
+  }
+
+  /// Tell the transport about a peer we expect to exchange datagrams with.
+  /// The upper layer should call this once a Noise session has been
+  /// derived for the peer — even before Bonjour resolves their UDP
+  /// endpoint. The transport indexes the peer by its 8-byte pubkey prefix
+  /// so the first inbound datagram (carrying that prefix) can be
+  /// recognised, and the (ip,port) of that datagram is then auto-learned
+  /// into `_peerUdpEndpoints`. STUN-style — solves the case where mDNS
+  /// discovery is asymmetric across iOS/Android pairs.
+  void registerKnownPeer(PeerId peer) {
+    _peerByPrefix[peer.toHex().substring(0, 16)] = peer;
   }
 
   @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {
     final endpoint = _peerUdpEndpoints[peer];
     final socket = _udpSocket;
-    if (endpoint == null || socket == null) {
+    final myPk = _selfPk;
+    if (endpoint == null || socket == null || myPk == null) {
       throw TransportUnavailable('Bonjour: no UDP endpoint for peer ${peer.toHex().substring(0, 12)}');
     }
-    if (data.length > 1200) {
-      throw ArgumentError('datagram too large: ${data.length} bytes (max 1200 to avoid IPv4 fragmentation)');
+    // Prepend 8-byte sender-pk prefix so the receiver can identify us even
+    // when their Bonjour cache doesn't have our endpoint (asymmetric mDNS
+    // discovery). Wire format: [8B prefix][caller payload]. Bumps the
+    // datagram size by 8 bytes — still well below the 1200B MTU.
+    if (data.length + 8 > 1200) {
+      throw ArgumentError('datagram too large: ${data.length + 8} bytes (max 1200 to avoid IPv4 fragmentation)');
     }
-    socket.send(data, InternetAddress(endpoint.host), endpoint.port);
+    final framed = Uint8List(8 + data.length);
+    framed.setRange(0, 8, myPk.bytes);
+    framed.setRange(8, 8 + data.length, data);
+    socket.send(framed, InternetAddress(endpoint.host), endpoint.port);
   }
 
   void _handleDatagramEvent(RawSocketEvent event) {
@@ -393,27 +421,42 @@ class BonjourTransport implements MeshTransport {
     if (socket == null) return;
     final dg = socket.receive();
     if (dg == null) return;
-
-    // Reverse-lookup: find which peer this came from by matching source
-    // (host, port) against `_peerUdpEndpoints`. Slow O(N) but N = peer
-    // count which is small (few-to-tens for 1-hop direct mesh).
-    PeerId? srcPeer;
-    for (final entry in _peerUdpEndpoints.entries) {
-      if (entry.value.host == dg.address.address && entry.value.port == dg.port) {
-        srcPeer = entry.key;
-        break;
-      }
+    if (dg.data.length < 8) {
+      // Malformed / pre-wire-format datagram — drop silently.
+      return;
     }
+
+    // Read the 8-byte sender prefix and look up the full PeerId. The
+    // prefix takes precedence over the (host,port) reverse-lookup because
+    // it survives ephemeral-port shuffles and asymmetric mDNS resolves —
+    // the previous IP+port match dropped 250 datagrams/s on iOS/Android
+    // when the sender's UDP socket port wasn't in the receiver's Bonjour
+    // cache (route-cause of "iPhone X has no audio in 3-way call").
+    final prefixHex = StringBuffer();
+    for (var i = 0; i < 8; i++) {
+      prefixHex.write(dg.data[i].toRadixString(16).padLeft(2, '0'));
+    }
+    final srcPeer = _peerByPrefix[prefixHex.toString()];
     if (srcPeer == null) {
-      // Datagram from an unknown source — ignore. Could be a peer that
-      // hasn't completed Bonjour discovery yet, or just stray UDP.
       _datagramSrcUnknownCount++;
       _maybeLogDatagramDrop(dg.address.address, dg.port);
       return;
     }
+
+    // Auto-learn / auto-correct the endpoint for this peer.
+    final cur = _peerUdpEndpoints[srcPeer];
+    if (cur == null || cur.host != dg.address.address || cur.port != dg.port) {
+      _peerUdpEndpoints[srcPeer] = (host: dg.address.address, port: dg.port);
+      debugPrint(
+        '[mesh-bonjour] auto-learned UDP endpoint for ${srcPeer.toHex().substring(0, 12)}: '
+        '${dg.address.address}:${dg.port}'
+        '${cur == null ? "" : " (was ${cur.host}:${cur.port})"}',
+      );
+    }
+
     _datagramCtrl.add(InboundDatagram(
       srcPeer: srcPeer,
-      bytes: Uint8List.fromList(dg.data),
+      bytes: Uint8List.fromList(dg.data.sublist(8)),
       via: TransportId.bonjour,
     ));
   }
@@ -456,6 +499,7 @@ class BonjourTransport implements MeshTransport {
     _udpSocket?.close();
     _udpSocket = null;
     _peerUdpEndpoints.clear();
+    _peerByPrefix.clear();
   }
 
   @override
@@ -478,9 +522,10 @@ class BonjourTransport implements MeshTransport {
   /// UDP socket and skips Bonsoir advertise/discovery. Use only from
   /// `test/` files. Pairs with `testRegisterPeer`.
   @visibleForTesting
-  factory BonjourTransport.testHarness({required RawDatagramSocket udpSocket}) {
+  factory BonjourTransport.testHarness({required RawDatagramSocket udpSocket, PeerId? selfPk}) {
     final t = BonjourTransport._();
     t._udpSocket = udpSocket;
+    t._selfPk = selfPk;
     udpSocket.listen(t._handleDatagramEvent);
     return t;
   }
@@ -490,6 +535,7 @@ class BonjourTransport implements MeshTransport {
   @visibleForTesting
   void testRegisterPeer(PeerId peer, String host, int port) {
     _peerUdpEndpoints[peer] = (host: host, port: port);
+    _peerByPrefix[peer.toHex().substring(0, 16)] = peer;
   }
 }
 

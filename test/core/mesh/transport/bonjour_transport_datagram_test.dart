@@ -17,11 +17,11 @@ void main() {
     final aliceSock = await RawDatagramSocket.bind(InternetAddress.loopbackIPv4, 0);
     final bobSock = await RawDatagramSocket.bind(InternetAddress.loopbackIPv4, 0);
 
-    final alice = BonjourTransport.testHarness(udpSocket: aliceSock);
-    final bob = BonjourTransport.testHarness(udpSocket: bobSock);
-
     final alicePk = PeerId(Uint8List.fromList(List<int>.generate(32, (i) => i)));
     final bobPk = PeerId(Uint8List.fromList(List<int>.generate(32, (i) => 100 + i)));
+
+    final alice = BonjourTransport.testHarness(udpSocket: aliceSock, selfPk: alicePk);
+    final bob = BonjourTransport.testHarness(udpSocket: bobSock, selfPk: bobPk);
 
     // Wire endpoint caches manually (production code populates these from
     // bonsoir-resolved TXT records).

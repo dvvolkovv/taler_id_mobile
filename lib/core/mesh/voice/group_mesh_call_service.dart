@@ -627,6 +627,11 @@ class GroupMeshCallService {
       final ciphers = await messaging.datagramCiphersFor(peerBytes);
       if (ciphers != null) {
         _peerCiphers[p.devicePk] = ciphers;
+        // Register the peer with the transport for in-band datagram
+        // sender-id matching. Without this, Bonjour-asymmetric pairs (one
+        // side resolves the other but not vice versa) drop all audio in
+        // the unresolved direction.
+        transport.registerKnownPeer(peerBytes);
       } else {
         missingPeers.add(p.devicePk);
       }

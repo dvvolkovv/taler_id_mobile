@@ -36,6 +36,9 @@ class _FakeChild implements MeshTransport {
   }
 
   @override
+  void registerKnownPeer(PeerId peer) {}
+
+  @override
   PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
 
   void emitDiscover(PeerId peer) =>

@@ -51,6 +51,12 @@ class FakeTransport implements MeshTransport {
     sentDatagrams.add((peer, data));
   }
 
+  final registeredPeers = <PeerId>[];
+  @override
+  void registerKnownPeer(PeerId peer) {
+    registeredPeers.add(peer);
+  }
+
   @override
   PeerStatus peerStatus(PeerId peer) => PeerStatus.online;
 

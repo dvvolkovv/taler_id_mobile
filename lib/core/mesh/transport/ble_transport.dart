@@ -228,6 +228,11 @@ class BleTransport implements MeshTransport {
   }
 
   @override
+  void registerKnownPeer(PeerId peer) {
+    // BLE transport doesn't do STUN-style endpoint learning — no-op.
+  }
+
+  @override
   PeerStatus peerStatus(PeerId peer) {
     return PeerStatus.unknown;
   }

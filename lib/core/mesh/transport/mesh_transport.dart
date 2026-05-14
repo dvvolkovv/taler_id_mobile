@@ -79,6 +79,13 @@ abstract class MeshTransport {
   Stream<InboundDatagram> get inboundDatagrams;
   Future<void> sendDatagram(PeerId peer, Uint8List data);
 
+  /// Pre-register a peer we expect to exchange datagrams with so the
+  /// transport can identify their datagrams via in-band sender-id prefix
+  /// (STUN-style endpoint learning) without depending on a successful
+  /// Bonjour resolve. Default implementation is no-op; transports that
+  /// support this should override (e.g. [BonjourTransport]).
+  void registerKnownPeer(PeerId peer) {}
+
   /// Synchronous reachability query. Used by UI eligibility checks (e.g.,
   /// "show mesh-call button only if the peer is reachable").
   PeerStatus peerStatus(PeerId peer);

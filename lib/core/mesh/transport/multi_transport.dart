@@ -148,6 +148,13 @@ class MultiTransport implements MeshTransport {
   ];
 
   @override
+  void registerKnownPeer(PeerId peer) {
+    for (final child in _children.values) {
+      child.registerKnownPeer(peer);
+    }
+  }
+
+  @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {
     final knownOn = _knownBy[peer];
     if (knownOn == null || knownOn.isEmpty) {

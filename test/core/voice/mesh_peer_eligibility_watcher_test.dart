@@ -27,6 +27,9 @@ class _FakeTransport implements MeshTransport {
   Future<void> send(PeerId peer, Uint8List data) async {}
   @override
   Future<void> sendDatagram(PeerId peer, Uint8List data) async {}
+
+  @override
+  void registerKnownPeer(PeerId peer) {}
   @override
   PeerStatus peerStatus(PeerId peer) => PeerStatus.unknown;
   @override
