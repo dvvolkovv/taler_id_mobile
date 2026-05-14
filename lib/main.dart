@@ -373,6 +373,17 @@ Future<void> main() async {
     ShareIntentService.instance.init();
   }
 
+  // Prime presence heartbeat for already-logged-in users. BlocListener inside
+  // TalerIdApp only fires on state transitions; a persisted-token startup
+  // never emits AuthSuccess, so the heartbeat would never start until the
+  // next manual login/logout.
+  try {
+    final hasToken = await storage.hasRefreshToken;
+    sl<PresenceHeartbeatService>().setLoggedIn(hasToken);
+  } catch (_) {
+    // Storage read failed — leave heartbeat in default (off) state.
+  }
+
   runApp(TalerIdApp(initialLocale: savedLang, initialThemeMode: themeMode));
 }
 
