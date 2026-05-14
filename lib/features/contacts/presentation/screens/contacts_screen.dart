@@ -1,15 +1,17 @@
+import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
+import '../../domain/entities/contact_item_entity.dart';
+import '../../domain/repositories/i_contacts_repository.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -20,138 +22,62 @@ class ContactsScreen extends StatefulWidget {
 
 class _ContactsScreenState extends State<ContactsScreen> {
   final _searchCtrl = TextEditingController();
-  final _cache = sl<ContactsCacheService>();
+  final IContactsRepository _repo = sl<IContactsRepository>();
+  StreamSubscription<List<ContactItemEntity>>? _itemsSub;
   String _searchQuery = '';
-  List<_ContactItem> _items = [];
+  List<ContactItemEntity> _items = [];
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    final cached = _cache.get();
-    if (cached != null && cached.isNotEmpty) {
-      _items = cached.map(_ContactItem.fromJson).toList();
-      _loading = false;
-    }
-    _load();
+    _itemsSub = _repo.watchAll().listen((items) {
+      if (mounted) {
+        setState(() {
+          _items = items;
+          _loading = false;
+        });
+      }
+    });
+    _repo.refresh(); // fire-and-forget
   }
 
   @override
   void dispose() {
+    _itemsSub?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    if (_items.isEmpty) setState(() => _loading = true);
-    try {
-      final client = sl<DioClient>();
-      final items = <_ContactItem>[];
-
-      // 1. Incoming contact requests (shown at the top)
-      final incomingData = await client.get<dynamic>('/messenger/contacts/requests');
-      final incomingList = (incomingData as List?) ?? [];
-      for (final item in incomingList) {
-        final req = Map<String, dynamic>.from(item as Map);
-        if ((req['status'] as String? ?? 'PENDING') != 'PENDING') continue;
-        items.add(_ContactItem(
-          userId: req['senderId'] as String? ?? '',
-          name: req['senderName'] as String? ?? '',
-          username: req['senderUsername'] as String?,
-          avatarUrl: req['senderAvatar'] as String?,
-          status: _ContactStatus.incoming,
-          requestId: req['id'] as String?,
-        ));
-      }
-
-      // 2. Accepted contacts from conversations
-      final convData = await client.get<dynamic>('/messenger/conversations');
-      final convList = (convData as List?) ?? [];
-      final incomingUserIds = items.map((e) => e.userId).toSet();
-      for (final item in convList) {
-        final conv = Map<String, dynamic>.from(item as Map);
-        if ((conv['type'] as String? ?? 'DIRECT').toUpperCase() != 'DIRECT') continue;
-        final uid = conv['otherUserId'] as String? ?? '';
-        if (incomingUserIds.contains(uid)) continue;
-        items.add(_ContactItem(
-          conversationId: conv['id'] as String,
-          userId: uid,
-          name: conv['otherUserName'] as String? ?? AppLocalizations.of(context)!.convDefaultUser,
-          username: conv['otherUserUsername'] as String?,
-          avatarUrl: conv['otherUserAvatar'] as String?,
-          status: _ContactStatus.accepted,
-        ));
-      }
-
-      // 3. Sent pending requests
-      final sentData = await client.get<dynamic>('/messenger/contacts/requests/sent');
-      final sentList = (sentData as List?) ?? [];
-      final knownIds = items.map((e) => e.userId).toSet();
-      for (final item in sentList) {
-        final req = Map<String, dynamic>.from(item as Map);
-        if ((req['status'] as String? ?? 'PENDING') != 'PENDING') continue;
-        final receiverId = req['receiverId'] as String? ?? '';
-        if (knownIds.contains(receiverId)) continue;
-        items.add(_ContactItem(
-          userId: receiverId,
-          name: req['receiverName'] as String? ?? '',
-          username: req['receiverUsername'] as String?,
-          avatarUrl: req['receiverAvatar'] as String?,
-          status: _ContactStatus.pending,
-          requestId: req['id'] as String?,
-          requestSentAt: DateTime.tryParse(req['updatedAt'] as String? ?? '') ??
-              DateTime.tryParse(req['createdAt'] as String? ?? ''),
-        ));
-      }
-
-      // Sort: incoming first, then accepted (alpha), then pending
-      items.sort((a, b) {
-        final order = {_ContactStatus.incoming: 0, _ContactStatus.accepted: 1, _ContactStatus.pending: 2};
-        final cmp = order[a.status]!.compareTo(order[b.status]!);
-        if (cmp != 0) return cmp;
-        return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-      });
-
-      _cache.save(items.map((e) => e.toJson()).toList());
-      if (mounted) setState(() { _items = items; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
+    await _repo.refresh();
   }
 
-  Future<void> _acceptRequest(_ContactItem contact) async {
+  Future<void> _acceptRequest(ContactItemEntity contact) async {
     if (contact.requestId == null) return;
+    await _repo.acceptContactRequest(contact.requestId!, contact.userId);
+    HapticFeedback.mediumImpact();
+  }
+
+  Future<void> _declineRequest(ContactItemEntity contact) async {
+    if (contact.requestId == null) return;
+    await _repo.rejectContactRequest(contact.requestId!, contact.userId);
+    HapticFeedback.lightImpact();
+  }
+
+  Future<void> _resendRequest(ContactItemEntity contact) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
-      await sl<DioClient>().patch(
-        '/messenger/contacts/requests/${contact.requestId}/accept',
-        data: {},
-        fromJson: (d) => d,
-      );
-      HapticFeedback.mediumImpact();
-      _load();
-    } catch (e) {
+      await _repo.sendContactRequest(contact.userId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.contactsResent), backgroundColor: AppColors.of(context).primary),
         );
       }
-    }
-  }
-
-  Future<void> _declineRequest(_ContactItem contact) async {
-    if (contact.requestId == null) return;
-    try {
-      await sl<DioClient>().patch(
-        '/messenger/contacts/requests/${contact.requestId}/decline',
-        data: {},
-        fromJson: (d) => d,
-      );
-      HapticFeedback.lightImpact();
-      _load();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red),
+          SnackBar(content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red),
         );
       }
     }
@@ -270,7 +196,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
-  Widget _buildTile(_ContactItem contact, AppColorsExtension colors) {
+  Widget _syncDot(ContactItemEntity c) {
+    if (!c.localPending) return const SizedBox.shrink();
+    return const Padding(
+      padding: EdgeInsets.only(left: 6),
+      child: Icon(Icons.sync, size: 12, color: Colors.grey),
+    );
+  }
+
+  Widget _buildTile(ContactItemEntity contact, AppColorsExtension colors) {
     final l10n = AppLocalizations.of(context)!;
     final ringColor = rainbowColorFor(contact.name.isNotEmpty ? contact.name : contact.userId);
 
@@ -316,19 +250,26 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
           ),
         ),
-        title: Text(
-          contact.name,
-          style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+        title: Row(
+          children: [
+            Flexible(
+              child: Text(
+                contact.name,
+                style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ),
+            _syncDot(contact),
+          ],
         ),
-        subtitle: contact.status == _ContactStatus.incoming
+        subtitle: contact.status == ContactStatus.incoming
             ? Text(l10n.contactsWantsToConnect, style: TextStyle(color: colors.accent, fontSize: 12, fontWeight: FontWeight.w600))
-            : contact.status == _ContactStatus.pending
+            : contact.status == ContactStatus.pending
                 ? Text(l10n.contactsPendingConfirmation, style: TextStyle(color: colors.textSecondary, fontSize: 12))
                 : contact.username != null
                     ? Text('@${contact.username}', style: TextStyle(color: colors.textSecondary, fontSize: 13))
                     : null,
         trailing: switch (contact.status) {
-          _ContactStatus.incoming => Row(
+          ContactStatus.incoming => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _miniGradientButton(
@@ -346,7 +287,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ],
           ),
-          _ContactStatus.accepted => Row(
+          ContactStatus.accepted => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
@@ -361,7 +302,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ],
           ),
-          _ContactStatus.pending => _buildResendButton(contact, colors),
+          ContactStatus.pending => _buildResendButton(contact, colors),
         },
         onTap: () async {
           await context.push('/dashboard/user/${contact.userId}');
@@ -405,7 +346,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
-  Widget _buildResendButton(_ContactItem contact, AppColorsExtension colors) {
+  Widget _buildResendButton(ContactItemEntity contact, AppColorsExtension colors) {
     final l10n = AppLocalizations.of(context)!;
     final canResend = contact.requestSentAt != null &&
         DateTime.now().difference(contact.requestSentAt!).inHours >= 24;
@@ -420,29 +361,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     );
   }
 
-  Future<void> _resendRequest(_ContactItem contact) async {
-    try {
-      await sl<DioClient>().post(
-        '/messenger/contacts/request',
-        data: {'receiverId': contact.userId},
-        fromJson: (d) => d,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.contactsResent), backgroundColor: AppColors.of(context).primary),
-        );
-        _load();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.errorWithMessage(e.toString())), backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
-  Future<void> _startCall(_ContactItem contact) async {
+  Future<void> _startCall(ContactItemEntity contact) async {
     if (contact.conversationId == null) return;
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
@@ -468,54 +387,4 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     }
   }
-}
-
-enum _ContactStatus { incoming, accepted, pending }
-
-class _ContactItem {
-  final String? conversationId;
-  final String userId;
-  final String name;
-  final String? username;
-  final String? avatarUrl;
-  final _ContactStatus status;
-  final String? requestId;
-  final DateTime? requestSentAt;
-
-  _ContactItem({
-    this.conversationId,
-    required this.userId,
-    required this.name,
-    this.username,
-    this.avatarUrl,
-    required this.status,
-    this.requestId,
-    this.requestSentAt,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'conversationId': conversationId,
-        'userId': userId,
-        'name': name,
-        'username': username,
-        'avatarUrl': avatarUrl,
-        'status': status.name,
-        'requestId': requestId,
-        'requestSentAt': requestSentAt?.toIso8601String(),
-      };
-
-  factory _ContactItem.fromJson(Map<String, dynamic> j) => _ContactItem(
-        conversationId: j['conversationId'] as String?,
-        userId: j['userId'] as String? ?? '',
-        name: j['name'] as String? ?? '',
-        username: j['username'] as String?,
-        avatarUrl: j['avatarUrl'] as String?,
-        status: switch (j['status'] as String?) {
-          'incoming' => _ContactStatus.incoming,
-          'pending' => _ContactStatus.pending,
-          _ => _ContactStatus.accepted,
-        },
-        requestId: j['requestId'] as String?,
-        requestSentAt: DateTime.tryParse(j['requestSentAt'] as String? ?? ''),
-      );
 }
