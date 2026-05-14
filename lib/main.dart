@@ -118,7 +118,12 @@ void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
         hostDevicePkHex: hostHex,
         participantDevicePks: participants,
       ));
-      final route = '/group-call/$roomId/lobby';
+      // acceptInvite emits GMCActive directly (no lobby), so navigate to the
+      // active route. Going to /lobby caused a race where the BlocConsumer's
+      // listener never fired (state was already GMCActive at screen mount,
+      // no new emission) — UI stuck on the lobby-spinner while audio engine
+      // happily ran in the background.
+      final route = '/group-call/$roomId';
       NotificationService.setPendingCallRoute(route);
       _navigateWhenResumed(route, 0);
     } else if (event.event == Event.actionCallDecline) {

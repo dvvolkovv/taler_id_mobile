@@ -34,6 +34,21 @@ class GroupCallLobbyScreen extends StatelessWidget {
           }
         },
         builder: (context, state) {
+          // If we arrived here AFTER state already became Active (race when
+          // invitee's acceptInvite emits GMCActive synchronously before this
+          // screen subscribes to the bloc), the BlocConsumer listener never
+          // sees a fresh transition. Schedule the navigation manually so the
+          // user doesn't get stuck on the lobby spinner.
+          if (state is GMCActive) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.go('/group-call/${state.roomId}');
+              }
+            });
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
           if (state is! GMCLobby) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
