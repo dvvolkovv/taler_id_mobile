@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../core/platform/platform_utils.dart';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart' as dio_pkg;
@@ -466,26 +467,29 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: colors.background,
-      floatingActionButton: StreamBuilder<CallState>(
-        stream: sl<MeshVoiceService>().stateStream,
-        initialData: sl<MeshVoiceService>().state,
-        builder: (context, snapshot) {
-          final busy = sl<MeshVoiceService>().isBusy;
-          return FloatingActionButton.extended(
-            onPressed: busy
-                ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(l10n.meshGcBusyOneOnOne)),
-                    );
-                  }
-                : () => context.push(RouteConstants.newGroupCall),
-            backgroundColor: busy ? Colors.grey : colors.primary,
-            foregroundColor: Colors.black,
-            icon: const Icon(Icons.group_add_rounded),
-            label: Text(l10n.groupCallSelectParticipants),
-          );
-        },
-      ),
+      // Group mesh call FAB — mobile only (mesh not available on desktop).
+      floatingActionButton: PlatformUtils.instance.isMobile
+          ? StreamBuilder<CallState>(
+              stream: sl<MeshVoiceService>().stateStream,
+              initialData: sl<MeshVoiceService>().state,
+              builder: (context, snapshot) {
+                final busy = sl<MeshVoiceService>().isBusy;
+                return FloatingActionButton.extended(
+                  onPressed: busy
+                      ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.meshGcBusyOneOnOne)),
+                          );
+                        }
+                      : () => context.push(RouteConstants.newGroupCall),
+                  backgroundColor: busy ? Colors.grey : colors.primary,
+                  foregroundColor: Colors.black,
+                  icon: const Icon(Icons.group_add_rounded),
+                  label: Text(l10n.groupCallSelectParticipants),
+                );
+              },
+            )
+          : null,
       body: RefreshIndicator(
         color: colors.primary,
         onRefresh: () async {

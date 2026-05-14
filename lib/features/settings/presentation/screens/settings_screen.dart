@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../../core/platform/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
@@ -391,12 +392,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 16),
 
-            // Mesh network section (Phase 1e) — visible in all flavors so
-            // users can toggle offline-fallback. The "View debug" button
-            // inside MeshSettingsSection is already dev-only.
-            _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
-            const MeshSettingsSection(),
-            const SizedBox(height: 16),
+            // Mesh network section (Phase 1e) — mobile only. Desktop has no
+            // mesh networking (no Bonjour/BLE peer discovery).
+            if (PlatformUtils.instance.isMobile) ...[
+              _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+              const MeshSettingsSection(),
+              const SizedBox(height: 16),
+            ],
 
             // Voice assistant section
             _sectionHeader(_currentLang == 'ru' ? 'Голосовой помощник' : 'Voice Assistant'),
