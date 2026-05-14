@@ -8,10 +8,18 @@ sealed class GroupMeshCallEvent extends Equatable {
 }
 
 class GMCStartRequested extends GroupMeshCallEvent {
-  const GMCStartRequested({required this.invitees});
+  const GMCStartRequested({
+    required this.invitees,
+    this.hostDisplayName,
+  });
   final Map<String, String> invitees; // devicePkHex → userId
+  /// Caller's display name — propagated through invite envelope extras so
+  /// receivers can label the call in CallKit and the roster with the
+  /// inviter's CURRENT name rather than whatever's stale in their local
+  /// contact-key cache.
+  final String? hostDisplayName;
   @override
-  List<Object?> get props => [invitees];
+  List<Object?> get props => [invitees, hostDisplayName];
 }
 
 class GMCAcceptInvite extends GroupMeshCallEvent {
@@ -19,12 +27,18 @@ class GMCAcceptInvite extends GroupMeshCallEvent {
     required this.roomId,
     required this.hostDevicePkHex,
     required this.participantDevicePks,
+    this.hostDisplayName,
   });
   final String roomId;
   final String hostDevicePkHex;
   final List<String> participantDevicePks;
+  /// Inviter's display name from the invite envelope — used to populate the
+  /// host's GMCParticipant on the invitee side so the roster doesn't read
+  /// "unknown" or a stale contact-cache name.
+  final String? hostDisplayName;
   @override
-  List<Object?> get props => [roomId, hostDevicePkHex, participantDevicePks];
+  List<Object?> get props =>
+      [roomId, hostDevicePkHex, participantDevicePks, hostDisplayName];
 }
 
 class GMCDeclineInvite extends GroupMeshCallEvent {

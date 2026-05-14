@@ -25,7 +25,10 @@ class GroupMeshCallBloc extends Bloc<GroupMeshCallEvent, GroupMeshCallState> {
   Future<void> _onStart(
       GMCStartRequested e, Emitter<GroupMeshCallState> emit) async {
     try {
-      await service.start(invitees: e.invitees);
+      await service.start(
+        invitees: e.invitees,
+        hostDisplayName: e.hostDisplayName,
+      );
     } on StateError catch (err) {
       emit(GMCError(message: err.message));
     }
@@ -37,6 +40,7 @@ class GroupMeshCallBloc extends Bloc<GroupMeshCallEvent, GroupMeshCallState> {
       roomId: e.roomId,
       hostDevicePkHex: e.hostDevicePkHex,
       participantDevicePks: e.participantDevicePks,
+      hostDisplayName: e.hostDisplayName,
     );
   }
 

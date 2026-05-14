@@ -8,6 +8,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 import '../../../../core/mesh/voice/group_mesh_call_state.dart';
 import '../../../../core/services/contacts_cache_service.dart';
+import '../../../../core/storage/cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -131,7 +132,30 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     }
 
     if (invitees.isEmpty) return;
-    bloc.add(GMCStartRequested(invitees: invitees));
+    // Propagate the host's current display name through the invite envelope
+    // so receivers see "<name> is calling" instead of resolving via their
+    // local contact-key store — which keeps the stale name from a prior
+    // account login on the same device.
+    final hostDisplayName = _readSelfDisplayName();
+    bloc.add(GMCStartRequested(
+      invitees: invitees,
+      hostDisplayName: hostDisplayName,
+    ));
+  }
+
+  String? _readSelfDisplayName() {
+    try {
+      final profile = sl<CacheService>().getProfile();
+      if (profile == null) return null;
+      final first = (profile['firstName'] as String?)?.trim() ?? '';
+      final last = (profile['lastName'] as String?)?.trim() ?? '';
+      final full = '$first $last'.trim();
+      if (full.isNotEmpty) return full;
+      final email = (profile['email'] as String?)?.trim() ?? '';
+      return email.isEmpty ? null : email;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override

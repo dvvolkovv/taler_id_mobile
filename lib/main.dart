@@ -104,6 +104,7 @@ void _setupCallkitListener() {
 void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
   final roomId = extra['roomId'] as String?;
   final hostHex = extra['hostDevicePkHex'] as String?;
+  final hostDisplayName = extra['hostDisplayName'] as String?;
   final participantsRaw = extra['participantDevicePks'];
   final participants = participantsRaw is List
       ? participantsRaw.whereType<String>().toList()
@@ -117,6 +118,7 @@ void _handleMeshGroupCallEvent(CallEvent event, Map extra) {
         roomId: roomId,
         hostDevicePkHex: hostHex,
         participantDevicePks: participants,
+        hostDisplayName: hostDisplayName,
       ));
       // acceptInvite emits GMCActive directly (no lobby), so navigate to the
       // active route. Going to /lobby caused a race where the BlocConsumer's
@@ -203,6 +205,7 @@ void _setupMeshGroupCallIncoming() {
       if (extra == null) return;
       final roomId = extra['roomId'] as String?;
       final hostHex = extra['hostDevicePk'] as String?;
+      final hostDisplayName = extra['hostDisplayName'] as String?;
       final participantsRaw = extra['participants'];
       final participants = participantsRaw is List
           ? participantsRaw.whereType<String>().toList()
@@ -216,15 +219,22 @@ void _setupMeshGroupCallIncoming() {
       // the call id — force-unwrapping nil in flutter_callkit_incoming crashed
       // the app on iPhone 2 during smoke. toCallkitId() maps the hex to a valid
       // UUID format; the original roomId stays in extra['roomId'] for routing.
+      // hostDisplayName comes from the invite envelope — receivers cannot
+      // trust their local contact cache for the name (the inviter may have
+      // changed accounts on the same device), so we propagate the truth.
       await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
         id: toCallkitId(roomId),
-        nameCaller: 'Group call',
+        nameCaller: (hostDisplayName != null && hostDisplayName.isNotEmpty)
+            ? hostDisplayName
+            : 'Group call',
         type: 0, // 0 = audio
         extra: <String, dynamic>{
           'kind': 'mesh_gc',
           'roomId': roomId,
           'hostDevicePkHex': hostHex,
           'participantDevicePks': participants,
+          if (hostDisplayName != null && hostDisplayName.isNotEmpty)
+            'hostDisplayName': hostDisplayName,
         },
       ));
     });

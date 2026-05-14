@@ -87,7 +87,12 @@ class GroupMeshCallService {
   String get _myPkHex => _bytesToHex(myDevicePk);
 
   /// Host path: send invites to a map of {devicePkHex: userId}.
-  Future<void> start({required Map<String, String> invitees}) async {
+  /// [hostDisplayName] is included in the invite envelope so receivers can
+  /// label the incoming-call UI with the inviter's current display name.
+  Future<void> start({
+    required Map<String, String> invitees,
+    String? hostDisplayName,
+  }) async {
     // Allow re-entry after a previous call ended (GMCEnded) or errored
     // (GMCError) — the service doesn't auto-revert to Idle. Without this,
     // starting a SECOND call after hanging up the first one fails with
@@ -141,6 +146,8 @@ class GroupMeshCallService {
               'hostDevicePk': _myPkHex,
               'participants': [for (final p in participants) p.devicePk],
               'startedAt': DateTime.now().toUtc().toIso8601String(),
+              if (hostDisplayName != null && hostDisplayName.isNotEmpty)
+                'hostDisplayName': hostDisplayName,
             },
           ),
         );
@@ -165,10 +172,13 @@ class GroupMeshCallService {
   }
 
   /// Invitee path — called after the user taps Accept on the native UI.
+  /// [hostDisplayName] is the inviter's name from the invite envelope; we
+  /// stamp it onto the host's GMCParticipant so the roster reads correctly.
   Future<void> acceptInvite({
     required String roomId,
     required String hostDevicePkHex,
     required List<String> participantDevicePks,
+    String? hostDisplayName,
   }) async {
     // Host is implicitly joined (they're the one ringing us). Invitees other
     // than self start as "calling" and flip to "joined" as their accept
@@ -182,6 +192,7 @@ class GroupMeshCallService {
               ? GMCStatus.joined
               : GMCStatus.calling,
           isSelf: pk == _myPkHex,
+          displayName: pk == hostDevicePkHex ? hostDisplayName : null,
         ),
     ];
     // Go straight to Active — the user already tapped Accept, the call is
