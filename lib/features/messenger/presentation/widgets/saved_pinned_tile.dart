@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/storage/saved_conversation_id_cache.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
@@ -10,9 +13,25 @@ class SavedPinnedTile extends StatelessWidget {
 
   Future<void> _open(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
+    final cache = GetIt.instance<SavedConversationIdCache>();
+    final repo = GetIt.instance<IMessengerRepository>();
+
+    final cachedId = await cache.read();
+
+    if (cachedId != null) {
+      // Optimistic: navigate immediately, refresh from server in the
+      // background. Works offline because the chat room itself is
+      // offline-capable (Hive cache + outbox).
+      if (!context.mounted) return;
+      context.go('/dashboard/messenger/$cachedId');
+      unawaited(_refreshCache(repo, cache));
+      return;
+    }
+
+    // Cache miss — first-ever open. Requires connectivity.
     try {
-      final repo = GetIt.instance<IMessengerRepository>();
       final convId = await repo.getOrCreateSavedConversation();
+      await cache.write(convId);
       if (!context.mounted) return;
       context.go('/dashboard/messenger/$convId');
     } catch (_) {
@@ -20,6 +39,18 @@ class SavedPinnedTile extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.savedOpenError)),
       );
+    }
+  }
+
+  Future<void> _refreshCache(
+    IMessengerRepository repo,
+    SavedConversationIdCache cache,
+  ) async {
+    try {
+      final freshId = await repo.getOrCreateSavedConversation();
+      await cache.write(freshId);
+    } catch (_) {
+      // Offline / transient — keep the cached id, no UI feedback.
     }
   }
 
