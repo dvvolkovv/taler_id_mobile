@@ -115,4 +115,43 @@ void main() {
     expect(await storage.read('test_key'), equals('test_value'));
     await storage.delete('test_key');
   });
+
+  test('migration: legacy auth_tokens box is copied then deleted', () async {
+    // -----------------------------------------------------------------------
+    // This test verifies the one-shot migration path:
+    // 1. Seed a plain (unencrypted) Hive box named 'auth_tokens' with data,
+    //    mimicking what the taler_id_desktop fork (≤ 1.0.48) left behind.
+    // 2. Run SecureStorageDesktop.initialize() against the same directory.
+    // 3. Confirm migrated values are readable via the new encrypted box.
+    // 4. Confirm the legacy box no longer exists on disk.
+    // -----------------------------------------------------------------------
+
+    // Tear down the storage that setUp() already opened (uses 'secure_box_v2')
+    // so we can seed the legacy box in the same Hive directory.
+    await Hive.close();
+
+    // Seed the legacy unencrypted box in the SAME tempDir.
+    Hive.init(tempDir.path);
+    final legacy = await Hive.openBox<dynamic>('auth_tokens');
+    await legacy.put('access_token', 'fake_jwt');
+    await legacy.put('refresh_token', 'fake_refresh');
+    await legacy.close();
+
+    // Close Hive before re-initializing via SecureStorageDesktop.
+    await Hive.close();
+
+    // Create a fresh instance (fresh _MemFss → no pre-existing AES key).
+    final ss = SecureStorageDesktop(
+      fss: _MemFss(),
+      hiveDir: tempDir.path,
+    );
+    await ss.initialize();
+
+    // Migrated data should be readable via the new encrypted API.
+    expect(await ss.read('access_token'), equals('fake_jwt'));
+    expect(await ss.read('refresh_token'), equals('fake_refresh'));
+
+    // Legacy box must be gone from disk after migration.
+    expect(await Hive.boxExists('auth_tokens'), isFalse);
+  });
 }
