@@ -54,4 +54,11 @@ void main() {
     await cache.clear();
     expect(await cache.read(), isNull);
   });
+
+  test('overwrite replaces the previous value', () async {
+    final cache = SavedConversationIdCache();
+    await cache.write('conv-old');
+    await cache.write('conv-new');
+    expect(await cache.read(), 'conv-new');
+  });
 }

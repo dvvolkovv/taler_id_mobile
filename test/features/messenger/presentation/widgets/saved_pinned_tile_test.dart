@@ -32,6 +32,11 @@ void main() {
   tearDown(() => GetIt.instance.reset());
 
   testWidgets('renders title and subtitle', (tester) async {
+    final cache = GetIt.instance<SavedConversationIdCache>() as _MockCache;
+    // Explicit stub: render path must not touch the network on tap-less mount,
+    // but we keep mocktail's behavior explicit rather than relying on defaults.
+    when(() => cache.read()).thenAnswer((_) async => null);
+
     await tester.pumpWidget(_wrap(const SavedPinnedTile()));
     await tester.pump();
     expect(find.text('Saved Messages'), findsOneWidget);

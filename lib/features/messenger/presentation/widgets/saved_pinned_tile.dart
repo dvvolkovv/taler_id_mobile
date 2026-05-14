@@ -8,37 +8,50 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/repositories/i_messenger_repository.dart';
 
-class SavedPinnedTile extends StatelessWidget {
+class SavedPinnedTile extends StatefulWidget {
   const SavedPinnedTile({super.key});
 
+  @override
+  State<SavedPinnedTile> createState() => _SavedPinnedTileState();
+}
+
+class _SavedPinnedTileState extends State<SavedPinnedTile> {
+  bool _opening = false;
+
   Future<void> _open(BuildContext context) async {
-    final l10n = AppLocalizations.of(context)!;
-    final cache = GetIt.instance<SavedConversationIdCache>();
-    final repo = GetIt.instance<IMessengerRepository>();
-
-    final cachedId = await cache.read();
-
-    if (cachedId != null) {
-      // Optimistic: navigate immediately, refresh from server in the
-      // background. Works offline because the chat room itself is
-      // offline-capable (Hive cache + outbox).
-      if (!context.mounted) return;
-      context.go('/dashboard/messenger/$cachedId');
-      unawaited(_refreshCache(repo, cache));
-      return;
-    }
-
-    // Cache miss — first-ever open. Requires connectivity.
+    if (_opening) return;
+    _opening = true;
     try {
-      final convId = await repo.getOrCreateSavedConversation();
-      await cache.write(convId);
-      if (!context.mounted) return;
-      context.go('/dashboard/messenger/$convId');
-    } catch (_) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.savedOpenError)),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      final cache = GetIt.instance<SavedConversationIdCache>();
+      final repo = GetIt.instance<IMessengerRepository>();
+
+      final cachedId = await cache.read();
+
+      if (cachedId != null) {
+        // Optimistic: navigate immediately, refresh from server in the
+        // background. Works offline because the chat room itself is
+        // offline-capable (Hive cache + outbox).
+        if (!context.mounted) return;
+        context.go('/dashboard/messenger/$cachedId');
+        unawaited(_refreshCache(repo, cache));
+        return;
+      }
+
+      // Cache miss — first-ever open. Requires connectivity.
+      try {
+        final convId = await repo.getOrCreateSavedConversation();
+        await cache.write(convId);
+        if (!context.mounted) return;
+        context.go('/dashboard/messenger/$convId');
+      } catch (_) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.savedOpenError)),
+        );
+      }
+    } finally {
+      _opening = false;
     }
   }
 

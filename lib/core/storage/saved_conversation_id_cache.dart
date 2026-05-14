@@ -20,12 +20,22 @@ class SavedConversationIdCache {
   }
 
   Future<void> write(String id) async {
-    final box = Hive.box<String>(boxName);
-    await box.put(_key, id);
+    try {
+      final box = Hive.box<String>(boxName);
+      await box.put(_key, id);
+    } catch (_) {
+      // Best-effort: disk full / I/O error. Cache stays stale; the next
+      // online open will retry the write.
+    }
   }
 
   Future<void> clear() async {
-    final box = Hive.box<String>(boxName);
-    await box.delete(_key);
+    try {
+      final box = Hive.box<String>(boxName);
+      await box.delete(_key);
+    } catch (_) {
+      // Best-effort: see write(). Stale value is harmless — read() falls
+      // back to the online path when the box is unreadable.
+    }
   }
 }
