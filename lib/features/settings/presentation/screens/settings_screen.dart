@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/platform/biometric_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../../../core/config/app_config.dart';
@@ -134,11 +134,11 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final savedTheme = await _storage.getThemeMode() ?? 'light';
     bool available = false;
     try {
-      final localAuth = LocalAuthentication();
-      final canCheck = await localAuth.canCheckBiometrics;
-      final isSupported = await localAuth.isDeviceSupported();
+      final bio = BiometricAuthPlatform.instance;
+      final canCheck = await bio.canCheckBiometrics;
+      final isSupported = await bio.isDeviceSupported;
       if (canCheck || isSupported) {
-        final biometrics = await localAuth.getAvailableBiometrics();
+        final biometrics = await bio.getAvailableBiometrics();
         available = biometrics.isNotEmpty;
       }
     } catch (_) {
@@ -160,10 +160,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final l10n = AppLocalizations.of(context)!;
     if (value) {
       try {
-        final localAuth = LocalAuthentication();
-        final ok = await localAuth.authenticate(
+        final ok = await BiometricAuthPlatform.instance.authenticate(
           localizedReason: l10n.biometricsConfirm,
-          options: const AuthenticationOptions(biometricOnly: false),
         );
         if (!ok) return;
       } catch (e) {
