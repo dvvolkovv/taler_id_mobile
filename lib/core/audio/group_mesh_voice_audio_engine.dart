@@ -102,6 +102,17 @@ class GroupMeshVoiceAudioEngine {
   StreamSubscription<Int16List>? _captureSub;
   bool _started = false;
 
+  // Capture rebuffer: iOS's VoiceProcessingIO ignores setPreferredIOBufferDuration
+  // on some devices (notably iPhone 17 / iOS 26 — observed in 3-way mesh-gc
+  // hardware smoke 2026-05-14). It delivers 10ms (160-sample) PCM chunks at
+  // 100Hz instead of the requested 20ms at 50Hz, so the encoder emits twice as
+  // many Opus packets and the receiver's playback queue grows 2x faster than
+  // it drains — manifesting as audible lag + cumulative drift. Buffering
+  // captures into stable `frameSamples`-sized chunks here keeps the wire rate
+  // and playback cadence at 50Hz regardless of the OS's chunking decision.
+  late final Int16List _captureBuffer = Int16List(frameSamples);
+  int _captureBufferFill = 0;
+
   Future<void> start() async {
     if (_started) return;
     await capture.start();
@@ -147,8 +158,28 @@ class GroupMeshVoiceAudioEngine {
   }
 
   void _onCaptureFrame(Int16List pcm) {
+    // Re-chunk the incoming PCM into stable `frameSamples`-sized slices.
+    // Native capture may deliver any size (10ms, 20ms, or larger), so loop
+    // until we've consumed the whole input — emitting one Opus + playback
+    // tick per filled buffer.
+    var offset = 0;
+    while (offset < pcm.length) {
+      final remaining = frameSamples - _captureBufferFill;
+      final available = pcm.length - offset;
+      final take = available < remaining ? available : remaining;
+      _captureBuffer.setRange(
+          _captureBufferFill, _captureBufferFill + take, pcm, offset);
+      _captureBufferFill += take;
+      offset += take;
+      if (_captureBufferFill < frameSamples) break;
+      _emitFrame();
+      _captureBufferFill = 0;
+    }
+  }
+
+  void _emitFrame() {
     try {
-      final encoded = _encoder.encode(pcm);
+      final encoded = _encoder.encode(_captureBuffer);
       _outboundCtrl.add(encoded);
     } catch (_) {
       // Encoder hiccup: skip this frame's outbound, but still mix inbound.
