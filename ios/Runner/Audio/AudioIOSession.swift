@@ -39,12 +39,24 @@ class AudioIOSession {
     // callbacks (the "iOS VoIP blacklist" symptom — peers see no audio out
     // from this device). notifyOthersOnDeactivation tells the system audio
     // routing graph to fully tear down before we re-arm.
-    try? session.setActive(false, options: .notifyOthersOnDeactivation)
+    // setCategory must succeed — it tells iOS what we'll do (playAndRecord
+    // + voiceChat enables AEC/AGC). Failure here means the audio subsystem
+    // is in an unrecoverable state and we WANT to surface it.
     try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
-    try session.setPreferredSampleRate(sampleRate)
-    try session.setPreferredIOBufferDuration(0.02)
-    try session.setActive(true)
-    NSLog("[AudioIOSession] AVAudioSession active sampleRate=\(session.sampleRate) bufferDuration=\(session.ioBufferDuration)")
+    try? session.setPreferredSampleRate(sampleRate)
+    try? session.setPreferredIOBufferDuration(0.02)
+    // setActive(true) is best-effort: CallKit owns the audio session when
+    // an incoming call accept routed us here, and any setActive call we make
+    // before the CallKit `provider:didActivate` delegate runs is rejected
+    // with OSStatus 561017449 (session activation failed). When that happens
+    // CallKit has already activated the session on our behalf, so we just
+    // log and continue — the VoiceProcessingIO AudioUnit below still works.
+    do {
+      try session.setActive(true)
+      NSLog("[AudioIOSession] AVAudioSession active sampleRate=\(session.sampleRate) bufferDuration=\(session.ioBufferDuration)")
+    } catch {
+      NSLog("[AudioIOSession] setActive(true) declined (CallKit owns session?): \(error) — proceeding with AudioUnit anyway")
+    }
 
     var desc = AudioComponentDescription(
       componentType: kAudioUnitType_Output,
