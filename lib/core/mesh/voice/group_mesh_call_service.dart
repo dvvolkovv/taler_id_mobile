@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:taler_id_mobile/core/audio/group_mesh_voice_audio_engine.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/mesh_datagram_cipher.dart';
 import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
@@ -87,7 +88,11 @@ class GroupMeshCallService {
 
   /// Host path: send invites to a map of {devicePkHex: userId}.
   Future<void> start({required Map<String, String> invitees}) async {
-    if (_state is! GMCIdle) {
+    // Allow re-entry after a previous call ended (GMCEnded) or errored
+    // (GMCError) — the service doesn't auto-revert to Idle. Without this,
+    // starting a SECOND call after hanging up the first one fails with
+    // "Cannot start: not idle" and surfaces as a generic GMCError in UI.
+    if (_state is! GMCIdle && _state is! GMCEnded && _state is! GMCError) {
       throw StateError('Cannot start: not idle (current=$_state)');
     }
     if (invitees.length > kGmcMaxInvitees) {
@@ -406,6 +411,16 @@ class GroupMeshCallService {
   void _emit(GroupMeshCallState s) {
     final previous = _state;
     _state = s;
+    // Diagnostic trace — surfaces every state transition in adb/Xcode logs so
+    // future "stuck on spinner" / "Cancel does nothing" reports have evidence
+    // without needing to attach a debugger.
+    debugPrint(
+      '[mesh-gc] state: ${previous.runtimeType} → ${s.runtimeType}'
+      '${s is GMCLobby ? " roomId=${s.roomId} roster=${s.roster.length}" : ""}'
+      '${s is GMCActive ? " roomId=${s.roomId} roster=${s.roster.length}" : ""}'
+      '${s is GMCEnded ? " reason=${s.reason}" : ""}'
+      '${s is GMCError ? " msg=${s.message}" : ""}',
+    );
     _stateCtrl.add(s);
 
     if (s is GMCActive && previous is! GMCActive) {
