@@ -112,12 +112,38 @@ class SecureStorageDesktop implements SecureStorage {
   /// no key was found in the keychain and a fresh key was generated. The caller
   /// uses this flag to detect key-loss scenarios (Keychain entry deleted while
   /// an encrypted Hive box already exists on disk).
+  ///
+  /// If the OS keychain is unavailable (e.g. missing entitlement in debug/CI,
+  /// or Credential Manager not configured on Windows), the error is logged and
+  /// an ephemeral session key is used. The Hive box will still be encrypted in
+  /// memory; however data will not survive between restarts in that fallback.
   Future<(List<int>, bool)> _loadOrGenerateKey() async {
-    final existing = await _fss.read(key: _hiveKeyAlias);
+    String? existing;
+    try {
+      existing = await _fss.read(key: _hiveKeyAlias);
+    } catch (e) {
+      developer.log(
+        '[SecureStorage] Keychain read failed ($e). '
+        'Falling back to ephemeral session key — data will NOT persist.',
+        name: 'SecureStorage',
+        level: 900, // WARNING
+      );
+      final rng = Random.secure();
+      return (List<int>.generate(32, (_) => rng.nextInt(256)), true);
+    }
     if (existing != null) return (base64Decode(existing), false);
     final rng = Random.secure();
     final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
-    await _fss.write(key: _hiveKeyAlias, value: base64Encode(bytes));
+    try {
+      await _fss.write(key: _hiveKeyAlias, value: base64Encode(bytes));
+    } catch (e) {
+      developer.log(
+        '[SecureStorage] Keychain write failed ($e). '
+        'Using ephemeral session key — data will NOT persist.',
+        name: 'SecureStorage',
+        level: 900, // WARNING
+      );
+    }
     return (bytes, true);
   }
 

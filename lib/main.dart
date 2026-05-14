@@ -29,6 +29,7 @@ import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_service.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_bloc.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
 import 'core/platform/call_kit.dart';
+import 'core/platform/platform_utils.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -372,8 +373,10 @@ Future<void> main() async {
   // Load persisted wallpaper choice
   await WallpaperService.instance.loadFromStorage();
 
-  // Initialize share intent listener (receive files from other apps)
-  if (!kIsWeb) {
+  // Initialize share intent listener (receive files from other apps).
+  // receive_sharing_intent has no macOS/Windows/Linux implementation — gate on
+  // mobile only to avoid MissingPluginException on desktop.
+  if (!kIsWeb && PlatformUtils.instance.isMobile) {
     ShareIntentService.instance.init();
   }
 
