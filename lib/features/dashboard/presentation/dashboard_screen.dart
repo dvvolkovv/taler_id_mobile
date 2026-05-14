@@ -611,11 +611,21 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Future<void> _connectMessenger() async {
     if (!mounted) return;
     final bloc = context.read<MessengerBloc>();
-    if (bloc.state.isConnected) return;
     try {
       final storage = sl<SecureStorageService>();
       final token = await storage.getAccessToken();
       final userId = await storage.getUserId();
+      // Compare against the currently-connected userId, not just `isConnected`.
+      // After logout + re-login as a different account the bloc's state still
+      // shows isConnected=true (DisconnectMessenger is async and the dashboard
+      // may rebuild before its handler runs), so the previous user's socket
+      // would have stayed authenticated. Force reconnect when the identity
+      // differs so outbound events carry the right JWT.
+      if (bloc.state.isConnected &&
+          userId != null &&
+          bloc.state.currentUserId == userId) {
+        return;
+      }
       if (token != null && mounted) {
         bloc.add(ConnectMessenger(token, userId: userId));
       }
