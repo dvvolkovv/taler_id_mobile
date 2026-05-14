@@ -98,7 +98,7 @@ class AudioIOSession {
     var outputCb = AURenderCallbackStruct(
       inputProc: AudioIOSession.renderCallback,
       inputProcRefCon: Unmanaged.passUnretained(self).toOpaque())
-    try check(AudioUnitSetProperty(audioUnit, kAudioOutputUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0, &outputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size)),
+    try check(AudioUnitSetProperty(audioUnit, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Global, 0, &outputCb, UInt32(MemoryLayout<AURenderCallbackStruct>.size)),
               "SetRenderCallback")
 
     try check(AudioUnitInitialize(audioUnit), "AudioUnitInitialize")
