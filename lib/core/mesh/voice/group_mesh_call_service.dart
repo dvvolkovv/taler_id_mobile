@@ -165,20 +165,25 @@ class GroupMeshCallService {
     required String hostDevicePkHex,
     required List<String> participantDevicePks,
   }) async {
+    // Host is implicitly joined (they're the one ringing us). Invitees other
+    // than self start as "calling" and flip to "joined" as their accept
+    // envelopes arrive.
     final roster = <GMCParticipant>[
       for (final pk in participantDevicePks)
         GMCParticipant(
           devicePk: pk,
           userId: pk == _myPkHex ? 'self' : 'unknown',
-          status: pk == _myPkHex ? GMCStatus.joined : GMCStatus.calling,
+          status: pk == _myPkHex || pk == hostDevicePkHex
+              ? GMCStatus.joined
+              : GMCStatus.calling,
           isSelf: pk == _myPkHex,
         ),
     ];
-    _emit(GMCLobby(
-      roomId: roomId,
-      hostDevicePk: hostDevicePkHex,
-      roster: roster,
-    ));
+    // Go straight to Active — the user already tapped Accept, the call is
+    // live for them. _emit hooks _startAudio + _bootstrapActiveSessions on
+    // the Active transition so audio engine and per-peer ciphers initialise
+    // immediately instead of waiting for the lobby timeout.
+    _emit(GMCActive(roomId: roomId, roster: roster, durationSec: 0));
 
     // Per-peer try/catch — invitee may not yet know all other participants'
     // transports (Bonjour resolve race); proceed with accept even if some
@@ -202,7 +207,9 @@ class GroupMeshCallService {
         // Peer transport not (yet) known — skip this fan-out notification.
       }
     }
-    _startLobbyTimer();
+    // Note: _startLobbyTimer is intentionally NOT called here — we already
+    // emitted GMCActive, the no-answer/all-declined timeout only applies to
+    // the host while it's waiting in GMCLobby.
   }
 
   Future<void> declineInvite({
@@ -226,10 +233,25 @@ class GroupMeshCallService {
 
   Future<void> leave() async {
     final s = _state;
-    if (s is! GMCLobby && s is! GMCActive) return;
+    // Also accept Cancel during GMCInviting — host's invite fan-out may still
+    // be in flight when the user taps Cancel; without this branch the press
+    // is a no-op and the call is stuck until the lobby timer elapses.
+    if (s is! GMCLobby && s is! GMCActive && s is! GMCInviting) return;
     _lobbyTimer?.cancel();
-    final roomId = s is GMCLobby ? s.roomId : (s as GMCActive).roomId;
-    final roster = s is GMCLobby ? s.roster : (s as GMCActive).roster;
+    final String roomId;
+    final List<GMCParticipant> roster;
+    if (s is GMCLobby) {
+      roomId = s.roomId;
+      roster = s.roster;
+    } else if (s is GMCActive) {
+      roomId = s.roomId;
+      roster = s.roster;
+    } else {
+      // GMCInviting
+      final inviting = s as GMCInviting;
+      roomId = inviting.roomId;
+      roster = inviting.invitees;
+    }
     // Per-peer try/catch — a single StateError ("No transport knows ...")
     // would otherwise abort the loop before _emit(GMCEnded) and leave the
     // Cancel button effectively dead.
@@ -276,40 +298,58 @@ class GroupMeshCallService {
         return;
 
       case MeshGcEnvelopeType.accept:
-        if (s is! GMCLobby || s.roomId != roomId) return;
         final senderHex = evt.envelope.extra?['devicePk'] as String?;
         if (senderHex == null) return;
-        final updated = s.roster
-            .map((p) => p.devicePk == senderHex
-                ? p.copyWith(status: GMCStatus.joined)
-                : p)
-            .toList();
-        final allJoined = updated.every((p) => p.status == GMCStatus.joined);
-        if (allJoined) {
+        // Two paths: first acceptor moves us from Lobby → Active immediately
+        // (don't wait for everyone — late joiners stay as "calling" in the
+        // roster until their own accept arrives). Subsequent accepts in
+        // Active just flip that peer's status to joined.
+        if (s is GMCLobby && s.roomId == roomId) {
+          final updated = s.roster
+              .map((p) => p.devicePk == senderHex
+                  ? p.copyWith(status: GMCStatus.joined)
+                  : p)
+              .toList();
           _lobbyTimer?.cancel();
           _emit(GMCActive(roomId: roomId, roster: updated, durationSec: 0));
-        } else {
+        } else if (s is GMCActive && s.roomId == roomId) {
+          final updated = s.roster
+              .map((p) => p.devicePk == senderHex
+                  ? p.copyWith(status: GMCStatus.joined)
+                  : p)
+              .toList();
           _emit(s.copyWith(roster: updated));
         }
         return;
 
       case MeshGcEnvelopeType.decline:
-        if (s is! GMCLobby || s.roomId != roomId) return;
+        // Decline may arrive while host is still in Lobby (no one accepted
+        // yet) OR after host transitioned to Active because someone else
+        // already joined — handle both.
         final senderHex = evt.envelope.extra?['devicePk'] as String?;
         if (senderHex == null) return;
-        final updated = s.roster
-            .map((p) => p.devicePk == senderHex
-                ? p.copyWith(status: GMCStatus.declined)
-                : p)
-            .toList();
-        final anyCallingOrJoined = updated.any((p) =>
-            !p.isSelf &&
-            (p.status == GMCStatus.calling ||
-                p.status == GMCStatus.joined));
-        if (!anyCallingOrJoined) {
-          _lobbyTimer?.cancel();
-          _emit(const GMCEnded(reason: GMCEndReason.allDeclined));
-        } else {
+        if (s is GMCLobby && s.roomId == roomId) {
+          final updated = s.roster
+              .map((p) => p.devicePk == senderHex
+                  ? p.copyWith(status: GMCStatus.declined)
+                  : p)
+              .toList();
+          final anyCallingOrJoined = updated.any((p) =>
+              !p.isSelf &&
+              (p.status == GMCStatus.calling ||
+                  p.status == GMCStatus.joined));
+          if (!anyCallingOrJoined) {
+            _lobbyTimer?.cancel();
+            _emit(const GMCEnded(reason: GMCEndReason.allDeclined));
+          } else {
+            _emit(s.copyWith(roster: updated));
+          }
+        } else if (s is GMCActive && s.roomId == roomId) {
+          final updated = s.roster
+              .map((p) => p.devicePk == senderHex
+                  ? p.copyWith(status: GMCStatus.declined)
+                  : p)
+              .toList();
           _emit(s.copyWith(roster: updated));
         }
         return;
