@@ -41,8 +41,8 @@ class PresenceHeartbeatService with WidgetsBindingObserver {
     if (_disposed) return;
     final shouldRun = _loggedIn && _resumed;
     if (shouldRun && _timer == null) {
-      _ping();
-      _timer = Timer.periodic(_interval, (_) => _ping());
+      unawaited(_ping());
+      _timer = Timer.periodic(_interval, (_) => unawaited(_ping()));
     } else if (!shouldRun && _timer != null) {
       stop();
     }

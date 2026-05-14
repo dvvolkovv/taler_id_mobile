@@ -438,6 +438,9 @@ class _TalerIdAppState extends State<TalerIdApp> {
         BlocProvider(create: (_) => sl<SessionsBloc>()),
       ],
       child: BlocListener<AuthBloc, AuthState>(
+        // Skip transient states (AuthLoading, AuthFailure, AuthRequires2FA) so
+        // the heartbeat doesn't flap off-then-on during a login attempt.
+        listenWhen: (_, state) => state is AuthSuccess || state is AuthLoggedOut,
         listener: (context, state) {
           sl<PresenceHeartbeatService>().setLoggedIn(state is AuthSuccess);
         },
