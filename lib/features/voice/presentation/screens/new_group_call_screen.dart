@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 import '../../../../core/mesh/voice/group_mesh_call_state.dart';
@@ -44,6 +45,10 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
   void initState() {
     super.initState();
     _loadContacts();
+    // Cold cache: ContactsScreen normally hydrates the Hive box on first open.
+    // Users who go to Calls before Contacts saw an empty picker; trigger our
+    // own background fetch so accepted contacts appear without a roundtrip.
+    if (_contacts.isEmpty) _fetchAndCacheAcceptedContacts();
 
     // Rebuild when mesh peer online status changes.
     _eligibility.userChanges.listen((_) {
@@ -68,6 +73,33 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     list.sort((a, b) =>
         a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()));
     setState(() => _contacts = list);
+  }
+
+  Future<void> _fetchAndCacheAcceptedContacts() async {
+    try {
+      final client = sl<DioClient>();
+      final data = await client.get<dynamic>('/messenger/conversations');
+      final list = (data as List?) ?? [];
+      final cached = <Map<String, dynamic>>[];
+      for (final item in list) {
+        final conv = Map<String, dynamic>.from(item as Map);
+        if ((conv['type'] as String? ?? 'DIRECT').toUpperCase() != 'DIRECT') continue;
+        final uid = conv['otherUserId'] as String? ?? '';
+        final name = conv['otherUserName'] as String? ?? '';
+        if (uid.isEmpty || name.isEmpty) continue;
+        cached.add({
+          'userId': uid,
+          'name': name,
+          'avatarUrl': conv['otherUserAvatar'] as String?,
+          'status': 'accepted',
+        });
+      }
+      if (cached.isEmpty) return;
+      await _cache.save(cached);
+      if (mounted) _loadContacts();
+    } catch (_) {
+      // Network/auth failure — picker stays empty, user can retry by reopening.
+    }
   }
 
   void _toggle(String contactId) {

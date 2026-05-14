@@ -663,6 +663,14 @@ class MessengerRemoteDataSource {
     return SyncResult.fromJson(res.data ?? const {});
   }
 
+  /// Tear down the active socket so the next `connect(token)` starts fresh.
+  /// Called from logout to prevent the previous user's JWT from staying
+  /// attached on subsequent re-login as a different account.
+  void disconnect() {
+    _socket?.dispose();
+    _socket = null;
+  }
+
   void dispose() {
     _socket?.dispose();
     _messageCtrl.close();

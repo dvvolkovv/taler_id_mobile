@@ -75,6 +75,10 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       : _repo = repo,
         super(const MessengerState()) {
     on<ConnectMessenger>(_onConnect);
+    on<DisconnectMessenger>((_, emit) {
+      sl<MessengerRemoteDataSource>().disconnect();
+      emit(state.copyWith(isConnected: false));
+    });
     on<LoadConversations>(_onLoadConversations);
     on<OpenConversation>(_onOpenConversation);
     on<SendMessage>(_onSendMessage);

@@ -16,6 +16,14 @@ class ConnectMessenger extends MessengerEvent {
   List<Object?> get props => [accessToken, userId];
 }
 
+/// Dispatched on logout so the dashboard's connect-guard sees a disconnected
+/// state on re-login as a different account, forcing the socket handshake to
+/// run again with the new JWT (otherwise outbound messages keep being signed
+/// as the previously-logged-in user).
+class DisconnectMessenger extends MessengerEvent {
+  const DisconnectMessenger();
+}
+
 class ClearNewConversation extends MessengerEvent {}
 
 class LoadConversations extends MessengerEvent {}

@@ -9,6 +9,8 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/mesh_bootstrap.dart';
 import '../../../../core/mesh/services/mesh_messaging_service.dart';
 import '../../../mesh/presentation/bloc/mesh_status_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_bloc.dart';
+import '../../../messenger/presentation/bloc/messenger_event.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -80,6 +82,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
+    // Drop the messenger socket so the dashboard's connect-guard reconnects
+    // with the new account's JWT on next login. Without this, the previous
+    // user's authenticated socket stays alive and outbound messages keep
+    // being signed as that user.
+    try {
+      sl<MessengerBloc>().add(const DisconnectMessenger());
+    } catch (_) {}
     await authRepository.logout();
     await _teardownMeshOnLogout();
     emit(AuthLoggedOut());

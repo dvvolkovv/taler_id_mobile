@@ -26,7 +26,7 @@ class GroupCallLobbyScreen extends StatelessWidget {
           if (state is GMCActive) {
             context.go('/group-call/${state.roomId}');
           } else if (state is GMCEnded) {
-            context.go('/call-history');
+            context.go('/dashboard/call-history');
           } else if (state is GMCError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),

@@ -206,8 +206,13 @@ void _setupMeshGroupCallIncoming() {
 
       // Surface native incoming UI. The accept/decline handler in
       // _setupCallkitListener and the dashboard route handle the rest.
+      // NOTE: roomId is an 8-char hex (GroupMeshCallService._generateRoomId),
+      // NOT a UUID. iOS CallKit's CXProvider requires a valid RFC 4122 UUID for
+      // the call id — force-unwrapping nil in flutter_callkit_incoming crashed
+      // the app on iPhone 2 during smoke. toCallkitId() maps the hex to a valid
+      // UUID format; the original roomId stays in extra['roomId'] for routing.
       await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
-        id: roomId,
+        id: toCallkitId(roomId),
         nameCaller: 'Group call',
         type: 0, // 0 = audio
         extra: <String, dynamic>{
