@@ -461,6 +461,7 @@ class GroupMeshCallService {
   }
 
   Future<void> _bootstrapActiveSessions(GMCActive active) async {
+    final missingPeers = <String>[];
     for (final p in active.roster) {
       if (p.isSelf) continue;
       if (_peerCiphers.containsKey(p.devicePk)) continue;
@@ -468,14 +469,37 @@ class GroupMeshCallService {
       final ciphers = await messaging.datagramCiphersFor(peerBytes);
       if (ciphers != null) {
         _peerCiphers[p.devicePk] = ciphers;
+      } else {
+        missingPeers.add(p.devicePk);
       }
     }
-    // If any peer is still missing ciphers (Noise session not yet derived
-    // when GMCActive was first entered), retry after a short delay so the
-    // call doesn't silently lose audio in either direction.
-    final stillMissing = active.roster.any(
-        (p) => !p.isSelf && !_peerCiphers.containsKey(p.devicePk));
-    if (!stillMissing) return;
+    // For non-host peers, the only Noise sessions established during invite
+    // exchange are with the HOST. Pair-wise sessions between invitees never
+    // get bootstrapped — so audio in either direction silently drops because
+    // datagramCiphersFor returns null forever. Send a keepalive envelope to
+    // each missing peer; messaging.sendEnvelope kicks off a Noise handshake
+    // when no session exists, after which the next retry tick of this method
+    // will pick up the freshly-derived ciphers.
+    for (final pkHex in missingPeers) {
+      unawaited(
+        messaging.sendEnvelope(
+          toUserPk: PeerId.fromHex(pkHex),
+          envelope: Envelope(
+            version: 1,
+            type: MeshGcEnvelopeType.keepalive,
+            convId: active.roomId,
+            clientId: _randomClientId(),
+            text: '',
+            sentAt: DateTime.now().toUtc(),
+            extra: {'roomId': active.roomId, 'devicePk': _myPkHex},
+          ),
+        ).catchError((_) {
+          // "No transport knows ..." (still resolving Bonjour) — retry tick
+          // picks it up once the peer's address materialises.
+        }),
+      );
+    }
+    if (missingPeers.isEmpty) return;
     final attempt = (_bootstrapRetryByRoom[active.roomId] ?? 0) + 1;
     _bootstrapRetryByRoom[active.roomId] = attempt;
     // ~12 s total: 6 retries × 2 s. Audio dialer drops the call anyway after
