@@ -305,6 +305,7 @@ Future<void> _checkInitialCallKitCall() async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await WindowSetup.initialize();
+  WindowSetup.attachStateSaver();
 
   // Set up CallKit listener early — before runApp — to catch accept events
   // that arrive while the app is cold-starting.
