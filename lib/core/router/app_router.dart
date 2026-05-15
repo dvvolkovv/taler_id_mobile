@@ -56,6 +56,7 @@ import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/dashboard/desktop/desktop_shell.dart';
 import '../../features/messenger/presentation/screens/share_target_screen.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../main.dart' show globalNavigatorKey;
@@ -229,7 +230,9 @@ final appRouter = GoRouter(
             value: sl<BalanceBloc>(instanceName: 'globalBalance'),
           ),
         ],
-        child: DashboardScreen(child: child),
+        child: PlatformUtils.instance.isDesktop
+            ? DesktopShell(currentRoute: state.uri.path, child: child)
+            : DashboardScreen(child: child),
       ),
       routes: [
         GoRoute(

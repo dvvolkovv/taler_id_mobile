@@ -304,8 +304,6 @@ Future<void> _checkInitialCallKitCall() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await WindowSetup.initialize();
-  WindowSetup.attachStateSaver();
 
   // Set up CallKit listener early — before runApp — to catch accept events
   // that arrive while the app is cold-starting.
@@ -322,7 +320,12 @@ Future<void> main() async {
 
   // Initialize platform-appropriate secure storage (encrypted Hive on desktop,
   // FlutterSecureStorage on mobile). Must run before any read/write calls.
+  // Hive.initFlutter() is called inside here — WindowSetup must come AFTER.
   await SecureStorage.instance.initialize();
+
+  // Initialize window manager AFTER Hive (WindowStatePersistence uses Hive.openBox).
+  await WindowSetup.initialize();
+  WindowSetup.attachStateSaver();
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();
