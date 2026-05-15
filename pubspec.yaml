@@ -139,6 +139,9 @@ dependencies:
   window_manager: ^0.4.3
   tray_manager: ^0.5.0
 
+  # WebView (KYC on macOS/Linux; Windows is a stub in Phase 2)
+  webview_flutter: ^4.10.0
+
 dependency_overrides:
   path_provider_foundation: 2.3.2
 
