@@ -30,6 +30,7 @@ import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
 import 'core/platform/call_kit.dart';
 import 'core/platform/platform_utils.dart';
+import 'features/dashboard/desktop/window/window_setup.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -303,6 +304,7 @@ Future<void> _checkInitialCallKitCall() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await WindowSetup.initialize();
 
   // Set up CallKit listener early — before runApp — to catch accept events
   // that arrive while the app is cold-starting.
