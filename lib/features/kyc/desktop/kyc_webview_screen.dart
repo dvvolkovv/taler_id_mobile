@@ -27,8 +27,9 @@ class _KycWebViewScreenState extends State<KycWebViewScreen> {
         ..setNavigationDelegate(wvf.NavigationDelegate(
           onPageFinished: (url) {
             if (url.contains('/kyc/complete')) {
-              widget.onComplete();
-              if (mounted) Navigator.of(context).pop();
+              // onComplete is responsible for popping the screen (pops with
+              // success=true so KycLauncherDesktop receives the result).
+              if (mounted) widget.onComplete();
             }
           },
         ))

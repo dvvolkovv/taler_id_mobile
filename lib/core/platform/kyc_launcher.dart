@@ -38,8 +38,8 @@ class KycLaunchResult {
 ///
 /// Mobile (iOS, Android) → [KycLauncherMobile] (delegates to
 /// `flutter_idensic_mobile_sdk_plugin`).
-/// Desktop (macOS, Windows, Linux) → [KycLauncherDesktop] (returns
-/// [KycLaunchResult.skipped] immediately; callers should show a snackbar).
+/// Desktop (macOS, Windows, Linux) → [KycLauncherDesktop] (navigates to
+/// `/kyc/webview` with the Sumsub Web SDK URL).
 ///
 /// Use [debugResetForTest] in unit tests to force re-initialisation.
 abstract class KycLauncherPlatform {
@@ -52,12 +52,14 @@ abstract class KycLauncherPlatform {
 
   /// Launch the Sumsub KYC SDK.
   ///
-  /// [sdkToken] is the token returned by the backend.
+  /// [sdkToken] is the Sumsub Mobile SDK token (mobile only; null on desktop).
+  /// [webSdkUrl] is the Sumsub Web SDK URL (desktop only; null on mobile).
   /// [onTokenExpiration] is called when the token expires; must return a fresh token.
   /// [locale] sets the SDK UI language (defaults to 'ru').
   /// [debug] enables SDK debug logging.
   Future<KycLaunchResult> launch({
-    required String sdkToken,
+    String? sdkToken,
+    String? webSdkUrl,
     required Future<String?> Function() onTokenExpiration,
     Locale locale = const Locale('ru'),
     bool debug = true,

@@ -33,10 +33,16 @@ class KycApplicantDataLoading extends KycState {
 }
 
 class KycSdkReady extends KycState {
-  final String sdkToken;
-  KycSdkReady(this.sdkToken);
+  /// Mobile SDK token — non-null on mobile, null on desktop.
+  final String? sdkToken;
+
+  /// Web SDK URL — non-null on desktop, null on mobile.
+  final String? webSdkUrl;
+
+  KycSdkReady({this.sdkToken, this.webSdkUrl});
+
   @override
-  List<Object?> get props => [sdkToken];
+  List<Object?> get props => [sdkToken, webSdkUrl];
 }
 
 class KycSdkDone extends KycState {} // SDK finished, waiting for webhook

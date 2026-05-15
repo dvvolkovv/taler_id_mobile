@@ -10,11 +10,15 @@ import 'kyc_launcher.dart';
 class KycLauncherMobile implements KycLauncherPlatform {
   @override
   Future<KycLaunchResult> launch({
-    required String sdkToken,
+    String? sdkToken,
+    String? webSdkUrl,
     required Future<String?> Function() onTokenExpiration,
     Locale locale = const Locale('ru'),
     bool debug = true,
   }) async {
+    if (sdkToken == null) {
+      throw ArgumentError('sdkToken is required on mobile');
+    }
     final sdk = SNSMobileSDK.init(sdkToken, onTokenExpiration)
         .withLocale(locale)
         .withDebug(debug)
