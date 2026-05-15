@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
+import 'package:window_manager/window_manager.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/sync_result.dart';
@@ -20,6 +21,8 @@ import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/storage/sync_cursor_storage.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
+import '../../../../core/notifications/desktop/desktop_notifications_service.dart';
+import '../../../../core/platform/platform_utils.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
@@ -624,6 +627,13 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     // Keep the existing standard incoming-call flow (CallKit / dialog).
     emit(state.copyWith(pendingCallInvite: event.data));
 
+    // Desktop toast: surface a native OS notification for the incoming call.
+    // On desktop there is no CallKit — the OS toast + window raise is the
+    // primary incoming-call UI signal.
+    if (PlatformUtils.instance.isDesktop) {
+      _maybeShowDesktopCallInvite(event.data);
+    }
+
     // Additionally inject a local "call invite" message into the conversation
     // so the user can accept/reject it from the chat as well. The message is
     // not persisted to the server — it disappears on next server sync once
@@ -802,6 +812,59 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     // Cache the new message
     _cache.appendMessage(msg.conversationId, msg.toJson());
     add(LoadConversations());
+
+    // Desktop toast: show OS notification when window is not focused.
+    // Skipped for system messages (call_invite injections, analyst turns) and
+    // messages sent by this user.
+    if (PlatformUtils.instance.isDesktop &&
+        !msg.isSystem &&
+        msg.senderId != state.currentUserId) {
+      _maybeShowDesktopMessageNotification(msg);
+    }
+  }
+
+  void _maybeShowDesktopMessageNotification(MessageEntity msg) async {
+    try {
+      final isFocused = await windowManager.isFocused();
+      if (!isFocused) {
+        final senderName =
+            (msg.senderName?.isNotEmpty ?? false) ? msg.senderName! : 'Сообщение';
+        final content = msg.fileName != null && msg.fileName!.isNotEmpty
+            ? msg.fileName!
+            : (msg.content?.isNotEmpty ?? false)
+                ? msg.content!
+                : '📎 Вложение';
+        await DesktopNotificationsService.instance.showMessage(
+          title: senderName,
+          body: content,
+          routePayload: 'chat:${msg.conversationId}',
+        );
+      }
+    } catch (e) {
+      debugPrint('[DesktopNotif] showMessage failed: $e');
+    }
+  }
+
+  void _maybeShowDesktopCallInvite(Map<String, dynamic> data) async {
+    try {
+      final isFocused = await windowManager.isFocused();
+      final callerName = (data['fromUserName'] as String?)?.isNotEmpty == true
+          ? data['fromUserName'] as String
+          : 'Неизвестный';
+      final roomName = data['roomName'] as String? ?? '';
+      await DesktopNotificationsService.instance.showCallInvite(
+        callerName: callerName,
+        routePayload: 'call:$roomName',
+      );
+      // If window is not focused, raise it so the in-app call dialog becomes
+      // visible immediately.
+      if (!isFocused) {
+        await windowManager.show();
+        await windowManager.focus();
+      }
+    } catch (e) {
+      debugPrint('[DesktopNotif] showCallInvite failed: $e');
+    }
   }
 
   final Set<String> _loadingMore = {};

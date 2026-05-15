@@ -32,6 +32,8 @@ import 'core/platform/call_kit.dart';
 import 'core/platform/platform_utils.dart';
 import 'features/dashboard/desktop/window/window_setup.dart';
 import 'core/desktop_tray/desktop_tray_service.dart';
+import 'core/notifications/desktop/desktop_notifications_service.dart';
+import 'core/notifications/desktop/notification_routing.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -328,6 +330,16 @@ Future<void> main() async {
   await WindowSetup.initialize();
   WindowSetup.attachStateSaver();
   await DesktopTrayService.instance.initialize();
+  await DesktopNotificationsService.instance.initialize(
+    onTap: (payload) {
+      final route = NotificationRouting.routeFor(payload);
+      if (route != null) {
+        try {
+          appRouter.go(route);
+        } catch (_) {}
+      }
+    },
+  );
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();
