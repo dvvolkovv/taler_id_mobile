@@ -34,6 +34,7 @@ import 'features/dashboard/desktop/window/window_setup.dart';
 import 'core/desktop_tray/desktop_tray_service.dart';
 import 'core/notifications/desktop/desktop_notifications_service.dart';
 import 'core/notifications/desktop/notification_routing.dart';
+import 'core/url_scheme/url_scheme_handler.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -340,6 +341,9 @@ Future<void> main() async {
       }
     },
   );
+
+  // Initialize custom URL scheme handler (talerid://) — desktop only.
+  await UrlSchemeHandler.instance.initialize();
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();
