@@ -3,7 +3,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:local_auth/local_auth.dart';
+import '../../../../core/platform/biometric_auth.dart';
 import '../../../../core/router/post_login_redirect.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -34,20 +34,18 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   Future<void> _checkBiometric() async {
     final biometricEnabled = await _storage.isBiometricEnabled;
     if (biometricEnabled) {
-      final localAuth = LocalAuthentication();
-      final canCheck = await localAuth.canCheckBiometrics;
-      final available = canCheck && (await localAuth.getAvailableBiometrics()).isNotEmpty;
+      final bio = BiometricAuthPlatform.instance;
+      final canCheck = await bio.canCheckBiometrics;
+      final available = canCheck && (await bio.getAvailableBiometrics()).isNotEmpty;
       setState(() => _biometricAvailable = available);
       if (available) _tryBiometric();
     }
   }
 
   Future<void> _tryBiometric() async {
-    final localAuth = LocalAuthentication();
     try {
-      final ok = await localAuth.authenticate(
+      final ok = await BiometricAuthPlatform.instance.authenticate(
         localizedReason: AppLocalizations.of(context)?.biometricLoginReason ?? 'Sign in to Taler ID',
-        options: const AuthenticationOptions(biometricOnly: false),
       );
       if (ok && mounted) {
         await postLoginNavigate(context);

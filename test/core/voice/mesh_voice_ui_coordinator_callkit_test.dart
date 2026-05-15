@@ -6,6 +6,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
 import 'package:taler_id_mobile/core/mesh/voice/mesh_voice_state.dart';
+import 'package:taler_id_mobile/core/platform/call_kit.dart';
+import 'package:taler_id_mobile/core/platform/call_kit_mobile.dart';
 import 'package:taler_id_mobile/core/voice/mesh_voice_ui_coordinator.dart';
 import 'package:taler_id_mobile/features/call_history/data/mesh_call_history_entry.dart';
 import 'package:taler_id_mobile/features/call_history/data/mesh_call_history_repository.dart';
@@ -53,6 +55,8 @@ void main() {
       return null;
     });
 
+    CallKitPlatform.debugInstance = CallKitMobile();
+
     coord = MeshVoiceUiCoordinator(
       stateStream: stateCtrl.stream,
       invite: (_) async => 1,
@@ -69,6 +73,7 @@ void main() {
   });
 
   tearDown(() async {
+    CallKitPlatform.debugResetForTest();
     await coord.dispose();
     await stateCtrl.close();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

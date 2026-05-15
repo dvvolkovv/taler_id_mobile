@@ -5,15 +5,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_callkit_incoming/entities/android_params.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
-import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
-import 'package:flutter_callkit_incoming/entities/ios_params.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
+import '../platform/call_kit.dart';
+import '../platform/fcm_messaging.dart';
+import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../../firebase_options.dart';
 
@@ -78,11 +75,7 @@ const _enStrings = _NotifStrings(
 Future<_NotifStrings> _notifStrings() async {
   String? lang;
   try {
-    const storage = FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    );
-    lang = await storage.read(key: 'app_language');
+    lang = await SecureStorage.instance.read('app_language');
   } catch (_) {}
   lang ??= (!kIsWeb ? Platform.localeName : 'en').split('_').first;
   return lang == 'ru' ? _ruStrings : _enStrings;
@@ -180,48 +173,22 @@ Future<void> showCallkitIncoming({
 }) async {
   if (_isIosSimulator) return;
   final s = await _notifStrings();
-  await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
-    id: toCallkitId(roomName),
-    nameCaller: fromName,
-    appName: 'Taler ID',
-    type: 0,
+  await CallKitPlatform.instance.showIncomingCall(
+    uuid: toCallkitId(roomName),
+    callerName: fromName,
+    roomName: roomName,
     textAccept: s.accept,
     textDecline: s.decline,
-    duration: 60000,
+    durationMs: 60000,
+    androidIncomingChannelName: s.incomingCallChannel,
+    androidMissedChannelName: s.missedCallChannel,
     extra: <String, dynamic>{
       'roomName': roomName,
       'conversationId': convId,
       if (fromName.isNotEmpty) 'callerName': fromName,
       if (fromAvatar != null && fromAvatar.isNotEmpty) 'callerAvatar': fromAvatar,
     },
-    android: AndroidParams(
-      isCustomNotification: true,
-      isShowLogo: false,
-      isShowFullLockedScreen: true,
-      ringtonePath: 'bumer_ringtone',
-      backgroundColor: '#0A1628',
-      actionColor: '#167EF2',
-      textColor: '#FFFFFF',
-      incomingCallNotificationChannelName: s.incomingCallChannel,
-      missedCallNotificationChannelName: s.missedCallChannel,
-      isShowCallID: false,
-    ),
-    ios: const IOSParams(
-      iconName: 'CallKitLogo',
-      supportsVideo: false,
-      maximumCallGroups: 2,
-      maximumCallsPerCallGroup: 1,
-      audioSessionMode: 'default',
-      audioSessionActive: true,
-      audioSessionPreferredSampleRate: 44100.0,
-      audioSessionPreferredIOBufferDuration: 0.005,
-      supportsDTMF: false,
-      supportsHolding: false,
-      supportsGrouping: false,
-      supportsUngrouping: false,
-      ringtonePath: 'bumer_ringtone.caf',
-    ),
-  ));
+  );
 }
 
 // Background message handler (top-level function required by FCM).
@@ -263,7 +230,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     );
   } else if (type == 'call_cancelled') {
     // Caller hung up before answer — dismiss CallKit UI
-    await FlutterCallkitIncoming.endAllCalls();
+    await CallKitPlatform.instance.endAllCalls();
     await _initLocalNotifications();
     await _showMissedCallNotification(
       fromName: message.data['fromName'] ?? (await _notifStrings()).unknown,
@@ -272,7 +239,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
-  static final _fcm = FirebaseMessaging.instance;
   static String? _currentToken;
   static VoidCallback? _onCalendarUpdated;
   static void setCalendarUpdateCallback(VoidCallback? cb) => _onCalendarUpdated = cb;
@@ -296,12 +262,12 @@ class NotificationService {
   /// Subscribe to this instead of [FlutterCallkitIncoming.onEvent] to avoid
   /// replacing the underlying EventChannel handler on each subscription.
   /// The raw EventChannel is subscribed ONCE in main.dart's _setupCallkitListener().
-  static final StreamController<CallEvent?> _callEventController =
-      StreamController<CallEvent?>.broadcast();
-  static Stream<CallEvent?> get callEvents => _callEventController.stream;
+  static final StreamController<CallKitEvent?> _callEventController =
+      StreamController<CallKitEvent?>.broadcast();
+  static Stream<CallKitEvent?> get callEvents => _callEventController.stream;
 
   /// Forward a CallKit event to all subscribers. Called by main.dart only.
-  static void addCallEvent(CallEvent? event) => _callEventController.add(event);
+  static void addCallEvent(CallKitEvent? event) => _callEventController.add(event);
 
   static Future<void> init() async {
     // Register background handler — must be registered synchronously before any isolate runs.
@@ -311,7 +277,7 @@ class NotificationService {
     await _initLocalNotifications();
 
     // Set up token refresh listener.
-    _fcm.onTokenRefresh.listen((token) async {
+    FcmMessagingPlatform.instance.onTokenRefresh.listen((token) async {
       _currentToken = token;
       await _saveTokenToBackend(token);
     });
@@ -324,11 +290,7 @@ class NotificationService {
   /// Request notification permission explicitly (called from onboarding or init).
   static Future<void> requestPermission() async {
     try {
-      await _fcm.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await FcmMessagingPlatform.instance.requestPermissions();
     } catch (e) {
       debugPrint('FCM permission request failed: $e');
     }
@@ -344,7 +306,7 @@ class NotificationService {
       if (onboardingSeen) {
         await requestPermission();
       }
-      final token = await _fcm.getToken();
+      final token = await FcmMessagingPlatform.instance.getToken();
       if (token != null) {
         _currentToken = token;
         await _saveTokenToBackend(token);
@@ -356,7 +318,7 @@ class NotificationService {
     // Register VoIP push token for iOS (real device only, not simulator).
     if (!kIsWeb && Platform.isIOS && !_isIosSimulator) {
       try {
-        final voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+        final voipToken = await CallKitPlatform.instance.getDevicePushTokenVoIP();
         if (voipToken != null && voipToken.isNotEmpty) {
           final client = sl<DioClient>();
           await client.put('/profile', data: {'voipToken': voipToken}, fromJson: (d) => d);
@@ -401,8 +363,8 @@ class NotificationService {
       // When forced, always re-fetch from FCM SDK to avoid relying on a stale
       // in-memory cache. Otherwise reuse cached value to skip the SDK round-trip.
       final token = force
-          ? (await _fcm.getToken() ?? _currentToken)
-          : (_currentToken ?? await _fcm.getToken());
+          ? (await FcmMessagingPlatform.instance.getToken() ?? _currentToken)
+          : (_currentToken ?? await FcmMessagingPlatform.instance.getToken());
       if (token != null) {
         _currentToken = token;
         await _saveTokenToBackend(token, force: force);
@@ -415,7 +377,7 @@ class NotificationService {
     // This call runs from DashboardScreen (post-login) to ensure the token is persisted.
     if (!kIsWeb && Platform.isIOS && !_isIosSimulator) {
       try {
-        final voipToken = await FlutterCallkitIncoming.getDevicePushTokenVoIP();
+        final voipToken = await CallKitPlatform.instance.getDevicePushTokenVoIP();
         if (voipToken != null && voipToken.isNotEmpty) {
           final client = sl<DioClient>();
           await client.put('/profile', data: {'voipToken': voipToken}, fromJson: (d) => d);
@@ -457,7 +419,7 @@ class NotificationService {
       }
       // call_invite is intentionally ignored here — socket handles it.
       if (type == 'call_cancelled') {
-        FlutterCallkitIncoming.endAllCalls();
+        CallKitPlatform.instance.endAllCalls();
         _notifStrings().then((s) => _showMissedCallNotification(
           fromName: message.data['fromName'] ?? s.unknown,
         ));
@@ -471,7 +433,7 @@ class NotificationService {
 
   /// Check if app was opened from a notification (terminated state)
   static Future<RemoteMessage?> getInitialMessage() =>
-      _fcm.getInitialMessage();
+      FirebaseMessaging.instance.getInitialMessage();
 
   static String? get token => _currentToken;
 }

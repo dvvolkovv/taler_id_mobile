@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/messenger/presentation/bloc/messenger_bloc.dart';
@@ -152,29 +153,32 @@ final appRouter = GoRouter(
         );
       },
     ),
-    // Group voice room — picker (Phase 1)
-    GoRoute(
-      path: RouteConstants.newGroupCall,
-      builder: (_, __) => const NewGroupCallScreen(),
-    ),
-    // Group voice room — lobby (declared before /group-call/:id so the
-    // longer pattern matches first regardless of GoRouter version semantics).
-    GoRoute(
-      path: RouteConstants.groupCallLobby,
-      builder: (_, state) {
-        final id = state.pathParameters['id']!;
-        return GroupCallLobbyScreen(callId: id);
-      },
-    ),
-    // Group voice room — active (also reached from lobby on InActive,
-    // and used directly by active-call banner / push notifications).
-    GoRoute(
-      path: RouteConstants.groupCallActive,
-      builder: (_, state) {
-        final id = state.pathParameters['id']!;
-        return GroupCallActiveScreen(callId: id);
-      },
-    ),
+    // Group mesh voice room — mobile only (mesh not available on desktop).
+    if (PlatformUtils.instance.isMobile) ...[
+      // Picker (Phase 1)
+      GoRoute(
+        path: RouteConstants.newGroupCall,
+        builder: (_, __) => const NewGroupCallScreen(),
+      ),
+      // Lobby (declared before /group-call/:id so the longer pattern matches
+      // first regardless of GoRouter version semantics).
+      GoRoute(
+        path: RouteConstants.groupCallLobby,
+        builder: (_, state) {
+          final id = state.pathParameters['id']!;
+          return GroupCallLobbyScreen(callId: id);
+        },
+      ),
+      // Active (also reached from lobby on InActive, and used directly by
+      // active-call banner / push notifications).
+      GoRoute(
+        path: RouteConstants.groupCallActive,
+        builder: (_, state) {
+          final id = state.pathParameters['id']!;
+          return GroupCallActiveScreen(callId: id);
+        },
+      ),
+    ],
     // Share-in recipient picker (full-screen, outside shell)
     GoRoute(
       path: '/share-target',
@@ -294,10 +298,11 @@ final appRouter = GoRouter(
               path: 'wallpaper',
               builder: (_, __) => const WallpaperPickerScreen(),
             ),
-            GoRoute(
-              path: 'mesh-debug',
-              builder: (_, __) => const MeshDebugScreen(),
-            ),
+            if (PlatformUtils.instance.isMobile)
+              GoRoute(
+                path: 'mesh-debug',
+                builder: (_, __) => const MeshDebugScreen(),
+              ),
           ],
         ),
         // User profile

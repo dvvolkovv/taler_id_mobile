@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../../../../core/platform/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../../core/platform/biometric_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:taler_id_mobile/core/platform/fcm_messaging.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
@@ -73,9 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     if (kIsWeb) return;
     bool notif = false;
     try {
-      final settings = await FirebaseMessaging.instance.getNotificationSettings();
-      notif = settings.authorizationStatus == AuthorizationStatus.authorized ||
-          settings.authorizationStatus == AuthorizationStatus.provisional;
+      notif = await FcmMessagingPlatform.instance.hasPermission();
     } catch (_) {}
     final mic = await Permission.microphone.status;
     final cam = await Permission.camera.status;
@@ -118,9 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       await openAppSettings();
     } else {
       try {
-        await FirebaseMessaging.instance.requestPermission(
-          alert: true, badge: true, sound: true,
-        );
+        await FcmMessagingPlatform.instance.requestPermissions();
       } catch (_) {}
     }
     await _loadPermissions();
@@ -134,11 +131,11 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final savedTheme = await _storage.getThemeMode() ?? 'light';
     bool available = false;
     try {
-      final localAuth = LocalAuthentication();
-      final canCheck = await localAuth.canCheckBiometrics;
-      final isSupported = await localAuth.isDeviceSupported();
+      final bio = BiometricAuthPlatform.instance;
+      final canCheck = await bio.canCheckBiometrics;
+      final isSupported = await bio.isDeviceSupported;
       if (canCheck || isSupported) {
-        final biometrics = await localAuth.getAvailableBiometrics();
+        final biometrics = await bio.getAvailableBiometrics();
         available = biometrics.isNotEmpty;
       }
     } catch (_) {
@@ -160,10 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final l10n = AppLocalizations.of(context)!;
     if (value) {
       try {
-        final localAuth = LocalAuthentication();
-        final ok = await localAuth.authenticate(
+        final ok = await BiometricAuthPlatform.instance.authenticate(
           localizedReason: l10n.biometricsConfirm,
-          options: const AuthenticationOptions(biometricOnly: false),
         );
         if (!ok) return;
       } catch (e) {
@@ -397,12 +392,13 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 16),
 
-            // Mesh network section (Phase 1e) — visible in all flavors so
-            // users can toggle offline-fallback. The "View debug" button
-            // inside MeshSettingsSection is already dev-only.
-            _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
-            const MeshSettingsSection(),
-            const SizedBox(height: 16),
+            // Mesh network section (Phase 1e) — mobile only. Desktop has no
+            // mesh networking (no Bonjour/BLE peer discovery).
+            if (PlatformUtils.instance.isMobile) ...[
+              _sectionHeader(_currentLang == 'ru' ? 'Mesh-сеть' : 'Mesh Network'),
+              const MeshSettingsSection(),
+              const SizedBox(height: 16),
+            ],
 
             // Voice assistant section
             _sectionHeader(_currentLang == 'ru' ? 'Голосовой помощник' : 'Voice Assistant'),

@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:local_auth/local_auth.dart';
 import 'package:video_player/video_player.dart';
+import '../../../../core/platform/biometric_auth.dart';
 import '../../../../core/router/post_login_redirect.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -107,14 +107,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<bool> _tryBiometric() async {
-    final localAuth = LocalAuthentication();
     try {
-      final canAuth = await localAuth.canCheckBiometrics;
+      final bio = BiometricAuthPlatform.instance;
+      final canAuth = await bio.canCheckBiometrics;
       if (!canAuth) return false;
-      return await localAuth.authenticate(
-        localizedReason: 'Войдите в Taler ID',
-        options: const AuthenticationOptions(biometricOnly: false),
-      );
+      return await bio.authenticate(localizedReason: 'Войдите в Taler ID');
     } catch (_) {
       return false;
     }

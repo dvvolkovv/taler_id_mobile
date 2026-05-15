@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
-import 'package:flutter_idensic_mobile_sdk_plugin/flutter_idensic_mobile_sdk_plugin.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/platform/kyc_launcher.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/call_state_service.dart';
@@ -610,20 +610,21 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     }
 
     final bloc = context.read<TenantBloc>();
-
-    final onTokenExpiration = () async {
-      return await bloc.repo.startKyb(tenantId);
-    };
-
-    final snsMobileSDK = SNSMobileSDK.init(sdkToken, onTokenExpiration)
-        .withLocale(Locale(Localizations.localeOf(context).languageCode))
-        .withDebug(true)
-        .build();
-
-    final SNSMobileSDKResult result = await snsMobileSDK.launch();
+    final locale = Locale(Localizations.localeOf(context).languageCode);
+    final result = await KycLauncherPlatform.instance.launch(
+      sdkToken: sdkToken,
+      onTokenExpiration: () async => await bloc.repo.startKyb(tenantId),
+      locale: locale,
+    );
 
     if (!mounted) return;
 
+    if (result.skipped) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('KYB verification is not available on this platform')),
+      );
+      return;
+    }
     if (result.success) {
       bloc.add(TenantKybSdkCompleted(tenantId));
     }
