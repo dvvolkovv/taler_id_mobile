@@ -76,49 +76,51 @@ class _SavedPinnedTileState extends State<SavedPinnedTile> {
     final textPrimary = ext?.textPrimary ?? cs.onSurface;
     final textSecondary = ext?.textSecondary ?? cs.onSurfaceVariant;
 
-    return InkWell(
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       onTap: () => _open(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [primary, primary.withValues(alpha: 0.7)],
-                ),
-              ),
-              child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 26),
+      leading: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: primary, width: 2),
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 0,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.savedTitle,
-                    style: TextStyle(
-                      color: textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.savedSubtitle,
-                    style: TextStyle(color: textSecondary, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: textSecondary),
           ],
         ),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [primary, primary.withValues(alpha: 0.7)],
+            ),
+          ),
+          child: const Icon(Icons.bookmark_rounded, color: Colors.white, size: 22),
+        ),
+      ),
+      title: Text(
+        l10n.savedTitle,
+        style: TextStyle(
+          color: textPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        l10n.savedSubtitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: textSecondary, fontSize: 13),
       ),
     );
   }
