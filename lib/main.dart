@@ -30,6 +30,7 @@ import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
 import 'core/platform/call_kit.dart';
 import 'core/platform/platform_utils.dart';
+import 'features/dashboard/desktop/window/window_setup.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -319,7 +320,12 @@ Future<void> main() async {
 
   // Initialize platform-appropriate secure storage (encrypted Hive on desktop,
   // FlutterSecureStorage on mobile). Must run before any read/write calls.
+  // Hive.initFlutter() is called inside here — WindowSetup must come AFTER.
   await SecureStorage.instance.initialize();
+
+  // Initialize window manager AFTER Hive (WindowStatePersistence uses Hive.openBox).
+  await WindowSetup.initialize();
+  WindowSetup.attachStateSaver();
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();
