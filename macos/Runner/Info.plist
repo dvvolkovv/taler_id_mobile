@@ -34,5 +34,16 @@
 	<string>Taler ID использует камеру для видеозвонков</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Taler ID использует распознавание речи для голосового ассистента</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>tirol.taler.talerIdMobile</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>talerid</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

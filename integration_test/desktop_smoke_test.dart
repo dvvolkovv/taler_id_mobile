@@ -10,6 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/main.dart' as app;
 import 'package:taler_id_mobile/features/dashboard/desktop/widgets/activity_bar.dart';
+import 'package:taler_id_mobile/core/desktop_tray/desktop_tray_service.dart';
+import 'package:taler_id_mobile/core/notifications/desktop/desktop_notifications_service.dart';
+import 'package:taler_id_mobile/core/url_scheme/url_scheme_handler.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +65,15 @@ void main() {
       find.byType(ActivityBar),
       anyOf(findsNothing, findsWidgets),
     );
+
+    // Phase 2 smoke: verify singleton instances are accessible (constructed at
+    // class-load time via static final). The services themselves are initialized
+    // lazily inside main() via DI; here we only verify that the singleton
+    // objects exist and the imports resolve — no platform channel calls are
+    // made, so these assertions are safe in the integration-test host process.
+    expect(DesktopTrayService.instance, isNotNull);
+    expect(DesktopNotificationsService.instance, isNotNull);
+    expect(UrlSchemeHandler.instance, isNotNull);
 
     // Restore original error handler.
     FlutterError.onError = originalOnError;

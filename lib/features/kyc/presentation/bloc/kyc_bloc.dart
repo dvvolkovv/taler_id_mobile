@@ -63,8 +63,8 @@ class KycBloc extends Bloc<KycEvent, KycState> {
   Future<void> _onStart(KycStartRequested event, Emitter<KycState> emit) async {
     emit(KycLoading());
     try {
-      final token = await repo.startKyc();
-      emit(KycSdkReady(token));
+      final response = await repo.startKyc();
+      emit(KycSdkReady(sdkToken: response.sdkToken, webSdkUrl: response.webSdkUrl));
     } on ApiException catch (e) {
       emit(KycError(e.message));
     } catch (_) {

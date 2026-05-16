@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/kyc/desktop/kyc_webview_screen.dart';
 import '../../features/messenger/presentation/bloc/messenger_bloc.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -190,6 +191,26 @@ final appRouter = GoRouter(
     ),
     // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
     // InsufficientFundsSheet and LowBalanceBanner across the app.
+    // Desktop KYC: Sumsub Web SDK in a WebView (replaces Phase-1 stub).
+    if (PlatformUtils.instance.isDesktop)
+      GoRoute(
+        path: '/kyc/webview',
+        builder: (context, state) {
+          final url = state.extra as String?;
+          if (url == null || url.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('KYC URL не передан')),
+            );
+          }
+          return KycWebViewScreen(
+            webSdkUrl: url,
+            onComplete: () {
+              // Pop the WebView screen and signal success to KycLauncherDesktop.
+              if (context.canPop()) context.pop(true);
+            },
+          );
+        },
+      ),
     GoRoute(
       path: '/billing/wallet',
       builder: (_, state) {

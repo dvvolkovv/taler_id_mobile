@@ -42,6 +42,7 @@ class WindowSetup with WindowListener {
     await windowManager.waitUntilReadyToShow(options, () async {
       await windowManager.show();
       await windowManager.focus();
+      await windowManager.setPreventClose(true);
       if (saved != null) {
         await windowManager.setPosition(Offset(saved.x, saved.y));
         // Off-screen guard: if window ends up outside reasonable bounds,
@@ -88,4 +89,14 @@ class WindowSetup with WindowListener {
   void onWindowMaximize() => _scheduleSave();
   @override
   void onWindowUnmaximize() => _scheduleSave();
+
+  @override
+  void onWindowClose() async {
+    // Intercept close and hide instead. Quit happens via tray "Выйти" menu
+    // (see DesktopTrayService) or programmatic windowManager.destroy().
+    final isPreventClose = await windowManager.isPreventClose();
+    if (isPreventClose) {
+      await windowManager.hide();
+    }
+  }
 }

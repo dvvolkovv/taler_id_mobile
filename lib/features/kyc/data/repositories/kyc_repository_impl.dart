@@ -10,7 +10,7 @@ class KycRepositoryImpl implements IKycRepository {
   KycRepositoryImpl({required this.remote, required this.cache});
 
   @override
-  Future<String> startKyc() => remote.startKyc();
+  Future<KycStartResponse> startKyc() => remote.startKyc();
 
   @override
   Future<Map<String, dynamic>> getKycStatus() async {
