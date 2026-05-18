@@ -34,6 +34,16 @@
 	<string>Taler ID использует камеру для видеозвонков</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Taler ID использует распознавание речи для голосового ассистента</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Taler ID использует Bluetooth для прямой передачи сообщений между устройствами без интернета (mesh-сеть)</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Taler ID использует Bluetooth для прямой передачи сообщений между устройствами без интернета (mesh-сеть)</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Taler ID использует локальную сеть для поиска других устройств с Taler ID поблизости (mesh-сеть через Bonjour)</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Taler ID использует контакты для поиска других пользователей по номеру телефона</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Taler ID использует фотоальбом для отправки изображений в чатах</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
