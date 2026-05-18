@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 class CacheService {
   static const _profileBox = 'profile_cache';
@@ -10,7 +13,16 @@ class CacheService {
   static const _sumsubTtlSeconds = 600; // 10 minutes
 
   static Future<void> init() async {
-    await Hive.initFlutter();
+    // On desktop, Hive.initFlutter() defaults to getApplicationDocumentsDirectory()
+    // which on macOS resolves to ~/Documents/ — blocked by TCC. Use
+    // getApplicationSupportDirectory() instead (sandbox/TCC-safe).
+    if (!kIsWeb && (Platform.isMacOS || Platform.isWindows || Platform.isLinux)) {
+      final supportDir = await getApplicationSupportDirectory();
+      await Directory(supportDir.path).create(recursive: true);
+      Hive.init(supportDir.path);
+    } else {
+      await Hive.initFlutter();
+    }
     try {
       await Future.wait([
         Hive.openBox(_profileBox),
