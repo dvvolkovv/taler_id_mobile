@@ -1,8 +1,11 @@
 # Changelog
 
-## 1.0.74+168 — 2026-05-18 — Desktop hotfix: SecureStorage path
+## 1.0.74+168 — 2026-05-18 — Desktop hotfix: launch crash + microphone
 
-**Critical fix** for 1.0.74+167 — the production desktop app crashed on startup with `PathAccessException: Cannot open file /Users/<user>/Documents/secure_box_v2.hive (errno=1)` because `Hive.initFlutter()` resolves to `~/Documents/` on macOS, which is blocked by File Access Privacy / TCC. Switched to `getApplicationSupportDirectory()` which returns `~/Library/Application Support/<bundle>/` on macOS, `~/.local/share/<binary>/` on Linux, `%APPDATA%\<binary>\` on Windows — all sandbox- and TCC-safe without extra entitlements.
+**Critical hotfix** for 1.0.74+167. Three fixes:
+1. `macos/Runner/Info.plist` — added `NSBluetoothAlwaysUsageDescription` + 4 others (Peripheral/LocalNetwork/Contacts/PhotoLibrary). Prior version crashed on launch with `EXC_CRASH (SIGABRT)` because `flutter_reactive_ble` initialized `CBCentralManager` and TCC killed the app for the missing Bluetooth usage description.
+2. `lib/main.dart` — explicit `Permission.microphone.request()` + `Permission.camera.request()` on desktop startup. Without this, `record_macos` and `flutter_webrtc` failed silently on first mic/cam access — macOS only adds an app to System Settings → Privacy after the first explicit `AVCaptureDevice.requestAccess(for:)` call, and the plugins were not making that call early enough.
+3. `lib/core/platform/secure_storage_desktop.dart` — `Hive` now uses `getApplicationSupportDirectory()` (`~/Library/Application Support/<bundle>/` on macOS, `~/.local/share/<binary>/` on Linux, `%APPDATA%\<binary>\` on Windows) instead of `Hive.initFlutter()`'s default `~/Documents/` (TCC-protected on macOS).
 
 ## 1.0.74+167 — 2026-05-18 — Desktop First Release
 
