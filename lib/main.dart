@@ -35,7 +35,7 @@ import 'core/desktop_tray/desktop_tray_service.dart';
 import 'core/notifications/desktop/desktop_notifications_service.dart';
 import 'core/notifications/desktop/notification_routing.dart';
 import 'core/url_scheme/url_scheme_handler.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'core/platform/desktop_av_permission.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -346,17 +346,16 @@ Future<void> main() async {
   // Initialize custom URL scheme handler (talerid://) — desktop only.
   await UrlSchemeHandler.instance.initialize();
 
-  // macOS desktop: explicitly request microphone+camera TCC permissions at startup.
-  // Without this, record_macos and flutter_webrtc fail silently on first mic/cam
-  // access because macOS only adds an app to System Settings → Privacy after the
-  // first explicit AVCaptureDevice.requestAccess(for:) call. Triggering via
-  // permission_handler ensures the popup fires and the app appears in the list.
+  // macOS desktop: request mic+camera via native AVCaptureDevice.requestAccess
+  // through DesktopAvPermission. permission_handler 11.x/12.x has no macOS
+  // implementation, so the previous Permission.microphone.request() was a
+  // silent no-op and the app never appeared in System Settings → Privacy.
   if (PlatformUtils.instance.isDesktop) {
     try {
-      await Permission.microphone.request();
-      await Permission.camera.request();
+      await DesktopAvPermission.requestMicrophone();
+      await DesktopAvPermission.requestCamera();
     } catch (_) {
-      // Best-effort — if the permission plugin fails on linux/windows, ignore.
+      // Best-effort. Errors here are non-fatal.
     }
   }
 
