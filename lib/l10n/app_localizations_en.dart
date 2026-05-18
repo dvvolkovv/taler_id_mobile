@@ -1667,6 +1667,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashboardUpdate => 'Update';
 
   @override
+  String get dashboardWhatsNew => 'What\'s new';
+
+  @override
+  String dashboardWhatsNewTitle(String version) {
+    return 'What\'s new in $version';
+  }
+
+  @override
+  String get dashboardInstalling => 'Installing...';
+
+  @override
   String get contactRequestsTitle => 'Contacts';
 
   @override

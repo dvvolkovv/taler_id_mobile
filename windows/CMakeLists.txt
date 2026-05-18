@@ -1,3 +1,6 @@
+# NOTE: speech_to_text_windows is intentionally excluded from generated_plugin_registrant.cc
+# and generated_plugins.cmake. Version 1.0.0+beta.8 has a known CMake include-path bug
+# that breaks the Windows build. Re-apply this exclusion after every `flutter pub get`.
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
 project(taler_id_mobile LANGUAGES CXX)

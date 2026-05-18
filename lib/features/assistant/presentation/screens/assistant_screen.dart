@@ -18,6 +18,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../../core/services/update_check_service.dart';
 import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
@@ -1218,6 +1219,21 @@ class _AssistantScreenState extends State<AssistantScreen>
               'required': ['featureKey', 'enabled'],
             },
           },
+          {
+            'type': 'function',
+            'name': 'get_release_notes',
+            'description':
+                'Получить changelog ("что нового") приложения Taler ID. Без аргументов — возвращает самую свежую версию и её release notes. С version — конкретную версию. Используй при запросах вроде "что нового", "what is new", "последняя версия", "какие изменения в обновлении", "доступно ли обновление".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'version': {
+                  'type': 'string',
+                  'description': 'Optional version like "1.0.72". Omit for the latest.',
+                },
+              },
+            },
+          },
         ],
         'tool_choice': 'auto',
       },
@@ -2164,6 +2180,53 @@ class _AssistantScreenState extends State<AssistantScreen>
             'details': e.toString(),
           });
         }
+      } else if (name == 'get_release_notes') {
+        try {
+          final args = jsonDecode(argsJson) as Map<String, dynamic>;
+          final requested = (args['version'] as String?)?.trim();
+          final info = await sl<UpdateCheckService>().checkForUpdate();
+          if (info == null) {
+            output = jsonEncode({'error': 'version_endpoint_unreachable'});
+          } else {
+            final localeCode = mounted
+                ? Localizations.localeOf(context).languageCode
+                : 'ru';
+            final pick = (requested == null || requested.isEmpty)
+                ? info.latestVersion
+                : requested;
+            ReleaseEntry? match;
+            for (final r in info.releases) {
+              if (r.version == pick) {
+                match = r;
+                break;
+              }
+            }
+            output = jsonEncode({
+              'currentVersion': info.currentVersion,
+              'latestVersion': info.latestVersion,
+              'updateAvailable': info.isAvailable,
+              'requestedVersion': pick,
+              'found': match != null,
+              if (match != null) ...{
+                'version': match.version,
+                'date': match.date,
+                'notes': match.notesFor(localeCode),
+              },
+              'recentVersions': info.releases
+                  .take(5)
+                  .map((r) => {
+                        'version': r.version,
+                        'date': r.date,
+                      })
+                  .toList(),
+            });
+          }
+        } catch (e) {
+          output = jsonEncode({
+            'error': 'failed_to_get_release_notes',
+            'details': e.toString(),
+          });
+        }
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
       }
@@ -2361,7 +2424,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   Widget _buildIdle(AppLocalizations l10n) {
     final colors = AppColors.of(context);
     final screenSize = MediaQuery.of(context).size;
-    final orbitRadius = screenSize.width * 0.33;
+    final shortSide = screenSize.width < screenSize.height ? screenSize.width : screenSize.height;
+    final orbitRadius = (shortSide * 0.30).clamp(100.0, 220.0);
 
     return BlocBuilder<MessengerBloc, MessengerState>(
       builder: (context, msState) {
@@ -2490,8 +2554,8 @@ class _AssistantScreenState extends State<AssistantScreen>
                 child: ScaleTransition(
                   scale: _pulseAnim,
                   child: Container(
-                    width: 120,
-                    height: 120,
+                    width: orbitRadius < 150 ? 90 : 120,
+                    height: orbitRadius < 150 ? 90 : 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.card,

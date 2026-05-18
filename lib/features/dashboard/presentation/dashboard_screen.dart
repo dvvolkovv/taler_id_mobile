@@ -12,11 +12,10 @@ import '../../../core/di/service_locator.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/services/call_state_service.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 // Note: do NOT use FlutterCallkitIncoming.onEvent directly here — see _setupCallkitListener
 // in main.dart. Use NotificationService.callEvents (the shared broadcast proxy) instead.
 import '../../../core/notifications/notification_service.dart';
+import '../../../core/platform/call_kit.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
@@ -75,13 +74,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     // Do NOT use FlutterCallkitIncoming.onEvent directly here — that creates a NEW
     // EventChannel listener each time, replacing (killing) the one in main.dart.
     // Navigation on accept is handled by _navigateWhenResumed in main.dart.
-    _callkitSub = NotificationService.callEvents.listen((CallEvent? event) async {
+    _callkitSub = NotificationService.callEvents.listen((CallKitEvent? event) async {
       if (event == null) return;
-      final extra = event.body['extra'] as Map?;
+      final extra = event.data?['extra'] as Map?;
       final roomName = extra?['roomName'] as String?;
       final convId = extra?['conversationId'] as String?;
 
-      if (event.event == Event.actionCallAccept) {
+      if (event.type == CallKitEvent.typeAccept) {
         // Navigation is handled by _navigateWhenResumed in main.dart.
         // Here we set the waiting flag to suppress in-app dialog and
         // dismiss any currently showing in-app call dialog for this room.
@@ -95,8 +94,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             (_showingCallDialogRoom == roomName || roomName == null)) {
           Navigator.of(context, rootNavigator: true).pop();
         }
-      } else if (event.event == Event.actionCallDecline ||
-                 event.event == Event.actionCallTimeout) {
+      } else if (event.type == CallKitEvent.typeDecline ||
+                 event.type == CallKitEvent.typeTimeout) {
         // User declined from native CallKit UI — notify caller via socket.
         // Guard: skip if we're navigating to or already on the voice screen.
         // endAllCalls() in _connect() can trigger actionCallDecline for a still-ringing
@@ -131,14 +130,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         // again here would deactivate the audio session AFTER VoiceCallScreen
         // re-activated it, killing LiveKit audio.
         if (!_waitingForCallAccept && !_acceptingInApp) {
-          final callId = (event.body['id'] ?? event.body['uuid']) as String?;
+          final callId = (event.data?['id'] ?? event.data?['uuid']) as String?;
           if (callId != null) {
-            FlutterCallkitIncoming.endCall(callId);
+            CallKitPlatform.instance.endCall(callId);
           } else {
-            FlutterCallkitIncoming.endAllCalls();
+            CallKitPlatform.instance.endAllCalls();
           }
         }
-      } else if (event.event == Event.actionCallEnded) {
+      } else if (event.type == CallKitEvent.typeEnded) {
         // User pressed "End" on CallKit native UI during an active call.
         // Only handle here if VoiceCallScreen is NOT showing — if it is,
         // VoiceCallScreen's own listener will call _hangUp().
@@ -298,7 +297,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         .listen((payload) async {
       debugPrint('[Dashboard] gcEndedStream fired: $payload');
       try {
-        await FlutterCallkitIncoming.endAllCalls();
+        await CallKitPlatform.instance.endAllCalls();
       } catch (_) {}
     });
   }
@@ -362,24 +361,24 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     bool fallbackEndAll = false,
   }) async {
     try {
-      final calls = await FlutterCallkitIncoming.activeCalls() as List;
+      final calls = await CallKitPlatform.instance.activeCalls();
       for (final call in calls) {
         final callMap = call as Map;
         final extra = callMap['extra'] as Map?;
         final callRoom = extra?['roomName'] as String?;
         if (callRoom == roomName) {
-          await FlutterCallkitIncoming.endCall(callMap['id'] as String);
+          await CallKitPlatform.instance.endCall(callMap['id'] as String);
           return;
         }
       }
       // No matching call found by roomName
       if (fallbackEndAll || wasInCallRoom == roomName) {
-        await FlutterCallkitIncoming.endAllCalls();
+        await CallKitPlatform.instance.endAllCalls();
       }
       // Otherwise: stale/unrelated event — leave other CallKit calls untouched
     } catch (_) {
       if (fallbackEndAll || wasInCallRoom == roomName) {
-        FlutterCallkitIncoming.endAllCalls();
+        CallKitPlatform.instance.endAllCalls();
       }
     }
   }
@@ -469,8 +468,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     } catch (_) {}
 
     try {
-      final calls = await FlutterCallkitIncoming.activeCalls();
-      if (calls is! List || calls.isEmpty) return false;
+      final calls = await CallKitPlatform.instance.activeCalls();
+      if (calls.isEmpty) return false;
       for (final raw in calls) {
         final call = Map<String, dynamic>.from(raw as Map);
         final extra = call['extra'] as Map?;
@@ -755,7 +754,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     onTap: () {
                       Navigator.of(context, rootNavigator: true).pop();
                       // Dismiss native CallKit ringing
-                      FlutterCallkitIncoming.endAllCalls();
+                      CallKitPlatform.instance.endAllCalls();
                       // Notify caller that the call was declined
                       if (convId.isNotEmpty && roomName.isNotEmpty) {
                         try {
@@ -787,14 +786,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       Navigator.of(context, rootNavigator: true).pop();
                       _acceptingInApp = true;
                       try {
-                        await FlutterCallkitIncoming.endCall(toCallkitId(roomName));
+                        await CallKitPlatform.instance.endCall(toCallkitId(roomName));
                       } catch (_) {}
                       try {
-                        await FlutterCallkitIncoming.endAllCalls();
+                        await CallKitPlatform.instance.endAllCalls();
                       } catch (_) {}
                       for (final delay in [500, 1500, 3000]) {
                         Future.delayed(Duration(milliseconds: delay), () {
-                          try { FlutterCallkitIncoming.endAllCalls(); } catch (_) {}
+                          try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
                         });
                       }
                       Future.delayed(const Duration(seconds: 5), () => _acceptingInApp = false);
@@ -1022,6 +1021,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               _UpdateBanner(
                 version: _updateInfo!.latestVersion,
                 downloadUrl: _updateInfo!.downloadUrl,
+                notes: _updateInfo!.latestNotes(
+                  Localizations.localeOf(context).languageCode,
+                ),
                 onDismiss: () => setState(() => _updateDismissed = true),
               ),
             Expanded(child: widget.child),
@@ -1035,11 +1037,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 class _UpdateBanner extends StatefulWidget {
   final String version;
   final String downloadUrl;
+  final String? notes;
   final VoidCallback onDismiss;
 
   const _UpdateBanner({
     required this.version,
     required this.downloadUrl,
+    required this.notes,
     required this.onDismiss,
   });
 
@@ -1050,6 +1054,71 @@ class _UpdateBanner extends StatefulWidget {
 class _UpdateBannerState extends State<_UpdateBanner> {
   double? _progress; // null = idle, 0..1 = downloading
   bool _installing = false;
+
+  void _showWhatsNew(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final notes = widget.notes ?? '';
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (ctx, scrollCtrl) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: colors.textSecondary.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.dashboardWhatsNewTitle(widget.version),
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollCtrl,
+                      child: Text(
+                        notes,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 14,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _downloadAndInstall() async {
     if (_progress != null || _installing) return;
@@ -1107,13 +1176,35 @@ class _UpdateBannerState extends State<_UpdateBanner> {
                   const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      isDownloading
-                          ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
-                          : _installing
-                              ? 'Устанавливается...'
-                              : l10n.dashboardUpdateAvailable(widget.version),
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isDownloading
+                              ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
+                              : _installing
+                                  ? l10n.dashboardInstalling
+                                  : l10n.dashboardUpdateAvailable(widget.version),
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        if (!isDownloading && !_installing && (widget.notes?.isNotEmpty ?? false)) ...[
+                          const SizedBox(height: 2),
+                          GestureDetector(
+                            onTap: () => _showWhatsNew(context),
+                            child: Text(
+                              l10n.dashboardWhatsNew,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (!isDownloading && !_installing) ...[

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/kyc/desktop/kyc_webview_screen.dart';
 import '../../features/messenger/presentation/bloc/messenger_bloc.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -55,6 +57,7 @@ import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/dashboard/desktop/desktop_shell.dart';
 import '../../features/messenger/presentation/screens/share_target_screen.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../main.dart' show globalNavigatorKey;
@@ -152,29 +155,32 @@ final appRouter = GoRouter(
         );
       },
     ),
-    // Group voice room — picker (Phase 1)
-    GoRoute(
-      path: RouteConstants.newGroupCall,
-      builder: (_, __) => const NewGroupCallScreen(),
-    ),
-    // Group voice room — lobby (declared before /group-call/:id so the
-    // longer pattern matches first regardless of GoRouter version semantics).
-    GoRoute(
-      path: RouteConstants.groupCallLobby,
-      builder: (_, state) {
-        final id = state.pathParameters['id']!;
-        return GroupCallLobbyScreen(callId: id);
-      },
-    ),
-    // Group voice room — active (also reached from lobby on InActive,
-    // and used directly by active-call banner / push notifications).
-    GoRoute(
-      path: RouteConstants.groupCallActive,
-      builder: (_, state) {
-        final id = state.pathParameters['id']!;
-        return GroupCallActiveScreen(callId: id);
-      },
-    ),
+    // Group mesh voice room — mobile only (mesh not available on desktop).
+    if (PlatformUtils.instance.isMobile) ...[
+      // Picker (Phase 1)
+      GoRoute(
+        path: RouteConstants.newGroupCall,
+        builder: (_, __) => const NewGroupCallScreen(),
+      ),
+      // Lobby (declared before /group-call/:id so the longer pattern matches
+      // first regardless of GoRouter version semantics).
+      GoRoute(
+        path: RouteConstants.groupCallLobby,
+        builder: (_, state) {
+          final id = state.pathParameters['id']!;
+          return GroupCallLobbyScreen(callId: id);
+        },
+      ),
+      // Active (also reached from lobby on InActive, and used directly by
+      // active-call banner / push notifications).
+      GoRoute(
+        path: RouteConstants.groupCallActive,
+        builder: (_, state) {
+          final id = state.pathParameters['id']!;
+          return GroupCallActiveScreen(callId: id);
+        },
+      ),
+    ],
     // Share-in recipient picker (full-screen, outside shell)
     GoRoute(
       path: '/share-target',
@@ -185,6 +191,26 @@ final appRouter = GoRouter(
     ),
     // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
     // InsufficientFundsSheet and LowBalanceBanner across the app.
+    // Desktop KYC: Sumsub Web SDK in a WebView (replaces Phase-1 stub).
+    if (PlatformUtils.instance.isDesktop)
+      GoRoute(
+        path: '/kyc/webview',
+        builder: (context, state) {
+          final url = state.extra as String?;
+          if (url == null || url.isEmpty) {
+            return const Scaffold(
+              body: Center(child: Text('KYC URL не передан')),
+            );
+          }
+          return KycWebViewScreen(
+            webSdkUrl: url,
+            onComplete: () {
+              // Pop the WebView screen and signal success to KycLauncherDesktop.
+              if (context.canPop()) context.pop(true);
+            },
+          );
+        },
+      ),
     GoRoute(
       path: '/billing/wallet',
       builder: (_, state) {
@@ -225,7 +251,9 @@ final appRouter = GoRouter(
             value: sl<BalanceBloc>(instanceName: 'globalBalance'),
           ),
         ],
-        child: DashboardScreen(child: child),
+        child: PlatformUtils.instance.isDesktop
+            ? DesktopShell(currentRoute: state.uri.path, child: child)
+            : DashboardScreen(child: child),
       ),
       routes: [
         GoRoute(
@@ -294,10 +322,11 @@ final appRouter = GoRouter(
               path: 'wallpaper',
               builder: (_, __) => const WallpaperPickerScreen(),
             ),
-            GoRoute(
-              path: 'mesh-debug',
-              builder: (_, __) => const MeshDebugScreen(),
-            ),
+            if (PlatformUtils.instance.isMobile)
+              GoRoute(
+                path: 'mesh-debug',
+                builder: (_, __) => const MeshDebugScreen(),
+              ),
           ],
         ),
         // User profile

@@ -1,13 +1,16 @@
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../audio/default_mesh_voice_audio_engine.dart';
 import '../config/app_config.dart';
 import '../mesh/voice/mesh_voice_service.dart';
+import '../platform/secure_storage.dart';
+import '../platform/platform_utils.dart';
+import '../platform/mesh_transport_desktop_stub.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/update_check_service.dart';
@@ -242,223 +245,294 @@ Future<void> setupDependencies() async {
   // Mesh Phase 1c — persistent identity + rotating device keys
   // ---------------------------------------------------------------------------
   //
-  // UserIdentityKey is permanent per device (FlutterSecureStorage). DeviceKey
-  // and MeshStaticKey are rotated every 30 days — the rotation check runs at
-  // startup and triggers a fresh POST /profile/device-keys if any key was
-  // regenerated. Phase 1e will wire _placeholderUserId() to the real JWT user
-  // id; until then registerOwnDevice() is still dormant.
-  final userIdentityKey = await UserIdentityKey.loadOrCreate(
-    const FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-      iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-    ),
-  );
-  sl.registerSingleton<UserIdentityKey>(userIdentityKey);
-
-  final meshKeyPersistence = await MeshKeyPersistence.open(
-    boxName: 'mesh_keys',
-  );
-  sl.registerSingleton<MeshKeyPersistence>(meshKeyPersistence);
-
-  final (deviceKey, deviceKeyRotated) =
-      await meshKeyPersistence.loadOrRotateDeviceKey();
-  sl.registerSingleton<DeviceKey>(deviceKey);
-
-  final (meshStaticKey, meshStaticRotated) =
-      await meshKeyPersistence.loadOrRotateMeshStaticKey();
-  sl.registerSingleton<MeshStaticKey>(meshStaticKey);
-
-  // Hive-backed contact key store. Box name is stable across restarts.
-  final contactKeyStore = await HiveContactKeyStore.open(
-    boxName: 'mesh_contacts',
-  );
-  sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
-
-  // Phase 1a in-memory ContactKeyStore — registered here (before
-  // DeviceKeySyncService) so the lazy singleton is available when
-  // DeviceKeySyncService is first instantiated (which may happen at
-  // startup if keys were rotated, triggering registerOwnDevice).
-  sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
-
-  // Phase 1g — populate the in-memory store from persistent Hive certs.
-  // Without this, Noise IK handshakes would fail on startup until the user
-  // opens a chat AND the backend fetchContactKeys call succeeds. After
-  // the bridge, mesh works immediately for any contact whose cert was
-  // previously synced.
-  try {
-    contactKeyStore.bridgeIntoInMemory(sl<ContactKeyStore>());
-  } catch (e) {
-    debugPrint('[mesh-di] bridgeIntoInMemory failed: $e');
-  }
-
-  sl.registerLazySingleton<DeviceKeysApiClient>(
-    () => DeviceKeysApiClient(sl<DioClient>().dio),
-  );
-
-  sl.registerLazySingleton<DeviceKeySyncService>(
-    () => DeviceKeySyncService(
-      api: sl<DeviceKeysApiClient>(),
-      store: sl<HiveContactKeyStore>(),
-      inMemoryStore: sl<ContactKeyStore>(),
-      userIdentityKey: sl<UserIdentityKey>(),
-      meshStaticKey: sl<MeshStaticKey>(),
-      myUserId: _placeholderUserId(),
-    ),
-  );
-
-  // If any rotating key was regenerated, push a fresh cert. Best-effort: a
-  // failure here must not block app startup. Wait for Phase 1e to wire the
-  // real userId before this does anything useful — until then the POST goes
-  // to the DEV server under the placeholder userId (dormant).
-  if (deviceKeyRotated || meshStaticRotated) {
-    // ignore: unawaited_futures
-    sl<DeviceKeySyncService>().registerOwnDevice().catchError((e, st) {
-      debugPrint('[mesh] registerOwnDevice failed: $e');
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Mesh Phase 1d — transport composition
-  // ---------------------------------------------------------------------------
-  //
-  // Bonjour is always present (Phase 1a). BLE is added when the compile-time
-  // flag MeshConfig.bleEnabled is true. MultiTransport picks the best path
-  // per peer — Bonjour preferred for bandwidth, BLE fallback for offline.
-  final bonjourTransport = BonjourTransport();
-  // Register the concrete BonjourTransport separately so debug/diagnostic
-  // tooling (Mesh Debug screen) can reach `discoveryReinitCount`. This is
-  // the SAME instance that lives inside MultiTransport — registering it
-  // twice via different types is fine for get_it.
-  sl.registerSingleton<BonjourTransport>(bonjourTransport);
-
-  final transports = <TransportId, MeshTransport>{
-    TransportId.bonjour: bonjourTransport,
-  };
-  if (MeshConfig.bleEnabled) {
-    transports[TransportId.ble] = BleTransport();
-  }
-  sl.registerSingleton<MeshTransport>(
-    MultiTransport(children: transports),
-  );
-
-  // ---------------------------------------------------------------------------
-  // Mesh Phase 1e — messaging service wraps transport + contact key store
-  // with Noise handshake. Started/stopped by AuthBloc on login/logout.
-  // ---------------------------------------------------------------------------
-  //
-  // MeshMessagingService uses the Phase 1a in-memory ContactKeyStore
-  // (registered above, before DeviceKeySyncService). Phase 1f bridges
-  // verified certs from Hive into this store via DeviceKeySyncService.
-  sl.registerLazySingleton<MeshMessagingService>(
-    () => MeshMessagingService(
-      transport: sl<MeshTransport>(),
-      contactKeyStore: sl<ContactKeyStore>(),
-      myDevicePrivateKey: sl<MeshStaticKey>().privateKeyBytes,
-      myDevicePublicKey: sl<MeshStaticKey>().publicKey,
-    ),
-  );
-
-  // MeshVoiceService — Phase 3c orchestrator. start() is called by
-  // runMeshBootstrap after MeshMessagingService.start() succeeds.
-  sl.registerLazySingleton<MeshVoiceService>(() {
-    final messaging = sl<MeshMessagingService>();
-    return MeshVoiceService(
-      messaging: messaging,
-      transport: sl<MeshTransport>(),
-      audioEngineFactory: defaultMeshVoiceAudioEngine,
-      // Lazy callback: evaluated at invite-arrival time, safe because
-      // GroupMeshCallService is a lazy singleton registered below.
-      isGroupCallBusy: () => sl<GroupMeshCallService>().isBusy,
+  // Mobile only: mesh networking (Bonjour/BLE peer discovery + Noise handshake
+  // encrypted channels) is not supported on desktop. On desktop we register a
+  // no-op stub transport so the rest of the codebase compiles without
+  // changes, and skip all mesh services so no advertising/discovery ever
+  // starts. MeshMessagingService / MeshStatusBloc / MeshMessengerAdapter are
+  // still registered (they work fine with empty stub streams) because the
+  // messenger repository depends on them. The stub transport guarantees they
+  // will never receive peers or route frames.
+  if (PlatformUtils.instance.isMobile) {
+    // UserIdentityKey is permanent per device (SecureStorage). DeviceKey
+    // and MeshStaticKey are rotated every 30 days — the rotation check runs at
+    // startup and triggers a fresh POST /profile/device-keys if any key was
+    // regenerated. Phase 1e will wire _placeholderUserId() to the real JWT user
+    // id; until then registerOwnDevice() is still dormant.
+    final userIdentityKey = await UserIdentityKey.loadOrCreate(
+      SecureStorage.instance,
     );
-  });
+    sl.registerSingleton<UserIdentityKey>(userIdentityKey);
 
-  // GroupMeshCallService — Phase: group mesh voice room v1. Multi-peer
-  // orchestrator (host + ≤4 invitees). One active call at a time.
-  sl.registerLazySingleton<GroupMeshCallService>(() {
-    return GroupMeshCallService(
-      messaging: sl<MeshMessagingService>(),
-      transport: sl<MeshTransport>(),
-      myDevicePk: sl<MeshStaticKey>().publicKey,
-      audioEngineFactory: defaultGroupMeshVoiceAudioEngine,
+    final meshKeyPersistence = await MeshKeyPersistence.open(
+      boxName: 'mesh_keys',
     );
-  });
+    sl.registerSingleton<MeshKeyPersistence>(meshKeyPersistence);
 
-  // MeshVoiceUiCoordinator — singleton bridging MeshVoiceService state
-  // transitions to UI (modal sheet, active-call screen, history writes).
-  sl.registerLazySingleton<MeshVoiceUiCoordinator>(() {
-    final voice = sl<MeshVoiceService>();
-    final messaging = sl<MeshMessagingService>();
-    final keyStore = sl<HiveContactKeyStore>();
-    return MeshVoiceUiCoordinator(
-      stateStream: voice.stateStream,
-      invite: voice.invite,
-      accept: voice.accept,
-      reject: voice.reject,
-      hangup: () => voice.hangup(),
-      repo: sl<MeshCallHistoryRepository>(),
-      navigator: _GlobalKeyMeshNavigator(),
-      peerInfoLookup: (peer) async => _resolvePeerInfo(
-        devicePk: peer,
-        keyStore: keyStore,
+    final (deviceKey, deviceKeyRotated) =
+        await meshKeyPersistence.loadOrRotateDeviceKey();
+    sl.registerSingleton<DeviceKey>(deviceKey);
+
+    final (meshStaticKey, meshStaticRotated) =
+        await meshKeyPersistence.loadOrRotateMeshStaticKey();
+    sl.registerSingleton<MeshStaticKey>(meshStaticKey);
+
+    // Hive-backed contact key store. Box name is stable across restarts.
+    final contactKeyStore = await HiveContactKeyStore.open(
+      boxName: 'mesh_contacts',
+    );
+    sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
+
+    // Phase 1a in-memory ContactKeyStore — registered here (before
+    // DeviceKeySyncService) so the lazy singleton is available when
+    // DeviceKeySyncService is first instantiated (which may happen at
+    // startup if keys were rotated, triggering registerOwnDevice).
+    sl.registerLazySingleton<ContactKeyStore>(() => ContactKeyStore());
+
+    // Phase 1g — populate the in-memory store from persistent Hive certs.
+    // Without this, Noise IK handshakes would fail on startup until the user
+    // opens a chat AND the backend fetchContactKeys call succeeds. After
+    // the bridge, mesh works immediately for any contact whose cert was
+    // previously synced.
+    try {
+      contactKeyStore.bridgeIntoInMemory(sl<ContactKeyStore>());
+    } catch (e) {
+      debugPrint('[mesh-di] bridgeIntoInMemory failed: $e');
+    }
+
+    sl.registerLazySingleton<DeviceKeysApiClient>(
+      () => DeviceKeysApiClient(sl<DioClient>().dio),
+    );
+
+    sl.registerLazySingleton<DeviceKeySyncService>(
+      () => DeviceKeySyncService(
+        api: sl<DeviceKeysApiClient>(),
+        store: sl<HiveContactKeyStore>(),
+        inMemoryStore: sl<ContactKeyStore>(),
+        userIdentityKey: sl<UserIdentityKey>(),
+        meshStaticKey: sl<MeshStaticKey>(),
+        myUserId: _placeholderUserId(),
       ),
-      selfDevicePk: PeerId(messaging.myDevicePublicKey),
-      transportLabelForPeer: (peer) {
-        // Phase 3d.2 will surface this from MeshTransport.peerStatus +
-        // discovery attributes. Phase 3d.1 returns null (badge says
-        // just "📡 Mesh"). This is intentional — see spec Risks #4.
-        return null;
+    );
+
+    // If any rotating key was regenerated, push a fresh cert. Best-effort: a
+    // failure here must not block app startup. Wait for Phase 1e to wire the
+    // real userId before this does anything useful — until then the POST goes
+    // to the DEV server under the placeholder userId (dormant).
+    if (deviceKeyRotated || meshStaticRotated) {
+      // ignore: unawaited_futures
+      sl<DeviceKeySyncService>().registerOwnDevice().catchError((e, st) {
+        debugPrint('[mesh] registerOwnDevice failed: $e');
+      });
+    }
+
+    // -------------------------------------------------------------------------
+    // Mesh Phase 1d — transport composition (mobile only)
+    // -------------------------------------------------------------------------
+    //
+    // Bonjour is always present (Phase 1a). BLE is added when the compile-time
+    // flag MeshConfig.bleEnabled is true. MultiTransport picks the best path
+    // per peer — Bonjour preferred for bandwidth, BLE fallback for offline.
+    final bonjourTransport = BonjourTransport();
+    // Register the concrete BonjourTransport separately so debug/diagnostic
+    // tooling (Mesh Debug screen) can reach `discoveryReinitCount`. This is
+    // the SAME instance that lives inside MultiTransport — registering it
+    // twice via different types is fine for get_it.
+    sl.registerSingleton<BonjourTransport>(bonjourTransport);
+
+    final transports = <TransportId, MeshTransport>{
+      TransportId.bonjour: bonjourTransport,
+    };
+    if (MeshConfig.bleEnabled) {
+      transports[TransportId.ble] = BleTransport();
+    }
+    sl.registerSingleton<MeshTransport>(
+      MultiTransport(children: transports),
+    );
+
+    // -------------------------------------------------------------------------
+    // Mesh Phase 1e — messaging + voice services (mobile only)
+    // -------------------------------------------------------------------------
+    //
+    // MeshMessagingService uses the Phase 1a in-memory ContactKeyStore
+    // (registered above, before DeviceKeySyncService). Phase 1f bridges
+    // verified certs from Hive into this store via DeviceKeySyncService.
+    sl.registerLazySingleton<MeshMessagingService>(
+      () => MeshMessagingService(
+        transport: sl<MeshTransport>(),
+        contactKeyStore: sl<ContactKeyStore>(),
+        myDevicePrivateKey: sl<MeshStaticKey>().privateKeyBytes,
+        myDevicePublicKey: sl<MeshStaticKey>().publicKey,
+      ),
+    );
+
+    // MeshVoiceService — Phase 3c orchestrator. start() is called by
+    // runMeshBootstrap after MeshMessagingService.start() succeeds.
+    sl.registerLazySingleton<MeshVoiceService>(() {
+      final messaging = sl<MeshMessagingService>();
+      return MeshVoiceService(
+        messaging: messaging,
+        transport: sl<MeshTransport>(),
+        audioEngineFactory: defaultMeshVoiceAudioEngine,
+        // Lazy callback: evaluated at invite-arrival time, safe because
+        // GroupMeshCallService is a lazy singleton registered below.
+        isGroupCallBusy: () => sl<GroupMeshCallService>().isBusy,
+      );
+    });
+
+    // GroupMeshCallService — Phase: group mesh voice room v1. Multi-peer
+    // orchestrator (host + ≤4 invitees). One active call at a time.
+    sl.registerLazySingleton<GroupMeshCallService>(() {
+      return GroupMeshCallService(
+        messaging: sl<MeshMessagingService>(),
+        transport: sl<MeshTransport>(),
+        myDevicePk: sl<MeshStaticKey>().publicKey,
+        audioEngineFactory: defaultGroupMeshVoiceAudioEngine,
+      );
+    });
+
+    // MeshVoiceUiCoordinator — singleton bridging MeshVoiceService state
+    // transitions to UI (modal sheet, active-call screen, history writes).
+    sl.registerLazySingleton<MeshVoiceUiCoordinator>(() {
+      final voice = sl<MeshVoiceService>();
+      final messaging = sl<MeshMessagingService>();
+      final keyStore = sl<HiveContactKeyStore>();
+      return MeshVoiceUiCoordinator(
+        stateStream: voice.stateStream,
+        invite: voice.invite,
+        accept: voice.accept,
+        reject: voice.reject,
+        hangup: () => voice.hangup(),
+        repo: sl<MeshCallHistoryRepository>(),
+        navigator: _GlobalKeyMeshNavigator(),
+        peerInfoLookup: (peer) async => _resolvePeerInfo(
+          devicePk: peer,
+          keyStore: keyStore,
+        ),
+        selfDevicePk: PeerId(messaging.myDevicePublicKey),
+        transportLabelForPeer: (peer) {
+          // Phase 3d.2 will surface this from MeshTransport.peerStatus +
+          // discovery attributes. Phase 3d.1 returns null (badge says
+          // just "📡 Mesh"). This is intentional — see spec Risks #4.
+          return null;
+        },
+      );
+    });
+
+    sl.registerLazySingleton<MeshPeerEligibilityWatcher>(
+      () => MeshPeerEligibilityWatcher(
+        transport: sl<MeshTransport>(),
+        contactKeyStore: sl<HiveContactKeyStore>(),
+      ),
+    );
+
+    sl.registerLazySingleton<MeshForegroundController>(
+      () => MeshForegroundController(
+        watcher: sl<MeshPeerEligibilityWatcher>(),
+      ),
+    );
+
+    // Phase 1e — mesh status cubit + messenger adapter + transport selector
+    sl.registerLazySingleton<MeshStatusBloc>(
+      () {
+        final bloc = MeshStatusBloc(
+          transport: sl<MeshTransport>(),
+          lookupUserByDevice: (devicePk) =>
+              sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
+          contactUserIdForUserPk: _contactUserIdByUserPk,
+        );
+        bloc.start();
+        return bloc;
       },
     );
-  });
 
-  sl.registerLazySingleton<MeshPeerEligibilityWatcher>(
-    () => MeshPeerEligibilityWatcher(
-      transport: sl<MeshTransport>(),
-      contactKeyStore: sl<HiveContactKeyStore>(),
-    ),
-  );
-
-  sl.registerLazySingleton<MeshForegroundController>(
-    () => MeshForegroundController(
-      watcher: sl<MeshPeerEligibilityWatcher>(),
-    ),
-  );
-
-  // Phase 1e — mesh status cubit + messenger adapter + transport selector
-  sl.registerLazySingleton<MeshStatusBloc>(
-    () {
-      final bloc = MeshStatusBloc(
-        transport: sl<MeshTransport>(),
+    sl.registerLazySingleton<MeshMessengerAdapter>(() {
+      final messaging = sl<MeshMessagingService>();
+      return MeshMessengerAdapter(
+        meshSendEnvelope: ({required toUserPk, required envelope}) =>
+            messaging.sendEnvelope(toUserPk: toUserPk, envelope: envelope),
+        meshInbound: messaging.inbound,
+        meshDiscoveries: messaging.transport.discoveries,
         lookupUserByDevice: (devicePk) =>
             sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
         contactUserIdForUserPk: _contactUserIdByUserPk,
+        currentUserIdProvider: () {
+          try {
+            return sl<MessengerBloc>().state.currentUserId;
+          } catch (_) {
+            return null;
+          }
+        },
+        persistLocal: (entry) =>
+            sl<MessengerCacheService>().appendMeshMessage(entry),
       );
-      bloc.start();
-      return bloc;
-    },
-  );
+    });
+  } else {
+    // -------------------------------------------------------------------------
+    // Desktop: register no-op mesh stubs so dependent services compile/run.
+    // -------------------------------------------------------------------------
+    //
+    // MeshTransportDesktopStub — empty streams, no-op methods. Never starts
+    // any advertising or discovery. MeshMessagingService and MeshStatusBloc
+    // are registered normally (they work fine with empty stub streams) because
+    // IMessengerRepository is constructed with a MeshMessengerAdapter.
+    // MeshVoiceService / GroupMeshCallService / MeshVoiceUiCoordinator /
+    // MeshPeerEligibilityWatcher / MeshForegroundController are NOT registered
+    // on desktop — callers in features guard with PlatformUtils.supportsMesh.
+    sl.registerSingleton<MeshTransport>(const MeshTransportDesktopStub());
 
-  sl.registerLazySingleton<MeshMessengerAdapter>(() {
-    final messaging = sl<MeshMessagingService>();
-    return MeshMessengerAdapter(
-      meshSendEnvelope: ({required toUserPk, required envelope}) =>
-          messaging.sendEnvelope(toUserPk: toUserPk, envelope: envelope),
-      meshInbound: messaging.inbound,
-      meshDiscoveries: messaging.transport.discoveries,
-      lookupUserByDevice: (devicePk) =>
-          sl<HiveContactKeyStore>().lookupUserByDevice(devicePk),
-      contactUserIdForUserPk: _contactUserIdByUserPk,
-      currentUserIdProvider: () {
-        try {
-          return sl<MessengerBloc>().state.currentUserId;
-        } catch (_) {
-          return null;
-        }
-      },
-      persistLocal: (entry) =>
-          sl<MessengerCacheService>().appendMeshMessage(entry),
+    // Stub HiveContactKeyStore: required by MessengerRepositoryImpl constructor
+    // (hiveContactStore parameter). Open an empty box that never gets real certs.
+    final contactKeyStore = await HiveContactKeyStore.open(
+      boxName: 'mesh_contacts',
     );
-  });
+    sl.registerSingleton<HiveContactKeyStore>(contactKeyStore);
+
+    // Stub MeshMessagingService — uses stub transport (empty streams, no-ops).
+    // Provide dummy key bytes so the constructor doesn't throw.
+    sl.registerLazySingleton<MeshMessagingService>(
+      () => MeshMessagingService(
+        transport: sl<MeshTransport>(),
+        contactKeyStore: ContactKeyStore(),
+        myDevicePrivateKey: Uint8List(32),
+        myDevicePublicKey: Uint8List(32),
+      ),
+    );
+
+    // Stub MeshStatusBloc — subscribes to stub transport (no peers ever found).
+    sl.registerLazySingleton<MeshStatusBloc>(
+      () {
+        final bloc = MeshStatusBloc(
+          transport: sl<MeshTransport>(),
+          lookupUserByDevice: (_) => null,
+          contactUserIdForUserPk: (_) => null,
+        );
+        // Do not call bloc.start() — stub transport streams are const empty.
+        return bloc;
+      },
+    );
+
+    // Stub MeshMessengerAdapter — uses stub messaging service.
+    sl.registerLazySingleton<MeshMessengerAdapter>(() {
+      final messaging = sl<MeshMessagingService>();
+      return MeshMessengerAdapter(
+        meshSendEnvelope: ({required toUserPk, required envelope}) =>
+            messaging.sendEnvelope(toUserPk: toUserPk, envelope: envelope),
+        meshInbound: messaging.inbound,
+        meshDiscoveries: messaging.transport.discoveries,
+        lookupUserByDevice: (_) => null,
+        contactUserIdForUserPk: (_) => null,
+        currentUserIdProvider: () {
+          try {
+            return sl<MessengerBloc>().state.currentUserId;
+          } catch (_) {
+            return null;
+          }
+        },
+        persistLocal: (_) async {},
+      );
+    });
+  }
 
   // Data sources
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));
@@ -579,9 +653,12 @@ Future<void> setupDependencies() async {
   // Singleton: GroupMeshCallBloc state must persist across screen transitions
   // (new-group-call picker → lobby → active). A factory would create a fresh
   // Idle-state BLoC for each sl<GroupMeshCallBloc>() call, breaking the flow.
-  sl.registerLazySingleton<GroupMeshCallBloc>(
-    () => GroupMeshCallBloc(service: sl<GroupMeshCallService>()),
-  );
+  // Desktop: GroupMeshCallService is not registered, so skip this BLoC too.
+  if (PlatformUtils.instance.isMobile) {
+    sl.registerLazySingleton<GroupMeshCallBloc>(
+      () => GroupMeshCallBloc(service: sl<GroupMeshCallService>()),
+    );
+  }
 
   // Billing
   sl.registerLazySingleton(() => BillingRemoteDataSource(sl<DioClient>()));
@@ -695,8 +772,11 @@ Future<void> setupDependencies() async {
   // (JWT cached in SecureStorage), run the mesh bootstrap immediately so
   // Bonjour advertising + contact-key bridge are active without waiting
   // for a fresh LoginSubmitted event. On a clean install this is a no-op.
-  // ignore: unawaited_futures
-  runMeshBootstrapIfAuthenticated();
+  // Desktop: mesh bootstrap is skipped entirely (no Bonjour, no device keys).
+  if (PlatformUtils.instance.isMobile) {
+    // ignore: unawaited_futures
+    runMeshBootstrapIfAuthenticated();
+  }
 }
 
 /// Placeholder until Phase 1e wires login → DeviceKeySyncService.registerOwnDevice.

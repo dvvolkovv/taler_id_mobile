@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../../../core/platform/platform_utils.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -517,6 +518,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _showTransportPopup() async {
+    // Desktop: mesh transport unavailable — go straight to LK.
+    if (!PlatformUtils.instance.isMobile) {
+      return _startLkCall();
+    }
     final l10n = AppLocalizations.of(context)!;
     final conv = _resolveConv(context.read<MessengerBloc>().state.conversations);
     if (conv?.type != 'DIRECT') return;
@@ -581,6 +586,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   Future<void> _autoPickCall() async {
+    // Desktop: mesh transport unavailable — always use LK.
+    if (!PlatformUtils.instance.isMobile) {
+      return _startLkCall();
+    }
     final l10n = AppLocalizations.of(context)!;
     final conv = _resolveConv(context.read<MessengerBloc>().state.conversations);
     final otherUserId = conv?.type == 'DIRECT' ? conv?.otherUserId : null;
@@ -2025,7 +2034,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 child: Icon(Icons.phone_outlined),
                               ),
                             ),
-                            if (conv?.type == 'DIRECT' && conv?.otherUserId != null)
+                            // Mesh eligibility dot — mobile only (no mesh on desktop).
+                            if (PlatformUtils.instance.isMobile &&
+                                conv?.type == 'DIRECT' &&
+                                conv?.otherUserId != null)
                               Positioned(
                                 top: 6,
                                 right: 6,

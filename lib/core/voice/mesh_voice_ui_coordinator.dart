@@ -4,12 +4,8 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter_callkit_incoming/entities/call_event.dart'
-    as ck_event;
-import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-
 import '../mesh/transport/peer_id.dart';
+import '../platform/call_kit.dart';
 import '../mesh/voice/mesh_voice_state.dart';
 import '../notifications/notification_service.dart';
 import '../../features/call_history/data/mesh_call_history_entry.dart';
@@ -120,14 +116,13 @@ class MeshVoiceUiCoordinator {
     final fallback =
         'Mesh-устройство ${st.callerDevicePk.toHex().substring(0, 8)}';
     try {
-      await FlutterCallkitIncoming.showCallkitIncoming(CallKitParams(
-        id: st.callId.toString(),
-        nameCaller: info.name ?? fallback,
-        handle: '📡 Mesh',
-        type: 0,
+      await CallKitPlatform.instance.showIncomingCall(
+        uuid: st.callId.toString(),
+        callerName: info.name ?? fallback,
+        roomName: '📡 Mesh',
         avatar: info.avatarUrl,
         extra: {'mesh_call_id': st.callId},
-      ));
+      );
     } catch (_) {
       // Plugin may throw if FCM-only mode or notification permission denied.
       // Fall through silently — mesh state machine still tracks the call.
@@ -136,16 +131,14 @@ class MeshVoiceUiCoordinator {
 
   void _onCallkitEvent(dynamic event) {
     if (event == null) return;
-    final body = (event as ck_event.CallEvent).body;
-    if (body is! Map) return;
-    final extra = body['extra'];
+    final ckEvent = event as CallKitEvent;
+    final extra = ckEvent.data?['extra'];
     if (extra is! Map) return;
     if (extra['mesh_call_id'] == null) return;
-    final eventType = event.event;
-    if (eventType == ck_event.Event.actionCallAccept) {
+    if (ckEvent.type == CallKitEvent.typeAccept) {
       accept();
-    } else if (eventType == ck_event.Event.actionCallDecline ||
-        eventType == ck_event.Event.actionCallTimeout) {
+    } else if (ckEvent.type == CallKitEvent.typeDecline ||
+        ckEvent.type == CallKitEvent.typeTimeout) {
       reject();
     }
   }
@@ -273,7 +266,7 @@ class MeshVoiceUiCoordinator {
     // Dismiss any callkit overlay that was shown while the app was backgrounded.
     if (_isAndroid()) {
       unawaited(
-        FlutterCallkitIncoming.endCall(p.callId.toString())
+        CallKitPlatform.instance.endCall(p.callId.toString())
             .catchError((_) {}),
       );
     }

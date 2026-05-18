@@ -1,17 +1,12 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import '../platform/secure_storage.dart';
 import '../utils/constants.dart';
 
-/// On mobile: uses FlutterSecureStorage (encrypted keychain/keystore).
+/// On mobile: uses [SecureStorage.instance] (backed by [FlutterSecureStorage]).
 /// On web: uses Hive (localStorage-backed) since flutter_secure_storage's
 /// SubtleCrypto encryption can hang during read operations.
 class SecureStorageService {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-  );
-
   static const _webBoxName = 'auth_tokens';
 
   static Future<void> initWeb() async {
@@ -21,6 +16,8 @@ class SecureStorageService {
   }
 
   Box? get _webBox => kIsWeb ? Hive.box(_webBoxName) : null;
+
+  SecureStorage get _ss => SecureStorage.instance;
 
   Future<void> saveTokens({
     required String accessToken,
@@ -32,8 +29,8 @@ class SecureStorageService {
       await box.put(ApiConstants.refreshTokenKey, refreshToken);
     } else {
       await Future.wait([
-        _storage.write(key: ApiConstants.accessTokenKey, value: accessToken),
-        _storage.write(key: ApiConstants.refreshTokenKey, value: refreshToken),
+        _ss.write(ApiConstants.accessTokenKey, accessToken),
+        _ss.write(ApiConstants.refreshTokenKey, refreshToken),
       ]);
     }
   }
@@ -43,10 +40,10 @@ class SecureStorageService {
       return _webBox?.get(ApiConstants.accessTokenKey) as String?;
     }
     try {
-      return await _storage.read(key: ApiConstants.accessTokenKey);
+      return await _ss.read(ApiConstants.accessTokenKey);
     } catch (_) {
       // Corrupted keystore after reinstall — wipe all and return null
-      try { await _storage.deleteAll(); } catch (_) {}
+      try { await _ss.deleteAll(); } catch (_) {}
       return null;
     }
   }
@@ -56,9 +53,9 @@ class SecureStorageService {
       return _webBox?.get(ApiConstants.refreshTokenKey) as String?;
     }
     try {
-      return await _storage.read(key: ApiConstants.refreshTokenKey);
+      return await _ss.read(ApiConstants.refreshTokenKey);
     } catch (_) {
-      try { await _storage.deleteAll(); } catch (_) {}
+      try { await _ss.deleteAll(); } catch (_) {}
       return null;
     }
   }
@@ -70,35 +67,35 @@ class SecureStorageService {
       await box.delete(ApiConstants.refreshTokenKey);
     } else {
       await Future.wait([
-        _storage.delete(key: ApiConstants.accessTokenKey),
-        _storage.delete(key: ApiConstants.refreshTokenKey),
+        _ss.delete(ApiConstants.accessTokenKey),
+        _ss.delete(ApiConstants.refreshTokenKey),
       ]);
     }
   }
 
   Future<bool> get isBiometricEnabled async {
     if (kIsWeb) return false;
-    final val = await _storage.read(key: ApiConstants.biometricEnabledKey);
+    final val = await _ss.read(ApiConstants.biometricEnabledKey);
     return val == 'true';
   }
 
   Future<void> setBiometricEnabled(bool enabled) async {
     if (kIsWeb) return;
-    await _storage.write(key: ApiConstants.biometricEnabledKey, value: enabled.toString());
+    await _ss.write(ApiConstants.biometricEnabledKey, enabled.toString());
   }
 
   Future<String?> getUserId() async {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.userIdKey) as String?;
     }
-    return _storage.read(key: ApiConstants.userIdKey);
+    return _ss.read(ApiConstants.userIdKey);
   }
 
   Future<void> saveUserId(String userId) async {
     if (kIsWeb) {
       await _webBox?.put(ApiConstants.userIdKey, userId);
     } else {
-      await _storage.write(key: ApiConstants.userIdKey, value: userId);
+      await _ss.write(ApiConstants.userIdKey, userId);
     }
   }
 
@@ -109,30 +106,30 @@ class SecureStorageService {
 
   Future<bool> get isPinEnabled async {
     if (kIsWeb) return false;
-    final val = await _storage.read(key: ApiConstants.pinEnabledKey);
+    final val = await _ss.read(ApiConstants.pinEnabledKey);
     return val == 'true';
   }
 
   Future<void> setPinEnabled(bool enabled) async {
     if (kIsWeb) return;
-    await _storage.write(key: ApiConstants.pinEnabledKey, value: enabled.toString());
+    await _ss.write(ApiConstants.pinEnabledKey, enabled.toString());
   }
 
   Future<String?> getPinHash() async {
     if (kIsWeb) return null;
-    return _storage.read(key: ApiConstants.pinHashKey);
+    return _ss.read(ApiConstants.pinHashKey);
   }
 
   Future<void> savePinHash(String hash) async {
     if (kIsWeb) return;
-    await _storage.write(key: ApiConstants.pinHashKey, value: hash);
+    await _ss.write(ApiConstants.pinHashKey, hash);
   }
 
   Future<void> clearPin() async {
     if (kIsWeb) return;
     await Future.wait([
-      _storage.delete(key: ApiConstants.pinHashKey),
-      _storage.delete(key: ApiConstants.pinEnabledKey),
+      _ss.delete(ApiConstants.pinHashKey),
+      _ss.delete(ApiConstants.pinEnabledKey),
     ]);
   }
 
@@ -140,14 +137,14 @@ class SecureStorageService {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.languageKey) as String?;
     }
-    return _storage.read(key: ApiConstants.languageKey);
+    return _ss.read(ApiConstants.languageKey);
   }
 
   Future<void> saveLanguage(String lang) async {
     if (kIsWeb) {
       await _webBox?.put(ApiConstants.languageKey, lang);
     } else {
-      await _storage.write(key: ApiConstants.languageKey, value: lang);
+      await _ss.write(ApiConstants.languageKey, lang);
     }
   }
 
@@ -155,14 +152,14 @@ class SecureStorageService {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.themeKey) as String?;
     }
-    return _storage.read(key: ApiConstants.themeKey);
+    return _ss.read(ApiConstants.themeKey);
   }
 
   Future<void> saveThemeMode(String mode) async {
     if (kIsWeb) {
       await _webBox?.put(ApiConstants.themeKey, mode);
     } else {
-      await _storage.write(key: ApiConstants.themeKey, value: mode);
+      await _ss.write(ApiConstants.themeKey, mode);
     }
   }
 
@@ -170,7 +167,7 @@ class SecureStorageService {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.wallpaperKey) as String?;
     }
-    return _storage.read(key: ApiConstants.wallpaperKey);
+    return _ss.read(ApiConstants.wallpaperKey);
   }
 
   Future<void> saveWallpaper(String? id) async {
@@ -182,9 +179,9 @@ class SecureStorageService {
       }
     } else {
       if (id == null) {
-        await _storage.delete(key: ApiConstants.wallpaperKey);
+        await _ss.delete(ApiConstants.wallpaperKey);
       } else {
-        await _storage.write(key: ApiConstants.wallpaperKey, value: id);
+        await _ss.write(ApiConstants.wallpaperKey, id);
       }
     }
   }
@@ -193,7 +190,7 @@ class SecureStorageService {
     if (kIsWeb) {
       return _webBox?.get(ApiConstants.onboardingSeenKey) == 'true';
     }
-    final val = await _storage.read(key: ApiConstants.onboardingSeenKey);
+    final val = await _ss.read(ApiConstants.onboardingSeenKey);
     return val == 'true';
   }
 
@@ -201,7 +198,7 @@ class SecureStorageService {
     if (kIsWeb) {
       await _webBox?.put(ApiConstants.onboardingSeenKey, 'true');
     } else {
-      await _storage.write(key: ApiConstants.onboardingSeenKey, value: 'true');
+      await _ss.write(ApiConstants.onboardingSeenKey, 'true');
     }
   }
 
@@ -209,13 +206,15 @@ class SecureStorageService {
     if (kIsWeb) {
       await _webBox?.delete(ApiConstants.onboardingSeenKey);
     } else {
-      await _storage.delete(key: ApiConstants.onboardingSeenKey);
+      await _ss.delete(ApiConstants.onboardingSeenKey);
     }
   }
 
   // Badge seen counts — persist across app restarts
   Future<int> getSeenMissedCalls() async {
-    final v = kIsWeb ? _webBox?.get('seen_missed_calls') as String? : await _storage.read(key: 'seen_missed_calls');
+    final v = kIsWeb
+        ? _webBox?.get('seen_missed_calls') as String?
+        : await _ss.read('seen_missed_calls');
     return int.tryParse(v ?? '') ?? 0;
   }
 
@@ -223,12 +222,14 @@ class SecureStorageService {
     if (kIsWeb) {
       await _webBox?.put('seen_missed_calls', '$count');
     } else {
-      await _storage.write(key: 'seen_missed_calls', value: '$count');
+      await _ss.write('seen_missed_calls', '$count');
     }
   }
 
   Future<int> getSeenCalendarInvites() async {
-    final v = kIsWeb ? _webBox?.get('seen_calendar_invites') as String? : await _storage.read(key: 'seen_calendar_invites');
+    final v = kIsWeb
+        ? _webBox?.get('seen_calendar_invites') as String?
+        : await _ss.read('seen_calendar_invites');
     return int.tryParse(v ?? '') ?? 0;
   }
 
@@ -236,7 +237,7 @@ class SecureStorageService {
     if (kIsWeb) {
       await _webBox?.put('seen_calendar_invites', '$count');
     } else {
-      await _storage.write(key: 'seen_calendar_invites', value: '$count');
+      await _ss.write('seen_calendar_invites', '$count');
     }
   }
 
@@ -245,7 +246,7 @@ class SecureStorageService {
     if (kIsWeb) {
       return _webBox?.get(key) as String?;
     }
-    return _storage.read(key: key);
+    return _ss.read(key);
   }
 
   /// Generic key-value write.
@@ -253,7 +254,7 @@ class SecureStorageService {
     if (kIsWeb) {
       await _webBox?.put(key, value);
     } else {
-      await _storage.write(key: key, value: value);
+      await _ss.write(key, value);
     }
   }
 }

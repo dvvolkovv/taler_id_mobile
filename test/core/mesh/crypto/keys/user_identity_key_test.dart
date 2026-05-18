@@ -1,48 +1,29 @@
 import 'dart:typed_data';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:taler_id_mobile/core/mesh/crypto/keys/user_identity_key.dart';
+import 'package:taler_id_mobile/core/platform/secure_storage.dart';
 
-/// Minimal in-memory fake that mirrors the subset of FlutterSecureStorage
-/// UserIdentityKey relies on. Avoids MissingPluginException in unit tests.
-class _MemStorage implements FlutterSecureStorage {
+/// Minimal in-memory fake that mirrors the subset of [SecureStorage]
+/// that [UserIdentityKey] relies on. Avoids plugin calls in unit tests.
+class _MemStorage implements SecureStorage {
   final Map<String, String> _data = {};
 
   @override
-  Future<String?> read({
-    required String key,
-    IOSOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    MacOsOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async =>
-      _data[key];
+  Future<void> initialize() async {}
 
   @override
-  Future<void> write({
-    required String key,
-    required String? value,
-    IOSOptions? iOptions,
-    AndroidOptions? aOptions,
-    LinuxOptions? lOptions,
-    WebOptions? webOptions,
-    MacOsOptions? mOptions,
-    WindowsOptions? wOptions,
-  }) async {
-    if (value == null) {
-      _data.remove(key);
-    } else {
-      _data[key] = value;
-    }
-  }
+  Future<String?> read(String key) async => _data[key];
 
-  // Unused methods — delegate to noSuchMethod to avoid implementing the whole surface.
   @override
-  dynamic noSuchMethod(Invocation i) => super.noSuchMethod(i);
+  Future<void> write(String key, String value) async => _data[key] = value;
+
+  @override
+  Future<void> delete(String key) async => _data.remove(key);
+
+  @override
+  Future<void> deleteAll() async => _data.clear();
 }
 
 void main() {

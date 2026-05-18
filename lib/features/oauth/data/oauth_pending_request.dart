@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../../../core/platform/secure_storage.dart';
 
 abstract class OAuthPendingStorage {
   Future<String?> read();
@@ -10,18 +10,15 @@ abstract class OAuthPendingStorage {
 
 class SecureStorageOAuthPending implements OAuthPendingStorage {
   static const _key = 'oauth_pending_v1';
-  final FlutterSecureStorage _storage;
-  SecureStorageOAuthPending([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
 
   @override
-  Future<String?> read() => _storage.read(key: _key);
+  Future<String?> read() => SecureStorage.instance.read(_key);
 
   @override
-  Future<void> write(String value) => _storage.write(key: _key, value: value);
+  Future<void> write(String value) => SecureStorage.instance.write(_key, value);
 
   @override
-  Future<void> clear() => _storage.delete(key: _key);
+  Future<void> clear() => SecureStorage.instance.delete(_key);
 }
 
 class OAuthPendingRequest {
