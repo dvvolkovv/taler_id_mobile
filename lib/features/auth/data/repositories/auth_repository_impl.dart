@@ -8,6 +8,8 @@ import '../../domain/repositories/i_auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/storage/cache_service.dart';
+import '../../../../core/services/messenger_cache_service.dart';
+import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
 import '../../../../core/di/service_locator.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
@@ -130,6 +132,31 @@ class AuthRepositoryImpl implements IAuthRepository {
     // Clear cached profile so the next login gets fresh data
     try {
       await sl<CacheService>().clearAll();
+    } catch (_) {}
+    // Revoke the device's FCM registration token so the previous user's
+    // server-side mapping is fully severed. Without this, Firebase keeps the
+    // same token alive — there is a window between logout and the next user's
+    // /profile token-update where pushes for the prior user could still land.
+    try {
+      await FcmMessagingPlatform.instance.deleteToken();
+    } catch (_) {}
+    // End any stuck CallKit overlays. Otherwise an in-progress incoming-call
+    // UI (overlay shown but unanswered) can linger across user switch and the
+    // next session inherits a phantom call.
+    try {
+      await CallKitPlatform.instance.endAllCalls();
+    } catch (_) {}
+    // Clear mesh state tied to the previous user. Without this, the next
+    // login on the same device inherits userId→userPk mappings (contact
+    // display names, presence labels) from the prior account — observed in
+    // the 2026-05-14 hardware smoke where iPhone 1 kept showing "integration
+    // test" after relogin as a different user. Also wipes locally cached
+    // mesh messages so chat history from the prior session doesn't bleed in.
+    try {
+      await sl<HiveContactKeyStore>().clear();
+    } catch (_) {}
+    try {
+      await sl<MessengerCacheService>().clearAll();
     } catch (_) {}
   }
 

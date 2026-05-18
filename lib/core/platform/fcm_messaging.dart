@@ -26,6 +26,14 @@ abstract class FcmMessagingPlatform {
   /// FCM registration token, or null if not supported on this platform.
   Future<String?> getToken();
 
+  /// Revoke and discard the current FCM token. Called on logout to break the
+  /// device's binding to the previous user — without this, Firebase keeps the
+  /// same token alive across user switches and the backend has a brief window
+  /// where pushes for the old user could still land on this device before the
+  /// next /profile token-update call rebinds it.
+  /// No-op on desktop in Phase 1.
+  Future<void> deleteToken();
+
   /// Asks the OS for notification display permission.
   /// No-op on desktop in Phase 1.
   Future<void> requestPermissions();
