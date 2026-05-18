@@ -1,10 +1,12 @@
 // lib/core/platform/secure_storage_desktop.dart
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'secure_storage.dart';
 
@@ -66,7 +68,17 @@ class SecureStorageDesktop implements SecureStorage {
     if (_hiveDir != null) {
       Hive.init(_hiveDir!);
     } else {
-      await Hive.initFlutter();
+      // On desktop, Hive.initFlutter() defaults to
+      // getApplicationDocumentsDirectory(), which on macOS without active
+      // sandbox resolves to ~/Documents/ — blocked by File Access Privacy
+      // protection (errno=1). Use getApplicationSupportDirectory() instead:
+      //   macOS: ~/Library/Application Support/<bundle>/
+      //   Linux: ~/.local/share/<binary>/
+      //   Windows: %APPDATA%\<binary>\
+      // All three are sandbox-/TCC-safe without extra entitlements.
+      final supportDir = await getApplicationSupportDirectory();
+      await Directory(supportDir.path).create(recursive: true);
+      Hive.init(supportDir.path);
     }
 
     // Remember whether the encrypted box already existed on disk BEFORE we

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.74+168 — 2026-05-18 — Desktop hotfix: SecureStorage path
+
+**Critical fix** for 1.0.74+167 — the production desktop app crashed on startup with `PathAccessException: Cannot open file /Users/<user>/Documents/secure_box_v2.hive (errno=1)` because `Hive.initFlutter()` resolves to `~/Documents/` on macOS, which is blocked by File Access Privacy / TCC. Switched to `getApplicationSupportDirectory()` which returns `~/Library/Application Support/<bundle>/` on macOS, `~/.local/share/<binary>/` on Linux, `%APPDATA%\<binary>\` on Windows — all sandbox- and TCC-safe without extra entitlements.
+
 ## 1.0.74+167 — 2026-05-18 — Desktop First Release
 
 First end-user desktop release of Taler ID. Available on macOS, Windows, and Linux.
