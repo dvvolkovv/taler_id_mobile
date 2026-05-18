@@ -1672,6 +1672,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get dashboardUpdate => 'Обновить';
 
   @override
+  String get dashboardWhatsNew => 'Что нового';
+
+  @override
+  String dashboardWhatsNewTitle(String version) {
+    return 'Что нового в $version';
+  }
+
+  @override
+  String get dashboardInstalling => 'Устанавливается...';
+
+  @override
   String get contactRequestsTitle => 'Контакты';
 
   @override

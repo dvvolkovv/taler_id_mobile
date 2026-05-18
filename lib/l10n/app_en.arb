@@ -717,6 +717,16 @@
     }
   },
   "dashboardUpdate": "Update",
+  "dashboardWhatsNew": "What's new",
+  "dashboardWhatsNewTitle": "What's new in {version}",
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardInstalling": "Installing...",
   "contactRequestsTitle": "Contacts",
   "messengerContactRequestsSection": "Contact requests",
   "messengerContactRequestsCount": "{count, plural, =1{1 new request} other{{count} new requests}}",

@@ -1021,6 +1021,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               _UpdateBanner(
                 version: _updateInfo!.latestVersion,
                 downloadUrl: _updateInfo!.downloadUrl,
+                notes: _updateInfo!.latestNotes(
+                  Localizations.localeOf(context).languageCode,
+                ),
                 onDismiss: () => setState(() => _updateDismissed = true),
               ),
             Expanded(child: widget.child),
@@ -1034,11 +1037,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 class _UpdateBanner extends StatefulWidget {
   final String version;
   final String downloadUrl;
+  final String? notes;
   final VoidCallback onDismiss;
 
   const _UpdateBanner({
     required this.version,
     required this.downloadUrl,
+    required this.notes,
     required this.onDismiss,
   });
 
@@ -1049,6 +1054,71 @@ class _UpdateBanner extends StatefulWidget {
 class _UpdateBannerState extends State<_UpdateBanner> {
   double? _progress; // null = idle, 0..1 = downloading
   bool _installing = false;
+
+  void _showWhatsNew(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final notes = widget.notes ?? '';
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: colors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (ctx, scrollCtrl) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 14),
+                      decoration: BoxDecoration(
+                        color: colors.textSecondary.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.dashboardWhatsNewTitle(widget.version),
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollCtrl,
+                      child: Text(
+                        notes,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 14,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   Future<void> _downloadAndInstall() async {
     if (_progress != null || _installing) return;
@@ -1106,13 +1176,35 @@ class _UpdateBannerState extends State<_UpdateBanner> {
                   const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Text(
-                      isDownloading
-                          ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
-                          : _installing
-                              ? 'Устанавливается...'
-                              : l10n.dashboardUpdateAvailable(widget.version),
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isDownloading
+                              ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
+                              : _installing
+                                  ? l10n.dashboardInstalling
+                                  : l10n.dashboardUpdateAvailable(widget.version),
+                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                        if (!isDownloading && !_installing && (widget.notes?.isNotEmpty ?? false)) ...[
+                          const SizedBox(height: 2),
+                          GestureDetector(
+                            onTap: () => _showWhatsNew(context),
+                            child: Text(
+                              l10n.dashboardWhatsNew,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white.withValues(alpha: 0.85),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   if (!isDownloading && !_installing) ...[

@@ -3248,6 +3248,24 @@ abstract class AppLocalizations {
   /// **'Update'**
   String get dashboardUpdate;
 
+  /// No description provided for @dashboardWhatsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new'**
+  String get dashboardWhatsNew;
+
+  /// No description provided for @dashboardWhatsNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new in {version}'**
+  String dashboardWhatsNewTitle(String version);
+
+  /// No description provided for @dashboardInstalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Installing...'**
+  String get dashboardInstalling;
+
   /// No description provided for @contactRequestsTitle.
   ///
   /// In en, this message translates to:
