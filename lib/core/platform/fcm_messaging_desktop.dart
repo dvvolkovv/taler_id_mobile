@@ -15,6 +15,9 @@ class FcmMessagingDesktop implements FcmMessagingPlatform {
   Future<String?> getToken() async => null;
 
   @override
+  Future<void> deleteToken() async {}
+
+  @override
   Future<void> requestPermissions() async {}
 
   @override

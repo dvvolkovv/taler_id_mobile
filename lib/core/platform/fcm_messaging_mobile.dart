@@ -34,6 +34,15 @@ class FcmMessagingMobile implements FcmMessagingPlatform {
   }
 
   @override
+  Future<void> deleteToken() async {
+    try {
+      await _fcm.deleteToken();
+    } catch (e) {
+      debugPrint('[FcmMessagingMobile] deleteToken failed: $e');
+    }
+  }
+
+  @override
   Future<void> requestPermissions() async {
     try {
       await _fcm.requestPermission(
