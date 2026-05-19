@@ -856,6 +856,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingSkip => 'Skip';
 
   @override
+  String get meshLocalNetworkPromptTitle => 'Allow local network access';
+
+  @override
+  String get meshLocalNetworkPromptBody =>
+      'To find peers on Wi-Fi (offline group calls), iOS requires the Local Network permission. Open Settings → Privacy & Security → Local Network → Taler ID.';
+
+  @override
+  String get meshLocalNetworkPromptOpenSettings => 'Open Settings';
+
+  @override
+  String get meshLocalNetworkPromptDismiss => 'Got it';
+
+  @override
   String get forgotPassword => 'Forgot password?';
 
   @override

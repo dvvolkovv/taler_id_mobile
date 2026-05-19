@@ -858,6 +858,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get onboardingSkip => 'Пропустить';
 
   @override
+  String get meshLocalNetworkPromptTitle => 'Разрешите доступ к локальной сети';
+
+  @override
+  String get meshLocalNetworkPromptBody =>
+      'Чтобы видеть собеседников по Wi-Fi (групповые звонки без интернета), iOS требует разрешение Local Network. Откройте Настройки → Конфиденциальность и безопасность → Локальная сеть → Taler ID.';
+
+  @override
+  String get meshLocalNetworkPromptOpenSettings => 'Открыть настройки';
+
+  @override
+  String get meshLocalNetworkPromptDismiss => 'Понятно';
+
+  @override
   String get forgotPassword => 'Забыли пароль?';
 
   @override
