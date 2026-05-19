@@ -1,246 +1,266 @@
-# Taler ID Agent Shell — Phase 0 Implementation Plan
+# Taler ID Agent Shell — Phase 0 Implementation Plan (v2, OAuth)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Validate end-to-end architecture (OpenAI Realtime → `agent_task` tool → Claude Agent Loop → echo tool → spoken response) by building a thin spike: Anthropic API proxy in the NestJS backend, Claude Agent Loop in Dart, one trivial `echo` tool, basic chat UI, and launcher-mode intent filter. After Phase 0 Дмитрий switches his Pixel to Taler ID as default home and starts journaling pain points.
+**Goal:** Validate end-to-end architecture (OpenAI Realtime → `agent_task` tool → backend `POST /agent/run` → Claude Agent SDK with OAuth → echo tool → spoken response) by building a thin spike: backend integrates `@anthropic-ai/claude-agent-sdk` using existing `claude` CLI OAuth credentials, exposes `/agent/run`, Flutter sends goals as plain REST, the existing OpenAI Realtime session gets a new `agent_task` tool that delegates to the backend. Plus AndroidManifest tweak so Taler ID is eligible as Android home launcher, and a basic chat screen for direct (non-voice) interaction. After Phase 0 Дмитрий switches his Pixel to Taler ID as default home and starts journaling pain points.
 
-**Architecture:** Backend gains a JWT-protected `POST /agent/claude` proxy that forwards Anthropic Messages API requests and hides the API key. Flutter gains a `core/agent` module with `AnthropicClient` (Dio wrapper), `AgentLoop` (Messages-API tool_use cycle), `ToolRegistry` (`echo` only in Phase 0), `AgentBloc` (chat state), and `AgentShellHomeScreen`. The existing OpenAI Realtime session in `assistant_screen.dart` gets one new tool `agent_task(goal)` whose handler delegates to `AgentLoop` and returns the result back to Realtime for speech synthesis.
+**Architecture (after 2026-05-19 pivot):** Backend NestJS gains a JWT-protected `POST /agent/run` endpoint backed by `@anthropic-ai/claude-agent-sdk`. The SDK authenticates via OAuth, reading credentials from `~/.claude/.credentials.json` on the DEV server (the same `claude login` Дмитрий already uses for `taler-monitor`). One custom `echo` tool is registered as TypeScript code on the backend — it just validates that tool_use round-trips through the SDK. Flutter gets a tiny `AgentClient` (Dio wrapper), `AgentBloc`, `AgentShellHomeScreen` — **no Dart agent loop, no tool registry on phone**. Phone-side tools come in Phase 1+ via WebSocket bridge.
 
-**Tech Stack:** Flutter (Dart ≥3.6.0), `flutter_bloc`, `freezed`, `dio`, `mocktail` (tests), `go_router`, `get_it`. Backend: NestJS, Jest + supertest, `node-fetch` (or built-in `fetch`), `@nestjs/common`/`@nestjs/passport`. Claude model default: `claude-sonnet-4-6`.
+**Tech Stack:**
+- Backend: NestJS, `@anthropic-ai/claude-agent-sdk` (npm), Jest, JwtAuthGuard, `process.env`
+- Flutter: `flutter_bloc`, `freezed`, `dio`, `mocktail`, `go_router`, `get_it`, `bloc_test`
+- Claude model: `claude-sonnet-4-6` default (Opus 4.7 by flag for heavy tasks later)
+- Auth: OAuth via `claude login` on DEV server
 
-**Spec reference:** `docs/superpowers/specs/2026-05-18-taler-agent-shell-design.md`
+**Spec reference:** `docs/superpowers/specs/2026-05-18-taler-agent-shell-design.md` (revised 2026-05-19 — see Update Log)
 
 **Branches:**
-- Mobile: `feature/agent-shell-phase-0` off `dev` in `/Users/dmitry/Downloads/taler_id_mobile/`
-- Backend: `feature/agent-shell-phase-0` off `main` in `/Users/dmitry/Downloads/taler_id/`
+- Mobile: `feature/agent-shell-phase-0` off `dev` in `/Users/dmitry/Downloads/taler_id_mobile/` ✓ created in Task 1
+- Backend: `feature/agent-shell-phase-0` off `main` in `/Users/dmitry/Downloads/taler_id/` ✓ created in Task 1
 
 **Deploy target:** DEV only (`dvolkov@89.169.55.217`). PROD untouched. Per CLAUDE.md rule.
 
 **Out of scope for Phase 0** (explicit, do NOT add):
 - Any tools other than `echo` (no system.*, no call.*, no dev.* — those come in Phase 1+)
-- Wake-word / Porcupine
-- Accessibility Service
+- Phone-side tool WebSocket bridge (Phase 1)
+- Wake-word / Porcupine (Phase 6)
+- Accessibility Service (Phase 5)
 - Dynamic UI widgets beyond plain text bubbles
 - iOS support
 - Daily-driver hardening (foreground service, battery audit, etc.) — Phase 6
+- Anthropic API-key auth — we use OAuth only
 
 ---
 
-## Task 1: Create feature branches and verify clean working trees
+## Task 1: Create feature branches ✓ DONE
 
-**Files:** No code changes. Branch setup only.
-
-- [ ] **Step 1.1: Verify mobile repo clean state**
-
-```bash
-cd /Users/dmitry/Downloads/taler_id_mobile && git status
-```
-
-Expected: working tree clean (or only the pre-existing `ios/Podfile.lock` modification untracked). If your own modifications exist, stash them first: `git stash push -m "pre-agent-shell"`.
-
-- [ ] **Step 1.2: Create mobile feature branch off `dev`**
-
-```bash
-cd /Users/dmitry/Downloads/taler_id_mobile
-git checkout dev
-git pull origin dev
-git checkout -b feature/agent-shell-phase-0
-```
-
-- [ ] **Step 1.3: Verify backend repo clean state**
-
-```bash
-cd /Users/dmitry/Downloads/taler_id && git status
-```
-
-Expected: clean.
-
-- [ ] **Step 1.4: Create backend feature branch off `main`**
-
-```bash
-cd /Users/dmitry/Downloads/taler_id
-git checkout main
-git pull origin main
-git checkout -b feature/agent-shell-phase-0
-```
-
-- [ ] **Step 1.5: Confirm both branches active**
-
-```bash
-git -C /Users/dmitry/Downloads/taler_id_mobile branch --show-current
-git -C /Users/dmitry/Downloads/taler_id branch --show-current
-```
-
-Expected output:
-```
-feature/agent-shell-phase-0
-feature/agent-shell-phase-0
-```
-
-No commit yet — branches are empty deltas.
+Already completed 2026-05-18. Both repos have `feature/agent-shell-phase-0` branches active.
 
 ---
 
-## Task 2: Backend — Add Anthropic API key to env
+## Task 2: Verify `claude` CLI OAuth on DEV server
+
+**Files:** No code changes. Operational verification.
+
+The Claude Agent SDK on the backend will read OAuth credentials from `~/.claude/.credentials.json`. We need to confirm `claude` is installed on DEV and logged in under the user that runs the NestJS process (`dvolkov`).
+
+- [ ] **Step 2.1: SSH to DEV and check `claude` CLI**
+
+```bash
+ssh dvolkov@89.169.55.217 'which claude && claude --version'
+```
+
+Expected: a path like `/usr/local/bin/claude` (or `/home/dvolkov/.local/bin/claude` or `~/.npm-global/bin/claude`) and a version number (≥ 0.2.x for current Agent SDK compatibility). If "command not found" — install per https://docs.anthropic.com/claude-code/getting-started, then re-run.
+
+- [ ] **Step 2.2: Check OAuth credentials file exists**
+
+```bash
+ssh dvolkov@89.169.55.217 'ls -la ~/.claude/.credentials.json 2>&1 && stat -c "%a" ~/.claude/.credentials.json 2>&1'
+```
+
+Expected: file exists (size > 100 bytes typically), permissions `600`. If "No such file or directory" — run `claude login` interactively, then re-run.
+
+If file exists but permissions wider than 600:
+```bash
+ssh dvolkov@89.169.55.217 'chmod 600 ~/.claude/.credentials.json'
+```
+
+- [ ] **Step 2.3: Sanity-check the credentials work**
+
+```bash
+ssh dvolkov@89.169.55.217 'echo "Reply with the single word: pong" | claude --print 2>&1'
+```
+
+Expected: output `pong` (or close to it). If 401/auth error — `claude login` again. If `command not found` — `which claude` again, ensure PATH is set for non-interactive ssh.
+
+- [ ] **Step 2.4: Document plan/tier**
+
+Record in repo notes (we'll create `docs/agent-shell-journal.md` in Task 12, but for now save to memory or a temp scratch file):
+- Claude CLI version on DEV
+- Plan/tier of the OAuth account (Pro / Max / Team — visible at https://console.anthropic.com/settings/billing)
+- Approximate rate limits known so far (helpful for Phase 0 sizing — Phase 0 itself uses very few tokens)
+
+- [ ] **Step 2.5: No commit** (operational only).
+
+**Note:** If Step 2.3 fails because Anthropic blocks the AEZA RU IP, the same will block Step 4's tests when run against the live SDK. Then we set up a passthrough nginx on DigitalOcean (167.172.181.34) as documented in spec R2 — but defer that until Step 4 actually fails. Do not preemptively build the proxy.
+
+---
+
+## Task 3: Backend — AgentModule with Claude Agent SDK + echo tool (TDD)
 
 **Files:**
-- Modify: `/Users/dmitry/Downloads/taler_id/.env.example` (or `.env` if no example exists)
-- Modify: `/Users/dmitry/Downloads/taler_id/.env` on DEV server
-
-- [ ] **Step 2.1: Get the Anthropic API key**
-
-Use the existing Anthropic console key (Дмитрий's). Generate one if needed at https://console.anthropic.com/. Save as `ANTHROPIC_API_KEY=sk-ant-...`.
-
-Also decide if proxying through DigitalOcean is needed (AEZA RU IP может блокироваться Anthropic). For Phase 0 — try direct first; if 403/connection refused, add `ANTHROPIC_BASE_URL=http://167.172.181.34:PORT` (we'd set up a passthrough nginx). For now skip; only add if direct call fails during Task 5 verification.
-
-- [ ] **Step 2.2: Add to local `.env`** (in `/Users/dmitry/Downloads/taler_id/.env` — never commit `.env`)
-
-Append:
-```
-ANTHROPIC_API_KEY=sk-ant-actual-key-here
-ANTHROPIC_BASE_URL=https://api.anthropic.com
-ANTHROPIC_MODEL_DEFAULT=claude-sonnet-4-6
-ANTHROPIC_MAX_TOKENS_DEFAULT=4096
-```
-
-- [ ] **Step 2.3: Add to `.env.example`** (or create if absent — this IS committed)
-
-Check existence:
-```bash
-ls /Users/dmitry/Downloads/taler_id/.env.example 2>&1
-```
-
-If exists — append. If not — create a new `.env.example` with just the new vars (we don't want to copy private values):
-```
-ANTHROPIC_API_KEY=
-ANTHROPIC_BASE_URL=https://api.anthropic.com
-ANTHROPIC_MODEL_DEFAULT=claude-sonnet-4-6
-ANTHROPIC_MAX_TOKENS_DEFAULT=4096
-```
-
-- [ ] **Step 2.4: Commit `.env.example` change only** (verify `.env` is in `.gitignore` first)
-
-```bash
-cd /Users/dmitry/Downloads/taler_id
-grep -q "^\.env$" .gitignore || echo "WARN: .env not in gitignore — fix before commit"
-git add .env.example
-git commit -m "chore(agent): add ANTHROPIC_* env config placeholders"
-```
-
----
-
-## Task 3: Backend — Create AgentModule with `/agent/claude` proxy endpoint (TDD)
-
-**Files:**
+- Modify: `/Users/dmitry/Downloads/taler_id/package.json` — add `@anthropic-ai/claude-agent-sdk` dep
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.module.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.controller.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.ts`
-- Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/claude-request.dto.ts`
-- Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/claude-response.dto.ts`
+- Create: `/Users/dmitry/Downloads/taler_id/src/agent/tools/echo.tool.ts`
+- Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-request.dto.ts`
+- Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-response.dto.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.spec.ts`
 - Modify: `/Users/dmitry/Downloads/taler_id/src/app.module.ts` — register AgentModule
 
-- [ ] **Step 3.1: Write the failing test for AgentService.proxyClaude**
+The Claude Agent SDK exposes a `query()` (or similar) function that runs a full agent loop with built-in tools (Bash, Read, Edit, Grep, Task, etc.) plus custom tools we register. It authenticates via OAuth credentials at `~/.claude/.credentials.json` automatically — no API key needed.
 
-Create `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.spec.ts`:
+**Important:** Verify exact SDK API names against the official docs / package README before writing the implementation. The pseudocode below reflects the expected interface but may need tiny adjustments (e.g. `query()` vs `createAgent()`, `tool()` vs `defineTool()`, etc.). If the implementer subagent finds the API differs, that's expected — adapt and report.
 
+- [ ] **Step 3.1: Add SDK dependency**
+
+```bash
+cd /Users/dmitry/Downloads/taler_id
+npm install @anthropic-ai/claude-agent-sdk@latest
+```
+
+Then check:
+```bash
+grep "@anthropic-ai/claude-agent-sdk" package.json
+```
+
+- [ ] **Step 3.2: Create DTO files**
+
+`/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-request.dto.ts`:
+```typescript
+import { IsString, IsOptional, IsIn } from 'class-validator';
+
+export class RunAgentRequestDto {
+  @IsString()
+  goal!: string;
+
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
+
+  @IsOptional()
+  @IsIn(['claude-sonnet-4-6', 'claude-opus-4-7'])
+  model?: 'claude-sonnet-4-6' | 'claude-opus-4-7';
+}
+```
+
+`/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-response.dto.ts`:
+```typescript
+export interface AgentToolCall {
+  name: string;
+  input: Record<string, unknown>;
+  output: string;
+}
+
+export interface RunAgentResponseDto {
+  finalText: string;
+  toolCalls: AgentToolCall[];
+  aborted: boolean;
+  conversationId?: string;
+}
+```
+
+- [ ] **Step 3.3: Create echo tool**
+
+`/Users/dmitry/Downloads/taler_id/src/agent/tools/echo.tool.ts`:
+```typescript
+import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
+
+/**
+ * Trivial validation tool for Phase 0 — echoes back the text verbatim.
+ * Confirms tool_use round-trips through the SDK end-to-end.
+ */
+export const echoTool = tool(
+  'echo',
+  'Echo back the provided text verbatim. Used to validate the agent-loop plumbing end-to-end.',
+  {
+    text: z.string().describe('Text to echo back'),
+  },
+  async ({ text }) => {
+    return {
+      content: [{ type: 'text', text }],
+    };
+  },
+);
+```
+
+**Note:** If `@anthropic-ai/claude-agent-sdk` does not expose a `tool()` helper with this exact signature, consult `node_modules/@anthropic-ai/claude-agent-sdk/README.md` (or its dist `.d.ts`) for the correct way to define a custom tool. The shape may use a different builder (e.g. `defineTool`, MCP-style server). Adapt accordingly and update the test in the next step to match.
+
+- [ ] **Step 3.4: Write failing test for AgentService**
+
+`/Users/dmitry/Downloads/taler_id/src/agent/agent.service.spec.ts`:
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentService } from './agent.service';
 
+jest.mock('@anthropic-ai/claude-agent-sdk', () => ({
+  query: jest.fn(),
+  tool: jest.fn((name, description, schema, handler) => ({
+    name,
+    description,
+    schema,
+    handler,
+  })),
+}));
+
+import * as sdk from '@anthropic-ai/claude-agent-sdk';
+
 describe('AgentService', () => {
   let service: AgentService;
-  let originalFetch: typeof globalThis.fetch;
-
-  beforeAll(() => {
-    originalFetch = globalThis.fetch;
-    process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    process.env.ANTHROPIC_BASE_URL = 'https://api.anthropic.com';
-    process.env.ANTHROPIC_MODEL_DEFAULT = 'claude-sonnet-4-6';
-    process.env.ANTHROPIC_MAX_TOKENS_DEFAULT = '4096';
-  });
-
-  afterAll(() => {
-    globalThis.fetch = originalFetch;
-  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [AgentService],
     }).compile();
     service = module.get<AgentService>(AgentService);
+    (sdk.query as jest.Mock).mockReset();
   });
 
-  it('forwards messages payload to Anthropic and returns raw response', async () => {
-    const fakeResponse = {
-      id: 'msg_01',
-      type: 'message',
-      role: 'assistant',
-      content: [{ type: 'text', text: 'Hi.' }],
-      stop_reason: 'end_turn',
-      usage: { input_tokens: 5, output_tokens: 2 },
-    };
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => fakeResponse,
-      text: async () => JSON.stringify(fakeResponse),
-    }) as any;
-
-    const result = await service.proxyClaude({
-      messages: [{ role: 'user', content: 'Hi' }],
+  it('runs SDK query with the given goal and returns final text', async () => {
+    (sdk.query as jest.Mock).mockImplementation(async function* () {
+      yield { type: 'tool_use', name: 'echo', input: { text: 'pong' }, id: 'tu1' };
+      yield { type: 'tool_result', tool_use_id: 'tu1', content: 'pong' };
+      yield { type: 'result', subtype: 'success', result: 'echoed: pong' };
     });
 
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      'https://api.anthropic.com/v1/messages',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          'x-api-key': 'sk-ant-test',
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        }),
-      }),
-    );
-    expect(result).toEqual(fakeResponse);
-  });
-
-  it('throws on non-2xx response with status code preserved', async () => {
-    globalThis.fetch = jest.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-      json: async () => ({ error: { message: 'rate limited' } }),
-      text: async () => '{"error":{"message":"rate limited"}}',
-    }) as any;
-
-    await expect(
-      service.proxyClaude({ messages: [{ role: 'user', content: 'Hi' }] }),
-    ).rejects.toThrow(/429/);
-  });
-
-  it('uses default model and max_tokens when not provided', async () => {
-    const captured: any = {};
-    globalThis.fetch = jest.fn(async (_, init: any) => {
-      captured.body = JSON.parse(init.body);
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ content: [], stop_reason: 'end_turn' }),
-        text: async () => '{}',
-      };
-    }) as any;
-
-    await service.proxyClaude({
-      messages: [{ role: 'user', content: 'Hi' }],
+    const result = await service.runAgent({
+      goal: 'echo pong',
+      userId: 'user-123',
     });
 
-    expect(captured.body.model).toBe('claude-sonnet-4-6');
-    expect(captured.body.max_tokens).toBe(4096);
+    expect(result.finalText).toBe('echoed: pong');
+    expect(result.toolCalls.length).toBe(1);
+    expect(result.toolCalls[0].name).toBe('echo');
+    expect(result.toolCalls[0].output).toBe('pong');
+    expect(result.aborted).toBe(false);
+  });
+
+  it('marks aborted when SDK returns failure result', async () => {
+    (sdk.query as jest.Mock).mockImplementation(async function* () {
+      yield { type: 'result', subtype: 'error_max_turns', result: 'too many turns' };
+    });
+
+    const result = await service.runAgent({
+      goal: 'long task',
+      userId: 'user-123',
+    });
+
+    expect(result.aborted).toBe(true);
+    expect(result.finalText).toContain('too many turns');
+  });
+
+  it('passes model override to SDK when provided', async () => {
+    (sdk.query as jest.Mock).mockImplementation(async function* () {
+      yield { type: 'result', subtype: 'success', result: 'ok' };
+    });
+
+    await service.runAgent({
+      goal: 'go',
+      userId: 'user-123',
+      model: 'claude-opus-4-7',
+    });
+
+    const callArgs = (sdk.query as jest.Mock).mock.calls[0][0];
+    expect(callArgs.options?.model || callArgs.model).toBe('claude-opus-4-7');
   });
 });
 ```
 
-- [ ] **Step 3.2: Run the failing test to confirm**
+**Note:** The exact shape of SDK events (`tool_use`, `tool_result`, `result`) may differ from what's mocked. If the actual SDK uses different event types, update both the production code AND the test to match. The key behavior to verify: SDK is called with the goal, tool calls are extracted, final text is returned, aborted flag is set on max_turns/error.
+
+- [ ] **Step 3.5: Run test to verify it fails**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id
@@ -249,107 +269,96 @@ npm test -- src/agent/agent.service.spec.ts
 
 Expected: FAIL with `Cannot find module './agent.service'`.
 
-- [ ] **Step 3.3: Create the DTO files**
-
-`/Users/dmitry/Downloads/taler_id/src/agent/dto/claude-request.dto.ts`:
-```typescript
-export interface ClaudeMessage {
-  role: 'user' | 'assistant';
-  content: string | Array<Record<string, unknown>>;
-}
-
-export interface ClaudeTool {
-  name: string;
-  description?: string;
-  input_schema: Record<string, unknown>;
-}
-
-export class ClaudeRequestDto {
-  messages!: ClaudeMessage[];
-  model?: string;
-  max_tokens?: number;
-  system?: string;
-  tools?: ClaudeTool[];
-  tool_choice?: Record<string, unknown>;
-  temperature?: number;
-}
-```
-
-`/Users/dmitry/Downloads/taler_id/src/agent/dto/claude-response.dto.ts`:
-```typescript
-export interface ClaudeContentBlock {
-  type: 'text' | 'tool_use' | string;
-  text?: string;
-  id?: string;
-  name?: string;
-  input?: Record<string, unknown>;
-}
-
-export interface ClaudeResponseDto {
-  id?: string;
-  type?: string;
-  role?: string;
-  model?: string;
-  content: ClaudeContentBlock[];
-  stop_reason: 'end_turn' | 'tool_use' | 'max_tokens' | 'stop_sequence' | string;
-  usage?: { input_tokens: number; output_tokens: number };
-}
-```
-
-- [ ] **Step 3.4: Implement AgentService**
+- [ ] **Step 3.6: Implement AgentService**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.ts`:
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
-import { ClaudeRequestDto } from './dto/claude-request.dto';
-import { ClaudeResponseDto } from './dto/claude-response.dto';
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { echoTool } from './tools/echo.tool';
+import { AgentToolCall, RunAgentResponseDto } from './dto/run-agent-response.dto';
+
+interface RunAgentInput {
+  goal: string;
+  userId: string;
+  conversationId?: string;
+  model?: 'claude-sonnet-4-6' | 'claude-opus-4-7';
+}
 
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
 
-  async proxyClaude(req: ClaudeRequestDto): Promise<ClaudeResponseDto> {
-    const apiKey = process.env.ANTHROPIC_API_KEY || '';
-    const baseUrl = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com';
-    const defaultModel = process.env.ANTHROPIC_MODEL_DEFAULT || 'claude-sonnet-4-6';
-    const defaultMaxTokens = parseInt(process.env.ANTHROPIC_MAX_TOKENS_DEFAULT || '4096', 10);
+  async runAgent(input: RunAgentInput): Promise<RunAgentResponseDto> {
+    const model = input.model || 'claude-sonnet-4-6';
+    this.logger.debug(
+      `agent.run user=${input.userId} model=${model} goal="${input.goal.slice(0, 80)}"`,
+    );
 
-    if (!apiKey) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
-    }
+    const toolCalls: AgentToolCall[] = [];
+    let finalText = '';
+    let aborted = false;
 
-    const body = {
-      model: req.model || defaultModel,
-      max_tokens: req.max_tokens ?? defaultMaxTokens,
-      messages: req.messages,
-      ...(req.system ? { system: req.system } : {}),
-      ...(req.tools ? { tools: req.tools } : {}),
-      ...(req.tool_choice ? { tool_choice: req.tool_choice } : {}),
-      ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
-    };
-
-    const res = await fetch(`${baseUrl}/v1/messages`, {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
+    // OAuth credentials picked up from ~/.claude/.credentials.json automatically
+    const stream = query({
+      prompt: input.goal,
+      options: {
+        model,
+        tools: [echoTool],
       },
-      body: JSON.stringify(body),
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      this.logger.error(`Claude API ${res.status}: ${text.slice(0, 500)}`);
-      throw new Error(`Claude API error ${res.status}: ${text.slice(0, 200)}`);
+    const lastToolUseByCallId: Record<
+      string,
+      { name: string; input: Record<string, unknown> }
+    > = {};
+
+    for await (const event of stream as AsyncIterable<any>) {
+      if (event.type === 'tool_use') {
+        lastToolUseByCallId[event.id] = {
+          name: event.name,
+          input: event.input,
+        };
+      } else if (event.type === 'tool_result') {
+        const matched = lastToolUseByCallId[event.tool_use_id];
+        if (matched) {
+          toolCalls.push({
+            name: matched.name,
+            input: matched.input,
+            output:
+              typeof event.content === 'string'
+                ? event.content
+                : JSON.stringify(event.content),
+          });
+        }
+      } else if (event.type === 'result') {
+        if (event.subtype === 'success') {
+          finalText =
+            typeof event.result === 'string'
+              ? event.result
+              : JSON.stringify(event.result);
+        } else {
+          aborted = true;
+          finalText = `(aborted: ${event.subtype}) ${
+            typeof event.result === 'string' ? event.result : ''
+          }`.trim();
+        }
+      }
     }
 
-    return (await res.json()) as ClaudeResponseDto;
+    return {
+      finalText,
+      toolCalls,
+      aborted,
+      conversationId: input.conversationId,
+    };
   }
 }
 ```
 
-- [ ] **Step 3.5: Run tests to verify they pass**
+**Note:** Adapt event types to match the actual SDK. The SDK README / `node_modules/@anthropic-ai/claude-agent-sdk/dist/index.d.ts` is the source of truth. If `query()` returns a promise instead of async iterable, or events have different names/shapes, restructure both the implementation and the test.
+
+- [ ] **Step 3.7: Run tests — verify pass**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id
@@ -358,7 +367,7 @@ npm test -- src/agent/agent.service.spec.ts
 
 Expected: 3 tests pass.
 
-- [ ] **Step 3.6: Create AgentController**
+- [ ] **Step 3.8: Create AgentController**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.controller.ts`:
 ```typescript
@@ -366,7 +375,8 @@ import { Body, Controller, Logger, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AgentService } from './agent.service';
-import { ClaudeRequestDto } from './dto/claude-request.dto';
+import { RunAgentRequestDto } from './dto/run-agent-request.dto';
+import { RunAgentResponseDto } from './dto/run-agent-response.dto';
 
 @Controller('agent')
 export class AgentController {
@@ -374,21 +384,28 @@ export class AgentController {
   constructor(private readonly agent: AgentService) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('claude')
-  async claude(@CurrentUser() user: any, @Body() body: ClaudeRequestDto) {
-    this.logger.debug(`agent/claude for user ${user?.sub} model=${body.model || 'default'}`);
-    return this.agent.proxyClaude(body);
+  @Post('run')
+  async run(
+    @CurrentUser() user: any,
+    @Body() body: RunAgentRequestDto,
+  ): Promise<RunAgentResponseDto> {
+    return this.agent.runAgent({
+      goal: body.goal,
+      userId: user?.sub,
+      conversationId: body.conversationId,
+      model: body.model,
+    });
   }
 }
 ```
 
-**Note:** Verify exact path of `CurrentUser` decorator. If not at `src/common/decorators/current-user.decorator.ts`, grep:
+**Verify** import paths: `CurrentUser` decorator location may differ. Grep:
 ```bash
 grep -rn "export.*CurrentUser" /Users/dmitry/Downloads/taler_id/src/
 ```
-and adjust import accordingly.
+and adjust the import accordingly.
 
-- [ ] **Step 3.7: Create AgentModule**
+- [ ] **Step 3.9: Create AgentModule**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.module.ts`:
 ```typescript
@@ -404,36 +421,35 @@ import { AgentService } from './agent.service';
 export class AgentModule {}
 ```
 
-- [ ] **Step 3.8: Register AgentModule in AppModule**
+- [ ] **Step 3.10: Register AgentModule in AppModule**
 
-Open `/Users/dmitry/Downloads/taler_id/src/app.module.ts`. Find the `imports: [...]` array. Add `AgentModule` to it; add the import line at the top:
+Open `/Users/dmitry/Downloads/taler_id/src/app.module.ts`. Find the `imports: [...]` array. Add `AgentModule`; add the import at the top:
 ```typescript
 import { AgentModule } from './agent/agent.module';
 ```
 
-- [ ] **Step 3.9: Build to verify no compile errors**
+- [ ] **Step 3.11: Build**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id && npm run build
 ```
 
-Expected: clean build, no TS errors.
+Expected: clean build.
 
-- [ ] **Step 3.10: Commit**
+- [ ] **Step 3.12: Commit**
 
 ```bash
-cd /Users/dmitry/Downloads/taler_id
-git add src/agent/ src/app.module.ts
-git commit -m "feat(agent): add /agent/claude proxy with JWT auth + tests"
+git add src/agent/ src/app.module.ts package.json package-lock.json
+git commit -m "feat(agent): /agent/run endpoint backed by Claude Agent SDK + echo tool"
 ```
 
 ---
 
-## Task 4: Backend — Deploy to DEV and verify endpoint live
+## Task 4: Deploy backend to DEV and verify endpoint live
 
 **Files:** No new code. Operational verification.
 
-- [ ] **Step 4.1: Push branch to remote**
+- [ ] **Step 4.1: Push branch**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id
@@ -443,708 +459,331 @@ git push -u origin feature/agent-shell-phase-0
 - [ ] **Step 4.2: Pull on DEV server**
 
 ```bash
-ssh dvolkov@89.169.55.217 'cd ~/taler-id && git fetch origin && git checkout feature/agent-shell-phase-0 && git pull'
+ssh dvolkov@89.169.55.217 'cd ~/taler-id && git fetch origin && git checkout feature/agent-shell-phase-0 && git pull && npm install'
 ```
 
-- [ ] **Step 4.3: Update DEV `.env` with ANTHROPIC_* vars**
+- [ ] **Step 4.3: Build + restart**
 
 ```bash
-ssh dvolkov@89.169.55.217
-# In the SSH session:
-cd ~/taler-id
-nano .env  # add ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, ANTHROPIC_MODEL_DEFAULT, ANTHROPIC_MAX_TOKENS_DEFAULT
-# Ctrl-O, Enter, Ctrl-X
+ssh dvolkov@89.169.55.217 'cd ~/taler-id && npm run build && pm2 restart taler-id-dev && pm2 logs taler-id-dev --lines 30 --nostream'
 ```
 
-- [ ] **Step 4.4: Build + restart on DEV**
+Look for `[AgentService]` log lines confirming the module loaded.
+
+- [ ] **Step 4.4: Get JWT for test account**
 
 ```bash
-ssh dvolkov@89.169.55.217 'cd ~/taler-id && npm run build && pm2 restart taler-id-dev'
-```
-
-Expected: pm2 shows `taler-id-dev` online status with new PID.
-
-- [ ] **Step 4.5: Test endpoint with curl (requires a valid JWT)**
-
-Obtain a JWT from the existing test account (`integration_test@taler-test.com` per CLAUDE.md):
-```bash
-curl -X POST https://staging.id.taler.tirol/auth/login \
+curl -sX POST https://staging.id.taler.tirol/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"integration_test@taler-test.com","password":"IntegrationTest123!"}' \
-  | jq -r '.access_token' > /tmp/jwt.txt
+  | jq -r '.access_token' > /tmp/jwt.txt && head -c 30 /tmp/jwt.txt && echo "..."
 ```
 
-Then call the new endpoint:
+- [ ] **Step 4.5: Test endpoint**
+
 ```bash
-curl -X POST https://staging.id.taler.tirol/agent/claude \
+curl -sX POST https://staging.id.taler.tirol/agent/run \
   -H "Authorization: Bearer $(cat /tmp/jwt.txt)" \
   -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"Say only the word: pong"}],"max_tokens":50}' \
+  -d '{"goal":"Use the echo tool to reply with just the word: pong"}' \
   | jq
 ```
 
-Expected: JSON with `content: [{ type: "text", text: "pong" }]` and `stop_reason: "end_turn"`.
+Expected: `finalText` contains "pong", `toolCalls` has one entry with `name: "echo"`, `aborted: false`.
 
-If 502/connection error: AEZA RU IP blocked by Anthropic. Fallback: set up nginx passthrough on DO at 167.172.181.34, update `ANTHROPIC_BASE_URL` on DEV to `https://167.172.181.34/anthropic-proxy/`, restart, retry. (Detailed DO nginx config out of scope for this plan — note as deferred and proceed with direct connection if working.)
+If 401 — JWT expired. If 502/504 / network error → Anthropic OAuth path blocked from AEZA. Fallback: nginx passthrough on DO (defer until needed). If 500 — read `pm2 logs taler-id-dev --lines 50 --nostream --err`.
 
-- [ ] **Step 4.6: Document verified endpoint URL**
+- [ ] **Step 4.6: Latency observation**
 
-Append to your daily-driver journal (or a simple note in repo `docs/agent-shell-phase-0-notes.md`):
+```bash
+time curl -sX POST https://staging.id.taler.tirol/agent/run \
+  -H "Authorization: Bearer $(cat /tmp/jwt.txt)" \
+  -H 'Content-Type: application/json' \
+  -d '{"goal":"Reply with just the word: ack"}' \
+  > /dev/null
 ```
-DEV endpoint verified: POST https://staging.id.taler.tirol/agent/claude
-Model: claude-sonnet-4-6
-First test: pong (round-trip ~Xms)
-```
+
+Expected: 2-6 sec for a simple turn. Note observation.
 
 ---
 
-## Task 5: Flutter — Define Anthropic message types (Freezed)
+## Task 5: Flutter — Define `AgentRunResult` Freezed type
 
 **Files:**
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/models/agent_message.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/models/agent_tool.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/models/agent_response.dart`
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/models/agent_run_result.dart`
 
-- [ ] **Step 5.1: Verify Freezed + json_serializable already in pubspec**
+Only one Freezed file needed on Flutter side (no `AgentMessage`, no `AgentTool`, no `AgentResponse` — those were for the obsolete Dart agent loop).
+
+- [ ] **Step 5.1: Verify Freezed in pubspec**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id_mobile && grep -E "(freezed|json_serializable|json_annotation)" pubspec.yaml
 ```
 
-Expected: lines for `freezed`, `freezed_annotation`, `json_annotation`, `json_serializable`. If missing, add to pubspec:
-```yaml
-dependencies:
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
-dev_dependencies:
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
-  build_runner: ^2.4.13
-```
-and run `flutter pub get`.
+Expected: lines present (used by other features in this app).
 
-- [ ] **Step 5.2: Create `agent_message.dart`**
+- [ ] **Step 5.2: Create model**
 
+`lib/core/agent/models/agent_run_result.dart`:
 ```dart
-// lib/core/agent/models/agent_message.dart
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'agent_message.freezed.dart';
-part 'agent_message.g.dart';
+part 'agent_run_result.freezed.dart';
+part 'agent_run_result.g.dart';
 
 @freezed
-class AgentMessage with _$AgentMessage {
-  const factory AgentMessage({
-    required String role, // 'user' | 'assistant'
-    required dynamic content, // String OR List<Map<String, dynamic>>
-  }) = _AgentMessage;
-
-  factory AgentMessage.fromJson(Map<String, dynamic> json) =>
-      _$AgentMessageFromJson(json);
-
-  factory AgentMessage.userText(String text) =>
-      AgentMessage(role: 'user', content: text);
-
-  factory AgentMessage.assistantBlocks(List<Map<String, dynamic>> blocks) =>
-      AgentMessage(role: 'assistant', content: blocks);
-
-  factory AgentMessage.toolResult(String toolUseId, dynamic result) =>
-      AgentMessage(
-        role: 'user',
-        content: [
-          {
-            'type': 'tool_result',
-            'tool_use_id': toolUseId,
-            'content': result is String ? result : result.toString(),
-          },
-        ],
-      );
-}
-```
-
-- [ ] **Step 5.3: Create `agent_tool.dart`**
-
-```dart
-// lib/core/agent/models/agent_tool.dart
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'agent_tool.freezed.dart';
-part 'agent_tool.g.dart';
-
-@freezed
-class AgentToolDef with _$AgentToolDef {
-  const factory AgentToolDef({
-    required String name,
-    required String description,
-    required Map<String, dynamic> inputSchema,
-  }) = _AgentToolDef;
-
-  factory AgentToolDef.fromJson(Map<String, dynamic> json) =>
-      _$AgentToolDefFromJson(json);
-
-  /// Anthropic API shape — note `input_schema` key (snake)
-  Map<String, dynamic> toAnthropic() => {
-        'name': name,
-        'description': description,
-        'input_schema': inputSchema,
-      };
-}
-
-@freezed
-class AgentToolUseBlock with _$AgentToolUseBlock {
-  const factory AgentToolUseBlock({
-    required String id,
+class AgentToolCall with _$AgentToolCall {
+  const factory AgentToolCall({
     required String name,
     required Map<String, dynamic> input,
-  }) = _AgentToolUseBlock;
+    required String output,
+  }) = _AgentToolCall;
 
-  factory AgentToolUseBlock.fromJson(Map<String, dynamic> json) =>
-      _$AgentToolUseBlockFromJson(json);
+  factory AgentToolCall.fromJson(Map<String, dynamic> json) =>
+      _$AgentToolCallFromJson(json);
 }
-```
-
-- [ ] **Step 5.4: Create `agent_response.dart`**
-
-```dart
-// lib/core/agent/models/agent_response.dart
-import 'package:freezed_annotation/freezed_annotation.dart';
-
-part 'agent_response.freezed.dart';
-part 'agent_response.g.dart';
 
 @freezed
-class AgentResponse with _$AgentResponse {
-  const factory AgentResponse({
-    String? id,
-    String? model,
-    required String stopReason, // 'end_turn' | 'tool_use' | ...
-    required List<Map<String, dynamic>> content,
-  }) = _AgentResponse;
+class AgentRunResult with _$AgentRunResult {
+  const factory AgentRunResult({
+    required String finalText,
+    required List<AgentToolCall> toolCalls,
+    required bool aborted,
+    String? conversationId,
+  }) = _AgentRunResult;
 
-  factory AgentResponse.fromJson(Map<String, dynamic> json) => AgentResponse(
-        id: json['id'] as String?,
-        model: json['model'] as String?,
-        stopReason: json['stop_reason'] as String? ?? 'unknown',
-        content: ((json['content'] as List?) ?? const [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      );
+  factory AgentRunResult.fromJson(Map<String, dynamic> json) =>
+      _$AgentRunResultFromJson(json);
 }
 ```
 
-- [ ] **Step 5.5: Run build_runner**
+- [ ] **Step 5.3: Run build_runner**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id_mobile
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-Expected: success, generates `.freezed.dart` and `.g.dart` files next to each model.
+Expected: success, generates `.freezed.dart` and `.g.dart`.
 
-- [ ] **Step 5.6: Commit**
+- [ ] **Step 5.4: Commit**
 
 ```bash
-cd /Users/dmitry/Downloads/taler_id_mobile
 git add lib/core/agent/models/
-git commit -m "feat(agent): add Freezed types for Claude Agent Loop"
+git commit -m "feat(agent): add AgentRunResult Freezed type"
 ```
 
 ---
 
-## Task 6: Flutter — AnthropicClient + AgentLoop + EchoTool (TDD)
+## Task 6: Flutter — `AgentClient` (Dio wrapper) + tests (TDD)
 
 **Files:**
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/anthropic_client.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/agent_tool_handler.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/tool_registry.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/echo_tool.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/agent_loop.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/test/core/agent/agent_loop_test.dart`
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/agent_client.dart`
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/test/core/agent/agent_client_test.dart`
 
-- [ ] **Step 6.1: Verify mocktail is available**
+Single-method client. No agent loop, no tools — that all lives on backend now.
 
-```bash
-cd /Users/dmitry/Downloads/taler_id_mobile && grep mocktail pubspec.yaml
-```
+- [ ] **Step 6.1: Write failing test**
 
-If absent — add to `dev_dependencies`: `mocktail: ^1.0.4`, then `flutter pub get`.
-
-- [ ] **Step 6.2: Write the failing AgentLoop test**
-
-`/Users/dmitry/Downloads/taler_id_mobile/test/core/agent/agent_loop_test.dart`:
+`test/core/agent/agent_client_test.dart`:
 ```dart
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:taler_id_mobile/core/agent/agent_loop.dart';
-import 'package:taler_id_mobile/core/agent/anthropic_client.dart';
-import 'package:taler_id_mobile/core/agent/models/agent_message.dart';
-import 'package:taler_id_mobile/core/agent/models/agent_response.dart';
-import 'package:taler_id_mobile/core/agent/models/agent_tool.dart';
-import 'package:taler_id_mobile/core/agent/tools/agent_tool_handler.dart';
-import 'package:taler_id_mobile/core/agent/tools/echo_tool.dart';
-import 'package:taler_id_mobile/core/agent/tools/tool_registry.dart';
+import 'package:taler_id_mobile/core/agent/agent_client.dart';
 
-class _MockAnthropicClient extends Mock implements AnthropicClient {}
+class _MockDio extends Mock implements Dio {}
+
+class _FakeRequestOptions extends Fake implements RequestOptions {}
 
 void main() {
-  late _MockAnthropicClient client;
-  late ToolRegistry registry;
-  late AgentLoop loop;
+  setUpAll(() {
+    registerFallbackValue(_FakeRequestOptions());
+  });
+
+  late _MockDio dio;
+  late AgentClient client;
 
   setUp(() {
-    client = _MockAnthropicClient();
-    registry = ToolRegistry()..register(EchoTool());
-    loop = AgentLoop(client: client, registry: registry);
+    dio = _MockDio();
+    client = AgentClient(dio);
   });
 
-  test('ends turn directly when Claude returns end_turn', () async {
-    when(() => client.createMessage(
-          messages: any(named: 'messages'),
-          tools: any(named: 'tools'),
-          system: any(named: 'system'),
-        )).thenAnswer((_) async => const AgentResponse(
-          stopReason: 'end_turn',
-          content: [
-            {'type': 'text', 'text': 'Hello there.'},
-          ],
-        ));
-
-    final result = await loop.run(userGoal: 'Hi');
-
-    expect(result.finalText, 'Hello there.');
-    expect(result.toolCalls, isEmpty);
-    verify(() => client.createMessage(
-          messages: any(named: 'messages'),
-          tools: any(named: 'tools'),
-          system: any(named: 'system'),
-        )).called(1);
-  });
-
-  test('executes a single echo tool_use and loops to a final answer', () async {
-    final calls = <List<AgentMessage>>[];
-    when(() => client.createMessage(
-          messages: any(named: 'messages'),
-          tools: any(named: 'tools'),
-          system: any(named: 'system'),
-        )).thenAnswer((invocation) async {
-      final msgs = invocation.namedArguments[#messages] as List<AgentMessage>;
-      calls.add(List.of(msgs));
-      if (calls.length == 1) {
-        return const AgentResponse(
-          stopReason: 'tool_use',
-          content: [
+  test('POSTs /agent/run with goal and parses response', () async {
+    when(() => dio.post<Map<String, dynamic>>(
+          any(),
+          data: any(named: 'data'),
+        )).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        requestOptions: RequestOptions(path: '/agent/run'),
+        statusCode: 200,
+        data: {
+          'finalText': 'echoed: ping',
+          'toolCalls': [
             {
-              'type': 'tool_use',
-              'id': 'tu_1',
               'name': 'echo',
               'input': {'text': 'ping'},
+              'output': 'ping',
             },
           ],
-        );
-      }
-      return const AgentResponse(
-        stopReason: 'end_turn',
-        content: [
-          {'type': 'text', 'text': 'echoed: ping'},
-        ],
-      );
-    });
+          'aborted': false,
+          'conversationId': 'conv-1',
+        },
+      ),
+    );
 
-    final result = await loop.run(userGoal: 'echo ping');
+    final result = await client.runAgent(goal: 'echo ping');
 
     expect(result.finalText, 'echoed: ping');
     expect(result.toolCalls.length, 1);
     expect(result.toolCalls.first.name, 'echo');
-    expect(result.toolCalls.first.result, 'ping');
-    expect(calls.length, 2,
-        reason: 'must call API twice: initial + after tool_result');
+    expect(result.toolCalls.first.output, 'ping');
+    expect(result.aborted, isFalse);
+    expect(result.conversationId, 'conv-1');
+
+    verify(() => dio.post<Map<String, dynamic>>(
+          '/agent/run',
+          data: {'goal': 'echo ping'},
+        )).called(1);
   });
 
-  test('aborts loop after maxIterations to prevent infinite cycles',
-      () async {
-    when(() => client.createMessage(
-          messages: any(named: 'messages'),
-          tools: any(named: 'tools'),
-          system: any(named: 'system'),
-        )).thenAnswer((_) async => const AgentResponse(
-          stopReason: 'tool_use',
-          content: [
-            {
-              'type': 'tool_use',
-              'id': 'tu_x',
-              'name': 'echo',
-              'input': {'text': 'loop'},
-            },
-          ],
-        ));
-
-    final result = await loop.run(userGoal: 'never ends', maxIterations: 3);
-    expect(result.toolCalls.length, 3);
-    expect(result.aborted, isTrue);
-  });
-}
-```
-
-- [ ] **Step 6.3: Run test — expect compile failure**
-
-```bash
-flutter test test/core/agent/agent_loop_test.dart
-```
-
-Expected: FAIL — missing imports.
-
-- [ ] **Step 6.4: Create AnthropicClient**
-
-`/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/anthropic_client.dart`:
-```dart
-import 'package:dio/dio.dart';
-import 'models/agent_message.dart';
-import 'models/agent_response.dart';
-import 'models/agent_tool.dart';
-
-class AnthropicClient {
-  final Dio _dio;
-
-  AnthropicClient(this._dio);
-
-  Future<AgentResponse> createMessage({
-    required List<AgentMessage> messages,
-    List<AgentToolDef> tools = const [],
-    String? system,
-    String? model,
-    int? maxTokens,
-    double? temperature,
-  }) async {
-    final body = <String, dynamic>{
-      'messages': messages.map((m) => m.toJson()).toList(),
-      if (tools.isNotEmpty) 'tools': tools.map((t) => t.toAnthropic()).toList(),
-      if (system != null && system.isNotEmpty) 'system': system,
-      if (model != null) 'model': model,
-      if (maxTokens != null) 'max_tokens': maxTokens,
-      if (temperature != null) 'temperature': temperature,
-    };
-
-    final resp = await _dio.post<Map<String, dynamic>>(
-      '/agent/claude',
-      data: body,
-    );
-
-    return AgentResponse.fromJson(resp.data ?? const {});
-  }
-}
-```
-
-- [ ] **Step 6.5: Create ToolHandler abstraction**
-
-`/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/agent_tool_handler.dart`:
-```dart
-import '../models/agent_tool.dart';
-
-abstract class AgentToolHandler {
-  AgentToolDef get definition;
-  Future<String> handle(Map<String, dynamic> input);
-}
-```
-
-- [ ] **Step 6.6: Create ToolRegistry**
-
-`/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/tool_registry.dart`:
-```dart
-import '../models/agent_tool.dart';
-import 'agent_tool_handler.dart';
-
-class ToolRegistry {
-  final Map<String, AgentToolHandler> _handlers = {};
-
-  void register(AgentToolHandler handler) {
-    _handlers[handler.definition.name] = handler;
-  }
-
-  List<AgentToolDef> get definitions =>
-      _handlers.values.map((h) => h.definition).toList();
-
-  Future<String> dispatch(String name, Map<String, dynamic> input) async {
-    final handler = _handlers[name];
-    if (handler == null) {
-      return 'ERROR: unknown tool $name';
-    }
-    try {
-      return await handler.handle(input);
-    } catch (e) {
-      return 'ERROR: tool $name threw: $e';
-    }
-  }
-}
-```
-
-- [ ] **Step 6.7: Create EchoTool**
-
-`/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/tools/echo_tool.dart`:
-```dart
-import '../models/agent_tool.dart';
-import 'agent_tool_handler.dart';
-
-class EchoTool implements AgentToolHandler {
-  @override
-  AgentToolDef get definition => const AgentToolDef(
-        name: 'echo',
-        description:
-            'Returns the provided text verbatim. Used to validate the agent-loop plumbing end-to-end.',
-        inputSchema: {
-          'type': 'object',
-          'properties': {
-            'text': {
-              'type': 'string',
-              'description': 'Text to echo back',
-            },
-          },
-          'required': ['text'],
+  test('includes conversationId and model when provided', () async {
+    when(() => dio.post<Map<String, dynamic>>(
+          any(),
+          data: any(named: 'data'),
+        )).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        requestOptions: RequestOptions(path: '/agent/run'),
+        statusCode: 200,
+        data: {
+          'finalText': 'ok',
+          'toolCalls': [],
+          'aborted': false,
         },
-      );
-
-  @override
-  Future<String> handle(Map<String, dynamic> input) async {
-    final text = input['text'];
-    if (text is! String) return 'ERROR: input.text must be a string';
-    return text;
-  }
-}
-```
-
-- [ ] **Step 6.8: Create AgentLoop**
-
-`/Users/dmitry/Downloads/taler_id_mobile/lib/core/agent/agent_loop.dart`:
-```dart
-import 'anthropic_client.dart';
-import 'models/agent_message.dart';
-import 'models/agent_response.dart';
-import 'tools/tool_registry.dart';
-
-class AgentToolCall {
-  final String id;
-  final String name;
-  final Map<String, dynamic> input;
-  final String result;
-  AgentToolCall({
-    required this.id,
-    required this.name,
-    required this.input,
-    required this.result,
-  });
-}
-
-class AgentResult {
-  final String finalText;
-  final List<AgentToolCall> toolCalls;
-  final bool aborted;
-  AgentResult({
-    required this.finalText,
-    required this.toolCalls,
-    required this.aborted,
-  });
-}
-
-class AgentLoop {
-  final AnthropicClient client;
-  final ToolRegistry registry;
-  final String systemPrompt;
-
-  AgentLoop({
-    required this.client,
-    required this.registry,
-    this.systemPrompt =
-        'You are a helpful agent embedded in the Taler ID mobile app. Use the available tools when they help complete the user goal. Keep replies short.',
-  });
-
-  Future<AgentResult> run({
-    required String userGoal,
-    int maxIterations = 8,
-  }) async {
-    final messages = <AgentMessage>[AgentMessage.userText(userGoal)];
-    final toolCalls = <AgentToolCall>[];
-
-    for (var i = 0; i < maxIterations; i++) {
-      final resp = await client.createMessage(
-        messages: messages,
-        tools: registry.definitions,
-        system: systemPrompt,
-      );
-
-      messages.add(AgentMessage.assistantBlocks(resp.content));
-
-      if (resp.stopReason == 'end_turn') {
-        final text = _extractText(resp.content);
-        return AgentResult(
-          finalText: text,
-          toolCalls: toolCalls,
-          aborted: false,
-        );
-      }
-
-      if (resp.stopReason == 'tool_use') {
-        final uses = resp.content.where((b) => b['type'] == 'tool_use');
-        final toolResultBlocks = <Map<String, dynamic>>[];
-        for (final use in uses) {
-          final id = use['id'] as String;
-          final name = use['name'] as String;
-          final input = Map<String, dynamic>.from(use['input'] as Map? ?? {});
-          final result = await registry.dispatch(name, input);
-          toolCalls.add(AgentToolCall(
-            id: id,
-            name: name,
-            input: input,
-            result: result,
-          ));
-          toolResultBlocks.add({
-            'type': 'tool_result',
-            'tool_use_id': id,
-            'content': result,
-          });
-        }
-        messages.add(AgentMessage(role: 'user', content: toolResultBlocks));
-        continue;
-      }
-
-      // Unknown stop reason → abort gracefully
-      return AgentResult(
-        finalText: _extractText(resp.content),
-        toolCalls: toolCalls,
-        aborted: true,
-      );
-    }
-
-    return AgentResult(
-      finalText: '(agent loop exceeded $maxIterations iterations)',
-      toolCalls: toolCalls,
-      aborted: true,
+      ),
     );
-  }
 
-  String _extractText(List<Map<String, dynamic>> blocks) {
-    final parts = <String>[];
-    for (final b in blocks) {
-      if (b['type'] == 'text' && b['text'] is String) {
-        parts.add(b['text'] as String);
-      }
-    }
-    return parts.join('\n').trim();
-  }
+    await client.runAgent(
+      goal: 'go',
+      conversationId: 'c-9',
+      model: 'claude-opus-4-7',
+    );
+
+    verify(() => dio.post<Map<String, dynamic>>(
+          '/agent/run',
+          data: {
+            'goal': 'go',
+            'conversationId': 'c-9',
+            'model': 'claude-opus-4-7',
+          },
+        )).called(1);
+  });
 }
 ```
 
-- [ ] **Step 6.9: Run tests — verify they pass**
-
-```bash
-flutter test test/core/agent/agent_loop_test.dart
-```
-
-Expected: 3 tests pass.
-
-- [ ] **Step 6.10: Commit**
+- [ ] **Step 6.2: Run failing test**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id_mobile
-git add lib/core/agent/ test/core/agent/
-git commit -m "feat(agent): AgentLoop + AnthropicClient + ToolRegistry + EchoTool with tests"
+flutter test test/core/agent/agent_client_test.dart
 ```
 
----
+Expected: FAIL.
 
-## Task 7: Flutter — Register AnthropicClient + ToolRegistry + AgentLoop in DI
+- [ ] **Step 6.3: Implement**
 
-**Files:**
-- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/di/service_locator.dart`
-
-- [ ] **Step 7.1: Find DI setup section**
-
-Open `service_locator.dart`. Find the `setupDependencies()` function and locate a logical place near other "core" registrations (around line 242 where DioClient is registered, per recon).
-
-- [ ] **Step 7.2: Add registrations**
-
-After existing core registrations (look for `sl.registerLazySingleton<DioClient>` and add immediately AFTER its block):
-
+`lib/core/agent/agent_client.dart`:
 ```dart
-// === Agent Shell (Phase 0) ===
-import 'package:.../core/agent/anthropic_client.dart';            // ← top of file
-import 'package:.../core/agent/agent_loop.dart';                  // ← top of file
-import 'package:.../core/agent/tools/tool_registry.dart';         // ← top of file
-import 'package:.../core/agent/tools/echo_tool.dart';             // ← top of file
+import 'package:dio/dio.dart';
+import 'models/agent_run_result.dart';
 
-// Inside setupDependencies(), after DioClient:
-sl.registerLazySingleton<AnthropicClient>(
-  () => AnthropicClient(sl<DioClient>().dio),
-);
-sl.registerLazySingleton<ToolRegistry>(
-  () => ToolRegistry()..register(EchoTool()),
-);
-sl.registerLazySingleton<AgentLoop>(
-  () => AgentLoop(
-    client: sl<AnthropicClient>(),
-    registry: sl<ToolRegistry>(),
-  ),
-);
+class AgentClient {
+  final Dio _dio;
+
+  AgentClient(this._dio);
+
+  Future<AgentRunResult> runAgent({
+    required String goal,
+    String? conversationId,
+    String? model,
+  }) async {
+    final body = <String, dynamic>{
+      'goal': goal,
+      if (conversationId != null) 'conversationId': conversationId,
+      if (model != null) 'model': model,
+    };
+
+    final resp = await _dio.post<Map<String, dynamic>>(
+      '/agent/run',
+      data: body,
+    );
+
+    return AgentRunResult.fromJson(resp.data ?? const {});
+  }
+}
 ```
 
-**Note:** Replace `package:.../` with the actual package name. Check `pubspec.yaml` for `name:` line. Probably `package:taler_id_mobile/`.
-
-**Note:** `DioClient.dio` — verify accessor. If DioClient exposes the underlying `Dio` via a different getter (e.g. `instance` or `client`), use that. Worst case: pass DioClient itself and have AnthropicClient call `dioClient.post(...)`.
-
-- [ ] **Step 7.3: Verify compile**
+- [ ] **Step 6.4: Verify pass**
 
 ```bash
-flutter analyze lib/core/di/service_locator.dart
+flutter test test/core/agent/agent_client_test.dart
 ```
 
-Expected: no errors.
+Expected: 2 tests pass.
 
-- [ ] **Step 7.4: Commit**
+- [ ] **Step 6.5: Commit**
 
 ```bash
-git add lib/core/di/service_locator.dart
-git commit -m "feat(agent): register AnthropicClient/AgentLoop/ToolRegistry in DI"
+git add lib/core/agent/agent_client.dart test/core/agent/agent_client_test.dart
+git commit -m "feat(agent): add AgentClient Dio wrapper with tests"
 ```
 
 ---
 
-## Task 8: Flutter — AgentBloc + AgentShellHomeScreen
+## Task 7: Flutter — `AgentShellBloc` + `AgentShellHomeScreen` + tests
 
 **Files:**
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/bloc/agent_shell_bloc.dart`
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/bloc/agent_shell_state.dart`
 - Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/bloc/agent_shell_event.dart`
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/bloc/agent_shell_state.dart`
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/bloc/agent_shell_bloc.dart`
 - Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/agent_shell/presentation/screens/agent_shell_home_screen.dart`
 - Create: `/Users/dmitry/Downloads/taler_id_mobile/test/features/agent_shell/agent_shell_bloc_test.dart`
 
-- [ ] **Step 8.1: Write failing test for bloc**
+- [ ] **Step 7.1: Write failing bloc test**
 
+`test/features/agent_shell/agent_shell_bloc_test.dart`:
 ```dart
-// test/features/agent_shell/agent_shell_bloc_test.dart
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:taler_id_mobile/core/agent/agent_loop.dart';
+import 'package:taler_id_mobile/core/agent/agent_client.dart';
+import 'package:taler_id_mobile/core/agent/models/agent_run_result.dart';
 import 'package:taler_id_mobile/features/agent_shell/presentation/bloc/agent_shell_bloc.dart';
 
-class _MockAgentLoop extends Mock implements AgentLoop {}
+class _MockAgentClient extends Mock implements AgentClient {}
 
 void main() {
-  late _MockAgentLoop loop;
+  late _MockAgentClient agent;
 
   setUp(() {
-    loop = _MockAgentLoop();
+    agent = _MockAgentClient();
   });
 
   blocTest<AgentShellBloc, AgentShellState>(
     'appends user + agent messages on submit',
     build: () {
-      when(() => loop.run(userGoal: any(named: 'userGoal'))).thenAnswer(
-        (_) async => AgentResult(
+      when(() => agent.runAgent(
+            goal: any(named: 'goal'),
+            conversationId: any(named: 'conversationId'),
+            model: any(named: 'model'),
+          )).thenAnswer(
+        (_) async => const AgentRunResult(
           finalText: 'echoed: hi',
-          toolCalls: const [],
+          toolCalls: [],
           aborted: false,
         ),
       );
-      return AgentShellBloc(loop: loop);
+      return AgentShellBloc(client: agent);
     },
     act: (bloc) => bloc.add(const AgentShellSubmit('hi')),
     expect: () => [
@@ -1157,20 +796,39 @@ void main() {
           .having((s) => s.messages.last.text, 'last.text', 'echoed: hi'),
     ],
   );
+
+  blocTest<AgentShellBloc, AgentShellState>(
+    'emits error state when AgentClient throws',
+    build: () {
+      when(() => agent.runAgent(
+            goal: any(named: 'goal'),
+            conversationId: any(named: 'conversationId'),
+            model: any(named: 'model'),
+          )).thenThrow(Exception('boom'));
+      return AgentShellBloc(client: agent);
+    },
+    act: (bloc) => bloc.add(const AgentShellSubmit('hi')),
+    expect: () => [
+      isA<AgentShellState>().having((s) => s.busy, 'busy', true),
+      isA<AgentShellState>()
+          .having((s) => s.busy, 'busy', false)
+          .having((s) => s.error, 'error', contains('boom')),
+    ],
+  );
 }
 ```
 
-Verify `bloc_test` is in pubspec dev_dependencies; if not, add `bloc_test: ^9.1.7`.
+Verify `bloc_test` is in dev_dependencies; if not, add `bloc_test: ^9.1.7`.
 
-- [ ] **Step 8.2: Run failing test**
+- [ ] **Step 7.2: Run failing test**
 
 ```bash
 flutter test test/features/agent_shell/agent_shell_bloc_test.dart
 ```
 
-Expected: FAIL — missing imports.
+Expected: FAIL.
 
-- [ ] **Step 8.3: Create event + state**
+- [ ] **Step 7.3: Create event + state**
 
 `lib/features/agent_shell/presentation/bloc/agent_shell_event.dart`:
 ```dart
@@ -1211,10 +869,12 @@ class AgentShellState extends Equatable {
   final List<AgentShellMessage> messages;
   final bool busy;
   final String? error;
+  final String? conversationId;
   const AgentShellState({
     required this.messages,
     required this.busy,
     this.error,
+    this.conversationId,
   });
   factory AgentShellState.initial() =>
       const AgentShellState(messages: [], busy: false);
@@ -1222,23 +882,25 @@ class AgentShellState extends Equatable {
     List<AgentShellMessage>? messages,
     bool? busy,
     String? error,
+    String? conversationId,
   }) =>
       AgentShellState(
         messages: messages ?? this.messages,
         busy: busy ?? this.busy,
         error: error,
+        conversationId: conversationId ?? this.conversationId,
       );
   @override
-  List<Object?> get props => [messages, busy, error];
+  List<Object?> get props => [messages, busy, error, conversationId];
 }
 ```
 
-- [ ] **Step 8.4: Create bloc**
+- [ ] **Step 7.4: Create bloc**
 
 `lib/features/agent_shell/presentation/bloc/agent_shell_bloc.dart`:
 ```dart
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/agent/agent_loop.dart';
+import '../../../../core/agent/agent_client.dart';
 import 'agent_shell_event.dart';
 import 'agent_shell_state.dart';
 
@@ -1246,8 +908,8 @@ export 'agent_shell_event.dart';
 export 'agent_shell_state.dart';
 
 class AgentShellBloc extends Bloc<AgentShellEvent, AgentShellState> {
-  final AgentLoop loop;
-  AgentShellBloc({required this.loop}) : super(AgentShellState.initial()) {
+  final AgentClient client;
+  AgentShellBloc({required this.client}) : super(AgentShellState.initial()) {
     on<AgentShellSubmit>(_onSubmit);
   }
 
@@ -1264,7 +926,10 @@ class AgentShellBloc extends Bloc<AgentShellEvent, AgentShellState> {
       error: null,
     ));
     try {
-      final result = await loop.run(userGoal: event.text);
+      final result = await client.runAgent(
+        goal: event.text,
+        conversationId: state.conversationId,
+      );
       final agentMsg = AgentShellMessage(
         role: 'agent',
         text: result.finalText.isEmpty ? '(empty response)' : result.finalText,
@@ -1273,6 +938,7 @@ class AgentShellBloc extends Bloc<AgentShellEvent, AgentShellState> {
       emit(state.copyWith(
         messages: [...state.messages, agentMsg],
         busy: false,
+        conversationId: result.conversationId,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -1284,15 +950,15 @@ class AgentShellBloc extends Bloc<AgentShellEvent, AgentShellState> {
 }
 ```
 
-- [ ] **Step 8.5: Run bloc test — verify passes**
+- [ ] **Step 7.5: Verify test pass**
 
 ```bash
 flutter test test/features/agent_shell/agent_shell_bloc_test.dart
 ```
 
-Expected: 1 test passes.
+Expected: 2 tests pass.
 
-- [ ] **Step 8.6: Create AgentShellHomeScreen widget**
+- [ ] **Step 7.6: Create screen widget**
 
 `lib/features/agent_shell/presentation/screens/agent_shell_home_screen.dart`:
 ```dart
@@ -1300,7 +966,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import '../bloc/agent_shell_bloc.dart';
-import '../../../../core/agent/agent_loop.dart';
+import '../../../../core/agent/agent_client.dart';
 
 class AgentShellHomeScreen extends StatelessWidget {
   const AgentShellHomeScreen({super.key});
@@ -1308,7 +974,7 @@ class AgentShellHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => AgentShellBloc(loop: GetIt.I<AgentLoop>()),
+      create: (_) => AgentShellBloc(client: GetIt.I<AgentClient>()),
       child: const _AgentShellScaffold(),
     );
   }
@@ -1339,9 +1005,7 @@ class _AgentShellScaffoldState extends State<_AgentShellScaffold> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Taler ID Agent (Phase 0 spike)'),
-      ),
+      appBar: AppBar(title: const Text('Taler ID Agent (Phase 0 spike)')),
       body: SafeArea(
         child: Column(
           children: [
@@ -1444,47 +1108,62 @@ class _AgentShellScaffoldState extends State<_AgentShellScaffold> {
 }
 ```
 
-- [ ] **Step 8.7: Run analyzer**
+- [ ] **Step 7.7: Analyzer**
 
 ```bash
 flutter analyze lib/features/agent_shell/
 ```
 
-Expected: no errors. Warnings are OK.
+Expected: no errors.
 
-- [ ] **Step 8.8: Commit**
+- [ ] **Step 7.8: Commit**
 
 ```bash
 git add lib/features/agent_shell/ test/features/agent_shell/
-git commit -m "feat(agent-shell): AgentShellBloc + home screen widget"
+git commit -m "feat(agent-shell): AgentShellBloc + home screen with tests"
 ```
 
 ---
 
-## Task 9: Flutter — Add `/agent-shell` route in GoRouter
+## Task 8: Flutter — Register `AgentClient` in DI + `/agent-shell` route
 
 **Files:**
+- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/di/service_locator.dart`
 - Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/router/app_router.dart`
-- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/router/route_constants.dart` (or equivalent file holding `RouteConstants`)
+- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/router/route_constants.dart` (or equivalent — find via grep)
 
-- [ ] **Step 9.1: Find RouteConstants definitions**
+- [ ] **Step 8.1: Add DI registration**
+
+Open `lib/core/di/service_locator.dart`. Near where `DioClient` is registered (~line 242 per recon), add:
+
+```dart
+// === Agent Shell (Phase 0) ===
+sl.registerLazySingleton<AgentClient>(
+  () => AgentClient(sl<DioClient>().dio),
+);
+```
+
+Add import at top:
+```dart
+import '../agent/agent_client.dart';
+```
+
+**Note:** Verify `DioClient.dio` accessor name. If different (e.g. `instance`, `client`), use that.
+
+- [ ] **Step 8.2: Find `RouteConstants`**
 
 ```bash
 grep -rn "class RouteConstants" /Users/dmitry/Downloads/taler_id_mobile/lib/
 ```
 
-Open that file.
-
-- [ ] **Step 9.2: Add new constant**
-
-Inside `class RouteConstants`, add:
+Open the matched file. Add inside the class:
 ```dart
 static const String agentShell = '/agent-shell';
 ```
 
-- [ ] **Step 9.3: Register route in app_router.dart**
+- [ ] **Step 8.3: Register route + env-driven `initialLocation`**
 
-Open `/Users/dmitry/Downloads/taler_id_mobile/lib/core/router/app_router.dart`. Find the routes array (after the splash route per recon, line ~70). Add:
+Open `lib/core/router/app_router.dart`. Find the GoRouter routes array. Add:
 ```dart
 GoRoute(
   path: RouteConstants.agentShell,
@@ -1492,123 +1171,110 @@ GoRoute(
 ),
 ```
 
-Add the import at top of file:
+Add import at top:
 ```dart
 import '../../features/agent_shell/presentation/screens/agent_shell_home_screen.dart';
 ```
 
-- [ ] **Step 9.4: Sanity check by navigating manually**
+Then find `initialLocation: RouteConstants.splash` (or similar). Wrap as:
+```dart
+final initial = const String.fromEnvironment(
+  'AGENT_SHELL_AS_HOME',
+  defaultValue: 'false',
+) == 'true'
+    ? RouteConstants.agentShell
+    : RouteConstants.splash;
 
-Temporarily change `initialLocation` (around line 67) from `RouteConstants.splash` to `RouteConstants.agentShell` to test directly. Run on emulator:
-```bash
-flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
-  --dart-define=FLAVOR=dev \
-  --dart-define=BASE_URL=https://staging.id.taler.tirol
+return GoRouter(
+  initialLocation: initial,
+  // ... rest of existing config
+);
 ```
 
-Verify the chat screen opens immediately. Restore `initialLocation` to splash (so normal flow works after login).
-
-- [ ] **Step 9.5: Commit**
+- [ ] **Step 8.4: Compile check**
 
 ```bash
-git add lib/core/router/
-git commit -m "feat(agent-shell): register /agent-shell route"
+flutter analyze lib/core/
+```
+
+Expected: no errors.
+
+- [ ] **Step 8.5: Commit**
+
+```bash
+git add lib/core/di/ lib/core/router/
+git commit -m "feat(agent-shell): register AgentClient in DI + /agent-shell route"
 ```
 
 ---
 
-## Task 10: Flutter — Manual end-to-end smoke test (UI only, no voice yet)
+## Task 9: Manual UI smoke test on emulator
 
 **Files:** No code changes; manual verification.
 
-- [ ] **Step 10.1: Launch on emulator authenticated**
+- [ ] **Step 9.1: Launch emulator + run**
 
 ```bash
 flutter emulators --launch Pixel_XL_API_33
-# wait ~20 seconds
+# wait ~20 sec
 ~/Library/Android/sdk/platform-tools/adb devices
-```
 
-Then run app:
-```bash
 cd /Users/dmitry/Downloads/taler_id_mobile
 flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
   --dart-define=FLAVOR=dev \
-  --dart-define=BASE_URL=https://staging.id.taler.tirol
+  --dart-define=BASE_URL=https://staging.id.taler.tirol \
+  --dart-define=AGENT_SHELL_AS_HOME=true
 ```
 
-- [ ] **Step 10.2: Login with test account**
+- [ ] **Step 9.2: Login**
 
-Email: `integration_test@taler-test.com`
-Password: `IntegrationTest123!`
+`integration_test@taler-test.com` / `IntegrationTest123!`. Should land on agent shell chat screen.
 
-- [ ] **Step 10.3: Navigate to /agent-shell**
+- [ ] **Step 9.3: Type "echo back the word 'pong'"**
 
-Open Android emulator's `adb shell` to deep-link directly:
-```bash
-~/Library/Android/sdk/platform-tools/adb -s emulator-5554 shell am start \
-  -a android.intent.action.VIEW \
-  -d "talerid:///agent-shell"
-```
+Tap send. Expected: user bubble → "Думаю…" → agent bubble with "pong" or "echoed: pong" (2-5 sec).
 
-If the custom scheme doesn't route correctly, simply edit `initialLocation` to `RouteConstants.agentShell` for this test pass (revert after).
+Check Flutter logs for `POST /agent/run` returning 200.
 
-- [ ] **Step 10.4: Type "Echo back the word 'pong' using the echo tool"**
+If 401 — JWT issue. If 500 — read DEV server logs (`ssh dvolkov@89.169.55.217 'pm2 logs taler-id-dev --lines 50 --nostream --err'`).
 
-Submit. Expected:
-- User bubble appears with the text
-- "Думаю…" indicator
-- After 1-3 sec, agent bubble appears with text like `echoed: pong` or similar
+- [ ] **Step 9.4: Second round-trip**
 
-In the run logs you should see the POST `/agent/claude` flying. If 401 — token issue, re-login. If 502/timeout — Anthropic blocking (handle per Task 4 fallback).
+Type "echo the word 'pang'". Should reply "pang".
 
-- [ ] **Step 10.5: Record one-line note**
+- [ ] **Step 9.5: Note observations (latency, friction) for later journal**
 
-In your daily-driver journal, write:
-```
-PHASE-0 SMOKE: agent-shell route responding. First echo round-trip XX ms.
-```
-
-- [ ] **Step 10.6: (No commit — this was verification only)**
+No commit yet — observations get added in Task 12.
 
 ---
 
-## Task 11: Android — Make Taler ID eligible as default launcher (intent filter)
+## Task 10: Android — Make Taler ID Dev eligible as home launcher
 
 **Files:**
 - Modify: `/Users/dmitry/Downloads/taler_id_mobile/android/app/src/main/AndroidManifest.xml`
+- Modify: `/Users/dmitry/Downloads/taler_id_mobile/android/app/build.gradle`
 
-- [ ] **Step 11.1: Open AndroidManifest.xml and locate MainActivity intent-filter for MAIN/LAUNCHER**
+- [ ] **Step 10.1: `build.gradle` manifestPlaceholders**
 
-Per recon: lines 61-64. It looks like:
-```xml
-<intent-filter>
-  <action android:name="android.intent.action.MAIN" />
-  <category android:name="android.intent.category.LAUNCHER" />
-</intent-filter>
-```
-
-- [ ] **Step 11.2: Add a NEW intent-filter immediately after the LAUNCHER one, behind a build flag**
-
-We want to be able to ship without home-launcher behaviour for prod for now. Use a manifest placeholder controlled by `--dart-define` is not possible directly, so we use a Gradle build type / flavor flag. Simplest for Phase 0 spike: add the new filter **only behind dev flavor** by gating it via a placeholder.
-
-Open `/Users/dmitry/Downloads/taler_id_mobile/android/app/build.gradle`. Find `productFlavors { dev { ... } prod { ... } }`. Inside `dev { ... }`, add:
+Find `productFlavors { ... dev { ... } prod { ... } }`. Inside `dev`:
 ```gradle
 manifestPlaceholders = [
     appLauncherCategories: '<category android:name="android.intent.category.HOME" /><category android:name="android.intent.category.DEFAULT" />'
 ]
 ```
 
-Inside `prod { ... }`, add:
+Inside `prod`:
 ```gradle
 manifestPlaceholders = [
     appLauncherCategories: ''
 ]
 ```
 
-If `manifestPlaceholders` already exists, merge entries rather than overwrite.
+If `manifestPlaceholders` already exists in either block, merge entries.
 
-In `AndroidManifest.xml`, immediately after the existing LAUNCHER intent-filter, add:
+- [ ] **Step 10.2: Update `AndroidManifest.xml`**
+
+Per prior recon, the MAIN/LAUNCHER intent filter is around lines 61-64. Immediately AFTER it, add:
 ```xml
 <intent-filter>
   <action android:name="android.intent.action.MAIN" />
@@ -1616,41 +1282,8 @@ In `AndroidManifest.xml`, immediately after the existing LAUNCHER intent-filter,
 </intent-filter>
 ```
 
-Note: This is unusual but the simplest gating. An alternative is duplicating the manifest under `android/app/src/dev/AndroidManifest.xml` — Flutter merges them. Pick whichever feels cleaner.
+- [ ] **Step 10.3: Re-run on emulator**
 
-- [ ] **Step 11.3: Re-run on emulator**
-
-```bash
-flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
-  --dart-define=FLAVOR=dev \
-  --dart-define=BASE_URL=https://staging.id.taler.tirol
-```
-
-Then press the Home button on the emulator. Expected: Android shows a chooser dialog asking which launcher to use (Pixel Launcher vs Taler ID Dev). If you don't see Taler ID Dev in the list — manifest filter didn't apply. Check `flutter build apk --flavor dev` output for manifest merger errors; inspect generated `build/app/intermediates/merged_manifests/devRelease/AndroidManifest.xml` to confirm both `LAUNCHER` and `HOME`+`DEFAULT` filters are present.
-
-- [ ] **Step 11.4: Pick Taler ID Dev as default launcher in the chooser**
-
-Tap "Taler ID Dev" → "Always". Press Home again — should land on whatever your `initialLocation` is. For the spike, you want Home button → `/agent-shell`.
-
-If `initialLocation` is `splash` and splash redirects to home, you'll see standard Taler ID dashboard. We need home-button-press to route to `/agent-shell` specifically.
-
-- [ ] **Step 11.5: Add launcher-mode detection in main_dev.dart**
-
-This is the small "feels right" piece for spike — when launched via HOME intent, jump straight to `/agent-shell` instead of splash. Quick approach: in `lib/main_dev.dart` (or wherever `runApp` is called for dev), set a global flag based on the launch intent. The cleanest path is a platform channel that queries the originating Intent's categories.
-
-For Phase 0 SPIKE, simplest: set `initialLocation = RouteConstants.agentShell` permanently in dev flavor by adding an env check in `app_router.dart`:
-```dart
-final isAgentShellLauncher =
-    const String.fromEnvironment('AGENT_SHELL_AS_HOME', defaultValue: 'false') ==
-        'true';
-final initial = isAgentShellLauncher
-    ? RouteConstants.agentShell
-    : RouteConstants.splash;
-```
-
-Then run with `--dart-define=AGENT_SHELL_AS_HOME=true` during the spike. Production behavior unchanged.
-
-Update your run command:
 ```bash
 flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
   --dart-define=FLAVOR=dev \
@@ -1658,70 +1291,83 @@ flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
   --dart-define=AGENT_SHELL_AS_HOME=true
 ```
 
-- [ ] **Step 11.6: Press Home — verify agent shell screen appears immediately**
+Press Home button on the emulator. Expected: Android shows a chooser asking which launcher to use. If Taler ID Dev not in list — inspect merged manifest at `build/app/intermediates/merged_manifests/devDebug/AndroidManifest.xml`.
 
-- [ ] **Step 11.7: Commit**
+- [ ] **Step 10.4: Pick Taler ID Dev → "Always"**
+
+Press Home again. Should land on agent shell screen.
+
+- [ ] **Step 10.5: Commit**
 
 ```bash
-git add android/app/src/main/AndroidManifest.xml android/app/build.gradle lib/core/router/app_router.dart
+git add android/app/src/main/AndroidManifest.xml android/app/build.gradle
 git commit -m "feat(agent-shell): make dev flavor eligible as Android home launcher"
 ```
 
 ---
 
-## Task 12: Voice integration — register `agent_task` tool in OpenAI Realtime session (TDD-light)
+## Task 11: Voice integration — `agent_task` tool in OpenAI Realtime session
 
 **Files:**
 - Create: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/assistant/services/agent_task_handler.dart`
-- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/assistant/presentation/screens/assistant_screen.dart` (touch only lines 630-639 for tool config and 1600-1650 for dispatch)
+- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/features/assistant/presentation/screens/assistant_screen.dart` (touch only lines ~630-639 for tool config and ~1600-1650 for dispatch — per prior recon)
+- Modify: `/Users/dmitry/Downloads/taler_id_mobile/lib/core/di/service_locator.dart`
 - Create: `/Users/dmitry/Downloads/taler_id_mobile/test/features/assistant/agent_task_handler_test.dart`
 
-The integration with `assistant_screen.dart` is the trickiest part — it's 2,800 lines. We isolate logic into a small testable handler class and only touch two regions of the screen file.
+Isolate the dispatch logic into a small testable handler. Touch `assistant_screen.dart` (2,800 lines) only in two narrow regions.
 
-- [ ] **Step 12.1: Write failing test for AgentTaskHandler**
+- [ ] **Step 11.1: Write failing test**
 
 ```dart
 // test/features/assistant/agent_task_handler_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:taler_id_mobile/core/agent/agent_loop.dart';
+import 'package:taler_id_mobile/core/agent/agent_client.dart';
+import 'package:taler_id_mobile/core/agent/models/agent_run_result.dart';
 import 'package:taler_id_mobile/features/assistant/services/agent_task_handler.dart';
 
-class _MockAgentLoop extends Mock implements AgentLoop {}
+class _MockAgentClient extends Mock implements AgentClient {}
 
 void main() {
-  late _MockAgentLoop loop;
+  late _MockAgentClient client;
   late AgentTaskHandler handler;
 
   setUp(() {
-    loop = _MockAgentLoop();
-    handler = AgentTaskHandler(loop: loop);
+    client = _MockAgentClient();
+    handler = AgentTaskHandler(client: client);
   });
 
-  test('passes goal to AgentLoop and returns finalText', () async {
-    when(() => loop.run(userGoal: 'do stuff'))
-        .thenAnswer((_) async => AgentResult(
-              finalText: 'done',
-              toolCalls: const [],
-              aborted: false,
-            ));
+  test('passes goal to AgentClient and returns finalText', () async {
+    when(() => client.runAgent(
+          goal: 'do stuff',
+          conversationId: any(named: 'conversationId'),
+          model: any(named: 'model'),
+        )).thenAnswer((_) async => const AgentRunResult(
+          finalText: 'done',
+          toolCalls: [],
+          aborted: false,
+        ));
 
     final out = await handler.run({'goal': 'do stuff'});
     expect(out, 'done');
   });
 
-  test('returns error string when goal missing', () async {
-    final out = await handler.run({});
-    expect(out, contains('ERROR'));
+  test('returns error string when goal missing or wrong type', () async {
+    expect(await handler.run({}), contains('ERROR'));
+    expect(await handler.run({'goal': 42}), contains('ERROR'));
   });
 
   test('returns aborted result with marker', () async {
-    when(() => loop.run(userGoal: 'oops'))
-        .thenAnswer((_) async => AgentResult(
-              finalText: 'partial',
-              toolCalls: const [],
-              aborted: true,
-            ));
+    when(() => client.runAgent(
+          goal: 'oops',
+          conversationId: any(named: 'conversationId'),
+          model: any(named: 'model'),
+        )).thenAnswer((_) async => const AgentRunResult(
+          finalText: 'partial',
+          toolCalls: [],
+          aborted: true,
+        ));
+
     final out = await handler.run({'goal': 'oops'});
     expect(out, contains('aborted'));
     expect(out, contains('partial'));
@@ -1729,30 +1375,30 @@ void main() {
 }
 ```
 
-- [ ] **Step 12.2: Run failing test**
+- [ ] **Step 11.2: Run failing test**
 
 ```bash
 flutter test test/features/assistant/agent_task_handler_test.dart
 ```
 
-Expected: FAIL — import not found.
+Expected: FAIL.
 
-- [ ] **Step 12.3: Implement AgentTaskHandler**
+- [ ] **Step 11.3: Implement `AgentTaskHandler`**
 
 `lib/features/assistant/services/agent_task_handler.dart`:
 ```dart
-import '../../../core/agent/agent_loop.dart';
+import '../../../core/agent/agent_client.dart';
 
 class AgentTaskHandler {
-  final AgentLoop loop;
-  AgentTaskHandler({required this.loop});
+  final AgentClient client;
+  AgentTaskHandler({required this.client});
 
   Future<String> run(Map<String, dynamic> input) async {
     final goal = input['goal'];
     if (goal is! String || goal.isEmpty) {
       return 'ERROR: missing required string parameter "goal"';
     }
-    final result = await loop.run(userGoal: goal);
+    final result = await client.runAgent(goal: goal);
     if (result.aborted) {
       return 'aborted after ${result.toolCalls.length} tool calls; partial: ${result.finalText}';
     }
@@ -1761,7 +1407,7 @@ class AgentTaskHandler {
 }
 ```
 
-- [ ] **Step 12.4: Run test — verify passes**
+- [ ] **Step 11.4: Run test — pass**
 
 ```bash
 flutter test test/features/assistant/agent_task_handler_test.dart
@@ -1769,32 +1415,35 @@ flutter test test/features/assistant/agent_task_handler_test.dart
 
 Expected: 3 tests pass.
 
-- [ ] **Step 12.5: Register AgentTaskHandler in DI**
+- [ ] **Step 11.5: Register `AgentTaskHandler` in DI**
 
-In `lib/core/di/service_locator.dart`, near the AgentLoop registration from Task 7:
+In `lib/core/di/service_locator.dart`, near AgentClient (from Task 8):
 ```dart
 sl.registerLazySingleton<AgentTaskHandler>(
-  () => AgentTaskHandler(loop: sl<AgentLoop>()),
+  () => AgentTaskHandler(client: sl<AgentClient>()),
 );
 ```
-Add the import at top.
+Add import at top:
+```dart
+import '../../features/assistant/services/agent_task_handler.dart';
+```
 
-- [ ] **Step 12.6: Add `agent_task` tool to OpenAI Realtime session in assistant_screen.dart**
+- [ ] **Step 11.6: Add `agent_task` tool to OpenAI Realtime session config**
 
-Open `assistant_screen.dart`, navigate to lines 630-639 (the session config `tools: [...]` array per recon). Append a new tool entry **at the end of the array, before the closing bracket**:
+Open `assistant_screen.dart`. Per recon, the tool config is around lines 630-639 — the `'tools': [...]` array. Append:
 ```dart
 {
   'type': 'function',
   'name': 'agent_task',
   'description':
-      'Delegate a complex multi-step task to an internal agent loop. Use ONLY when the task requires multiple steps, planning, or tools beyond the voice-layer ones. Returns the final natural-language result.',
+      'Delegate a complex multi-step task to an internal agent. Use ONLY when the task requires planning, multiple tools, or backend operations beyond the voice-layer tools. Returns the final natural-language result.',
   'parameters': {
     'type': 'object',
     'properties': {
       'goal': {
         'type': 'string',
         'description':
-            'Plain-language statement of what the user wants done. Be specific and include any constraints from the user.',
+            'Plain-language statement of what the user wants done. Be specific and include constraints.',
       },
     },
     'required': ['goal'],
@@ -1802,35 +1451,31 @@ Open `assistant_screen.dart`, navigate to lines 630-639 (the session config `too
 },
 ```
 
-- [ ] **Step 12.7: Wire `agent_task` dispatch in tool handler region (lines 1600-1650 per recon)**
+- [ ] **Step 11.7: Wire `agent_task` dispatch**
 
-Locate the `if (name == 'exit_translator_mode') { ... }` block. Add a sibling `else if` block:
+Per recon, the tool dispatch handler is around lines 1600-1650. Find the existing `if (name == 'exit_translator_mode') { ... }` block. Add a sibling `else if`:
 ```dart
 else if (name == 'agent_task') {
   try {
     final args = jsonDecode(argsJson) as Map<String, dynamic>;
     final handler = GetIt.I<AgentTaskHandler>();
     final result = await handler.run(args);
-    // Feed the result back to OpenAI Realtime as the tool's output:
     _sendFunctionCallOutput(callId, result);
   } catch (e) {
-    _sendFunctionCallOutput(
-      callId,
-      'ERROR: agent_task threw: $e',
-    );
+    _sendFunctionCallOutput(callId, 'ERROR: agent_task threw: $e');
   }
 }
 ```
 
-**Note:** Names like `_sendFunctionCallOutput` and `callId` are placeholders — when editing, use the **actual** helper / variable names already used by the other tool handlers immediately above (e.g. `exit_translator_mode`). Match the existing pattern verbatim — don't invent new ones.
+**Important:** `_sendFunctionCallOutput` and `callId` are PLACEHOLDER NAMES used as illustration. The actual helper / variable names in `assistant_screen.dart` may differ. **Read the existing dispatch block for `exit_translator_mode` (and any other tools nearby) and use the EXACT names already used by other handlers.** Do not invent new helpers — match the existing pattern verbatim.
 
-Add the GetIt import at top of `assistant_screen.dart` if not already present:
+Add imports at top of `assistant_screen.dart`:
 ```dart
 import 'package:get_it/get_it.dart';
 import '../../services/agent_task_handler.dart';
 ```
 
-- [ ] **Step 12.8: Run app + voice smoke test on emulator**
+- [ ] **Step 11.8: Voice end-to-end smoke test**
 
 ```bash
 flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
@@ -1839,41 +1484,38 @@ flutter run -d emulator-5554 --flavor dev -t lib/main_dev.dart \
   --dart-define=AGENT_SHELL_AS_HOME=true
 ```
 
-Grant microphone permission. Open the existing Assistant screen (not the new agent_shell screen — the Realtime voice lives there). Say:
+Grant mic permission. Open the existing Assistant screen (NOT the new agent shell — Realtime lives there). Say:
 
 > "Run the agent task to echo back the word ping."
 
-Watch Flutter logs. Expected:
-1. OpenAI Realtime sends `function_call` for `agent_task` with `goal` containing the user's phrasing
-2. `AgentTaskHandler.run` invoked, hits backend `/agent/claude`
-3. Claude returns `tool_use` for `echo`
-4. EchoTool runs locally, returns "ping"
-5. Claude returns `end_turn` with text like "echoed: ping"
-6. `_sendFunctionCallOutput` sends that back to Realtime
-7. Realtime speaks "Echoed back: ping" or similar
+Expected sequence in logs:
+1. OpenAI Realtime → `function_call` for `agent_task` with `goal`
+2. `AgentTaskHandler.run` → POST `/agent/run`
+3. Backend SDK runs agent loop → calls `echo` tool → finalizes
+4. Backend returns `{finalText: "ping" or "echoed: ping"}`
+5. Result sent back to Realtime via the `_sendFunctionCallOutput` (or actual) helper
+6. Realtime speaks the result aloud
 
-**This is Phase 0's primary exit criterion.** If anything in this chain fails, debug there before moving on.
+**This is Phase 0's primary exit criterion.** Debug if any step fails.
 
-- [ ] **Step 12.9: Commit**
+- [ ] **Step 11.9: Commit**
 
 ```bash
 git add lib/features/assistant/services/agent_task_handler.dart \
   lib/features/assistant/presentation/screens/assistant_screen.dart \
   lib/core/di/service_locator.dart \
   test/features/assistant/agent_task_handler_test.dart
-git commit -m "feat(assistant): add agent_task tool routing to Claude Agent Loop"
+git commit -m "feat(assistant): add agent_task tool routing to backend Claude Agent SDK"
 ```
 
 ---
 
-## Task 13: Daily-driver switchover + journaling setup
+## Task 12: Daily-driver switchover + journal
 
 **Files:**
-- Create: `/Users/dmitry/Downloads/taler_id_mobile/docs/agent-shell-journal.md` (gitignored or repo, your call)
+- Create: `/Users/dmitry/Downloads/taler_id_mobile/docs/agent-shell-journal.md`
 
-This task is procedural — getting Дмитрий's actual Pixel device set up as daily driver and starting the friction journal that drives Phase 1 prioritization.
-
-- [ ] **Step 13.1: Build the dev APK**
+- [ ] **Step 12.1: Build dev APK on PROD build server**
 
 ```bash
 ssh dvolkov@138.124.61.221 \
@@ -1887,79 +1529,94 @@ ssh dvolkov@138.124.61.221 \
 
 Public URL: https://id.taler.tirol/download/taler-id-dev.apk
 
-- [ ] **Step 13.2: Install on Pixel**
+- [ ] **Step 12.2: Install on Pixel**
 
-Open https://id.taler.tirol/download/taler-id-dev.apk on the Pixel, install, allow unknown sources, sign in.
+Browse to the URL, install, allow unknown sources, sign in.
 
-- [ ] **Step 13.3: Set as default launcher**
+- [ ] **Step 12.3: Set as default launcher**
 
-Press Home → chooser appears → "Taler ID Dev" → "Always".
+Press Home → chooser → "Taler ID Dev" → "Always". (Or via Settings → Apps → Default apps → Home app.)
 
-- [ ] **Step 13.4: Verify agent_shell screen on Home press**
+- [ ] **Step 12.4: Verify**
 
-Press Home button — should land on the agent shell chat screen. Type "ping" — should round-trip via Claude. Press Power → Power → Home — should also land here (full launcher experience).
+Press Home — should land on agent shell. Type "ping" — should round-trip via backend.
 
-- [ ] **Step 13.5: Create journal file in repo**
+- [ ] **Step 12.5: Create journal**
 
 `/Users/dmitry/Downloads/taler_id_mobile/docs/agent-shell-journal.md`:
 ```markdown
 # Agent Shell — Daily Driver Journal
 
-Pain points, missing capabilities, surprising wins. Drives Phase 1 prioritization.
+Pain points, missing capabilities, surprising wins.
+Drives Phase 1 prioritization.
 
 ## 2026-05-XX (Day 1)
 
 - [ ] Setup done, launcher swapped, first echo round-trip OK
 - 
+
+## Friction recurring across days
+
+(Add patterns here as they emerge.)
 ```
 
-- [ ] **Step 13.6: Commit journal**
+- [ ] **Step 12.6: Commit journal**
 
 ```bash
 git add docs/agent-shell-journal.md
 git commit -m "docs(agent-shell): start daily-driver journal"
 ```
 
-- [ ] **Step 13.7: PUSH the mobile branch — do not merge yet**
+- [ ] **Step 12.7: Push mobile branch (don't merge yet)**
 
 ```bash
 git push -u origin feature/agent-shell-phase-0
 ```
 
-Same for backend if not already pushed:
-```bash
-cd /Users/dmitry/Downloads/taler_id
-git push -u origin feature/agent-shell-phase-0
-```
-
-**Do NOT merge to `dev` (mobile) or `main` (backend) until you've used this for at least 5 days and decided it's worth continuing.** Phase 1 work happens on top of this branch or merges in once green.
+**Do NOT merge to `dev` (mobile) or `main` (backend) until you've used this for at least 5 days and decided it's worth continuing.**
 
 ---
 
 ## Phase 0 Exit Criteria — Sign-off Checklist
 
-Before declaring Phase 0 done and starting Phase 1 planning:
-
-- [ ] Backend `/agent/claude` proxies a real Anthropic call successfully (curl test passes)
+- [ ] `claude` CLI on DEV: installed, OAuth-logged-in, `echo "ping" | claude --print` works
+- [ ] Backend `POST /agent/run` returns 200 with curl + valid JWT
 - [ ] All unit tests pass: `npm test` (backend), `flutter test` (mobile)
-- [ ] Mobile app builds for dev flavor without warnings: `flutter build apk --flavor dev --release`
-- [ ] Voice end-to-end: spoken "echo ping" via Assistant → `agent_task` → Claude → echo tool → spoken result
-- [ ] Direct chat end-to-end on `/agent-shell` screen: typed message → Claude → reply
-- [ ] Default launcher set on Pixel; Home button → agent shell chat screen
-- [ ] Journal file initialized with at least 1 day of usage notes
-- [ ] PROD untouched (still on `main`/`prod` branches, no merge done)
-- [ ] No regressions in existing Taler ID tests: integration test suite (`npm test` in `~/Downloads/taler_id_tests`) passes
-- [ ] Anthropic API key NOT present in any committed file (`git log -p | grep ANTHROPIC_API_KEY` returns nothing)
+- [ ] Mobile app builds for dev flavor without errors: `flutter build apk --flavor dev --release`
+- [ ] Voice end-to-end: spoken "echo via agent" via Assistant → `agent_task` → backend → SDK → echo → spoken result
+- [ ] Direct chat end-to-end on `/agent-shell` screen: typed → backend → reply
+- [ ] Default launcher set on Pixel; Home → agent shell
+- [ ] Journal initialized with at least 1 day of usage notes
+- [ ] PROD untouched (no merge done to main / prod branches)
+- [ ] Existing integration tests pass: `cd ~/Downloads/taler_id_tests && npm test`
+- [ ] No Anthropic API key in any committed file: `git -C /Users/dmitry/Downloads/taler_id grep -n "ANTHROPIC_API_KEY" -- . ':!node_modules' ':!*.example'` returns nothing.
 
-When all of these are checked, run `superpowers:writing-plans` again with the Phase 1 spec section to write the Phase 1 plan.
+When all checked: write Phase 1 plan via `superpowers:writing-plans` with the Phase 1 section of the spec.
 
 ---
 
 ## Notes for the implementer
 
-- **TDD discipline:** Each task here writes the test first, then implementation. Don't skip; don't bulk-write code and then write tests after. The plan order is the execution order.
-- **Commits:** One commit per task. Don't squash; keep the spike's history granular so we can bisect later if Phase 1 work touches something fragile.
-- **Existing patterns:** Read the existing Voice and Assistant modules before writing new code in those files. The codebase has established conventions — follow them, don't invent parallel ones.
-- **Don't expand scope.** If you find yourself adding tools beyond `echo`, stop and ask. Phase 1 is when more tools come. Phase 0 only proves the plumbing works.
-- **Anthropic blocking risk (R2 in spec).** If the AEZA DEV server can't reach `api.anthropic.com` directly, the recovery is documented in Task 4 Step 4.5. Do that fix only if needed — don't preemptively build the DO proxy.
-- **Existing OpenAI Realtime integration.** Task 12 touches a 2,800-line file. Read the regions around lines 630-639 and 1600-1650 first so you understand the conventions before editing. Match the helper-method names verbatim.
+- **TDD discipline:** Each task writes the test first, then implementation. Don't skip.
+- **One commit per task.** Granular history for bisecting.
+- **SDK API verification (CRITICAL):** `@anthropic-ai/claude-agent-sdk` is relatively new. **Before writing Task 3 production code, read its README at `node_modules/@anthropic-ai/claude-agent-sdk/README.md` (or its public repo) to confirm `query()` signature, tool-definition pattern, and event shapes.** Adapt Task 3's pseudocode if needed. Update mocks to match.
+- **OAuth credentials:** SDK reads them from `~/.claude/.credentials.json`. If the backend runs as a different user than where `claude login` happened, the file won't be visible.
+- **AEZA blocking risk (R2 in spec):** If Anthropic API is blocked from DEV's IP, Task 4 fails. Build the DO nginx passthrough only if Task 4 actually fails. Don't preemptively.
+- **`assistant_screen.dart` is 2,800 lines.** Task 11 touches it minimally — read existing tool registration + dispatch patterns FIRST, match them. Don't invent helpers.
+- **Existing infrastructure (Realtime WebRTC, voice billing, transcripts) — don't touch.** Only one new tool + dispatch arm. Everything else reuse.
+- **Don't expand scope.** Beyond `echo` — stop and ask. Real system tools = Phase 1.
+
+---
+
+## What changed from the v1 plan (2026-05-19 pivot)
+
+The architecture-revision moved auth from API-key to OAuth and collapsed the Dart Agent Loop into the backend Claude Agent SDK. Net changes:
+
+- `ANTHROPIC_API_KEY` env-var setup → replaced by `claude` CLI OAuth verification (Task 2)
+- `/agent/claude` raw Messages proxy → replaced by `/agent/run` SDK wrapper (Task 3)
+- Dart `AnthropicClient` for raw API → replaced by `AgentClient` for `/agent/run` (Task 6)
+- Dart `AgentLoop`, `ToolDef`, `ToolRegistry`, `EchoTool`, `AgentToolHandler` (~400 lines of Dart) → **all removed**. SDK handles loop, tools live in backend TypeScript.
+- Freezed types `AgentMessage`, `AgentTool`, `AgentResponse` → replaced by single `AgentRunResult` (Task 5)
+- Task count: 13 → 12 (Task 1 was completed pre-pivot and stays valid)
+
+Net result: Phase 0 ~30% smaller, while gaining built-in tools (Bash, Read, Edit, Grep, Task, MCP integration) on the backend for Phase 1+.
