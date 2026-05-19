@@ -38,88 +38,109 @@ Already completed 2026-05-18. Both repos have `feature/agent-shell-phase-0` bran
 
 ---
 
-## Task 2: Verify `claude` CLI OAuth on DEV server
+## Task 2: Verify `claude` CLI on analyst box + SSH path from DEV → analyst
 
 **Files:** No code changes. Operational verification.
 
-The Claude Agent SDK on the backend will read OAuth credentials from `~/.claude/.credentials.json`. We need to confirm `claude` is installed on DEV and logged in under the user that runs the NestJS process (`dvolkov`).
+The backend NestJS on DEV (89.169.55.217) will spawn SSH-subprocess to the analyst box (`dv@5.101.115.184`) and run `claude --print` there. This is the same pattern `taler-monitor` already uses. We need to confirm:
+1. `claude` CLI works on analyst box (Дмитрий already uses it for `taler-monitor`).
+2. Non-interactive SSH from DEV → analyst is configured (key-based, no password prompt).
 
-- [ ] **Step 2.1: SSH to DEV and check `claude` CLI**
-
-```bash
-ssh dvolkov@89.169.55.217 'which claude && claude --version'
-```
-
-Expected: a path like `/usr/local/bin/claude` (or `/home/dvolkov/.local/bin/claude` or `~/.npm-global/bin/claude`) and a version number (≥ 0.2.x for current Agent SDK compatibility). If "command not found" — install per https://docs.anthropic.com/claude-code/getting-started, then re-run.
-
-- [ ] **Step 2.2: Check OAuth credentials file exists**
+- [ ] **Step 2.1: Verify `claude` CLI on analyst-box works directly**
 
 ```bash
-ssh dvolkov@89.169.55.217 'ls -la ~/.claude/.credentials.json 2>&1 && stat -c "%a" ~/.claude/.credentials.json 2>&1'
+ssh dv@5.101.115.184 'which claude && claude --version && ls -la ~/.claude/.credentials.json 2>&1'
 ```
 
-Expected: file exists (size > 100 bytes typically), permissions `600`. If "No such file or directory" — run `claude login` interactively, then re-run.
+Expected: claude path, version number, credentials file present with `600` permissions. If any of these fails — fix on analyst box first (re-install / `claude login`).
 
-If file exists but permissions wider than 600:
-```bash
-ssh dvolkov@89.169.55.217 'chmod 600 ~/.claude/.credentials.json'
-```
-
-- [ ] **Step 2.3: Sanity-check the credentials work**
+- [ ] **Step 2.2: Sanity-check `claude --print` non-interactive works**
 
 ```bash
-ssh dvolkov@89.169.55.217 'echo "Reply with the single word: pong" | claude --print 2>&1'
+ssh dv@5.101.115.184 'claude --print --output-format text -- "Reply with only the single word: pong"'
 ```
 
-Expected: output `pong` (or close to it). If 401/auth error — `claude login` again. If `command not found` — `which claude` again, ensure PATH is set for non-interactive ssh.
+Expected: stdout = `pong` (possibly with trailing newline). If `claude` prints multi-line preamble or formatting that we don't want — try `--output-format text` (or `--output-format=text`) per `claude --help`. If `--print` is not the flag name on the installed version, run `claude --help` and use whatever non-interactive one-shot mode exists.
 
-- [ ] **Step 2.4: Document plan/tier**
+If the prompt syntax differs (e.g. claude expects `claude -p "..."` instead of `claude --print -- "..."`), note the actual invocation — Task 3 production code must match.
 
-Record in repo notes (we'll create `docs/agent-shell-journal.md` in Task 12, but for now save to memory or a temp scratch file):
-- Claude CLI version on DEV
-- Plan/tier of the OAuth account (Pro / Max / Team — visible at https://console.anthropic.com/settings/billing)
-- Approximate rate limits known so far (helpful for Phase 0 sizing — Phase 0 itself uses very few tokens)
+- [ ] **Step 2.3: Verify SSH from DEV → analyst is key-based (non-interactive)**
 
-- [ ] **Step 2.5: No commit** (operational only).
+```bash
+ssh dvolkov@89.169.55.217 'ssh -o BatchMode=yes dv@5.101.115.184 "echo SSH-OK"'
+```
 
-**Note:** If Step 2.3 fails because Anthropic blocks the AEZA RU IP, the same will block Step 4's tests when run against the live SDK. Then we set up a passthrough nginx on DigitalOcean (167.172.181.34) as documented in spec R2 — but defer that until Step 4 actually fails. Do not preemptively build the proxy.
+Expected: `SSH-OK` on stdout, no password prompt, no host-key prompt.
+
+If "Permission denied (publickey)" — copy DEV's `~/.ssh/id_*.pub` to analyst's `~/.ssh/authorized_keys` for user `dv`:
+```bash
+ssh dvolkov@89.169.55.217 'cat ~/.ssh/id_ed25519.pub' | \
+  ssh dv@5.101.115.184 'cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+```
+(Adjust key filename if not ed25519.)
+
+If "Host key verification failed" — first do `ssh dvolkov@89.169.55.217 'ssh-keyscan -t ed25519 5.101.115.184 >> ~/.ssh/known_hosts'`.
+
+- [ ] **Step 2.4: Full chain test — DEV runs `claude` on analyst**
+
+```bash
+ssh dvolkov@89.169.55.217 \
+  'ssh -o BatchMode=yes dv@5.101.115.184 "claude --print --output-format text -- \"Reply with only the single word: pong\""'
+```
+
+Expected: `pong` on stdout. **This exact command (parameterized with the user's goal) is what AgentService will spawn in Task 3.** If this works end-to-end, Phase 0 architecture is validated at the operational level — Task 3 just wraps it in NestJS.
+
+- [ ] **Step 2.5: Latency sample**
+
+```bash
+time ssh dvolkov@89.169.55.217 \
+  'ssh -o BatchMode=yes dv@5.101.115.184 "claude --print --output-format text -- \"Reply with: ack\""'
+```
+
+Expected: 2-6 seconds (SSH-DEV + SSH-analyst + Claude API + return). Record this as the baseline — it's the floor for Phase 0 voice latency.
+
+If significantly slower (>10s) — investigate SSH connection caching (`~/.ssh/config` with `ControlMaster auto`, `ControlPath`, `ControlPersist 10m` on DEV-side for the analyst host).
+
+- [ ] **Step 2.6: Document tier + invocation pattern**
+
+Save to a scratch note (we'll formalize in journal in Task 12):
+- Claude CLI version on analyst
+- Plan/tier of the OAuth account (Pro / Max / Team)
+- The exact `claude` invocation that produced the expected output in Step 2.2 — Task 3 production code must mirror this verbatim
+- Latency baseline from Step 2.5
+
+- [ ] **Step 2.7: No commit** (operational only).
+
+**Note:** Anthropic blocking is NOT a risk here — analyst box already reaches Anthropic successfully (taler-monitor confirms). DEV server itself does not call Anthropic; only SSH to analyst.
 
 ---
 
-## Task 3: Backend — AgentModule with Claude Agent SDK + echo tool (TDD)
+## Task 3: Backend — AgentModule with SSH-subprocess to analyst (TDD)
 
 **Files:**
-- Modify: `/Users/dmitry/Downloads/taler_id/package.json` — add `@anthropic-ai/claude-agent-sdk` dep
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.module.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.controller.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.ts`
-- Create: `/Users/dmitry/Downloads/taler_id/src/agent/tools/echo.tool.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-request.dto.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-response.dto.ts`
 - Create: `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.spec.ts`
 - Modify: `/Users/dmitry/Downloads/taler_id/src/app.module.ts` — register AgentModule
 
-The Claude Agent SDK exposes a `query()` (or similar) function that runs a full agent loop with built-in tools (Bash, Read, Edit, Grep, Task, etc.) plus custom tools we register. It authenticates via OAuth credentials at `~/.claude/.credentials.json` automatically — no API key needed.
+**No new npm packages.** We use Node's built-in `child_process.exec` to spawn an SSH command to the analyst box. No Claude SDK in this process — the `claude` CLI on the analyst box does all the work.
 
-**Important:** Verify exact SDK API names against the official docs / package README before writing the implementation. The pseudocode below reflects the expected interface but may need tiny adjustments (e.g. `query()` vs `createAgent()`, `tool()` vs `defineTool()`, etc.). If the implementer subagent finds the API differs, that's expected — adapt and report.
+The backend's `AgentService.runAgent` will:
+1. Take a `goal` string from the caller.
+2. Spawn `ssh -o BatchMode=yes dv@5.101.115.184 'claude --print --output-format text -- "<escaped goal>"'`.
+3. Capture stdout, return as `finalText`.
+4. On non-zero exit or timeout, set `aborted: true` and put stderr/error in `finalText`.
 
-- [ ] **Step 3.1: Add SDK dependency**
+**Verify in Task 2 first** what the exact non-interactive `claude` invocation is on the analyst box. The command shown above assumes `--print --output-format text -- "PROMPT"`. If your installed claude version uses `claude -p "..."` or different flags, adapt all instances in this task.
 
-```bash
-cd /Users/dmitry/Downloads/taler_id
-npm install @anthropic-ai/claude-agent-sdk@latest
-```
-
-Then check:
-```bash
-grep "@anthropic-ai/claude-agent-sdk" package.json
-```
-
-- [ ] **Step 3.2: Create DTO files**
+- [ ] **Step 3.1: Create DTO files**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-request.dto.ts`:
 ```typescript
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional } from 'class-validator';
 
 export class RunAgentRequestDto {
   @IsString()
@@ -128,12 +149,10 @@ export class RunAgentRequestDto {
   @IsOptional()
   @IsString()
   conversationId?: string;
-
-  @IsOptional()
-  @IsIn(['claude-sonnet-4-6', 'claude-opus-4-7'])
-  model?: 'claude-sonnet-4-6' | 'claude-opus-4-7';
 }
 ```
+
+(No `model` field for Phase 0 — claude CLI on analyst is invoked with its default model. Model selection comes in Phase 1+ if needed via `claude --model` flag.)
 
 `/Users/dmitry/Downloads/taler_id/src/agent/dto/run-agent-response.dto.ts`:
 ```typescript
@@ -145,57 +164,24 @@ export interface AgentToolCall {
 
 export interface RunAgentResponseDto {
   finalText: string;
-  toolCalls: AgentToolCall[];
+  toolCalls: AgentToolCall[]; // empty in Phase 0 — claude CLI runs tools internally
   aborted: boolean;
   conversationId?: string;
+  durationMs?: number;
 }
 ```
 
-- [ ] **Step 3.3: Create echo tool**
-
-`/Users/dmitry/Downloads/taler_id/src/agent/tools/echo.tool.ts`:
-```typescript
-import { tool } from '@anthropic-ai/claude-agent-sdk';
-import { z } from 'zod';
-
-/**
- * Trivial validation tool for Phase 0 — echoes back the text verbatim.
- * Confirms tool_use round-trips through the SDK end-to-end.
- */
-export const echoTool = tool(
-  'echo',
-  'Echo back the provided text verbatim. Used to validate the agent-loop plumbing end-to-end.',
-  {
-    text: z.string().describe('Text to echo back'),
-  },
-  async ({ text }) => {
-    return {
-      content: [{ type: 'text', text }],
-    };
-  },
-);
-```
-
-**Note:** If `@anthropic-ai/claude-agent-sdk` does not expose a `tool()` helper with this exact signature, consult `node_modules/@anthropic-ai/claude-agent-sdk/README.md` (or its dist `.d.ts`) for the correct way to define a custom tool. The shape may use a different builder (e.g. `defineTool`, MCP-style server). Adapt accordingly and update the test in the next step to match.
-
-- [ ] **Step 3.4: Write failing test for AgentService**
+- [ ] **Step 3.2: Write failing test for `AgentService`**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.spec.ts`:
 ```typescript
 import { Test, TestingModule } from '@nestjs/testing';
 import { AgentService } from './agent.service';
 
-jest.mock('@anthropic-ai/claude-agent-sdk', () => ({
-  query: jest.fn(),
-  tool: jest.fn((name, description, schema, handler) => ({
-    name,
-    description,
-    schema,
-    handler,
-  })),
+const mockExec = jest.fn();
+jest.mock('node:child_process', () => ({
+  exec: (cmd: string, opts: any, cb: any) => mockExec(cmd, opts, cb),
 }));
-
-import * as sdk from '@anthropic-ai/claude-agent-sdk';
 
 describe('AgentService', () => {
   let service: AgentService;
@@ -205,62 +191,92 @@ describe('AgentService', () => {
       providers: [AgentService],
     }).compile();
     service = module.get<AgentService>(AgentService);
-    (sdk.query as jest.Mock).mockReset();
+    mockExec.mockReset();
   });
 
-  it('runs SDK query with the given goal and returns final text', async () => {
-    (sdk.query as jest.Mock).mockImplementation(async function* () {
-      yield { type: 'tool_use', name: 'echo', input: { text: 'pong' }, id: 'tu1' };
-      yield { type: 'tool_result', tool_use_id: 'tu1', content: 'pong' };
-      yield { type: 'result', subtype: 'success', result: 'echoed: pong' };
+  it('spawns SSH command targeting analyst host and returns claude stdout', async () => {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: any) => {
+      cb(null, { stdout: 'pong\n', stderr: '' });
     });
 
     const result = await service.runAgent({
-      goal: 'echo pong',
+      goal: 'Reply with: pong',
       userId: 'user-123',
     });
 
-    expect(result.finalText).toBe('echoed: pong');
-    expect(result.toolCalls.length).toBe(1);
-    expect(result.toolCalls[0].name).toBe('echo');
-    expect(result.toolCalls[0].output).toBe('pong');
+    expect(result.finalText).toBe('pong');
     expect(result.aborted).toBe(false);
+    expect(result.toolCalls).toEqual([]);
+
+    // Verify the spawned command shape
+    const [cmd] = mockExec.mock.calls[0];
+    expect(cmd).toContain('ssh');
+    expect(cmd).toContain('dv@5.101.115.184');
+    expect(cmd).toContain('claude');
+    expect(cmd).toContain('--print');
+    expect(cmd).toContain('Reply with: pong');
   });
 
-  it('marks aborted when SDK returns failure result', async () => {
-    (sdk.query as jest.Mock).mockImplementation(async function* () {
-      yield { type: 'result', subtype: 'error_max_turns', result: 'too many turns' };
+  it('escapes single quotes in the goal to prevent shell injection', async () => {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: any) => {
+      cb(null, { stdout: 'ok', stderr: '' });
+    });
+
+    await service.runAgent({
+      goal: "what's the time?",
+      userId: 'u1',
+    });
+
+    const [cmd] = mockExec.mock.calls[0];
+    // The single quote in "what's" must NOT close the outer shell string unsafely
+    expect(cmd).not.toMatch(/'what's/);
+    // It should be escaped — pattern depends on chosen escaping. Either:
+    //  - '\\'' sequence (POSIX): 'what'\''s'
+    //  - Or use a different quoting strategy entirely.
+    // Either way the goal text must be reconstructible inside the inner shell.
+    expect(cmd).toMatch(/what.{1,4}s the time\?/);
+  });
+
+  it('marks aborted on non-zero exit and surfaces stderr', async () => {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: any) => {
+      const err: any = new Error('Command failed');
+      err.code = 1;
+      err.stdout = '';
+      err.stderr = 'claude: rate limited';
+      cb(err);
+    });
+
+    const result = await service.runAgent({
+      goal: 'go',
+      userId: 'u1',
+    });
+
+    expect(result.aborted).toBe(true);
+    expect(result.finalText).toContain('rate limited');
+  });
+
+  it('marks aborted on timeout', async () => {
+    mockExec.mockImplementation((_cmd: string, _opts: any, cb: any) => {
+      const err: any = new Error('timeout');
+      err.killed = true;
+      err.signal = 'SIGTERM';
+      err.stdout = '';
+      err.stderr = '';
+      cb(err);
     });
 
     const result = await service.runAgent({
       goal: 'long task',
-      userId: 'user-123',
+      userId: 'u1',
     });
 
     expect(result.aborted).toBe(true);
-    expect(result.finalText).toContain('too many turns');
-  });
-
-  it('passes model override to SDK when provided', async () => {
-    (sdk.query as jest.Mock).mockImplementation(async function* () {
-      yield { type: 'result', subtype: 'success', result: 'ok' };
-    });
-
-    await service.runAgent({
-      goal: 'go',
-      userId: 'user-123',
-      model: 'claude-opus-4-7',
-    });
-
-    const callArgs = (sdk.query as jest.Mock).mock.calls[0][0];
-    expect(callArgs.options?.model || callArgs.model).toBe('claude-opus-4-7');
+    expect(result.finalText.toLowerCase()).toMatch(/timeout|killed|aborted/);
   });
 });
 ```
 
-**Note:** The exact shape of SDK events (`tool_use`, `tool_result`, `result`) may differ from what's mocked. If the actual SDK uses different event types, update both the production code AND the test to match. The key behavior to verify: SDK is called with the goal, tool calls are extracted, final text is returned, aborted flag is set on max_turns/error.
-
-- [ ] **Step 3.5: Run test to verify it fails**
+- [ ] **Step 3.3: Run test — verify it fails**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id
@@ -269,105 +285,110 @@ npm test -- src/agent/agent.service.spec.ts
 
 Expected: FAIL with `Cannot find module './agent.service'`.
 
-- [ ] **Step 3.6: Implement AgentService**
+- [ ] **Step 3.4: Implement `AgentService`**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.service.ts`:
 ```typescript
 import { Injectable, Logger } from '@nestjs/common';
-import { query } from '@anthropic-ai/claude-agent-sdk';
-import { echoTool } from './tools/echo.tool';
-import { AgentToolCall, RunAgentResponseDto } from './dto/run-agent-response.dto';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
+import { RunAgentResponseDto } from './dto/run-agent-response.dto';
+
+const execAsync = promisify(exec);
 
 interface RunAgentInput {
   goal: string;
   userId: string;
   conversationId?: string;
-  model?: 'claude-sonnet-4-6' | 'claude-opus-4-7';
 }
 
 @Injectable()
 export class AgentService {
   private readonly logger = new Logger(AgentService.name);
+  private readonly ANALYST_HOST = process.env.CLAUDE_ANALYST_HOST || 'dv@5.101.115.184';
+  private readonly TIMEOUT_MS = 120_000; // 2 min for Phase 0; tune later
+  private readonly MAX_BUFFER = 5 * 1024 * 1024; // 5 MB stdout cap
 
   async runAgent(input: RunAgentInput): Promise<RunAgentResponseDto> {
-    const model = input.model || 'claude-sonnet-4-6';
     this.logger.debug(
-      `agent.run user=${input.userId} model=${model} goal="${input.goal.slice(0, 80)}"`,
+      `agent.run user=${input.userId} goal="${input.goal.slice(0, 80)}"`,
     );
 
-    const toolCalls: AgentToolCall[] = [];
-    let finalText = '';
-    let aborted = false;
+    const cmd = this.buildSshCommand(input.goal);
+    const start = Date.now();
 
-    // OAuth credentials picked up from ~/.claude/.credentials.json automatically
-    const stream = query({
-      prompt: input.goal,
-      options: {
-        model,
-        tools: [echoTool],
-      },
-    });
+    try {
+      const { stdout, stderr } = await execAsync(cmd, {
+        timeout: this.TIMEOUT_MS,
+        maxBuffer: this.MAX_BUFFER,
+      });
 
-    const lastToolUseByCallId: Record<
-      string,
-      { name: string; input: Record<string, unknown> }
-    > = {};
-
-    for await (const event of stream as AsyncIterable<any>) {
-      if (event.type === 'tool_use') {
-        lastToolUseByCallId[event.id] = {
-          name: event.name,
-          input: event.input,
-        };
-      } else if (event.type === 'tool_result') {
-        const matched = lastToolUseByCallId[event.tool_use_id];
-        if (matched) {
-          toolCalls.push({
-            name: matched.name,
-            input: matched.input,
-            output:
-              typeof event.content === 'string'
-                ? event.content
-                : JSON.stringify(event.content),
-          });
-        }
-      } else if (event.type === 'result') {
-        if (event.subtype === 'success') {
-          finalText =
-            typeof event.result === 'string'
-              ? event.result
-              : JSON.stringify(event.result);
-        } else {
-          aborted = true;
-          finalText = `(aborted: ${event.subtype}) ${
-            typeof event.result === 'string' ? event.result : ''
-          }`.trim();
-        }
+      if (stderr) {
+        this.logger.warn(`claude stderr: ${stderr.slice(0, 500)}`);
       }
-    }
 
-    return {
-      finalText,
-      toolCalls,
-      aborted,
-      conversationId: input.conversationId,
-    };
+      return {
+        finalText: stdout.trim(),
+        toolCalls: [],
+        aborted: false,
+        conversationId: input.conversationId,
+        durationMs: Date.now() - start,
+      };
+    } catch (err: any) {
+      const durationMs = Date.now() - start;
+      const reason =
+        err.killed && err.signal === 'SIGTERM'
+          ? `timeout after ${this.TIMEOUT_MS}ms`
+          : err.code != null
+          ? `exit ${err.code}`
+          : 'unknown';
+      const stderr = (err.stderr || '').toString().slice(0, 500);
+      const stdout = (err.stdout || '').toString().slice(0, 500);
+
+      this.logger.error(
+        `agent.run failed user=${input.userId} reason="${reason}" stderr="${stderr}"`,
+      );
+
+      return {
+        finalText: `(aborted: ${reason}) ${stderr || stdout}`.trim(),
+        toolCalls: [],
+        aborted: true,
+        conversationId: input.conversationId,
+        durationMs,
+      };
+    }
+  }
+
+  /**
+   * Build the shell command:
+   *   ssh -o BatchMode=yes dv@5.101.115.184 'claude --print --output-format text -- "<goal>"'
+   *
+   * Goal is escaped to be safe inside the OUTER single-quoted shell string
+   * AND inside the INNER double-quoted claude argument. Strategy:
+   *   1. Replace any double-quote with \" (escapes within inner double-quoted arg)
+   *   2. Replace any single-quote with '\\'' (POSIX trick to close, escape, reopen
+   *      the outer single-quoted string)
+   */
+  private buildSshCommand(goal: string): string {
+    const innerEscaped = goal.replace(/"/g, '\\"'); // protect inner double-quotes
+    const outerEscaped = innerEscaped.replace(/'/g, "'\\''"); // protect outer single-quotes
+    return `ssh -o BatchMode=yes ${this.ANALYST_HOST} 'claude --print --output-format text -- "${outerEscaped}"'`;
   }
 }
 ```
 
-**Note:** Adapt event types to match the actual SDK. The SDK README / `node_modules/@anthropic-ai/claude-agent-sdk/dist/index.d.ts` is the source of truth. If `query()` returns a promise instead of async iterable, or events have different names/shapes, restructure both the implementation and the test.
+**Note:** If `claude --print` outputs extra preamble lines (e.g. session ID, model info) before the actual response, you may need to parse them out. Run Step 2.2 of Task 2 and observe the exact stdout shape — the assertion `.trim()` here assumes the actual response is the only content. If not, add filtering logic and a test for it.
 
-- [ ] **Step 3.7: Run tests — verify pass**
+- [ ] **Step 3.5: Run tests — verify pass**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id
 npm test -- src/agent/agent.service.spec.ts
 ```
 
-Expected: 3 tests pass.
+Expected: 4 tests pass.
 
-- [ ] **Step 3.8: Create AgentController**
+- [ ] **Step 3.6: Create `AgentController`**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.controller.ts`:
 ```typescript
@@ -393,7 +414,6 @@ export class AgentController {
       goal: body.goal,
       userId: user?.sub,
       conversationId: body.conversationId,
-      model: body.model,
     });
   }
 }
@@ -405,7 +425,7 @@ grep -rn "export.*CurrentUser" /Users/dmitry/Downloads/taler_id/src/
 ```
 and adjust the import accordingly.
 
-- [ ] **Step 3.9: Create AgentModule**
+- [ ] **Step 3.7: Create AgentModule**
 
 `/Users/dmitry/Downloads/taler_id/src/agent/agent.module.ts`:
 ```typescript
@@ -421,14 +441,14 @@ import { AgentService } from './agent.service';
 export class AgentModule {}
 ```
 
-- [ ] **Step 3.10: Register AgentModule in AppModule**
+- [ ] **Step 3.8: Register AgentModule in AppModule**
 
 Open `/Users/dmitry/Downloads/taler_id/src/app.module.ts`. Find the `imports: [...]` array. Add `AgentModule`; add the import at the top:
 ```typescript
 import { AgentModule } from './agent/agent.module';
 ```
 
-- [ ] **Step 3.11: Build**
+- [ ] **Step 3.9: Build**
 
 ```bash
 cd /Users/dmitry/Downloads/taler_id && npm run build
@@ -436,12 +456,14 @@ cd /Users/dmitry/Downloads/taler_id && npm run build
 
 Expected: clean build.
 
-- [ ] **Step 3.12: Commit**
+- [ ] **Step 3.10: Commit**
 
 ```bash
-git add src/agent/ src/app.module.ts package.json package-lock.json
-git commit -m "feat(agent): /agent/run endpoint backed by Claude Agent SDK + echo tool"
+git add src/agent/ src/app.module.ts
+git commit -m "feat(agent): /agent/run endpoint via SSH-subprocess to claude on analyst box"
 ```
+
+Note: no `package.json` / `package-lock.json` in the commit — we didn't add any dependencies.
 
 ---
 
@@ -459,8 +481,10 @@ git push -u origin feature/agent-shell-phase-0
 - [ ] **Step 4.2: Pull on DEV server**
 
 ```bash
-ssh dvolkov@89.169.55.217 'cd ~/taler-id && git fetch origin && git checkout feature/agent-shell-phase-0 && git pull && npm install'
+ssh dvolkov@89.169.55.217 'cd ~/taler-id && git fetch origin && git checkout feature/agent-shell-phase-0 && git pull'
 ```
+
+No `npm install` step — Task 3 added no dependencies.
 
 - [ ] **Step 4.3: Build + restart**
 
@@ -485,13 +509,13 @@ curl -sX POST https://staging.id.taler.tirol/auth/login \
 curl -sX POST https://staging.id.taler.tirol/agent/run \
   -H "Authorization: Bearer $(cat /tmp/jwt.txt)" \
   -H 'Content-Type: application/json' \
-  -d '{"goal":"Use the echo tool to reply with just the word: pong"}' \
+  -d '{"goal":"Reply with only the single word: pong"}' \
   | jq
 ```
 
-Expected: `finalText` contains "pong", `toolCalls` has one entry with `name: "echo"`, `aborted: false`.
+Expected: `finalText` equals "pong" (or contains it), `toolCalls: []`, `aborted: false`, `durationMs` ~2000-6000.
 
-If 401 — JWT expired. If 502/504 / network error → Anthropic OAuth path blocked from AEZA. Fallback: nginx passthrough on DO (defer until needed). If 500 — read `pm2 logs taler-id-dev --lines 50 --nostream --err`.
+If 401 — JWT expired. If 500 with stderr mentioning SSH — DEV → analyst SSH key setup issue (revisit Task 2 Step 2.3). If 500 with stderr from claude — analyst-box OAuth issue (run `claude login` again on the analyst). If `aborted: true` with `(aborted: timeout...)` — the 120s timeout was hit, which means claude or SSH is hanging — check claude version and try non-interactive directly per Task 2 Step 2.2.
 
 - [ ] **Step 4.6: Latency observation**
 
@@ -1579,17 +1603,19 @@ git push -u origin feature/agent-shell-phase-0
 
 ## Phase 0 Exit Criteria — Sign-off Checklist
 
-- [ ] `claude` CLI on DEV: installed, OAuth-logged-in, `echo "ping" | claude --print` works
-- [ ] Backend `POST /agent/run` returns 200 with curl + valid JWT
+- [ ] `claude` CLI on analyst-box (`dv@5.101.115.184`) works: `claude --print --output-format text -- "ping"` returns expected output
+- [ ] SSH from DEV (`dvolkov@89.169.55.217`) → analyst is non-interactive (`BatchMode=yes` succeeds)
+- [ ] Backend `POST /agent/run` returns 200 with valid JWT + a sensible `finalText`
 - [ ] All unit tests pass: `npm test` (backend), `flutter test` (mobile)
 - [ ] Mobile app builds for dev flavor without errors: `flutter build apk --flavor dev --release`
-- [ ] Voice end-to-end: spoken "echo via agent" via Assistant → `agent_task` → backend → SDK → echo → spoken result
+- [ ] Voice end-to-end: spoken request via Assistant → `agent_task` → backend → SSH → claude on analyst → spoken result
 - [ ] Direct chat end-to-end on `/agent-shell` screen: typed → backend → reply
 - [ ] Default launcher set on Pixel; Home → agent shell
 - [ ] Journal initialized with at least 1 day of usage notes
 - [ ] PROD untouched (no merge done to main / prod branches)
 - [ ] Existing integration tests pass: `cd ~/Downloads/taler_id_tests && npm test`
-- [ ] No Anthropic API key in any committed file: `git -C /Users/dmitry/Downloads/taler_id grep -n "ANTHROPIC_API_KEY" -- . ':!node_modules' ':!*.example'` returns nothing.
+- [ ] No Anthropic API key anywhere in committed files: `git -C /Users/dmitry/Downloads/taler_id grep -n "ANTHROPIC_API_KEY" -- . ':!node_modules' ':!*.example'` returns nothing
+- [ ] No `@anthropic-ai/claude-agent-sdk` in `package.json`: `grep claude-agent-sdk /Users/dmitry/Downloads/taler_id/package.json` returns nothing
 
 When all checked: write Phase 1 plan via `superpowers:writing-plans` with the Phase 1 section of the spec.
 
@@ -1599,24 +1625,23 @@ When all checked: write Phase 1 plan via `superpowers:writing-plans` with the Ph
 
 - **TDD discipline:** Each task writes the test first, then implementation. Don't skip.
 - **One commit per task.** Granular history for bisecting.
-- **SDK API verification (CRITICAL):** `@anthropic-ai/claude-agent-sdk` is relatively new. **Before writing Task 3 production code, read its README at `node_modules/@anthropic-ai/claude-agent-sdk/README.md` (or its public repo) to confirm `query()` signature, tool-definition pattern, and event shapes.** Adapt Task 3's pseudocode if needed. Update mocks to match.
-- **OAuth credentials:** SDK reads them from `~/.claude/.credentials.json`. If the backend runs as a different user than where `claude login` happened, the file won't be visible.
-- **AEZA blocking risk (R2 in spec):** If Anthropic API is blocked from DEV's IP, Task 4 fails. Build the DO nginx passthrough only if Task 4 actually fails. Don't preemptively.
+- **No Claude SDK in this Phase.** We deliberately do NOT add `@anthropic-ai/claude-agent-sdk` or any Anthropic Node library. The backend just shells out to `claude` CLI on the analyst box via SSH. This mirrors the `taler-monitor` pattern Дмитрий already uses.
+- **Exact `claude` invocation** — Task 2 Step 2.2 establishes the real CLI flags. Task 3 production code (`buildSshCommand`) must use the exact same flags. If `--print --output-format text` doesn't exist in the installed claude version, Task 2 will surface that and Task 3 must adapt.
+- **Shell escaping is security-critical.** The `buildSshCommand` method must NOT allow goal text to break out of either the inner double-quoted claude argument or the outer single-quoted SSH command string. The test in Step 3.2 includes a single-quote injection check; if you add more sanitization, add more tests.
 - **`assistant_screen.dart` is 2,800 lines.** Task 11 touches it minimally — read existing tool registration + dispatch patterns FIRST, match them. Don't invent helpers.
 - **Existing infrastructure (Realtime WebRTC, voice billing, transcripts) — don't touch.** Only one new tool + dispatch arm. Everything else reuse.
-- **Don't expand scope.** Beyond `echo` — stop and ask. Real system tools = Phase 1.
+- **Don't expand scope.** No custom tools, no MCP servers, no system tools in Phase 0. Phase 1 adds those.
 
 ---
 
-## What changed from the v1 plan (2026-05-19 pivot)
+## What changed across the 2026-05-19 pivots
 
-The architecture-revision moved auth from API-key to OAuth and collapsed the Dart Agent Loop into the backend Claude Agent SDK. Net changes:
+Three revisions of Phase 0 happened on the same day as Дмитрий refined the architecture:
 
-- `ANTHROPIC_API_KEY` env-var setup → replaced by `claude` CLI OAuth verification (Task 2)
-- `/agent/claude` raw Messages proxy → replaced by `/agent/run` SDK wrapper (Task 3)
-- Dart `AnthropicClient` for raw API → replaced by `AgentClient` for `/agent/run` (Task 6)
-- Dart `AgentLoop`, `ToolDef`, `ToolRegistry`, `EchoTool`, `AgentToolHandler` (~400 lines of Dart) → **all removed**. SDK handles loop, tools live in backend TypeScript.
-- Freezed types `AgentMessage`, `AgentTool`, `AgentResponse` → replaced by single `AgentRunResult` (Task 5)
-- Task count: 13 → 12 (Task 1 was completed pre-pivot and stays valid)
+**v1 (initial):** API-key auth, Dart `AnthropicClient` + 400-line Agent Loop on phone, `/agent/claude` raw Messages proxy.
 
-Net result: Phase 0 ~30% smaller, while gaining built-in tools (Bash, Read, Edit, Grep, Task, MCP integration) on the backend for Phase 1+.
+**v2 (morning):** OAuth via Claude Code SDK on DEV backend, `@anthropic-ai/claude-agent-sdk` library in NestJS, `/agent/run` endpoint. Drops Dart agent loop entirely.
+
+**v3 (afternoon, current):** OAuth lives on analyst-box `dv@5.101.115.184` (not DEV — that's where `taler-monitor`'s `claude login` is). Backend spawns SSH-subprocess to analyst. **Drops the SDK as well** — just uses claude CLI via shell. ~30 lines of subprocess code instead of ~100 lines of SDK integration.
+
+Net result vs original v1: Phase 0 is ~50% smaller, no npm deps added, matches existing taler-monitor pattern exactly. Trade-off: custom tools (echo, system, etc.) deferred to Phase 1 as MCP servers on the analyst box. Phase 0 only validates the end-to-end voice → backend → SSH → claude → text → spoken loop.
