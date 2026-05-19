@@ -7,7 +7,9 @@
 
 ## TL;DR
 
-Расширение существующего Flutter-приложения Taler ID до **системного агент-shell'а на Android**: приложение становится default launcher, голосовой ассистент (OpenAI Realtime, уже работает) получает позади себя **Claude Agent Loop** (новый, в Dart) с tools, которые покрывают системные действия Android, коммуникацию через инфраструктуру Taler ID, SSH к серверам Дмитрия и делегирование длинных задач Claude Code на DEV-сервере.
+Расширение существующего Flutter-приложения Taler ID до **системного агент-shell'а на Android**: приложение становится default launcher, голосовой ассистент (OpenAI Realtime, уже работает) получает позади себя **Claude Agent SDK** (новое, на NestJS-бэкенде) с tools, которые покрывают системные действия Android (через WebSocket-обратку на телефон), коммуникацию через инфраструктуру Taler ID, SSH к серверам Дмитрия и full Linux на самом бэкенде.
+
+**Аутентификация — OAuth через `claude` CLI**, не API-ключ. Тот же паттерн что в `taler-monitor`: `claude login` на сервере, креды живут в `~/.claude/.credentials.json`, SDK подбирает их автоматически. Биллинг через Claude max-план, не через API-credits.
 
 Цель — для **единственного пользователя (Дмитрия)** превратить телефон в управляемое голосом окружение, где агент имеет root-уровневый доступ к телефону и существующему дев-стеку Taler ID.
 
@@ -96,96 +98,133 @@
 │   │  Voice loop (existing, переиспользуется)          │      │
 │   │  OpenAI Realtime ←→ WebRTC ←→ User                │      │
 │   └──────────────────────────────────────────────────┘      │
-│                          │                                   │
-│                          ▼  tool_call                        │
+│                          │ tool_call                         │
+│                          ▼                                   │
 │   ┌──────────────────────────────────────────────────┐      │
-│   │  Tool Router (new)                                │      │
-│   │  - простые tools → выполняет сразу                │      │
-│   │  - tool `agent_task(...)` → Claude Agent Loop     │      │
+│   │  Tool Router (Flutter)                            │      │
+│   │  - Простой tool → выполняет на телефоне сразу     │      │
+│   │  - tool `agent_task(...)` → POST /agent/run       │      │
+│   │  - Phone-tool callbacks из бэкенда — через WS     │      │
 │   └──────────────┬───────────────────────────────────┘      │
-│                  │ (для сложных задач)                       │
-│                  ▼                                           │
+└──────────────────┼───────────────────────────────────────────┘
+                   │ HTTP/WS (JWT)
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│   Taler ID NestJS backend                                    │
+│                                                              │
 │   ┌──────────────────────────────────────────────────┐      │
-│   │  Claude Agent Loop (Dart, new)                    │      │
-│   │  Anthropic Messages API + tool_use cycle          │      │
+│   │  AgentController (new)                            │      │
+│   │  POST /agent/run {goal, conversationId}           │      │
+│   │  WS /agent/tools — bridge для phone-side tools    │      │
 │   └──────────────┬───────────────────────────────────┘      │
 │                  │                                           │
-│         ┌────────┼──────────┬──────────┬─────────────┐      │
-│         ▼        ▼          ▼          ▼             ▼      │
-│  ┌─────────┐ ┌──────┐ ┌──────────┐ ┌────────┐ ┌──────────┐  │
-│  │ Backend │ │System│ │ Access.  │ │ Claude │ │ App      │  │
-│  │ tools   │ │ tools│ │ Service  │ │ Code   │ │ launcher │  │
-│  │ (REST)  │ │      │ │          │ │ proxy  │ │ (Intent) │  │
-│  └────┬────┘ └──┬───┘ └────┬─────┘ └───┬────┘ └────┬─────┘  │
-└───────┼─────────┼──────────┼───────────┼──────────┼─────────┘
-        │         │          │           │          │
-        ▼         ▼          ▼           ▼          ▼
-   ┌──────────┐ ┌────┐ ┌──────────┐ ┌─────────┐ ┌────────┐
-   │ Taler ID │ │OS  │ │WhatsApp, │ │ SSH to  │ │Telegram│
-   │ NestJS   │ │APIs│ │Telegram, │ │ DEV/PROD│ │Spotify │
-   │ backend  │ │    │ │Gmail UIs │ │ +claude │ │Browser │
-   │ +Postgres│ │    │ │          │ │ CLI     │ │etc     │
-   └──────────┘ └────┘ └──────────┘ └─────────┘ └────────┘
+│                  ▼                                           │
+│   ┌──────────────────────────────────────────────────┐      │
+│   │  @anthropic-ai/claude-agent-sdk                   │      │
+│   │  OAuth из ~/.claude/.credentials.json             │      │
+│   │  Полный Claude Code как библиотека: planner +     │      │
+│   │  встроенные tools (Bash, Read, Edit, Grep, Task)  │      │
+│   │  + кастомные tools (см. ниже)                     │      │
+│   └──────────────┬───────────────────────────────────┘      │
+│                  │                                           │
+│         ┌────────┼──────────┬──────────┐                     │
+│         ▼        ▼          ▼          ▼                     │
+│   Built-in     Custom    Phone-side  MCP servers             │
+│   tools        backend   tools (via  (optional,              │
+│   (Bash,       tools     WS bridge)  Phase 1+)               │
+│   Read, ...)   (REST)                                        │
+└────────────────────────────────────────────────────────────-─┘
+        │         │              │
+        ▼         ▼              ▼
+   Full Linux  Taler ID       Flutter app:
+   on server,  Postgres,      Accessibility,
+   SSH ко всем serverов,      Android system,
+   серверам   REST endpoints  notifications,
+                              app-launching
 ```
 
-### Два уровня агентов — supervisor & worker
+### Архитектура: 2 LLM-уровня
 
-Чтобы не было путаницы в дальнейшем, ключевое разделение:
+После апдейта дизайна (см. также **Update Log** в конце):
 
-- **Supervisor agent** = Claude Agent Loop, живёт на телефоне в Flutter-приложении. Запускается из OpenAI Realtime через специальный tool `agent_task(goal, context?)` когда задача сложнее одного tool-вызова. Быстрый, отзывчивый, держит контекст пользовательской сессии.
-- **Worker agent** = full `claude` CLI на DEV-сервере. Запускается из Supervisor через tool `agent.claude_code(task, repo?, server?, timeout_min?)`. Имеет full Linux + repo + tests, может работать 5-30 минут. Возвращает PR / коммит / результат.
+- **Voice layer (existing):** OpenAI Realtime в Flutter. Голос, низкая латентность, быстрые tools которые **выполняются на телефоне без захода в Claude** (`system.set`, `system.launch_app`, простые звонки и т.д.). Когда задача сложнее одного шага, Realtime зовёт специальный tool `agent_task(goal, context?)`, который проксируется в бэкенд.
 
-То есть в системе есть **три LLM-точки**: OpenAI Realtime (голос + быстрые tools), Claude Sonnet 4.6 на телефоне (supervisor), Claude Opus/Sonnet через `claude` CLI на сервере (worker). Каждая — по своей зоне ответственности.
+- **Agent layer (new):** Claude Agent SDK на NestJS-бэкенде. Это **Claude Code как библиотека**: тот же планировщик и встроенные tools (Bash, Read, Edit, Grep, Task, MCP integration), плюс кастомные tools которые мы регистрируем (звонки, мессенджер, dev-операции, phone-side tools через WebSocket-обратку).
+
+То есть в системе **2 LLM-точки** (было 3): OpenAI Realtime (голос + локальные tools) и Claude Agent SDK на бэкенде (тяжёлые задачи, дев-работа, Linux). Прежний "worker agent через SSH" из спека больше не нужен — бэкенд **уже** на сервере, у Claude Agent SDK прямой доступ к Bash, файловой системе и SSH-tools к другим серверам.
 
 ### Принципиальные решения
 
 1. **Voice-loop не трогаем.** OpenAI Realtime уже работает в Taler ID с минимальной латентностью. Заменять на Claude API сейчас = терять realtime. Когда Anthropic выпустит Realtime API — будет switch behind a flag.
 
-2. **Tool Router — новый слой между voice и tools.** Принимает `tool_call` от OpenAI Realtime, классифицирует:
-   - **Простой** (`system.*`, `messenger.send`, `web.search`) — выполняется напрямую через соответствующий subsystem (Android channel / REST / Socket.IO).
-   - **Агентный** (через специальный tool `agent_task(goal: str, context?: str)`) — кикает Claude Agent Loop, который сам выбирает sequence tools.
+2. **Tool Router на Flutter — простой классификатор.** Принимает `tool_call` от OpenAI Realtime, классифицирует:
+   - **Локальный** (`system.*`, `messenger.send`, `web.search`) — выполняется на телефоне без сети LLM (Android channel / REST / Socket.IO).
+   - **Агентный** (через `agent_task(goal: str, context?: str)`) — POST на backend, который запускает Claude Agent SDK.
 
    Это критично для **latency**: 90% команд должны выполниться без захода в Claude.
 
-3. **Claude Agent Loop живёт в Flutter-приложении на Dart.** Не на сервере, не в Termux, не embedded Node.js. Простой цикл: `Anthropic.messages.create(...)` → если `tool_use` → выполнить через Tool Router → `tool_result` → повторить. ~200-400 строк Dart-кода.
+3. **Claude Agent Loop = Claude Agent SDK на NestJS-бэкенде.** Используем официальный пакет `@anthropic-ai/claude-agent-sdk`. Не строим свой цикл `messages.create` — SDK сам управляет turn'ами, tool_use, ошибками, retries, и даёт богатый набор built-in tools. ~100 строк интеграции вместо ~400 строк своего цикла.
 
-4. **Claude Code — это один из tools для агента, не отдельная сущность.** Когда Claude Agent Loop решает что задача тяжёлая, он вызывает `agent.claude_code(task, repo?, server?)`. Под капотом это SSH на DEV-сервер + `claude --task "..."` + асинхронный polling. Это паттерн "supervisor agent (на телефоне) + worker agent (на сервере)".
+4. **Authentication через OAuth.** SDK подбирает credentials из `~/.claude/.credentials.json` на сервере (создаются командой `claude login`). API-ключ **не** нужен. Биллинг идёт через Claude max-план аккаунта Дмитрия — тот же что используется в Claude Code и в `taler-monitor`.
 
-5. **API keys (Anthropic, OpenAI) живут только на Taler ID backend.** Мобильное приложение никогда не знает ключей напрямую — все LLM-вызовы проксируются через NestJS endpoint, который проверяет JWT юзера и форвардит запрос. Это защита от extract-attack из APK.
+5. **Claude Code как worker для тяжёлых задач больше не нужен отдельно.** SDK на бэкенде уже = Claude Code. Bash tool работает на DEV-сервере где крутится бэкенд. SSH-tools (`dev.ssh(host, cmd)`) дают доступ к другим серверам. Длинные задачи (рефакторинг) запускаются как саб-агенты SDK (через `Task` tool) — без отдельной CLI-обёртки.
 
-6. **Anthropic API доступ.** AEZA-сервера блокируются Anthropic IP-фильтрами. Решение: API-прокси через DigitalOcean (167.172.181.34, который уже работает для outbound-bot OpenAI/ElevenLabs/Deepgram).
+6. **API keys (OpenAI) живут только на Taler ID backend.** OpenAI Realtime по-прежнему API-key. Anthropic — OAuth (без ключа). Мобильное приложение никогда не знает любых ключей — все LLM-вызовы проксируются через NestJS, который проверяет JWT юзера и форвардит запрос.
 
-### Agent Loop — pseudocode
+7. **Anthropic OAuth-эндпойнт и AEZA-блокировки.** OAuth через Claude Code SDK ходит на те же `api.anthropic.com` URL что и API-key путь. Если AEZA-сервера блокируются — настраиваем passthrough nginx на DigitalOcean (167.172.181.34, который уже используется для outbound-bot). Решается на этапе деплоя если нужно.
 
-```dart
-Future<AgentResult> runAgent({
-  required String userGoal,
-  required List<ToolDef> tools,
-  required ChatHistory history,
-}) async {
-  final messages = history.asMessages()..add(UserMessage(userGoal));
-  while (true) {
-    final response = await anthropic.messages.create(
-      model: 'claude-sonnet-4-6',  // default; Opus 4.7 via flag
-      messages: messages,
-      tools: tools.map((t) => t.toAnthropic()).toList(),
-      system: agentSystemPrompt(),
-    );
-    messages.add(response.message);
-    if (response.stopReason == 'end_turn') {
-      return AgentResult.complete(response.content);
-    }
-    if (response.stopReason == 'tool_use') {
-      final results = await Future.wait(
-        response.toolUseBlocks.map((block) => toolRouter.execute(block)),
-      );
-      messages.add(ToolResultMessage(results));
-      continue;
-    }
-    throw 'unexpected stop reason: ${response.stopReason}';
+8. **Phone-side tools реализованы через WebSocket-обратку.** Когда бэкендный агент хочет выполнить tool, который физически должен идти с телефона (читать экран WhatsApp, открыть приложение), SDK вызывает custom tool `phone(action, args)` → бэкенд шлёт сообщение в WS-канал телефона → Flutter выполняет → возвращает результат → SDK продолжает. Этот паттерн уже используется в Taler ID для OpenAI Realtime tool dispatch — переиспользуется как есть.
+
+### Agent integration — pseudocode
+
+```typescript
+// backend src/agent/agent.service.ts
+import { query, tool } from '@anthropic-ai/claude-agent-sdk';
+
+@Injectable()
+export class AgentService {
+  async runAgent(params: { goal: string; userId: string; conversationId?: string }) {
+    const customTools = [
+      tool({
+        name: 'echo',
+        description: 'Echo back the text verbatim. For plumbing validation.',
+        input_schema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] },
+        handler: async ({ text }) => text,
+      }),
+      // Phase 1+: phone-side tools via WS bridge, dev-tools via SSH, etc.
+    ];
+
+    const result = await query({
+      prompt: params.goal,
+      model: 'claude-sonnet-4-6',  // Opus 4.7 by flag
+      tools: customTools,
+      // OAuth credentials автоматически подбираются из ~/.claude/.credentials.json
+    });
+
+    return { finalText: result.finalText, toolCalls: result.toolCalls };
   }
 }
 ```
+
+**Flutter сторона стала намного проще:**
+
+```dart
+// lib/core/agent/agent_client.dart
+class AgentClient {
+  final Dio dio;
+  AgentClient(this.dio);
+
+  Future<AgentRunResult> runAgent(String goal, {String? conversationId}) async {
+    final resp = await dio.post<Map<String, dynamic>>('/agent/run', data: {
+      'goal': goal,
+      if (conversationId != null) 'conversationId': conversationId,
+    });
+    return AgentRunResult.fromJson(resp.data ?? const {});
+  }
+}
+```
+
+Нет агентного цикла в Dart, нет ручного управления turn'ами, нет своего ToolRegistry на телефоне. Phone-side tool execution идёт через отдельный WebSocket-канал — это отдельная подсистема, не часть agent loop'а.
 
 ### State management
 
@@ -267,15 +306,18 @@ OAuth-токены хранятся в Taler ID backend на user_id Дмитр�
 | `dev.monitor.status()` | Снапшот всех боксов с monitor.taler.tirol (использует `/status` бота `@taleridbot`) |
 | `dev.fix(box, action, target)` | То же что `/fix` в боте — `docker_restart`, `systemctl_restart`, `pm2_restart` |
 
-SSH-ключи в Android Keystore с биометрическим lock; для агента — отдельный ключ, ограниченный по `command="..."` в `authorized_keys` (white-list безопасных команд).
+SSH-ключи живут на бэкенде (DEV-сервер), не на телефоне — агент использует их через bash от своего юзера. Для удалённых серверов (PROD, monitor, ru-sip и т.д.) — отдельные ключи с `command="..."` в `authorized_keys` (white-list безопасных команд). На телефоне SSH-ключей нет — атака через краденый телефон не даёт root к серверам.
 
-#### 7. `agent.*` — делегирование
-| Tool | Behavior |
-|------|----------|
-| `agent.claude_code(task, repo?, server?, timeout_min?)` | Запускает `claude` CLI на DEV (по умолчанию). Возвращает `task_id` |
-| `agent.status(task_id)` | Прогресс длинной задачи |
-| `agent.result(task_id)` | Финальный результат + ссылка на PR/коммит |
-| `agent.cancel(task_id)` | Прервать |
+#### 7. Long-running sub-tasks (через built-in `Task` tool)
+
+Claude Agent SDK имеет встроенный `Task` tool для запуска саб-агентов. Раньше планировался отдельный `agent.claude_code(...)` для длинных задач (рефакторинг, диагностика) — теперь это просто `Task` от SDK:
+
+- Главный агент запускает саб-агента через `Task(description, subagent_type, prompt)`.
+- Саб-агент получает полный доступ к Bash, Read, Edit, Grep на DEV-сервере, может работать 5-30 минут.
+- Возврат — полный отчёт саб-агента, главный агент его обрабатывает и отдаёт пользователю.
+- Пользователь видит прогресс на телефоне через WebSocket-стрим (status updates от бэкенда).
+
+Это эффективнее чем строить свою CLI-обёртку: ноль кода, SDK сам управляет sub-agent state и context.
 
 ### v2 (после MVP)
 
@@ -342,16 +384,16 @@ SSH-ключи в Android Keystore с биометрическим lock; для 
 
 v2: `chart`, `map`, `form`.
 
-### Долгие задачи (agent.claude_code)
+### Долгие задачи (через SDK `Task` sub-agents)
 
-1. Агент голосом: *"Запустил рефакторинг, будет готово ~15 минут"*
+1. Агент голосом: *"Запустил рефакторинг, будет готово ~15 минут"*.
 2. На главном экране — `progress` card наверху, заменяет greeting card.
-3. Card обновляется live: что claude_code делает прямо сейчас.
-4. Tap "Подробнее" → полный лог.
-5. Контролы: **Пауза / Отменить**.
+3. Card обновляется live: что саб-агент делает прямо сейчас (статусы стримятся через WebSocket с бэкенда).
+4. Tap "Подробнее" → полный лог саб-агентного диалога.
+5. Контролы: **Пауза / Отменить** (шлют abort на бэкенд, SDK останавливает sub-agent).
 6. Завершение → push + голос *"Готов PR в feature/X, основное: ..."*.
 
-**Параллельность:** агент остаётся отзывчивым на другие команды пока claude_code работает в фоне.
+**Параллельность:** агент на бэкенде остаётся отзывчивым на другие команды пока саб-агент работает в фоне. Каждая chat-сессия имеет свой агентный run, sub-agents живут внутри родительского run'а.
 
 ### Guardrails — подтверждения опасных действий
 
@@ -389,16 +431,18 @@ v2: `chart`, `map`, `form`.
 
 ## Implementation Phases
 
-### Phase 0 — Setup & Spike (1-2 нед)
+### Phase 0 — Setup & Spike (~1 нед — упростилось от 1-2 нед после OAuth-апдейта)
 
 - Taler ID становится HOME launcher (AndroidManifest).
-- Простой chat-screen в новой ветке `feature/agent-shell`.
-- Claude Agent Loop в Dart (Anthropic Messages API).
-- API-прокси endpoint в Taler ID NestJS бэке (`POST /agent/claude` — проксирует messages.create, скрывает ключ, проверяет JWT).
-- Один тестовый tool (`echo`) для валидации сквозного маршрута.
-- Используешь как launcher с конца Phase 0 — собираешь раздражения.
+- Простой chat-screen в новой ветке `feature/agent-shell-phase-0`.
+- Backend интегрирует `@anthropic-ai/claude-agent-sdk` с OAuth.
+- `claude` CLI установлен и залогинен на DEV-сервере (через `claude login`).
+- `POST /agent/run` endpoint с JWT, body `{goal}`, использует SDK для агентного run'а с custom `echo` tool, возвращает `{finalText, toolCalls}`.
+- Flutter: `AgentClient` (Dio wrapper), `AgentBloc`, chat screen. **Без своего agent loop в Dart** — клиент тонкий.
+- `agent_task` tool регистрируется в существующем OpenAI Realtime session → шлёт на бэкенд.
+- Используешь как launcher с конца Phase 0.
 
-**Exit criteria:** voice → OpenAI Realtime → tool_use `agent_task` → Claude Loop → echo tool → ответ голосом. Сквозной маршрут работает.
+**Exit criteria:** voice → OpenAI Realtime → tool_use `agent_task` → backend `/agent/run` → Claude Agent SDK (OAuth) → echo tool → ответ голосом. Сквозной маршрут работает. На DEV.
 
 ### Phase 1 — Core tools (2-3 нед)
 
@@ -411,25 +455,25 @@ v2: `chart`, `map`, `form`.
 
 **Exit criteria:** Дмитрий переходит на Agent Shell как daily driver, не возвращается на стоковый launcher.
 
-### Phase 2 — Dev management (2 нед)
+### Phase 2 — Dev management (1-2 нед — упростилось)
 
-- SSH client в Dart (dartssh2)
-- SSH key management UI + биометрический lock в Android Keystore
-- `dev.ssh`, `dev.tail`, `dev.pm2.*`, `dev.git.*`, `dev.health`
-- `dev.monitor.status` — REST call к monitor.taler.tirol
-- `dev.fix(box, action, target)` — proxy через taleridbot API
+- `dev.*` tools реализуются как custom tools в Claude Agent SDK на бэкенде.
+- Большая часть работает **уже из коробки** через встроенный SDK `Bash` tool (он живёт на DEV, имеет full Linux): `pm2 list`, `tail`, `git status` и т.д. — агент просто пишет shell-команды.
+- Кастомные tools для удобства: `dev.ssh(host, command)` — SSH к другим серверам через сконфигурированные алиасы, `dev.monitor.status()` — REST к monitor.taler.tirol, `dev.fix(box, action, target)` — proxy через taleridbot API.
+- SSH-ключи на DEV-сервере, не на телефоне (на телефоне SSH-клиента нет — это backend-только).
 
 **Exit criteria:** все ежедневные dev-задачи Дмитрия выполнимы голосом — статус деплоев, перезапуск pm2, git pull, чтение логов.
 
-### Phase 3 — Heavy delegation (1-2 нед)
+### Phase 3 — Heavy delegation (упрощается)
 
-- Установка `claude` CLI на DEV-сервере (89.169.55.217).
-- Обёртка `agent.claude_code(task, repo?)` — SSH `claude --task "..." --repo ...` + асинхронный polling.
-- Status streaming: claude эмитит structured progress в файл, агент его tail'ит.
-- Progress card UI в chat thread с live updates.
+Раньше планировалась отдельная фаза для `agent.claude_code(task, repo?)` через SSH-обёртку. **Теперь это уже работает в Phase 2** через built-in `Task` tool из SDK — главный агент запускает саб-агента, и тот выполняет тяжёлую задачу с full Bash/Read/Edit.
+
+**Что остаётся в этой фазе:**
+- Progress card UI в chat thread с live updates статусов саб-агента (WebSocket стрим с бэкенда).
 - Push notification при завершении.
+- Контролы pause / cancel — отправлять abort на бэкенд, SDK останавливает sub-agent.
 
-**Exit criteria:** "Зарефактори X" → 15 минут → PR в ветке.
+**Exit criteria:** "Зарефактори X" → 15 минут → саб-агент завершается → главный возвращает summary → push с PR URL.
 
 ### Phase 4 — Mail + Calendar (2 нед)
 
@@ -486,14 +530,14 @@ v2: `chart`, `map`, `form`.
 |---|------|-----------|
 | R1 | OpenAI Realtime → Claude → tool: суммарная latency делает голосовой UX медленным | Простые tools идут в обход Claude — прямо OpenAI Realtime вызывает их. Claude только для `agent_task` (сложные задачи). |
 | R2 | Anthropic/OpenAI блокируют RU IP / банковские карты | API-прокси через DigitalOcean (167.172.181.34, уже есть). Оплата через зарубежную карту. |
-| R3 | Anthropic API key утечка через APK | Все LLM-вызовы через Taler ID NestJS backend, ключи только там. |
+| R3 | Anthropic OAuth credentials на бэкенде утекают / истекают | Credentials в `~/.claude/.credentials.json` с правильным chmod 600. Если истекают — re-login (`claude login` на DEV). Мониторим через `dev.health` tool. Мобильное приложение никогда не видит credentials. |
 | R4 | Google Play может забанить за Accessibility-abuse | Sideload через APK ссылку (как уже работает Taler ID dev APK). Play Store не цель. |
 | R5 | Battery drain (foreground service + wake-word + WebRTC) | Wake-word off by default. Foreground service в минимальном режиме (только active session). Battery audit после Phase 6. |
 | R6 | Опасные команды голосом ("удали PROD") если кто-то возьмёт телефон | Voice-ID toggle (известный голос-владелец, v2), биометрия перед опасными tools, confirm widget для PROD, текстовое подтверждение для `dev.fix prod`. |
-| R7 | SSH-ключи на телефоне — украли мобилу → root к серверам | Ключи в Android Keystore с биометрическим lock. Отдельный SSH-ключ только для агента (отзывной). `authorized_keys` с `command="..."` whitelist. |
+| R7 | SSH-ключи на бэкенде → если бэкенд скомпрометирован, доступ ко всем серверам | SSH-ключи на DEV-сервере не в дефолтном `~/.ssh/`, а в отдельном пути под dvolkov-юзером (или service-юзером). `authorized_keys` на удалённых серверах с `command="..."` whitelist безопасных команд. На самом телефоне SSH-ключей нет. |
 | R8 | Claude часто выбирает не тот tool / не те параметры | Хороший system prompt, tool descriptions с примерами, few-shot. После Phase 3 — sprint на prompt engineering с evals (golden set 50 команд). |
-| R9 | Bills: OpenAI Realtime + Claude API на интенсивном использовании $200-500/месяц | Budget cap в settings, дефолт Sonnet 4.6 (не Opus), переключатель на push-to-talk вместо always-listening. |
-| R10 | Sync между OpenAI Realtime и Claude Agent Loop | Чёткий state machine: 5 состояний (idle / listening / thinking-quick / thinking-deep-agent / speaking-result). Переходы через события. |
+| R9 | Bills: OpenAI Realtime + Claude usage. На Claude через OAuth — лимиты max-плана | OpenAI Realtime — API-key биллинг, budget cap в settings. Claude через OAuth — упирается в rate-limit max-плана (5h windows). Если упрёмся — fallback на API-key Anthropic временно. |
+| R10 | Sync между OpenAI Realtime и Claude Agent SDK на бэкенде | Чёткий state machine: 5 состояний (idle / listening / thinking-quick / thinking-deep-agent / speaking-result). Переходы через события WebSocket. |
 | R11 | iOS пользователи остаются за бортом | iOS остаётся с обычным Taler ID Assistant. Это **только Android продукт.** |
 | R12 | Foreground service ограничения Android 14+ | Использовать `mediaProjection` или `specialUse` type. Persistent notification обязателен. |
 
@@ -509,8 +553,8 @@ v2: `chart`, `map`, `form`.
 
 | # | Решение | Default |
 |---|---------|---------|
-| D1 | Claude модель для агент-loop | Sonnet 4.6 (быстрее + 5× дешевле Opus). Opus 4.7 через флаг `model: opus` для самых сложных задач |
-| D2 | Где живёт agent state | Local-first в Hive + opt-in sync на Taler ID backend |
+| D1 | Claude модель для agent SDK | Sonnet 4.6 (быстрее + дешевле). Opus 4.7 через флаг `model: opus` для самых сложных задач |
+| D2 | Где живёт agent state | Чат-thread локально в Hive на телефоне + opt-in sync на Taler ID backend. Agent run state — на бэкенде в Postgres (`AgentSession` table — добавляется в Phase 0) |
 | D3 | OpenAI Realtime vs альтернативы | Остаётся (уже работает, low latency). Переход на Claude Realtime когда выйдет |
 | D4 | Wake-word engine | Picovoice Porcupine (бесплатно для 1 user, on-device). Off by default |
 | D5 | Где хранится спек | `~/Downloads/taler_id_mobile/docs/superpowers/specs/` (вместе с кодом) |
@@ -518,7 +562,10 @@ v2: `chart`, `map`, `form`.
 | D7 | Платформа | Android only. iOS не получит этот launcher |
 | D8 | Языки | ru + en (как сейчас в Taler ID) |
 | D9 | Distribution | Sideload через APK (как сейчас taler-id-dev.apk). Play Store не цель |
-| D10 | API key security | Все LLM-вызовы через NestJS backend, мобильное приложение никогда не знает ключи |
+| D10 | Claude auth | **OAuth через `claude` CLI на бэкенде** (паттерн taler-monitor). Credentials в `~/.claude/.credentials.json` под dvolkov на DEV-сервере. Биллинг — Claude max-план. API-key не используется. |
+| D11 | OpenAI auth | API-key, как сейчас в Taler ID. Хранится в backend `.env`, мобила не знает. |
+| D12 | Agent runtime location | NestJS backend через `@anthropic-ai/claude-agent-sdk`. Не Dart, не Termux, не embedded Node. |
+| D13 | Phone-side tool dispatch | WebSocket-обратка с backend agent → Flutter (same pattern as existing OpenAI Realtime tools). Bridging endpoint в `AgentGateway`. |
 
 ---
 
@@ -581,3 +628,13 @@ v2: `chart`, `map`, `form`.
 ## История изменений
 
 - 2026-05-18 — Initial draft, после brainstorm-сессии в Claude Code
+- 2026-05-19 — **Major architecture revision (Update Log):**
+  - Перешли с API-key auth на **OAuth через Claude Code SDK** (паттерн taler-monitor).
+  - Свернули "Dart Claude Agent Loop" — теперь используем `@anthropic-ai/claude-agent-sdk` на NestJS-бэкенде.
+  - Сократили "3 LLM-уровня" до **2 LLM-уровней** (OpenAI Realtime голос + Claude Agent SDK на бэке).
+  - "Worker agent на сервере через SSH" из исходного спека больше не нужен — backend сам на сервере, у SDK есть встроенный `Bash` tool.
+  - Long-running задачи делегируются через built-in `Task` tool (саб-агенты SDK), не через свою CLI-обёртку.
+  - Phone-side tools будут реализованы через WebSocket-обратку (паттерн уже работает в Taler ID для OpenAI Realtime).
+  - Phase 0 спека и план переписаны под новую архитектуру.
+  - Phase 2 (dev management) упростился — большинство dev-задач решаются built-in `Bash` tool, без своего SSH-клиента в Dart.
+  - Phase 3 (heavy delegation) почти растворился — стал частью Phase 2 через `Task` tool. Остаётся только UX (progress card, push, controls).
