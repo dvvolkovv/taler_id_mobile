@@ -48,6 +48,7 @@ import '../../features/billing/presentation/screens/wallet_screen.dart';
 import '../../features/billing/presentation/screens/transactions_screen.dart';
 import '../../features/billing/presentation/screens/pricebook_screen.dart';
 import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
+import '../../features/agent_shell/presentation/screens/agent_shell_home_screen.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../../features/oauth/data/oauth_pending_request.dart';
 import '../../features/oauth/domain/entities/oauth_authorize_params.dart';
@@ -64,9 +65,18 @@ import '../../main.dart' show globalNavigatorKey;
 
 final appRouter = GoRouter(
   navigatorKey: globalNavigatorKey,
-  initialLocation: RouteConstants.splash,
+  initialLocation: const String.fromEnvironment(
+    'AGENT_SHELL_AS_HOME',
+    defaultValue: 'false',
+  ) == 'true'
+      ? RouteConstants.agentShell
+      : RouteConstants.splash,
   redirect: _globalRedirect,
   routes: [
+    GoRoute(
+      path: RouteConstants.agentShell,
+      builder: (_, __) => const AgentShellHomeScreen(),
+    ),
     GoRoute(
       path: RouteConstants.splash,
       builder: (_, __) => const SplashScreen(),

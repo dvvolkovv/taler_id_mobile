@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:get_it/get_it.dart';
+import '../agent/agent_client.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../audio/default_mesh_voice_audio_engine.dart';
@@ -240,6 +241,11 @@ Future<void> setupDependencies() async {
   final authInterceptor = AuthInterceptor(dio: rawDio, storage: storage);
   final dioClient = DioClient.create(authInterceptor: authInterceptor);
   sl.registerSingleton<DioClient>(dioClient);
+
+  // === Agent Shell (Phase 0) ===
+  sl.registerLazySingleton<AgentClient>(
+    () => AgentClient(sl<DioClient>().dio),
+  );
 
   // ---------------------------------------------------------------------------
   // Mesh Phase 1c — persistent identity + rotating device keys
