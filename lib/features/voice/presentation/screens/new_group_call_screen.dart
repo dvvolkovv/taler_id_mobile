@@ -1,16 +1,22 @@
+import 'dart:io' show Platform;
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/mesh/transport/bonjour_transport.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
 import '../../../../core/mesh/voice/group_mesh_call_state.dart';
 import '../../../../core/services/contacts_cache_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/voice/mesh_peer_eligibility_watcher.dart';
+import '../../../../core/voice/mesh_prefs_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/group_mesh_call_bloc.dart';
 import '../bloc/group_mesh_call_event.dart';
@@ -55,6 +61,55 @@ class _NewGroupCallScreenState extends State<NewGroupCallScreen> {
     _eligibility.userChanges.listen((_) {
       if (mounted) setState(() {});
     });
+
+    // One-time iOS Local Network permission onboarding. iOS silently
+    // suppresses all mDNS events if the user denied Local Network access —
+    // mesh group calls then "just don't work" with no on-screen reason. We
+    // detect this by waiting a few seconds after the screen opens: if
+    // Bonjour has emitted zero events since startAdvertising, perm is
+    // almost certainly denied (or never asked) and we show a one-shot
+    // modal pointing the user to Settings.
+    _maybeShowLocalNetworkOnboarding();
+  }
+
+  Future<void> _maybeShowLocalNetworkOnboarding() async {
+    if (kIsWeb || !Platform.isIOS) return;
+    final prefs = sl<MeshPrefsService>();
+    if (await prefs.isLocalNetworkPromptShown()) return;
+    // Give Bonsoir a few seconds to emit at least one mDNS event after
+    // the screen mounts. On a healthy network this fires within ~500ms.
+    await Future<void>.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+    final transport = sl<BonjourTransport>();
+    if (transport.hasObservedAnyMdnsEvent) return; // permission OK
+    await prefs.markLocalNetworkPromptShown();
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.meshLocalNetworkPromptTitle),
+        content: Text(l10n.meshLocalNetworkPromptBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.meshLocalNetworkPromptDismiss),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              // `app-settings:` deep-links directly to this app's
+              // settings page on iOS — one tap less than fishing through
+              // the system Settings hierarchy.
+              try {
+                await launchUrl(Uri.parse('app-settings:'));
+              } catch (_) {/* fall back to system Settings via OS */}
+            },
+            child: Text(l10n.meshLocalNetworkPromptOpenSettings),
+          ),
+        ],
+      ),
+    );
   }
 
   void _loadContacts() {

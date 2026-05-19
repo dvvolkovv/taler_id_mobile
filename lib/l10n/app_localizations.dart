@@ -1712,6 +1712,30 @@ abstract class AppLocalizations {
   /// **'Skip'**
   String get onboardingSkip;
 
+  /// No description provided for @meshLocalNetworkPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow local network access'**
+  String get meshLocalNetworkPromptTitle;
+
+  /// No description provided for @meshLocalNetworkPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'To find peers on Wi-Fi (offline group calls), iOS requires the Local Network permission. Open Settings → Privacy & Security → Local Network → Taler ID.'**
+  String get meshLocalNetworkPromptBody;
+
+  /// No description provided for @meshLocalNetworkPromptOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get meshLocalNetworkPromptOpenSettings;
+
+  /// No description provided for @meshLocalNetworkPromptDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get meshLocalNetworkPromptDismiss;
+
   /// No description provided for @forgotPassword.
   ///
   /// In en, this message translates to:

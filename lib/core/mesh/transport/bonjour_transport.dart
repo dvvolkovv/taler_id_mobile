@@ -78,6 +78,17 @@ class BonjourTransport implements MeshTransport {
   /// supervisor is not yet attached (e.g., transport stopped).
   int get discoveryReinitCount => _supervisor?.reinitCount ?? 0;
 
+  /// True once Bonsoir has emitted at least one mDNS event (any: Found,
+  /// Resolved, Lost — even for the self-service) since
+  /// [startAdvertising]. On iOS this is the strongest signal we have
+  /// that Local Network privacy permission is actually granted, because
+  /// the OS suppresses all mDNS events for the app when the user denies
+  /// the permission. UI uses this to decide whether to show the
+  /// onboarding prompt that points the user to
+  /// Settings → Privacy & Security → Local Network.
+  bool get hasObservedAnyMdnsEvent => _anyMdnsEventSeen;
+  bool _anyMdnsEventSeen = false;
+
   /// Manually inject a peer's address, bypassing mDNS discovery.
   ///
   /// This is useful for integration tests running on environments where
@@ -181,6 +192,9 @@ class BonjourTransport implements MeshTransport {
   void _onBonjourEvent(BonsoirDiscoveryEvent event) {
     final service = event.service;
     debugPrint('[mesh-bonjour] event: ${event.type} service=${service?.name ?? "null"}');
+    // First mDNS event of any kind proves Local Network permission is
+    // granted on iOS — see `hasObservedAnyMdnsEvent` doc.
+    _anyMdnsEventSeen = true;
     if (service == null) return;
 
     // Bonsoir 5.x does not auto-resolve: after discoveryServiceFound we must
@@ -500,6 +514,7 @@ class BonjourTransport implements MeshTransport {
     _udpSocket = null;
     _peerUdpEndpoints.clear();
     _peerByPrefix.clear();
+    _anyMdnsEventSeen = false;
   }
 
   @override

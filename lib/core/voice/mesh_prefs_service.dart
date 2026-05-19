@@ -10,6 +10,7 @@ class MeshPrefsService {
   static const _boxName = 'mesh_prefs';
   static const _onboardingKey = 'onboarding_shown_v1';
   static const _batteryPromptKey = 'battery_prompt_shown_v1';
+  static const _localNetworkPromptKey = 'local_network_prompt_shown_v1';
 
   Box? _box;
 
@@ -41,5 +42,18 @@ class MeshPrefsService {
 
   Future<void> markBatteryPromptShown() async {
     await _box?.put(_batteryPromptKey, true);
+  }
+
+  /// Whether we have already shown the iOS Local Network permission
+  /// onboarding modal (one-time, per app install). Tracked separately
+  /// from the main onboarding flag because the prompt only appears
+  /// when the user actually opens a mesh-relevant screen and we detect
+  /// no mDNS events — most users never see it.
+  Future<bool> isLocalNetworkPromptShown() async {
+    return (_box?.get(_localNetworkPromptKey) as bool?) ?? false;
+  }
+
+  Future<void> markLocalNetworkPromptShown() async {
+    await _box?.put(_localNetworkPromptKey, true);
   }
 }
