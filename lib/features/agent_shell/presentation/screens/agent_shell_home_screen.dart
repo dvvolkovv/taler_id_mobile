@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/agent_shell_bloc.dart';
 import '../../../../core/agent/agent_client.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../notifications/notification_permission_service.dart';
 
 class AgentShellHomeScreen extends StatelessWidget {
@@ -97,7 +99,16 @@ class _AgentShellScaffoldState extends State<_AgentShellScaffold>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Taler ID Agent (Phase 0 spike)')),
+      appBar: AppBar(
+        title: const Text('Taler ID Agent (Phase 0 spike)'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.mic),
+            tooltip: 'Голосовой ассистент',
+            onPressed: () => context.go(RouteConstants.assistant),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
