@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:get_it/get_it.dart';
 import '../agent/agent_client.dart';
+import '../../features/notifications/notification_permission_service.dart';
+import '../../features/notifications/notification_platform.dart';
+import '../../features/notifications/notification_store.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
 import '../audio/default_mesh_voice_audio_engine.dart';
@@ -245,6 +248,17 @@ Future<void> setupDependencies() async {
   // === Agent Shell (Phase 0) ===
   sl.registerLazySingleton<AgentClient>(
     () => AgentClient(sl<DioClient>().dio),
+  );
+
+  // === Agent Shell (Phase 1A) — on-device notification listener ===
+  sl.registerLazySingleton<NotificationPlatform>(
+    () => MethodChannelNotificationPlatform(),
+  );
+  sl.registerLazySingleton<NotificationStore>(
+    () => NotificationStore(sl<NotificationPlatform>()),
+  );
+  sl.registerLazySingleton<NotificationPermissionService>(
+    () => NotificationPermissionService(sl<NotificationPlatform>()),
   );
 
   // ---------------------------------------------------------------------------

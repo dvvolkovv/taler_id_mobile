@@ -14,6 +14,9 @@ import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/agent/agent_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../notifications/notification_filter.dart';
+import '../../../notifications/notification_permission_service.dart';
+import '../../../notifications/notification_store.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
@@ -430,6 +433,11 @@ class _AssistantScreenState extends State<AssistantScreen>
           '2. Расскажи от кого есть непрочитанные сообщения\n'
           '3. Если пользователь хочет узнать подробнее — загрузи историю через get_messages\n'
           '4. Предложи ответить — если пользователь диктует ответ, отправь через send_message\n\n'
+          'ВНЕШНИЕ МЕССЕНДЖЕРЫ (WhatsApp / Telegram / SMS / Gmail):\n'
+          'Если пользователь спрашивает "что мне написали", "есть новые сообщения", "что в WhatsApp", "что пришло на почту" — используй messenger_read_recent (НЕ agent_task, НЕ get_conversations — это разные источники).\n'
+          'Если пользователь говорит "ответь [имени] [текст]" / "напиши в WhatsApp/Telegram [имени] [текст]" — сначала messenger_read_recent чтобы найти notification_key, потом messenger_reply.\n'
+          'Если messenger_read_recent вернул error: notification_access_not_granted — скажи пользователю что нужно открыть Настройки → Доступ к уведомлениям и включить Taler ID Dev. Не вызывай инструмент ещё раз пока пользователь не подтвердит.\n'
+          'ВАЖНО: messenger_reply работает ТОЛЬКО для уведомлений из последних ~200 сообщений (живой буфер). Для старых — пока невозможно ответить.\n\n'
           'ОТВЕТ НА СООБЩЕНИЯ:\n'
           'Если пользователь говорит "ответь [имя] [текст]" или "напиши [имя] [текст]":\n'
           '1. Найди диалог через get_conversations\n'
@@ -534,6 +542,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         '2. Tell who has unread messages\n'
         '3. If user wants details — load history via get_messages\n'
         '4. Offer to reply — if user dictates a response, send via send_message\n\n'
+        'EXTERNAL MESSENGERS (WhatsApp / Telegram / SMS / Gmail):\n'
+        'If the user asks "what did people write to me", "any new messages", "what\'s in WhatsApp", "anything in email" — use messenger_read_recent (NOT agent_task, NOT get_conversations — these are different sources).\n'
+        'If the user says "reply to [name] [text]" / "write to [name] in WhatsApp/Telegram [text]" — first call messenger_read_recent to find the notification_key, then messenger_reply.\n'
+        'If messenger_read_recent returns error: notification_access_not_granted — tell the user they need to open Settings → Notification access and enable Taler ID Dev. Do NOT call the tool again until the user confirms.\n'
+        'IMPORTANT: messenger_reply works ONLY for notifications in the most recent ~200 messages (live buffer). For older ones — replies are not yet possible.\n\n'
         'REPLYING TO MESSAGES:\n'
         'If user says "reply to [name] [text]" or "write to [name] [text]":\n'
         '1. Find conversation via get_conversations\n'
@@ -751,6 +764,60 @@ class _AssistantScreenState extends State<AssistantScreen>
                 },
               },
               'required': ['goal'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'messenger_read_recent',
+            'description':
+                'Read recent messenger notifications (WhatsApp, Telegram, SMS, Gmail, etc.) that arrived on this phone. '
+                'Use when the user asks "что мне написали", "есть новые сообщения", "что в Telegram", "кто звонил/писал". '
+                'Returns a slim list: sender, app, body, age. '
+                'NOT for: searching old history — use the dedicated messenger tools (Phase 1B+). '
+                'NOT for: Taler ID in-app conversations — use get_conversations / get_messages.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'app': {
+                  'type': 'string',
+                  'description': 'Optional substring of the app package name, e.g. "whatsapp", "telegram", "gmail"',
+                },
+                'sender': {
+                  'type': 'string',
+                  'description': 'Optional substring of sender/conversation title',
+                },
+                'since_minutes': {
+                  'type': 'integer',
+                  'description': 'Only notifications newer than N minutes (default 120, max 1440)',
+                },
+                'limit': {
+                  'type': 'integer',
+                  'description': 'Max items to return (default 20, max 50)',
+                },
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'messenger_reply',
+            'description':
+                'Send an inline reply to a specific notification you got from messenger_read_recent. '
+                'Use only when the user explicitly asks to reply, e.g. "ответь Маше что буду через 20 минут", "напиши в WhatsApp Олегу что согласен". '
+                'The notification_key must come from a recent messenger_read_recent call. '
+                'Returns ok or an error if the notification no longer has an active reply action.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'notification_key': {
+                  'type': 'string',
+                  'description': 'The key field from messenger_read_recent',
+                },
+                'text': {
+                  'type': 'string',
+                  'description': 'The reply text. Plain text only, no markdown.',
+                },
+              },
+              'required': ['notification_key', 'text'],
             },
           },
           {
@@ -2296,6 +2363,45 @@ class _AssistantScreenState extends State<AssistantScreen>
           } catch (e) {
             debugPrint('[Assistant] agent_task error: $e');
             output = jsonEncode({'error': e.toString()});
+          }
+        }
+      } else if (name == 'messenger_read_recent') {
+        final args = argsJson.isEmpty
+            ? <String, dynamic>{}
+            : jsonDecode(argsJson) as Map<String, dynamic>;
+        final filter = NotificationFilter(
+          app: args['app'] as String?,
+          sender: args['sender'] as String?,
+          sinceMinutes: (args['since_minutes'] as num?)?.toInt() ?? 120,
+          limit: (args['limit'] as num?)?.toInt() ?? 20,
+        );
+        final granted = await sl<NotificationPermissionService>().isGranted();
+        if (!granted) {
+          output = jsonEncode({
+            'error': 'notification_access_not_granted',
+            'hint': 'Скажи пользователю что нужно дать доступ к уведомлениям',
+          });
+        } else {
+          final items = await sl<NotificationStore>().recent(filter);
+          output = jsonEncode({
+            'items': items.map((n) => n.toToolJson()).toList(),
+          });
+        }
+      } else if (name == 'messenger_reply') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final key = args['notification_key'] as String? ?? '';
+        final text = args['text'] as String? ?? '';
+        if (key.isEmpty || text.isEmpty) {
+          output = jsonEncode({
+            'ok': false,
+            'error': 'missing notification_key or text',
+          });
+        } else {
+          try {
+            await sl<NotificationStore>().replyOnKey(key, text);
+            output = jsonEncode({'ok': true});
+          } catch (e) {
+            output = jsonEncode({'ok': false, 'error': e.toString()});
           }
         }
       } else {
