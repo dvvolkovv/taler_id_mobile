@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/api/api_exception.dart';
+import 'package:taler_id_mobile/features/kyc/data/datasources/kyc_remote_datasource.dart';
 import 'package:taler_id_mobile/features/kyc/domain/entities/sumsub_applicant_entity.dart';
 import 'package:taler_id_mobile/features/kyc/domain/repositories/i_kyc_repository.dart';
 import 'package:taler_id_mobile/features/kyc/presentation/bloc/kyc_bloc.dart';
@@ -126,7 +127,12 @@ void main() {
     blocTest<KycBloc, KycState>(
       'emits [Loading, SdkReady] with SDK token',
       build: () {
-        when(() => repo.startKyc()).thenAnswer((_) async => 'sdk-token-xyz');
+        when(() => repo.startKyc()).thenAnswer((_) async => const KycStartResponse(
+              platform: 'mobile',
+              sumsubApplicantId: 'app-123',
+              sdkToken: 'sdk-token-xyz',
+              status: 'PENDING',
+            ));
         return bloc;
       },
       act: (b) => b.add(KycStartRequested()),
