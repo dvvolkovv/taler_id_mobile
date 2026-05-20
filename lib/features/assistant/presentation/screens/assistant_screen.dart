@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -149,6 +150,12 @@ class _AssistantScreenState extends State<AssistantScreen>
           debugPrint('[WakeWord] Calling _connect()');
           _connect();
         }
+      });
+    } else if (PlatformUtils.instance.isDesktop) {
+      // Desktop: skip the idle "restart" screen on first entry — start the
+      // voice session immediately. Mobile keeps the manual tap-to-start gesture.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _state == _CallState.idle) _connect();
       });
     }
   }
