@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.service.notification.NotificationListenerService
+import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -67,6 +69,21 @@ class NotificationBridge(
                     NotificationStoreNative.singleton.eventSink = null
                 }
             })
+
+        // Ask the system to rebind our listener service if it's not currently bound.
+        // After app reinstall / process restart the system binds the listener lazily —
+        // sometimes only when a new notification arrives. Without this nudge, the
+        // in-memory buffer stays empty until the next inbound notification, even if
+        // the user has notifications already sitting in the status bar.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                NotificationListenerService.requestRebind(
+                    ComponentName(context, TalerNotificationListenerService::class.java),
+                )
+            } catch (e: Throwable) {
+                Log.w("NotificationBridge", "requestRebind failed", e)
+            }
+        }
     }
 
     // --- Permission -----------------------------------------------------------------------
