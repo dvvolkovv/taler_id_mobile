@@ -70,7 +70,7 @@ final appRouter = GoRouter(
     'AGENT_SHELL_AS_HOME',
     defaultValue: 'false',
   ) == 'true'
-      ? RouteConstants.agentShell
+      ? RouteConstants.assistant
       : RouteConstants.splash,
   redirect: _globalRedirect,
   routes: [
