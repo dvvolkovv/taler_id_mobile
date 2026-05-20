@@ -134,4 +134,27 @@ class NotificationStoreNativeTest {
         assertEquals(3, store.levenshtein("kitten", "sitting"))
         assertEquals(5, store.levenshtein("", "hello"))
     }
+
+    @Test
+    fun `recent resolves friendly app aliases to actual package names`() {
+        store.addPosted(makeNotification(key = "g1", pkg = "com.google.android.gm", title = "Yandex Mail"))
+        store.addPosted(makeNotification(key = "g2", pkg = "com.google.android.gms", title = "Play Services"))
+        store.addPosted(makeNotification(key = "w1", pkg = "com.whatsapp", title = "Маша"))
+        store.addPosted(makeNotification(key = "t1", pkg = "org.telegram.messenger", title = "Олег"))
+
+        // 'gmail' alias must hit com.google.android.gm (NOT substring — that would match nothing).
+        // It must NOT bleed into com.google.android.gms (Play Services).
+        val gmail = store.recent(pkgSubstring = "gmail")
+        assertEquals(listOf("g1"), gmail.map { it.key })
+
+        val whatsapp = store.recent(pkgSubstring = "whatsapp")
+        assertEquals(listOf("w1"), whatsapp.map { it.key })
+
+        val telegram = store.recent(pkgSubstring = "telegram")
+        assertEquals(listOf("t1"), telegram.map { it.key })
+
+        // Unknown alias falls back to substring matching — 'whats' still matches com.whatsapp.
+        val partial = store.recent(pkgSubstring = "whats")
+        assertEquals(listOf("w1"), partial.map { it.key })
+    }
 }

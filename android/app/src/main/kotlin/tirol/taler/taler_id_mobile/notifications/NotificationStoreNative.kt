@@ -30,6 +30,26 @@ class NotificationStoreNative private constructor() {
         const val ECHO_SUPPRESSION_WINDOW_MS: Long = 30_000L
         const val ECHO_LEVENSHTEIN_THRESHOLD: Int = 3
 
+        /**
+         * Friendly app aliases for filter inputs. The LLM uses natural names like "gmail" but
+         * actual package names diverge (Gmail = `com.google.android.gm`, no 'gmail' substring).
+         * If [recent]'s `pkgSubstring` matches an alias key exactly (case-insensitive), match
+         * against any of its package names instead of doing a substring search.
+         */
+        val APP_ALIASES: Map<String, List<String>> = mapOf(
+            "gmail" to listOf("com.google.android.gm"),
+            "whatsapp" to listOf("com.whatsapp", "com.whatsapp.w4b"),
+            "telegram" to listOf("org.telegram.messenger", "org.telegram.plus", "org.thunderdog.challegram"),
+            "sms" to listOf("com.google.android.apps.messaging", "com.android.mms", "com.samsung.android.messaging", "com.xiaomi.mms"),
+            "messages" to listOf("com.google.android.apps.messaging", "com.android.mms", "com.samsung.android.messaging", "com.xiaomi.mms"),
+            "instagram" to listOf("com.instagram.android"),
+            "viber" to listOf("com.viber.voip"),
+            "signal" to listOf("org.thoughtcrime.securesms"),
+            "slack" to listOf("com.Slack"),
+            "discord" to listOf("com.discord"),
+            "wechat" to listOf("com.tencent.mm"),
+        )
+
         @JvmStatic
         val singleton: NotificationStoreNative by lazy { NotificationStoreNative() }
     }
@@ -98,12 +118,21 @@ class NotificationStoreNative private constructor() {
         limit: Int? = null,
     ): List<CapturedNotification> {
         val pkgLc = pkgSubstring?.lowercase()
+        val aliasPkgs = pkgLc?.let { APP_ALIASES[it] }
         val senderLc = senderSubstring?.lowercase()
         // Snapshot under lock to avoid ConcurrentModification surprises on iteration.
         val snapshot = synchronized(lock) { buffer.toList() }
         val filtered = snapshot.asSequence()
             .filter { n ->
-                if (pkgLc != null && !n.packageName.lowercase().contains(pkgLc)) return@filter false
+                if (pkgLc != null) {
+                    val pkg = n.packageName.lowercase()
+                    val match = if (aliasPkgs != null) {
+                        aliasPkgs.any { pkg == it.lowercase() }
+                    } else {
+                        pkg.contains(pkgLc)
+                    }
+                    if (!match) return@filter false
+                }
                 if (senderLc != null) {
                     val haystack = (n.conversationTitle ?: n.title).lowercase()
                     if (!haystack.contains(senderLc)) return@filter false
