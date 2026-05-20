@@ -11,6 +11,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
+import '../../../../core/agent/agent_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/linkified_text.dart';
@@ -97,6 +98,10 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   // Translator mode: pair user with assistant response
   String? _lastAssistantItemId;  // most recent assistant item id, used for translator-mode pairing
+
+  // agent_task: conversation continuity across multiple agent_task calls within a voice session.
+  // Reset on each new session via _connect().
+  String? _agentConversationId;
 
   // Incoming message listener
   StreamSubscription? _messageSub;
@@ -272,6 +277,8 @@ class _AssistantScreenState extends State<AssistantScreen>
       _errorMessage = null;
       _aiSpeaking = false;
     });
+    // Reset agent_task conversation continuity for the new realtime session.
+    _agentConversationId = null;
     try {
       // 1. Get JWT token (API key stays on server)
       final token = await sl<SecureStorageService>().getAccessToken();
@@ -436,6 +443,12 @@ class _AssistantScreenState extends State<AssistantScreen>
           '- Давать взвешенные экспертные ответы на сложные вопросы\n'
           'Используй ask_analyst чтобы отправить задачу. Результат придёт асинхронно — ты его автоматически озвучишь.\n'
           'Если пользователь спрашивает "что ты умеешь" или "какие у тебя возможности" — обязательно упомяни AI Аналитика.\n\n'
+          'AGENT (CLAUDE НА АНАЛИТИК-БОКСЕ):\n'
+          'Помимо ask_analyst (асинхронный) у тебя есть agent_task — синхронный вызов Claude на сервере. '
+          'Используй agent_task для: команд на dev-серверах (SSH, pm2, git, чтение логов), системного администрирования, '
+          'быстрых код-анализов, "посмотри что в файле X на сервере", "перезапусти сервис Y". '
+          'Результат вернётся через ~10 секунд — прежде чем вызывать, скажи коротко "Подождите, обдумываю".\n'
+          'ВАЖНО: agent_task НЕ имеет памяти твоего голосового разговора — формулируй задачу полно и самостоятельно.\n\n'
           'КАЛЕНДАРЬ И НАПОМИНАНИЯ:\n'
           'Сейчас: $nowStr.\n'
           'Передавай startAt и reminderAt в МЕСТНОМ времени формат YYYY-MM-DDTHH:MM:SS (БЕЗ Z, БЕЗ конвертации в UTC).\n'
@@ -526,6 +539,12 @@ class _AssistantScreenState extends State<AssistantScreen>
         '3. Confirm saving by voice\n'
         'If user asks "what notes do I have" — call get_notes and summarize\n'
         'If asks for notes summary — call get_notes, analyze and give brief summary\n\n'
+        'AGENT (CLAUDE ON ANALYST BOX):\n'
+        'In addition to ask_analyst (async) you have agent_task — synchronous Claude on the server. '
+        'Use agent_task for: dev-server commands (SSH, pm2, git, reading logs), system administration, '
+        'quick code analysis, "look at file X on server", "restart service Y". '
+        'Result returns after ~10 seconds — before calling, briefly say "One moment, working on it".\n'
+        'IMPORTANT: agent_task has no memory of your voice conversation — describe the task fully and self-contained.\n\n'
         'CALENDAR AND REMINDERS:\n'
         'Now: $nowStr.\n'
         'Pass startAt and reminderAt in LOCAL time format YYYY-MM-DDTHH:MM:SS (NO Z suffix, NO UTC conversion).\n'
@@ -702,6 +721,29 @@ class _AssistantScreenState extends State<AssistantScreen>
                 },
               },
               'required': ['query'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'agent_task',
+            'description':
+                'Run a complex task on the AI agent (Claude on analyst box). Use for: '
+                'multi-step work that needs reasoning, code analysis, system administration commands, '
+                'remote SSH/PM2/git operations, file reading on dev servers, deeper research. '
+                'NOT for: quick weather/news lookups (use web_search), profile/messenger/calendar '
+                '(use dedicated tools). Result is returned synchronously after ~10 seconds — '
+                'tell the user briefly "Подождите, обдумываю" / "One moment, working on it" before calling.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'goal': {
+                  'type': 'string',
+                  'description':
+                      'Clear, self-contained task description in natural language. Include all '
+                      'context the agent needs — it has no memory of the current voice conversation.',
+                },
+              },
+              'required': ['goal'],
             },
           },
           {
@@ -2226,6 +2268,28 @@ class _AssistantScreenState extends State<AssistantScreen>
             'error': 'failed_to_get_release_notes',
             'details': e.toString(),
           });
+        }
+      } else if (name == 'agent_task') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final goal = args['goal'] as String? ?? '';
+        if (goal.isEmpty) {
+          output = jsonEncode({'error': 'goal is required'});
+        } else {
+          try {
+            final agent = sl<AgentClient>();
+            final result = await agent.runAgent(
+              goal: goal,
+              conversationId: _agentConversationId,
+            );
+            _agentConversationId = result.conversationId ?? _agentConversationId;
+            output = jsonEncode({
+              'finalText': result.finalText,
+              'aborted': result.aborted,
+            });
+          } catch (e) {
+            debugPrint('[Assistant] agent_task error: $e');
+            output = jsonEncode({'error': e.toString()});
+          }
         }
       } else {
         output = jsonEncode({'error': 'unknown function $name'});
