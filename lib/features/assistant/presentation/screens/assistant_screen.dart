@@ -473,7 +473,8 @@ class _AssistantScreenState extends State<AssistantScreen>
           'Для запросов "на эту неделю" — from=сегодня, to=через 7 дней.';
     }
 
-    return 'ALWAYS reply ONLY in English, even if you think the user said something in another language — that is a transcription error, reply in English anyway.\n\n'
+    final langName = _languageDisplayName(locale);
+    return 'ALWAYS reply ONLY in $langName, even if you think the user said something in another language — that is a transcription error, reply in $langName anyway.\n\n'
         'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
         'KYC verification status, and profile data. Be concise and to the point. '
         'Don\'t start the conversation — wait for the user to speak. '
@@ -606,6 +607,40 @@ class _AssistantScreenState extends State<AssistantScreen>
         'PIN: If user says "disable PIN", "turn off PIN code" — call disable_pin. '
         'Enabling PIN requires a setup screen — tell the user to go to Settings.\n'
         'After applying any setting change — confirm the action by voice.';
+  }
+
+  /// Human-readable language name for the OpenAI Realtime instructions —
+  /// "ALWAYS reply ONLY in $langName" works much better when the directive
+  /// names the actual language instead of an ISO code like "es" or "zh".
+  /// Native script in parens helps the model anchor to the right variant.
+  static String _languageDisplayName(String locale) {
+    const names = {
+      'ru': 'Russian (Русский)',
+      'en': 'English',
+      'zh': 'Mandarin Chinese (中文)',
+      'es': 'Spanish (Español)',
+      'hi': 'Hindi (हिन्दी)',
+      'ar': 'Arabic (العربية)',
+      'bn': 'Bengali (বাংলা)',
+      'pt': 'Portuguese (Português)',
+      'ur': 'Urdu (اردو)',
+      'id': 'Indonesian (Bahasa Indonesia)',
+      'de': 'German (Deutsch)',
+      'ja': 'Japanese (日本語)',
+      'fr': 'French (Français)',
+      'mr': 'Marathi (मराठी)',
+      'te': 'Telugu (తెలుగు)',
+      'tr': 'Turkish (Türkçe)',
+      'ta': 'Tamil (தமிழ்)',
+      'vi': 'Vietnamese (Tiếng Việt)',
+      'ko': 'Korean (한국어)',
+      'it': 'Italian (Italiano)',
+      'fa': 'Persian (فارسی)',
+      'pa': 'Punjabi (ਪੰਜਾਬੀ)',
+      'ha': 'Hausa',
+      'sk': 'Slovak (Slovenčina)',
+    };
+    return names[locale] ?? locale;
   }
 
   static String _translatorPrompt() {
