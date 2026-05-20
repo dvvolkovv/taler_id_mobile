@@ -78,6 +78,27 @@ class TalerNotificationListenerService : NotificationListenerService() {
         super.onListenerConnected()
         instanceRef = WeakReference(this)
         Log.i(TAG, "Notification listener connected")
+        // Replay active notifications so the in-memory buffer is populated immediately on
+        // first launch / reinstall. Without this, the buffer is empty until new notifications
+        // arrive — leading to the agent saying "no new mail" even when notifications are
+        // visibly sitting in the status bar.
+        try {
+            val active = activeNotifications ?: return
+            var replayed = 0
+            for (sbn in active) {
+                if (sbn.packageName == applicationContext.packageName) continue
+                val flags = sbn.notification?.flags ?: 0
+                val ignoreMask = Notification.FLAG_FOREGROUND_SERVICE or Notification.FLAG_ONGOING_EVENT
+                if (flags and ignoreMask != 0) continue
+                val captured = extract(sbn) ?: continue
+                if (NotificationStoreNative.singleton.addPosted(captured)) {
+                    replayed++
+                }
+            }
+            Log.i(TAG, "Replayed $replayed active notifications on connect")
+        } catch (e: Throwable) {
+            Log.w(TAG, "Active-notification replay failed", e)
+        }
     }
 
     override fun onListenerDisconnected() {
