@@ -1,0 +1,1691 @@
+{
+  "@@locale": "ta",
+  "appTitle": "Taler ID",
+  "search": "தேடல்",
+  "appSubtitle": "ஒற்றுமையான சூழல் அடையாளம்",
+  "login": "உள்நுழையவும்",
+  "loginButton": "உள்நுழையவும்",
+  "register": "கணக்கை உருவாக்கவும்",
+  "registerButton": "கணக்கை உருவாக்கவும்",
+  "email": "மின்னஞ்சல்",
+  "password": "கடவுச்சொல்",
+  "confirmPassword": "கடவுச்சொல்லை உறுதிப்படுத்தவும்",
+  "firstName": "முதல் பெயர்",
+  "lastName": "கடைசி பெயர்",
+  "noAccount": "கணக்கு இல்லையா?",
+  "createOne": "ஒன்றை உருவாக்கவும்",
+  "haveAccount": "ஏற்கனவே கணக்கு உள்ளதா?",
+  "signIn": "உள்நுழையவும்",
+  "passwordMinLength": "குறைந்தது 8 எழுத்துக்கள்",
+  "invalidEmail": "சரியான மின்னஞ்சலை உள்ளிடவும்",
+  "fieldRequired": "தேவையான புலம்",
+  "twoFATitle": "இரண்டு காரணி அங்கீகாரம்",
+  "twoFASubtitle": "உங்கள் அங்கீகார பயன்பாட்டில் இருந்து 6-எண் குறியீட்டை உள்ளிடவும்",
+  "twoFACode": "2FA குறியீடு",
+  "verify": "சரிபார்க்கவும்",
+  "tabProfile": "சுயவிவரம்",
+  "tabKyc": "KYC",
+  "tabOrganization": "அமைப்பு",
+  "tabSettings": "அமைப்புகள்",
+  "profile": "சுயவிவரம்",
+  "editProfile": "சுயவிவரத்தை திருத்தவும்",
+  "phone": "தொலைபேசி",
+  "country": "நாடு",
+  "dateOfBirth": "பிறந்த தேதி",
+  "documents": "ஆவணங்கள்",
+  "addDocument": "ஆவணத்தை சேர்க்கவும்",
+  "noDocuments": "ஆவணங்கள் பதிவேற்றப்படவில்லை",
+  "save": "சேமிக்கவும்",
+  "profileUpdated": "சுயவிவரம் புதுப்பிக்கப்பட்டது",
+  "personalData": "தனிப்பட்ட தகவல்கள்",
+  "passport": "கடவுச்சீட்டு",
+  "drivingLicense": "ஓட்டுநர் உரிமம்",
+  "diploma": "டிப்ளோமா",
+  "nationalId": "தேசிய அடையாள அட்டை",
+  "certificate": "சான்றிதழ்",
+  "notSpecified": "குறிப்பிடப்படவில்லை",
+  "notSpecifiedFemale": "குறிப்பிடப்படவில்லை",
+  "documentType": "ஆவண வகை",
+  "passportId": "கடவுச்சீட்டு / அடையாள அட்டை",
+  "diplomaCertificate": "டிப்ளோமா / சான்றிதழ்",
+  "loadError": "ஏற்றுதல் பிழை",
+  "verification": "சரிபார்ப்பு",
+  "countryAustria": "ஆஸ்திரியா",
+  "countryGermany": "ஜெர்மனி",
+  "countryRussia": "ரஷ்யா",
+  "countryUkraine": "உக்ரைன்",
+  "countryKazakhstan": "கஸகஸ்தான்",
+  "countryBelarus": "பெலாரஸ்",
+  "countryOther": "மற்றவை",
+  "kycTitle": "KYC சரிபார்ப்பு",
+  "kycVerified": "சரிபார்க்கப்பட்டது",
+  "kycPending": "நிலுவையில்",
+  "kycRejected": "நிராகரிக்கப்பட்டது",
+  "kycUnverified": "சரிபார்க்கப்படவில்லை",
+  "kycVerifiedDesc": "உங்கள் அடையாளம் சரிபார்க்கப்பட்டுள்ளது. அனைத்து Taler சூழல் அம்சங்களுக்கும் முழு அணுகல் உங்களுக்கு உள்ளது.",
+  "kycPendingDesc": "உங்கள் ஆவணங்கள் பரிசீலனையில் உள்ளன. இது பொதுவாக 1-2 வேலை நாட்கள் ஆகும்.",
+  "kycRejectedDesc": "சரிபார்ப்பு தோல்வியடைந்தது. காரணத்தை பரிசீலித்து உங்கள் ஆவணங்களை மீண்டும் சமர்ப்பிக்கவும்.",
+  "kycUnverifiedDesc": "Taler சூழல் நிதி அம்சங்களுக்கு முழு அணுகலை திறக்க சரிபார்ப்பை முடிக்கவும்.",
+  "startVerification": "சரிபார்ப்பை தொடங்கவும்",
+  "retryVerification": "சரிபார்ப்பை மீண்டும் முயற்சிக்கவும்",
+  "verifiedAt": "சரிபார்க்கப்பட்டது: {date}",
+  "documentsSubmitted": "பரிசீலனைக்காக ஆவணங்கள் சமர்ப்பிக்கப்பட்டன",
+  "documentsSubmittedDesc": "பரிசீலனை பொதுவாக 1-2 வேலை நாட்கள் ஆகும். முடிவுடன் நீங்கள் ஒரு புஷ் அறிவிப்பைப் பெறுவீர்கள்.",
+  "securityAes": "உங்கள் தரவு AES-256 குறியாக்கத்துடன் பாதுகாக்கப்பட்டுள்ளது",
+  "verificationTime": "சரிபார்ப்பு 1-2 வேலை நாட்கள் ஆகும்",
+  "pushNotification": "முடிவுடன் நீங்கள் ஒரு புஷ் அறிவிப்பைப் பெறுவீர்கள்",
+  "kycWebOnly": "KYC சரிபார்ப்பு மொபைல் பயன்பாட்டில் மட்டுமே கிடைக்கிறது.",
+  "verificationError": "சரிபார்ப்பு பிழை: {code}",
+  "organizations": "நிறுவனங்கள்",
+  "noOrganizations": "நிறுவனங்கள் இல்லை",
+  "noOrganizationsDesc": "ஒரு நிறுவனம் உருவாக்கவும் அல்லது அழைப்பை ஏற்கவும்",
+  "createOrganization": "நிறுவனம் உருவாக்கவும்",
+  "newOrganization": "புதிய நிறுவனம்",
+  "orgName": "பெயர் *",
+  "orgDescription": "விளக்கம்",
+  "orgEmail": "தொடர்பு மின்னஞ்சல்",
+  "orgWebsite": "வலைத்தளம்",
+  "orgLegalAddress": "சட்ட முகவரி",
+  "create": "உருவாக்கு",
+  "organization": "நிறுவனம்",
+  "contacts": "தொடர்புகள்",
+  "members": "உறுப்பினர்கள் ({count})",
+  "inviteMember": "உறுப்பினரை அழைக்கவும்",
+  "invite": "அழை",
+  "sendInvite": "அழைப்பை அனுப்பு",
+  "inviteSent": "{email} க்கு அழைப்பு அனுப்பப்பட்டது",
+  "role": "பங்கு",
+  "roleOwner": "உரிமையாளர்",
+  "roleAdmin": "நிர்வாகி",
+  "roleOperator": "இயக்குனர்",
+  "roleViewer": "பார்வையாளர்",
+  "editOrganization": "தொகு",
+  "editOrganizationTitle": "நிறுவனத்தைத் திருத்து",
+  "removeMember": "உறுப்பினரை நீக்கு",
+  "removeMemberConfirm": "{name} ஐ நிறுவனத்திலிருந்து நீக்கவா?",
+  "memberRemoved": "உறுப்பினர் நீக்கப்பட்டார்",
+  "roleChanged": "பங்கு மாற்றப்பட்டது",
+  "kybVerified": "சரிபார்க்கப்பட்டது",
+  "kybPending": "நிலுவையில் உள்ளது",
+  "kybRejected": "நிராகரிக்கப்பட்டது",
+  "kybNone": "சரிபார்க்கப்படவில்லை",
+  "kybVerification": "KYB சரிபார்ப்பை தொடங்கு",
+  "kybStartBusiness": "வணிக சரிபார்ப்பை தொடங்கு",
+  "kybStatusLabel": "KYB நிலை",
+  "noKyb": "KYB இல்லை",
+  "kybBusinessVerificationTitle": "வணிக சரிபார்ப்பு (KYB)",
+  "kybVerifiedOrgDesc": "நிறுவனம் வெற்றிகரமாக சரிபார்க்கப்பட்டது.",
+  "kybPendingOrgDesc": "ஆவணங்கள் பரிசீலிக்கப்படுகின்றன. இது பொதுவாக 1-3 வணிக நாட்கள் ஆகும்.",
+  "kybRejectedOrgDesc": "சரிபார்ப்பு தோல்வியடைந்தது. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
+  "kybNoneOrgDesc": "வணிக அம்சங்களை அணுக உங்கள் நிறுவனத்தை சரிபார்க்கவும்.",
+  "invitePlus": "+ அழை",
+  "kybVerificationTitle": "KYB சரிபார்ப்பு",
+  "kybWebOnlyBusiness": "KYB சரிபார்ப்பு மொபைல் பயன்பாட்டில் மட்டுமே கிடைக்கிறது.",
+  "unknownDevice": "அறியப்படாத சாதனம்",
+  "ipUnknown": "IP தெரியவில்லை",
+  "currentSessionLabel": "தற்போது",
+  "endSessionAction": "முடி",
+  "deviceLoggedOut": "சாதனம் வெளியேறும்.",
+  "acceptInvitationTitle": "அமைப்பு அழைப்பு",
+  "acceptInvitation": "அழைப்பை ஏற்கவும்",
+  "acceptInvitationDesc": "Taler சூழலில் ஒரு அமைப்பில் சேர அழைக்கப்பட்டுள்ளீர்கள்.",
+  "accept": "ஏற்கவும்",
+  "reject": "நிராகரிக்கவும்",
+  "sessions": "செயலில் உள்ள அமர்வுகள்",
+  "currentSession": "தற்போதைய அமர்வு",
+  "deleteSession": "அமர்வை முடிக்கவும்",
+  "deleteSessionConfirm": "இந்த அமர்வை முடிக்கவா?",
+  "sessionDeleted": "அமர்வு முடிந்தது",
+  "noSessions": "செயலில் உள்ள அமர்வுகள் இல்லை",
+  "minutesAgo": "{count} நிமிடங்களுக்கு முன்",
+  "hoursAgo": "{count} மணி நேரத்திற்கு முன்",
+  "daysAgo": "{count} நாட்களுக்கு முன்",
+  "justNow": "இப்பொழுது",
+  "settings": "அமைப்புகள்",
+  "security": "பாதுகாப்பு",
+  "biometrics": "உயிரியல் அடையாளங்கள்",
+  "biometricsDesc": "முக அடையாளம் அல்லது விரல் ரேகை மூலம் விரைவான உள்நுழைவு",
+  "biometricsConfirm": "விரைவான உள்நுழைவை இயக்க உயிரியல் அடையாளங்களை உறுதிப்படுத்தவும்",
+  "biometricsError": "உயிரியல் அடையாளங்களை இயக்க முடியவில்லை. சாதன அமைப்புகளை சரிபார்க்கவும்.",
+  "changePassword": "கடவுச்சொல்லை மாற்றவும்",
+  "twoFactorAuth": "இரண்டு காரணி அங்கீகாரம்",
+  "currentPassword": "தற்போதைய கடவுச்சொல்",
+  "newPassword": "புதிய கடவுச்சொல்",
+  "confirmNewPassword": "புதிய கடவுச்சொல்லை உறுதிப்படுத்தவும்",
+  "passwordChanged": "கடவுச்சொல் மாற்றப்பட்டது",
+  "wrongCurrentPassword": "தவறான தற்போதைய கடவுச்சொல்",
+  "passwordTooWeak": "கடவுச்சொல் பலவீனமாக உள்ளது: குறைந்தது 8 எழுத்துக்கள், எழுத்து மற்றும் எண் தேவை",
+  "passwordChangeFailed": "கடவுச்சொல்லை மாற்ற முடியவில்லை",
+  "notifications": "அறிவிப்புகள்",
+  "permissions": "அனுமதிகள்",
+  "permissionNotifications": "புஷ் அறிவிப்புகள்",
+  "permissionNotificationsDesc": "அழைப்புகள், செய்திகள், நிலைகள்",
+  "permissionMicrophone": "மைக்ரோஃபோன்",
+  "permissionMicrophoneDesc": "கால்கள் மற்றும் குரல் உதவியாளர்",
+  "permissionCamera": "கேமரா",
+  "permissionCameraDesc": "வீடியோ கால்கள் மற்றும் சரிபார்ப்பு",
+  "permissionLocation": "இடம்",
+  "permissionLocationDesc": "சரிபார்ப்புக்கு பயன்படுத்தப்படுகிறது",
+  "permissionOpenSettings": "ஒரு அனுமதியை ரத்து செய்ய, அமைப்புகளை திறக்கவும்",
+  "pushKycStatus": "KYC நிலை புஷ்",
+  "pushKycStatusDesc": "சரிபார்ப்பு முடிவு",
+  "pushLogins": "உள்நுழைவு புஷ்",
+  "pushLoginsDesc": "புதிய சாதனத்தில் உள்நுழையும் போது",
+  "account": "கணக்கு",
+  "language": "மொழி",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "இணைமுக மொழி",
+  "exportData": "தரவை ஏற்றுமதி செய்க (GDPR)",
+  "deleteAccount": "கணக்கை நீக்கு",
+  "deleteAccountConfirm": "கணக்கை நீக்கவா?",
+  "deleteAccountDesc": "உங்கள் அனைத்து தரவுகளும் நீக்கப்படும் (GDPR). இந்த செயல்பாடு மாற்ற முடியாது.",
+  "logout": "வெளியேறு",
+  "logoutConfirm": "வெளியேறவா?",
+  "logoutDesc": "இந்த சாதனத்தில் இருந்து Taler ID இல் இருந்து நீங்கள் வெளியேறுவீர்கள்.",
+  "version": "Taler ID v{version}",
+  "pinCode": "பின் குறியீடு",
+  "pinCodeDesc": "4 இலக்க குறியீட்டுடன் விரைவான உள்நுழைவு",
+  "setupPin": "பின் அமைக்கவும்",
+  "enterPin": "பினை உள்ளிடவும்",
+  "confirmPin": "பினை உறுதிப்படுத்தவும்",
+  "pinMismatch": "பின்கள் பொருந்தவில்லை",
+  "pinSet": "பின் வெற்றிகரமாக அமைக்கப்பட்டது",
+  "enterPinToLogin": "உள்நுழைய பினை உள்ளிடவும்",
+  "pinIncorrect": "தவறான பின்",
+  "removePin": "பினை நீக்கு",
+  "pinRemoved": "பின் நீக்கப்பட்டது",
+  "cancel": "ரத்து செய்",
+  "delete": "நீக்கு",
+  "ok": "சரி",
+  "retry": "மீண்டும் முயற்சி செய்",
+  "loading": "ஏற்றுகிறது...",
+  "error": "பிழை",
+  "success": "வெற்றி",
+  "noData": "தகவல் இல்லை",
+  "failedToLoad": "தரவை ஏற்ற முடியவில்லை",
+  "failedToLoadProfile": "சுயவிவரத்தை ஏற்ற முடியவில்லை",
+  "failedToSave": "மாற்றங்களை சேமிக்க முடியவில்லை",
+  "failedToLoadOrgs": "நிறுவனங்களை ஏற்ற முடியவில்லை",
+  "failedToLoadOrg": "நிறுவனத்தின் தரவை ஏற்ற முடியவில்லை",
+  "failedToCreateOrg": "நிறுவனத்தை உருவாக்க முடியவில்லை",
+  "failedToInvite": "அழைப்பை அனுப்ப முடியவில்லை",
+  "failedToAcceptInvite": "அழைப்பை ஏற்க முடியவில்லை",
+  "failedToLoadSessions": "அமர்வுகளை ஏற்ற முடியவில்லை",
+  "failedToDeleteSession": "அமர்வை முடிக்க முடியவில்லை",
+  "failedToLoadKyc": "சரிபார்ப்பு நிலையை ஏற்ற முடியவில்லை",
+  "failedToStartKyc": "சரிபார்ப்பை தொடங்க முடியவில்லை",
+  "verifiedPersonalInfo": "சரிபார்க்கப்பட்ட தரவு",
+  "middleName": "நடுத்தர பெயர்",
+  "placeOfBirth": "பிறந்த இடம்",
+  "nationality": "தேசியம்",
+  "gender": "பாலினம்",
+  "genderMale": "ஆண்",
+  "genderFemale": "பெண்",
+  "docNumber": "எண்",
+  "docIssuedDate": "வெளியிடப்பட்டது",
+  "docValidUntil": "செல்லுபடியாகும் வரை",
+  "docIssuedBy": "வெளியிட்டவர்",
+  "address": "முகவரி",
+  "refreshData": "தரவை புதுப்பிக்கவும்",
+  "failedToLoadSumsubData": "சரிபார்ப்பு தரவை ஏற்ற முடியவில்லை",
+  "sumsubDataLoading": "சரிபார்ப்பு தரவை ஏற்றுகிறது...",
+  "reviewResultGreen": "சரிபார்ப்பு வெற்றி",
+  "reviewResultRed": "சரிபார்ப்பு தோல்வி",
+  "tabAssistant": "உதவியாளர்",
+  "assistantConnecting": "இணைக்கிறது…",
+  "assistantSpeaking": "பேசுகிறது…",
+  "assistantListening": "கேட்கிறது…",
+  "assistantTapToStart": "தொடங்க தட்டவும்",
+  "assistantTapToTalk": "AI உடன் பேச தட்டவும்",
+  "assistantRealtimeDesc": "உதவியாளர் உடனடி குரல் பதிலளிக்கிறது",
+  "assistantConnectingToAssistant": "உதவியாளருடன் இணைக்கிறது...",
+  "assistantAiSpeaking": "AI பேசுகிறது...",
+  "assistantAiListening": "AI கேட்கிறது",
+  "assistantSpeakerOn": "ஸ்பீக்கர் ஆன்",
+  "assistantSpeaker": "ஸ்பீக்கர்",
+  "assistantEnd": "முடிவு",
+  "assistantUnmute": "மூடியதை திற",
+  "assistantMicrophone": "மைக்ரோஃபோன்",
+  "assistantConnectionError": "இணைப்பு பிழை",
+  "tabMessenger": "செய்திகள்",
+  "tabCalls": "அழைப்புகள்",
+  "tabCalendar": "நாட்காட்டி",
+  "appearance": "தோற்றம்",
+  "appearanceSelect": "தீமையை தேர்வு செய்க",
+  "themeLight": "ஒளி",
+  "themeDark": "இருள்",
+  "themeSystem": "அமைப்பு",
+  "onboardingTitle1": "ஒற்றுமையான அடையாளம்",
+  "onboardingDesc1": "Taler ID உங்கள் டிஜிட்டல் பாஸ்போர்ட். அனைத்து சேவைகளுக்கும் ஒரு கணக்கு.",
+  "onboardingTitle2": "தரவு பாதுகாப்பு",
+  "onboardingDesc2": "KYC சரிபார்ப்பு, AES-256 குறியாக்கம், மற்றும் இரட்டை காரணி அங்கீகாரம் உங்கள் அடையாளத்தை பாதுகாக்கும்.",
+  "onboardingTitle3": "தகவல் பெறுங்கள்",
+  "onboardingDesc3": "சரிபார்ப்பு நிலை, புதிய சாதனங்களில் உள்நுழைவு, மற்றும் வரும் அழைப்புகள் பற்றிய அறிவிப்புகளைப் பெறுங்கள்.",
+  "onboardingNext": "அடுத்தது",
+  "onboardingEnableNotifications": "அறிவிப்புகளை இயக்கு",
+  "onboardingTitle4": "குரல் அழைப்புகள்",
+  "onboardingDesc4": "குரல் அழைப்புகள் மற்றும் AI உதவியாளருக்கு மைக்ரோஃபோன் அணுகலை வழங்கவும். பின்னர் அமைப்புகளில் இதை மாற்றலாம்.",
+  "onboardingEnableMicrophone": "மைக்ரோஃபோனை இயக்கு",
+  "onboardingStart": "தொடங்குங்கள்",
+  "onboardingSkip": "தவிர்க்கவும்",
+  "meshLocalNetworkPromptTitle": "உள்ளூர் நெட்வொர்க் அணுகலை அனுமதிக்கவும்",
+  "meshLocalNetworkPromptBody": "Wi-Fi இல் (ஆஃப்லைன் குழு அழைப்புகள்) சகாக்களை கண்டறிய, iOS உள்ளூர் நெட்வொர்க் அனுமதியை தேவைப்படுகிறது. அமைப்புகள் திறக்கவும் → தனியுரிமை & பாதுகாப்பு → உள்ளூர் நெட்வொர்க் → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "அமைப்புகளை திறக்கவும்",
+  "meshLocalNetworkPromptDismiss": "புரிந்தது",
+  "forgotPassword": "கடவுச்சொல்லை மறந்துவிட்டீர்களா?",
+  "forgotPasswordTitle": "கடவுச்சொல்லை மீட்டமைக்கவும்",
+  "forgotPasswordSubtitle": "மீட்டமைப்பு குறியீட்டை பெற உங்கள் மின்னஞ்சலை உள்ளிடவும்",
+  "resetCodeSent": "{email} க்கு குறியீடு அனுப்பப்பட்டது",
+  "enterResetCode": "குறியீட்டை உள்ளிடவும்",
+  "resetPasswordButton": "கடவுச்சொல்லை மீட்டமைக்கவும்",
+  "passwordResetSuccess": "கடவுச்சொல் வெற்றிகரமாக மீட்டமைக்கப்பட்டது",
+  "sendCode": "குறியீட்டை அனுப்பு",
+  "resendCode": "மீண்டும் குறியீட்டை அனுப்பு",
+  "newGroup": "புதிய குழு",
+  "newChat": "புதிய உரையாடல்",
+  "groupName": "குழு பெயர்",
+  "createGroup": "குழுவை உருவாக்கு",
+  "groupInfo": "குழு தகவல்",
+  "groupMembers": "உறுப்பினர்கள் ({count})",
+  "addMembers": "உறுப்பினர்களை சேர்",
+  "leaveGroup": "குழுவை விட்டு வெளியேறு",
+  "leaveGroupConfirm": "இந்த குழுவை விட்டு வெளியேறவா?",
+  "deleteGroup": "குழுவை நீக்கு",
+  "deleteGroupConfirm": "இந்த குழுவை நீக்கவா? இது மீட்க முடியாது.",
+  "groupRoleOwner": "உரிமையாளர்",
+  "groupRoleAdmin": "நிர்வாகி",
+  "groupRoleMember": "உறுப்பினர்",
+  "selectParticipants": "பங்கேற்பாளர்களை தேர்வு செய்",
+  "selectedCount": "{count} தேர்வு செய்யப்பட்டது",
+  "changeRole": "பாத்திரத்தை மாற்று",
+  "groupCreated": "குழு உருவாக்கப்பட்டது",
+  "memberJoined": "{name} சேர்ந்தார்",
+  "memberLeftGroup": "{name} விட்டு வெளியேறினார்",
+  "memberWasRemoved": "{name} நீக்கப்பட்டார்",
+  "roleChangedTo": "{name} இப்போது {role}",
+  "participantsCount": "{count} பங்கேற்பாளர்கள்",
+  "enterGroupName": "குழு பெயரை உள்ளிடவும்",
+  "muteNotifications": "அறிவிப்புகளை மவுட் செய்",
+  "unmuteNotifications": "அறிவிப்புகளை மவுட் நீக்கு",
+  "muteFor1Hour": "1 மணி நேரத்திற்கு",
+  "muteFor8Hours": "8 மணி நேரத்திற்கு",
+  "muteFor2Days": "2 நாட்களுக்கு",
+  "muteForever": "எப்போதும்",
+  "muted": "மவுட் செய்யப்பட்டது",
+  "tabTranslator": "மொழிபெயர்ப்பு",
+  "translatorTitle": "மொழிபெயர்ப்பாளர்",
+  "translatorSelectLanguage": "மொழியை தேர்வு செய்",
+  "translatorDownloading": "மொழி மாதிரிகளை பதிவிறக்குகிறது...",
+  "translatorDownloadingHint": "முதல் பதிவிறக்கத்திற்கு மட்டுமே இணையம் தேவை",
+  "translatorTypeHint": "உரை தட்டச்சு செய்யவும் அல்லது மைக்ரோஃபோனை தட்டவும்",
+  "translatorListening": "கேட்கிறது...",
+  "translatorTapToSpeak": "பேச தட்டவும்",
+  "translatorTapToStop": "நிறுத்த தட்டவும்",
+  "translatorAutoSpeak": "தானியங்கி பேச்சு",
+  "translatorCopied": "நகலெடுக்கப்பட்டது",
+  "translatorLangRu": "ரஷியன்",
+  "translatorLangEn": "ஆங்கிலம்",
+  "translatorLangDe": "ஜெர்மன்",
+  "translatorLangFr": "பிரெஞ்சு",
+  "translatorLangEs": "ஸ்பானிஷ்",
+  "translatorLangIt": "இத்தாலியன்",
+  "translatorLangPt": "போர்ச்சுகீஸ்",
+  "translatorLangTr": "துருக்கிஷ்",
+  "translatorLangZh": "சீனம்",
+  "translatorLangJa": "ஜப்பானியன்",
+  "translatorLangKo": "கொரியன்",
+  "translatorLangAr": "அரபிக்",
+  "translatorLangPl": "போலிஷ்",
+  "translatorLangSk": "ஸ்லோவாக்",
+  "translatorLangCs": "செக்",
+  "translatorLangNl": "டச்சு",
+  "translatorLangSv": "ஸ்வீடிஷ்",
+  "translatorLangDa": "டேனிஷ்",
+  "translatorLangNo": "நார்வேஜியன்",
+  "translatorLangFi": "பின்னிஷ்",
+  "translatorLangUk": "உக்ரைனியன்",
+  "translatorLangEl": "கிரேக்கம்",
+  "translatorLangRo": "ருமேனியன்",
+  "translatorLangHu": "ஹங்கேரியன்",
+  "translatorLangBg": "பல்கேரியன்",
+  "translatorLangHr": "குரோஷியன்",
+  "translatorLangSr": "செர்பியன்",
+  "translatorLangHi": "இந்தி",
+  "translatorLangTh": "தாய்",
+  "translatorLangVi": "வியட்நாமிஸ்",
+  "translatorLangId": "இந்தோனேஷியன்",
+  "translatorLangMs": "மலாய்",
+  "translatorLangHe": "ஹீப்ரூ",
+  "translatorLangFa": "பாரசீகன்",
+  "callInProgress": "அழைப்பு நடக்கிறது",
+  "joinCall": "சேர",
+  "createCallLink": "கால் இணைப்பு",
+  "callLinkCopied": "இணைப்பு நகலெடுக்கப்பட்டது",
+  "callLinkTitle": "அறை இணைப்பு",
+  "connectionUnstable": "இணைப்பு நிலையற்றது — உங்கள் இணையத்தை சரிபார்க்கவும்",
+  "today": "இன்று",
+  "yesterday": "நேற்று",
+  "errorTimeout": "இணைப்பு நேரம் முடிந்தது. உங்கள் இணைய இணைப்பை சரிபார்க்கவும்.",
+  "errorNoConnection": "இணைய இணைப்பு இல்லை.",
+  "errorGeneral": "ஒரு பிழை ஏற்பட்டுள்ளது. தயவுசெய்து மீண்டும் முயற்சிக்கவும்.",
+  "errorWithMessage": "பிழை: {message}",
+  "notifChannelMessages": "செய்திகள்",
+  "notifChannelMessagesDesc": "புதிய செய்தி அறிவிப்புகள்",
+  "notifChannelMissedCalls": "தவறவிட்ட அழைப்புகள்",
+  "notifChannelMissedCallsDesc": "தவறவிட்ட அழைப்பு அறிவிப்புகள்",
+  "notifMissedCall": "தவறவிட்ட அழைப்பு",
+  "notifAccept": "ஏற்கவும்",
+  "notifDecline": "நிராகரிக்கவும்",
+  "notifIncomingCall": "உள்வரும் அழைப்பு",
+  "notifIncomingCallChannel": "உள்வரும் அழைப்பு",
+  "notifMissedCallChannel": "தவறவிட்ட அழைப்பு",
+  "notifUnknown": "அறியப்படாதது",
+  "effectNone": "பின்னணி இல்லை",
+  "effectBlur": "மங்கல்",
+  "effectOffice": "அலுவலகம்",
+  "effectNature": "இயற்கை",
+  "effectGradient": "சாய்வு",
+  "effectLibrary": "நூலகம்",
+  "effectCity": "நகரம்",
+  "effectMinimalism": "குறைவியல்பாடு",
+  "voiceParticipant": "பங்கேற்பாளர்",
+  "voiceInvitesToRoom": "அறைக்கு அழைக்கிறார்",
+  "voiceRoom": "அறை",
+  "voicePasswordProtected": "கடவுச்சொல்லால் பாதுகாக்கப்பட்டது",
+  "voicePasswordHint": "கடவுச்சொல்",
+  "voiceEnter": "உள்ளிடவும்",
+  "voiceJoinRoom": "அறையில் சேரவும்",
+  "voiceYourName": "உங்கள் பெயர்",
+  "voiceInvitationSent": "{name} க்கு அழைப்பு அனுப்பப்பட்டது",
+  "voiceNoActiveRoom": "செயலில் உள்ள அறை இல்லை",
+  "voiceCameraPermission": "அமைப்புகள் → தனியுரிமை → கேமரா → TalerID இல் கேமரா அணுகலை அனுமதிக்கவும்",
+  "voiceOpenSettings": "திற",
+  "voiceCameraError": "கேமராவை இயக்க முடியவில்லை: {error}",
+  "voiceAllAgreedRecording": "அனைவரும் ஒப்புக்கொண்டனர். பதிவு தொடங்கியது.",
+  "voiceNewParticipantAgreed": "புதிய பங்கேற்பாளர் பதிவுக்கு ஒப்புக்கொண்டார்.",
+  "voiceDeclinedRecording": "நீங்கள் பதிவை நிராகரித்தீர்கள். அழைப்பை விட்டு வெளியேறுகிறேன்.",
+  "voiceRecordingEnded": "பதிவு முடிந்தது",
+  "voiceRecordingInProgress": "பதிவு நடைபெறுகிறது",
+  "voiceTranscriptionRequest": "உரை மாற்று கோரிக்கை",
+  "voiceRecordingRequest": "பதிவு கோரிக்கை",
+  "voiceAgree": "ஒப்புக்கொள்",
+  "voiceDeclineAndLeave": "நிராகரித்து விட்டு வெளியேறு",
+  "voiceAudioOutput": "ஆடியோ வெளியீடு",
+  "voiceAudioPhone": "தொலைபேசி",
+  "voiceAudioSpeaker": "ஸ்பீக்கர்",
+  "voiceAudioBluetooth": "ப்ளூடூத்",
+  "voiceAudioHeadphones": "தலைக்கூடிகள்",
+  "voiceLinkCopied": "இணைப்பு நகலெடுக்கப்பட்டது",
+  "voiceTranslateTo": "மொழிபெயர்க்க",
+  "voiceSearchLanguage": "மொழி தேடு...",
+  "voiceRoomWithCreator": "அறை {name}",
+  "voiceVoiceCall": "குரல் அழைப்பு",
+  "voiceOnHold": "நிறுத்தப்பட்டது",
+  "voiceActiveCall": "செயலில் உள்ளது",
+  "voiceEndAllCalls": "அனைத்து அழைப்புகளையும் முடி",
+  "voiceEndThisCall": "இந்த அழைப்பை முடி",
+  "voiceCopyLink": "இணைப்பை நகலெடு",
+  "voiceAddParticipant": "பங்கேற்பாளரை சேர்",
+  "voiceReconnecting": "மீண்டும் இணைக்கப்படுகிறது...",
+  "voiceConnectionError": "இணைப்பு பிழை",
+  "voiceClose": "மூடு",
+  "voiceCalling": "அழைக்கிறது...",
+  "voiceCallActive": "அழைப்பு செயலில் உள்ளது",
+  "voiceWaiting": "காத்திருக்கிறது",
+  "voiceWaitingUpper": "காத்திருக்கிறது",
+  "voiceRec": "பதிவு",
+  "voiceStop": "நிறுத்து",
+  "voiceRecord": "பதிவு",
+  "voiceTranslation": "மொழிபெயர்ப்பு",
+  "voiceAudio": "ஆடியோ",
+  "voiceFlipCamera": "கேமராவை திருப்பு",
+  "voiceBackground": "பின்னணி",
+  "voiceAssistantSpeakingStatus": "உதவியாளர் பேசுகிறார்...",
+  "voiceAssistantListeningStatus": "உதவியாளர் கேட்கிறார்...",
+  "voiceUnmute": "மூடியதை திற",
+  "voiceMic": "மைக்ரோஃபோன்",
+  "voiceAssistantLabel": "உதவியாளர்",
+  "voiceCameraOn": "கேமரா இயக்கம்",
+  "voiceCameraLabel": "கேமரா",
+  "voiceEndCall": "அழைப்பை முடி",
+  "voiceWaitingParticipants": "பங்கேற்பாளர்களுக்காக காத்திருக்கிறது...",
+  "voiceYou": "நீங்கள்",
+  "voiceAiAssistant": "AI உதவியாளர்",
+  "voiceVideoUnavailable": "வீடியோ கிடைக்கவில்லை",
+  "voiceSearchNickname": "புனைப்பெயரால் தேடுங்கள்...",
+  "voiceTranscriptionWord": "எழுத்துப்பதிவு",
+  "voiceRecordingWord": "பதிவு",
+  "voiceConnecting": "இணைக்கிறது...",
+  "voiceVideoBackground": "வீடியோ பின்னணி",
+  "voiceCallSettings": "அழைப்பு அமைப்புகள்",
+  "voiceEnableAI": "AI உதவியாளரை இயக்கவும்",
+  "voiceAIParticipating": "AI உரையாடலில் பங்கேற்கும்",
+  "voiceNormalCall": "AI இல்லாமல் சாதாரண அழைப்பு",
+  "voiceCallConfirm": "அழைப்பை செய்யவா?",
+  "chatAlreadyInCall": "ஏற்கனவே ஒரு அழைப்பில் உள்ளீர்கள்",
+  "chatCallError": "அழைப்பு பிழை: {error}",
+  "chatPhotoVideo": "புகைப்படம் / வீடியோ",
+  "chatCamera": "கேமரா",
+  "chatFile": "கோப்பு",
+  "chatContact": "தொடர்பு",
+  "chatSelectContact": "ஒரு தொடர்பை தேர்ந்தெடுக்கவும்",
+  "chatNoContacts": "தொடர்புகள் இல்லை",
+  "chatUser": "பயனர்",
+  "chatFileAttachment": "📎 கோப்பு",
+  "chatFileUploadError": "கோப்பு பதிவேற்ற பிழை: {error}",
+  "chatVoiceMessage": "🎤 குரல் செய்தி",
+  "chatGroup": "குழு",
+  "chatDialog": "உரையாடல்",
+  "chatCall": "அழைப்பு",
+  "chatStartConversation": "உரையாடலை தொடங்கவும்",
+  "chatYou": "நீங்கள்",
+  "chatIsTyping": "எழுதுகிறது...",
+  "chatUserIsTyping": "{name} எழுதுகிறது...",
+  "chatUsersAreTyping": "{names} எழுதுகிறார்கள்...",
+  "chatPreparingFile": "கோப்பை தயாரிக்கிறது…",
+  "chatUploading": "பதிவேற்றுகிறது… {progress}%",
+  "chatEdited": "திருத்தப்பட்டது",
+  "chatViaMesh": "mesh மூலம்",
+  "chatReply": "பதில்",
+  "chatEdit": "திருத்து",
+  "chatCopy": "நகல்",
+  "chatCopied": "நகலெடுக்கப்பட்டது",
+  "chatSaveMedia": "சேமிக்கவும்",
+  "chatForward": "முன்னேற்றவும்",
+  "chatSaving": "சேமிக்கிறது...",
+  "chatSavedToGallery": "கேலரியில் சேமிக்கப்பட்டது",
+  "chatNoSavePermission": "சேமிக்க அனுமதி இல்லை. அமைப்புகளை சரிபார்க்கவும்.",
+  "chatFileSaveError": "கோப்பு சேமிப்பு பிழை",
+  "chatDeleteMessage": "செய்தியை நீக்கு",
+  "chatDeleteForMe": "எனக்காக நீக்கு",
+  "chatDeleteForEveryone": "அனைவருக்கும் நீக்கு",
+  "chatMessageForwarded": "செய்தி முன்னேற்றப்பட்டது",
+  "chatContactTapToOpen": "தொடர்பு · திறக்க தட்டவும்",
+  "chatForwardTo": "முன்னேற்றவும்...",
+  "chatSearchHint": "தேடல்...",
+  "chatRecording": "பதிவு செய்கிறது...",
+  "chatMessageHint": "செய்தி...",
+  "chatHideKeyboard": "விசைப்பலகையை மறைக்கவும்",
+  "chatEditing": "திருத்துகிறது",
+  "chatFileDownloadError": "கோப்பு பதிவிறக்கம் பிழை",
+  "chatVoiceMessageShort": "குரல் செய்தி",
+  "chatVideoSavedToGallery": "கேலரியில் வீடியோ சேமிக்கப்பட்டது",
+  "chatSavingError": "சேமிப்பு பிழை",
+  "convSetNickname": "ஒரு புனைப்பெயரை அமைக்கவும்",
+  "convNicknameRequired": "மெசஞ்சரைப் பயன்படுத்த புனைப்பெயர் தேவை. மற்ற பயனர்கள் உங்களை அதனால் கண்டுபிடிக்க முடியும்.",
+  "convNicknameRules": "3–30 எழுத்துக்கள்: எழுத்துக்கள், எண்கள், _",
+  "convNicknameTaken": "புனைப்பெயர் ஏற்கனவே பயன்படுத்தப்பட்டுள்ளது",
+  "convSaveError": "சேமிப்பு பிழை",
+  "convContactsLabel": "தொடர்புகள்",
+  "convDefaultUser": "பயனர்",
+  "convNoDialogs": "உரையாடல்கள் இல்லை",
+  "convFindUserToChat": "உரையாடலைத் தொடங்க பயனரைத் தேடுங்கள்",
+  "convDefaultContact": "தொடர்பு",
+  "dashboardUser": "பயனர்",
+  "dashboardIncomingCall": "உள்வரும் அழைப்பு",
+  "dashboardDecline": "நிராகரிக்கவும்",
+  "dashboardAccept": "ஏற்கவும்",
+  "dashboardActiveCall": "செயலில் உள்ள அழைப்பு — திரும்பத் தொட்டு",
+  "dashboardUpdateAvailable": "புதுப்பிப்பு கிடைக்கிறது {version}",
+  "dashboardUpdate": "புதுப்பிக்கவும்",
+  "dashboardWhatsNew": "என்ன புதியது",
+  "dashboardWhatsNewTitle": "{version} இல் என்ன புதியது",
+  "dashboardInstalling": "நிறுவப்படுகிறது...",
+  "contactRequestsTitle": "தொடர்புகள்",
+  "messengerContactRequestsSection": "தொடர்பு கோரிக்கைகள்",
+  "messengerContactRequestsCount": "{count, plural, =1{1 புதிய கோரிக்கை} other{{count} புதிய கோரிக்கைகள்}}",
+  "contactRequestsSearch": "தேடல்",
+  "contactRequestsIncoming": "உள்வரும்",
+  "contactRequestsSent": "அனுப்பப்பட்டது",
+  "contactRequestsSearchHint": "புனைப்பெயர் அல்லது மின்னஞ்சல்",
+  "contactRequestSent": "கோரிக்கை அனுப்பப்பட்டது",
+  "contactRequestsNoUsers": "பயனர்கள் கிடைக்கவில்லை",
+  "contactRequestsSearchHelp": "துல்லியமான புனைப்பெயர் அல்லது மின்னஞ்சலை உள்ளிடவும்\nமற்றும் தேடலை அழுத்தவும்",
+  "contactRequestsSendTooltip": "கோரிக்கையை அனுப்பவும்",
+  "contactRequestTitle": "தொடர்பு கோரிக்கை",
+  "contactRequestConfirm": "{name} க்கு தொடர்பு கோரிக்கையை அனுப்பவா?",
+  "contactRequestSend": "அனுப்பவும்",
+  "contactRequestsNoIncoming": "உள்வரும் கோரிக்கைகள் இல்லை",
+  "contactRequestsNoSent": "அனுப்பிய கோரிக்கைகள் இல்லை",
+  "contactRequestStatusPending": "பதில் காத்திருக்கிறது",
+  "contactRequestStatusAccepted": "ஏற்றுக்கொள்ளப்பட்டது",
+  "contactRequestStatusRejected": "நிராகரிக்கப்பட்டது",
+  "userSearchTitle": "பயனரைத் தேடுங்கள்",
+  "userSearchHint": "புனைப்பெயர், தொலைபேசி அல்லது மின்னஞ்சல்",
+  "userSearchHelper": "@புனைப்பெயர், மின்னஞ்சல் அல்லது பெயரை தேடவும்",
+  "userSearchNoUsers": "பயனர்கள் கிடைக்கவில்லை",
+  "userProfileShareContact": "தொடர்பை பகிரவும்",
+  "userProfileShareContactDesc": "தொடர்பு இணைப்பை அனுப்பவும்",
+  "userProfileCopyLink": "இணைப்பை நகலெடுக்கவும்",
+  "userProfileCopied": "நகலெடுக்கப்பட்டது",
+  "userProfileTitle": "சுயவிவரம்",
+  "userProfileLoadError": "சுயவிவர ஏற்றுதல் பிழை",
+  "userProfileMessage": "செய்தி",
+  "userProfileCall": "அழைப்பு",
+  "userProfileRequestSent": "கோரிக்கை அனுப்பப்பட்டது",
+  "userProfileAccept": "ஏற்கவும்",
+  "userProfileDecline": "நிராகரிக்கவும்",
+  "userProfileAddToContacts": "தொடர்புகளுக்கு சேர்க்கவும்",
+  "userProfileMediaTab": "ஊடகம்",
+  "userProfileFilesTab": "கோப்புகள்",
+  "userProfileLinksTab": "இணைப்புகள்",
+  "userProfileRecordingsTab": "பதிவுகள்",
+  "userProfileSummariesTab": "சுருக்கங்கள்",
+  "userProfileNoMedia": "ஊடக கோப்புகள் இல்லை",
+  "userProfileNoFiles": "கோப்புகள் இல்லை",
+  "userProfileNoLinks": "இணைப்புகள் இல்லை",
+  "userProfileNoRecordings": "பதிவுகள் இல்லை",
+  "userProfileNoSummaries": "சுருக்கங்கள் இல்லை",
+  "userProfileMeetingSummary": "சந்திப்பு சுருக்கம்",
+  "userProfileFailedOpenChat": "அரட்டை திறக்க முடியவில்லை",
+  "sharedMediaTitle": "ஊடகம் மற்றும் கோப்புகள்",
+  "sharedMediaTab": "ஊடகம்",
+  "sharedFilesTab": "கோப்புகள்",
+  "sharedLinksTab": "இணைப்புகள்",
+  "sharedNoMedia": "ஊடக கோப்புகள் இல்லை",
+  "sharedNoFiles": "கோப்புகள் இல்லை",
+  "sharedNoLinks": "இணைப்புகள் இல்லை",
+  "shareToChat": "அரட்டைக்கு அனுப்பவும்",
+  "shareSelectChat": "அரட்டை தேர்ந்தெடுக்கவும்",
+  "shareNoChats": "அரட்டைகள் இல்லை",
+  "shareFilesCount": "{count} கோப்புகள்",
+  "contactsTitle": "தொடர்புகள்",
+  "contactsAddTooltip": "தொடர்பைச் சேர்க்கவும்",
+  "contactsSearchHint": "தொடர்புகளைத் தேடவும்...",
+  "contactsNotFound": "எதுவும் கிடைக்கவில்லை",
+  "contactsEmpty": "தொடர்புகள் இல்லை",
+  "contactsAdd": "தொடர்பைச் சேர்க்கவும்",
+  "contactsPendingConfirmation": "உறுதிப்படுத்தல் நிலுவையில் உள்ளது",
+  "contactsMessage": "செய்தி",
+  "contactsCall": "அழைப்பு",
+  "contactsResend": "கோரிக்கையை மீண்டும் அனுப்பவும்",
+  "contactsResendTimeout": "24 மணி நேரத்தில் மீண்டும் முயற்சிக்கவும்",
+  "contactsResent": "விண்ணப்பம் மீண்டும் அனுப்பப்பட்டது",
+  "contactsWantsToConnect": "உங்களுடன் இணைக்க விரும்புகிறது",
+  "contactsSearchPeople": "மக்களைத் தேடுங்கள்",
+  "notesTitle": "குறிப்புகள்",
+  "notesAssistantSpeaking": "உதவியாளர் பேசுகிறது...",
+  "notesListening": "கேட்கிறது...",
+  "notesEmpty": "குறிப்புகள் இல்லை",
+  "notesEmptyHint": "உரை மாற்ற மைக்ரோஃபோனை அழுத்தவும்\nஅல்லது கையேடு உள்ளீட்டிற்கு + அழுத்தவும்",
+  "notesDeleteConfirm": "குறிப்பை நீக்கவா?",
+  "notesNew": "புதிய குறிப்பு",
+  "notesEdit": "தொகு",
+  "notesTitleHint": "தலைப்பு",
+  "notesContentHint": "உங்கள் எண்ணங்களை எழுதுங்கள்...",
+  "calendarTitle": "நாட்காட்டி",
+  "calendarStop": "நிறுத்து",
+  "calendarVoiceInput": "குரல் உள்ளீடு",
+  "calendarNewEvent": "புதிய நிகழ்வு",
+  "calendarAssistantSpeaking": "உதவியாளர் பேசுகிறது...",
+  "calendarListening": "கேட்கிறது...",
+  "calendarInvitations": "அழைப்புகள் ({count})",
+  "calendarNoEvents": "நிகழ்வுகள் இல்லை",
+  "calendarDayMon": "திங்கள்",
+  "calendarDayTue": "செவ்வாய்",
+  "calendarDayWed": "புதன்",
+  "calendarDayThu": "வியாழன்",
+  "calendarDayFri": "வெள்ளி",
+  "calendarDaySat": "சனி",
+  "calendarDaySun": "ஞாயிறு",
+  "calendarEnterRoom": "அறைக்குள் செல்லவும்",
+  "calendarMeeting": "சந்திப்பு",
+  "calendarLocationPrefix": "இடம்: {location}",
+  "calendarEditEvent": "தொகு",
+  "calendarTitleHint": "தலைப்பு",
+  "calendarDescriptionHint": "விவரணம்",
+  "calendarTypeEvent": "நிகழ்வு",
+  "calendarTypeMeeting": "சந்திப்பு",
+  "calendarTypeReminder": "நினைவூட்டல்",
+  "calendarTypeLabel": "வகை",
+  "calendarMeetingLink": "சந்திப்பு இணைப்பு",
+  "calendarLocationHint": "இடம்",
+  "calendarDateLabel": "தேதி",
+  "calendarTimeLabel": "நேரம்",
+  "calendarReminderLabel": "நினைவூட்டல்",
+  "calendarReminderNone": "இல்லை",
+  "calendarReminder15min": "15 நிமிடங்களுக்கு முன்",
+  "calendarReminder30min": "30 நிமிடங்களுக்கு முன்",
+  "calendarReminder1hour": "1 மணி நேரத்திற்கு முன்",
+  "calendarRepeatLabel": "மீண்டும்",
+  "calendarRepeatNone": "மீண்டும் இல்லை",
+  "calendarRepeatDaily": "ஒவ்வொரு நாளும்",
+  "calendarRepeatWeekly": "ஒவ்வொரு வாரமும்",
+  "calendarRepeatMonthly": "ஒவ்வொரு மாதமும்",
+  "calendarRepeatYearly": "ஒவ்வொரு ஆண்டும்",
+  "calendarParticipants": "பங்கேற்பாளர்கள்",
+  "calendarAddParticipant": "சேர்க்கவும்",
+  "calendarSearchContacts": "தொடர்புகளை தேடுங்கள்...",
+  "calendarNoContacts": "தொடர்புகள் இல்லை",
+  "calendarStatusAccepted": "ஏற்றுக்கொள்ளப்பட்டது",
+  "calendarStatusDeclined": "நிராகரிக்கப்பட்டது",
+  "calendarStatusMaybe": "ஏற்கலாம்",
+  "calendarStatusPending": "நிலுவையில்",
+  "calendarEndTime": "முடிவு நேரம்",
+  "calendarYourAnswer": "உங்கள் பதில்:",
+  "calendarOrganizer": "நிர்வாகி",
+  "calendarDeleteError": "அழிக்க முடியவில்லை: {error}",
+  "calendarRsvpAccept": "ஏற்கவும்",
+  "calendarRsvpMaybe": "ஏற்கலாம்",
+  "calendarRsvpDecline": "நிராகரிக்கவும்",
+  "callHistoryTitle": "அழைப்புகள்",
+  "callHistoryTab": "அழைப்பு வரலாறு",
+  "callHistoryTempMeeting": "தற்காலிக கூட்டம்",
+  "callHistoryCopy": "நகலெடுக்கவும்",
+  "callHistoryLinkCopied": "இணைப்பு நகலெடுக்கப்பட்டது",
+  "callHistoryShare": "பகிரவும்",
+  "callHistoryEnter": "உள்ளிடவும்",
+  "callHistoryAlreadyInCall": "ஏற்கனவே அழைப்பில் உள்ளீர்கள்",
+  "callHistoryCouldNotDeterminePeer": "மற்ற பக்கம் கண்டறிய முடியவில்லை",
+  "callHistoryContacts": "தொடர்புகள்",
+  "callHistoryFailedLoadRoom": "உங்கள் அறையை ஏற்ற முடியவில்லை",
+  "callHistoryYourRoom": "உங்கள் அறை",
+  "callHistoryCreateMeeting": "சந்திப்பு உருவாக்கவும்",
+  "callHistoryMeetingSummaries": "சந்திப்பு சுருக்கங்கள்",
+  "callHistoryMeetingRecordings": "சந்திப்பு பதிவுகள்",
+  "callHistoryNoCalls": "அழைப்புகள் இல்லை",
+  "callHistoryMissed": "தவறவிட்டது",
+  "callHistoryRecording": "பதிவு",
+  "callHistorySummary": "சுருக்கம்",
+  "callHistoryCallAgain": "மீண்டும் அழைக்கவும்",
+  "callHistoryTodayTime": "இன்று, {time}",
+  "callHistoryYesterdayTime": "நேற்று, {time}",
+  "callHistoryUnknown": "அறியப்படாதது",
+  "callHistoryDetails": "அழைப்பு விவரங்கள்",
+  "callHistoryOutgoing": "வெளியேறும் அழைப்பு",
+  "callHistoryIncoming": "உள்வரும் அழைப்பு",
+  "callHistoryDuration": "கால அளவு: {duration}",
+  "callHistoryWithAI": "AI உதவியுடன்",
+  "callHistoryParticipants": "பங்கேற்பாளர்கள்",
+  "callDetailYouSuffix": "(நீங்கள்)",
+  "callHistoryMeetingSummary": "சந்திப்பு சுருக்கம்",
+  "callHistoryMoreDetails": "மேலும் விவரங்கள்",
+  "callHistorySummaryProcessing": "சுருக்கம் செயலாக்கம்...",
+  "callHistoryMeetingRecording": "சந்திப்பு பதிவு",
+  "callHistoryProcessing": "செயலாக்கம்...",
+  "callHistoryCreateTranscript": "மொழிபெயர்ப்பு உருவாக்கவும்",
+  "callHistoryNoSummaries": "சுருக்கங்கள் இல்லை",
+  "callHistoryRecordDuringCall": "அழைப்பின் போது \"பதிவு\" அழுத்தவும்",
+  "callHistoryMeetingTime": "சந்திப்பு {time}",
+  "callHistoryTranscribing": "மொழிபெயர்த்து சுருக்கம் செய்கிறது...",
+  "callHistoryTranscriptCreated": "மொழிபெயர்ப்பு உருவாக்கப்பட்டது",
+  "callHistoryNoRecordings": "பதிவுகள் இல்லை",
+  "callHistoryRecordingDate": "பதிவு {date}",
+  "callHistoryRecordingUnavailable": "பதிவு கிடைக்கவில்லை",
+  "callHistoryTranscriptReady": "மொழிபெயர்ப்பு தயாராக உள்ளது",
+  "callHistoryTranscript": "மொழிபெயர்ப்பு",
+  "callHistoryKeyPoints": "முக்கிய புள்ளிகள்",
+  "callHistoryTasks": "பணிகள்",
+  "callHistoryAssignedTo": "ஒதுக்கப்பட்டது: {assignee}",
+  "callHistoryDecisions": "முடிவுகள்",
+  "callHistoryShowTranscript": "முழு மொழிபெயர்ப்பை காண்பிக்கவும்",
+  "profileScanQr": "QR ஸ்கேன் செய்யவும்",
+  "profileMyQrCode": "என் QR குறியீடு",
+  "profileAddMeShare": "என்னை Taler ID இல் சேர்க்கவும்!\ntalerid://user/{userId}",
+  "profileShowCode": "உங்களைச் சேர்க்க இந்தக் குறியீட்டை காட்டவும்",
+  "profileEditDesc": "பெயர், குடும்பப்பெயர், தந்தையின் பெயர், பிறந்த தேதி",
+  "profileAboutMe": "என்னைப் பற்றி",
+  "profileAboutMeDesc": "மதிப்புகள், திறன்கள், ஆர்வங்கள் மற்றும் மேலும்",
+  "profileNotes": "குறிப்புகள்",
+  "profileNotesDesc": "சிந்தனைகள், யோசனைகள் மற்றும் குறிப்புகள்",
+  "profileAvatarUpdated": "அவதார் புதுப்பிக்கப்பட்டது",
+  "profileNickname": "புனைப்பெயர்",
+  "profileNotSet": "அமைக்கப்படவில்லை",
+  "profileChangeNickname": "புனைப்பெயரை மாற்றவும்",
+  "profileNicknameUpdated": "புனைப்பெயர் புதுப்பிக்கப்பட்டது",
+  "profileShareLabel": "பகிரவும்",
+  "profileScanQrCode": "QR குறியீட்டை ஸ்கேன் செய்யவும்",
+  "profilePointCamera": "QR குறியீட்டில் கேமராவை நோக்கவும்",
+  "profilePhotoCamera": "புகைப்படம் எடுக்கவும்",
+  "profilePhotoGallery": "கேலரியில் இருந்து தேர்வு செய்யவும்",
+  "editProfilePatronymic": "தந்தையின் பெயர் (விருப்பத்தேர்வு)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "என்னைப் பற்றி",
+  "aboutMeClickToFill": "நிரப்ப கிளிக் செய்யவும்",
+  "aboutMeCoreValues": "மூல மதிப்புகள்",
+  "aboutMeWorldview": "உலகக் காட்சி",
+  "aboutMeSkills": "திறன்கள்",
+  "aboutMeInterests": "ஆர்வங்கள்",
+  "aboutMeDesires": "ஆசைகள்",
+  "aboutMeBackground": "சுயவிவரம்",
+  "aboutMeLikes": "விருப்பங்கள்",
+  "aboutMeDislikes": "விருப்பமின்மை",
+  "aboutMeDeleteSection": "பகுதியை நீக்கவா?",
+  "aboutMeDeleteConfirm": "இந்தப் பகுதியில் உள்ள அனைத்து தரவும் நீக்கப்படும்.",
+  "aboutMeConnectionError": "இணைப்பு பிழை: {error}",
+  "aboutMeVisibility": "தெரிவுத்தன்மை",
+  "aboutMeTags": "குறிச்சொற்கள்",
+  "aboutMeAddTag": "குறிச்சொல்லை சேர்க்கவும்...",
+  "aboutMeDescription": "விளக்கம்",
+  "aboutMeDescribeLong": "மேலும் சொல்லவும்...",
+  "aboutMeVisibilityEveryone": "அனைவரும்",
+  "aboutMeVisibilityContacts": "தொடர்புகள்",
+  "aboutMeVisibilityOnlyMe": "நான் மட்டும்",
+  "settingsProfileSubtitle": "சுயவிவரம்",
+  "settingsWallpaper": "சுவரொட்டி",
+  "settingsWallpaperDesc": "முழு பயன்பாட்டிற்கும் பின்னணி படம்",
+  "settingsWallpaperNone": "எதுவும் இல்லை",
+  "settingsAccount": "கணக்கு",
+  "settingsKycVerification": "அடையாள சரிபார்ப்பு (KYC)",
+  "settingsOrganizations": "அமைப்புகள்",
+  "incomingCallLabel": "உள்வரும் அழைப்பு",
+  "incomingCallDecline": "நிராகரிக்க",
+  "incomingCallAccept": "ஏற்க",
+  "meshIncomingCallLabel": "📡 உள்வரும் மெஷ் அழைப்பு",
+  "meshDeviceFallback": "மெஷ் சாதனம் {hexPrefix}",
+  "callConflictAlreadyInCall": "முதலில் நடப்பு அழைப்பை முடிக்கவும்",
+  "callPopupTransportTitle": "அழைப்பு மூலம்",
+  "callPopupTransportMesh": "📡 மெஷ் (பியர்-டூ-பியர்)",
+  "callPopupTransportLk": "📞 சர்வர்",
+  "callPopupTransportMeshUnavailable": "தொடர்பு மெஷ் மூலம் அணுக முடியவில்லை",
+  "meshOnboardingTitle": "📡 மெஷ் அழைப்புகள் பயன்பாடு திறந்திருக்க வேண்டும்",
+  "meshOnboardingBody": "தொலைபேசி பூட்டப்பட்டிருந்தால், மெஷ் அழைப்புகள் ~30 விநாடிகளுக்குப் பிறகு கைவிடப்படலாம் (iOS வரம்பு).",
+  "meshOnboardingAck": "புரிந்தது",
+  "meshHistoryBadge": "📡 மெஷ்",
+  "meshHistoryNoChatAvailable": "தொடர்பு உங்கள் பட்டியலில் இல்லை",
+  "meshCallStatusInviting": "அழைக்கிறது…",
+  "meshCallStatusConnecting": "இணைக்கிறது…",
+  "meshCallEndedUserHangup": "அழைப்பு முடிந்தது",
+  "meshCallEndedRemoteHangup": "பியர் மூலம் முடிக்கப்பட்டது",
+  "meshCallEndedRejected": "நிராகரிக்கப்பட்டது",
+  "meshCallEndedNoAnswer": "பதில் இல்லை",
+  "meshCallEndedConnectionLost": "இணைப்பு இழந்தது",
+  "meshCallEndedError": "இணைப்பு பிழை",
+  "meshCallTransportBadge": "📡 மெஷ் · {transport}",
+  "meshCallTransportBadgePlain": "📡 மெஷ்",
+  "batteryExemptionTitle": "📡 நம்பகமான மெஷ் அழைப்புகள்",
+  "batteryExemptionBody": "பயன்பாட்டை பேட்டரி கட்டுப்பாடுகள் இல்லாமல் இயக்க அனுமதிக்கவும், எனவே Android பின்னணியில் மெஷை முடிக்காது.",
+  "batteryExemptionAccept": "அமைப்புகளை திறக்கவும்",
+  "batteryExemptionDismiss": "இப்போது வேண்டாம்",
+  "groupCamera": "கேமரா",
+  "groupGallery": "கேலரி",
+  "groupAvatarUpdated": "குழு அவதார் புதுப்பிக்கப்பட்டது",
+  "groupNameTitle": "குழு பெயர்",
+  "groupEnterName": "பெயரை உள்ளிடவும்",
+  "groupDescriptionTitle": "குழு விளக்கம்",
+  "groupEnterDescription": "குழு விளக்கத்தை உள்ளிடவும்",
+  "groupChangeRoleTitle": "பாத்திரத்தை மாற்றவும்",
+  "groupRemoveMemberTitle": "உறுப்பினரை நீக்கவும்",
+  "groupDescription": "விளக்கம்",
+  "groupAddDescription": "குழு விளக்கத்தைச் சேர்க்கவும்",
+  "groupNoDescription": "விளக்கம் இல்லை",
+  "groupMediaAndFiles": "ஊடகங்கள் மற்றும் கோப்புகள்",
+  "groupMuteNotifications": "அறிவிப்புகளை மவுட் செய்யவும்",
+  "groupMuted": "மவுட் செய்யப்பட்டது",
+  "groupNoResults": "முடிவுகள் இல்லை",
+  "authInvalidCode": "தவறான குறியீடு. மீண்டும் முயற்சிக்கவும்.",
+  "loginSubtitle": "மின்னஞ்சல் மற்றும் கடவுச்சொல்லைப் பயன்படுத்தவும்",
+  "emailRequired": "மின்னஞ்சலை உள்ளிடவும்",
+  "emailInvalid": "தவறான மின்னஞ்சல்",
+  "passwordRequired": "கடவுச்சொல்லை உள்ளிடவும்",
+  "registerSubtitle": "முழு Taler சூழலுக்கான ஒரு கணக்கு",
+  "usernameOptional": "பயனர்பெயர் (விருப்பத்தேர்வு)",
+  "usernameMinLength": "குறைந்தபட்சம் 3 எழுத்துக்கள்",
+  "usernameMaxLength": "அதிகபட்சம் 30 எழுத்துக்கள்",
+  "usernameInvalid": "எழுத்துக்கள், இலக்கங்கள் மற்றும் _ மட்டுமே",
+  "biometricLoginReason": "Taler ID இல் உள்நுழைக",
+  "docTypePassport": "கடவுச்சீட்டு",
+  "docTypeIdCard": "அடையாள அட்டை",
+  "docTypeDriverLicense": "ஓட்டுநர் உரிமம்",
+  "docTypeResidencePermit": "வசிப்பிட அனுமதி",
+  "addressApartment": "அபார்ட்மெண்ட் {number}",
+  "failedToUpdateProfile": "சுயவிவரத்தை புதுப்பிக்க முடியவில்லை",
+  "failedToStartKyb": "KYB சரிபார்ப்பை தொடங்க முடியவில்லை",
+  "orgUpdated": "அமைப்பு புதுப்பிக்கப்பட்டது",
+  "failedToUpdateOrg": "அமைப்பை புதுப்பிக்க முடியவில்லை",
+  "failedToChangeRole": "பாத்திரத்தை மாற்ற முடியவில்லை",
+  "failedToRemoveMember": "உறுப்பினரை நீக்க முடியவில்லை",
+  "capabilityMessagesTitle": "செய்திகள்",
+  "capabilityMessagesDesc": "செய்திகளைச் சரிபார்க்கவும் அல்லது யாருக்காவது எழுதவும். உதாரணமாக: \"விக்டருக்கு எழுதவும்: ஒரு மணி நேரத்தில் அங்கு இருப்பேன்\"",
+  "capabilityCallsTitle": "அழைப்புகள்",
+  "capabilityCallsDesc": "எந்த தொடர்புக்கும் குரல் மூலம் அழைக்கவும். உதாரணமாக: \"விக்டர் விக்டரோவை அழைக்கவும்\"",
+  "capabilityChatTitle": "அரட்டை வரலாறு",
+  "capabilityChatDesc": "நான் அரட்டை வரலாற்றை பகுப்பாய்வு செய்வேன். உதாரணமாக: \"நாம் விக்டருடன் என்ன விவாதித்தோம்?\"",
+  "capabilityProfileTitle": "சுயவிவரம்",
+  "capabilityProfileDesc": "நான் உங்கள் சுயவிவரத்தை காட்டுவேன் அல்லது புதுப்பிப்பேன். உதாரணமாக: \"என் சுயவிவரத்தை காட்டு\"",
+  "capabilityCoachingTitle": "பயிற்சி",
+  "capabilityCoachingDesc": "முறைகள்: ICF பயிற்சி, உளவியல் நிபுணர், மனிதவள ஆலோசனை. சொல்லுங்கள்: \"பயிற்சி செய்யலாம்\"",
+  "capabilityCalendarTitle": "நாட்காட்டி",
+  "capabilityCalendarDesc": "ஒரு கூட்டத்தை திட்டமிடுங்கள் அல்லது நினைவூட்டலை அமைக்கவும். உதாரணமாக: \"நாளை 15:00 மணிக்கு விக்டருடன் ஒரு கூட்டத்தை திட்டமிடுங்கள்\"",
+  "capabilityNotesTitle": "குறிப்புகள்",
+  "capabilityNotesDesc": "ஒரு எண்ணத்தை சேமிக்கவும் அல்லது சமீபத்திய குறிப்புகளை படிக்கவும். உதாரணமாக: \"ஒரு யோசனையை எழுதுங்கள்...\" அல்லது \"சமீபத்திய குறிப்புகளை படிக்கவும்\"",
+  "assistantCallConfirm": "ஒரு அழைப்பை செய்யவா?",
+  "callNoAnswer": "பதில் இல்லை",
+  "contactDelete": "தொடர்பை நீக்கு",
+  "contactDeleteTitle": "தொடர்பை நீக்கு",
+  "contactDeleteConfirm": "நீங்கள் உறுதியாக இருக்கிறீர்களா? இந்த தொடர்பு நீக்கப்படும்.",
+  "contactBlock": "தடுப்பு",
+  "contactBlockTitle": "பயனரை தடை செய்",
+  "contactBlockConfirm": "இந்த பயனர் உங்களுக்கு செய்தி அனுப்பவோ அல்லது அழைக்கவோ முடியாது.",
+  "contactUnblock": "தடையை நீக்கு",
+  "contactBlocked": "தடுக்கப்பட்டது",
+  "contactYouAreBlocked": "இந்த பயனர் உங்களை தடுத்துள்ளார்",
+  "chatBlockedByYou": "நீங்கள் இந்த பயனரை தடுத்துள்ளீர்கள்",
+  "chatYouAreBlocked": "இந்த பயனர் உங்களை தடுத்துள்ளார்",
+  "chatNotContacts": "அவர்களுக்கு செய்தி அனுப்ப இந்த பயனரை தொடர்புகளில் சேர்க்கவும்",
+  "contactRevokeRequest": "கோரிக்கையை ரத்து செய்",
+  "messengerPoll": "வாக்கெடுப்பு",
+  "messengerCreatePoll": "வாக்கெடுப்பை உருவாக்கு",
+  "messengerPollQuestion": "கேள்வி",
+  "messengerPollOption": "விருப்பம் {number}",
+  "messengerPollAddOption": "விருப்பத்தை சேர்க்கவும்",
+  "messengerPollAnonymous": "அடையாளம் தெரியாத வாக்களிப்பு",
+  "messengerPollMultiple": "பல தேர்வு",
+  "messengerPollCreateError": "வாக்கெடுப்பை உருவாக்க முடியவில்லை",
+  "messengerPollUnavailable": "வாக்கெடுப்பு கிடைக்கவில்லை",
+  "messengerPollMultipleNote": "நீங்கள் பலவற்றை தேர்வு செய்யலாம்",
+  "messengerPollVotes": "{count} வாக்குகள்",
+  "messengerVideoMessage": "வீடியோ செய்தி",
+  "messengerVideoRecordError": "வீடியோ பதிவு பிழை",
+  "messengerVideoPlaybackError": "வீடியோவை இயக்க முடியவில்லை",
+  "messengerGalleryAccessError": "கேலரிக்கு அணுகல் இல்லை",
+  "messengerSearchInChat": "அரட்டையில் தேடுங்கள்...",
+  "messengerSaveToFavorites": "பிடித்தவற்றில் சேமிக்கவும்",
+  "messengerSavedToFavorites": "பிடித்தவற்றில் சேமிக்கப்பட்டது",
+  "messengerSearchInMessages": "செய்திகளில் தேடுங்கள்...",
+  "messengerFoundInMessages": "செய்திகளில் கண்டறியப்பட்டது ({count})",
+  "messengerGroupDefault": "குழு",
+  "messengerUserDefault": "பயனர்",
+  "messengerPin": "பின்",
+  "messengerUnpin": "அன்பின்",
+  "messengerArchive": "காப்பகம்",
+  "messengerUnarchive": "காப்பகத்தை நீக்கு",
+  "messengerDeleteChat": "அரட்டையை நீக்கு",
+  "messengerDeleteChatTitle": "அரட்டையை நீக்கவா?",
+  "messengerDeleteChatConfirm": "{name} உடன் அரட்டையை நீக்கவா? இது திரும்ப பெற முடியாது.",
+  "messengerCreateChannel": "சேனல் உருவாக்கவும்",
+  "messengerChannelName": "பெயர்",
+  "messengerChannelDescription": "விளக்கம் (விருப்பத்தேர்வு)",
+  "messengerChannelCreateError": "சேனல் உருவாக்க முடியவில்லை",
+  "messengerFilterAll": "அனைத்தும்",
+  "messengerFilterUnread": "படிக்காதவை",
+  "messengerFilterPersonal": "தனிப்பட்டவை",
+  "messengerFilterGroups": "குழுக்கள்",
+  "messengerFilterChannels": "சேனல்கள்",
+  "messengerArchivedSection": "காப்பகப்படுத்தப்பட்டது",
+  "messengerSavedSection": "பிடித்தவை",
+  "messengerSavedSubtitle": "நினைவில் சேமிக்கவும்",
+  "messengerArchiveTitle": "காப்பகம் ({count})",
+  "messengerArchiveEmpty": "காப்பகம் காலியாக உள்ளது",
+  "messengerYouPrefix": "நீங்கள்: {message}",
+  "messengerMissedCall": "தவறவிட்ட அழைப்பு",
+  "messengerSavedTitle": "பிடித்தவை",
+  "messengerNoSavedMessages": "சேமிக்கப்பட்ட செய்திகள் இல்லை",
+  "messengerSavedHint": "ஒரு செய்தியை நீண்ட நேரம் அழுத்தவும் → \"பிடித்தவற்றில் சேமிக்கவும்\"",
+  "messengerDefaultFile": "கோப்பு",
+  "messengerTopicDefault": "பொது",
+  "messengerTopicNew": "புதிய தலைப்பு",
+  "messengerTopicNameHint": "தலைப்பு பெயர்",
+  "messengerTopicIcon": "சின்னம்",
+  "messengerTopicCount": "{count} தலைப்புகள்",
+  "messengerNoTopics": "தலைப்புகள் இல்லை",
+  "messengerNoMessages": "செய்திகள் இல்லை",
+  "you": "நீங்கள்",
+  "messengerThread": "தொடர்",
+  "messengerThreadReply": "பதில்",
+  "messengerThreadReplies": "பதில்கள்",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "பதில்கள் இல்லை",
+  "messengerReplyHint": "தொடருக்கு பதிலளிக்க...",
+  "messengerContactName": "தொடர்பு பெயர்",
+  "messengerOriginalName": "மூல பெயர்: {name}",
+  "messengerDisplayName": "காட்சி பெயர்",
+  "messengerShareContact": "Taler ID இல் தொடர்பு: {name}",
+  "messengerAutoDelete": "செய்திகளை தானாக நீக்கு",
+  "messengerAutoDeleteOff": "ஆஃப்",
+  "messengerAutoDelete7d": "7 நாட்கள்",
+  "messengerAutoDelete30d": "30 நாட்கள்",
+  "messengerAutoDelete90d": "90 நாட்கள்",
+  "messengerAutoDeleteDays": "{count} நாட்கள்",
+  "messengerSettingsHeader": "அமைப்புகள்",
+  "messengerAdminOnly": "நிர்வாகி மட்டும் இடுகை",
+  "messengerAdminOnlyDesc": "உறுப்பினர்கள் படிக்க மட்டுமே முடியும்",
+  "messengerTopics": "தலைப்புகள்",
+  "messengerTopicsDesc": "அரட்டை தலைப்புகளாகப் பிரிக்கவும்",
+  "aiTwinSection": "AI குரல் இரட்டை",
+  "aiTwinEnabled": "AI இரட்டை இயக்கு",
+  "aiTwinEnabledDesc": "நீங்கள் பதிலளிக்காவிட்டால், உங்கள் AI இரட்டை உங்கள் குரலில் அழைப்பை ஏற்கும்",
+  "aiTwinTimeout": "பதில் நேரம் முடிவு",
+  "aiTwinTimeoutValue": "{seconds} விநாடிகள்",
+  "aiTwinPrompt": "AI வழிமுறைகள்",
+  "aiTwinPromptSubtitle": "AI இரட்டை எப்படி அறிமுகப்படுத்த வேண்டும் மற்றும் என்ன பேச வேண்டும்",
+  "aiTwinPromptHint": "வணக்கம், இது {name} அவர்களின் AI குரல் இரட்டை. {name} இப்போது அழைப்பு ஏற்க முடியவில்லை. யார் அழைக்கிறார்கள் மற்றும் என்ன பற்றி என்பதை சொல்லுங்கள் — நான் அதை தெரிவிக்கிறேன்.",
+  "aiTwinComingSoon": "தனிப்பயன் குரல் நகலெடுக்கும் விரைவில் வருகிறது. தற்போது AI {name} அவர்களின் குரலில் பேசுகிறது.",
+  "aiTwinDefaultName": "உரிமையாளர்",
+  "aiTwinPromptReset": "மீட்டமை",
+  "callHistoryAiTwinAnswered": "AI இரட்டை பதிலளித்தது",
+  "callHistoryAiTwinSummary": "அழைப்பு சுருக்கம்",
+  "callHistoryAiTwinTranscript": "மொழிபெயர்ப்பு",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "{name} அவர்களிடமிருந்து",
+  "aiTwinOfferTitle": "பதில் அளிக்கவில்லை",
+  "aiTwinOfferBody": "{name} எடுத்துக்கொள்ளவில்லை. அவர்களின் AI குரல் நகலுடன் ஒரு செய்தி விடுக்கவா?",
+  "aiTwinOfferBodyUser": "பயனர்",
+  "aiTwinOfferAccept": "ஆம், செய்தி விடுக்கவும்",
+  "aiTwinOfferKeepWaiting": "காத்திருக்கவும்",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "உங்கள் AI பிரதிநிதி",
+  "aiTwinHeroSubtitle": "நீங்கள் முடியாதபோது உங்கள் குரலில் அழைப்புகளை பதிலளிக்கிறது.",
+  "aiTwinProfileTitle": "AI பிரதிநிதி",
+  "aiTwinProfileDesc": "உங்கள் குரலில் அழைப்புகளை பதிலளிக்கிறது",
+  "aiTwinBadgeOn": "ON",
+  "aiAnalystTitle": "AI பகுப்பாய்வாளர்",
+  "aiAnalystSubtitle": "கோப்புகள், பணிகள், பகுப்பாய்வு — Claude",
+  "channelsDiscover": "சேனலை கண்டறியவும்",
+  "channelsSearchHint": "சேனல்களை தேடவும்",
+  "channelsSubscribers": "சந்தாதாரர்கள்",
+  "channelsSubscribe": "சந்தா",
+  "channelsUnsubscribe": "சந்தாவை ரத்து செய்யவும்",
+  "channelsSubscribedLabel": "நீங்கள் சந்தா செய்துள்ளீர்கள்",
+  "channelsSettings": "சேனல் அமைப்புகள்",
+  "channelsDelete": "சேனலை நீக்கவும்",
+  "channelsDeleteConfirm": "சேனலை நிரந்தரமாக நீக்கவா?",
+  "channelsEmpty": "இன்னும் சேனல்கள் இல்லை",
+  "channelsOpen": "திறக்கவும்",
+  "channelsNameLabel": "பெயர்",
+  "channelsDescriptionLabel": "விளக்கம்",
+  "channelsCannotUnsubscribeOwner": "உரிமையாளர் சந்தாவை ரத்து செய்ய முடியாது. சேனலை நீக்கவும்.",
+  "channelsNotFoundRedirect": "சேனல் இனி இல்லை",
+  "analystSeamSearches": "{count, plural, =1{{count} தேடல்} other{{count} தேடல்கள்}}",
+  "analystSeamFiles": "{count, plural, =1{{count} கோப்பு} other{{count} கோப்புகள்}}",
+  "analystSeamCommands": "{count, plural, =1{{count} கட்டளை} other{{count} கட்டளைகள்}}",
+  "analystSeamImages": "{count, plural, =1{{count} படம்} other{{count} படங்கள்}}",
+  "analystSeamOther": "{count, plural, =1{{count} படி} other{{count} படிகள்}}",
+  "analystSeamDurationSeconds": "{seconds}செ",
+  "savedTitle": "சேமிக்கப்பட்ட செய்திகள்",
+  "savedSubtitle": "உங்கள் தனிப்பட்ட மேகம்",
+  "savedOpenError": "சேமிக்கப்பட்ட செய்திகளைத் திறக்க முடியவில்லை",
+  "billingWalletTitle": "பணப்பை",
+  "billingBuyPackage": "பொதியை வாங்கவும்",
+  "billingCurrentBalance": "தற்போதைய இருப்பு",
+  "billingPackagesTitle": "பொதிகள்",
+  "billingPackagesUnavailable": "பேக்கேஜ்கள் கிடைக்கவில்லை",
+  "billingRecentOperations": "சமீபத்திய செயல்பாடுகள்",
+  "billingAllOperations": "அனைத்து செயல்பாடுகள்",
+  "billingNoOperations": "செயல்பாடுகள் இல்லை",
+  "billingOperationsTitle": "செயல்பாடுகள்",
+  "billingOperationsEmptyTitle": "இன்னும் செயல்பாடுகள் இல்லை",
+  "billingOperationsEmptySubtitle": "AI அம்சங்களுக்கான டாப்-அப்கள் மற்றும் கட்டணங்கள் இங்கே தோன்றும்",
+  "billingPricebookTitle": "அம்ச விலைகள்",
+  "billingPricebookUnavailable": "விலைப்பட்டியல் கிடைக்கவில்லை",
+  "billingAiFeaturesTitle": "AI அம்சங்கள்",
+  "billingInsufficientFundsTitle": "போதுமான நிதி இல்லை",
+  "billingInsufficientFundsSubtitle": "இந்த அம்சத்தை பயன்படுத்த உங்கள் இருப்பை டாப் அப் செய்யவும்.",
+  "billingRequiredLine": "தேவை: {required} μTAL",
+  "billingAvailableLine": "உள்ளது: {available} μTAL",
+  "billingTopUp": "டாப் அப்",
+  "billingCancel": "ரத்து செய்",
+  "billingRetry": "மீண்டும் முயற்சி செய்",
+  "billingLowBalanceWarning": "இருப்பு குறைந்து வருகிறது: {balance} μTAL",
+  "billingWalletAndBalance": "பணப்பை & இருப்பு",
+  "billingSectionHeader": "பில்லிங் & AI",
+  "billingFeatureVoiceAssistant": "குரல் உதவியாளர்",
+  "billingFeatureWebSearch": "உதவியாளர் வலை தேடல்",
+  "billingFeatureAiTwin": "குரல் இரட்டை",
+  "billingFeatureAiTwinLong": "குரல் இரட்டை (AI Twin)",
+  "billingFeatureOutboundCall": "வெளியீட்டு பாட்டி",
+  "billingFeatureOutboundCallLong": "வெளியீட்டு அழைப்புப் பாட்டி",
+  "billingFeatureWhisperTranscribe": "அழைப்பு உரை",
+  "billingFeatureMeetingSummary": "AI அழைப்பு சுருக்கங்கள்",
+  "billingConfigureAiTwin": "AI இரட்டையை அமைக்கவும்",
+  "billingWebSearchSubtitle": "(உதவியாளர் பயன்படுத்துகிறது)",
+  "billingPackagePurchased": "பேக்கேஜ் வாங்கப்பட்டது: {balance} μTAL",
+  "billingRecommendedBadge": "பரிந்துரைக்கப்பட்டது",
+  "billingSessionTerminatedNoFunds": "இருப்பு முடிந்தது — அமர்வு முடிந்தது",
+  "billingSessionTerminatedGeneric": "உதவியாளர் அமர்வு முடிந்தது",
+  "billingBuyForPrice": "€{price} க்கு வாங்கவும்",
+  "billingTxTypeTopup": "டாப்-அப்",
+  "billingTxTypeRefund": "திருப்பி",
+  "billingTxTypeSpend": "கட்டணம்",
+  "billingUnitMinute": "நிமிடம்",
+  "billingUnitRequest": "கோரிக்கை",
+  "billingUnitToken": "டோக்கன்",
+  "billingUnitTokens1k": "1K டோக்கன்கள்",
+  "billingUnitCall": "அழைப்பு",
+  "groupCallSelectParticipants": "பங்கேற்பாளர்களை தேர்ந்தெடுக்கவும்",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "தேடல்",
+  "groupCallMaxReached": "அதிகபட்சம் 7 பங்கேற்பாளர்கள்",
+  "groupCallLobbyTitle": "குழு • லாபி",
+  "groupCallHostLabel": "தொகுப்பாளர்: {name}",
+  "groupCallMicHint": "இணைக்கும்போது மைக் செயல்படும்",
+  "groupCallCancel": "ரத்து",
+  "groupCallNoAnswer": "யாரும் பதிலளிக்கவில்லை",
+  "groupCallEndedByHost": "தொகுப்பாளர் அழைப்பை முடித்தார்",
+  "groupCallAllLeft": "அனைவரும் அழைப்பை விட்டு வெளியேறினர்",
+  "groupCallEnded": "அழைப்பு முடிந்தது",
+  "groupCallActiveTitle": "குழு • {count}",
+  "groupCallConnectionLost": "இணைப்பு இழந்தது",
+  "groupCallMuteRequested": "தொகுப்பாளர் அனைவரையும் மியூட் செய்ய கேட்டார்",
+  "groupCallUnmute": "மியூட் நீக்கு",
+  "groupCallMute": "மியூட்",
+  "groupCallMuteAll": "அனைவரையும் மியூட் செய்யவும்",
+  "groupCallLeave": "விட்டு வெளியேறு",
+  "groupCallStatusCalling": "அழைக்கிறது…",
+  "groupCallStatusDeclined": "நிராகரிக்கப்பட்டது",
+  "groupCallStatusTimeout": "பதில் இல்லை",
+  "groupCallStatusLeft": "விட்டு சென்றார்",
+  "groupCallKickConfirm": "{name} ஐ அழைப்பில் இருந்து நீக்கவும்",
+  "groupCallCancelAction": "ரத்து",
+  "groupCallActiveBanner": "செயலில் உள்ள அழைப்பு",
+  "groupCallBannerSummary": "குழு: {host} + {count}",
+  "groupCallBannerSummaryAlone": "குழு: {host}",
+  "groupCallCreateError": "அழைப்பை உருவாக்க முடியவில்லை",
+  "groupCallJoinError": "அழைப்பில் சேர முடியவில்லை",
+  "groupCallLivekitError": "LiveKit பிழை",
+  "groupCallDone": "முடிந்தது",
+  "groupCallNoResults": "முடிவுகள் இல்லை",
+  "groupCallNoContacts": "தொடர்புகள் இல்லை",
+  "meshGcContactOffline": "இந்த Wi-Fi இல் இல்லை",
+  "meshGcOnlineViaMesh": "மேஷ் மூலம் ஆன்லைன்",
+  "meshGcMaxInvitees": "குழு அழைப்புகள் அதிகபட்சம் 4 அழைப்பாளர்களை (மொத்தம் 5 பேர்) ஆதரிக்கின்றன.",
+  "meshGcStart": "குழு அழைப்பை தொடங்கு",
+  "meshGcCancel": "ரத்து செய்",
+  "meshGcStatusCalling": "அழைக்கிறது…",
+  "meshGcStatusJoined": "சேர்ந்துவிட்டார்",
+  "meshGcStatusDeclined": "நிராகரிக்கப்பட்டது",
+  "meshGcStatusNoAnswer": "பதில் இல்லை",
+  "meshGcStatusConnectionFailed": "இணைப்பு தோல்வியடைந்தது",
+  "meshGcStatusLeft": "விட்டு சென்றார்",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "முதலில் உங்கள் தற்போதைய அழைப்பை முடிக்கவும்.",
+  "presenceOnline": "ஆன்லைன்",
+  "presenceLastSeenJustNow": "இப்போதுதான் கடைசியாக காணப்பட்டது",
+  "presenceLastSeenMinutesAgo": "{minutes} நிமிடங்களுக்கு முன் கடைசியாக காணப்பட்டது",
+  "presenceLastSeenToday": "இன்று {time} மணிக்கு கடைசியாக காணப்பட்டது",
+  "presenceLastSeenYesterday": "நேற்று {time} மணிக்கு கடைசியாக காணப்பட்டது",
+  "presenceLastSeenOnDate": "{date} அன்று கடைசியாக காணப்பட்டது",
+  "presenceLastSeenRecently": "சமீபத்தில் கடைசியாக காணப்பட்டது",
+  "privacySectionTitle": "தனியுரிமை",
+  "privacyLastSeenLabel": "உங்கள் கடைசி காணப்பட்ட நேரத்தை யார் பார்க்கிறார்கள்",
+  "privacyEveryone": "எல்லோரும்",
+  "privacyContacts": "தொடர்புகள் மட்டும்",
+  "privacyNobody": "யாரும் இல்லை",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

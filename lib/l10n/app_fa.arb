@@ -1,0 +1,1691 @@
+{
+  "@@locale": "fa",
+  "appTitle": "Taler ID",
+  "search": "جستجو",
+  "appSubtitle": "هویت یکپارچه اکوسیستم",
+  "login": "ورود",
+  "loginButton": "ورود",
+  "register": "ایجاد حساب",
+  "registerButton": "ایجاد حساب",
+  "email": "ایمیل",
+  "password": "رمز عبور",
+  "confirmPassword": "تأیید رمز عبور",
+  "firstName": "نام",
+  "lastName": "نام خانوادگی",
+  "noAccount": "حساب کاربری ندارید؟",
+  "createOne": "ایجاد کنید",
+  "haveAccount": "حساب کاربری دارید؟",
+  "signIn": "ورود",
+  "passwordMinLength": "حداقل ۸ کاراکتر",
+  "invalidEmail": "ایمیل معتبر وارد کنید",
+  "fieldRequired": "فیلد الزامی",
+  "twoFATitle": "احراز هویت دو مرحله‌ای",
+  "twoFASubtitle": "کد ۶ رقمی از برنامه احراز هویت خود را وارد کنید",
+  "twoFACode": "کد 2FA",
+  "verify": "تأیید",
+  "tabProfile": "پروفایل",
+  "tabKyc": "KYC",
+  "tabOrganization": "سازمان",
+  "tabSettings": "تنظیمات",
+  "profile": "پروفایل",
+  "editProfile": "ویرایش پروفایل",
+  "phone": "تلفن",
+  "country": "کشور",
+  "dateOfBirth": "تاریخ تولد",
+  "documents": "مدارک",
+  "addDocument": "افزودن مدرک",
+  "noDocuments": "مدرکی بارگذاری نشده است",
+  "save": "ذخیره",
+  "profileUpdated": "پروفایل به‌روزرسانی شد",
+  "personalData": "اطلاعات شخصی",
+  "passport": "پاسپورت",
+  "drivingLicense": "گواهینامه رانندگی",
+  "diploma": "دیپلم",
+  "nationalId": "کارت ملی",
+  "certificate": "گواهینامه",
+  "notSpecified": "مشخص نشده",
+  "notSpecifiedFemale": "مشخص نشده",
+  "documentType": "نوع سند",
+  "passportId": "پاسپورت / کارت شناسایی",
+  "diplomaCertificate": "دیپلم / گواهینامه",
+  "loadError": "خطا در بارگذاری",
+  "verification": "تأیید",
+  "countryAustria": "اتریش",
+  "countryGermany": "آلمان",
+  "countryRussia": "روسیه",
+  "countryUkraine": "اوکراین",
+  "countryKazakhstan": "قزاقستان",
+  "countryBelarus": "بلاروس",
+  "countryOther": "سایر",
+  "kycTitle": "تأیید KYC",
+  "kycVerified": "تأیید شده",
+  "kycPending": "در انتظار",
+  "kycRejected": "رد شده",
+  "kycUnverified": "تأیید نشده",
+  "kycVerifiedDesc": "هویت شما تأیید شده است. شما به تمامی ویژگی‌های اکوسیستم Taler دسترسی کامل دارید.",
+  "kycPendingDesc": "مدارک شما در حال بررسی است. این فرآیند معمولاً ۱-۲ روز کاری طول می‌کشد.",
+  "kycRejectedDesc": "تأیید ناموفق بود. لطفاً دلیل را بررسی کرده و مدارک خود را دوباره ارسال کنید.",
+  "kycUnverifiedDesc": "برای دسترسی کامل به ویژگی‌های مالی اکوسیستم Taler، تأیید را کامل کنید.",
+  "startVerification": "شروع تأیید",
+  "retryVerification": "تلاش مجدد برای تأیید",
+  "verifiedAt": "تأیید شده: {date}",
+  "documentsSubmitted": "مدارک برای بررسی ارسال شد",
+  "documentsSubmittedDesc": "بررسی معمولاً ۱-۲ روز کاری طول می‌کشد. شما یک اعلان فشاری با نتیجه دریافت خواهید کرد.",
+  "securityAes": "داده‌های شما با رمزگذاری AES-256 محافظت می‌شود",
+  "verificationTime": "تأیید ۱-۲ روز کاری طول می‌کشد",
+  "pushNotification": "شما یک اعلان فشاری با نتیجه دریافت خواهید کرد",
+  "kycWebOnly": "تأیید KYC فقط در اپلیکیشن موبایل در دسترس است.",
+  "verificationError": "خطای تأیید: {code}",
+  "organizations": "سازمان‌ها",
+  "noOrganizations": "هیچ سازمانی وجود ندارد",
+  "noOrganizationsDesc": "یک سازمان ایجاد کنید یا دعوت‌نامه‌ای را بپذیرید",
+  "createOrganization": "ایجاد سازمان",
+  "newOrganization": "سازمان جدید",
+  "orgName": "نام *",
+  "orgDescription": "توضیحات",
+  "orgEmail": "ایمیل تماس",
+  "orgWebsite": "وب‌سایت",
+  "orgLegalAddress": "آدرس قانونی",
+  "create": "ایجاد",
+  "organization": "سازمان",
+  "contacts": "مخاطبین",
+  "members": "اعضا ({count})",
+  "inviteMember": "دعوت عضو",
+  "invite": "دعوت",
+  "sendInvite": "ارسال دعوت‌نامه",
+  "inviteSent": "دعوت‌نامه به {email} ارسال شد",
+  "role": "نقش",
+  "roleOwner": "مالک",
+  "roleAdmin": "مدیر",
+  "roleOperator": "اپراتور",
+  "roleViewer": "مشاهده‌گر",
+  "editOrganization": "ویرایش",
+  "editOrganizationTitle": "ویرایش سازمان",
+  "removeMember": "حذف عضو",
+  "removeMemberConfirm": "آیا {name} از سازمان حذف شود؟",
+  "memberRemoved": "عضو حذف شد",
+  "roleChanged": "نقش تغییر کرد",
+  "kybVerified": "تأیید شده",
+  "kybPending": "در انتظار",
+  "kybRejected": "رد شده",
+  "kybNone": "تأیید نشده",
+  "kybVerification": "شروع تأیید KYB",
+  "kybStartBusiness": "شروع تأیید کسب‌وکار",
+  "kybStatusLabel": "وضعیت KYB",
+  "noKyb": "بدون KYB",
+  "kybBusinessVerificationTitle": "تأیید کسب‌وکار (KYB)",
+  "kybVerifiedOrgDesc": "سازمان با موفقیت تأیید شد.",
+  "kybPendingOrgDesc": "مدارک در حال بررسی هستند. این معمولاً ۱-۳ روز کاری طول می‌کشد.",
+  "kybRejectedOrgDesc": "تأیید ناموفق بود. لطفاً دوباره تلاش کنید.",
+  "kybNoneOrgDesc": "سازمان خود را تأیید کنید تا به ویژگی‌های کسب‌وکار دسترسی پیدا کنید.",
+  "invitePlus": "+ دعوت",
+  "kybVerificationTitle": "تأیید KYB",
+  "kybWebOnlyBusiness": "تأیید KYB فقط در اپلیکیشن موبایل موجود است.",
+  "unknownDevice": "دستگاه ناشناس",
+  "ipUnknown": "IP ناشناس",
+  "currentSessionLabel": "فعلی",
+  "endSessionAction": "پایان",
+  "deviceLoggedOut": "دستگاه خارج خواهد شد.",
+  "acceptInvitationTitle": "دعوت‌نامه سازمان",
+  "acceptInvitation": "قبول دعوت‌نامه",
+  "acceptInvitationDesc": "شما به پیوستن به یک سازمان در اکوسیستم Taler دعوت شده‌اید.",
+  "accept": "قبول",
+  "reject": "رد",
+  "sessions": "جلسات فعال",
+  "currentSession": "جلسه فعلی",
+  "deleteSession": "پایان جلسه",
+  "deleteSessionConfirm": "این جلسه پایان یابد؟",
+  "sessionDeleted": "جلسه پایان یافت",
+  "noSessions": "هیچ جلسه فعالی وجود ندارد",
+  "minutesAgo": "{count} دقیقه پیش",
+  "hoursAgo": "{count} ساعت پیش",
+  "daysAgo": "{count} روز پیش",
+  "justNow": "همین حالا",
+  "settings": "تنظیمات",
+  "security": "امنیت",
+  "biometrics": "بیومتریک",
+  "biometricsDesc": "ورود سریع با Face ID یا اثر انگشت",
+  "biometricsConfirm": "برای فعال‌سازی ورود سریع، بیومتریک را تأیید کنید",
+  "biometricsError": "فعال‌سازی بیومتریک ناموفق بود. تنظیمات دستگاه را بررسی کنید.",
+  "changePassword": "تغییر رمز عبور",
+  "twoFactorAuth": "احراز هویت دو مرحله‌ای",
+  "currentPassword": "رمز عبور فعلی",
+  "newPassword": "رمز عبور جدید",
+  "confirmNewPassword": "تأیید رمز عبور جدید",
+  "passwordChanged": "رمز عبور تغییر کرد",
+  "wrongCurrentPassword": "رمز عبور فعلی اشتباه است",
+  "passwordTooWeak": "رمز عبور ضعیف است: حداقل ۸ کاراکتر، حرف و عدد لازم است",
+  "passwordChangeFailed": "تغییر رمز عبور ناموفق بود",
+  "notifications": "اعلان‌ها",
+  "permissions": "مجوزها",
+  "permissionNotifications": "اعلان‌های فشاری",
+  "permissionNotificationsDesc": "تماس‌ها، پیام‌ها، وضعیت‌ها",
+  "permissionMicrophone": "میکروفون",
+  "permissionMicrophoneDesc": "تماس‌ها و دستیار صوتی",
+  "permissionCamera": "دوربین",
+  "permissionCameraDesc": "تماس‌های ویدیویی و تأیید هویت",
+  "permissionLocation": "موقعیت",
+  "permissionLocationDesc": "استفاده برای تأیید هویت",
+  "permissionOpenSettings": "برای لغو مجوز، تنظیمات سیستم را باز کنید",
+  "pushKycStatus": "وضعیت KYC",
+  "pushKycStatusDesc": "نتیجه تأیید هویت",
+  "pushLogins": "ورود به سیستم",
+  "pushLoginsDesc": "هنگام ورود از دستگاه جدید",
+  "account": "حساب",
+  "language": "زبان",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "زبان رابط کاربری",
+  "exportData": "صادرات داده (GDPR)",
+  "deleteAccount": "حذف حساب",
+  "deleteAccountConfirm": "حساب حذف شود؟",
+  "deleteAccountDesc": "تمام داده‌های شما حذف خواهد شد (GDPR). این عمل غیرقابل بازگشت است.",
+  "logout": "خروج",
+  "logoutConfirm": "خروج انجام شود؟",
+  "logoutDesc": "شما از Taler ID در این دستگاه خارج خواهید شد.",
+  "version": "Taler ID نسخه {version}",
+  "pinCode": "کد PIN",
+  "pinCodeDesc": "ورود سریع با کد ۴ رقمی",
+  "setupPin": "تنظیم کد PIN",
+  "enterPin": "وارد کردن کد PIN",
+  "confirmPin": "تأیید کد PIN",
+  "pinMismatch": "کدهای PIN مطابقت ندارند",
+  "pinSet": "کد PIN با موفقیت تنظیم شد",
+  "enterPinToLogin": "برای ورود کد PIN را وارد کنید",
+  "pinIncorrect": "کد PIN نادرست است",
+  "removePin": "حذف کد PIN",
+  "pinRemoved": "کد PIN حذف شد",
+  "cancel": "لغو",
+  "delete": "حذف",
+  "ok": "باشه",
+  "retry": "تلاش مجدد",
+  "loading": "در حال بارگذاری...",
+  "error": "خطا",
+  "success": "موفقیت",
+  "noData": "بدون داده",
+  "failedToLoad": "بارگذاری داده‌ها ناموفق بود",
+  "failedToLoadProfile": "بارگذاری پروفایل ناموفق بود",
+  "failedToSave": "ذخیره تغییرات ناموفق بود",
+  "failedToLoadOrgs": "بارگذاری سازمان‌ها ناموفق بود",
+  "failedToLoadOrg": "بارگذاری داده‌های سازمان ناموفق بود",
+  "failedToCreateOrg": "ایجاد سازمان ناموفق بود",
+  "failedToInvite": "ارسال دعوت‌نامه ناموفق بود",
+  "failedToAcceptInvite": "پذیرش دعوت‌نامه ناموفق بود",
+  "failedToLoadSessions": "بارگذاری جلسات ناموفق بود",
+  "failedToDeleteSession": "پایان جلسه ناموفق بود",
+  "failedToLoadKyc": "بارگذاری وضعیت تأیید ناموفق بود",
+  "failedToStartKyc": "شروع تأیید ناموفق بود",
+  "verifiedPersonalInfo": "داده‌های تأیید شده",
+  "middleName": "نام میانی",
+  "placeOfBirth": "محل تولد",
+  "nationality": "ملیت",
+  "gender": "جنسیت",
+  "genderMale": "مرد",
+  "genderFemale": "زن",
+  "docNumber": "شماره",
+  "docIssuedDate": "تاریخ صدور",
+  "docValidUntil": "معتبر تا",
+  "docIssuedBy": "صادر کننده",
+  "address": "آدرس",
+  "refreshData": "تازه‌سازی داده‌ها",
+  "failedToLoadSumsubData": "بارگذاری داده‌های تأیید ناموفق بود",
+  "sumsubDataLoading": "در حال بارگذاری داده‌های تأیید...",
+  "reviewResultGreen": "تأیید موفقیت‌آمیز بود",
+  "reviewResultRed": "تأیید ناموفق بود",
+  "tabAssistant": "دستیار",
+  "assistantConnecting": "در حال اتصال...",
+  "assistantSpeaking": "در حال صحبت...",
+  "assistantListening": "در حال گوش دادن...",
+  "assistantTapToStart": "برای شروع ضربه بزنید",
+  "assistantTapToTalk": "برای صحبت با AI ضربه بزنید",
+  "assistantRealtimeDesc": "دستیار به صورت همزمان با صدا پاسخ می‌دهد",
+  "assistantConnectingToAssistant": "در حال اتصال به دستیار...",
+  "assistantAiSpeaking": "در حال صحبت کردن AI...",
+  "assistantAiListening": "در حال گوش دادن AI",
+  "assistantSpeakerOn": "بلندگو روشن",
+  "assistantSpeaker": "بلندگو",
+  "assistantEnd": "پایان",
+  "assistantUnmute": "غیر بی‌صدا",
+  "assistantMicrophone": "میکروفون",
+  "assistantConnectionError": "خطای اتصال",
+  "tabMessenger": "پیام‌ها",
+  "tabCalls": "تماس‌ها",
+  "tabCalendar": "تقویم",
+  "appearance": "ظاهر",
+  "appearanceSelect": "انتخاب تم",
+  "themeLight": "روشن",
+  "themeDark": "تاریک",
+  "themeSystem": "سیستم",
+  "onboardingTitle1": "هویت یکپارچه",
+  "onboardingDesc1": "Taler ID گذرنامه دیجیتال شما در اکوسیستم Taler است. یک حساب برای همه خدمات.",
+  "onboardingTitle2": "امنیت داده",
+  "onboardingDesc2": "تأیید KYC، رمزگذاری AES-256 و احراز هویت دو مرحله‌ای از هویت شما محافظت می‌کنند.",
+  "onboardingTitle3": "مطلع بمانید",
+  "onboardingDesc3": "از وضعیت تأیید، ورود از دستگاه‌های جدید و تماس‌های ورودی مطلع شوید.",
+  "onboardingNext": "بعدی",
+  "onboardingEnableNotifications": "فعال‌سازی اعلان‌ها",
+  "onboardingTitle4": "تماس‌های صوتی",
+  "onboardingDesc4": "دسترسی به میکروفون را برای تماس‌های صوتی و دستیار AI اعطا کنید. می‌توانید این تنظیمات را بعداً تغییر دهید.",
+  "onboardingEnableMicrophone": "فعال‌سازی میکروفون",
+  "onboardingStart": "شروع کنید",
+  "onboardingSkip": "رد کردن",
+  "meshLocalNetworkPromptTitle": "اجازه دسترسی به شبکه محلی",
+  "meshLocalNetworkPromptBody": "برای یافتن همتایان در Wi-Fi (تماس‌های گروهی آفلاین)، iOS نیاز به مجوز شبکه محلی دارد. تنظیمات را باز کنید → حریم خصوصی و امنیت → شبکه محلی → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "باز کردن تنظیمات",
+  "meshLocalNetworkPromptDismiss": "متوجه شدم",
+  "forgotPassword": "رمز عبور را فراموش کرده‌اید؟",
+  "forgotPasswordTitle": "بازنشانی رمز عبور",
+  "forgotPasswordSubtitle": "ایمیل خود را وارد کنید تا کد بازنشانی دریافت کنید",
+  "resetCodeSent": "کد به {email} ارسال شد",
+  "enterResetCode": "کد را وارد کنید",
+  "resetPasswordButton": "بازنشانی رمز عبور",
+  "passwordResetSuccess": "رمز عبور با موفقیت بازنشانی شد",
+  "sendCode": "ارسال کد",
+  "resendCode": "ارسال مجدد کد",
+  "newGroup": "گروه جدید",
+  "newChat": "چت جدید",
+  "groupName": "نام گروه",
+  "createGroup": "ایجاد گروه",
+  "groupInfo": "اطلاعات گروه",
+  "groupMembers": "اعضا ({count})",
+  "addMembers": "افزودن اعضا",
+  "leaveGroup": "ترک گروه",
+  "leaveGroupConfirm": "این گروه را ترک کنید؟",
+  "deleteGroup": "حذف گروه",
+  "deleteGroupConfirm": "این گروه حذف شود؟ این عمل قابل بازگشت نیست.",
+  "groupRoleOwner": "مالک",
+  "groupRoleAdmin": "مدیر",
+  "groupRoleMember": "عضو",
+  "selectParticipants": "انتخاب شرکت‌کنندگان",
+  "selectedCount": "{count} انتخاب شده",
+  "changeRole": "تغییر نقش",
+  "groupCreated": "گروه ایجاد شد",
+  "memberJoined": "{name} پیوست",
+  "memberLeftGroup": "{name} گروه را ترک کرد",
+  "memberWasRemoved": "{name} حذف شد",
+  "roleChangedTo": "{name} اکنون {role} است",
+  "participantsCount": "{count} شرکت‌کننده",
+  "enterGroupName": "نام گروه را وارد کنید",
+  "muteNotifications": "بی‌صدا کردن اعلان‌ها",
+  "unmuteNotifications": "لغو بی‌صدا کردن اعلان‌ها",
+  "muteFor1Hour": "برای ۱ ساعت",
+  "muteFor8Hours": "برای ۸ ساعت",
+  "muteFor2Days": "برای ۲ روز",
+  "muteForever": "برای همیشه",
+  "muted": "بی‌صدا شد",
+  "tabTranslator": "ترجمه",
+  "translatorTitle": "مترجم",
+  "translatorSelectLanguage": "انتخاب زبان",
+  "translatorDownloading": "در حال دانلود مدل‌های زبان...",
+  "translatorDownloadingHint": "اینترنت فقط برای اولین دانلود نیاز است",
+  "translatorTypeHint": "متن را تایپ کنید یا میکروفون را لمس کنید",
+  "translatorListening": "در حال گوش دادن...",
+  "translatorTapToSpeak": "برای صحبت کردن ضربه بزنید",
+  "translatorTapToStop": "برای توقف ضربه بزنید",
+  "translatorAutoSpeak": "پخش خودکار",
+  "translatorCopied": "کپی شد",
+  "translatorLangRu": "روسی",
+  "translatorLangEn": "انگلیسی",
+  "translatorLangDe": "آلمانی",
+  "translatorLangFr": "فرانسوی",
+  "translatorLangEs": "اسپانیایی",
+  "translatorLangIt": "ایتالیایی",
+  "translatorLangPt": "پرتغالی",
+  "translatorLangTr": "ترکی",
+  "translatorLangZh": "چینی",
+  "translatorLangJa": "ژاپنی",
+  "translatorLangKo": "کره‌ای",
+  "translatorLangAr": "عربی",
+  "translatorLangPl": "لهستانی",
+  "translatorLangSk": "اسلواکی",
+  "translatorLangCs": "چکی",
+  "translatorLangNl": "هلندی",
+  "translatorLangSv": "سوئدی",
+  "translatorLangDa": "دانمارکی",
+  "translatorLangNo": "نروژی",
+  "translatorLangFi": "فنلاندی",
+  "translatorLangUk": "اوکراینی",
+  "translatorLangEl": "یونانی",
+  "translatorLangRo": "رومانیایی",
+  "translatorLangHu": "مجاری",
+  "translatorLangBg": "بلغاری",
+  "translatorLangHr": "کرواتی",
+  "translatorLangSr": "صربی",
+  "translatorLangHi": "هندی",
+  "translatorLangTh": "تایلندی",
+  "translatorLangVi": "ویتنامی",
+  "translatorLangId": "اندونزیایی",
+  "translatorLangMs": "مالایی",
+  "translatorLangHe": "عبری",
+  "translatorLangFa": "فارسی",
+  "callInProgress": "تماس در حال انجام",
+  "joinCall": "پیوستن",
+  "createCallLink": "لینک تماس",
+  "callLinkCopied": "لینک کپی شد",
+  "callLinkTitle": "لینک اتاق",
+  "connectionUnstable": "اتصال ناپایدار — اینترنت خود را بررسی کنید",
+  "today": "امروز",
+  "yesterday": "دیروز",
+  "errorTimeout": "اتصال قطع شد. اتصال اینترنت خود را بررسی کنید.",
+  "errorNoConnection": "بدون اتصال به اینترنت.",
+  "errorGeneral": "خطایی رخ داده است. لطفاً دوباره تلاش کنید.",
+  "errorWithMessage": "خطا: {message}",
+  "notifChannelMessages": "پیام‌ها",
+  "notifChannelMessagesDesc": "اعلان‌های پیام جدید",
+  "notifChannelMissedCalls": "تماس‌های از دست رفته",
+  "notifChannelMissedCallsDesc": "اعلان‌های تماس از دست رفته",
+  "notifMissedCall": "تماس از دست رفته",
+  "notifAccept": "پذیرفتن",
+  "notifDecline": "رد کردن",
+  "notifIncomingCall": "تماس ورودی",
+  "notifIncomingCallChannel": "تماس ورودی",
+  "notifMissedCallChannel": "تماس از دست رفته",
+  "notifUnknown": "ناشناخته",
+  "effectNone": "بدون پس‌زمینه",
+  "effectBlur": "تاری",
+  "effectOffice": "دفتر",
+  "effectNature": "طبیعت",
+  "effectGradient": "گرادیان",
+  "effectLibrary": "کتابخانه",
+  "effectCity": "شهر",
+  "effectMinimalism": "مینیمالیسم",
+  "voiceParticipant": "شرکت‌کننده",
+  "voiceInvitesToRoom": "شما را به اتاق دعوت می‌کند",
+  "voiceRoom": "اتاق",
+  "voicePasswordProtected": "محافظت شده با رمز عبور",
+  "voicePasswordHint": "رمز عبور",
+  "voiceEnter": "ورود",
+  "voiceJoinRoom": "پیوستن به اتاق",
+  "voiceYourName": "نام شما",
+  "voiceInvitationSent": "دعوت‌نامه به {name} ارسال شد",
+  "voiceNoActiveRoom": "اتاق فعال وجود ندارد",
+  "voiceCameraPermission": "دسترسی به دوربین را در تنظیمات → حریم خصوصی → دوربین → TalerID فعال کنید",
+  "voiceOpenSettings": "باز کردن",
+  "voiceCameraError": "فعال‌سازی دوربین ناموفق بود: {error}",
+  "voiceAllAgreedRecording": "همه موافقت کردند. ضبط شروع شد.",
+  "voiceNewParticipantAgreed": "شرکت‌کننده جدید با ضبط موافقت کرد.",
+  "voiceDeclinedRecording": "شما ضبط را رد کردید. در حال ترک تماس.",
+  "voiceRecordingEnded": "ضبط پایان یافت",
+  "voiceRecordingInProgress": "ضبط در حال انجام",
+  "voiceTranscriptionRequest": "درخواست رونویسی",
+  "voiceRecordingRequest": "درخواست ضبط",
+  "voiceAgree": "موافقت",
+  "voiceDeclineAndLeave": "رد و ترک",
+  "voiceAudioOutput": "خروجی صدا",
+  "voiceAudioPhone": "تلفن",
+  "voiceAudioSpeaker": "بلندگو",
+  "voiceAudioBluetooth": "بلوتوث",
+  "voiceAudioHeadphones": "هدفون",
+  "voiceLinkCopied": "لینک کپی شد",
+  "voiceTranslateTo": "ترجمه به",
+  "voiceSearchLanguage": "جستجوی زبان...",
+  "voiceRoomWithCreator": "اتاق {name}",
+  "voiceVoiceCall": "تماس صوتی",
+  "voiceOnHold": "در انتظار",
+  "voiceActiveCall": "فعال",
+  "voiceEndAllCalls": "پایان همه تماس‌ها",
+  "voiceEndThisCall": "پایان این تماس",
+  "voiceCopyLink": "کپی لینک",
+  "voiceAddParticipant": "افزودن شرکت‌کننده",
+  "voiceReconnecting": "در حال اتصال مجدد...",
+  "voiceConnectionError": "خطای اتصال",
+  "voiceClose": "بستن",
+  "voiceCalling": "در حال تماس...",
+  "voiceCallActive": "تماس فعال",
+  "voiceWaiting": "در انتظار",
+  "voiceWaitingUpper": "در انتظار",
+  "voiceRec": "ضبط",
+  "voiceStop": "توقف",
+  "voiceRecord": "ضبط",
+  "voiceTranslation": "ترجمه",
+  "voiceAudio": "صوت",
+  "voiceFlipCamera": "چرخش",
+  "voiceBackground": "پس‌زمینه",
+  "voiceAssistantSpeakingStatus": "دستیار در حال صحبت...",
+  "voiceAssistantListeningStatus": "دستیار در حال گوش دادن...",
+  "voiceUnmute": "لغو بی‌صدا",
+  "voiceMic": "میکروفون",
+  "voiceAssistantLabel": "دستیار",
+  "voiceCameraOn": "دوربین روشن",
+  "voiceCameraLabel": "دوربین",
+  "voiceEndCall": "پایان تماس",
+  "voiceWaitingParticipants": "در انتظار شرکت‌کنندگان...",
+  "voiceYou": "شما",
+  "voiceAiAssistant": "دستیار AI",
+  "voiceVideoUnavailable": "ویدیو در دسترس نیست",
+  "voiceSearchNickname": "جستجو بر اساس نام مستعار...",
+  "voiceTranscriptionWord": "رونویسی",
+  "voiceRecordingWord": "ضبط",
+  "voiceConnecting": "در حال اتصال...",
+  "voiceVideoBackground": "پس‌زمینه ویدیو",
+  "voiceCallSettings": "تنظیمات تماس",
+  "voiceEnableAI": "فعال‌سازی دستیار AI",
+  "voiceAIParticipating": "AI در مکالمه شرکت خواهد کرد",
+  "voiceNormalCall": "تماس عادی بدون AI",
+  "voiceCallConfirm": "تماس بگیرید؟",
+  "chatAlreadyInCall": "در حال حاضر در تماس",
+  "chatCallError": "خطای تماس: {error}",
+  "chatPhotoVideo": "عکس / ویدیو",
+  "chatCamera": "دوربین",
+  "chatFile": "فایل",
+  "chatContact": "مخاطب",
+  "chatSelectContact": "انتخاب یک مخاطب",
+  "chatNoContacts": "بدون مخاطب",
+  "chatUser": "کاربر",
+  "chatFileAttachment": "📎 فایل",
+  "chatFileUploadError": "خطای بارگذاری فایل: {error}",
+  "chatVoiceMessage": "🎤 پیام صوتی",
+  "chatGroup": "گروه",
+  "chatDialog": "گفتگو",
+  "chatCall": "تماس",
+  "chatStartConversation": "شروع مکالمه",
+  "chatYou": "شما",
+  "chatIsTyping": "در حال تایپ...",
+  "chatUserIsTyping": "{name} در حال تایپ...",
+  "chatUsersAreTyping": "{names} در حال تایپ...",
+  "chatPreparingFile": "در حال آماده‌سازی فایل…",
+  "chatUploading": "در حال بارگذاری… {progress}%",
+  "chatEdited": "ویرایش شده",
+  "chatViaMesh": "از طریق مش",
+  "chatReply": "پاسخ",
+  "chatEdit": "ویرایش",
+  "chatCopy": "کپی",
+  "chatCopied": "کپی شد",
+  "chatSaveMedia": "ذخیره",
+  "chatForward": "فوروارد",
+  "chatSaving": "در حال ذخیره...",
+  "chatSavedToGallery": "در گالری ذخیره شد",
+  "chatNoSavePermission": "اجازه ذخیره وجود ندارد. تنظیمات را بررسی کنید.",
+  "chatFileSaveError": "خطا در ذخیره فایل",
+  "chatDeleteMessage": "حذف پیام",
+  "chatDeleteForMe": "حذف برای من",
+  "chatDeleteForEveryone": "حذف برای همه",
+  "chatMessageForwarded": "پیام فوروارد شد",
+  "chatContactTapToOpen": "تماس · برای باز کردن ضربه بزنید",
+  "chatForwardTo": "فوروارد به...",
+  "chatSearchHint": "جستجو...",
+  "chatRecording": "در حال ضبط...",
+  "chatMessageHint": "پیام...",
+  "chatHideKeyboard": "پنهان کردن کیبورد",
+  "chatEditing": "در حال ویرایش",
+  "chatFileDownloadError": "خطا در دانلود فایل",
+  "chatVoiceMessageShort": "پیام صوتی",
+  "chatVideoSavedToGallery": "ویدیو در گالری ذخیره شد",
+  "chatSavingError": "خطا در ذخیره‌سازی",
+  "convSetNickname": "تنظیم نام مستعار",
+  "convNicknameRequired": "برای استفاده از پیام‌رسان، نام مستعار لازم است. دیگر کاربران می‌توانند شما را با آن پیدا کنند.",
+  "convNicknameRules": "۳–۳۰ کاراکتر: حروف، ارقام، _",
+  "convNicknameTaken": "نام مستعار قبلاً گرفته شده است",
+  "convSaveError": "خطا در ذخیره‌سازی",
+  "convContactsLabel": "مخاطبین",
+  "convDefaultUser": "کاربر",
+  "convNoDialogs": "هیچ مکالمه‌ای وجود ندارد",
+  "convFindUserToChat": "یافتن کاربر برای شروع چت",
+  "convDefaultContact": "مخاطب",
+  "dashboardUser": "کاربر",
+  "dashboardIncomingCall": "تماس ورودی",
+  "dashboardDecline": "رد کردن",
+  "dashboardAccept": "پذیرفتن",
+  "dashboardActiveCall": "تماس فعال — برای بازگشت ضربه بزنید",
+  "dashboardUpdateAvailable": "به‌روزرسانی موجود است {version}",
+  "dashboardUpdate": "به‌روزرسانی",
+  "dashboardWhatsNew": "چه خبر",
+  "dashboardWhatsNewTitle": "چه خبر در {version}",
+  "dashboardInstalling": "در حال نصب...",
+  "contactRequestsTitle": "مخاطبین",
+  "messengerContactRequestsSection": "درخواست‌های مخاطب",
+  "messengerContactRequestsCount": "{count, plural, =1{1 درخواست جدید} other{{count} درخواست جدید}}",
+  "contactRequestsSearch": "جستجو",
+  "contactRequestsIncoming": "ورودی",
+  "contactRequestsSent": "ارسال شده",
+  "contactRequestsSearchHint": "نام مستعار یا ایمیل",
+  "contactRequestSent": "درخواست ارسال شد",
+  "contactRequestsNoUsers": "کاربری یافت نشد",
+  "contactRequestsSearchHelp": "نام مستعار یا ایمیل دقیق را وارد کنید\nو جستجو را فشار دهید",
+  "contactRequestsSendTooltip": "ارسال درخواست",
+  "contactRequestTitle": "درخواست مخاطب",
+  "contactRequestConfirm": "ارسال درخواست مخاطب به {name}؟",
+  "contactRequestSend": "ارسال",
+  "contactRequestsNoIncoming": "درخواستی در ورودی نیست",
+  "contactRequestsNoSent": "درخواستی ارسال نشده",
+  "contactRequestStatusPending": "در انتظار پاسخ",
+  "contactRequestStatusAccepted": "پذیرفته شد",
+  "contactRequestStatusRejected": "رد شد",
+  "userSearchTitle": "یافتن کاربر",
+  "userSearchHint": "نام مستعار، تلفن یا ایمیل",
+  "userSearchHelper": "برای جستجو @نام مستعار، ایمیل یا نام را وارد کنید",
+  "userSearchNoUsers": "کاربری یافت نشد",
+  "userProfileShareContact": "اشتراک‌گذاری مخاطب",
+  "userProfileShareContactDesc": "ارسال لینک مخاطب",
+  "userProfileCopyLink": "کپی لینک",
+  "userProfileCopied": "کپی شد",
+  "userProfileTitle": "پروفایل",
+  "userProfileLoadError": "خطا در بارگذاری پروفایل",
+  "userProfileMessage": "پیام",
+  "userProfileCall": "تماس",
+  "userProfileRequestSent": "درخواست ارسال شد",
+  "userProfileAccept": "پذیرفتن",
+  "userProfileDecline": "رد کردن",
+  "userProfileAddToContacts": "افزودن به مخاطبین",
+  "userProfileMediaTab": "رسانه",
+  "userProfileFilesTab": "فایل‌ها",
+  "userProfileLinksTab": "لینک‌ها",
+  "userProfileRecordingsTab": "ضبط‌ها",
+  "userProfileSummariesTab": "خلاصه‌ها",
+  "userProfileNoMedia": "فایل رسانه‌ای موجود نیست",
+  "userProfileNoFiles": "فایلی موجود نیست",
+  "userProfileNoLinks": "لینکی موجود نیست",
+  "userProfileNoRecordings": "ضبطی موجود نیست",
+  "userProfileNoSummaries": "خلاصه‌ای موجود نیست",
+  "userProfileMeetingSummary": "خلاصه جلسه",
+  "userProfileFailedOpenChat": "باز کردن چت ناموفق بود",
+  "sharedMediaTitle": "رسانه و فایل‌ها",
+  "sharedMediaTab": "رسانه",
+  "sharedFilesTab": "فایل‌ها",
+  "sharedLinksTab": "لینک‌ها",
+  "sharedNoMedia": "فایل رسانه‌ای موجود نیست",
+  "sharedNoFiles": "فایلی موجود نیست",
+  "sharedNoLinks": "لینکی موجود نیست",
+  "shareToChat": "ارسال به چت",
+  "shareSelectChat": "انتخاب چت",
+  "shareNoChats": "چتی موجود نیست",
+  "shareFilesCount": "{count} فایل",
+  "contactsTitle": "مخاطبین",
+  "contactsAddTooltip": "افزودن مخاطب",
+  "contactsSearchHint": "جستجوی مخاطبین...",
+  "contactsNotFound": "چیزی یافت نشد",
+  "contactsEmpty": "مخاطبی موجود نیست",
+  "contactsAdd": "افزودن مخاطب",
+  "contactsPendingConfirmation": "در انتظار تأیید",
+  "contactsMessage": "پیام",
+  "contactsCall": "تماس",
+  "contactsResend": "ارسال مجدد درخواست",
+  "contactsResendTimeout": "24 ساعت دیگر دوباره تلاش کنید",
+  "contactsResent": "درخواست دوباره ارسال شد",
+  "contactsWantsToConnect": "می‌خواهد با شما ارتباط برقرار کند",
+  "contactsSearchPeople": "یافتن افراد",
+  "notesTitle": "یادداشت‌ها",
+  "notesAssistantSpeaking": "دستیار در حال صحبت...",
+  "notesListening": "در حال گوش دادن...",
+  "notesEmpty": "بدون یادداشت",
+  "notesEmptyHint": "برای دیکته میکروفون را فشار دهید\nیا + برای ورود دستی",
+  "notesDeleteConfirm": "یادداشت حذف شود؟",
+  "notesNew": "یادداشت جدید",
+  "notesEdit": "ویرایش",
+  "notesTitleHint": "عنوان",
+  "notesContentHint": "افکار خود را بنویسید...",
+  "calendarTitle": "تقویم",
+  "calendarStop": "توقف",
+  "calendarVoiceInput": "ورودی صوتی",
+  "calendarNewEvent": "رویداد جدید",
+  "calendarAssistantSpeaking": "دستیار در حال صحبت...",
+  "calendarListening": "در حال گوش دادن...",
+  "calendarInvitations": "دعوت‌نامه‌ها ({count})",
+  "calendarNoEvents": "بدون رویداد",
+  "calendarDayMon": "دوشنبه",
+  "calendarDayTue": "سه‌شنبه",
+  "calendarDayWed": "چهارشنبه",
+  "calendarDayThu": "پنج‌شنبه",
+  "calendarDayFri": "جمعه",
+  "calendarDaySat": "شنبه",
+  "calendarDaySun": "یک‌شنبه",
+  "calendarEnterRoom": "ورود به اتاق",
+  "calendarMeeting": "جلسه",
+  "calendarLocationPrefix": "مکان: {location}",
+  "calendarEditEvent": "ویرایش",
+  "calendarTitleHint": "عنوان",
+  "calendarDescriptionHint": "توضیحات",
+  "calendarTypeEvent": "رویداد",
+  "calendarTypeMeeting": "جلسه",
+  "calendarTypeReminder": "یادآوری",
+  "calendarTypeLabel": "نوع",
+  "calendarMeetingLink": "لینک جلسه",
+  "calendarLocationHint": "مکان",
+  "calendarDateLabel": "تاریخ",
+  "calendarTimeLabel": "زمان",
+  "calendarReminderLabel": "یادآوری",
+  "calendarReminderNone": "هیچ‌کدام",
+  "calendarReminder15min": "۱۵ دقیقه قبل",
+  "calendarReminder30min": "۳۰ دقیقه قبل",
+  "calendarReminder1hour": "۱ ساعت قبل",
+  "calendarRepeatLabel": "تکرار",
+  "calendarRepeatNone": "بدون تکرار",
+  "calendarRepeatDaily": "هر روز",
+  "calendarRepeatWeekly": "هر هفته",
+  "calendarRepeatMonthly": "هر ماه",
+  "calendarRepeatYearly": "هر سال",
+  "calendarParticipants": "شرکت‌کنندگان",
+  "calendarAddParticipant": "افزودن",
+  "calendarSearchContacts": "جستجوی مخاطبین...",
+  "calendarNoContacts": "بدون مخاطب",
+  "calendarStatusAccepted": "پذیرفته شد",
+  "calendarStatusDeclined": "رد شد",
+  "calendarStatusMaybe": "شاید",
+  "calendarStatusPending": "در انتظار",
+  "calendarEndTime": "زمان پایان",
+  "calendarYourAnswer": "پاسخ شما:",
+  "calendarOrganizer": "برگزارکننده",
+  "calendarDeleteError": "حذف ناموفق: {error}",
+  "calendarRsvpAccept": "پذیرفتن",
+  "calendarRsvpMaybe": "شاید",
+  "calendarRsvpDecline": "رد کردن",
+  "callHistoryTitle": "تماس‌ها",
+  "callHistoryTab": "تاریخچه تماس",
+  "callHistoryTempMeeting": "جلسه موقت",
+  "callHistoryCopy": "کپی",
+  "callHistoryLinkCopied": "لینک کپی شد",
+  "callHistoryShare": "اشتراک‌گذاری",
+  "callHistoryEnter": "ورود",
+  "callHistoryAlreadyInCall": "در حال حاضر در یک تماس",
+  "callHistoryCouldNotDeterminePeer": "طرف مقابل مشخص نشد",
+  "callHistoryContacts": "مخاطبین",
+  "callHistoryFailedLoadRoom": "بارگذاری اتاق شما ناموفق بود",
+  "callHistoryYourRoom": "اتاق شما",
+  "callHistoryCreateMeeting": "ایجاد جلسه",
+  "callHistoryMeetingSummaries": "خلاصه جلسات",
+  "callHistoryMeetingRecordings": "ضبط جلسات",
+  "callHistoryNoCalls": "بدون تماس",
+  "callHistoryMissed": "از دست رفته",
+  "callHistoryRecording": "در حال ضبط",
+  "callHistorySummary": "خلاصه",
+  "callHistoryCallAgain": "تماس مجدد",
+  "callHistoryTodayTime": "امروز، {time}",
+  "callHistoryYesterdayTime": "دیروز، {time}",
+  "callHistoryUnknown": "ناشناخته",
+  "callHistoryDetails": "جزئیات تماس",
+  "callHistoryOutgoing": "تماس خروجی",
+  "callHistoryIncoming": "تماس ورودی",
+  "callHistoryDuration": "مدت زمان: {duration}",
+  "callHistoryWithAI": "با دستیار AI",
+  "callHistoryParticipants": "شرکت‌کنندگان",
+  "callDetailYouSuffix": "(شما)",
+  "callHistoryMeetingSummary": "خلاصه جلسه",
+  "callHistoryMoreDetails": "جزئیات بیشتر",
+  "callHistorySummaryProcessing": "در حال پردازش خلاصه...",
+  "callHistoryMeetingRecording": "ضبط جلسه",
+  "callHistoryProcessing": "در حال پردازش...",
+  "callHistoryCreateTranscript": "ایجاد متن",
+  "callHistoryNoSummaries": "بدون خلاصه",
+  "callHistoryRecordDuringCall": "در طول تماس \"ضبط\" را فشار دهید",
+  "callHistoryMeetingTime": "جلسه {time}",
+  "callHistoryTranscribing": "در حال تبدیل به متن و خلاصه‌سازی...",
+  "callHistoryTranscriptCreated": "متن ایجاد شد",
+  "callHistoryNoRecordings": "بدون ضبط",
+  "callHistoryRecordingDate": "ضبط {date}",
+  "callHistoryRecordingUnavailable": "ضبط در دسترس نیست",
+  "callHistoryTranscriptReady": "متن آماده است",
+  "callHistoryTranscript": "متن",
+  "callHistoryKeyPoints": "نکات کلیدی",
+  "callHistoryTasks": "وظایف",
+  "callHistoryAssignedTo": "اختصاص داده شده به: {assignee}",
+  "callHistoryDecisions": "تصمیمات",
+  "callHistoryShowTranscript": "نمایش متن کامل",
+  "profileScanQr": "اسکن QR",
+  "profileMyQrCode": "کد QR من",
+  "profileAddMeShare": "من را در Taler ID اضافه کنید!\ntalerid://user/{userId}",
+  "profileShowCode": "این کد را نشان دهید تا شما را اضافه کنند",
+  "profileEditDesc": "نام، نام خانوادگی، نام پدر، تاریخ تولد",
+  "profileAboutMe": "درباره من",
+  "profileAboutMeDesc": "ارزش‌ها، مهارت‌ها، علایق و بیشتر",
+  "profileNotes": "یادداشت‌ها",
+  "profileNotesDesc": "افکار، ایده‌ها و یادداشت‌ها",
+  "profileAvatarUpdated": "آواتار به‌روزرسانی شد",
+  "profileNickname": "نام مستعار",
+  "profileNotSet": "تنظیم نشده",
+  "profileChangeNickname": "تغییر نام مستعار",
+  "profileNicknameUpdated": "نام مستعار به‌روزرسانی شد",
+  "profileShareLabel": "اشتراک‌گذاری",
+  "profileScanQrCode": "اسکن کد QR",
+  "profilePointCamera": "دوربین را به کد QR بگیرید",
+  "profilePhotoCamera": "گرفتن عکس",
+  "profilePhotoGallery": "انتخاب از گالری",
+  "editProfilePatronymic": "نام پدر (اختیاری)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "درباره من",
+  "aboutMeClickToFill": "برای پر کردن کلیک کنید",
+  "aboutMeCoreValues": "ارزش‌ها",
+  "aboutMeWorldview": "جهان‌بینی",
+  "aboutMeSkills": "مهارت‌ها",
+  "aboutMeInterests": "علایق",
+  "aboutMeDesires": "خواسته‌ها",
+  "aboutMeBackground": "پروفایل",
+  "aboutMeLikes": "دوست‌داشتنی‌ها",
+  "aboutMeDislikes": "ناپسندها",
+  "aboutMeDeleteSection": "حذف بخش؟",
+  "aboutMeDeleteConfirm": "تمام داده‌های این بخش حذف خواهند شد.",
+  "aboutMeConnectionError": "خطای اتصال: {error}",
+  "aboutMeVisibility": "قابلیت مشاهده",
+  "aboutMeTags": "برچسب‌ها",
+  "aboutMeAddTag": "افزودن برچسب...",
+  "aboutMeDescription": "توضیحات",
+  "aboutMeDescribeLong": "بیشتر بگویید...",
+  "aboutMeVisibilityEveryone": "همه",
+  "aboutMeVisibilityContacts": "مخاطبین",
+  "aboutMeVisibilityOnlyMe": "فقط من",
+  "settingsProfileSubtitle": "پروفایل",
+  "settingsWallpaper": "تصویر زمینه",
+  "settingsWallpaperDesc": "تصویر پس‌زمینه برای کل برنامه",
+  "settingsWallpaperNone": "هیچ‌کدام",
+  "settingsAccount": "حساب",
+  "settingsKycVerification": "تأیید هویت (KYC)",
+  "settingsOrganizations": "سازمان‌ها",
+  "incomingCallLabel": "تماس ورودی",
+  "incomingCallDecline": "رد کردن",
+  "incomingCallAccept": "پذیرفتن",
+  "meshIncomingCallLabel": "📡 تماس مش ورودی",
+  "meshDeviceFallback": "دستگاه مش {hexPrefix}",
+  "callConflictAlreadyInCall": "ابتدا تماس فعلی را پایان دهید",
+  "callPopupTransportTitle": "تماس از طریق",
+  "callPopupTransportMesh": "📡 مش (نقطه به نقطه)",
+  "callPopupTransportLk": "📞 سرور",
+  "callPopupTransportMeshUnavailable": "مخاطب از طریق مش در دسترس نیست",
+  "meshOnboardingTitle": "📡 تماس‌های مش نیاز به باز بودن برنامه دارند",
+  "meshOnboardingBody": "وقتی گوشی قفل است، تماس‌های مش ممکن است بعد از ~30 ثانیه قطع شوند (محدودیت iOS).",
+  "meshOnboardingAck": "متوجه شدم",
+  "meshHistoryBadge": "📡 مش",
+  "meshHistoryNoChatAvailable": "مخاطب در لیست شما نیست",
+  "meshCallStatusInviting": "در حال تماس...",
+  "meshCallStatusConnecting": "در حال اتصال...",
+  "meshCallEndedUserHangup": "تماس پایان یافت",
+  "meshCallEndedRemoteHangup": "توسط همتا پایان یافت",
+  "meshCallEndedRejected": "رد شد",
+  "meshCallEndedNoAnswer": "بدون پاسخ",
+  "meshCallEndedConnectionLost": "اتصال قطع شد",
+  "meshCallEndedError": "خطای اتصال",
+  "meshCallTransportBadge": "📡 مش · {transport}",
+  "meshCallTransportBadgePlain": "📡 مش",
+  "batteryExemptionTitle": "📡 تماس‌های مش قابل اعتماد",
+  "batteryExemptionBody": "اجازه دهید برنامه بدون محدودیت‌های باتری اجرا شود تا اندروید مش را در پس‌زمینه متوقف نکند.",
+  "batteryExemptionAccept": "باز کردن تنظیمات",
+  "batteryExemptionDismiss": "فعلاً نه",
+  "groupCamera": "دوربین",
+  "groupGallery": "گالری",
+  "groupAvatarUpdated": "آواتار گروه به‌روزرسانی شد",
+  "groupNameTitle": "نام گروه",
+  "groupEnterName": "نام را وارد کنید",
+  "groupDescriptionTitle": "توضیحات گروه",
+  "groupEnterDescription": "توضیحات گروه را وارد کنید",
+  "groupChangeRoleTitle": "تغییر نقش",
+  "groupRemoveMemberTitle": "حذف عضو",
+  "groupDescription": "توضیحات",
+  "groupAddDescription": "افزودن توضیحات گروه",
+  "groupNoDescription": "بدون توضیحات",
+  "groupMediaAndFiles": "رسانه و فایل‌ها",
+  "groupMuteNotifications": "بی‌صدا کردن اعلان‌ها",
+  "groupMuted": "بی‌صدا",
+  "groupNoResults": "بدون نتیجه",
+  "authInvalidCode": "کد نامعتبر. دوباره تلاش کنید.",
+  "loginSubtitle": "استفاده از ایمیل و رمز عبور",
+  "emailRequired": "ایمیل را وارد کنید",
+  "emailInvalid": "ایمیل نامعتبر",
+  "passwordRequired": "رمز عبور را وارد کنید",
+  "registerSubtitle": "یک حساب برای کل اکوسیستم Taler",
+  "usernameOptional": "نام کاربری (اختیاری)",
+  "usernameMinLength": "حداقل ۳ کاراکتر",
+  "usernameMaxLength": "حداکثر ۳۰ کاراکتر",
+  "usernameInvalid": "فقط حروف، اعداد و _",
+  "biometricLoginReason": "ورود به Taler ID",
+  "docTypePassport": "پاسپورت",
+  "docTypeIdCard": "کارت شناسایی",
+  "docTypeDriverLicense": "گواهینامه رانندگی",
+  "docTypeResidencePermit": "اجازه اقامت",
+  "addressApartment": "واحد {number}",
+  "failedToUpdateProfile": "به‌روزرسانی پروفایل ناموفق بود",
+  "failedToStartKyb": "شروع تأیید KYB ناموفق بود",
+  "orgUpdated": "سازمان به‌روزرسانی شد",
+  "failedToUpdateOrg": "به‌روزرسانی سازمان ناموفق بود",
+  "failedToChangeRole": "تغییر نقش ناموفق بود",
+  "failedToRemoveMember": "حذف عضو ناموفق بود",
+  "capabilityMessagesTitle": "پیام‌ها",
+  "capabilityMessagesDesc": "پیام‌ها را بررسی کنید یا به کسی پیام دهید. برای مثال: \"به ویکتور بنویس: یک ساعت دیگر آنجا خواهم بود\"",
+  "capabilityCallsTitle": "تماس‌ها",
+  "capabilityCallsDesc": "با هر تماسی به صورت صوتی تماس بگیرید. برای مثال: \"با ویکتور ویکتروف تماس بگیر\"",
+  "capabilityChatTitle": "تاریخچه چت",
+  "capabilityChatDesc": "تاریخچه چت را تحلیل می‌کنم. برای مثال: \"چه چیزی با ویکتور بحث کردیم؟\"",
+  "capabilityProfileTitle": "پروفایل",
+  "capabilityProfileDesc": "پروفایل شما را نشان می‌دهم یا به‌روزرسانی می‌کنم. برای مثال: \"پروفایل من را نشان بده\"",
+  "capabilityCoachingTitle": "کوچینگ",
+  "capabilityCoachingDesc": "حالت‌ها: کوچینگ ICF، روانشناس، مشاوره منابع انسانی. بگویید: \"بیایید کوچینگ کنیم\"",
+  "capabilityCalendarTitle": "تقویم",
+  "capabilityCalendarDesc": "برنامه‌ریزی جلسه یا تنظیم یادآور. برای مثال: \"برنامه‌ریزی جلسه با ویکتور برای فردا ساعت ۱۵:۰۰\"",
+  "capabilityNotesTitle": "یادداشت‌ها",
+  "capabilityNotesDesc": "ذخیره یک فکر یا خواندن یادداشت‌های اخیر. برای مثال: \"یک ایده بنویس...\" یا \"یادداشت‌های اخیر را بخوان\"",
+  "assistantCallConfirm": "تماس بگیرم؟",
+  "callNoAnswer": "پاسخی نیست",
+  "contactDelete": "حذف مخاطب",
+  "contactDeleteTitle": "حذف مخاطب",
+  "contactDeleteConfirm": "آیا مطمئن هستید؟ این مخاطب حذف خواهد شد.",
+  "contactBlock": "مسدود کردن",
+  "contactBlockTitle": "مسدود کردن کاربر",
+  "contactBlockConfirm": "این کاربر نمی‌تواند به شما پیام دهد یا تماس بگیرد.",
+  "contactUnblock": "رفع مسدودی",
+  "contactBlocked": "مسدود شده",
+  "contactYouAreBlocked": "این کاربر شما را مسدود کرده است",
+  "chatBlockedByYou": "شما این کاربر را مسدود کرده‌اید",
+  "chatYouAreBlocked": "شما توسط این کاربر مسدود شده‌اید",
+  "chatNotContacts": "برای پیام دادن، این کاربر را به مخاطبین اضافه کنید",
+  "contactRevokeRequest": "لغو درخواست",
+  "messengerPoll": "نظرسنجی",
+  "messengerCreatePoll": "ایجاد نظرسنجی",
+  "messengerPollQuestion": "سوال",
+  "messengerPollOption": "گزینه {number}",
+  "messengerPollAddOption": "افزودن گزینه",
+  "messengerPollAnonymous": "رای‌گیری ناشناس",
+  "messengerPollMultiple": "چند گزینه‌ای",
+  "messengerPollCreateError": "ایجاد نظرسنجی ناموفق بود",
+  "messengerPollUnavailable": "نظرسنجی در دسترس نیست",
+  "messengerPollMultipleNote": "می‌توانید چندین گزینه انتخاب کنید",
+  "messengerPollVotes": "{count} رای",
+  "messengerVideoMessage": "پیام ویدئویی",
+  "messengerVideoRecordError": "خطا در ضبط ویدئو",
+  "messengerVideoPlaybackError": "پخش ویدئو ممکن نیست",
+  "messengerGalleryAccessError": "دسترسی به گالری وجود ندارد",
+  "messengerSearchInChat": "جستجو در چت...",
+  "messengerSaveToFavorites": "ذخیره در علاقه‌مندی‌ها",
+  "messengerSavedToFavorites": "در علاقه‌مندی‌ها ذخیره شد",
+  "messengerSearchInMessages": "جستجو در پیام‌ها...",
+  "messengerFoundInMessages": "یافت شده در پیام‌ها ({count})",
+  "messengerGroupDefault": "گروه",
+  "messengerUserDefault": "کاربر",
+  "messengerPin": "سنجاق کردن",
+  "messengerUnpin": "برداشتن سنجاق",
+  "messengerArchive": "بایگانی",
+  "messengerUnarchive": "خارج کردن از بایگانی",
+  "messengerDeleteChat": "حذف چت",
+  "messengerDeleteChatTitle": "حذف چت؟",
+  "messengerDeleteChatConfirm": "چت با {name} حذف شود؟ این عمل قابل بازگشت نیست.",
+  "messengerCreateChannel": "ایجاد کانال",
+  "messengerChannelName": "نام",
+  "messengerChannelDescription": "توضیحات (اختیاری)",
+  "messengerChannelCreateError": "ایجاد کانال ناموفق بود",
+  "messengerFilterAll": "همه",
+  "messengerFilterUnread": "خوانده نشده",
+  "messengerFilterPersonal": "شخصی",
+  "messengerFilterGroups": "گروه‌ها",
+  "messengerFilterChannels": "کانال‌ها",
+  "messengerArchivedSection": "بایگانی شده",
+  "messengerSavedSection": "علاقه‌مندی‌ها",
+  "messengerSavedSubtitle": "ذخیره در حافظه",
+  "messengerArchiveTitle": "بایگانی ({count})",
+  "messengerArchiveEmpty": "بایگانی خالی است",
+  "messengerYouPrefix": "شما: {message}",
+  "messengerMissedCall": "تماس از دست رفته",
+  "messengerSavedTitle": "علاقه‌مندی‌ها",
+  "messengerNoSavedMessages": "پیام ذخیره شده‌ای وجود ندارد",
+  "messengerSavedHint": "برای ذخیره پیام، طولانی فشار دهید → \"ذخیره در علاقه‌مندی‌ها\"",
+  "messengerDefaultFile": "فایل",
+  "messengerTopicDefault": "عمومی",
+  "messengerTopicNew": "موضوع جدید",
+  "messengerTopicNameHint": "نام موضوع",
+  "messengerTopicIcon": "آیکون",
+  "messengerTopicCount": "{count} موضوع",
+  "messengerNoTopics": "موضوعی وجود ندارد",
+  "messengerNoMessages": "پیامی وجود ندارد",
+  "you": "شما",
+  "messengerThread": "رشته",
+  "messengerThreadReply": "پاسخ",
+  "messengerThreadReplies": "پاسخ‌ها",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "بدون پاسخ",
+  "messengerReplyHint": "پاسخ به رشته...",
+  "messengerContactName": "نام مخاطب",
+  "messengerOriginalName": "نام اصلی: {name}",
+  "messengerDisplayName": "نام نمایشی",
+  "messengerShareContact": "مخاطب در Taler ID: {name}",
+  "messengerAutoDelete": "حذف خودکار پیام‌ها",
+  "messengerAutoDeleteOff": "خاموش",
+  "messengerAutoDelete7d": "۷ روز",
+  "messengerAutoDelete30d": "۳۰ روز",
+  "messengerAutoDelete90d": "۹۰ روز",
+  "messengerAutoDeleteDays": "{count} روز",
+  "messengerSettingsHeader": "تنظیمات",
+  "messengerAdminOnly": "ارسال فقط توسط مدیر",
+  "messengerAdminOnlyDesc": "اعضا فقط می‌توانند بخوانند",
+  "messengerTopics": "موضوعات",
+  "messengerTopicsDesc": "چت را به موضوعات تقسیم کنید",
+  "aiTwinSection": "همزاد صوتی AI",
+  "aiTwinEnabled": "فعال‌سازی همزاد AI",
+  "aiTwinEnabledDesc": "اگر پاسخ ندهید، همزاد AI شما تماس را با صدای شما پاسخ می‌دهد",
+  "aiTwinTimeout": "زمان انتظار پاسخ",
+  "aiTwinTimeoutValue": "{seconds} ثانیه",
+  "aiTwinPrompt": "دستورالعمل‌های AI",
+  "aiTwinPromptSubtitle": "چگونه همزاد AI باید خود را معرفی کند و درباره چه چیزی صحبت کند",
+  "aiTwinPromptHint": "سلام، این همزاد صوتی AI {name} است. {name} در حال حاضر نمی‌تواند پاسخ دهد. بگویید چه کسی تماس گرفته و موضوع چیست — من آن را منتقل می‌کنم.",
+  "aiTwinComingSoon": "شبیه‌سازی صدای سفارشی به زودی می‌آید. فعلاً AI با صدای {name} صحبت می‌کند.",
+  "aiTwinDefaultName": "مالک",
+  "aiTwinPromptReset": "بازنشانی",
+  "callHistoryAiTwinAnswered": "پاسخ داده شده توسط همزاد AI",
+  "callHistoryAiTwinSummary": "خلاصه تماس",
+  "callHistoryAiTwinTranscript": "رونوشت",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "از {name}",
+  "aiTwinOfferTitle": "پاسخ ندادن",
+  "aiTwinOfferBody": "{name} پاسخ نمی‌دهد. پیام را با همزاد صوتی AI او بگذارید؟",
+  "aiTwinOfferBodyUser": "کاربر",
+  "aiTwinOfferAccept": "بله، پیام بگذارید",
+  "aiTwinOfferKeepWaiting": "منتظر بمانید",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "نماینده AI شما",
+  "aiTwinHeroSubtitle": "وقتی نمی‌توانید، تماس‌ها را با صدای شما پاسخ می‌دهد.",
+  "aiTwinProfileTitle": "نماینده AI",
+  "aiTwinProfileDesc": "تماس‌ها را با صدای شما پاسخ می‌دهد",
+  "aiTwinBadgeOn": "روشن",
+  "aiAnalystTitle": "تحلیلگر AI",
+  "aiAnalystSubtitle": "فایل‌ها، وظایف، تحلیل — Claude",
+  "channelsDiscover": "یافتن کانال",
+  "channelsSearchHint": "جستجوی کانال‌ها",
+  "channelsSubscribers": "مشترکین",
+  "channelsSubscribe": "اشتراک",
+  "channelsUnsubscribe": "لغو اشتراک",
+  "channelsSubscribedLabel": "شما مشترک هستید",
+  "channelsSettings": "تنظیمات کانال",
+  "channelsDelete": "حذف کانال",
+  "channelsDeleteConfirm": "کانال را به طور دائمی حذف کنید؟",
+  "channelsEmpty": "هنوز کانالی وجود ندارد",
+  "channelsOpen": "باز کردن",
+  "channelsNameLabel": "نام",
+  "channelsDescriptionLabel": "توضیحات",
+  "channelsCannotUnsubscribeOwner": "مالک نمی‌تواند لغو اشتراک کند. در عوض کانال را حذف کنید.",
+  "channelsNotFoundRedirect": "کانال دیگر وجود ندارد",
+  "analystSeamSearches": "{count, plural, =1{{count} جستجو} other{{count} جستجو}}",
+  "analystSeamFiles": "{count, plural, =1{{count} فایل} other{{count} فایل}}",
+  "analystSeamCommands": "{count, plural, =1{{count} فرمان} other{{count} فرمان}}",
+  "analystSeamImages": "{count, plural, =1{{count} تصویر} other{{count} تصویر}}",
+  "analystSeamOther": "{count, plural, =1{{count} مرحله} other{{count} مرحله}}",
+  "analystSeamDurationSeconds": "{seconds}ثانیه",
+  "savedTitle": "پیام‌های ذخیره‌شده",
+  "savedSubtitle": "ابر خصوصی شما",
+  "savedOpenError": "نمی‌توان پیام‌های ذخیره‌شده را باز کرد",
+  "billingWalletTitle": "کیف پول",
+  "billingBuyPackage": "خرید بسته",
+  "billingCurrentBalance": "موجودی فعلی",
+  "billingPackagesTitle": "بسته‌ها",
+  "billingPackagesUnavailable": "بسته‌ها در دسترس نیستند",
+  "billingRecentOperations": "عملیات اخیر",
+  "billingAllOperations": "همه عملیات",
+  "billingNoOperations": "بدون عملیات",
+  "billingOperationsTitle": "عملیات",
+  "billingOperationsEmptyTitle": "هنوز عملیاتی وجود ندارد",
+  "billingOperationsEmptySubtitle": "افزایش اعتبار و هزینه‌ها برای ویژگی‌های AI اینجا نمایش داده می‌شوند",
+  "billingPricebookTitle": "قیمت ویژگی‌ها",
+  "billingPricebookUnavailable": "لیست قیمت در دسترس نیست",
+  "billingAiFeaturesTitle": "ویژگی‌های AI",
+  "billingInsufficientFundsTitle": "اعتبار ناکافی",
+  "billingInsufficientFundsSubtitle": "برای استفاده از این ویژگی، اعتبار خود را افزایش دهید.",
+  "billingRequiredLine": "نیاز: {required} μTAL",
+  "billingAvailableLine": "دارایی: {available} μTAL",
+  "billingTopUp": "افزایش اعتبار",
+  "billingCancel": "لغو",
+  "billingRetry": "تلاش مجدد",
+  "billingLowBalanceWarning": "اعتبار کم است: {balance} μTAL",
+  "billingWalletAndBalance": "کیف پول و اعتبار",
+  "billingSectionHeader": "صورتحساب و AI",
+  "billingFeatureVoiceAssistant": "دستیار صوتی",
+  "billingFeatureWebSearch": "جستجوی وب دستیار",
+  "billingFeatureAiTwin": "همزاد صوتی",
+  "billingFeatureAiTwinLong": "همزاد صوتی (AI Twin)",
+  "billingFeatureOutboundCall": "ربات تماس خروجی",
+  "billingFeatureOutboundCallLong": "ربات تماس خروجی",
+  "billingFeatureWhisperTranscribe": "رونویسی تماس",
+  "billingFeatureMeetingSummary": "خلاصه تماس AI",
+  "billingConfigureAiTwin": "پیکربندی همزاد AI",
+  "billingWebSearchSubtitle": "(استفاده شده توسط دستیار)",
+  "billingPackagePurchased": "بسته خریداری شد: {balance} μTAL",
+  "billingRecommendedBadge": "پیشنهاد شده",
+  "billingSessionTerminatedNoFunds": "اعتبار تمام شد — جلسه پایان یافت",
+  "billingSessionTerminatedGeneric": "جلسه دستیار پایان یافت",
+  "billingBuyForPrice": "خرید به قیمت €{price}",
+  "billingTxTypeTopup": "افزایش اعتبار",
+  "billingTxTypeRefund": "بازپرداخت",
+  "billingTxTypeSpend": "هزینه",
+  "billingUnitMinute": "دقیقه",
+  "billingUnitRequest": "درخواست",
+  "billingUnitToken": "توکن",
+  "billingUnitTokens1k": "۱K توکن",
+  "billingUnitCall": "تماس",
+  "groupCallSelectParticipants": "انتخاب شرکت‌کنندگان",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "جستجو",
+  "groupCallMaxReached": "حداکثر ۷ شرکت‌کننده",
+  "groupCallLobbyTitle": "گروه • لابی",
+  "groupCallHostLabel": "میزبان: {name}",
+  "groupCallMicHint": "میکروفون هنگام اتصال فعال می‌شود",
+  "groupCallCancel": "لغو",
+  "groupCallNoAnswer": "کسی پاسخ نداد",
+  "groupCallEndedByHost": "تماس توسط میزبان پایان یافت",
+  "groupCallAllLeft": "همه تماس را ترک کردند",
+  "groupCallEnded": "تماس پایان یافت",
+  "groupCallActiveTitle": "گروه • {count}",
+  "groupCallConnectionLost": "ارتباط قطع شد",
+  "groupCallMuteRequested": "میزبان از همه خواست که میکروفون را خاموش کنند",
+  "groupCallUnmute": "روشن کردن میکروفون",
+  "groupCallMute": "خاموش کردن میکروفون",
+  "groupCallMuteAll": "خاموش کردن میکروفون همه",
+  "groupCallLeave": "ترک کردن",
+  "groupCallStatusCalling": "در حال تماس...",
+  "groupCallStatusDeclined": "رد شد",
+  "groupCallStatusTimeout": "پاسخی نیست",
+  "groupCallStatusLeft": "ترک کرد",
+  "groupCallKickConfirm": "حذف {name} از تماس",
+  "groupCallCancelAction": "لغو",
+  "groupCallActiveBanner": "تماس فعال",
+  "groupCallBannerSummary": "گروه: {host} + {count}",
+  "groupCallBannerSummaryAlone": "گروه: {host}",
+  "groupCallCreateError": "امکان ایجاد تماس نیست",
+  "groupCallJoinError": "امکان پیوستن به تماس نیست",
+  "groupCallLivekitError": "خطای LiveKit",
+  "groupCallDone": "انجام شد",
+  "groupCallNoResults": "نتیجه‌ای یافت نشد",
+  "groupCallNoContacts": "تماسی وجود ندارد",
+  "meshGcContactOffline": "در این وای‌فای نیست",
+  "meshGcOnlineViaMesh": "آنلاین از طریق مش",
+  "meshGcMaxInvitees": "تماس‌های گروهی تا ۴ دعوت‌شونده (۵ نفر در مجموع) را پشتیبانی می‌کنند.",
+  "meshGcStart": "شروع تماس گروهی",
+  "meshGcCancel": "لغو",
+  "meshGcStatusCalling": "در حال تماس…",
+  "meshGcStatusJoined": "پیوست",
+  "meshGcStatusDeclined": "رد شد",
+  "meshGcStatusNoAnswer": "بدون پاسخ",
+  "meshGcStatusConnectionFailed": "اتصال ناموفق",
+  "meshGcStatusLeft": "ترک کرد",
+  "meshGcTopTitle": "مش",
+  "meshGcBusyOneOnOne": "ابتدا تماس فعلی خود را تمام کنید.",
+  "presenceOnline": "آنلاین",
+  "presenceLastSeenJustNow": "آخرین بازدید همین حالا",
+  "presenceLastSeenMinutesAgo": "آخرین بازدید {minutes} دقیقه پیش",
+  "presenceLastSeenToday": "آخرین بازدید امروز در {time}",
+  "presenceLastSeenYesterday": "آخرین بازدید دیروز در {time}",
+  "presenceLastSeenOnDate": "آخرین بازدید {date}",
+  "presenceLastSeenRecently": "آخرین بازدید اخیراً",
+  "privacySectionTitle": "حریم خصوصی",
+  "privacyLastSeenLabel": "چه کسی زمان آخرین بازدید شما را می‌بیند",
+  "privacyEveryone": "همه",
+  "privacyContacts": "فقط مخاطبین",
+  "privacyNobody": "هیچ‌کس",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

@@ -1,0 +1,1691 @@
+{
+  "@@locale": "ja",
+  "appTitle": "Taler ID",
+  "search": "検索",
+  "appSubtitle": "統合エコシステムID",
+  "login": "サインイン",
+  "loginButton": "サインイン",
+  "register": "アカウント作成",
+  "registerButton": "アカウント作成",
+  "email": "メール",
+  "password": "パスワード",
+  "confirmPassword": "パスワード確認",
+  "firstName": "名",
+  "lastName": "姓",
+  "noAccount": "アカウントをお持ちでないですか？",
+  "createOne": "作成する",
+  "haveAccount": "すでにアカウントをお持ちですか？",
+  "signIn": "サインイン",
+  "passwordMinLength": "8文字以上",
+  "invalidEmail": "有効なメールアドレスを入力してください",
+  "fieldRequired": "必須フィールド",
+  "twoFATitle": "二要素認証",
+  "twoFASubtitle": "認証アプリから6桁のコードを入力してください",
+  "twoFACode": "2FAコード",
+  "verify": "確認",
+  "tabProfile": "プロフィール",
+  "tabKyc": "KYC",
+  "tabOrganization": "組織",
+  "tabSettings": "設定",
+  "profile": "プロフィール",
+  "editProfile": "プロフィール編集",
+  "phone": "電話",
+  "country": "国",
+  "dateOfBirth": "生年月日",
+  "documents": "書類",
+  "addDocument": "書類を追加",
+  "noDocuments": "アップロードされた書類はありません",
+  "save": "保存",
+  "profileUpdated": "プロフィールが更新されました",
+  "personalData": "個人データ",
+  "passport": "パスポート",
+  "drivingLicense": "運転免許証",
+  "diploma": "卒業証書",
+  "nationalId": "国民ID",
+  "certificate": "証明書",
+  "notSpecified": "指定なし",
+  "notSpecifiedFemale": "指定なし",
+  "documentType": "書類の種類",
+  "passportId": "パスポート / ID",
+  "diplomaCertificate": "卒業証書 / 証明書",
+  "loadError": "読み込みエラー",
+  "verification": "確認",
+  "countryAustria": "オーストリア",
+  "countryGermany": "ドイツ",
+  "countryRussia": "ロシア",
+  "countryUkraine": "ウクライナ",
+  "countryKazakhstan": "カザフスタン",
+  "countryBelarus": "ベラルーシ",
+  "countryOther": "その他",
+  "kycTitle": "KYC確認",
+  "kycVerified": "確認済み",
+  "kycPending": "保留中",
+  "kycRejected": "拒否されました",
+  "kycUnverified": "未確認",
+  "kycVerifiedDesc": "あなたの身元は確認されました。Talerエコシステムのすべての機能にフルアクセスできます。",
+  "kycPendingDesc": "あなたの書類は審査中です。通常1〜2営業日かかります。",
+  "kycRejectedDesc": "確認に失敗しました。理由を確認し、書類を再提出してください。",
+  "kycUnverifiedDesc": "Talerエコシステムの金融機能にフルアクセスするには、確認を完了してください。",
+  "startVerification": "確認を開始",
+  "retryVerification": "確認を再試行",
+  "verifiedAt": "確認済み: {date}",
+  "documentsSubmitted": "審査のために書類を提出しました",
+  "documentsSubmittedDesc": "審査には通常1〜2営業日かかります。結果はプッシュ通知でお知らせします。",
+  "securityAes": "あなたのデータはAES-256暗号化で保護されています",
+  "verificationTime": "確認には1〜2営業日かかります",
+  "pushNotification": "結果はプッシュ通知でお知らせします",
+  "kycWebOnly": "KYC確認はモバイルアプリでのみ利用可能です。",
+  "verificationError": "確認エラー: {code}",
+  "organizations": "組織",
+  "noOrganizations": "組織なし",
+  "noOrganizationsDesc": "組織を作成するか、招待を受け入れてください",
+  "createOrganization": "組織を作成",
+  "newOrganization": "新しい組織",
+  "orgName": "名前 *",
+  "orgDescription": "説明",
+  "orgEmail": "連絡先メール",
+  "orgWebsite": "ウェブサイト",
+  "orgLegalAddress": "法的住所",
+  "create": "作成",
+  "organization": "組織",
+  "contacts": "連絡先",
+  "members": "メンバー ({count})",
+  "inviteMember": "メンバーを招待",
+  "invite": "招待",
+  "sendInvite": "招待を送信",
+  "inviteSent": "{email} に招待を送信しました",
+  "role": "役割",
+  "roleOwner": "オーナー",
+  "roleAdmin": "管理者",
+  "roleOperator": "オペレーター",
+  "roleViewer": "閲覧者",
+  "editOrganization": "編集",
+  "editOrganizationTitle": "組織を編集",
+  "removeMember": "メンバーを削除",
+  "removeMemberConfirm": "組織から {name} を削除しますか？",
+  "memberRemoved": "メンバーを削除しました",
+  "roleChanged": "役割を変更しました",
+  "kybVerified": "確認済み",
+  "kybPending": "保留中",
+  "kybRejected": "拒否されました",
+  "kybNone": "未確認",
+  "kybVerification": "KYB確認を開始",
+  "kybStartBusiness": "ビジネス確認を開始",
+  "kybStatusLabel": "KYBステータス",
+  "noKyb": "KYBなし",
+  "kybBusinessVerificationTitle": "ビジネス確認 (KYB)",
+  "kybVerifiedOrgDesc": "組織が正常に確認されました。",
+  "kybPendingOrgDesc": "書類が審査中です。通常、1〜3営業日かかります。",
+  "kybRejectedOrgDesc": "確認に失敗しました。もう一度お試しください。",
+  "kybNoneOrgDesc": "ビジネス機能にアクセスするには、組織を確認してください。",
+  "invitePlus": "+ 招待",
+  "kybVerificationTitle": "KYB確認",
+  "kybWebOnlyBusiness": "KYB認証はモバイルアプリでのみ利用可能です。",
+  "unknownDevice": "不明なデバイス",
+  "ipUnknown": "IP不明",
+  "currentSessionLabel": "現在",
+  "endSessionAction": "終了",
+  "deviceLoggedOut": "デバイスはサインアウトされます。",
+  "acceptInvitationTitle": "組織招待",
+  "acceptInvitation": "招待を受け入れる",
+  "acceptInvitationDesc": "Talerエコシステムの組織に招待されました。",
+  "accept": "受け入れる",
+  "reject": "拒否",
+  "sessions": "アクティブセッション",
+  "currentSession": "現在のセッション",
+  "deleteSession": "セッションを終了",
+  "deleteSessionConfirm": "このセッションを終了しますか？",
+  "sessionDeleted": "セッションが終了しました",
+  "noSessions": "アクティブなセッションはありません",
+  "minutesAgo": "{count}分前",
+  "hoursAgo": "{count}時間前",
+  "daysAgo": "{count}日前",
+  "justNow": "たった今",
+  "settings": "設定",
+  "security": "セキュリティ",
+  "biometrics": "生体認証",
+  "biometricsDesc": "Face IDまたは指紋でのクイックログイン",
+  "biometricsConfirm": "クイックログインを有効にするには生体認証を確認してください",
+  "biometricsError": "生体認証の有効化に失敗しました。デバイス設定を確認してください。",
+  "changePassword": "パスワードを変更",
+  "twoFactorAuth": "二要素認証",
+  "currentPassword": "現在のパスワード",
+  "newPassword": "新しいパスワード",
+  "confirmNewPassword": "新しいパスワードを確認",
+  "passwordChanged": "パスワードが変更されました",
+  "wrongCurrentPassword": "現在のパスワードが間違っています",
+  "passwordTooWeak": "パスワードが弱すぎます：8文字以上、文字と数字が必要です",
+  "passwordChangeFailed": "パスワードの変更に失敗しました",
+  "notifications": "通知",
+  "permissions": "権限",
+  "permissionNotifications": "プッシュ通知",
+  "permissionNotificationsDesc": "通話、メッセージ、ステータス",
+  "permissionMicrophone": "マイク",
+  "permissionMicrophoneDesc": "通話と音声アシスタント",
+  "permissionCamera": "カメラ",
+  "permissionCameraDesc": "ビデオ通話と認証",
+  "permissionLocation": "位置情報",
+  "permissionLocationDesc": "認証に使用",
+  "permissionOpenSettings": "権限を取り消すには、システム設定を開いてください",
+  "pushKycStatus": "KYCステータス通知",
+  "pushKycStatusDesc": "認証結果",
+  "pushLogins": "ログイン通知",
+  "pushLoginsDesc": "新しいデバイスからサインインする際",
+  "account": "アカウント",
+  "language": "言語",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "インターフェース言語",
+  "exportData": "データをエクスポート (GDPR)",
+  "deleteAccount": "アカウントを削除",
+  "deleteAccountConfirm": "アカウントを削除しますか？",
+  "deleteAccountDesc": "すべてのデータが削除されます (GDPR)。この操作は元に戻せません。",
+  "logout": "サインアウト",
+  "logoutConfirm": "サインアウトしますか？",
+  "logoutDesc": "このデバイスでTaler IDからサインアウトします。",
+  "version": "Taler ID v{version}",
+  "pinCode": "PINコード",
+  "pinCodeDesc": "4桁のコードでクイックログイン",
+  "setupPin": "PINを設定",
+  "enterPin": "PINを入力",
+  "confirmPin": "PINを確認",
+  "pinMismatch": "PINが一致しません",
+  "pinSet": "PINが正常に設定されました",
+  "enterPinToLogin": "サインインするにはPINを入力",
+  "pinIncorrect": "PINが正しくありません",
+  "removePin": "PINを削除",
+  "pinRemoved": "PINが削除されました",
+  "cancel": "キャンセル",
+  "delete": "削除",
+  "ok": "OK",
+  "retry": "再試行",
+  "loading": "読み込み中...",
+  "error": "エラー",
+  "success": "成功",
+  "noData": "データなし",
+  "failedToLoad": "データの読み込みに失敗しました",
+  "failedToLoadProfile": "プロフィールの読み込みに失敗しました",
+  "failedToSave": "変更の保存に失敗しました",
+  "failedToLoadOrgs": "組織の読み込みに失敗しました",
+  "failedToLoadOrg": "組織データの読み込みに失敗しました",
+  "failedToCreateOrg": "組織の作成に失敗しました",
+  "failedToInvite": "招待の送信に失敗しました",
+  "failedToAcceptInvite": "招待の受諾に失敗しました",
+  "failedToLoadSessions": "セッションの読み込みに失敗しました",
+  "failedToDeleteSession": "セッションの終了に失敗しました",
+  "failedToLoadKyc": "確認ステータスの読み込みに失敗しました",
+  "failedToStartKyc": "確認の開始に失敗しました",
+  "verifiedPersonalInfo": "確認済みデータ",
+  "middleName": "ミドルネーム",
+  "placeOfBirth": "出生地",
+  "nationality": "国籍",
+  "gender": "性別",
+  "genderMale": "男性",
+  "genderFemale": "女性",
+  "docNumber": "番号",
+  "docIssuedDate": "発行日",
+  "docValidUntil": "有効期限",
+  "docIssuedBy": "発行者",
+  "address": "住所",
+  "refreshData": "データを更新",
+  "failedToLoadSumsubData": "確認データの読み込みに失敗しました",
+  "sumsubDataLoading": "確認データを読み込み中...",
+  "reviewResultGreen": "確認に合格しました",
+  "reviewResultRed": "確認に失敗しました",
+  "tabAssistant": "アシスタント",
+  "assistantConnecting": "接続中…",
+  "assistantSpeaking": "話しています…",
+  "assistantListening": "聞いています…",
+  "assistantTapToStart": "タップして開始",
+  "assistantTapToTalk": "AIと話すにはタップ",
+  "assistantRealtimeDesc": "アシスタントがリアルタイムで音声で応答します",
+  "assistantConnectingToAssistant": "アシスタントに接続中...",
+  "assistantAiSpeaking": "AIが話しています...",
+  "assistantAiListening": "AIが聞いています",
+  "assistantSpeakerOn": "スピーカーオン",
+  "assistantSpeaker": "スピーカー",
+  "assistantEnd": "終了",
+  "assistantUnmute": "ミュート解除",
+  "assistantMicrophone": "マイク",
+  "assistantConnectionError": "接続エラー",
+  "tabMessenger": "メッセージ",
+  "tabCalls": "通話",
+  "tabCalendar": "カレンダー",
+  "appearance": "外観",
+  "appearanceSelect": "テーマを選択",
+  "themeLight": "ライト",
+  "themeDark": "ダーク",
+  "themeSystem": "システム",
+  "onboardingTitle1": "統合されたアイデンティティ",
+  "onboardingDesc1": "Taler IDはTalerエコシステム内のデジタルパスポートです。すべてのサービスに1つのアカウント。",
+  "onboardingTitle2": "データセキュリティ",
+  "onboardingDesc2": "KYC認証、AES-256暗号化、二要素認証であなたのアイデンティティを保護します。",
+  "onboardingTitle3": "情報を常に把握",
+  "onboardingDesc3": "認証状況、新しいデバイスからのログイン、着信について通知を受け取ります。",
+  "onboardingNext": "次へ",
+  "onboardingEnableNotifications": "通知を有効にする",
+  "onboardingTitle4": "音声通話",
+  "onboardingDesc4": "音声通話とAIアシスタントのためにマイクアクセスを許可してください。後で設定で変更できます。",
+  "onboardingEnableMicrophone": "マイクを有効にする",
+  "onboardingStart": "始める",
+  "onboardingSkip": "スキップ",
+  "meshLocalNetworkPromptTitle": "ローカルネットワークアクセスを許可",
+  "meshLocalNetworkPromptBody": "Wi-Fi上でピアを見つけるために（オフライングループ通話）、iOSはローカルネットワークの許可が必要です。設定を開く → プライバシーとセキュリティ → ローカルネットワーク → Taler ID。",
+  "meshLocalNetworkPromptOpenSettings": "設定を開く",
+  "meshLocalNetworkPromptDismiss": "了解",
+  "forgotPassword": "パスワードを忘れましたか？",
+  "forgotPasswordTitle": "パスワードをリセット",
+  "forgotPasswordSubtitle": "リセットコードを受け取るためにメールアドレスを入力してください",
+  "resetCodeSent": "コードが{email}に送信されました",
+  "enterResetCode": "コードを入力",
+  "resetPasswordButton": "パスワードをリセット",
+  "passwordResetSuccess": "パスワードが正常にリセットされました",
+  "sendCode": "コードを送信",
+  "resendCode": "コードを再送信",
+  "newGroup": "新しいグループ",
+  "newChat": "新しいチャット",
+  "groupName": "グループ名",
+  "createGroup": "グループを作成",
+  "groupInfo": "グループ情報",
+  "groupMembers": "メンバー ({count})",
+  "addMembers": "メンバーを追加",
+  "leaveGroup": "グループを退出",
+  "leaveGroupConfirm": "このグループを退出しますか？",
+  "deleteGroup": "グループを削除",
+  "deleteGroupConfirm": "このグループを削除しますか？この操作は元に戻せません。",
+  "groupRoleOwner": "オーナー",
+  "groupRoleAdmin": "管理者",
+  "groupRoleMember": "メンバー",
+  "selectParticipants": "参加者を選択",
+  "selectedCount": "{count} 件選択済み",
+  "changeRole": "役割を変更",
+  "groupCreated": "グループが作成されました",
+  "memberJoined": "{name} が参加しました",
+  "memberLeftGroup": "{name} が退出しました",
+  "memberWasRemoved": "{name} が削除されました",
+  "roleChangedTo": "{name} は {role} になりました",
+  "participantsCount": "{count} 人の参加者",
+  "enterGroupName": "グループ名を入力",
+  "muteNotifications": "通知をミュート",
+  "unmuteNotifications": "通知のミュートを解除",
+  "muteFor1Hour": "1時間",
+  "muteFor8Hours": "8時間",
+  "muteFor2Days": "2日間",
+  "muteForever": "無期限",
+  "muted": "ミュート中",
+  "tabTranslator": "翻訳",
+  "translatorTitle": "翻訳者",
+  "translatorSelectLanguage": "言語を選択",
+  "translatorDownloading": "言語モデルをダウンロード中...",
+  "translatorDownloadingHint": "最初のダウンロードのみインターネットが必要です",
+  "translatorTypeHint": "テキストを入力するか、マイクをタップ",
+  "translatorListening": "聞き取り中...",
+  "translatorTapToSpeak": "タップして話す",
+  "translatorTapToStop": "タップして停止",
+  "translatorAutoSpeak": "自動発話",
+  "translatorCopied": "コピーしました",
+  "translatorLangRu": "ロシア語",
+  "translatorLangEn": "英語",
+  "translatorLangDe": "ドイツ語",
+  "translatorLangFr": "フランス語",
+  "translatorLangEs": "スペイン語",
+  "translatorLangIt": "イタリア語",
+  "translatorLangPt": "ポルトガル語",
+  "translatorLangTr": "トルコ語",
+  "translatorLangZh": "中国語",
+  "translatorLangJa": "日本語",
+  "translatorLangKo": "韓国語",
+  "translatorLangAr": "アラビア語",
+  "translatorLangPl": "ポーランド語",
+  "translatorLangSk": "スロバキア語",
+  "translatorLangCs": "チェコ語",
+  "translatorLangNl": "オランダ語",
+  "translatorLangSv": "スウェーデン語",
+  "translatorLangDa": "デンマーク語",
+  "translatorLangNo": "ノルウェー語",
+  "translatorLangFi": "フィンランド語",
+  "translatorLangUk": "ウクライナ語",
+  "translatorLangEl": "ギリシャ語",
+  "translatorLangRo": "ルーマニア語",
+  "translatorLangHu": "ハンガリー語",
+  "translatorLangBg": "ブルガリア語",
+  "translatorLangHr": "クロアチア語",
+  "translatorLangSr": "セルビア語",
+  "translatorLangHi": "ヒンディー語",
+  "translatorLangTh": "タイ語",
+  "translatorLangVi": "ベトナム語",
+  "translatorLangId": "インドネシア語",
+  "translatorLangMs": "マレー語",
+  "translatorLangHe": "ヘブライ語",
+  "translatorLangFa": "ペルシャ語",
+  "callInProgress": "通話中",
+  "joinCall": "参加",
+  "createCallLink": "通話リンク",
+  "callLinkCopied": "リンクをコピーしました",
+  "callLinkTitle": "ルームリンク",
+  "connectionUnstable": "接続が不安定です — インターネットを確認してください",
+  "today": "今日",
+  "yesterday": "昨日",
+  "errorTimeout": "接続がタイムアウトしました。インターネット接続を確認してください。",
+  "errorNoConnection": "インターネット接続がありません。",
+  "errorGeneral": "エラーが発生しました。もう一度お試しください。",
+  "errorWithMessage": "エラー: {message}",
+  "notifChannelMessages": "メッセージ",
+  "notifChannelMessagesDesc": "新しいメッセージの通知",
+  "notifChannelMissedCalls": "不在着信",
+  "notifChannelMissedCallsDesc": "不在着信の通知",
+  "notifMissedCall": "不在着信",
+  "notifAccept": "承認",
+  "notifDecline": "拒否",
+  "notifIncomingCall": "着信中",
+  "notifIncomingCallChannel": "着信中",
+  "notifMissedCallChannel": "不在着信",
+  "notifUnknown": "不明",
+  "effectNone": "背景なし",
+  "effectBlur": "ぼかし",
+  "effectOffice": "オフィス",
+  "effectNature": "自然",
+  "effectGradient": "グラデーション",
+  "effectLibrary": "図書館",
+  "effectCity": "都市",
+  "effectMinimalism": "ミニマリズム",
+  "voiceParticipant": "参加者",
+  "voiceInvitesToRoom": "ルームに招待しています",
+  "voiceRoom": "ルーム",
+  "voicePasswordProtected": "パスワード保護",
+  "voicePasswordHint": "パスワード",
+  "voiceEnter": "入力",
+  "voiceJoinRoom": "ルームに参加",
+  "voiceYourName": "あなたの名前",
+  "voiceInvitationSent": "{name}に招待を送りました",
+  "voiceNoActiveRoom": "アクティブルームがありません",
+  "voiceCameraPermission": "設定 → プライバシー → カメラ → TalerIDでカメラアクセスを許可してください",
+  "voiceOpenSettings": "開く",
+  "voiceCameraError": "カメラの有効化に失敗しました: {error}",
+  "voiceAllAgreedRecording": "全員が同意しました。録音を開始します。",
+  "voiceNewParticipantAgreed": "新しい参加者が録音に同意しました。",
+  "voiceDeclinedRecording": "録音を拒否しました。通話を終了します。",
+  "voiceRecordingEnded": "録音が終了しました",
+  "voiceRecordingInProgress": "録音中",
+  "voiceTranscriptionRequest": "文字起こしのリクエスト",
+  "voiceRecordingRequest": "録音のリクエスト",
+  "voiceAgree": "同意する",
+  "voiceDeclineAndLeave": "拒否して退出",
+  "voiceAudioOutput": "オーディオ出力",
+  "voiceAudioPhone": "電話",
+  "voiceAudioSpeaker": "スピーカー",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "ヘッドフォン",
+  "voiceLinkCopied": "リンクをコピーしました",
+  "voiceTranslateTo": "翻訳先",
+  "voiceSearchLanguage": "言語を検索...",
+  "voiceRoomWithCreator": "ルーム {name}",
+  "voiceVoiceCall": "音声通話",
+  "voiceOnHold": "保留中",
+  "voiceActiveCall": "通話中",
+  "voiceEndAllCalls": "すべての通話を終了",
+  "voiceEndThisCall": "この通話を終了",
+  "voiceCopyLink": "リンクをコピー",
+  "voiceAddParticipant": "参加者を追加",
+  "voiceReconnecting": "再接続中...",
+  "voiceConnectionError": "接続エラー",
+  "voiceClose": "閉じる",
+  "voiceCalling": "呼び出し中...",
+  "voiceCallActive": "通話中",
+  "voiceWaiting": "待機中",
+  "voiceWaitingUpper": "待機中",
+  "voiceRec": "録音",
+  "voiceStop": "停止",
+  "voiceRecord": "録音",
+  "voiceTranslation": "翻訳",
+  "voiceAudio": "オーディオ",
+  "voiceFlipCamera": "カメラを反転",
+  "voiceBackground": "背景",
+  "voiceAssistantSpeakingStatus": "アシスタントが話しています...",
+  "voiceAssistantListeningStatus": "アシスタントが聞いています...",
+  "voiceUnmute": "ミュート解除",
+  "voiceMic": "マイク",
+  "voiceAssistantLabel": "アシスタント",
+  "voiceCameraOn": "カメラオン",
+  "voiceCameraLabel": "カメラ",
+  "voiceEndCall": "通話終了",
+  "voiceWaitingParticipants": "参加者を待っています...",
+  "voiceYou": "あなた",
+  "voiceAiAssistant": "AIアシスタント",
+  "voiceVideoUnavailable": "ビデオ利用不可",
+  "voiceSearchNickname": "ニックネームで検索...",
+  "voiceTranscriptionWord": "文字起こし",
+  "voiceRecordingWord": "録音",
+  "voiceConnecting": "接続中...",
+  "voiceVideoBackground": "ビデオ背景",
+  "voiceCallSettings": "通話設定",
+  "voiceEnableAI": "AIアシスタントを有効にする",
+  "voiceAIParticipating": "AIが会話に参加します",
+  "voiceNormalCall": "AIなしの通常通話",
+  "voiceCallConfirm": "通話を開始しますか？",
+  "chatAlreadyInCall": "すでに通話中です",
+  "chatCallError": "通話エラー: {error}",
+  "chatPhotoVideo": "写真 / ビデオ",
+  "chatCamera": "カメラ",
+  "chatFile": "ファイル",
+  "chatContact": "連絡先",
+  "chatSelectContact": "連絡先を選択",
+  "chatNoContacts": "連絡先なし",
+  "chatUser": "ユーザー",
+  "chatFileAttachment": "📎 ファイル",
+  "chatFileUploadError": "ファイルアップロードエラー: {error}",
+  "chatVoiceMessage": "🎤 ボイスメッセージ",
+  "chatGroup": "グループ",
+  "chatDialog": "ダイアログ",
+  "chatCall": "通話",
+  "chatStartConversation": "会話を開始",
+  "chatYou": "あなた",
+  "chatIsTyping": "入力中...",
+  "chatUserIsTyping": "{name}が入力中...",
+  "chatUsersAreTyping": "{names}が入力中...",
+  "chatPreparingFile": "ファイルを準備中…",
+  "chatUploading": "アップロード中… {progress}%",
+  "chatEdited": "編集済み",
+  "chatViaMesh": "メッシュ経由",
+  "chatReply": "返信",
+  "chatEdit": "編集",
+  "chatCopy": "コピー",
+  "chatCopied": "コピー済み",
+  "chatSaveMedia": "保存",
+  "chatForward": "転送",
+  "chatSaving": "保存中...",
+  "chatSavedToGallery": "ギャラリーに保存しました",
+  "chatNoSavePermission": "保存の権限がありません。設定を確認してください。",
+  "chatFileSaveError": "ファイル保存エラー",
+  "chatDeleteMessage": "メッセージを削除",
+  "chatDeleteForMe": "自分用に削除",
+  "chatDeleteForEveryone": "全員から削除",
+  "chatMessageForwarded": "メッセージを転送しました",
+  "chatContactTapToOpen": "連絡先 · 開くにはタップ",
+  "chatForwardTo": "転送先...",
+  "chatSearchHint": "検索...",
+  "chatRecording": "録音中...",
+  "chatMessageHint": "メッセージ...",
+  "chatHideKeyboard": "キーボードを隠す",
+  "chatEditing": "編集中",
+  "chatFileDownloadError": "ファイルダウンロードエラー",
+  "chatVoiceMessageShort": "ボイスメッセージ",
+  "chatVideoSavedToGallery": "ビデオをギャラリーに保存しました",
+  "chatSavingError": "保存エラー",
+  "convSetNickname": "ニックネームを設定",
+  "convNicknameRequired": "メッセンジャーを使用するにはニックネームが必要です。他のユーザーはそれであなたを見つけることができます。",
+  "convNicknameRules": "3–30文字: 英字、数字、_",
+  "convNicknameTaken": "ニックネームは既に使用されています",
+  "convSaveError": "保存エラー",
+  "convContactsLabel": "連絡先",
+  "convDefaultUser": "ユーザー",
+  "convNoDialogs": "会話がありません",
+  "convFindUserToChat": "チャットを始めるユーザーを見つける",
+  "convDefaultContact": "連絡先",
+  "dashboardUser": "ユーザー",
+  "dashboardIncomingCall": "着信",
+  "dashboardDecline": "拒否",
+  "dashboardAccept": "承諾",
+  "dashboardActiveCall": "通話中 — タップして戻る",
+  "dashboardUpdateAvailable": "利用可能なアップデート {version}",
+  "dashboardUpdate": "アップデート",
+  "dashboardWhatsNew": "新着情報",
+  "dashboardWhatsNewTitle": "{version} の新着情報",
+  "dashboardInstalling": "インストール中...",
+  "contactRequestsTitle": "連絡先",
+  "messengerContactRequestsSection": "連絡先リクエスト",
+  "messengerContactRequestsCount": "{count, plural, =1{1 件の新しいリクエスト} other{{count} 件の新しいリクエスト}}",
+  "contactRequestsSearch": "検索",
+  "contactRequestsIncoming": "受信",
+  "contactRequestsSent": "送信済み",
+  "contactRequestsSearchHint": "ニックネームまたはメール",
+  "contactRequestSent": "リクエスト送信済み",
+  "contactRequestsNoUsers": "ユーザーが見つかりません",
+  "contactRequestsSearchHelp": "正確なニックネームまたはメールを入力し\n検索を押してください",
+  "contactRequestsSendTooltip": "リクエストを送信",
+  "contactRequestTitle": "連絡先リクエスト",
+  "contactRequestConfirm": "{name} に連絡先リクエストを送信しますか？",
+  "contactRequestSend": "送信",
+  "contactRequestsNoIncoming": "受信リクエストなし",
+  "contactRequestsNoSent": "送信済みリクエストなし",
+  "contactRequestStatusPending": "応答待ち",
+  "contactRequestStatusAccepted": "承諾済み",
+  "contactRequestStatusRejected": "拒否済み",
+  "userSearchTitle": "ユーザーを探す",
+  "userSearchHint": "ニックネーム、電話番号またはメール",
+  "userSearchHelper": "@ニックネーム、メールまたは名前を入力して検索",
+  "userSearchNoUsers": "ユーザーが見つかりません",
+  "userProfileShareContact": "連絡先を共有",
+  "userProfileShareContactDesc": "連絡先リンクを送信",
+  "userProfileCopyLink": "リンクをコピー",
+  "userProfileCopied": "コピーしました",
+  "userProfileTitle": "プロフィール",
+  "userProfileLoadError": "プロフィール読み込みエラー",
+  "userProfileMessage": "メッセージ",
+  "userProfileCall": "通話",
+  "userProfileRequestSent": "リクエスト送信済み",
+  "userProfileAccept": "承認",
+  "userProfileDecline": "拒否",
+  "userProfileAddToContacts": "連絡先に追加",
+  "userProfileMediaTab": "メディア",
+  "userProfileFilesTab": "ファイル",
+  "userProfileLinksTab": "リンク",
+  "userProfileRecordingsTab": "録音",
+  "userProfileSummariesTab": "要約",
+  "userProfileNoMedia": "メディアファイルなし",
+  "userProfileNoFiles": "ファイルなし",
+  "userProfileNoLinks": "リンクなし",
+  "userProfileNoRecordings": "録音なし",
+  "userProfileNoSummaries": "要約なし",
+  "userProfileMeetingSummary": "会議の要約",
+  "userProfileFailedOpenChat": "チャットを開けませんでした",
+  "sharedMediaTitle": "メディアとファイル",
+  "sharedMediaTab": "メディア",
+  "sharedFilesTab": "ファイル",
+  "sharedLinksTab": "リンク",
+  "sharedNoMedia": "メディアファイルなし",
+  "sharedNoFiles": "ファイルなし",
+  "sharedNoLinks": "リンクなし",
+  "shareToChat": "チャットに転送",
+  "shareSelectChat": "チャットを選択",
+  "shareNoChats": "チャットなし",
+  "shareFilesCount": "{count} ファイル",
+  "contactsTitle": "連絡先",
+  "contactsAddTooltip": "連絡先を追加",
+  "contactsSearchHint": "連絡先を検索...",
+  "contactsNotFound": "見つかりませんでした",
+  "contactsEmpty": "連絡先なし",
+  "contactsAdd": "連絡先を追加",
+  "contactsPendingConfirmation": "確認待ち",
+  "contactsMessage": "メッセージ",
+  "contactsCall": "通話",
+  "contactsResend": "リクエストを再送信",
+  "contactsResendTimeout": "24時間後に再試行",
+  "contactsResent": "リクエストを再送信しました",
+  "contactsWantsToConnect": "あなたと接続したい",
+  "contactsSearchPeople": "人を探す",
+  "notesTitle": "メモ",
+  "notesAssistantSpeaking": "アシスタントが話しています...",
+  "notesListening": "聞いています...",
+  "notesEmpty": "メモなし",
+  "notesEmptyHint": "マイクを押して音声入力\nまたは + を押して手動入力",
+  "notesDeleteConfirm": "メモを削除しますか？",
+  "notesNew": "新しいメモ",
+  "notesEdit": "編集",
+  "notesTitleHint": "タイトル",
+  "notesContentHint": "考えを書いてください...",
+  "calendarTitle": "カレンダー",
+  "calendarStop": "停止",
+  "calendarVoiceInput": "音声入力",
+  "calendarNewEvent": "新しいイベント",
+  "calendarAssistantSpeaking": "アシスタントが話しています...",
+  "calendarListening": "聞いています...",
+  "calendarInvitations": "招待状 ({count})",
+  "calendarNoEvents": "イベントなし",
+  "calendarDayMon": "月",
+  "calendarDayTue": "火",
+  "calendarDayWed": "水",
+  "calendarDayThu": "木",
+  "calendarDayFri": "金",
+  "calendarDaySat": "土",
+  "calendarDaySun": "日",
+  "calendarEnterRoom": "部屋に入る",
+  "calendarMeeting": "会議",
+  "calendarLocationPrefix": "場所: {location}",
+  "calendarEditEvent": "編集",
+  "calendarTitleHint": "タイトル",
+  "calendarDescriptionHint": "説明",
+  "calendarTypeEvent": "イベント",
+  "calendarTypeMeeting": "会議",
+  "calendarTypeReminder": "リマインダー",
+  "calendarTypeLabel": "タイプ",
+  "calendarMeetingLink": "会議リンク",
+  "calendarLocationHint": "場所",
+  "calendarDateLabel": "日付",
+  "calendarTimeLabel": "時間",
+  "calendarReminderLabel": "リマインダー",
+  "calendarReminderNone": "なし",
+  "calendarReminder15min": "15分前",
+  "calendarReminder30min": "30分前",
+  "calendarReminder1hour": "1時間前",
+  "calendarRepeatLabel": "繰り返し",
+  "calendarRepeatNone": "繰り返しなし",
+  "calendarRepeatDaily": "毎日",
+  "calendarRepeatWeekly": "毎週",
+  "calendarRepeatMonthly": "毎月",
+  "calendarRepeatYearly": "毎年",
+  "calendarParticipants": "参加者",
+  "calendarAddParticipant": "追加",
+  "calendarSearchContacts": "連絡先を検索...",
+  "calendarNoContacts": "連絡先なし",
+  "calendarStatusAccepted": "承認済み",
+  "calendarStatusDeclined": "辞退",
+  "calendarStatusMaybe": "未定",
+  "calendarStatusPending": "保留中",
+  "calendarEndTime": "終了時間",
+  "calendarYourAnswer": "あなたの回答:",
+  "calendarOrganizer": "主催者",
+  "calendarDeleteError": "削除に失敗しました: {error}",
+  "calendarRsvpAccept": "承諾",
+  "calendarRsvpMaybe": "未定",
+  "calendarRsvpDecline": "辞退",
+  "callHistoryTitle": "通話",
+  "callHistoryTab": "通話履歴",
+  "callHistoryTempMeeting": "一時会議",
+  "callHistoryCopy": "コピー",
+  "callHistoryLinkCopied": "リンクをコピーしました",
+  "callHistoryShare": "共有",
+  "callHistoryEnter": "参加",
+  "callHistoryAlreadyInCall": "すでに通話中です",
+  "callHistoryCouldNotDeterminePeer": "相手を特定できませんでした",
+  "callHistoryContacts": "連絡先",
+  "callHistoryFailedLoadRoom": "ルームの読み込みに失敗しました",
+  "callHistoryYourRoom": "あなたのルーム",
+  "callHistoryCreateMeeting": "会議を作成",
+  "callHistoryMeetingSummaries": "会議の要約",
+  "callHistoryMeetingRecordings": "会議の録音",
+  "callHistoryNoCalls": "通話なし",
+  "callHistoryMissed": "不在",
+  "callHistoryRecording": "録音中",
+  "callHistorySummary": "要約",
+  "callHistoryCallAgain": "再度通話",
+  "callHistoryTodayTime": "今日、{time}",
+  "callHistoryYesterdayTime": "昨日、{time}",
+  "callHistoryUnknown": "不明",
+  "callHistoryDetails": "通話の詳細",
+  "callHistoryOutgoing": "発信通話",
+  "callHistoryIncoming": "着信通話",
+  "callHistoryDuration": "時間: {duration}",
+  "callHistoryWithAI": "AIアシスタントと",
+  "callHistoryParticipants": "参加者",
+  "callDetailYouSuffix": "（あなた）",
+  "callHistoryMeetingSummary": "会議の要約",
+  "callHistoryMoreDetails": "詳細",
+  "callHistorySummaryProcessing": "要約処理中...",
+  "callHistoryMeetingRecording": "会議の録音",
+  "callHistoryProcessing": "処理中...",
+  "callHistoryCreateTranscript": "文字起こしを作成",
+  "callHistoryNoSummaries": "要約なし",
+  "callHistoryRecordDuringCall": "通話中に「録音」を押してください",
+  "callHistoryMeetingTime": "会議 {time}",
+  "callHistoryTranscribing": "文字起こしと要約中...",
+  "callHistoryTranscriptCreated": "文字起こしが作成されました",
+  "callHistoryNoRecordings": "録音なし",
+  "callHistoryRecordingDate": "録音 {date}",
+  "callHistoryRecordingUnavailable": "録音は利用できません",
+  "callHistoryTranscriptReady": "文字起こしが準備できました",
+  "callHistoryTranscript": "文字起こし",
+  "callHistoryKeyPoints": "重要ポイント",
+  "callHistoryTasks": "タスク",
+  "callHistoryAssignedTo": "担当者: {assignee}",
+  "callHistoryDecisions": "決定事項",
+  "callHistoryShowTranscript": "全文を表示",
+  "profileScanQr": "QRをスキャン",
+  "profileMyQrCode": "私のQRコード",
+  "profileAddMeShare": "Taler IDで私を追加してください！\ntalerid://user/{userId}",
+  "profileShowCode": "このコードを見せて追加",
+  "profileEditDesc": "名前、姓、父称、生年月日",
+  "profileAboutMe": "私について",
+  "profileAboutMeDesc": "価値観、スキル、興味など",
+  "profileNotes": "メモ",
+  "profileNotesDesc": "考え、アイデア、メモ",
+  "profileAvatarUpdated": "アバターが更新されました",
+  "profileNickname": "ニックネーム",
+  "profileNotSet": "未設定",
+  "profileChangeNickname": "ニックネームを変更",
+  "profileNicknameUpdated": "ニックネームが更新されました",
+  "profileShareLabel": "共有",
+  "profileScanQrCode": "QRコードをスキャン",
+  "profilePointCamera": "カメラをQRコードに向ける",
+  "profilePhotoCamera": "写真を撮る",
+  "profilePhotoGallery": "ギャラリーから選択",
+  "editProfilePatronymic": "父称（任意）",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "私について",
+  "aboutMeClickToFill": "クリックして入力",
+  "aboutMeCoreValues": "価値観",
+  "aboutMeWorldview": "世界観",
+  "aboutMeSkills": "スキル",
+  "aboutMeInterests": "興味",
+  "aboutMeDesires": "願望",
+  "aboutMeBackground": "プロフィール",
+  "aboutMeLikes": "好きなもの",
+  "aboutMeDislikes": "嫌いなもの",
+  "aboutMeDeleteSection": "セクションを削除しますか？",
+  "aboutMeDeleteConfirm": "このセクションのすべてのデータが削除されます。",
+  "aboutMeConnectionError": "接続エラー: {error}",
+  "aboutMeVisibility": "可視性",
+  "aboutMeTags": "タグ",
+  "aboutMeAddTag": "タグを追加...",
+  "aboutMeDescription": "説明",
+  "aboutMeDescribeLong": "もっと教えてください...",
+  "aboutMeVisibilityEveryone": "全員",
+  "aboutMeVisibilityContacts": "連絡先",
+  "aboutMeVisibilityOnlyMe": "自分のみ",
+  "settingsProfileSubtitle": "プロフィール",
+  "settingsWallpaper": "壁紙",
+  "settingsWallpaperDesc": "アプリ全体の背景画像",
+  "settingsWallpaperNone": "なし",
+  "settingsAccount": "アカウント",
+  "settingsKycVerification": "本人確認 (KYC)",
+  "settingsOrganizations": "組織",
+  "incomingCallLabel": "着信",
+  "incomingCallDecline": "拒否",
+  "incomingCallAccept": "応答",
+  "meshIncomingCallLabel": "📡 メッシュ着信",
+  "meshDeviceFallback": "メッシュデバイス {hexPrefix}",
+  "callConflictAlreadyInCall": "現在の通話を終了してください",
+  "callPopupTransportTitle": "通話方法",
+  "callPopupTransportMesh": "📡 メッシュ (ピアツーピア)",
+  "callPopupTransportLk": "📞 サーバー",
+  "callPopupTransportMeshUnavailable": "メッシュで連絡先に接続できません",
+  "meshOnboardingTitle": "📡 メッシュ通話にはアプリを開いておく必要があります",
+  "meshOnboardingBody": "電話がロックされていると、メッシュ通話は約30秒後に切れることがあります（iOSの制限）。",
+  "meshOnboardingAck": "了解",
+  "meshHistoryBadge": "📡 メッシュ",
+  "meshHistoryNoChatAvailable": "連絡先がリストにありません",
+  "meshCallStatusInviting": "呼び出し中…",
+  "meshCallStatusConnecting": "接続中…",
+  "meshCallEndedUserHangup": "通話終了",
+  "meshCallEndedRemoteHangup": "相手が終了",
+  "meshCallEndedRejected": "拒否されました",
+  "meshCallEndedNoAnswer": "応答なし",
+  "meshCallEndedConnectionLost": "接続が切れました",
+  "meshCallEndedError": "接続エラー",
+  "meshCallTransportBadge": "📡 メッシュ · {transport}",
+  "meshCallTransportBadgePlain": "📡 メッシュ",
+  "batteryExemptionTitle": "📡 信頼性の高いメッシュ通話",
+  "batteryExemptionBody": "アプリがバッテリー制限なしで動作することを許可し、Androidがバックグラウンドでメッシュを停止しないようにします。",
+  "batteryExemptionAccept": "設定を開く",
+  "batteryExemptionDismiss": "今はしない",
+  "groupCamera": "カメラ",
+  "groupGallery": "ギャラリー",
+  "groupAvatarUpdated": "グループアバターが更新されました",
+  "groupNameTitle": "グループ名",
+  "groupEnterName": "名前を入力",
+  "groupDescriptionTitle": "グループの説明",
+  "groupEnterDescription": "グループの説明を入力",
+  "groupChangeRoleTitle": "役割を変更",
+  "groupRemoveMemberTitle": "メンバーを削除",
+  "groupDescription": "説明",
+  "groupAddDescription": "グループの説明を追加",
+  "groupNoDescription": "説明なし",
+  "groupMediaAndFiles": "メディアとファイル",
+  "groupMuteNotifications": "通知をミュート",
+  "groupMuted": "ミュート中",
+  "groupNoResults": "結果なし",
+  "authInvalidCode": "無効なコードです。もう一度お試しください。",
+  "loginSubtitle": "メールとパスワードを使用",
+  "emailRequired": "メールを入力",
+  "emailInvalid": "無効なメール",
+  "passwordRequired": "パスワードを入力",
+  "registerSubtitle": "Talerエコシステム全体で1つのアカウント",
+  "usernameOptional": "ユーザー名（任意）",
+  "usernameMinLength": "最低3文字",
+  "usernameMaxLength": "最大30文字",
+  "usernameInvalid": "文字、数字、_ のみ",
+  "biometricLoginReason": "Taler IDにサインイン",
+  "docTypePassport": "パスポート",
+  "docTypeIdCard": "IDカード",
+  "docTypeDriverLicense": "運転免許証",
+  "docTypeResidencePermit": "居住許可証",
+  "addressApartment": "アパート {number}",
+  "failedToUpdateProfile": "プロフィールの更新に失敗しました",
+  "failedToStartKyb": "KYB認証の開始に失敗しました",
+  "orgUpdated": "組織が更新されました",
+  "failedToUpdateOrg": "組織の更新に失敗しました",
+  "failedToChangeRole": "役割の変更に失敗しました",
+  "failedToRemoveMember": "メンバーの削除に失敗しました",
+  "capabilityMessagesTitle": "メッセージ",
+  "capabilityMessagesDesc": "メッセージを確認したり、誰かに書いたりします。例：「ヴィクトルに書く：1時間後に到着します」",
+  "capabilityCallsTitle": "通話",
+  "capabilityCallsDesc": "任意の連絡先に音声で電話します。例：「ヴィクトル・ヴィクトロフに電話する」",
+  "capabilityChatTitle": "チャット履歴",
+  "capabilityChatDesc": "チャット履歴を分析します。例えば：「ヴィクトルと何を話しましたか？」",
+  "capabilityProfileTitle": "プロフィール",
+  "capabilityProfileDesc": "プロフィールを表示または更新します。例えば：「私のプロフィールを見せて」",
+  "capabilityCoachingTitle": "コーチング",
+  "capabilityCoachingDesc": "モード: ICFコーチング、心理学者、HR相談。例えば：「コーチングを始めよう」",
+  "capabilityCalendarTitle": "カレンダー",
+  "capabilityCalendarDesc": "会議をスケジュールしたり、リマインダーを設定します。例えば：「明日15:00にヴィクトルと会議をスケジュール」",
+  "capabilityNotesTitle": "メモ",
+  "capabilityNotesDesc": "考えを保存したり、最近のメモを読みます。例えば：「アイデアを書き留めて...」または「最近のメモを読む」",
+  "assistantCallConfirm": "通話をかけますか？",
+  "callNoAnswer": "応答なし",
+  "contactDelete": "連絡先を削除",
+  "contactDeleteTitle": "連絡先を削除",
+  "contactDeleteConfirm": "よろしいですか？この連絡先は削除されます。",
+  "contactBlock": "ブロック",
+  "contactBlockTitle": "ユーザーをブロック",
+  "contactBlockConfirm": "このユーザーはメッセージや通話ができなくなります。",
+  "contactUnblock": "ブロック解除",
+  "contactBlocked": "ブロック済み",
+  "contactYouAreBlocked": "このユーザーにブロックされています",
+  "chatBlockedByYou": "このユーザーをブロックしました",
+  "chatYouAreBlocked": "このユーザーにブロックされています",
+  "chatNotContacts": "メッセージを送るにはこのユーザーを連絡先に追加してください",
+  "contactRevokeRequest": "リクエストを取り消す",
+  "messengerPoll": "投票",
+  "messengerCreatePoll": "投票を作成",
+  "messengerPollQuestion": "質問",
+  "messengerPollOption": "オプション {number}",
+  "messengerPollAddOption": "オプションを追加",
+  "messengerPollAnonymous": "匿名投票",
+  "messengerPollMultiple": "複数選択",
+  "messengerPollCreateError": "投票の作成に失敗しました",
+  "messengerPollUnavailable": "投票は利用できません",
+  "messengerPollMultipleNote": "複数選択が可能です",
+  "messengerPollVotes": "{count} 票",
+  "messengerVideoMessage": "ビデオメッセージ",
+  "messengerVideoRecordError": "ビデオ録画エラー",
+  "messengerVideoPlaybackError": "ビデオを再生できませんでした",
+  "messengerGalleryAccessError": "ギャラリーへのアクセスがありません",
+  "messengerSearchInChat": "チャット内を検索...",
+  "messengerSaveToFavorites": "お気に入りに保存",
+  "messengerSavedToFavorites": "お気に入りに保存しました",
+  "messengerSearchInMessages": "メッセージ内を検索...",
+  "messengerFoundInMessages": "メッセージ内で見つかりました ({count})",
+  "messengerGroupDefault": "グループ",
+  "messengerUserDefault": "ユーザー",
+  "messengerPin": "ピン留め",
+  "messengerUnpin": "ピン留め解除",
+  "messengerArchive": "アーカイブ",
+  "messengerUnarchive": "アーカイブ解除",
+  "messengerDeleteChat": "チャットを削除",
+  "messengerDeleteChatTitle": "チャットを削除しますか？",
+  "messengerDeleteChatConfirm": "{name}とのチャットを削除しますか？この操作は元に戻せません。",
+  "messengerCreateChannel": "チャンネルを作成",
+  "messengerChannelName": "名前",
+  "messengerChannelDescription": "説明（任意）",
+  "messengerChannelCreateError": "チャンネルの作成に失敗しました",
+  "messengerFilterAll": "すべて",
+  "messengerFilterUnread": "未読",
+  "messengerFilterPersonal": "個人",
+  "messengerFilterGroups": "グループ",
+  "messengerFilterChannels": "チャンネル",
+  "messengerArchivedSection": "アーカイブ済み",
+  "messengerSavedSection": "お気に入り",
+  "messengerSavedSubtitle": "メモリに保存",
+  "messengerArchiveTitle": "アーカイブ ({count})",
+  "messengerArchiveEmpty": "アーカイブは空です",
+  "messengerYouPrefix": "あなた: {message}",
+  "messengerMissedCall": "不在着信",
+  "messengerSavedTitle": "お気に入り",
+  "messengerNoSavedMessages": "保存されたメッセージはありません",
+  "messengerSavedHint": "メッセージを長押し → 「お気に入りに保存」",
+  "messengerDefaultFile": "ファイル",
+  "messengerTopicDefault": "一般",
+  "messengerTopicNew": "新しいトピック",
+  "messengerTopicNameHint": "トピック名",
+  "messengerTopicIcon": "アイコン",
+  "messengerTopicCount": "{count} トピック",
+  "messengerNoTopics": "トピックがありません",
+  "messengerNoMessages": "メッセージなし",
+  "you": "あなた",
+  "messengerThread": "スレッド",
+  "messengerThreadReply": "返信",
+  "messengerThreadReplies": "返信",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "返信なし",
+  "messengerReplyHint": "スレッドに返信...",
+  "messengerContactName": "連絡先名",
+  "messengerOriginalName": "元の名前: {name}",
+  "messengerDisplayName": "表示名",
+  "messengerShareContact": "Taler IDの連絡先: {name}",
+  "messengerAutoDelete": "メッセージを自動削除",
+  "messengerAutoDeleteOff": "オフ",
+  "messengerAutoDelete7d": "7日",
+  "messengerAutoDelete30d": "30日",
+  "messengerAutoDelete90d": "90日",
+  "messengerAutoDeleteDays": "{count} 日",
+  "messengerSettingsHeader": "設定",
+  "messengerAdminOnly": "管理者のみ投稿",
+  "messengerAdminOnlyDesc": "メンバーは読むだけ",
+  "messengerTopics": "トピック",
+  "messengerTopicsDesc": "チャットをトピックに分割",
+  "aiTwinSection": "AIボイスタイン",
+  "aiTwinEnabled": "AIタインを有効にする",
+  "aiTwinEnabledDesc": "応答しない場合、AIタインがあなたの声で応答します",
+  "aiTwinTimeout": "応答タイムアウト",
+  "aiTwinTimeoutValue": "{seconds} 秒",
+  "aiTwinPrompt": "AIの指示",
+  "aiTwinPromptSubtitle": "AIタインがどのように自己紹介し、何を話すべきか",
+  "aiTwinPromptHint": "こんにちは、こちらは{name}のAIボイスタインです。{name}は今出られません。どなたが何の用件でお電話されたか教えてください。伝えておきます。",
+  "aiTwinComingSoon": "カスタムボイスクローンは近日公開予定です。現在はAIが{name}の声で話します。",
+  "aiTwinDefaultName": "所有者",
+  "aiTwinPromptReset": "リセット",
+  "callHistoryAiTwinAnswered": "AIタインが応答",
+  "callHistoryAiTwinSummary": "通話概要",
+  "callHistoryAiTwinTranscript": "文字起こし",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "{name}から",
+  "aiTwinOfferTitle": "応答なし",
+  "aiTwinOfferBody": "{name}が応答しません。AIボイスツインでメッセージを残しますか？",
+  "aiTwinOfferBodyUser": "ユーザー",
+  "aiTwinOfferAccept": "はい、メッセージを残す",
+  "aiTwinOfferKeepWaiting": "待ち続ける",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "あなたのAI代理",
+  "aiTwinHeroSubtitle": "応答できないときにあなたの声で電話に出ます。",
+  "aiTwinProfileTitle": "AI代理",
+  "aiTwinProfileDesc": "あなたの声で電話に出ます",
+  "aiTwinBadgeOn": "オン",
+  "aiAnalystTitle": "AIアナリスト",
+  "aiAnalystSubtitle": "ファイル、タスク、分析 — Claude",
+  "channelsDiscover": "チャンネルを探す",
+  "channelsSearchHint": "チャンネルを検索",
+  "channelsSubscribers": "登録者",
+  "channelsSubscribe": "登録する",
+  "channelsUnsubscribe": "登録解除",
+  "channelsSubscribedLabel": "登録済み",
+  "channelsSettings": "チャンネル設定",
+  "channelsDelete": "チャンネルを削除",
+  "channelsDeleteConfirm": "チャンネルを完全に削除しますか？",
+  "channelsEmpty": "まだチャンネルがありません",
+  "channelsOpen": "開く",
+  "channelsNameLabel": "名前",
+  "channelsDescriptionLabel": "説明",
+  "channelsCannotUnsubscribeOwner": "オーナーは登録解除できません。代わりにチャンネルを削除してください。",
+  "channelsNotFoundRedirect": "チャンネルは存在しません",
+  "analystSeamSearches": "{count, plural, =1{{count} 検索} other{{count} 検索}}",
+  "analystSeamFiles": "{count, plural, =1{{count} ファイル} other{{count} ファイル}}",
+  "analystSeamCommands": "{count, plural, =1{{count} コマンド} other{{count} コマンド}}",
+  "analystSeamImages": "{count, plural, =1{{count} 画像} other{{count} 画像}}",
+  "analystSeamOther": "{count, plural, =1{{count} ステップ} other{{count} ステップ}}",
+  "analystSeamDurationSeconds": "{seconds}秒",
+  "savedTitle": "保存されたメッセージ",
+  "savedSubtitle": "あなたのプライベートクラウド",
+  "savedOpenError": "保存されたメッセージを開けませんでした",
+  "billingWalletTitle": "ウォレット",
+  "billingBuyPackage": "パッケージを購入",
+  "billingCurrentBalance": "現在の残高",
+  "billingPackagesTitle": "パッケージ",
+  "billingPackagesUnavailable": "パッケージが利用できません",
+  "billingRecentOperations": "最近の操作",
+  "billingAllOperations": "すべての操作",
+  "billingNoOperations": "操作なし",
+  "billingOperationsTitle": "操作",
+  "billingOperationsEmptyTitle": "まだ操作がありません",
+  "billingOperationsEmptySubtitle": "AI機能のチャージとトップアップがここに表示されます",
+  "billingPricebookTitle": "機能の価格",
+  "billingPricebookUnavailable": "価格表が利用できません",
+  "billingAiFeaturesTitle": "AI機能",
+  "billingInsufficientFundsTitle": "残高不足",
+  "billingInsufficientFundsSubtitle": "この機能を使用するには残高をチャージしてください。",
+  "billingRequiredLine": "必要: {required} μTAL",
+  "billingAvailableLine": "保有: {available} μTAL",
+  "billingTopUp": "チャージ",
+  "billingCancel": "キャンセル",
+  "billingRetry": "再試行",
+  "billingLowBalanceWarning": "残高が少なくなっています: {balance} μTAL",
+  "billingWalletAndBalance": "ウォレットと残高",
+  "billingSectionHeader": "請求とAI",
+  "billingFeatureVoiceAssistant": "音声アシスタント",
+  "billingFeatureWebSearch": "アシスタントのウェブ検索",
+  "billingFeatureAiTwin": "ボイスツイン",
+  "billingFeatureAiTwinLong": "ボイスツイン (AI Twin)",
+  "billingFeatureOutboundCall": "アウトバウンドボット",
+  "billingFeatureOutboundCallLong": "アウトバウンドコールボット",
+  "billingFeatureWhisperTranscribe": "通話の文字起こし",
+  "billingFeatureMeetingSummary": "AI通話要約",
+  "billingConfigureAiTwin": "AIツインを設定",
+  "billingWebSearchSubtitle": "（アシスタントが使用）",
+  "billingPackagePurchased": "パッケージ購入済み: {balance} μTAL",
+  "billingRecommendedBadge": "おすすめ",
+  "billingSessionTerminatedNoFunds": "残高がなくなりました — セッション終了",
+  "billingSessionTerminatedGeneric": "アシスタントセッション終了",
+  "billingBuyForPrice": "€{price}で購入",
+  "billingTxTypeTopup": "チャージ",
+  "billingTxTypeRefund": "返金",
+  "billingTxTypeSpend": "課金",
+  "billingUnitMinute": "分",
+  "billingUnitRequest": "リクエスト",
+  "billingUnitToken": "トークン",
+  "billingUnitTokens1k": "1Kトークン",
+  "billingUnitCall": "通話",
+  "groupCallSelectParticipants": "参加者を選択",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "検索",
+  "groupCallMaxReached": "最大7人の参加者",
+  "groupCallLobbyTitle": "グループ • ロビー",
+  "groupCallHostLabel": "ホスト: {name}",
+  "groupCallMicHint": "接続時にマイクが有効になります",
+  "groupCallCancel": "キャンセル",
+  "groupCallNoAnswer": "誰も応答しませんでした",
+  "groupCallEndedByHost": "ホストが通話を終了しました",
+  "groupCallAllLeft": "全員が通話を離れました",
+  "groupCallEnded": "通話が終了しました",
+  "groupCallActiveTitle": "グループ • {count}",
+  "groupCallConnectionLost": "接続が失われました",
+  "groupCallMuteRequested": "ホストが全員にミュートを依頼しました",
+  "groupCallUnmute": "ミュート解除",
+  "groupCallMute": "ミュート",
+  "groupCallMuteAll": "全員をミュート",
+  "groupCallLeave": "退出",
+  "groupCallStatusCalling": "呼び出し中…",
+  "groupCallStatusDeclined": "拒否されました",
+  "groupCallStatusTimeout": "応答なし",
+  "groupCallStatusLeft": "退出しました",
+  "groupCallKickConfirm": "{name}を通話から削除",
+  "groupCallCancelAction": "キャンセル",
+  "groupCallActiveBanner": "通話中",
+  "groupCallBannerSummary": "グループ: {host} + {count}",
+  "groupCallBannerSummaryAlone": "グループ: {host}",
+  "groupCallCreateError": "通話を作成できませんでした",
+  "groupCallJoinError": "通話に参加できませんでした",
+  "groupCallLivekitError": "LiveKitエラー",
+  "groupCallDone": "完了",
+  "groupCallNoResults": "結果がありません",
+  "groupCallNoContacts": "連絡先がありません",
+  "meshGcContactOffline": "このWi-Fiに接続していません",
+  "meshGcOnlineViaMesh": "メッシュ経由でオンライン",
+  "meshGcMaxInvitees": "グループ通話は最大4人の招待者をサポートします（合計5人）。",
+  "meshGcStart": "グループ通話を開始",
+  "meshGcCancel": "キャンセル",
+  "meshGcStatusCalling": "呼び出し中…",
+  "meshGcStatusJoined": "参加済み",
+  "meshGcStatusDeclined": "拒否されました",
+  "meshGcStatusNoAnswer": "応答なし",
+  "meshGcStatusConnectionFailed": "接続失敗",
+  "meshGcStatusLeft": "退出しました",
+  "meshGcTopTitle": "メッシュ",
+  "meshGcBusyOneOnOne": "現在の通話を終了してください。",
+  "presenceOnline": "オンライン",
+  "presenceLastSeenJustNow": "たった今オンライン",
+  "presenceLastSeenMinutesAgo": "{minutes}分前にオンライン",
+  "presenceLastSeenToday": "今日 {time} にオンライン",
+  "presenceLastSeenYesterday": "昨日 {time} にオンライン",
+  "presenceLastSeenOnDate": "{date} にオンライン",
+  "presenceLastSeenRecently": "最近オンライン",
+  "privacySectionTitle": "プライバシー",
+  "privacyLastSeenLabel": "最後にオンラインだった時間を誰が見れるか",
+  "privacyEveryone": "全員",
+  "privacyContacts": "連絡先のみ",
+  "privacyNobody": "誰も見れない",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

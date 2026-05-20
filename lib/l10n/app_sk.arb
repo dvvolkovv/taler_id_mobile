@@ -1,0 +1,1691 @@
+{
+  "@@locale": "sk",
+  "appTitle": "Taler ID",
+  "search": "Hľadať",
+  "appSubtitle": "Identita jednotného ekosystému",
+  "login": "Prihlásiť sa",
+  "loginButton": "Prihlásiť sa",
+  "register": "Vytvoriť účet",
+  "registerButton": "Vytvoriť účet",
+  "email": "Email",
+  "password": "Heslo",
+  "confirmPassword": "Potvrdiť heslo",
+  "firstName": "Meno",
+  "lastName": "Priezvisko",
+  "noAccount": "Nemáte účet?",
+  "createOne": "Vytvorte si ho",
+  "haveAccount": "Už máte účet?",
+  "signIn": "Prihlásiť sa",
+  "passwordMinLength": "Minimálne 8 znakov",
+  "invalidEmail": "Zadajte platný email",
+  "fieldRequired": "Povinné pole",
+  "twoFATitle": "Dvojfaktorová autentifikácia",
+  "twoFASubtitle": "Zadajte 6-miestny kód z vašej autentifikačnej aplikácie",
+  "twoFACode": "2FA kód",
+  "verify": "Overiť",
+  "tabProfile": "Profil",
+  "tabKyc": "KYC",
+  "tabOrganization": "Organizácia",
+  "tabSettings": "Nastavenia",
+  "profile": "Profil",
+  "editProfile": "Upraviť profil",
+  "phone": "Telefón",
+  "country": "Krajina",
+  "dateOfBirth": "Dátum narodenia",
+  "documents": "Dokumenty",
+  "addDocument": "Pridať dokument",
+  "noDocuments": "Žiadne dokumenty nahrané",
+  "save": "Uložiť",
+  "profileUpdated": "Profil aktualizovaný",
+  "personalData": "Osobné údaje",
+  "passport": "Pas",
+  "drivingLicense": "Vodičský preukaz",
+  "diploma": "Diplom",
+  "nationalId": "Národný preukaz",
+  "certificate": "Certifikát",
+  "notSpecified": "Nešpecifikované",
+  "notSpecifiedFemale": "Nešpecifikované",
+  "documentType": "Typ dokumentu",
+  "passportId": "Pas / ID",
+  "diplomaCertificate": "Diplom / Certifikát",
+  "loadError": "Chyba načítania",
+  "verification": "Overenie",
+  "countryAustria": "Rakúsko",
+  "countryGermany": "Nemecko",
+  "countryRussia": "Rusko",
+  "countryUkraine": "Ukrajina",
+  "countryKazakhstan": "Kazachstan",
+  "countryBelarus": "Bielorusko",
+  "countryOther": "Iné",
+  "kycTitle": "Overenie KYC",
+  "kycVerified": "Overené",
+  "kycPending": "Čaká sa",
+  "kycRejected": "Zamietnuté",
+  "kycUnverified": "Neoverené",
+  "kycVerifiedDesc": "Vaša identita bola overená. Máte plný prístup ku všetkým funkciám ekosystému Taler.",
+  "kycPendingDesc": "Vaše dokumenty sa posudzujú. Zvyčajne to trvá 1-2 pracovné dni.",
+  "kycRejectedDesc": "Overenie zlyhalo. Skontrolujte dôvod a znovu odošlite svoje dokumenty.",
+  "kycUnverifiedDesc": "Dokončite overenie, aby ste odomkli plný prístup k finančným funkciám ekosystému Taler.",
+  "startVerification": "Začať overenie",
+  "retryVerification": "Znova overiť",
+  "verifiedAt": "Overené: {date}",
+  "documentsSubmitted": "Dokumenty odoslané na kontrolu",
+  "documentsSubmittedDesc": "Kontrola zvyčajne trvá 1-2 pracovné dni. Dostanete push notifikáciu s výsledkom.",
+  "securityAes": "Vaše údaje sú chránené šifrovaním AES-256",
+  "verificationTime": "Overenie trvá 1-2 pracovné dni",
+  "pushNotification": "Dostanete push notifikáciu s výsledkom",
+  "kycWebOnly": "Overenie KYC je dostupné iba v mobilnej aplikácii.",
+  "verificationError": "Chyba overenia: {code}",
+  "organizations": "Organizácie",
+  "noOrganizations": "Žiadne organizácie",
+  "noOrganizationsDesc": "Vytvorte organizáciu alebo prijmite pozvánku",
+  "createOrganization": "Vytvoriť organizáciu",
+  "newOrganization": "Nová organizácia",
+  "orgName": "Názov *",
+  "orgDescription": "Popis",
+  "orgEmail": "Kontaktný email",
+  "orgWebsite": "Webová stránka",
+  "orgLegalAddress": "Právna adresa",
+  "create": "Vytvoriť",
+  "organization": "Organizácia",
+  "contacts": "Kontakty",
+  "members": "Členovia ({count})",
+  "inviteMember": "Pozvať člena",
+  "invite": "Pozvať",
+  "sendInvite": "Odoslať pozvánku",
+  "inviteSent": "Pozvánka odoslaná na {email}",
+  "role": "Rola",
+  "roleOwner": "Vlastník",
+  "roleAdmin": "Admin",
+  "roleOperator": "Operátor",
+  "roleViewer": "Pozorovateľ",
+  "editOrganization": "Upraviť",
+  "editOrganizationTitle": "Upraviť organizáciu",
+  "removeMember": "Odstrániť člena",
+  "removeMemberConfirm": "Odstrániť {name} z organizácie?",
+  "memberRemoved": "Člen odstránený",
+  "roleChanged": "Rola zmenená",
+  "kybVerified": "Overené",
+  "kybPending": "Čakajúce",
+  "kybRejected": "Zamietnuté",
+  "kybNone": "Neoverené",
+  "kybVerification": "Začať KYB overenie",
+  "kybStartBusiness": "Začať overenie podnikania",
+  "kybStatusLabel": "KYB stav",
+  "noKyb": "Žiadne KYB",
+  "kybBusinessVerificationTitle": "Overenie podnikania (KYB)",
+  "kybVerifiedOrgDesc": "Organizácia úspešne overená.",
+  "kybPendingOrgDesc": "Dokumenty sú v procese kontroly. Zvyčajne to trvá 1-3 pracovné dni.",
+  "kybRejectedOrgDesc": "Overenie zlyhalo. Skúste to prosím znova.",
+  "kybNoneOrgDesc": "Overte svoju organizáciu pre prístup k obchodným funkciám.",
+  "invitePlus": "+ Pozvať",
+  "kybVerificationTitle": "KYB overenie",
+  "kybWebOnlyBusiness": "KYB overenie je dostupné iba v mobilnej aplikácii.",
+  "unknownDevice": "Neznáme zariadenie",
+  "ipUnknown": "IP neznáma",
+  "currentSessionLabel": "Aktuálna",
+  "endSessionAction": "Ukončiť",
+  "deviceLoggedOut": "Zariadenie bude odhlásené.",
+  "acceptInvitationTitle": "Pozvánka do organizácie",
+  "acceptInvitation": "Prijať pozvánku",
+  "acceptInvitationDesc": "Boli ste pozvaní, aby ste sa pripojili k organizácii v ekosystéme Taler.",
+  "accept": "Prijať",
+  "reject": "Odmietnuť",
+  "sessions": "Aktívne relácie",
+  "currentSession": "Aktuálna relácia",
+  "deleteSession": "Ukončiť reláciu",
+  "deleteSessionConfirm": "Ukončiť túto reláciu?",
+  "sessionDeleted": "Relácia ukončená",
+  "noSessions": "Žiadne aktívne relácie",
+  "minutesAgo": "pred {count} min",
+  "hoursAgo": "pred {count} hod",
+  "daysAgo": "pred {count} dňami",
+  "justNow": "Práve teraz",
+  "settings": "Nastavenia",
+  "security": "Zabezpečenie",
+  "biometrics": "Biometria",
+  "biometricsDesc": "Rýchle prihlásenie pomocou Face ID alebo odtlačku prsta",
+  "biometricsConfirm": "Potvrďte biometriu na povolenie rýchleho prihlásenia",
+  "biometricsError": "Nepodarilo sa povoliť biometriu. Skontrolujte nastavenia zariadenia.",
+  "changePassword": "Zmeniť heslo",
+  "twoFactorAuth": "Dvojfaktorová autentifikácia",
+  "currentPassword": "Aktuálne heslo",
+  "newPassword": "Nové heslo",
+  "confirmNewPassword": "Potvrdiť nové heslo",
+  "passwordChanged": "Heslo zmenené",
+  "wrongCurrentPassword": "Nesprávne aktuálne heslo",
+  "passwordTooWeak": "Heslo je príliš slabé: vyžaduje sa aspoň 8 znakov, písmeno a číslica",
+  "passwordChangeFailed": "Nepodarilo sa zmeniť heslo",
+  "notifications": "Upozornenia",
+  "permissions": "Povolenia",
+  "permissionNotifications": "Push upozornenia",
+  "permissionNotificationsDesc": "Hovory, správy, stavy",
+  "permissionMicrophone": "Mikrofón",
+  "permissionMicrophoneDesc": "Hovory a hlasový asistent",
+  "permissionCamera": "Kamera",
+  "permissionCameraDesc": "Videohovory a overenie",
+  "permissionLocation": "Poloha",
+  "permissionLocationDesc": "Používa sa na overenie",
+  "permissionOpenSettings": "Ak chcete zrušiť povolenie, otvorte systémové nastavenia",
+  "pushKycStatus": "Stav KYC Push",
+  "pushKycStatusDesc": "Výsledok overenia",
+  "pushLogins": "Prihlásenie Push",
+  "pushLoginsDesc": "Pri prihlásení z nového zariadenia",
+  "account": "Účet",
+  "language": "Jazyk",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Jazyk rozhrania",
+  "exportData": "Exportovať údaje (GDPR)",
+  "deleteAccount": "Zmazať účet",
+  "deleteAccountConfirm": "Zmazať účet?",
+  "deleteAccountDesc": "Všetky vaše údaje budú zmazané (GDPR). Táto akcia je nevratná.",
+  "logout": "Odhlásiť sa",
+  "logoutConfirm": "Odhlásiť sa?",
+  "logoutDesc": "Budete odhlásení z Taler ID na tomto zariadení.",
+  "version": "Taler ID v{version}",
+  "pinCode": "PIN kód",
+  "pinCodeDesc": "Rýchle prihlásenie pomocou 4-ciferného kódu",
+  "setupPin": "Nastaviť PIN",
+  "enterPin": "Zadajte PIN",
+  "confirmPin": "Potvrďte PIN",
+  "pinMismatch": "PIN kódy sa nezhodujú",
+  "pinSet": "PIN úspešne nastavený",
+  "enterPinToLogin": "Zadajte PIN na prihlásenie",
+  "pinIncorrect": "Nesprávny PIN",
+  "removePin": "Odstrániť PIN",
+  "pinRemoved": "PIN odstránený",
+  "cancel": "Zrušiť",
+  "delete": "Zmazať",
+  "ok": "OK",
+  "retry": "Skúsiť znova",
+  "loading": "Načítava sa...",
+  "error": "Chyba",
+  "success": "Úspech",
+  "noData": "Žiadne údaje",
+  "failedToLoad": "Nepodarilo sa načítať údaje",
+  "failedToLoadProfile": "Nepodarilo sa načítať profil",
+  "failedToSave": "Nepodarilo sa uložiť zmeny",
+  "failedToLoadOrgs": "Nepodarilo sa načítať organizácie",
+  "failedToLoadOrg": "Nepodarilo sa načítať údaje organizácie",
+  "failedToCreateOrg": "Nepodarilo sa vytvoriť organizáciu",
+  "failedToInvite": "Nepodarilo sa odoslať pozvánku",
+  "failedToAcceptInvite": "Nepodarilo sa prijať pozvánku",
+  "failedToLoadSessions": "Nepodarilo sa načítať relácie",
+  "failedToDeleteSession": "Nepodarilo sa ukončiť reláciu",
+  "failedToLoadKyc": "Nepodarilo sa načítať stav overenia",
+  "failedToStartKyc": "Nepodarilo sa začať overenie",
+  "verifiedPersonalInfo": "Overené údaje",
+  "middleName": "Prostredné meno",
+  "placeOfBirth": "Miesto narodenia",
+  "nationality": "Národnosť",
+  "gender": "Pohlavie",
+  "genderMale": "Muž",
+  "genderFemale": "Žena",
+  "docNumber": "Číslo",
+  "docIssuedDate": "Vydané",
+  "docValidUntil": "Platné do",
+  "docIssuedBy": "Vydané kým",
+  "address": "Adresa",
+  "refreshData": "Obnoviť údaje",
+  "failedToLoadSumsubData": "Nepodarilo sa načítať údaje overenia",
+  "sumsubDataLoading": "Načítavajú sa údaje overenia...",
+  "reviewResultGreen": "Overenie úspešné",
+  "reviewResultRed": "Overenie neúspešné",
+  "tabAssistant": "Asistent",
+  "assistantConnecting": "Pripája sa…",
+  "assistantSpeaking": "Hovorí…",
+  "assistantListening": "Počúva…",
+  "assistantTapToStart": "Klepnutím začnite",
+  "assistantTapToTalk": "Klepnutím hovorte s AI",
+  "assistantRealtimeDesc": "Asistent odpovedá hlasom v reálnom čase",
+  "assistantConnectingToAssistant": "Pripája sa k asistentovi...",
+  "assistantAiSpeaking": "AI hovorí...",
+  "assistantAiListening": "AI počúva",
+  "assistantSpeakerOn": "Reproduktor zapnutý",
+  "assistantSpeaker": "Reproduktor",
+  "assistantEnd": "Koniec",
+  "assistantUnmute": "Zrušiť stlmenie",
+  "assistantMicrophone": "Mikrofón",
+  "assistantConnectionError": "Chyba pripojenia",
+  "tabMessenger": "Správy",
+  "tabCalls": "Hovory",
+  "tabCalendar": "Kalendár",
+  "appearance": "Vzhľad",
+  "appearanceSelect": "Vyberte tému",
+  "themeLight": "Svetlá",
+  "themeDark": "Tmavá",
+  "themeSystem": "Systémová",
+  "onboardingTitle1": "Zjednotená identita",
+  "onboardingDesc1": "Taler ID je váš digitálny pas v ekosystéme Taler. Jeden účet pre všetky služby.",
+  "onboardingTitle2": "Bezpečnosť údajov",
+  "onboardingDesc2": "KYC overenie, AES-256 šifrovanie a dvojfaktorová autentifikácia chránia vašu identitu.",
+  "onboardingTitle3": "Buďte informovaní",
+  "onboardingDesc3": "Dostávajte upozornenia o stave overenia, prihláseniach z nových zariadení a prichádzajúcich hovoroch.",
+  "onboardingNext": "Ďalej",
+  "onboardingEnableNotifications": "Povoliť upozornenia",
+  "onboardingTitle4": "Hlasové hovory",
+  "onboardingDesc4": "Udeľte prístup k mikrofónu pre hlasové hovory a AI asistenta. Toto môžete neskôr zmeniť v nastaveniach.",
+  "onboardingEnableMicrophone": "Povoliť mikrofón",
+  "onboardingStart": "Začať",
+  "onboardingSkip": "Preskočiť",
+  "meshLocalNetworkPromptTitle": "Povoliť prístup k miestnej sieti",
+  "meshLocalNetworkPromptBody": "Aby ste našli rovesníkov na Wi-Fi (offline skupinové hovory), iOS vyžaduje povolenie pre miestnu sieť. Otvorte Nastavenia → Súkromie a bezpečnosť → Miestna sieť → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "Otvoriť nastavenia",
+  "meshLocalNetworkPromptDismiss": "Rozumiem",
+  "forgotPassword": "Zabudli ste heslo?",
+  "forgotPasswordTitle": "Obnoviť heslo",
+  "forgotPasswordSubtitle": "Zadajte svoj email pre prijatie obnovovacieho kódu",
+  "resetCodeSent": "Kód odoslaný na {email}",
+  "enterResetCode": "Zadajte kód",
+  "resetPasswordButton": "Obnoviť heslo",
+  "passwordResetSuccess": "Heslo bolo úspešne obnovené",
+  "sendCode": "Odoslať kód",
+  "resendCode": "Znova odoslať kód",
+  "newGroup": "Nová skupina",
+  "newChat": "Nový chat",
+  "groupName": "Názov skupiny",
+  "createGroup": "Vytvoriť skupinu",
+  "groupInfo": "Informácie o skupine",
+  "groupMembers": "Členovia ({count})",
+  "addMembers": "Pridať členov",
+  "leaveGroup": "Opustiť skupinu",
+  "leaveGroupConfirm": "Opustiť túto skupinu?",
+  "deleteGroup": "Zmazať skupinu",
+  "deleteGroupConfirm": "Zmazať túto skupinu? Toto sa nedá vrátiť späť.",
+  "groupRoleOwner": "Vlastník",
+  "groupRoleAdmin": "Admin",
+  "groupRoleMember": "Člen",
+  "selectParticipants": "Vybrať účastníkov",
+  "selectedCount": "{count} vybraných",
+  "changeRole": "Zmeniť rolu",
+  "groupCreated": "Skupina vytvorená",
+  "memberJoined": "{name} sa pridal",
+  "memberLeftGroup": "{name} odišiel",
+  "memberWasRemoved": "{name} bol odstránený",
+  "roleChangedTo": "{name} je teraz {role}",
+  "participantsCount": "{count} účastníkov",
+  "enterGroupName": "Zadajte názov skupiny",
+  "muteNotifications": "Stlmiť upozornenia",
+  "unmuteNotifications": "Zrušiť stlmenie upozornení",
+  "muteFor1Hour": "Na 1 hodinu",
+  "muteFor8Hours": "Na 8 hodín",
+  "muteFor2Days": "Na 2 dni",
+  "muteForever": "Navždy",
+  "muted": "Stlmené",
+  "tabTranslator": "Preložiť",
+  "translatorTitle": "Prekladač",
+  "translatorSelectLanguage": "Vyberte jazyk",
+  "translatorDownloading": "Sťahovanie jazykových modelov...",
+  "translatorDownloadingHint": "Internet je potrebný iba pri prvom sťahovaní",
+  "translatorTypeHint": "Napíšte text alebo klepnite na mikrofón",
+  "translatorListening": "Počúvam...",
+  "translatorTapToSpeak": "Klepnite na rozprávanie",
+  "translatorTapToStop": "Klepnite na zastavenie",
+  "translatorAutoSpeak": "Automatické rozprávanie",
+  "translatorCopied": "Skopírované",
+  "translatorLangRu": "Ruský",
+  "translatorLangEn": "Anglický",
+  "translatorLangDe": "Nemecký",
+  "translatorLangFr": "Francúzsky",
+  "translatorLangEs": "Španielsky",
+  "translatorLangIt": "Taliansky",
+  "translatorLangPt": "Portugalský",
+  "translatorLangTr": "Turecký",
+  "translatorLangZh": "Čínsky",
+  "translatorLangJa": "Japonský",
+  "translatorLangKo": "Kórejský",
+  "translatorLangAr": "Arabský",
+  "translatorLangPl": "Poľský",
+  "translatorLangSk": "Slovenský",
+  "translatorLangCs": "Český",
+  "translatorLangNl": "Holandský",
+  "translatorLangSv": "Švédsky",
+  "translatorLangDa": "Dánsky",
+  "translatorLangNo": "Nórsky",
+  "translatorLangFi": "Fínsky",
+  "translatorLangUk": "Ukrajinský",
+  "translatorLangEl": "Grécky",
+  "translatorLangRo": "Rumunský",
+  "translatorLangHu": "Maďarský",
+  "translatorLangBg": "Bulharský",
+  "translatorLangHr": "Chorvátsky",
+  "translatorLangSr": "Srbský",
+  "translatorLangHi": "Hindský",
+  "translatorLangTh": "Thajský",
+  "translatorLangVi": "Vietnamský",
+  "translatorLangId": "Indonézsky",
+  "translatorLangMs": "Malajský",
+  "translatorLangHe": "Hebrejský",
+  "translatorLangFa": "Perzský",
+  "callInProgress": "Hovor prebieha",
+  "joinCall": "Pripojiť sa",
+  "createCallLink": "Odkaz na hovor",
+  "callLinkCopied": "Odkaz skopírovaný",
+  "callLinkTitle": "Odkaz na miestnosť",
+  "connectionUnstable": "Nestabilné pripojenie — skontrolujte internet",
+  "today": "Dnes",
+  "yesterday": "Včera",
+  "errorTimeout": "Čas pripojenia vypršal. Skontrolujte svoje internetové pripojenie.",
+  "errorNoConnection": "Žiadne internetové pripojenie.",
+  "errorGeneral": "Vyskytla sa chyba. Skúste to znova.",
+  "errorWithMessage": "Chyba: {message}",
+  "notifChannelMessages": "Správy",
+  "notifChannelMessagesDesc": "Upozornenia na nové správy",
+  "notifChannelMissedCalls": "Zmeškané hovory",
+  "notifChannelMissedCallsDesc": "Upozornenia na zmeškané hovory",
+  "notifMissedCall": "Zmeškaný hovor",
+  "notifAccept": "Prijať",
+  "notifDecline": "Odmietnuť",
+  "notifIncomingCall": "Prichádzajúci hovor",
+  "notifIncomingCallChannel": "Prichádzajúci hovor",
+  "notifMissedCallChannel": "Zmeškaný hovor",
+  "notifUnknown": "Neznámy",
+  "effectNone": "Bez pozadia",
+  "effectBlur": "Rozmazanie",
+  "effectOffice": "Kancelária",
+  "effectNature": "Príroda",
+  "effectGradient": "Prechod",
+  "effectLibrary": "Knižnica",
+  "effectCity": "Mesto",
+  "effectMinimalism": "Minimalizmus",
+  "voiceParticipant": "Účastník",
+  "voiceInvitesToRoom": "vás pozýva do miestnosti",
+  "voiceRoom": "Miestnosť",
+  "voicePasswordProtected": "Chránené heslom",
+  "voicePasswordHint": "Heslo",
+  "voiceEnter": "Vstúpiť",
+  "voiceJoinRoom": "Pripojiť sa k miestnosti",
+  "voiceYourName": "Vaše meno",
+  "voiceInvitationSent": "Pozvánka odoslaná {name}",
+  "voiceNoActiveRoom": "Žiadna aktívna miestnosť",
+  "voiceCameraPermission": "Povoliť prístup ku kamere v Nastavenia → Súkromie → Kamera → TalerID",
+  "voiceOpenSettings": "Otvoriť",
+  "voiceCameraError": "Nepodarilo sa zapnúť kameru: {error}",
+  "voiceAllAgreedRecording": "Všetci súhlasili. Nahrávanie začalo.",
+  "voiceNewParticipantAgreed": "Nový účastník súhlasil s nahrávaním.",
+  "voiceDeclinedRecording": "Odmietli ste nahrávanie. Opúšťate hovor.",
+  "voiceRecordingEnded": "Nahrávanie ukončené",
+  "voiceRecordingInProgress": "Nahrávanie prebieha",
+  "voiceTranscriptionRequest": "Žiadosť o prepis",
+  "voiceRecordingRequest": "Žiadosť o nahrávanie",
+  "voiceAgree": "Súhlasím",
+  "voiceDeclineAndLeave": "Odmietnuť a odísť",
+  "voiceAudioOutput": "Zvukový výstup",
+  "voiceAudioPhone": "Telefón",
+  "voiceAudioSpeaker": "Reproduktor",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Slúchadlá",
+  "voiceLinkCopied": "Odkaz skopírovaný",
+  "voiceTranslateTo": "Preložiť do",
+  "voiceSearchLanguage": "Hľadať jazyk...",
+  "voiceRoomWithCreator": "Miestnosť {name}",
+  "voiceVoiceCall": "Hlasový hovor",
+  "voiceOnHold": "Na podržaní",
+  "voiceActiveCall": "Aktívny",
+  "voiceEndAllCalls": "Ukončiť všetky hovory",
+  "voiceEndThisCall": "Ukončiť tento hovor",
+  "voiceCopyLink": "Kopírovať odkaz",
+  "voiceAddParticipant": "Pridať účastníka",
+  "voiceReconnecting": "Opätovné pripojenie...",
+  "voiceConnectionError": "Chyba pripojenia",
+  "voiceClose": "Zavrieť",
+  "voiceCalling": "Volanie...",
+  "voiceCallActive": "Hovor aktívny",
+  "voiceWaiting": "Čakanie",
+  "voiceWaitingUpper": "ČAKANIE",
+  "voiceRec": "NAHR",
+  "voiceStop": "Zastaviť",
+  "voiceRecord": "Nahrávanie",
+  "voiceTranslation": "Preklad",
+  "voiceAudio": "Zvuk",
+  "voiceFlipCamera": "Prevrátiť",
+  "voiceBackground": "Pozadie",
+  "voiceAssistantSpeakingStatus": "Asistent hovorí...",
+  "voiceAssistantListeningStatus": "Asistent počúva...",
+  "voiceUnmute": "Zapnúť zvuk",
+  "voiceMic": "Mikrofón",
+  "voiceAssistantLabel": "Asistent",
+  "voiceCameraOn": "Kamera zapnutá",
+  "voiceCameraLabel": "Kamera",
+  "voiceEndCall": "Ukončiť hovor",
+  "voiceWaitingParticipants": "Čakanie na účastníkov...",
+  "voiceYou": "Vy",
+  "voiceAiAssistant": "AI Asistent",
+  "voiceVideoUnavailable": "Video nedostupné",
+  "voiceSearchNickname": "Hľadať podľa prezývky...",
+  "voiceTranscriptionWord": "prepis",
+  "voiceRecordingWord": "nahrávanie",
+  "voiceConnecting": "Pripájanie...",
+  "voiceVideoBackground": "Video pozadie",
+  "voiceCallSettings": "Nastavenia hovoru",
+  "voiceEnableAI": "Povoliť AI asistenta",
+  "voiceAIParticipating": "AI sa zúčastní na konverzácii",
+  "voiceNormalCall": "Normálny hovor bez AI",
+  "voiceCallConfirm": "Vykonať hovor?",
+  "chatAlreadyInCall": "Už ste v hovore",
+  "chatCallError": "Chyba hovoru: {error}",
+  "chatPhotoVideo": "Foto / Video",
+  "chatCamera": "Kamera",
+  "chatFile": "Súbor",
+  "chatContact": "Kontakt",
+  "chatSelectContact": "Vyberte kontakt",
+  "chatNoContacts": "Žiadne kontakty",
+  "chatUser": "Používateľ",
+  "chatFileAttachment": "📎 Súbor",
+  "chatFileUploadError": "Chyba nahrávania súboru: {error}",
+  "chatVoiceMessage": "🎤 Hlasová správa",
+  "chatGroup": "Skupina",
+  "chatDialog": "Dialóg",
+  "chatCall": "Hovor",
+  "chatStartConversation": "Začať konverzáciu",
+  "chatYou": "Vy",
+  "chatIsTyping": "píše...",
+  "chatUserIsTyping": "{name} píše...",
+  "chatUsersAreTyping": "{names} píšu...",
+  "chatPreparingFile": "Pripravuje sa súbor…",
+  "chatUploading": "Nahráva sa… {progress}%",
+  "chatEdited": "Upravené",
+  "chatViaMesh": "cez mesh",
+  "chatReply": "Odpovedať",
+  "chatEdit": "Upraviť",
+  "chatCopy": "Kopírovať",
+  "chatCopied": "Skopírované",
+  "chatSaveMedia": "Uložiť",
+  "chatForward": "Preposlať",
+  "chatSaving": "Ukladá sa...",
+  "chatSavedToGallery": "Uložené do galérie",
+  "chatNoSavePermission": "Nie je povolenie na uloženie. Skontrolujte nastavenia.",
+  "chatFileSaveError": "Chyba pri ukladaní súboru",
+  "chatDeleteMessage": "Vymazať správu",
+  "chatDeleteForMe": "Vymazať pre mňa",
+  "chatDeleteForEveryone": "Vymazať pre všetkých",
+  "chatMessageForwarded": "Správa preposlaná",
+  "chatContactTapToOpen": "Kontakt · ťuknite na otvorenie",
+  "chatForwardTo": "Preposlať komu...",
+  "chatSearchHint": "Hľadať...",
+  "chatRecording": "Nahráva sa...",
+  "chatMessageHint": "Správa...",
+  "chatHideKeyboard": "Skryť klávesnicu",
+  "chatEditing": "Upravuje sa",
+  "chatFileDownloadError": "Chyba pri sťahovaní súboru",
+  "chatVoiceMessageShort": "Hlasová správa",
+  "chatVideoSavedToGallery": "Video uložené do galérie",
+  "chatSavingError": "Chyba pri ukladaní",
+  "convSetNickname": "Nastaviť prezývku",
+  "convNicknameRequired": "Na používanie messengeru je potrebná prezývka. Ostatní používatelia vás môžu nájsť podľa nej.",
+  "convNicknameRules": "3–30 znakov: písmená, číslice, _",
+  "convNicknameTaken": "Prezývka je už obsadená",
+  "convSaveError": "Chyba pri ukladaní",
+  "convContactsLabel": "Kontakty",
+  "convDefaultUser": "Používateľ",
+  "convNoDialogs": "Žiadne konverzácie",
+  "convFindUserToChat": "Nájdite používateľa na začatie chatu",
+  "convDefaultContact": "Kontakt",
+  "dashboardUser": "Používateľ",
+  "dashboardIncomingCall": "Prichádzajúci hovor",
+  "dashboardDecline": "Odmietnuť",
+  "dashboardAccept": "Prijať",
+  "dashboardActiveCall": "Aktívny hovor — klepnite pre návrat",
+  "dashboardUpdateAvailable": "Dostupná aktualizácia {version}",
+  "dashboardUpdate": "Aktualizovať",
+  "dashboardWhatsNew": "Čo je nové",
+  "dashboardWhatsNewTitle": "Čo je nové v {version}",
+  "dashboardInstalling": "Inštalujem...",
+  "contactRequestsTitle": "Kontakty",
+  "messengerContactRequestsSection": "Žiadosti o kontakt",
+  "messengerContactRequestsCount": "{count, plural, =1{1 nová žiadosť} other{{count} nové žiadosti}}",
+  "contactRequestsSearch": "Hľadať",
+  "contactRequestsIncoming": "Prichádzajúce",
+  "contactRequestsSent": "Odoslané",
+  "contactRequestsSearchHint": "Prezývka alebo email",
+  "contactRequestSent": "Žiadosť odoslaná",
+  "contactRequestsNoUsers": "Nenašli sa žiadni používatelia",
+  "contactRequestsSearchHelp": "Zadajte presnú prezývku alebo email\na stlačte hľadať",
+  "contactRequestsSendTooltip": "Odoslať žiadosť",
+  "contactRequestTitle": "Žiadosť o kontakt",
+  "contactRequestConfirm": "Odoslať žiadosť o kontakt používateľovi {name}?",
+  "contactRequestSend": "Odoslať",
+  "contactRequestsNoIncoming": "Žiadne prichádzajúce žiadosti",
+  "contactRequestsNoSent": "Žiadne odoslané žiadosti",
+  "contactRequestStatusPending": "Čaká na odpoveď",
+  "contactRequestStatusAccepted": "Prijaté",
+  "contactRequestStatusRejected": "Zamietnuté",
+  "userSearchTitle": "Nájsť používateľa",
+  "userSearchHint": "Prezývka, telefón alebo email",
+  "userSearchHelper": "Zadajte @prezývku, email alebo meno na hľadanie",
+  "userSearchNoUsers": "Nenašli sa žiadni používatelia",
+  "userProfileShareContact": "Zdieľať kontakt",
+  "userProfileShareContactDesc": "Odoslať odkaz na kontakt",
+  "userProfileCopyLink": "Kopírovať odkaz",
+  "userProfileCopied": "Skopírované",
+  "userProfileTitle": "Profil",
+  "userProfileLoadError": "Chyba načítania profilu",
+  "userProfileMessage": "Správa",
+  "userProfileCall": "Hovor",
+  "userProfileRequestSent": "Žiadosť odoslaná",
+  "userProfileAccept": "Prijať",
+  "userProfileDecline": "Odmietnuť",
+  "userProfileAddToContacts": "Pridať do kontaktov",
+  "userProfileMediaTab": "Médiá",
+  "userProfileFilesTab": "Súbory",
+  "userProfileLinksTab": "Odkazy",
+  "userProfileRecordingsTab": "Nahrávky",
+  "userProfileSummariesTab": "Zhrnutia",
+  "userProfileNoMedia": "Žiadne mediálne súbory",
+  "userProfileNoFiles": "Žiadne súbory",
+  "userProfileNoLinks": "Žiadne odkazy",
+  "userProfileNoRecordings": "Žiadne nahrávky",
+  "userProfileNoSummaries": "Žiadne zhrnutia",
+  "userProfileMeetingSummary": "Zhrnutie stretnutia",
+  "userProfileFailedOpenChat": "Nepodarilo sa otvoriť chat",
+  "sharedMediaTitle": "Médiá a súbory",
+  "sharedMediaTab": "Médiá",
+  "sharedFilesTab": "Súbory",
+  "sharedLinksTab": "Odkazy",
+  "sharedNoMedia": "Žiadne mediálne súbory",
+  "sharedNoFiles": "Žiadne súbory",
+  "sharedNoLinks": "Žiadne odkazy",
+  "shareToChat": "Preposlať do chatu",
+  "shareSelectChat": "Vyberte chat",
+  "shareNoChats": "Žiadne chaty",
+  "shareFilesCount": "{count} súbory",
+  "contactsTitle": "Kontakty",
+  "contactsAddTooltip": "Pridať kontakt",
+  "contactsSearchHint": "Hľadať kontakty...",
+  "contactsNotFound": "Nič sa nenašlo",
+  "contactsEmpty": "Žiadne kontakty",
+  "contactsAdd": "Pridať kontakt",
+  "contactsPendingConfirmation": "Čaká sa na potvrdenie",
+  "contactsMessage": "Správa",
+  "contactsCall": "Hovor",
+  "contactsResend": "Znova odoslať žiadosť",
+  "contactsResendTimeout": "Skúsiť znova o 24h",
+  "contactsResent": "Žiadosť odoslaná znova",
+  "contactsWantsToConnect": "Chce sa s vami spojiť",
+  "contactsSearchPeople": "Nájsť ľudí",
+  "notesTitle": "Poznámky",
+  "notesAssistantSpeaking": "Asistent hovorí...",
+  "notesListening": "Počúvam...",
+  "notesEmpty": "Žiadne poznámky",
+  "notesEmptyHint": "Stlačte mikrofón pre diktovanie\nalebo + pre manuálny vstup",
+  "notesDeleteConfirm": "Vymazať poznámku?",
+  "notesNew": "Nová poznámka",
+  "notesEdit": "Upraviť",
+  "notesTitleHint": "Názov",
+  "notesContentHint": "Napíšte svoje myšlienky...",
+  "calendarTitle": "Kalendár",
+  "calendarStop": "Zastaviť",
+  "calendarVoiceInput": "Hlasový vstup",
+  "calendarNewEvent": "Nová udalosť",
+  "calendarAssistantSpeaking": "Asistent hovorí...",
+  "calendarListening": "Počúvam...",
+  "calendarInvitations": "Pozvánky ({count})",
+  "calendarNoEvents": "Žiadne udalosti",
+  "calendarDayMon": "Po",
+  "calendarDayTue": "Ut",
+  "calendarDayWed": "St",
+  "calendarDayThu": "Št",
+  "calendarDayFri": "Pi",
+  "calendarDaySat": "So",
+  "calendarDaySun": "Ne",
+  "calendarEnterRoom": "Vstúpiť do miestnosti",
+  "calendarMeeting": "Stretnutie",
+  "calendarLocationPrefix": "Miesto: {location}",
+  "calendarEditEvent": "Upraviť",
+  "calendarTitleHint": "Názov",
+  "calendarDescriptionHint": "Popis",
+  "calendarTypeEvent": "Udalosť",
+  "calendarTypeMeeting": "Stretnutie",
+  "calendarTypeReminder": "Pripomienka",
+  "calendarTypeLabel": "Typ",
+  "calendarMeetingLink": "Odkaz na stretnutie",
+  "calendarLocationHint": "Miesto",
+  "calendarDateLabel": "Dátum",
+  "calendarTimeLabel": "Čas",
+  "calendarReminderLabel": "Pripomienka",
+  "calendarReminderNone": "Žiadna",
+  "calendarReminder15min": "15 min pred",
+  "calendarReminder30min": "30 min pred",
+  "calendarReminder1hour": "1 hod pred",
+  "calendarRepeatLabel": "Opakovanie",
+  "calendarRepeatNone": "Bez opakovania",
+  "calendarRepeatDaily": "Každý deň",
+  "calendarRepeatWeekly": "Každý týždeň",
+  "calendarRepeatMonthly": "Každý mesiac",
+  "calendarRepeatYearly": "Každý rok",
+  "calendarParticipants": "Účastníci",
+  "calendarAddParticipant": "Pridať",
+  "calendarSearchContacts": "Hľadať kontakty...",
+  "calendarNoContacts": "Žiadne kontakty",
+  "calendarStatusAccepted": "Prijaté",
+  "calendarStatusDeclined": "Odmietnuté",
+  "calendarStatusMaybe": "Možno",
+  "calendarStatusPending": "Čakajúce",
+  "calendarEndTime": "Koniec",
+  "calendarYourAnswer": "Vaša odpoveď:",
+  "calendarOrganizer": "Organizátor",
+  "calendarDeleteError": "Nepodarilo sa vymazať: {error}",
+  "calendarRsvpAccept": "Prijať",
+  "calendarRsvpMaybe": "Možno",
+  "calendarRsvpDecline": "Odmietnuť",
+  "callHistoryTitle": "Hovory",
+  "callHistoryTab": "História hovorov",
+  "callHistoryTempMeeting": "Dočasné stretnutie",
+  "callHistoryCopy": "Kopírovať",
+  "callHistoryLinkCopied": "Odkaz skopírovaný",
+  "callHistoryShare": "Zdieľať",
+  "callHistoryEnter": "Vstúpiť",
+  "callHistoryAlreadyInCall": "Už ste v hovore",
+  "callHistoryCouldNotDeterminePeer": "Nepodarilo sa určiť druhú stranu",
+  "callHistoryContacts": "Kontakty",
+  "callHistoryFailedLoadRoom": "Nepodarilo sa načítať vašu miestnosť",
+  "callHistoryYourRoom": "Vaša miestnosť",
+  "callHistoryCreateMeeting": "Vytvoriť stretnutie",
+  "callHistoryMeetingSummaries": "Zhrnutia stretnutí",
+  "callHistoryMeetingRecordings": "Nahrávky stretnutí",
+  "callHistoryNoCalls": "Žiadne hovory",
+  "callHistoryMissed": "Zmeškané",
+  "callHistoryRecording": "Nahrávanie",
+  "callHistorySummary": "Zhrnutie",
+  "callHistoryCallAgain": "Zavolať znova",
+  "callHistoryTodayTime": "Dnes, {time}",
+  "callHistoryYesterdayTime": "Včera, {time}",
+  "callHistoryUnknown": "Neznáme",
+  "callHistoryDetails": "Detaily hovoru",
+  "callHistoryOutgoing": "Odchádzajúci hovor",
+  "callHistoryIncoming": "Prichádzajúci hovor",
+  "callHistoryDuration": "Trvanie: {duration}",
+  "callHistoryWithAI": "S AI asistentom",
+  "callHistoryParticipants": "Účastníci",
+  "callDetailYouSuffix": "(Vy)",
+  "callHistoryMeetingSummary": "Zhrnutie stretnutia",
+  "callHistoryMoreDetails": "Viac detailov",
+  "callHistorySummaryProcessing": "Spracovávanie zhrnutia...",
+  "callHistoryMeetingRecording": "Nahrávka stretnutia",
+  "callHistoryProcessing": "Spracovávanie...",
+  "callHistoryCreateTranscript": "Vytvoriť prepis",
+  "callHistoryNoSummaries": "Žiadne zhrnutia",
+  "callHistoryRecordDuringCall": "Stlačte \"Nahrávať\" počas hovoru",
+  "callHistoryMeetingTime": "Stretnutie {time}",
+  "callHistoryTranscribing": "Prepis a sumarizácia...",
+  "callHistoryTranscriptCreated": "Prepis vytvorený",
+  "callHistoryNoRecordings": "Žiadne nahrávky",
+  "callHistoryRecordingDate": "Nahrávka {date}",
+  "callHistoryRecordingUnavailable": "Nahrávka nie je dostupná",
+  "callHistoryTranscriptReady": "Prepis pripravený",
+  "callHistoryTranscript": "Prepis",
+  "callHistoryKeyPoints": "Kľúčové body",
+  "callHistoryTasks": "Úlohy",
+  "callHistoryAssignedTo": "Priradené: {assignee}",
+  "callHistoryDecisions": "Rozhodnutia",
+  "callHistoryShowTranscript": "Zobraziť celý prepis",
+  "profileScanQr": "Skenovať QR",
+  "profileMyQrCode": "Môj QR kód",
+  "profileAddMeShare": "Pridaj ma v Taler ID!\ntalerid://user/{userId}",
+  "profileShowCode": "Ukáž tento kód na pridanie",
+  "profileEditDesc": "Meno, priezvisko, patronymikum, dátum narodenia",
+  "profileAboutMe": "O mne",
+  "profileAboutMeDesc": "Hodnoty, zručnosti, záujmy a viac",
+  "profileNotes": "Poznámky",
+  "profileNotesDesc": "Myšlienky, nápady a poznámky",
+  "profileAvatarUpdated": "Avatar aktualizovaný",
+  "profileNickname": "Prezývka",
+  "profileNotSet": "Nenastavené",
+  "profileChangeNickname": "Zmeniť prezývku",
+  "profileNicknameUpdated": "Prezývka aktualizovaná",
+  "profileShareLabel": "Zdieľať",
+  "profileScanQrCode": "Skenovať QR kód",
+  "profilePointCamera": "Namieste kameru na QR kód",
+  "profilePhotoCamera": "Odfotiť",
+  "profilePhotoGallery": "Vybrať z galérie",
+  "editProfilePatronymic": "Patronymikum (nepovinné)",
+  "editProfileDateFormat": "DD.MM.RRRR",
+  "aboutMeTitle": "O mne",
+  "aboutMeClickToFill": "Kliknite na vyplnenie",
+  "aboutMeCoreValues": "Hodnoty",
+  "aboutMeWorldview": "Svetonázor",
+  "aboutMeSkills": "Zručnosti",
+  "aboutMeInterests": "Záujmy",
+  "aboutMeDesires": "Túžby",
+  "aboutMeBackground": "Profil",
+  "aboutMeLikes": "Obľúbené",
+  "aboutMeDislikes": "Neobľúbené",
+  "aboutMeDeleteSection": "Vymazať sekciu?",
+  "aboutMeDeleteConfirm": "Všetky údaje v tejto sekcii budú vymazané.",
+  "aboutMeConnectionError": "Chyba pripojenia: {error}",
+  "aboutMeVisibility": "Viditeľnosť",
+  "aboutMeTags": "Tagy",
+  "aboutMeAddTag": "Pridať tag...",
+  "aboutMeDescription": "Popis",
+  "aboutMeDescribeLong": "Povedzte nám viac...",
+  "aboutMeVisibilityEveryone": "Všetci",
+  "aboutMeVisibilityContacts": "Kontakty",
+  "aboutMeVisibilityOnlyMe": "Len ja",
+  "settingsProfileSubtitle": "Profil",
+  "settingsWallpaper": "Tapeta",
+  "settingsWallpaperDesc": "Obrázok na pozadí pre celú aplikáciu",
+  "settingsWallpaperNone": "Žiadna",
+  "settingsAccount": "Účet",
+  "settingsKycVerification": "Overenie identity (KYC)",
+  "settingsOrganizations": "Organizácie",
+  "incomingCallLabel": "Prichádzajúci hovor",
+  "incomingCallDecline": "Odmietnuť",
+  "incomingCallAccept": "Prijať",
+  "meshIncomingCallLabel": "📡 Prichádzajúci mesh hovor",
+  "meshDeviceFallback": "Mesh zariadenie {hexPrefix}",
+  "callConflictAlreadyInCall": "Najprv ukončite aktuálny hovor",
+  "callPopupTransportTitle": "Hovor cez",
+  "callPopupTransportMesh": "📡 Mesh (peer-to-peer)",
+  "callPopupTransportLk": "📞 Server",
+  "callPopupTransportMeshUnavailable": "Kontakt nie je dostupný cez mesh",
+  "meshOnboardingTitle": "📡 Mesh hovory potrebujú otvorenú aplikáciu",
+  "meshOnboardingBody": "Keď je telefón zamknutý, mesh hovory môžu po ~30 sekundách vypadnúť (obmedzenie iOS).",
+  "meshOnboardingAck": "Rozumiem",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Kontakt nie je vo vašom zozname",
+  "meshCallStatusInviting": "Volám…",
+  "meshCallStatusConnecting": "Pripájam…",
+  "meshCallEndedUserHangup": "Hovor ukončený",
+  "meshCallEndedRemoteHangup": "Ukončené druhou stranou",
+  "meshCallEndedRejected": "Odmietnuté",
+  "meshCallEndedNoAnswer": "Bez odpovede",
+  "meshCallEndedConnectionLost": "Spojenie stratené",
+  "meshCallEndedError": "Chyba spojenia",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Spoľahlivé mesh hovory",
+  "batteryExemptionBody": "Povoľte aplikácii bežať bez obmedzení batérie, aby Android nezabil mesh na pozadí.",
+  "batteryExemptionAccept": "Otvoriť nastavenia",
+  "batteryExemptionDismiss": "Teraz nie",
+  "groupCamera": "Fotoaparát",
+  "groupGallery": "Galéria",
+  "groupAvatarUpdated": "Avatar skupiny bol aktualizovaný",
+  "groupNameTitle": "Názov skupiny",
+  "groupEnterName": "Zadajte názov",
+  "groupDescriptionTitle": "Popis skupiny",
+  "groupEnterDescription": "Zadajte popis skupiny",
+  "groupChangeRoleTitle": "Zmeniť rolu",
+  "groupRemoveMemberTitle": "Odstrániť člena",
+  "groupDescription": "Popis",
+  "groupAddDescription": "Pridať popis skupiny",
+  "groupNoDescription": "Žiadny popis",
+  "groupMediaAndFiles": "Médiá a súbory",
+  "groupMuteNotifications": "Stlmiť upozornenia",
+  "groupMuted": "Stlmené",
+  "groupNoResults": "Žiadne výsledky",
+  "authInvalidCode": "Neplatný kód. Skúste znova.",
+  "loginSubtitle": "Použite email a heslo",
+  "emailRequired": "Zadajte email",
+  "emailInvalid": "Neplatný email",
+  "passwordRequired": "Zadajte heslo",
+  "registerSubtitle": "Jeden účet pre celý ekosystém Taler",
+  "usernameOptional": "Používateľské meno (voliteľné)",
+  "usernameMinLength": "Minimálne 3 znaky",
+  "usernameMaxLength": "Maximálne 30 znakov",
+  "usernameInvalid": "Iba písmená, číslice a _",
+  "biometricLoginReason": "Prihláste sa do Taler ID",
+  "docTypePassport": "Pas",
+  "docTypeIdCard": "Občiansky preukaz",
+  "docTypeDriverLicense": "Vodičský preukaz",
+  "docTypeResidencePermit": "Povolenie na pobyt",
+  "addressApartment": "byt {number}",
+  "failedToUpdateProfile": "Nepodarilo sa aktualizovať profil",
+  "failedToStartKyb": "Nepodarilo sa spustiť overenie KYB",
+  "orgUpdated": "Organizácia bola aktualizovaná",
+  "failedToUpdateOrg": "Nepodarilo sa aktualizovať organizáciu",
+  "failedToChangeRole": "Nepodarilo sa zmeniť rolu",
+  "failedToRemoveMember": "Nepodarilo sa odstrániť člena",
+  "capabilityMessagesTitle": "Správy",
+  "capabilityMessagesDesc": "Skontrolujte správy alebo napíšte niekomu. Napríklad: \"Napíšte Viktorovi: budem tam o hodinu\"",
+  "capabilityCallsTitle": "Hovory",
+  "capabilityCallsDesc": "Zavolajte akémukoľvek kontaktu hlasom. Napríklad: \"Zavolajte Viktorovi Viktorovovi\"",
+  "capabilityChatTitle": "História chatu",
+  "capabilityChatDesc": "Analyzujem históriu chatu. Napríklad: \"O čom sme diskutovali s Viktorom?\"",
+  "capabilityProfileTitle": "Profil",
+  "capabilityProfileDesc": "Ukážem alebo aktualizujem váš profil. Napríklad: \"Ukáž môj profil\"",
+  "capabilityCoachingTitle": "Koučing",
+  "capabilityCoachingDesc": "Módy: ICF koučing, psychológ, HR konzultácia. Povedzte: \"Poďme na koučing\"",
+  "capabilityCalendarTitle": "Kalendár",
+  "capabilityCalendarDesc": "Naplánujte stretnutie alebo nastavte pripomienku. Napríklad: \"Naplánuj stretnutie s Viktorom na zajtra o 15:00\"",
+  "capabilityNotesTitle": "Poznámky",
+  "capabilityNotesDesc": "Uložte myšlienku alebo prečítajte si nedávne poznámky. Napríklad: \"Zapíš myšlienku...\" alebo \"Prečítaj nedávne poznámky\"",
+  "assistantCallConfirm": "Zavolať?",
+  "callNoAnswer": "Žiadna odpoveď",
+  "contactDelete": "Odstrániť kontakt",
+  "contactDeleteTitle": "Odstrániť kontakt",
+  "contactDeleteConfirm": "Ste si istý? Tento kontakt bude odstránený.",
+  "contactBlock": "Blokovať",
+  "contactBlockTitle": "Blokovať používateľa",
+  "contactBlockConfirm": "Tento používateľ vám nebude môcť posielať správy ani volať.",
+  "contactUnblock": "Odblokovať",
+  "contactBlocked": "Blokovaný",
+  "contactYouAreBlocked": "Tento používateľ vás zablokoval",
+  "chatBlockedByYou": "Zablokovali ste tohto používateľa",
+  "chatYouAreBlocked": "Bol(a) ste zablokovaný(á) týmto používateľom",
+  "chatNotContacts": "Pridajte tohto používateľa do kontaktov, aby ste mu mohli poslať správu",
+  "contactRevokeRequest": "Odvolať žiadosť",
+  "messengerPoll": "Anketa",
+  "messengerCreatePoll": "Vytvoriť anketu",
+  "messengerPollQuestion": "Otázka",
+  "messengerPollOption": "Možnosť {number}",
+  "messengerPollAddOption": "Pridať možnosť",
+  "messengerPollAnonymous": "Anonymné hlasovanie",
+  "messengerPollMultiple": "Viacnásobný výber",
+  "messengerPollCreateError": "Nepodarilo sa vytvoriť anketu",
+  "messengerPollUnavailable": "Anketa nedostupná",
+  "messengerPollMultipleNote": "Môžete vybrať viacero možností",
+  "messengerPollVotes": "{count} hlasov",
+  "messengerVideoMessage": "Video správa",
+  "messengerVideoRecordError": "Chyba nahrávania videa",
+  "messengerVideoPlaybackError": "Nepodarilo sa prehrať video",
+  "messengerGalleryAccessError": "Žiadny prístup do galérie",
+  "messengerSearchInChat": "Hľadať v chate...",
+  "messengerSaveToFavorites": "Uložiť do obľúbených",
+  "messengerSavedToFavorites": "Uložené do obľúbených",
+  "messengerSearchInMessages": "Hľadať v správach...",
+  "messengerFoundInMessages": "Nájdené v správach ({count})",
+  "messengerGroupDefault": "Skupina",
+  "messengerUserDefault": "Používateľ",
+  "messengerPin": "Pripnúť",
+  "messengerUnpin": "Odopnúť",
+  "messengerArchive": "Archivovať",
+  "messengerUnarchive": "Obnoviť z archívu",
+  "messengerDeleteChat": "Vymazať chat",
+  "messengerDeleteChatTitle": "Vymazať chat?",
+  "messengerDeleteChatConfirm": "Vymazať chat s {name}? Toto nie je možné vrátiť späť.",
+  "messengerCreateChannel": "Vytvoriť kanál",
+  "messengerChannelName": "Názov",
+  "messengerChannelDescription": "Popis (nepovinné)",
+  "messengerChannelCreateError": "Nepodarilo sa vytvoriť kanál",
+  "messengerFilterAll": "Všetko",
+  "messengerFilterUnread": "Nečítané",
+  "messengerFilterPersonal": "Osobné",
+  "messengerFilterGroups": "Skupiny",
+  "messengerFilterChannels": "Kanály",
+  "messengerArchivedSection": "Archivované",
+  "messengerSavedSection": "Obľúbené",
+  "messengerSavedSubtitle": "Uložiť do pamäte",
+  "messengerArchiveTitle": "Archív ({count})",
+  "messengerArchiveEmpty": "Archív je prázdny",
+  "messengerYouPrefix": "Vy: {message}",
+  "messengerMissedCall": "Zmeškaný hovor",
+  "messengerSavedTitle": "Obľúbené",
+  "messengerNoSavedMessages": "Žiadne uložené správy",
+  "messengerSavedHint": "Dlhé stlačenie správy → \"Uložiť do obľúbených\"",
+  "messengerDefaultFile": "Súbor",
+  "messengerTopicDefault": "Všeobecné",
+  "messengerTopicNew": "Nová téma",
+  "messengerTopicNameHint": "Názov témy",
+  "messengerTopicIcon": "Ikona",
+  "messengerTopicCount": "{count} témy",
+  "messengerNoTopics": "Žiadne témy",
+  "messengerNoMessages": "Žiadne správy",
+  "you": "Vy",
+  "messengerThread": "Vlákno",
+  "messengerThreadReply": "odpoveď",
+  "messengerThreadReplies": "odpovede",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Žiadne odpovede",
+  "messengerReplyHint": "Odpovedať na vlákno...",
+  "messengerContactName": "Meno kontaktu",
+  "messengerOriginalName": "Pôvodné meno: {name}",
+  "messengerDisplayName": "Zobrazené meno",
+  "messengerShareContact": "Kontakt v Taler ID: {name}",
+  "messengerAutoDelete": "Automatické mazanie správ",
+  "messengerAutoDeleteOff": "Vypnuté",
+  "messengerAutoDelete7d": "7 dní",
+  "messengerAutoDelete30d": "30 dní",
+  "messengerAutoDelete90d": "90 dní",
+  "messengerAutoDeleteDays": "{count} dní",
+  "messengerSettingsHeader": "Nastavenia",
+  "messengerAdminOnly": "Iba pre adminov",
+  "messengerAdminOnlyDesc": "Členovia môžu len čítať",
+  "messengerTopics": "Témy",
+  "messengerTopicsDesc": "Rozdeliť chat na témy",
+  "aiTwinSection": "AI Hlasový Dvojník",
+  "aiTwinEnabled": "Povoliť AI Dvojníka",
+  "aiTwinEnabledDesc": "Ak neodpoviete, váš AI dvojník prijme hovor vaším hlasom",
+  "aiTwinTimeout": "Časový limit odpovede",
+  "aiTwinTimeoutValue": "{seconds} sek",
+  "aiTwinPrompt": "AI pokyny",
+  "aiTwinPromptSubtitle": "Ako by sa mal AI dvojník predstaviť a o čom hovoriť",
+  "aiTwinPromptHint": "Ahoj, tu je AI hlasový dvojník {name}. {name} momentálne nemôže prijať hovor. Povedzte mi, kto volá a o čo ide — odovzdám to.",
+  "aiTwinComingSoon": "Prispôsobené klonovanie hlasu čoskoro. Zatiaľ AI hovorí hlasom {name}.",
+  "aiTwinDefaultName": "majiteľ",
+  "aiTwinPromptReset": "Resetovať",
+  "callHistoryAiTwinAnswered": "ODPOVEDAL AI DVOJNÍK",
+  "callHistoryAiTwinSummary": "ZHRNUTIE HOVORU",
+  "callHistoryAiTwinTranscript": "PREPIS",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "Od {name}",
+  "aiTwinOfferTitle": "Neodpovedá",
+  "aiTwinOfferBody": "{name} neodpovedá. Nechajte správu s ich AI hlasovým dvojníkom?",
+  "aiTwinOfferBodyUser": "Používateľ",
+  "aiTwinOfferAccept": "Áno, nechať správu",
+  "aiTwinOfferKeepWaiting": "Pokračovať v čakaní",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Váš AI náhradník",
+  "aiTwinHeroSubtitle": "Odpovedá na hovory vaším hlasom, keď nemôžete.",
+  "aiTwinProfileTitle": "AI Náhradník",
+  "aiTwinProfileDesc": "Odpovedá na hovory vaším hlasom",
+  "aiTwinBadgeOn": "ZAP",
+  "aiAnalystTitle": "AI Analytik",
+  "aiAnalystSubtitle": "Súbory, úlohy, analýza — Claude",
+  "channelsDiscover": "Nájsť kanál",
+  "channelsSearchHint": "Hľadať kanály",
+  "channelsSubscribers": "odberatelia",
+  "channelsSubscribe": "Odoberať",
+  "channelsUnsubscribe": "Zrušiť odber",
+  "channelsSubscribedLabel": "Ste prihlásený na odber",
+  "channelsSettings": "Nastavenia kanála",
+  "channelsDelete": "Vymazať kanál",
+  "channelsDeleteConfirm": "Vymazať kanál natrvalo?",
+  "channelsEmpty": "Zatiaľ žiadne kanály",
+  "channelsOpen": "Otvoriť",
+  "channelsNameLabel": "Názov",
+  "channelsDescriptionLabel": "Popis",
+  "channelsCannotUnsubscribeOwner": "Vlastník nemôže zrušiť odber. Namiesto toho vymažte kanál.",
+  "channelsNotFoundRedirect": "Kanál už neexistuje",
+  "analystSeamSearches": "{count, plural, =1{{count} vyhľadávanie} other{{count} vyhľadávania}}",
+  "analystSeamFiles": "{count, plural, =1{{count} súbor} other{{count} súbory}}",
+  "analystSeamCommands": "{count, plural, =1{{count} príkaz} other{{count} príkazy}}",
+  "analystSeamImages": "{count, plural, =1{{count} obrázok} other{{count} obrázky}}",
+  "analystSeamOther": "{count, plural, =1{{count} krok} other{{count} kroky}}",
+  "analystSeamDurationSeconds": "{seconds}s",
+  "savedTitle": "Uložené správy",
+  "savedSubtitle": "Váš súkromný cloud",
+  "savedOpenError": "Nepodarilo sa otvoriť Uložené správy",
+  "billingWalletTitle": "Peňaženka",
+  "billingBuyPackage": "Kúpiť balík",
+  "billingCurrentBalance": "Aktuálny zostatok",
+  "billingPackagesTitle": "Balíky",
+  "billingPackagesUnavailable": "Balíky nie sú dostupné",
+  "billingRecentOperations": "Nedávne operácie",
+  "billingAllOperations": "Všetky operácie",
+  "billingNoOperations": "Žiadne operácie",
+  "billingOperationsTitle": "Operácie",
+  "billingOperationsEmptyTitle": "Zatiaľ žiadne operácie",
+  "billingOperationsEmptySubtitle": "Dobíjania a poplatky za AI funkcie sa zobrazia tu",
+  "billingPricebookTitle": "Ceny funkcií",
+  "billingPricebookUnavailable": "Cenník nie je dostupný",
+  "billingAiFeaturesTitle": "AI funkcie",
+  "billingInsufficientFundsTitle": "Nedostatok prostriedkov",
+  "billingInsufficientFundsSubtitle": "Dobite si zostatok, aby ste mohli použiť túto funkciu.",
+  "billingRequiredLine": "Potreba: {required} μTAL",
+  "billingAvailableLine": "K dispozícii: {available} μTAL",
+  "billingTopUp": "Dobitie",
+  "billingCancel": "Zrušiť",
+  "billingRetry": "Skúsiť znova",
+  "billingLowBalanceWarning": "Nízky zostatok: {balance} μTAL",
+  "billingWalletAndBalance": "Peňaženka & Zostatok",
+  "billingSectionHeader": "Fakturácia & AI",
+  "billingFeatureVoiceAssistant": "Hlasový asistent",
+  "billingFeatureWebSearch": "Asistent vyhľadávania na webe",
+  "billingFeatureAiTwin": "Hlasový dvojník",
+  "billingFeatureAiTwinLong": "Hlasový dvojník (AI Twin)",
+  "billingFeatureOutboundCall": "Odchádzajúci bot",
+  "billingFeatureOutboundCallLong": "Odchádzajúci volací bot",
+  "billingFeatureWhisperTranscribe": "Prepis hovoru",
+  "billingFeatureMeetingSummary": "AI zhrnutia hovorov",
+  "billingConfigureAiTwin": "Nastaviť AI dvojníka",
+  "billingWebSearchSubtitle": "(používa asistent)",
+  "billingPackagePurchased": "Zakúpený balík: {balance} μTAL",
+  "billingRecommendedBadge": "Odporúčané",
+  "billingSessionTerminatedNoFunds": "Zostatok vyčerpaný — relácia ukončená",
+  "billingSessionTerminatedGeneric": "Relácia asistenta ukončená",
+  "billingBuyForPrice": "Kúpiť za {price} €",
+  "billingTxTypeTopup": "Dobitie",
+  "billingTxTypeRefund": "Vrátenie peňazí",
+  "billingTxTypeSpend": "Poplatok",
+  "billingUnitMinute": "minúta",
+  "billingUnitRequest": "požiadavka",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K tokenov",
+  "billingUnitCall": "hovor",
+  "groupCallSelectParticipants": "Vyberte účastníkov",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Hľadať",
+  "groupCallMaxReached": "Maximálne 7 účastníkov",
+  "groupCallLobbyTitle": "Skupina • Lobby",
+  "groupCallHostLabel": "Hostiteľ: {name}",
+  "groupCallMicHint": "Mikrofón sa aktivuje po pripojení",
+  "groupCallCancel": "Zrušiť",
+  "groupCallNoAnswer": "Nikto neodpovedal",
+  "groupCallEndedByHost": "Hovor ukončený hostiteľom",
+  "groupCallAllLeft": "Všetci opustili hovor",
+  "groupCallEnded": "Hovor ukončený",
+  "groupCallActiveTitle": "Skupina • {count}",
+  "groupCallConnectionLost": "Spojenie stratené",
+  "groupCallMuteRequested": "Hostiteľ požiadal všetkých o stlmenie",
+  "groupCallUnmute": "Zrušiť stlmenie",
+  "groupCallMute": "Stlmiť",
+  "groupCallMuteAll": "Stlmiť všetkých",
+  "groupCallLeave": "Opustiť",
+  "groupCallStatusCalling": "volanie…",
+  "groupCallStatusDeclined": "odmietnuté",
+  "groupCallStatusTimeout": "bez odpovede",
+  "groupCallStatusLeft": "opustil",
+  "groupCallKickConfirm": "Odstrániť {name} z hovoru",
+  "groupCallCancelAction": "Zrušiť",
+  "groupCallActiveBanner": "Aktívny hovor",
+  "groupCallBannerSummary": "Skupina: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Skupina: {host}",
+  "groupCallCreateError": "Nepodarilo sa vytvoriť hovor",
+  "groupCallJoinError": "Nepodarilo sa pripojiť k hovoru",
+  "groupCallLivekitError": "Chyba LiveKit",
+  "groupCallDone": "Hotovo",
+  "groupCallNoResults": "Žiadne výsledky",
+  "groupCallNoContacts": "Žiadne kontakty",
+  "meshGcContactOffline": "Nie je na tejto Wi-Fi",
+  "meshGcOnlineViaMesh": "Online cez mesh",
+  "meshGcMaxInvitees": "Skupinové hovory podporujú až 4 pozvaných (celkovo 5 osôb).",
+  "meshGcStart": "Začať skupinový hovor",
+  "meshGcCancel": "Zrušiť",
+  "meshGcStatusCalling": "Volanie…",
+  "meshGcStatusJoined": "Pripojený",
+  "meshGcStatusDeclined": "Odmietnuté",
+  "meshGcStatusNoAnswer": "Žiadna odpoveď",
+  "meshGcStatusConnectionFailed": "Pripojenie zlyhalo",
+  "meshGcStatusLeft": "Opustil",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Najprv dokončite aktuálny hovor.",
+  "presenceOnline": "online",
+  "presenceLastSeenJustNow": "naposledy videný práve teraz",
+  "presenceLastSeenMinutesAgo": "naposledy videný pred {minutes} min",
+  "presenceLastSeenToday": "naposledy videný dnes o {time}",
+  "presenceLastSeenYesterday": "naposledy videný včera o {time}",
+  "presenceLastSeenOnDate": "naposledy videný {date}",
+  "presenceLastSeenRecently": "naposledy videný nedávno",
+  "privacySectionTitle": "Súkromie",
+  "privacyLastSeenLabel": "Kto vidí váš čas posledného videnia",
+  "privacyEveryone": "Každý",
+  "privacyContacts": "Iba kontakty",
+  "privacyNobody": "Nikto",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

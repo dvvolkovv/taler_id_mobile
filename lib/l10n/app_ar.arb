@@ -1,0 +1,1691 @@
+{
+  "@@locale": "ar",
+  "appTitle": "Taler ID",
+  "search": "بحث",
+  "appSubtitle": "هوية النظام البيئي الموحد",
+  "login": "تسجيل الدخول",
+  "loginButton": "تسجيل الدخول",
+  "register": "إنشاء حساب",
+  "registerButton": "إنشاء حساب",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "confirmPassword": "تأكيد كلمة المرور",
+  "firstName": "الاسم الأول",
+  "lastName": "الاسم الأخير",
+  "noAccount": "ليس لديك حساب؟",
+  "createOne": "أنشئ واحدًا",
+  "haveAccount": "هل لديك حساب بالفعل؟",
+  "signIn": "تسجيل الدخول",
+  "passwordMinLength": "الحد الأدنى 8 أحرف",
+  "invalidEmail": "أدخل بريدًا إلكترونيًا صالحًا",
+  "fieldRequired": "حقل مطلوب",
+  "twoFATitle": "المصادقة الثنائية",
+  "twoFASubtitle": "أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك",
+  "twoFACode": "رمز 2FA",
+  "verify": "تحقق",
+  "tabProfile": "الملف الشخصي",
+  "tabKyc": "KYC",
+  "tabOrganization": "المنظمة",
+  "tabSettings": "الإعدادات",
+  "profile": "الملف الشخصي",
+  "editProfile": "تعديل الملف الشخصي",
+  "phone": "الهاتف",
+  "country": "البلد",
+  "dateOfBirth": "تاريخ الميلاد",
+  "documents": "المستندات",
+  "addDocument": "إضافة مستند",
+  "noDocuments": "لم يتم تحميل مستندات",
+  "save": "حفظ",
+  "profileUpdated": "تم تحديث الملف الشخصي",
+  "personalData": "البيانات الشخصية",
+  "passport": "جواز السفر",
+  "drivingLicense": "رخصة القيادة",
+  "diploma": "دبلوم",
+  "nationalId": "الهوية الوطنية",
+  "certificate": "شهادة",
+  "notSpecified": "غير محدد",
+  "notSpecifiedFemale": "غير محدد",
+  "documentType": "نوع المستند",
+  "passportId": "جواز السفر / الهوية",
+  "diplomaCertificate": "دبلوم / شهادة",
+  "loadError": "خطأ في التحميل",
+  "verification": "التحقق",
+  "countryAustria": "النمسا",
+  "countryGermany": "ألمانيا",
+  "countryRussia": "روسيا",
+  "countryUkraine": "أوكرانيا",
+  "countryKazakhstan": "كازاخستان",
+  "countryBelarus": "بيلاروسيا",
+  "countryOther": "أخرى",
+  "kycTitle": "التحقق من KYC",
+  "kycVerified": "تم التحقق",
+  "kycPending": "قيد الانتظار",
+  "kycRejected": "مرفوض",
+  "kycUnverified": "غير محقق",
+  "kycVerifiedDesc": "تم التحقق من هويتك. لديك وصول كامل إلى جميع ميزات نظام Taler.",
+  "kycPendingDesc": "يتم مراجعة مستنداتك. عادةً ما يستغرق ذلك 1-2 يوم عمل.",
+  "kycRejectedDesc": "فشل التحقق. يرجى مراجعة السبب وإعادة تقديم مستنداتك.",
+  "kycUnverifiedDesc": "أكمل التحقق لفتح الوصول الكامل إلى الميزات المالية لنظام Taler.",
+  "startVerification": "ابدأ التحقق",
+  "retryVerification": "أعد محاولة التحقق",
+  "verifiedAt": "تم التحقق: {date}",
+  "documentsSubmitted": "تم تقديم المستندات للمراجعة",
+  "documentsSubmittedDesc": "عادةً ما تستغرق المراجعة 1-2 يوم عمل. ستتلقى إشعارًا بالنتيجة.",
+  "securityAes": "بياناتك محمية بتشفير AES-256",
+  "verificationTime": "يستغرق التحقق 1-2 يوم عمل",
+  "pushNotification": "ستتلقى إشعارًا بالنتيجة",
+  "kycWebOnly": "التحقق من KYC متاح فقط في التطبيق المحمول.",
+  "verificationError": "خطأ في التحقق: {code}",
+  "organizations": "المنظمات",
+  "noOrganizations": "لا توجد منظمات",
+  "noOrganizationsDesc": "أنشئ منظمة أو اقبل دعوة",
+  "createOrganization": "إنشاء منظمة",
+  "newOrganization": "منظمة جديدة",
+  "orgName": "الاسم *",
+  "orgDescription": "الوصف",
+  "orgEmail": "البريد الإلكتروني للتواصل",
+  "orgWebsite": "الموقع الإلكتروني",
+  "orgLegalAddress": "العنوان القانوني",
+  "create": "إنشاء",
+  "organization": "المنظمة",
+  "contacts": "جهات الاتصال",
+  "members": "الأعضاء ({count})",
+  "inviteMember": "دعوة عضو",
+  "invite": "دعوة",
+  "sendInvite": "إرسال الدعوة",
+  "inviteSent": "تم إرسال الدعوة إلى {email}",
+  "role": "الدور",
+  "roleOwner": "المالك",
+  "roleAdmin": "المسؤول",
+  "roleOperator": "المشغل",
+  "roleViewer": "المشاهد",
+  "editOrganization": "تعديل",
+  "editOrganizationTitle": "تعديل المنظمة",
+  "removeMember": "إزالة عضو",
+  "removeMemberConfirm": "إزالة {name} من المنظمة؟",
+  "memberRemoved": "تمت إزالة العضو",
+  "roleChanged": "تم تغيير الدور",
+  "kybVerified": "تم التحقق",
+  "kybPending": "قيد الانتظار",
+  "kybRejected": "مرفوض",
+  "kybNone": "غير محقق",
+  "kybVerification": "بدء التحقق KYB",
+  "kybStartBusiness": "بدء التحقق من العمل",
+  "kybStatusLabel": "حالة KYB",
+  "noKyb": "لا يوجد KYB",
+  "kybBusinessVerificationTitle": "التحقق من العمل (KYB)",
+  "kybVerifiedOrgDesc": "تم التحقق من المنظمة بنجاح.",
+  "kybPendingOrgDesc": "يتم مراجعة المستندات. يستغرق ذلك عادة 1-3 أيام عمل.",
+  "kybRejectedOrgDesc": "فشل التحقق. يرجى المحاولة مرة أخرى.",
+  "kybNoneOrgDesc": "تحقق من منظمتك للوصول إلى ميزات العمل.",
+  "invitePlus": "+ دعوة",
+  "kybVerificationTitle": "التحقق KYB",
+  "kybWebOnlyBusiness": "التحقق KYB متاح فقط في تطبيق الهاتف المحمول.",
+  "unknownDevice": "جهاز غير معروف",
+  "ipUnknown": "IP غير معروف",
+  "currentSessionLabel": "الحالي",
+  "endSessionAction": "إنهاء",
+  "deviceLoggedOut": "سيتم تسجيل خروج الجهاز.",
+  "acceptInvitationTitle": "دعوة المنظمة",
+  "acceptInvitation": "قبول الدعوة",
+  "acceptInvitationDesc": "لقد تمت دعوتك للانضمام إلى منظمة في نظام Taler البيئي.",
+  "accept": "قبول",
+  "reject": "رفض",
+  "sessions": "الجلسات النشطة",
+  "currentSession": "الجلسة الحالية",
+  "deleteSession": "إنهاء الجلسة",
+  "deleteSessionConfirm": "إنهاء هذه الجلسة؟",
+  "sessionDeleted": "تم إنهاء الجلسة",
+  "noSessions": "لا توجد جلسات نشطة",
+  "minutesAgo": "منذ {count} دقيقة",
+  "hoursAgo": "منذ {count} ساعة",
+  "daysAgo": "منذ {count} يوم",
+  "justNow": "الآن",
+  "settings": "الإعدادات",
+  "security": "الأمان",
+  "biometrics": "القياسات الحيوية",
+  "biometricsDesc": "تسجيل دخول سريع باستخدام Face ID أو بصمة الإصبع",
+  "biometricsConfirm": "أكد القياسات الحيوية لتمكين تسجيل الدخول السريع",
+  "biometricsError": "فشل في تمكين القياسات الحيوية. تحقق من إعدادات الجهاز.",
+  "changePassword": "تغيير كلمة المرور",
+  "twoFactorAuth": "المصادقة الثنائية",
+  "currentPassword": "كلمة المرور الحالية",
+  "newPassword": "كلمة مرور جديدة",
+  "confirmNewPassword": "تأكيد كلمة المرور الجديدة",
+  "passwordChanged": "تم تغيير كلمة المرور",
+  "wrongCurrentPassword": "كلمة المرور الحالية غير صحيحة",
+  "passwordTooWeak": "كلمة المرور ضعيفة جدًا: يجب أن تحتوي على 8 أحرف على الأقل، وحرف ورقم",
+  "passwordChangeFailed": "فشل في تغيير كلمة المرور",
+  "notifications": "الإشعارات",
+  "permissions": "الأذونات",
+  "permissionNotifications": "إشعارات الدفع",
+  "permissionNotificationsDesc": "المكالمات، الرسائل، الحالات",
+  "permissionMicrophone": "الميكروفون",
+  "permissionMicrophoneDesc": "المكالمات والمساعد الصوتي",
+  "permissionCamera": "الكاميرا",
+  "permissionCameraDesc": "مكالمات الفيديو والتحقق",
+  "permissionLocation": "الموقع",
+  "permissionLocationDesc": "يستخدم للتحقق",
+  "permissionOpenSettings": "لإلغاء إذن، افتح إعدادات النظام",
+  "pushKycStatus": "إشعار حالة KYC",
+  "pushKycStatusDesc": "نتيجة التحقق",
+  "pushLogins": "إشعار تسجيل الدخول",
+  "pushLoginsDesc": "عند تسجيل الدخول من جهاز جديد",
+  "account": "الحساب",
+  "language": "اللغة",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "لغة الواجهة",
+  "exportData": "تصدير البيانات (GDPR)",
+  "deleteAccount": "حذف الحساب",
+  "deleteAccountConfirm": "حذف الحساب؟",
+  "deleteAccountDesc": "سيتم حذف جميع بياناتك (GDPR). هذا الإجراء لا يمكن التراجع عنه.",
+  "logout": "تسجيل الخروج",
+  "logoutConfirm": "تسجيل الخروج؟",
+  "logoutDesc": "سيتم تسجيل خروجك من Taler ID على هذا الجهاز.",
+  "version": "Taler ID v{version}",
+  "pinCode": "رمز PIN",
+  "pinCodeDesc": "تسجيل دخول سريع برمز من 4 أرقام",
+  "setupPin": "إعداد رمز PIN",
+  "enterPin": "أدخل رمز PIN",
+  "confirmPin": "تأكيد رمز PIN",
+  "pinMismatch": "الرموز غير متطابقة",
+  "pinSet": "تم تعيين رمز PIN بنجاح",
+  "enterPinToLogin": "أدخل رمز PIN لتسجيل الدخول",
+  "pinIncorrect": "رمز PIN غير صحيح",
+  "removePin": "إزالة رمز PIN",
+  "pinRemoved": "تمت إزالة رمز PIN",
+  "cancel": "إلغاء",
+  "delete": "حذف",
+  "ok": "حسنًا",
+  "retry": "إعادة المحاولة",
+  "loading": "جارٍ التحميل...",
+  "error": "خطأ",
+  "success": "نجاح",
+  "noData": "لا توجد بيانات",
+  "failedToLoad": "فشل في تحميل البيانات",
+  "failedToLoadProfile": "فشل في تحميل الملف الشخصي",
+  "failedToSave": "فشل في حفظ التغييرات",
+  "failedToLoadOrgs": "فشل في تحميل المنظمات",
+  "failedToLoadOrg": "فشل في تحميل بيانات المنظمة",
+  "failedToCreateOrg": "فشل في إنشاء المنظمة",
+  "failedToInvite": "فشل في إرسال الدعوة",
+  "failedToAcceptInvite": "فشل في قبول الدعوة",
+  "failedToLoadSessions": "فشل في تحميل الجلسات",
+  "failedToDeleteSession": "فشل في إنهاء الجلسة",
+  "failedToLoadKyc": "فشل في تحميل حالة التحقق",
+  "failedToStartKyc": "فشل في بدء التحقق",
+  "verifiedPersonalInfo": "البيانات الموثقة",
+  "middleName": "الاسم الأوسط",
+  "placeOfBirth": "مكان الميلاد",
+  "nationality": "الجنسية",
+  "gender": "الجنس",
+  "genderMale": "ذكر",
+  "genderFemale": "أنثى",
+  "docNumber": "الرقم",
+  "docIssuedDate": "تاريخ الإصدار",
+  "docValidUntil": "صالح حتى",
+  "docIssuedBy": "صادر عن",
+  "address": "العنوان",
+  "refreshData": "تحديث البيانات",
+  "failedToLoadSumsubData": "فشل في تحميل بيانات التحقق",
+  "sumsubDataLoading": "جارٍ تحميل بيانات التحقق...",
+  "reviewResultGreen": "تم اجتياز التحقق",
+  "reviewResultRed": "فشل في التحقق",
+  "tabAssistant": "المساعد",
+  "assistantConnecting": "جارٍ الاتصال…",
+  "assistantSpeaking": "يتحدث…",
+  "assistantListening": "يستمع…",
+  "assistantTapToStart": "اضغط للبدء",
+  "assistantTapToTalk": "اضغط للتحدث إلى AI",
+  "assistantRealtimeDesc": "المساعد يرد بالصوت في الوقت الحقيقي",
+  "assistantConnectingToAssistant": "جارٍ الاتصال بالمساعد...",
+  "assistantAiSpeaking": "الذكاء الاصطناعي يتحدث...",
+  "assistantAiListening": "الذكاء الاصطناعي يستمع",
+  "assistantSpeakerOn": "تشغيل السماعة",
+  "assistantSpeaker": "السماعة",
+  "assistantEnd": "إنهاء",
+  "assistantUnmute": "إلغاء كتم الصوت",
+  "assistantMicrophone": "الميكروفون",
+  "assistantConnectionError": "خطأ في الاتصال",
+  "tabMessenger": "الرسائل",
+  "tabCalls": "المكالمات",
+  "tabCalendar": "التقويم",
+  "appearance": "المظهر",
+  "appearanceSelect": "اختر السمة",
+  "themeLight": "فاتح",
+  "themeDark": "داكن",
+  "themeSystem": "النظام",
+  "onboardingTitle1": "هوية موحدة",
+  "onboardingDesc1": "Taler ID هو جواز سفرك الرقمي في نظام Taler. حساب واحد لجميع الخدمات.",
+  "onboardingTitle2": "أمان البيانات",
+  "onboardingDesc2": "التحقق من KYC، تشفير AES-256، والمصادقة الثنائية تحمي هويتك.",
+  "onboardingTitle3": "ابقَ على اطلاع",
+  "onboardingDesc3": "احصل على إشعارات حول حالة التحقق، تسجيل الدخول من أجهزة جديدة، والمكالمات الواردة.",
+  "onboardingNext": "التالي",
+  "onboardingEnableNotifications": "تفعيل الإشعارات",
+  "onboardingTitle4": "المكالمات الصوتية",
+  "onboardingDesc4": "امنح إذن الوصول إلى الميكروفون للمكالمات الصوتية ومساعد الذكاء الاصطناعي. يمكنك تغيير هذا لاحقًا في الإعدادات.",
+  "onboardingEnableMicrophone": "تفعيل الميكروفون",
+  "onboardingStart": "ابدأ",
+  "onboardingSkip": "تخطي",
+  "meshLocalNetworkPromptTitle": "السماح بالوصول إلى الشبكة المحلية",
+  "meshLocalNetworkPromptBody": "للعثور على الأقران عبر Wi-Fi (مكالمات المجموعة دون اتصال)، يتطلب iOS إذن الشبكة المحلية. افتح الإعدادات → الخصوصية والأمان → الشبكة المحلية → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "افتح الإعدادات",
+  "meshLocalNetworkPromptDismiss": "فهمت",
+  "forgotPassword": "هل نسيت كلمة المرور؟",
+  "forgotPasswordTitle": "إعادة تعيين كلمة المرور",
+  "forgotPasswordSubtitle": "أدخل بريدك الإلكتروني لتلقي رمز إعادة التعيين",
+  "resetCodeSent": "تم إرسال الرمز إلى {email}",
+  "enterResetCode": "أدخل الرمز",
+  "resetPasswordButton": "إعادة تعيين كلمة المرور",
+  "passwordResetSuccess": "تمت إعادة تعيين كلمة المرور بنجاح",
+  "sendCode": "إرسال الرمز",
+  "resendCode": "إعادة إرسال الرمز",
+  "newGroup": "مجموعة جديدة",
+  "newChat": "دردشة جديدة",
+  "groupName": "اسم المجموعة",
+  "createGroup": "إنشاء مجموعة",
+  "groupInfo": "معلومات المجموعة",
+  "groupMembers": "الأعضاء ({count})",
+  "addMembers": "إضافة أعضاء",
+  "leaveGroup": "مغادرة المجموعة",
+  "leaveGroupConfirm": "مغادرة هذه المجموعة؟",
+  "deleteGroup": "حذف المجموعة",
+  "deleteGroupConfirm": "حذف هذه المجموعة؟ لا يمكن التراجع عن ذلك.",
+  "groupRoleOwner": "المالك",
+  "groupRoleAdmin": "المسؤول",
+  "groupRoleMember": "عضو",
+  "selectParticipants": "اختر المشاركين",
+  "selectedCount": "{count} مختار",
+  "changeRole": "تغيير الدور",
+  "groupCreated": "تم إنشاء المجموعة",
+  "memberJoined": "انضم {name}",
+  "memberLeftGroup": "غادر {name}",
+  "memberWasRemoved": "تمت إزالة {name}",
+  "roleChangedTo": "{name} أصبح الآن {role}",
+  "participantsCount": "{count} مشارك",
+  "enterGroupName": "أدخل اسم المجموعة",
+  "muteNotifications": "كتم الإشعارات",
+  "unmuteNotifications": "إلغاء كتم الإشعارات",
+  "muteFor1Hour": "لمدة ساعة",
+  "muteFor8Hours": "لمدة 8 ساعات",
+  "muteFor2Days": "لمدة يومين",
+  "muteForever": "إلى الأبد",
+  "muted": "مكتوم",
+  "tabTranslator": "ترجمة",
+  "translatorTitle": "المترجم",
+  "translatorSelectLanguage": "اختر اللغة",
+  "translatorDownloading": "جارٍ تنزيل نماذج اللغة...",
+  "translatorDownloadingHint": "الإنترنت مطلوب فقط للتنزيل الأول",
+  "translatorTypeHint": "اكتب النص أو اضغط على الميكروفون",
+  "translatorListening": "الاستماع...",
+  "translatorTapToSpeak": "اضغط للتحدث",
+  "translatorTapToStop": "اضغط للإيقاف",
+  "translatorAutoSpeak": "التحدث التلقائي",
+  "translatorCopied": "تم النسخ",
+  "translatorLangRu": "الروسية",
+  "translatorLangEn": "الإنجليزية",
+  "translatorLangDe": "الألمانية",
+  "translatorLangFr": "الفرنسية",
+  "translatorLangEs": "الإسبانية",
+  "translatorLangIt": "الإيطالية",
+  "translatorLangPt": "البرتغالية",
+  "translatorLangTr": "التركية",
+  "translatorLangZh": "الصينية",
+  "translatorLangJa": "اليابانية",
+  "translatorLangKo": "الكورية",
+  "translatorLangAr": "العربية",
+  "translatorLangPl": "البولندية",
+  "translatorLangSk": "السلوفاكية",
+  "translatorLangCs": "التشيكية",
+  "translatorLangNl": "الهولندية",
+  "translatorLangSv": "السويدية",
+  "translatorLangDa": "الدانماركية",
+  "translatorLangNo": "النرويجية",
+  "translatorLangFi": "الفنلندية",
+  "translatorLangUk": "الأوكرانية",
+  "translatorLangEl": "اليونانية",
+  "translatorLangRo": "الرومانية",
+  "translatorLangHu": "الهنغارية",
+  "translatorLangBg": "البلغارية",
+  "translatorLangHr": "الكرواتية",
+  "translatorLangSr": "الصربية",
+  "translatorLangHi": "الهندية",
+  "translatorLangTh": "التايلاندية",
+  "translatorLangVi": "الفيتنامية",
+  "translatorLangId": "الإندونيسية",
+  "translatorLangMs": "الماليزية",
+  "translatorLangHe": "العبرية",
+  "translatorLangFa": "الفارسية",
+  "callInProgress": "المكالمة جارية",
+  "joinCall": "انضم",
+  "createCallLink": "رابط المكالمة",
+  "callLinkCopied": "تم نسخ الرابط",
+  "callLinkTitle": "رابط الغرفة",
+  "connectionUnstable": "الاتصال غير مستقر — تحقق من الإنترنت",
+  "today": "اليوم",
+  "yesterday": "أمس",
+  "errorTimeout": "انتهت مهلة الاتصال. تحقق من اتصالك بالإنترنت.",
+  "errorNoConnection": "لا يوجد اتصال بالإنترنت.",
+  "errorGeneral": "حدث خطأ. حاول مرة أخرى.",
+  "errorWithMessage": "خطأ: {message}",
+  "notifChannelMessages": "الرسائل",
+  "notifChannelMessagesDesc": "إشعارات الرسائل الجديدة",
+  "notifChannelMissedCalls": "المكالمات الفائتة",
+  "notifChannelMissedCallsDesc": "إشعارات المكالمات الفائتة",
+  "notifMissedCall": "مكالمة فائتة",
+  "notifAccept": "قبول",
+  "notifDecline": "رفض",
+  "notifIncomingCall": "مكالمة واردة",
+  "notifIncomingCallChannel": "مكالمة واردة",
+  "notifMissedCallChannel": "مكالمة فائتة",
+  "notifUnknown": "غير معروف",
+  "effectNone": "بدون خلفية",
+  "effectBlur": "ضبابية",
+  "effectOffice": "مكتب",
+  "effectNature": "طبيعة",
+  "effectGradient": "تدرج",
+  "effectLibrary": "مكتبة",
+  "effectCity": "مدينة",
+  "effectMinimalism": "تبسيط",
+  "voiceParticipant": "مشارك",
+  "voiceInvitesToRoom": "يدعوك إلى الغرفة",
+  "voiceRoom": "غرفة",
+  "voicePasswordProtected": "محمي بكلمة مرور",
+  "voicePasswordHint": "كلمة المرور",
+  "voiceEnter": "دخول",
+  "voiceJoinRoom": "انضم إلى الغرفة",
+  "voiceYourName": "اسمك",
+  "voiceInvitationSent": "تم إرسال الدعوة إلى {name}",
+  "voiceNoActiveRoom": "لا توجد غرفة نشطة",
+  "voiceCameraPermission": "اسمح بالوصول إلى الكاميرا في الإعدادات → الخصوصية → الكاميرا → TalerID",
+  "voiceOpenSettings": "افتح",
+  "voiceCameraError": "فشل في تفعيل الكاميرا: {error}",
+  "voiceAllAgreedRecording": "تم الاتفاق. بدأ التسجيل.",
+  "voiceNewParticipantAgreed": "مشارك جديد وافق على التسجيل.",
+  "voiceDeclinedRecording": "رفضت التسجيل. مغادرة المكالمة.",
+  "voiceRecordingEnded": "انتهى التسجيل",
+  "voiceRecordingInProgress": "التسجيل جارٍ",
+  "voiceTranscriptionRequest": "طلب النسخ",
+  "voiceRecordingRequest": "طلب التسجيل",
+  "voiceAgree": "موافقة",
+  "voiceDeclineAndLeave": "رفض ومغادرة",
+  "voiceAudioOutput": "مخرج الصوت",
+  "voiceAudioPhone": "الهاتف",
+  "voiceAudioSpeaker": "مكبر الصوت",
+  "voiceAudioBluetooth": "بلوتوث",
+  "voiceAudioHeadphones": "سماعات",
+  "voiceLinkCopied": "تم نسخ الرابط",
+  "voiceTranslateTo": "ترجمة إلى",
+  "voiceSearchLanguage": "بحث عن لغة...",
+  "voiceRoomWithCreator": "غرفة {name}",
+  "voiceVoiceCall": "مكالمة صوتية",
+  "voiceOnHold": "قيد الانتظار",
+  "voiceActiveCall": "نشط",
+  "voiceEndAllCalls": "إنهاء جميع المكالمات",
+  "voiceEndThisCall": "إنهاء هذه المكالمة",
+  "voiceCopyLink": "نسخ الرابط",
+  "voiceAddParticipant": "إضافة مشارك",
+  "voiceReconnecting": "إعادة الاتصال...",
+  "voiceConnectionError": "خطأ في الاتصال",
+  "voiceClose": "إغلاق",
+  "voiceCalling": "جارٍ الاتصال...",
+  "voiceCallActive": "المكالمة نشطة",
+  "voiceWaiting": "انتظار",
+  "voiceWaitingUpper": "انتظار",
+  "voiceRec": "تسجيل",
+  "voiceStop": "إيقاف",
+  "voiceRecord": "تسجيل",
+  "voiceTranslation": "ترجمة",
+  "voiceAudio": "صوت",
+  "voiceFlipCamera": "تبديل",
+  "voiceBackground": "الخلفية",
+  "voiceAssistantSpeakingStatus": "المساعد يتحدث...",
+  "voiceAssistantListeningStatus": "المساعد يستمع...",
+  "voiceUnmute": "إلغاء كتم الصوت",
+  "voiceMic": "الميكروفون",
+  "voiceAssistantLabel": "المساعد",
+  "voiceCameraOn": "تشغيل الكاميرا",
+  "voiceCameraLabel": "الكاميرا",
+  "voiceEndCall": "إنهاء المكالمة",
+  "voiceWaitingParticipants": "في انتظار المشاركين...",
+  "voiceYou": "أنت",
+  "voiceAiAssistant": "المساعد AI",
+  "voiceVideoUnavailable": "الفيديو غير متاح",
+  "voiceSearchNickname": "البحث باللقب...",
+  "voiceTranscriptionWord": "النسخ",
+  "voiceRecordingWord": "التسجيل",
+  "voiceConnecting": "جارٍ الاتصال...",
+  "voiceVideoBackground": "خلفية الفيديو",
+  "voiceCallSettings": "إعدادات المكالمة",
+  "voiceEnableAI": "تمكين المساعد AI",
+  "voiceAIParticipating": "سيشارك AI في المحادثة",
+  "voiceNormalCall": "مكالمة عادية بدون AI",
+  "voiceCallConfirm": "إجراء مكالمة؟",
+  "chatAlreadyInCall": "أنت بالفعل في مكالمة",
+  "chatCallError": "خطأ في المكالمة: {error}",
+  "chatPhotoVideo": "صورة / فيديو",
+  "chatCamera": "الكاميرا",
+  "chatFile": "ملف",
+  "chatContact": "جهة اتصال",
+  "chatSelectContact": "اختر جهة اتصال",
+  "chatNoContacts": "لا توجد جهات اتصال",
+  "chatUser": "المستخدم",
+  "chatFileAttachment": "📎 ملف",
+  "chatFileUploadError": "خطأ في تحميل الملف: {error}",
+  "chatVoiceMessage": "🎤 رسالة صوتية",
+  "chatGroup": "مجموعة",
+  "chatDialog": "حوار",
+  "chatCall": "مكالمة",
+  "chatStartConversation": "ابدأ محادثة",
+  "chatYou": "أنت",
+  "chatIsTyping": "يكتب...",
+  "chatUserIsTyping": "{name} يكتب...",
+  "chatUsersAreTyping": "{names} يكتبون...",
+  "chatPreparingFile": "جارٍ تحضير الملف…",
+  "chatUploading": "جارٍ الرفع… {progress}%",
+  "chatEdited": "معدّل",
+  "chatViaMesh": "عبر الشبكة",
+  "chatReply": "رد",
+  "chatEdit": "تعديل",
+  "chatCopy": "نسخ",
+  "chatCopied": "تم النسخ",
+  "chatSaveMedia": "حفظ",
+  "chatForward": "إعادة توجيه",
+  "chatSaving": "جارٍ الحفظ...",
+  "chatSavedToGallery": "تم الحفظ في المعرض",
+  "chatNoSavePermission": "لا يوجد إذن للحفظ. تحقق من الإعدادات.",
+  "chatFileSaveError": "خطأ في حفظ الملف",
+  "chatDeleteMessage": "حذف الرسالة",
+  "chatDeleteForMe": "حذف لي",
+  "chatDeleteForEveryone": "حذف للجميع",
+  "chatMessageForwarded": "تم إعادة توجيه الرسالة",
+  "chatContactTapToOpen": "جهة اتصال · اضغط للفتح",
+  "chatForwardTo": "إعادة توجيه إلى...",
+  "chatSearchHint": "بحث...",
+  "chatRecording": "جارٍ التسجيل...",
+  "chatMessageHint": "رسالة...",
+  "chatHideKeyboard": "إخفاء لوحة المفاتيح",
+  "chatEditing": "جارٍ التعديل",
+  "chatFileDownloadError": "خطأ في تنزيل الملف",
+  "chatVoiceMessageShort": "رسالة صوتية",
+  "chatVideoSavedToGallery": "تم حفظ الفيديو في المعرض",
+  "chatSavingError": "خطأ في الحفظ",
+  "convSetNickname": "تعيين لقب",
+  "convNicknameRequired": "يتطلب استخدام المراسلة تعيين لقب. يمكن للمستخدمين الآخرين العثور عليك من خلاله.",
+  "convNicknameRules": "3–30 حرفًا: حروف، أرقام، _",
+  "convNicknameTaken": "اللقب مستخدم بالفعل",
+  "convSaveError": "خطأ في الحفظ",
+  "convContactsLabel": "جهات الاتصال",
+  "convDefaultUser": "مستخدم",
+  "convNoDialogs": "لا توجد محادثات",
+  "convFindUserToChat": "ابحث عن مستخدم لبدء الدردشة",
+  "convDefaultContact": "جهة اتصال",
+  "dashboardUser": "مستخدم",
+  "dashboardIncomingCall": "مكالمة واردة",
+  "dashboardDecline": "رفض",
+  "dashboardAccept": "قبول",
+  "dashboardActiveCall": "مكالمة نشطة — اضغط للعودة",
+  "dashboardUpdateAvailable": "تحديث متاح {version}",
+  "dashboardUpdate": "تحديث",
+  "dashboardWhatsNew": "ما الجديد",
+  "dashboardWhatsNewTitle": "ما الجديد في {version}",
+  "dashboardInstalling": "جارٍ التثبيت...",
+  "contactRequestsTitle": "جهات الاتصال",
+  "messengerContactRequestsSection": "طلبات الاتصال",
+  "messengerContactRequestsCount": "{count, plural, =1{طلب جديد واحد} other{{count} طلبات جديدة}}",
+  "contactRequestsSearch": "بحث",
+  "contactRequestsIncoming": "وارد",
+  "contactRequestsSent": "مرسل",
+  "contactRequestsSearchHint": "الاسم المستعار أو البريد الإلكتروني",
+  "contactRequestSent": "تم إرسال الطلب",
+  "contactRequestsNoUsers": "لم يتم العثور على مستخدمين",
+  "contactRequestsSearchHelp": "أدخل الاسم المستعار أو البريد الإلكتروني بدقة\nواضغط على بحث",
+  "contactRequestsSendTooltip": "إرسال طلب",
+  "contactRequestTitle": "طلب اتصال",
+  "contactRequestConfirm": "إرسال طلب اتصال إلى {name}؟",
+  "contactRequestSend": "إرسال",
+  "contactRequestsNoIncoming": "لا توجد طلبات واردة",
+  "contactRequestsNoSent": "لا توجد طلبات مرسلة",
+  "contactRequestStatusPending": "بانتظار الرد",
+  "contactRequestStatusAccepted": "مقبول",
+  "contactRequestStatusRejected": "مرفوض",
+  "userSearchTitle": "البحث عن مستخدم",
+  "userSearchHint": "الاسم المستعار، الهاتف أو البريد الإلكتروني",
+  "userSearchHelper": "أدخل @الاسم المستعار، البريد الإلكتروني أو الاسم للبحث",
+  "userSearchNoUsers": "لم يتم العثور على مستخدمين",
+  "userProfileShareContact": "مشاركة جهة الاتصال",
+  "userProfileShareContactDesc": "إرسال رابط جهة الاتصال",
+  "userProfileCopyLink": "نسخ الرابط",
+  "userProfileCopied": "تم النسخ",
+  "userProfileTitle": "الملف الشخصي",
+  "userProfileLoadError": "خطأ في تحميل الملف الشخصي",
+  "userProfileMessage": "رسالة",
+  "userProfileCall": "اتصال",
+  "userProfileRequestSent": "تم إرسال الطلب",
+  "userProfileAccept": "قبول",
+  "userProfileDecline": "رفض",
+  "userProfileAddToContacts": "إضافة إلى جهات الاتصال",
+  "userProfileMediaTab": "وسائط",
+  "userProfileFilesTab": "ملفات",
+  "userProfileLinksTab": "روابط",
+  "userProfileRecordingsTab": "تسجيلات",
+  "userProfileSummariesTab": "ملخصات",
+  "userProfileNoMedia": "لا توجد ملفات وسائط",
+  "userProfileNoFiles": "لا توجد ملفات",
+  "userProfileNoLinks": "لا توجد روابط",
+  "userProfileNoRecordings": "لا توجد تسجيلات",
+  "userProfileNoSummaries": "لا توجد ملخصات",
+  "userProfileMeetingSummary": "ملخص الاجتماع",
+  "userProfileFailedOpenChat": "فشل في فتح الدردشة",
+  "sharedMediaTitle": "الوسائط والملفات",
+  "sharedMediaTab": "وسائط",
+  "sharedFilesTab": "ملفات",
+  "sharedLinksTab": "روابط",
+  "sharedNoMedia": "لا توجد ملفات وسائط",
+  "sharedNoFiles": "لا توجد ملفات",
+  "sharedNoLinks": "لا توجد روابط",
+  "shareToChat": "إعادة توجيه إلى الدردشة",
+  "shareSelectChat": "اختر دردشة",
+  "shareNoChats": "لا توجد دردشات",
+  "shareFilesCount": "{count} ملفات",
+  "contactsTitle": "جهات الاتصال",
+  "contactsAddTooltip": "إضافة جهة اتصال",
+  "contactsSearchHint": "ابحث في جهات الاتصال...",
+  "contactsNotFound": "لم يتم العثور على شيء",
+  "contactsEmpty": "لا توجد جهات اتصال",
+  "contactsAdd": "إضافة جهة اتصال",
+  "contactsPendingConfirmation": "في انتظار التأكيد",
+  "contactsMessage": "رسالة",
+  "contactsCall": "اتصال",
+  "contactsResend": "إعادة إرسال الطلب",
+  "contactsResendTimeout": "أعد المحاولة خلال 24 ساعة",
+  "contactsResent": "تم إعادة إرسال الطلب",
+  "contactsWantsToConnect": "يريد الاتصال بك",
+  "contactsSearchPeople": "ابحث عن أشخاص",
+  "notesTitle": "ملاحظات",
+  "notesAssistantSpeaking": "المساعد يتحدث...",
+  "notesListening": "الاستماع...",
+  "notesEmpty": "لا توجد ملاحظات",
+  "notesEmptyHint": "اضغط على الميكروفون للإملاء\nأو + للإدخال اليدوي",
+  "notesDeleteConfirm": "حذف الملاحظة؟",
+  "notesNew": "ملاحظة جديدة",
+  "notesEdit": "تعديل",
+  "notesTitleHint": "العنوان",
+  "notesContentHint": "اكتب أفكارك...",
+  "calendarTitle": "التقويم",
+  "calendarStop": "إيقاف",
+  "calendarVoiceInput": "إدخال صوتي",
+  "calendarNewEvent": "حدث جديد",
+  "calendarAssistantSpeaking": "المساعد يتحدث...",
+  "calendarListening": "الاستماع...",
+  "calendarInvitations": "الدعوات ({count})",
+  "calendarNoEvents": "لا توجد أحداث",
+  "calendarDayMon": "الإثنين",
+  "calendarDayTue": "الثلاثاء",
+  "calendarDayWed": "الأربعاء",
+  "calendarDayThu": "الخميس",
+  "calendarDayFri": "الجمعة",
+  "calendarDaySat": "السبت",
+  "calendarDaySun": "الأحد",
+  "calendarEnterRoom": "دخول الغرفة",
+  "calendarMeeting": "اجتماع",
+  "calendarLocationPrefix": "الموقع: {location}",
+  "calendarEditEvent": "تعديل",
+  "calendarTitleHint": "العنوان",
+  "calendarDescriptionHint": "الوصف",
+  "calendarTypeEvent": "حدث",
+  "calendarTypeMeeting": "اجتماع",
+  "calendarTypeReminder": "تذكير",
+  "calendarTypeLabel": "النوع",
+  "calendarMeetingLink": "رابط الاجتماع",
+  "calendarLocationHint": "الموقع",
+  "calendarDateLabel": "التاريخ",
+  "calendarTimeLabel": "الوقت",
+  "calendarReminderLabel": "التذكير",
+  "calendarReminderNone": "لا يوجد",
+  "calendarReminder15min": "قبل 15 دقيقة",
+  "calendarReminder30min": "قبل 30 دقيقة",
+  "calendarReminder1hour": "قبل ساعة",
+  "calendarRepeatLabel": "التكرار",
+  "calendarRepeatNone": "بدون تكرار",
+  "calendarRepeatDaily": "كل يوم",
+  "calendarRepeatWeekly": "كل أسبوع",
+  "calendarRepeatMonthly": "كل شهر",
+  "calendarRepeatYearly": "كل سنة",
+  "calendarParticipants": "المشاركون",
+  "calendarAddParticipant": "إضافة",
+  "calendarSearchContacts": "البحث في جهات الاتصال...",
+  "calendarNoContacts": "لا توجد جهات اتصال",
+  "calendarStatusAccepted": "مقبول",
+  "calendarStatusDeclined": "مرفوض",
+  "calendarStatusMaybe": "ربما",
+  "calendarStatusPending": "قيد الانتظار",
+  "calendarEndTime": "وقت الانتهاء",
+  "calendarYourAnswer": "إجابتك:",
+  "calendarOrganizer": "المنظم",
+  "calendarDeleteError": "فشل في الحذف: {error}",
+  "calendarRsvpAccept": "قبول",
+  "calendarRsvpMaybe": "ربما",
+  "calendarRsvpDecline": "رفض",
+  "callHistoryTitle": "المكالمات",
+  "callHistoryTab": "سجل المكالمات",
+  "callHistoryTempMeeting": "اجتماع مؤقت",
+  "callHistoryCopy": "نسخ",
+  "callHistoryLinkCopied": "تم نسخ الرابط",
+  "callHistoryShare": "مشاركة",
+  "callHistoryEnter": "دخول",
+  "callHistoryAlreadyInCall": "أنت بالفعل في مكالمة",
+  "callHistoryCouldNotDeterminePeer": "تعذر تحديد الطرف الآخر",
+  "callHistoryContacts": "جهات الاتصال",
+  "callHistoryFailedLoadRoom": "فشل في تحميل الغرفة",
+  "callHistoryYourRoom": "غرفتك",
+  "callHistoryCreateMeeting": "إنشاء اجتماع",
+  "callHistoryMeetingSummaries": "ملخصات الاجتماعات",
+  "callHistoryMeetingRecordings": "تسجيلات الاجتماعات",
+  "callHistoryNoCalls": "لا توجد مكالمات",
+  "callHistoryMissed": "فائتة",
+  "callHistoryRecording": "تسجيل",
+  "callHistorySummary": "ملخص",
+  "callHistoryCallAgain": "اتصل مرة أخرى",
+  "callHistoryTodayTime": "اليوم، {time}",
+  "callHistoryYesterdayTime": "أمس، {time}",
+  "callHistoryUnknown": "غير معروف",
+  "callHistoryDetails": "تفاصيل المكالمة",
+  "callHistoryOutgoing": "مكالمة صادرة",
+  "callHistoryIncoming": "مكالمة واردة",
+  "callHistoryDuration": "المدة: {duration}",
+  "callHistoryWithAI": "مع المساعد AI",
+  "callHistoryParticipants": "المشاركون",
+  "callDetailYouSuffix": "(أنت)",
+  "callHistoryMeetingSummary": "ملخص الاجتماع",
+  "callHistoryMoreDetails": "مزيد من التفاصيل",
+  "callHistorySummaryProcessing": "جاري معالجة الملخص...",
+  "callHistoryMeetingRecording": "تسجيل الاجتماع",
+  "callHistoryProcessing": "جاري المعالجة...",
+  "callHistoryCreateTranscript": "إنشاء نص",
+  "callHistoryNoSummaries": "لا توجد ملخصات",
+  "callHistoryRecordDuringCall": "اضغط على \"تسجيل\" أثناء المكالمة",
+  "callHistoryMeetingTime": "اجتماع {time}",
+  "callHistoryTranscribing": "جاري النسخ والتلخيص...",
+  "callHistoryTranscriptCreated": "تم إنشاء النص",
+  "callHistoryNoRecordings": "لا توجد تسجيلات",
+  "callHistoryRecordingDate": "تسجيل {date}",
+  "callHistoryRecordingUnavailable": "التسجيل غير متاح",
+  "callHistoryTranscriptReady": "النص جاهز",
+  "callHistoryTranscript": "النص",
+  "callHistoryKeyPoints": "النقاط الرئيسية",
+  "callHistoryTasks": "المهام",
+  "callHistoryAssignedTo": "مُكلف لـ: {assignee}",
+  "callHistoryDecisions": "القرارات",
+  "callHistoryShowTranscript": "عرض النص الكامل",
+  "profileScanQr": "مسح QR",
+  "profileMyQrCode": "رمز QR الخاص بي",
+  "profileAddMeShare": "أضفني في Taler ID!\ntalerid://user/{userId}",
+  "profileShowCode": "اعرض هذا الرمز لإضافتك",
+  "profileEditDesc": "الاسم، اللقب، اسم الأب، تاريخ الميلاد",
+  "profileAboutMe": "عني",
+  "profileAboutMeDesc": "القيم، المهارات، الاهتمامات والمزيد",
+  "profileNotes": "ملاحظات",
+  "profileNotesDesc": "أفكار، أفكار وملاحظات",
+  "profileAvatarUpdated": "تم تحديث الصورة الرمزية",
+  "profileNickname": "اللقب",
+  "profileNotSet": "غير محدد",
+  "profileChangeNickname": "تغيير اللقب",
+  "profileNicknameUpdated": "تم تحديث اللقب",
+  "profileShareLabel": "مشاركة",
+  "profileScanQrCode": "مسح رمز QR",
+  "profilePointCamera": "وجه الكاميرا نحو رمز QR",
+  "profilePhotoCamera": "التقاط صورة",
+  "profilePhotoGallery": "اختر من المعرض",
+  "editProfilePatronymic": "اسم الأب (اختياري)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "عني",
+  "aboutMeClickToFill": "اضغط للملء",
+  "aboutMeCoreValues": "القيم",
+  "aboutMeWorldview": "النظرة للعالم",
+  "aboutMeSkills": "المهارات",
+  "aboutMeInterests": "الاهتمامات",
+  "aboutMeDesires": "الرغبات",
+  "aboutMeBackground": "الملف الشخصي",
+  "aboutMeLikes": "الإعجابات",
+  "aboutMeDislikes": "عدم الإعجابات",
+  "aboutMeDeleteSection": "حذف القسم؟",
+  "aboutMeDeleteConfirm": "سيتم حذف جميع البيانات في هذا القسم.",
+  "aboutMeConnectionError": "خطأ في الاتصال: {error}",
+  "aboutMeVisibility": "الرؤية",
+  "aboutMeTags": "العلامات",
+  "aboutMeAddTag": "أضف علامة...",
+  "aboutMeDescription": "الوصف",
+  "aboutMeDescribeLong": "أخبرنا المزيد...",
+  "aboutMeVisibilityEveryone": "الجميع",
+  "aboutMeVisibilityContacts": "جهات الاتصال",
+  "aboutMeVisibilityOnlyMe": "أنا فقط",
+  "settingsProfileSubtitle": "الملف الشخصي",
+  "settingsWallpaper": "خلفية",
+  "settingsWallpaperDesc": "صورة الخلفية للتطبيق بالكامل",
+  "settingsWallpaperNone": "لا شيء",
+  "settingsAccount": "الحساب",
+  "settingsKycVerification": "التحقق من الهوية (KYC)",
+  "settingsOrganizations": "المنظمات",
+  "incomingCallLabel": "مكالمة واردة",
+  "incomingCallDecline": "رفض",
+  "incomingCallAccept": "قبول",
+  "meshIncomingCallLabel": "📡 مكالمة شبكة واردة",
+  "meshDeviceFallback": "جهاز شبكة {hexPrefix}",
+  "callConflictAlreadyInCall": "أنهِ المكالمة الحالية أولاً",
+  "callPopupTransportTitle": "اتصال عبر",
+  "callPopupTransportMesh": "📡 شبكة (نظير إلى نظير)",
+  "callPopupTransportLk": "📞 خادم",
+  "callPopupTransportMeshUnavailable": "لا يمكن الوصول إلى جهة الاتصال عبر الشبكة",
+  "meshOnboardingTitle": "📡 المكالمات الشبكية تحتاج إلى فتح التطبيق",
+  "meshOnboardingBody": "عند قفل الهاتف، قد تنقطع المكالمات الشبكية بعد ~30 ثانية (قيود iOS).",
+  "meshOnboardingAck": "فهمت",
+  "meshHistoryBadge": "📡 شبكة",
+  "meshHistoryNoChatAvailable": "جهة الاتصال ليست في قائمتك",
+  "meshCallStatusInviting": "جارٍ الاتصال…",
+  "meshCallStatusConnecting": "جارٍ الاتصال…",
+  "meshCallEndedUserHangup": "انتهت المكالمة",
+  "meshCallEndedRemoteHangup": "انتهت من قبل الطرف الآخر",
+  "meshCallEndedRejected": "مرفوضة",
+  "meshCallEndedNoAnswer": "لا يوجد رد",
+  "meshCallEndedConnectionLost": "تم فقد الاتصال",
+  "meshCallEndedError": "خطأ في الاتصال",
+  "meshCallTransportBadge": "📡 شبكة · {transport}",
+  "meshCallTransportBadgePlain": "📡 شبكة",
+  "batteryExemptionTitle": "📡 مكالمات شبكة موثوقة",
+  "batteryExemptionBody": "اسمح للتطبيق بالعمل بدون قيود البطارية حتى لا يقوم Android بإيقاف الشبكة في الخلفية.",
+  "batteryExemptionAccept": "افتح الإعدادات",
+  "batteryExemptionDismiss": "ليس الآن",
+  "groupCamera": "الكاميرا",
+  "groupGallery": "المعرض",
+  "groupAvatarUpdated": "تم تحديث صورة المجموعة",
+  "groupNameTitle": "اسم المجموعة",
+  "groupEnterName": "أدخل الاسم",
+  "groupDescriptionTitle": "وصف المجموعة",
+  "groupEnterDescription": "أدخل وصف المجموعة",
+  "groupChangeRoleTitle": "تغيير الدور",
+  "groupRemoveMemberTitle": "إزالة عضو",
+  "groupDescription": "الوصف",
+  "groupAddDescription": "أضف وصف المجموعة",
+  "groupNoDescription": "لا يوجد وصف",
+  "groupMediaAndFiles": "الوسائط والملفات",
+  "groupMuteNotifications": "كتم الإشعارات",
+  "groupMuted": "مكتوم",
+  "groupNoResults": "لا توجد نتائج",
+  "authInvalidCode": "رمز غير صالح. حاول مرة أخرى.",
+  "loginSubtitle": "استخدم البريد الإلكتروني وكلمة المرور",
+  "emailRequired": "أدخل البريد الإلكتروني",
+  "emailInvalid": "بريد إلكتروني غير صالح",
+  "passwordRequired": "أدخل كلمة المرور",
+  "registerSubtitle": "حساب واحد لكل نظام Taler",
+  "usernameOptional": "اسم المستخدم (اختياري)",
+  "usernameMinLength": "الحد الأدنى 3 أحرف",
+  "usernameMaxLength": "الحد الأقصى 30 حرفًا",
+  "usernameInvalid": "فقط حروف، أرقام و _",
+  "biometricLoginReason": "تسجيل الدخول إلى Taler ID",
+  "docTypePassport": "جواز السفر",
+  "docTypeIdCard": "بطاقة الهوية",
+  "docTypeDriverLicense": "رخصة القيادة",
+  "docTypeResidencePermit": "تصريح الإقامة",
+  "addressApartment": "شقة {number}",
+  "failedToUpdateProfile": "فشل في تحديث الملف الشخصي",
+  "failedToStartKyb": "فشل في بدء التحقق KYB",
+  "orgUpdated": "تم تحديث المنظمة",
+  "failedToUpdateOrg": "فشل في تحديث المنظمة",
+  "failedToChangeRole": "فشل في تغيير الدور",
+  "failedToRemoveMember": "فشل في إزالة العضو",
+  "capabilityMessagesTitle": "الرسائل",
+  "capabilityMessagesDesc": "تحقق من الرسائل أو اكتب لشخص ما. على سبيل المثال: \"اكتب إلى فيكتور: سأكون هناك خلال ساعة\"",
+  "capabilityCallsTitle": "المكالمات",
+  "capabilityCallsDesc": "اتصل بأي جهة اتصال صوتيًا. على سبيل المثال: \"اتصل بفيكتور فيكتوروف\"",
+  "capabilityChatTitle": "سجل الدردشة",
+  "capabilityChatDesc": "سأقوم بتحليل سجل الدردشة. على سبيل المثال: \"ماذا ناقشنا مع فيكتور؟\"",
+  "capabilityProfileTitle": "الملف الشخصي",
+  "capabilityProfileDesc": "سأعرض أو أحدث ملفك الشخصي. على سبيل المثال: \"اعرض ملفي الشخصي\"",
+  "capabilityCoachingTitle": "التدريب",
+  "capabilityCoachingDesc": "الأوضاع: تدريب ICF، علم النفس، استشارة الموارد البشرية. قل: \"لنقم بالتدريب\"",
+  "capabilityCalendarTitle": "التقويم",
+  "capabilityCalendarDesc": "جدولة اجتماع أو تعيين تذكير. على سبيل المثال: \"جدول اجتماع مع فيكتور غداً الساعة 15:00\"",
+  "capabilityNotesTitle": "الملاحظات",
+  "capabilityNotesDesc": "احفظ فكرة أو اقرأ الملاحظات الأخيرة. على سبيل المثال: \"اكتب فكرة...\" أو \"اقرأ الملاحظات الأخيرة\"",
+  "assistantCallConfirm": "إجراء مكالمة؟",
+  "callNoAnswer": "لا يوجد رد",
+  "contactDelete": "إزالة جهة الاتصال",
+  "contactDeleteTitle": "إزالة جهة الاتصال",
+  "contactDeleteConfirm": "هل أنت متأكد؟ سيتم إزالة هذه الجهة.",
+  "contactBlock": "حظر",
+  "contactBlockTitle": "حظر المستخدم",
+  "contactBlockConfirm": "لن يتمكن هذا المستخدم من مراسلتك أو الاتصال بك.",
+  "contactUnblock": "إلغاء الحظر",
+  "contactBlocked": "محظور",
+  "contactYouAreBlocked": "هذا المستخدم قام بحظرك",
+  "chatBlockedByYou": "لقد قمت بحظر هذا المستخدم",
+  "chatYouAreBlocked": "لقد تم حظرك من قبل هذا المستخدم",
+  "chatNotContacts": "أضف هذا المستخدم إلى جهات الاتصال لتتمكن من مراسلته",
+  "contactRevokeRequest": "إلغاء الطلب",
+  "messengerPoll": "استطلاع",
+  "messengerCreatePoll": "إنشاء استطلاع",
+  "messengerPollQuestion": "السؤال",
+  "messengerPollOption": "الخيار {number}",
+  "messengerPollAddOption": "إضافة خيار",
+  "messengerPollAnonymous": "تصويت مجهول",
+  "messengerPollMultiple": "اختيار متعدد",
+  "messengerPollCreateError": "فشل في إنشاء الاستطلاع",
+  "messengerPollUnavailable": "الاستطلاع غير متاح",
+  "messengerPollMultipleNote": "يمكنك اختيار عدة خيارات",
+  "messengerPollVotes": "{count} أصوات",
+  "messengerVideoMessage": "رسالة فيديو",
+  "messengerVideoRecordError": "خطأ في تسجيل الفيديو",
+  "messengerVideoPlaybackError": "تعذر تشغيل الفيديو",
+  "messengerGalleryAccessError": "لا يوجد وصول إلى المعرض",
+  "messengerSearchInChat": "البحث في الدردشة...",
+  "messengerSaveToFavorites": "حفظ في المفضلة",
+  "messengerSavedToFavorites": "تم الحفظ في المفضلة",
+  "messengerSearchInMessages": "البحث في الرسائل...",
+  "messengerFoundInMessages": "تم العثور في الرسائل ({count})",
+  "messengerGroupDefault": "مجموعة",
+  "messengerUserDefault": "مستخدم",
+  "messengerPin": "تثبيت",
+  "messengerUnpin": "إلغاء التثبيت",
+  "messengerArchive": "أرشفة",
+  "messengerUnarchive": "إلغاء الأرشفة",
+  "messengerDeleteChat": "حذف الدردشة",
+  "messengerDeleteChatTitle": "حذف الدردشة؟",
+  "messengerDeleteChatConfirm": "حذف الدردشة مع {name}؟ لا يمكن التراجع عن هذا.",
+  "messengerCreateChannel": "إنشاء قناة",
+  "messengerChannelName": "الاسم",
+  "messengerChannelDescription": "الوصف (اختياري)",
+  "messengerChannelCreateError": "فشل في إنشاء القناة",
+  "messengerFilterAll": "الكل",
+  "messengerFilterUnread": "غير مقروء",
+  "messengerFilterPersonal": "شخصي",
+  "messengerFilterGroups": "المجموعات",
+  "messengerFilterChannels": "القنوات",
+  "messengerArchivedSection": "المؤرشفة",
+  "messengerSavedSection": "المفضلة",
+  "messengerSavedSubtitle": "حفظ في الذاكرة",
+  "messengerArchiveTitle": "الأرشيف ({count})",
+  "messengerArchiveEmpty": "الأرشيف فارغ",
+  "messengerYouPrefix": "أنت: {message}",
+  "messengerMissedCall": "مكالمة فائتة",
+  "messengerSavedTitle": "المفضلة",
+  "messengerNoSavedMessages": "لا توجد رسائل محفوظة",
+  "messengerSavedHint": "اضغط مطولاً على رسالة → \"حفظ في المفضلة\"",
+  "messengerDefaultFile": "ملف",
+  "messengerTopicDefault": "عام",
+  "messengerTopicNew": "موضوع جديد",
+  "messengerTopicNameHint": "اسم الموضوع",
+  "messengerTopicIcon": "أيقونة",
+  "messengerTopicCount": "{count} مواضيع",
+  "messengerNoTopics": "لا توجد مواضيع",
+  "messengerNoMessages": "لا توجد رسائل",
+  "you": "أنت",
+  "messengerThread": "سلسلة",
+  "messengerThreadReply": "رد",
+  "messengerThreadReplies": "ردود",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "لا توجد ردود",
+  "messengerReplyHint": "الرد على السلسلة...",
+  "messengerContactName": "اسم جهة الاتصال",
+  "messengerOriginalName": "الاسم الأصلي: {name}",
+  "messengerDisplayName": "اسم العرض",
+  "messengerShareContact": "جهة الاتصال في Taler ID: {name}",
+  "messengerAutoDelete": "حذف الرسائل تلقائيًا",
+  "messengerAutoDeleteOff": "إيقاف",
+  "messengerAutoDelete7d": "7 أيام",
+  "messengerAutoDelete30d": "30 يومًا",
+  "messengerAutoDelete90d": "90 يومًا",
+  "messengerAutoDeleteDays": "{count} أيام",
+  "messengerSettingsHeader": "الإعدادات",
+  "messengerAdminOnly": "النشر للإدارة فقط",
+  "messengerAdminOnlyDesc": "يمكن للأعضاء القراءة فقط",
+  "messengerTopics": "المواضيع",
+  "messengerTopicsDesc": "تقسيم الدردشة إلى مواضيع",
+  "aiTwinSection": "التوأم الصوتي AI",
+  "aiTwinEnabled": "تفعيل التوأم AI",
+  "aiTwinEnabledDesc": "إذا لم ترد، يتولى التوأم AI المكالمة بصوتك",
+  "aiTwinTimeout": "مهلة الاستجابة",
+  "aiTwinTimeoutValue": "{seconds} ثانية",
+  "aiTwinPrompt": "تعليمات AI",
+  "aiTwinPromptSubtitle": "كيف يجب أن يقدم التوأم AI نفسه وما الذي يجب التحدث عنه",
+  "aiTwinPromptHint": "مرحبًا، هذا هو التوأم الصوتي AI لـ {name}. لم يتمكن {name} من الرد الآن. أخبرني من المتصل وما الموضوع — سأقوم بنقل الرسالة.",
+  "aiTwinComingSoon": "استنساخ الصوت المخصص قادم قريبًا. حاليًا يتحدث AI بصوت {name}.",
+  "aiTwinDefaultName": "المالك",
+  "aiTwinPromptReset": "إعادة تعيين",
+  "callHistoryAiTwinAnswered": "أجاب التوأم AI",
+  "callHistoryAiTwinSummary": "ملخص المكالمة",
+  "callHistoryAiTwinTranscript": "النص",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "من {name}",
+  "aiTwinOfferTitle": "عدم الرد",
+  "aiTwinOfferBody": "{name} لا يرد. هل تود ترك رسالة بصوت التوأم الذكي؟",
+  "aiTwinOfferBodyUser": "المستخدم",
+  "aiTwinOfferAccept": "نعم، اترك رسالة",
+  "aiTwinOfferKeepWaiting": "استمر في الانتظار",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "بديلك الذكي",
+  "aiTwinHeroSubtitle": "يجيب على المكالمات بصوتك عندما لا تستطيع.",
+  "aiTwinProfileTitle": "البديل الذكي",
+  "aiTwinProfileDesc": "يجيب على المكالمات بصوتك",
+  "aiTwinBadgeOn": "مُفعل",
+  "aiAnalystTitle": "المحلل الذكي",
+  "aiAnalystSubtitle": "ملفات، مهام، تحليل — Claude",
+  "channelsDiscover": "ابحث عن قناة",
+  "channelsSearchHint": "ابحث في القنوات",
+  "channelsSubscribers": "مشتركين",
+  "channelsSubscribe": "اشترك",
+  "channelsUnsubscribe": "إلغاء الاشتراك",
+  "channelsSubscribedLabel": "أنت مشترك",
+  "channelsSettings": "إعدادات القناة",
+  "channelsDelete": "حذف القناة",
+  "channelsDeleteConfirm": "حذف القناة نهائيًا؟",
+  "channelsEmpty": "لا توجد قنوات بعد",
+  "channelsOpen": "افتح",
+  "channelsNameLabel": "الاسم",
+  "channelsDescriptionLabel": "الوصف",
+  "channelsCannotUnsubscribeOwner": "لا يمكن للمالك إلغاء الاشتراك. احذف القناة بدلاً من ذلك.",
+  "channelsNotFoundRedirect": "القناة لم تعد موجودة",
+  "analystSeamSearches": "{count, plural, =1{{count} بحث} other{{count} بحوث}}",
+  "analystSeamFiles": "{count, plural, =1{{count} ملف} other{{count} ملفات}}",
+  "analystSeamCommands": "{count, plural, =1{{count} أمر} other{{count} أوامر}}",
+  "analystSeamImages": "{count, plural, =1{{count} صورة} other{{count} صور}}",
+  "analystSeamOther": "{count, plural, =1{{count} خطوة} other{{count} خطوات}}",
+  "analystSeamDurationSeconds": "{seconds}ث",
+  "savedTitle": "الرسائل المحفوظة",
+  "savedSubtitle": "سحابتك الخاصة",
+  "savedOpenError": "تعذر فتح الرسائل المحفوظة",
+  "billingWalletTitle": "المحفظة",
+  "billingBuyPackage": "شراء حزمة",
+  "billingCurrentBalance": "الرصيد الحالي",
+  "billingPackagesTitle": "الحزم",
+  "billingPackagesUnavailable": "الحزم غير متوفرة",
+  "billingRecentOperations": "العمليات الأخيرة",
+  "billingAllOperations": "جميع العمليات",
+  "billingNoOperations": "لا توجد عمليات",
+  "billingOperationsTitle": "العمليات",
+  "billingOperationsEmptyTitle": "لا توجد عمليات بعد",
+  "billingOperationsEmptySubtitle": "ستظهر عمليات الشحن والرسوم لميزات AI هنا",
+  "billingPricebookTitle": "أسعار الميزات",
+  "billingPricebookUnavailable": "قائمة الأسعار غير متوفرة",
+  "billingAiFeaturesTitle": "ميزات AI",
+  "billingInsufficientFundsTitle": "الأموال غير كافية",
+  "billingInsufficientFundsSubtitle": "اشحن رصيدك لاستخدام هذه الميزة.",
+  "billingRequiredLine": "المطلوب: {required} μTAL",
+  "billingAvailableLine": "المتوفر: {available} μTAL",
+  "billingTopUp": "اشحن",
+  "billingCancel": "إلغاء",
+  "billingRetry": "أعد المحاولة",
+  "billingLowBalanceWarning": "الرصيد منخفض: {balance} μTAL",
+  "billingWalletAndBalance": "المحفظة والرصيد",
+  "billingSectionHeader": "الفوترة وAI",
+  "billingFeatureVoiceAssistant": "المساعد الصوتي",
+  "billingFeatureWebSearch": "بحث الويب للمساعد",
+  "billingFeatureAiTwin": "التوأم الصوتي",
+  "billingFeatureAiTwinLong": "التوأم الصوتي (AI Twin)",
+  "billingFeatureOutboundCall": "بوت المكالمات الصادرة",
+  "billingFeatureOutboundCallLong": "بوت المكالمات الصادرة",
+  "billingFeatureWhisperTranscribe": "نسخ المكالمات",
+  "billingFeatureMeetingSummary": "ملخصات المكالمات AI",
+  "billingConfigureAiTwin": "تهيئة التوأم AI",
+  "billingWebSearchSubtitle": "(يستخدمه المساعد)",
+  "billingPackagePurchased": "تم شراء الحزمة: {balance} μTAL",
+  "billingRecommendedBadge": "موصى به",
+  "billingSessionTerminatedNoFunds": "نفد الرصيد - انتهت الجلسة",
+  "billingSessionTerminatedGeneric": "انتهت جلسة المساعد",
+  "billingBuyForPrice": "اشترِ مقابل €{price}",
+  "billingTxTypeTopup": "شحن",
+  "billingTxTypeRefund": "استرداد",
+  "billingTxTypeSpend": "رسوم",
+  "billingUnitMinute": "دقيقة",
+  "billingUnitRequest": "طلب",
+  "billingUnitToken": "رمز",
+  "billingUnitTokens1k": "1K رموز",
+  "billingUnitCall": "مكالمة",
+  "groupCallSelectParticipants": "اختر المشاركين",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "بحث",
+  "groupCallMaxReached": "الحد الأقصى 7 مشاركين",
+  "groupCallLobbyTitle": "مجموعة • اللوبي",
+  "groupCallHostLabel": "المضيف: {name}",
+  "groupCallMicHint": "سيتم تفعيل الميكروفون عند الاتصال",
+  "groupCallCancel": "إلغاء",
+  "groupCallNoAnswer": "لم يجب أحد",
+  "groupCallEndedByHost": "انتهت المكالمة بواسطة المضيف",
+  "groupCallAllLeft": "غادر الجميع المكالمة",
+  "groupCallEnded": "انتهت المكالمة",
+  "groupCallActiveTitle": "مجموعة • {count}",
+  "groupCallConnectionLost": "تم فقدان الاتصال",
+  "groupCallMuteRequested": "طلب المضيف من الجميع كتم الصوت",
+  "groupCallUnmute": "إلغاء كتم الصوت",
+  "groupCallMute": "كتم الصوت",
+  "groupCallMuteAll": "كتم الجميع",
+  "groupCallLeave": "مغادرة",
+  "groupCallStatusCalling": "يتصل…",
+  "groupCallStatusDeclined": "مرفوض",
+  "groupCallStatusTimeout": "لا إجابة",
+  "groupCallStatusLeft": "غادر",
+  "groupCallKickConfirm": "إزالة {name} من المكالمة",
+  "groupCallCancelAction": "إلغاء",
+  "groupCallActiveBanner": "مكالمة نشطة",
+  "groupCallBannerSummary": "مجموعة: {host} + {count}",
+  "groupCallBannerSummaryAlone": "مجموعة: {host}",
+  "groupCallCreateError": "تعذر إنشاء المكالمة",
+  "groupCallJoinError": "تعذر الانضمام إلى المكالمة",
+  "groupCallLivekitError": "خطأ في LiveKit",
+  "groupCallDone": "تم",
+  "groupCallNoResults": "لا توجد نتائج",
+  "groupCallNoContacts": "لا توجد جهات اتصال",
+  "meshGcContactOffline": "غير متصل على هذا الواي فاي",
+  "meshGcOnlineViaMesh": "متصل عبر الشبكة",
+  "meshGcMaxInvitees": "المكالمات الجماعية تدعم حتى 4 مدعوين (5 أشخاص إجمالاً).",
+  "meshGcStart": "ابدأ مكالمة جماعية",
+  "meshGcCancel": "إلغاء",
+  "meshGcStatusCalling": "جارٍ الاتصال…",
+  "meshGcStatusJoined": "انضم",
+  "meshGcStatusDeclined": "مرفوض",
+  "meshGcStatusNoAnswer": "لا يوجد رد",
+  "meshGcStatusConnectionFailed": "فشل الاتصال",
+  "meshGcStatusLeft": "غادر",
+  "meshGcTopTitle": "شبكة",
+  "meshGcBusyOneOnOne": "أنهِ مكالمتك الحالية أولاً.",
+  "presenceOnline": "متصل",
+  "presenceLastSeenJustNow": "آخر ظهور الآن",
+  "presenceLastSeenMinutesAgo": "آخر ظهور منذ {minutes} دقيقة",
+  "presenceLastSeenToday": "آخر ظهور اليوم في {time}",
+  "presenceLastSeenYesterday": "آخر ظهور أمس في {time}",
+  "presenceLastSeenOnDate": "آخر ظهور في {date}",
+  "presenceLastSeenRecently": "آخر ظهور مؤخراً",
+  "privacySectionTitle": "الخصوصية",
+  "privacyLastSeenLabel": "من يرى وقت آخر ظهور لك",
+  "privacyEveryone": "الجميع",
+  "privacyContacts": "جهات الاتصال فقط",
+  "privacyNobody": "لا أحد",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

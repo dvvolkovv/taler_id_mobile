@@ -1,0 +1,1691 @@
+{
+  "@@locale": "zh",
+  "appTitle": "Taler ID",
+  "search": "搜索",
+  "appSubtitle": "统一生态系统身份",
+  "login": "登录",
+  "loginButton": "登录",
+  "register": "创建账户",
+  "registerButton": "创建账户",
+  "email": "邮箱",
+  "password": "密码",
+  "confirmPassword": "确认密码",
+  "firstName": "名字",
+  "lastName": "姓氏",
+  "noAccount": "没有账户？",
+  "createOne": "创建一个",
+  "haveAccount": "已有账户？",
+  "signIn": "登录",
+  "passwordMinLength": "至少8个字符",
+  "invalidEmail": "请输入有效的邮箱",
+  "fieldRequired": "必填字段",
+  "twoFATitle": "双因素认证",
+  "twoFASubtitle": "输入来自验证器应用的6位数代码",
+  "twoFACode": "2FA代码",
+  "verify": "验证",
+  "tabProfile": "个人资料",
+  "tabKyc": "KYC",
+  "tabOrganization": "组织",
+  "tabSettings": "设置",
+  "profile": "个人资料",
+  "editProfile": "编辑个人资料",
+  "phone": "电话",
+  "country": "国家",
+  "dateOfBirth": "出生日期",
+  "documents": "文件",
+  "addDocument": "添加文件",
+  "noDocuments": "未上传文件",
+  "save": "保存",
+  "profileUpdated": "个人资料已更新",
+  "personalData": "个人数据",
+  "passport": "护照",
+  "drivingLicense": "驾驶执照",
+  "diploma": "文凭",
+  "nationalId": "国家身份证",
+  "certificate": "证书",
+  "notSpecified": "未指定",
+  "notSpecifiedFemale": "未指定",
+  "documentType": "文件类型",
+  "passportId": "护照 / 身份证",
+  "diplomaCertificate": "文凭 / 证书",
+  "loadError": "加载错误",
+  "verification": "验证",
+  "countryAustria": "奥地利",
+  "countryGermany": "德国",
+  "countryRussia": "俄罗斯",
+  "countryUkraine": "乌克兰",
+  "countryKazakhstan": "哈萨克斯坦",
+  "countryBelarus": "白俄罗斯",
+  "countryOther": "其他",
+  "kycTitle": "KYC 验证",
+  "kycVerified": "已验证",
+  "kycPending": "待处理",
+  "kycRejected": "已拒绝",
+  "kycUnverified": "未验证",
+  "kycVerifiedDesc": "您的身份已验证。您可以完全访问 Taler 生态系统的所有功能。",
+  "kycPendingDesc": "您的文件正在审核中。通常需要 1-2 个工作日。",
+  "kycRejectedDesc": "验证失败。请查看原因并重新提交您的文件。",
+  "kycUnverifiedDesc": "完成验证以解锁 Taler 生态系统的全部金融功能。",
+  "startVerification": "开始验证",
+  "retryVerification": "重试验证",
+  "verifiedAt": "验证时间：{date}",
+  "documentsSubmitted": "文件已提交审核",
+  "documentsSubmittedDesc": "审核通常需要 1-2 个工作日。您将收到结果的推送通知。",
+  "securityAes": "您的数据通过 AES-256 加密保护",
+  "verificationTime": "验证需要 1-2 个工作日",
+  "pushNotification": "您将收到结果的推送通知",
+  "kycWebOnly": "KYC 验证仅在移动应用中可用。",
+  "verificationError": "验证错误：{code}",
+  "organizations": "组织",
+  "noOrganizations": "没有组织",
+  "noOrganizationsDesc": "创建一个组织或接受邀请",
+  "createOrganization": "创建组织",
+  "newOrganization": "新组织",
+  "orgName": "名称 *",
+  "orgDescription": "描述",
+  "orgEmail": "联系邮箱",
+  "orgWebsite": "网站",
+  "orgLegalAddress": "法律地址",
+  "create": "创建",
+  "organization": "组织",
+  "contacts": "联系人",
+  "members": "成员 ({count})",
+  "inviteMember": "邀请成员",
+  "invite": "邀请",
+  "sendInvite": "发送邀请",
+  "inviteSent": "邀请已发送至 {email}",
+  "role": "角色",
+  "roleOwner": "所有者",
+  "roleAdmin": "管理员",
+  "roleOperator": "操作员",
+  "roleViewer": "查看者",
+  "editOrganization": "编辑",
+  "editOrganizationTitle": "编辑组织",
+  "removeMember": "移除成员",
+  "removeMemberConfirm": "从组织中移除 {name}?",
+  "memberRemoved": "成员已移除",
+  "roleChanged": "角色已更改",
+  "kybVerified": "已验证",
+  "kybPending": "待处理",
+  "kybRejected": "已拒绝",
+  "kybNone": "未验证",
+  "kybVerification": "开始 KYB 验证",
+  "kybStartBusiness": "开始业务验证",
+  "kybStatusLabel": "KYB 状态",
+  "noKyb": "无 KYB",
+  "kybBusinessVerificationTitle": "业务验证 (KYB)",
+  "kybVerifiedOrgDesc": "组织验证成功。",
+  "kybPendingOrgDesc": "文件正在审核中。通常需要 1-3 个工作日。",
+  "kybRejectedOrgDesc": "验证失败。请重试。",
+  "kybNoneOrgDesc": "验证您的组织以访问业务功能。",
+  "invitePlus": "+ 邀请",
+  "kybVerificationTitle": "KYB 验证",
+  "kybWebOnlyBusiness": "KYB验证仅在移动应用中可用。",
+  "unknownDevice": "未知设备",
+  "ipUnknown": "IP未知",
+  "currentSessionLabel": "当前",
+  "endSessionAction": "结束",
+  "deviceLoggedOut": "设备将被登出。",
+  "acceptInvitationTitle": "组织邀请",
+  "acceptInvitation": "接受邀请",
+  "acceptInvitationDesc": "您已被邀请加入Taler生态系统中的一个组织。",
+  "accept": "接受",
+  "reject": "拒绝",
+  "sessions": "活动会话",
+  "currentSession": "当前会话",
+  "deleteSession": "结束会话",
+  "deleteSessionConfirm": "结束此会话？",
+  "sessionDeleted": "会话已结束",
+  "noSessions": "没有活动会话",
+  "minutesAgo": "{count}分钟前",
+  "hoursAgo": "{count}小时前",
+  "daysAgo": "{count}天前",
+  "justNow": "刚刚",
+  "settings": "设置",
+  "security": "安全",
+  "biometrics": "生物识别",
+  "biometricsDesc": "使用Face ID或指纹快速登录",
+  "biometricsConfirm": "确认生物识别以启用快速登录",
+  "biometricsError": "启用生物识别失败。检查设备设置。",
+  "changePassword": "更改密码",
+  "twoFactorAuth": "双因素认证",
+  "currentPassword": "当前密码",
+  "newPassword": "新密码",
+  "confirmNewPassword": "确认新密码",
+  "passwordChanged": "密码已更改",
+  "wrongCurrentPassword": "当前密码错误",
+  "passwordTooWeak": "密码太弱：至少8个字符，需包含字母和数字",
+  "passwordChangeFailed": "更改密码失败",
+  "notifications": "通知",
+  "permissions": "权限",
+  "permissionNotifications": "推送通知",
+  "permissionNotificationsDesc": "通话、消息、状态",
+  "permissionMicrophone": "麦克风",
+  "permissionMicrophoneDesc": "通话和语音助手",
+  "permissionCamera": "相机",
+  "permissionCameraDesc": "视频通话和验证",
+  "permissionLocation": "位置",
+  "permissionLocationDesc": "用于验证",
+  "permissionOpenSettings": "要撤销权限，请打开系统设置",
+  "pushKycStatus": "KYC 状态推送",
+  "pushKycStatusDesc": "验证结果",
+  "pushLogins": "登录推送",
+  "pushLoginsDesc": "从新设备登录时",
+  "account": "账户",
+  "language": "语言",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "界面语言",
+  "exportData": "导出数据 (GDPR)",
+  "deleteAccount": "删除账户",
+  "deleteAccountConfirm": "删除账户？",
+  "deleteAccountDesc": "您的所有数据将被删除 (GDPR)。此操作不可逆。",
+  "logout": "退出登录",
+  "logoutConfirm": "退出登录？",
+  "logoutDesc": "您将在此设备上退出 Taler ID。",
+  "version": "Taler ID v{version}",
+  "pinCode": "PIN 码",
+  "pinCodeDesc": "使用4位数代码快速登录",
+  "setupPin": "设置 PIN",
+  "enterPin": "输入 PIN",
+  "confirmPin": "确认 PIN",
+  "pinMismatch": "PIN 不匹配",
+  "pinSet": "PIN 设置成功",
+  "enterPinToLogin": "输入 PIN 以登录",
+  "pinIncorrect": "PIN 错误",
+  "removePin": "移除 PIN",
+  "pinRemoved": "PIN 已移除",
+  "cancel": "取消",
+  "delete": "删除",
+  "ok": "确定",
+  "retry": "重试",
+  "loading": "加载中...",
+  "error": "错误",
+  "success": "成功",
+  "noData": "无数据",
+  "failedToLoad": "加载数据失败",
+  "failedToLoadProfile": "加载个人资料失败",
+  "failedToSave": "保存更改失败",
+  "failedToLoadOrgs": "加载组织失败",
+  "failedToLoadOrg": "加载组织数据失败",
+  "failedToCreateOrg": "创建组织失败",
+  "failedToInvite": "发送邀请失败",
+  "failedToAcceptInvite": "接受邀请失败",
+  "failedToLoadSessions": "加载会话失败",
+  "failedToDeleteSession": "结束会话失败",
+  "failedToLoadKyc": "加载验证状态失败",
+  "failedToStartKyc": "开始验证失败",
+  "verifiedPersonalInfo": "已验证数据",
+  "middleName": "中间名",
+  "placeOfBirth": "出生地",
+  "nationality": "国籍",
+  "gender": "性别",
+  "genderMale": "男",
+  "genderFemale": "女",
+  "docNumber": "编号",
+  "docIssuedDate": "签发日期",
+  "docValidUntil": "有效期至",
+  "docIssuedBy": "签发机构",
+  "address": "地址",
+  "refreshData": "刷新数据",
+  "failedToLoadSumsubData": "加载验证数据失败",
+  "sumsubDataLoading": "正在加载验证数据...",
+  "reviewResultGreen": "验证通过",
+  "reviewResultRed": "验证失败",
+  "tabAssistant": "助手",
+  "assistantConnecting": "正在连接…",
+  "assistantSpeaking": "正在说话…",
+  "assistantListening": "正在聆听…",
+  "assistantTapToStart": "点击开始",
+  "assistantTapToTalk": "点击与AI对话",
+  "assistantRealtimeDesc": "助手实时语音响应",
+  "assistantConnectingToAssistant": "正在连接助手...",
+  "assistantAiSpeaking": "AI 说话中...",
+  "assistantAiListening": "AI 听中",
+  "assistantSpeakerOn": "扬声器开",
+  "assistantSpeaker": "扬声器",
+  "assistantEnd": "结束",
+  "assistantUnmute": "取消静音",
+  "assistantMicrophone": "麦克风",
+  "assistantConnectionError": "连接错误",
+  "tabMessenger": "消息",
+  "tabCalls": "通话",
+  "tabCalendar": "日历",
+  "appearance": "外观",
+  "appearanceSelect": "选择主题",
+  "themeLight": "浅色",
+  "themeDark": "深色",
+  "themeSystem": "系统",
+  "onboardingTitle1": "统一身份",
+  "onboardingDesc1": "Taler ID 是您在 Taler 生态系统中的数字护照。一个账户，所有服务。",
+  "onboardingTitle2": "数据安全",
+  "onboardingDesc2": "KYC 验证、AES-256 加密和双因素认证保护您的身份。",
+  "onboardingTitle3": "保持知情",
+  "onboardingDesc3": "获取关于验证状态、新设备登录和来电的通知。",
+  "onboardingNext": "下一步",
+  "onboardingEnableNotifications": "启用通知",
+  "onboardingTitle4": "语音通话",
+  "onboardingDesc4": "授予麦克风访问权限以进行语音通话和 AI 助手。您可以稍后在设置中更改此项。",
+  "onboardingEnableMicrophone": "启用麦克风",
+  "onboardingStart": "开始使用",
+  "onboardingSkip": "跳过",
+  "meshLocalNetworkPromptTitle": "允许本地网络访问",
+  "meshLocalNetworkPromptBody": "要在 Wi-Fi 上找到对等设备（离线群组通话），iOS 需要本地网络权限。打开设置 → 隐私与安全 → 本地网络 → Taler ID。",
+  "meshLocalNetworkPromptOpenSettings": "打开设置",
+  "meshLocalNetworkPromptDismiss": "知道了",
+  "forgotPassword": "忘记密码？",
+  "forgotPasswordTitle": "重置密码",
+  "forgotPasswordSubtitle": "输入您的电子邮件以接收重置代码",
+  "resetCodeSent": "代码已发送至 {email}",
+  "enterResetCode": "输入代码",
+  "resetPasswordButton": "重置密码",
+  "passwordResetSuccess": "密码重置成功",
+  "sendCode": "发送验证码",
+  "resendCode": "重新发送验证码",
+  "newGroup": "新建群组",
+  "newChat": "新建聊天",
+  "groupName": "群组名称",
+  "createGroup": "创建群组",
+  "groupInfo": "群组信息",
+  "groupMembers": "成员 ({count})",
+  "addMembers": "添加成员",
+  "leaveGroup": "退出群组",
+  "leaveGroupConfirm": "确定退出该群组？",
+  "deleteGroup": "删除群组",
+  "deleteGroupConfirm": "确定删除该群组？此操作无法撤销。",
+  "groupRoleOwner": "所有者",
+  "groupRoleAdmin": "管理员",
+  "groupRoleMember": "成员",
+  "selectParticipants": "选择参与者",
+  "selectedCount": "已选择 {count} 个",
+  "changeRole": "更改角色",
+  "groupCreated": "群组已创建",
+  "memberJoined": "{name} 加入了群组",
+  "memberLeftGroup": "{name} 退出了群组",
+  "memberWasRemoved": "{name} 被移除",
+  "roleChangedTo": "{name} 现在是 {role}",
+  "participantsCount": "{count} 位参与者",
+  "enterGroupName": "输入群组名称",
+  "muteNotifications": "静音通知",
+  "unmuteNotifications": "取消静音通知",
+  "muteFor1Hour": "静音 1 小时",
+  "muteFor8Hours": "静音 8 小时",
+  "muteFor2Days": "静音 2 天",
+  "muteForever": "永久静音",
+  "muted": "已静音",
+  "tabTranslator": "翻译",
+  "translatorTitle": "翻译器",
+  "translatorSelectLanguage": "选择语言",
+  "translatorDownloading": "正在下载语言模型...",
+  "translatorDownloadingHint": "首次下载需要网络连接",
+  "translatorTypeHint": "输入文本或点击麦克风",
+  "translatorListening": "正在聆听...",
+  "translatorTapToSpeak": "点击说话",
+  "translatorTapToStop": "点击停止",
+  "translatorAutoSpeak": "自动说话",
+  "translatorCopied": "已复制",
+  "translatorLangRu": "俄语",
+  "translatorLangEn": "英语",
+  "translatorLangDe": "德语",
+  "translatorLangFr": "法语",
+  "translatorLangEs": "西班牙语",
+  "translatorLangIt": "意大利语",
+  "translatorLangPt": "葡萄牙语",
+  "translatorLangTr": "土耳其语",
+  "translatorLangZh": "中文",
+  "translatorLangJa": "日语",
+  "translatorLangKo": "韩语",
+  "translatorLangAr": "阿拉伯语",
+  "translatorLangPl": "波兰语",
+  "translatorLangSk": "斯洛伐克语",
+  "translatorLangCs": "捷克语",
+  "translatorLangNl": "荷兰语",
+  "translatorLangSv": "瑞典语",
+  "translatorLangDa": "丹麦语",
+  "translatorLangNo": "挪威语",
+  "translatorLangFi": "芬兰语",
+  "translatorLangUk": "乌克兰语",
+  "translatorLangEl": "希腊语",
+  "translatorLangRo": "罗马尼亚语",
+  "translatorLangHu": "匈牙利语",
+  "translatorLangBg": "保加利亚语",
+  "translatorLangHr": "克罗地亚语",
+  "translatorLangSr": "塞尔维亚语",
+  "translatorLangHi": "印地语",
+  "translatorLangTh": "泰语",
+  "translatorLangVi": "越南语",
+  "translatorLangId": "印度尼西亚语",
+  "translatorLangMs": "马来语",
+  "translatorLangHe": "希伯来语",
+  "translatorLangFa": "波斯语",
+  "callInProgress": "通话进行中",
+  "joinCall": "加入",
+  "createCallLink": "通话链接",
+  "callLinkCopied": "链接已复制",
+  "callLinkTitle": "房间链接",
+  "connectionUnstable": "连接不稳定 — 检查您的网络",
+  "today": "今天",
+  "yesterday": "昨天",
+  "errorTimeout": "连接超时。检查您的网络连接。",
+  "errorNoConnection": "没有网络连接。",
+  "errorGeneral": "发生错误。请重试。",
+  "errorWithMessage": "错误：{message}",
+  "notifChannelMessages": "消息",
+  "notifChannelMessagesDesc": "新消息通知",
+  "notifChannelMissedCalls": "未接来电",
+  "notifChannelMissedCallsDesc": "未接来电通知",
+  "notifMissedCall": "未接来电",
+  "notifAccept": "接受",
+  "notifDecline": "拒绝",
+  "notifIncomingCall": "来电",
+  "notifIncomingCallChannel": "来电",
+  "notifMissedCallChannel": "未接来电",
+  "notifUnknown": "未知",
+  "effectNone": "无背景",
+  "effectBlur": "模糊",
+  "effectOffice": "办公室",
+  "effectNature": "自然",
+  "effectGradient": "渐变",
+  "effectLibrary": "图书馆",
+  "effectCity": "城市",
+  "effectMinimalism": "极简主义",
+  "voiceParticipant": "参与者",
+  "voiceInvitesToRoom": "邀请您进入房间",
+  "voiceRoom": "房间",
+  "voicePasswordProtected": "密码保护",
+  "voicePasswordHint": "密码",
+  "voiceEnter": "进入",
+  "voiceJoinRoom": "加入房间",
+  "voiceYourName": "您的名字",
+  "voiceInvitationSent": "邀请已发送给{name}",
+  "voiceNoActiveRoom": "没有活跃的房间",
+  "voiceCameraPermission": "在设置中允许相机访问 → 隐私 → 相机 → TalerID",
+  "voiceOpenSettings": "打开",
+  "voiceCameraError": "启用相机失败：{error}",
+  "voiceAllAgreedRecording": "全部同意。录音已开始。",
+  "voiceNewParticipantAgreed": "新参与者同意录音。",
+  "voiceDeclinedRecording": "您拒绝了录音。正在离开通话。",
+  "voiceRecordingEnded": "录音结束",
+  "voiceRecordingInProgress": "录音进行中",
+  "voiceTranscriptionRequest": "转录请求",
+  "voiceRecordingRequest": "录音请求",
+  "voiceAgree": "同意",
+  "voiceDeclineAndLeave": "拒绝并离开",
+  "voiceAudioOutput": "音频输出",
+  "voiceAudioPhone": "手机",
+  "voiceAudioSpeaker": "扬声器",
+  "voiceAudioBluetooth": "蓝牙",
+  "voiceAudioHeadphones": "耳机",
+  "voiceLinkCopied": "链接已复制",
+  "voiceTranslateTo": "翻译为",
+  "voiceSearchLanguage": "搜索语言...",
+  "voiceRoomWithCreator": "房间 {name}",
+  "voiceVoiceCall": "语音通话",
+  "voiceOnHold": "保持",
+  "voiceActiveCall": "通话中",
+  "voiceEndAllCalls": "结束所有通话",
+  "voiceEndThisCall": "结束此通话",
+  "voiceCopyLink": "复制链接",
+  "voiceAddParticipant": "添加参与者",
+  "voiceReconnecting": "重新连接中...",
+  "voiceConnectionError": "连接错误",
+  "voiceClose": "关闭",
+  "voiceCalling": "正在呼叫...",
+  "voiceCallActive": "通话激活",
+  "voiceWaiting": "等待中",
+  "voiceWaitingUpper": "等待中",
+  "voiceRec": "录音",
+  "voiceStop": "停止",
+  "voiceRecord": "录音",
+  "voiceTranslation": "翻译",
+  "voiceAudio": "音频",
+  "voiceFlipCamera": "翻转",
+  "voiceBackground": "背景",
+  "voiceAssistantSpeakingStatus": "助手正在说话...",
+  "voiceAssistantListeningStatus": "助手正在聆听...",
+  "voiceUnmute": "取消静音",
+  "voiceMic": "麦克风",
+  "voiceAssistantLabel": "助手",
+  "voiceCameraOn": "摄像头开启",
+  "voiceCameraLabel": "摄像头",
+  "voiceEndCall": "结束通话",
+  "voiceWaitingParticipants": "等待参与者...",
+  "voiceYou": "你",
+  "voiceAiAssistant": "AI助手",
+  "voiceVideoUnavailable": "视频不可用",
+  "voiceSearchNickname": "按昵称搜索...",
+  "voiceTranscriptionWord": "转录",
+  "voiceRecordingWord": "录音",
+  "voiceConnecting": "连接中...",
+  "voiceVideoBackground": "视频背景",
+  "voiceCallSettings": "通话设置",
+  "voiceEnableAI": "启用AI助手",
+  "voiceAIParticipating": "AI将参与对话",
+  "voiceNormalCall": "普通通话，无AI",
+  "voiceCallConfirm": "拨打电话？",
+  "chatAlreadyInCall": "已在通话中",
+  "chatCallError": "通话错误：{error}",
+  "chatPhotoVideo": "照片 / 视频",
+  "chatCamera": "摄像头",
+  "chatFile": "文件",
+  "chatContact": "联系人",
+  "chatSelectContact": "选择联系人",
+  "chatNoContacts": "没有联系人",
+  "chatUser": "用户",
+  "chatFileAttachment": "📎 文件",
+  "chatFileUploadError": "文件上传错误：{error}",
+  "chatVoiceMessage": "🎤 语音消息",
+  "chatGroup": "群组",
+  "chatDialog": "对话",
+  "chatCall": "通话",
+  "chatStartConversation": "开始对话",
+  "chatYou": "你",
+  "chatIsTyping": "正在输入...",
+  "chatUserIsTyping": "{name} 正在输入...",
+  "chatUsersAreTyping": "{names} 正在输入...",
+  "chatPreparingFile": "准备文件...",
+  "chatUploading": "上传中... {progress}%",
+  "chatEdited": "已编辑",
+  "chatViaMesh": "通过网状网络",
+  "chatReply": "回复",
+  "chatEdit": "编辑",
+  "chatCopy": "复制",
+  "chatCopied": "已复制",
+  "chatSaveMedia": "保存",
+  "chatForward": "转发",
+  "chatSaving": "保存中...",
+  "chatSavedToGallery": "已保存到图库",
+  "chatNoSavePermission": "没有保存权限。请检查设置。",
+  "chatFileSaveError": "文件保存错误",
+  "chatDeleteMessage": "删除消息",
+  "chatDeleteForMe": "为我删除",
+  "chatDeleteForEveryone": "为所有人删除",
+  "chatMessageForwarded": "消息已转发",
+  "chatContactTapToOpen": "联系人 · 点击打开",
+  "chatForwardTo": "转发到...",
+  "chatSearchHint": "搜索...",
+  "chatRecording": "录音中...",
+  "chatMessageHint": "消息...",
+  "chatHideKeyboard": "隐藏键盘",
+  "chatEditing": "编辑中",
+  "chatFileDownloadError": "文件下载错误",
+  "chatVoiceMessageShort": "语音消息",
+  "chatVideoSavedToGallery": "视频已保存到图库",
+  "chatSavingError": "保存错误",
+  "convSetNickname": "设置昵称",
+  "convNicknameRequired": "需要一个昵称才能使用此消息应用。其他用户可以通过它找到您。",
+  "convNicknameRules": "3–30 个字符：字母、数字、_",
+  "convNicknameTaken": "昵称已被占用",
+  "convSaveError": "保存错误",
+  "convContactsLabel": "联系人",
+  "convDefaultUser": "用户",
+  "convNoDialogs": "没有对话",
+  "convFindUserToChat": "查找用户开始聊天",
+  "convDefaultContact": "联系人",
+  "dashboardUser": "用户",
+  "dashboardIncomingCall": "来电",
+  "dashboardDecline": "拒绝",
+  "dashboardAccept": "接受",
+  "dashboardActiveCall": "通话中 — 点击返回",
+  "dashboardUpdateAvailable": "可用更新 {version}",
+  "dashboardUpdate": "更新",
+  "dashboardWhatsNew": "新功能",
+  "dashboardWhatsNewTitle": "{version} 的新功能",
+  "dashboardInstalling": "正在安装...",
+  "contactRequestsTitle": "联系人",
+  "messengerContactRequestsSection": "联系人请求",
+  "messengerContactRequestsCount": "{count, plural, =1{1 个新请求} other{{count} 个新请求}}",
+  "contactRequestsSearch": "搜索",
+  "contactRequestsIncoming": "收到的",
+  "contactRequestsSent": "已发送",
+  "contactRequestsSearchHint": "昵称或邮箱",
+  "contactRequestSent": "请求已发送",
+  "contactRequestsNoUsers": "未找到用户",
+  "contactRequestsSearchHelp": "输入准确的昵称或邮箱\n然后按搜索",
+  "contactRequestsSendTooltip": "发送请求",
+  "contactRequestTitle": "联系人请求",
+  "contactRequestConfirm": "发送联系人请求给 {name}?",
+  "contactRequestSend": "发送",
+  "contactRequestsNoIncoming": "没有收到的请求",
+  "contactRequestsNoSent": "没有已发送的请求",
+  "contactRequestStatusPending": "等待回应",
+  "contactRequestStatusAccepted": "已接受",
+  "contactRequestStatusRejected": "已拒绝",
+  "userSearchTitle": "查找用户",
+  "userSearchHint": "昵称、电话或邮箱",
+  "userSearchHelper": "输入 @昵称、邮箱或姓名进行搜索",
+  "userSearchNoUsers": "未找到用户",
+  "userProfileShareContact": "分享联系人",
+  "userProfileShareContactDesc": "发送联系人链接",
+  "userProfileCopyLink": "复制链接",
+  "userProfileCopied": "已复制",
+  "userProfileTitle": "个人资料",
+  "userProfileLoadError": "加载个人资料错误",
+  "userProfileMessage": "消息",
+  "userProfileCall": "通话",
+  "userProfileRequestSent": "请求已发送",
+  "userProfileAccept": "接受",
+  "userProfileDecline": "拒绝",
+  "userProfileAddToContacts": "添加到联系人",
+  "userProfileMediaTab": "媒体",
+  "userProfileFilesTab": "文件",
+  "userProfileLinksTab": "链接",
+  "userProfileRecordingsTab": "录音",
+  "userProfileSummariesTab": "摘要",
+  "userProfileNoMedia": "没有媒体文件",
+  "userProfileNoFiles": "没有文件",
+  "userProfileNoLinks": "没有链接",
+  "userProfileNoRecordings": "没有录音",
+  "userProfileNoSummaries": "没有摘要",
+  "userProfileMeetingSummary": "会议摘要",
+  "userProfileFailedOpenChat": "打开聊天失败",
+  "sharedMediaTitle": "媒体和文件",
+  "sharedMediaTab": "媒体",
+  "sharedFilesTab": "文件",
+  "sharedLinksTab": "链接",
+  "sharedNoMedia": "没有媒体文件",
+  "sharedNoFiles": "没有文件",
+  "sharedNoLinks": "没有链接",
+  "shareToChat": "转发到聊天",
+  "shareSelectChat": "选择聊天",
+  "shareNoChats": "没有聊天",
+  "shareFilesCount": "{count} 个文件",
+  "contactsTitle": "联系人",
+  "contactsAddTooltip": "添加联系人",
+  "contactsSearchHint": "搜索联系人...",
+  "contactsNotFound": "未找到",
+  "contactsEmpty": "没有联系人",
+  "contactsAdd": "添加联系人",
+  "contactsPendingConfirmation": "等待确认",
+  "contactsMessage": "消息",
+  "contactsCall": "通话",
+  "contactsResend": "重新发送请求",
+  "contactsResendTimeout": "24小时后重试",
+  "contactsResent": "请求已重发",
+  "contactsWantsToConnect": "想与你连接",
+  "contactsSearchPeople": "找人",
+  "notesTitle": "笔记",
+  "notesAssistantSpeaking": "助手正在说话...",
+  "notesListening": "正在听...",
+  "notesEmpty": "没有笔记",
+  "notesEmptyHint": "按下麦克风进行听写\n或按+手动输入",
+  "notesDeleteConfirm": "删除笔记？",
+  "notesNew": "新笔记",
+  "notesEdit": "编辑",
+  "notesTitleHint": "标题",
+  "notesContentHint": "写下你的想法...",
+  "calendarTitle": "日历",
+  "calendarStop": "停止",
+  "calendarVoiceInput": "语音输入",
+  "calendarNewEvent": "新事件",
+  "calendarAssistantSpeaking": "助手正在说话...",
+  "calendarListening": "正在听...",
+  "calendarInvitations": "邀请 ({count})",
+  "calendarNoEvents": "没有事件",
+  "calendarDayMon": "周一",
+  "calendarDayTue": "周二",
+  "calendarDayWed": "周三",
+  "calendarDayThu": "周四",
+  "calendarDayFri": "周五",
+  "calendarDaySat": "周六",
+  "calendarDaySun": "周日",
+  "calendarEnterRoom": "进入房间",
+  "calendarMeeting": "会议",
+  "calendarLocationPrefix": "地点: {location}",
+  "calendarEditEvent": "编辑",
+  "calendarTitleHint": "标题",
+  "calendarDescriptionHint": "描述",
+  "calendarTypeEvent": "事件",
+  "calendarTypeMeeting": "会议",
+  "calendarTypeReminder": "提醒",
+  "calendarTypeLabel": "类型",
+  "calendarMeetingLink": "会议链接",
+  "calendarLocationHint": "位置",
+  "calendarDateLabel": "日期",
+  "calendarTimeLabel": "时间",
+  "calendarReminderLabel": "提醒",
+  "calendarReminderNone": "无",
+  "calendarReminder15min": "提前15分钟",
+  "calendarReminder30min": "提前30分钟",
+  "calendarReminder1hour": "提前1小时",
+  "calendarRepeatLabel": "重复",
+  "calendarRepeatNone": "不重复",
+  "calendarRepeatDaily": "每天",
+  "calendarRepeatWeekly": "每周",
+  "calendarRepeatMonthly": "每月",
+  "calendarRepeatYearly": "每年",
+  "calendarParticipants": "参与者",
+  "calendarAddParticipant": "添加",
+  "calendarSearchContacts": "搜索联系人...",
+  "calendarNoContacts": "无联系人",
+  "calendarStatusAccepted": "已接受",
+  "calendarStatusDeclined": "已拒绝",
+  "calendarStatusMaybe": "可能",
+  "calendarStatusPending": "待定",
+  "calendarEndTime": "结束时间",
+  "calendarYourAnswer": "你的回答：",
+  "calendarOrganizer": "组织者",
+  "calendarDeleteError": "删除失败：{error}",
+  "calendarRsvpAccept": "接受",
+  "calendarRsvpMaybe": "可能",
+  "calendarRsvpDecline": "拒绝",
+  "callHistoryTitle": "通话",
+  "callHistoryTab": "通话记录",
+  "callHistoryTempMeeting": "临时会议",
+  "callHistoryCopy": "复制",
+  "callHistoryLinkCopied": "链接已复制",
+  "callHistoryShare": "分享",
+  "callHistoryEnter": "进入",
+  "callHistoryAlreadyInCall": "已在通话中",
+  "callHistoryCouldNotDeterminePeer": "无法确定对方",
+  "callHistoryContacts": "联系人",
+  "callHistoryFailedLoadRoom": "加载房间失败",
+  "callHistoryYourRoom": "您的房间",
+  "callHistoryCreateMeeting": "创建会议",
+  "callHistoryMeetingSummaries": "会议摘要",
+  "callHistoryMeetingRecordings": "会议录音",
+  "callHistoryNoCalls": "无通话",
+  "callHistoryMissed": "未接",
+  "callHistoryRecording": "录音",
+  "callHistorySummary": "摘要",
+  "callHistoryCallAgain": "再次呼叫",
+  "callHistoryTodayTime": "今天，{time}",
+  "callHistoryYesterdayTime": "昨天，{time}",
+  "callHistoryUnknown": "未知",
+  "callHistoryDetails": "通话详情",
+  "callHistoryOutgoing": "呼出电话",
+  "callHistoryIncoming": "呼入电话",
+  "callHistoryDuration": "时长：{duration}",
+  "callHistoryWithAI": "与AI助手",
+  "callHistoryParticipants": "参与者",
+  "callDetailYouSuffix": "（您）",
+  "callHistoryMeetingSummary": "会议摘要",
+  "callHistoryMoreDetails": "更多详情",
+  "callHistorySummaryProcessing": "摘要处理中...",
+  "callHistoryMeetingRecording": "会议录音",
+  "callHistoryProcessing": "处理中...",
+  "callHistoryCreateTranscript": "创建记录",
+  "callHistoryNoSummaries": "无摘要",
+  "callHistoryRecordDuringCall": "通话时按“录音”",
+  "callHistoryMeetingTime": "会议 {time}",
+  "callHistoryTranscribing": "转录和总结中...",
+  "callHistoryTranscriptCreated": "记录已创建",
+  "callHistoryNoRecordings": "无录音",
+  "callHistoryRecordingDate": "录音 {date}",
+  "callHistoryRecordingUnavailable": "录音不可用",
+  "callHistoryTranscriptReady": "记录已准备好",
+  "callHistoryTranscript": "记录",
+  "callHistoryKeyPoints": "关键点",
+  "callHistoryTasks": "任务",
+  "callHistoryAssignedTo": "分配给：{assignee}",
+  "callHistoryDecisions": "决策",
+  "callHistoryShowTranscript": "显示完整记录",
+  "profileScanQr": "扫描二维码",
+  "profileMyQrCode": "我的二维码",
+  "profileAddMeShare": "在 Taler ID 中添加我！\ntalerid://user/{userId}",
+  "profileShowCode": "显示此代码以添加您",
+  "profileEditDesc": "名字，姓氏，父名，出生日期",
+  "profileAboutMe": "关于我",
+  "profileAboutMeDesc": "价值观、技能、兴趣等",
+  "profileNotes": "笔记",
+  "profileNotesDesc": "想法、创意和笔记",
+  "profileAvatarUpdated": "头像已更新",
+  "profileNickname": "昵称",
+  "profileNotSet": "未设置",
+  "profileChangeNickname": "更改昵称",
+  "profileNicknameUpdated": "昵称已更新",
+  "profileShareLabel": "分享",
+  "profileScanQrCode": "扫描二维码",
+  "profilePointCamera": "将相机对准二维码",
+  "profilePhotoCamera": "拍照",
+  "profilePhotoGallery": "从图库中选择",
+  "editProfilePatronymic": "父名（可选）",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "关于我",
+  "aboutMeClickToFill": "点击填写",
+  "aboutMeCoreValues": "价值观",
+  "aboutMeWorldview": "世界观",
+  "aboutMeSkills": "技能",
+  "aboutMeInterests": "兴趣",
+  "aboutMeDesires": "愿望",
+  "aboutMeBackground": "简介",
+  "aboutMeLikes": "喜欢",
+  "aboutMeDislikes": "不喜欢",
+  "aboutMeDeleteSection": "删除部分？",
+  "aboutMeDeleteConfirm": "此部分中的所有数据将被删除。",
+  "aboutMeConnectionError": "连接错误：{error}",
+  "aboutMeVisibility": "可见性",
+  "aboutMeTags": "标签",
+  "aboutMeAddTag": "添加标签...",
+  "aboutMeDescription": "描述",
+  "aboutMeDescribeLong": "告诉我们更多...",
+  "aboutMeVisibilityEveryone": "所有人",
+  "aboutMeVisibilityContacts": "联系人",
+  "aboutMeVisibilityOnlyMe": "仅自己",
+  "settingsProfileSubtitle": "个人资料",
+  "settingsWallpaper": "壁纸",
+  "settingsWallpaperDesc": "整个应用的背景图片",
+  "settingsWallpaperNone": "无",
+  "settingsAccount": "账户",
+  "settingsKycVerification": "身份验证 (KYC)",
+  "settingsOrganizations": "组织",
+  "incomingCallLabel": "来电",
+  "incomingCallDecline": "拒接",
+  "incomingCallAccept": "接听",
+  "meshIncomingCallLabel": "📡 网状网络来电",
+  "meshDeviceFallback": "网状设备 {hexPrefix}",
+  "callConflictAlreadyInCall": "请先结束当前通话",
+  "callPopupTransportTitle": "通话方式",
+  "callPopupTransportMesh": "📡 网状网络 (点对点)",
+  "callPopupTransportLk": "📞 服务器",
+  "callPopupTransportMeshUnavailable": "联系人无法通过网状网络联系",
+  "meshOnboardingTitle": "📡 网状网络通话需要应用打开",
+  "meshOnboardingBody": "当手机锁定时，网状网络通话可能会在约30秒后断开 (iOS 限制)。",
+  "meshOnboardingAck": "知道了",
+  "meshHistoryBadge": "📡 网状网络",
+  "meshHistoryNoChatAvailable": "联系人不在您的列表中",
+  "meshCallStatusInviting": "正在呼叫…",
+  "meshCallStatusConnecting": "正在连接…",
+  "meshCallEndedUserHangup": "通话结束",
+  "meshCallEndedRemoteHangup": "对方已结束",
+  "meshCallEndedRejected": "已拒绝",
+  "meshCallEndedNoAnswer": "无人接听",
+  "meshCallEndedConnectionLost": "连接丢失",
+  "meshCallEndedError": "连接错误",
+  "meshCallTransportBadge": "📡 网状网络 · {transport}",
+  "meshCallTransportBadgePlain": "📡 网状网络",
+  "batteryExemptionTitle": "📡 可靠的网状网络通话",
+  "batteryExemptionBody": "允许应用在没有电池限制的情况下运行，以防止 Android 在后台关闭网状网络。",
+  "batteryExemptionAccept": "打开设置",
+  "batteryExemptionDismiss": "暂不",
+  "groupCamera": "相机",
+  "groupGallery": "图库",
+  "groupAvatarUpdated": "群组头像已更新",
+  "groupNameTitle": "群组名称",
+  "groupEnterName": "输入名称",
+  "groupDescriptionTitle": "群组描述",
+  "groupEnterDescription": "输入群组描述",
+  "groupChangeRoleTitle": "更改角色",
+  "groupRemoveMemberTitle": "移除成员",
+  "groupDescription": "描述",
+  "groupAddDescription": "添加群组描述",
+  "groupNoDescription": "无描述",
+  "groupMediaAndFiles": "媒体和文件",
+  "groupMuteNotifications": "静音通知",
+  "groupMuted": "已静音",
+  "groupNoResults": "无结果",
+  "authInvalidCode": "验证码无效。请重试。",
+  "loginSubtitle": "使用邮箱和密码",
+  "emailRequired": "输入邮箱",
+  "emailInvalid": "邮箱无效",
+  "passwordRequired": "输入密码",
+  "registerSubtitle": "一个账户畅享整个 Taler 生态系统",
+  "usernameOptional": "用户名（可选）",
+  "usernameMinLength": "最少 3 个字符",
+  "usernameMaxLength": "最多 30 个字符",
+  "usernameInvalid": "仅限字母、数字和_",
+  "biometricLoginReason": "登录 Taler ID",
+  "docTypePassport": "护照",
+  "docTypeIdCard": "身份证",
+  "docTypeDriverLicense": "驾驶执照",
+  "docTypeResidencePermit": "居留许可",
+  "addressApartment": "公寓 {number}",
+  "failedToUpdateProfile": "更新个人资料失败",
+  "failedToStartKyb": "启动 KYB 验证失败",
+  "orgUpdated": "组织已更新",
+  "failedToUpdateOrg": "更新组织失败",
+  "failedToChangeRole": "更改角色失败",
+  "failedToRemoveMember": "移除成员失败",
+  "capabilityMessagesTitle": "消息",
+  "capabilityMessagesDesc": "查看消息或给某人写信。例如：“写信给 Viktor：一小时后到”",
+  "capabilityCallsTitle": "通话",
+  "capabilityCallsDesc": "通过语音拨打任何联系人的电话。例如：“呼叫 Viktor Viktorov”",
+  "capabilityChatTitle": "聊天记录",
+  "capabilityChatDesc": "我会分析聊天记录。例如：“我们和Viktor讨论了什么？”",
+  "capabilityProfileTitle": "个人资料",
+  "capabilityProfileDesc": "我会显示或更新您的个人资料。例如：“显示我的个人资料”",
+  "capabilityCoachingTitle": "辅导",
+  "capabilityCoachingDesc": "模式：ICF辅导、心理学家、HR咨询。说：“让我们进行辅导”",
+  "capabilityCalendarTitle": "日历",
+  "capabilityCalendarDesc": "安排会议或设置提醒。例如：“安排明天下午15:00与Viktor的会议”",
+  "capabilityNotesTitle": "笔记",
+  "capabilityNotesDesc": "保存想法或阅读最近的笔记。例如：“记下一个想法...”或“阅读最近的笔记”",
+  "assistantCallConfirm": "拨打电话？",
+  "callNoAnswer": "无人接听",
+  "contactDelete": "删除联系人",
+  "contactDeleteTitle": "删除联系人",
+  "contactDeleteConfirm": "您确定吗？此联系人将被删除。",
+  "contactBlock": "屏蔽",
+  "contactBlockTitle": "屏蔽用户",
+  "contactBlockConfirm": "此用户将无法给您发送消息或拨打电话。",
+  "contactUnblock": "取消屏蔽",
+  "contactBlocked": "已屏蔽",
+  "contactYouAreBlocked": "此用户已屏蔽您",
+  "chatBlockedByYou": "您已屏蔽此用户",
+  "chatYouAreBlocked": "您已被此用户屏蔽",
+  "chatNotContacts": "将此用户添加到联系人以发送消息",
+  "contactRevokeRequest": "撤销请求",
+  "messengerPoll": "投票",
+  "messengerCreatePoll": "创建投票",
+  "messengerPollQuestion": "问题",
+  "messengerPollOption": "选项 {number}",
+  "messengerPollAddOption": "添加选项",
+  "messengerPollAnonymous": "匿名投票",
+  "messengerPollMultiple": "多选",
+  "messengerPollCreateError": "创建投票失败",
+  "messengerPollUnavailable": "投票不可用",
+  "messengerPollMultipleNote": "您可以选择多个",
+  "messengerPollVotes": "{count} 票",
+  "messengerVideoMessage": "视频消息",
+  "messengerVideoRecordError": "视频录制错误",
+  "messengerVideoPlaybackError": "无法播放视频",
+  "messengerGalleryAccessError": "无法访问图库",
+  "messengerSearchInChat": "在聊天中搜索...",
+  "messengerSaveToFavorites": "保存到收藏夹",
+  "messengerSavedToFavorites": "已保存到收藏夹",
+  "messengerSearchInMessages": "在消息中搜索...",
+  "messengerFoundInMessages": "在消息中找到 ({count})",
+  "messengerGroupDefault": "群组",
+  "messengerUserDefault": "用户",
+  "messengerPin": "置顶",
+  "messengerUnpin": "取消置顶",
+  "messengerArchive": "存档",
+  "messengerUnarchive": "取消存档",
+  "messengerDeleteChat": "删除聊天",
+  "messengerDeleteChatTitle": "删除聊天？",
+  "messengerDeleteChatConfirm": "删除与 {name} 的聊天？此操作无法撤销。",
+  "messengerCreateChannel": "创建频道",
+  "messengerChannelName": "名称",
+  "messengerChannelDescription": "描述（可选）",
+  "messengerChannelCreateError": "创建频道失败",
+  "messengerFilterAll": "全部",
+  "messengerFilterUnread": "未读",
+  "messengerFilterPersonal": "个人",
+  "messengerFilterGroups": "群组",
+  "messengerFilterChannels": "频道",
+  "messengerArchivedSection": "已存档",
+  "messengerSavedSection": "收藏夹",
+  "messengerSavedSubtitle": "保存到记忆",
+  "messengerArchiveTitle": "存档 ({count})",
+  "messengerArchiveEmpty": "存档为空",
+  "messengerYouPrefix": "你: {message}",
+  "messengerMissedCall": "未接来电",
+  "messengerSavedTitle": "收藏夹",
+  "messengerNoSavedMessages": "没有保存的消息",
+  "messengerSavedHint": "长按消息 → \"保存到收藏夹\"",
+  "messengerDefaultFile": "文件",
+  "messengerTopicDefault": "常规",
+  "messengerTopicNew": "新话题",
+  "messengerTopicNameHint": "话题名称",
+  "messengerTopicIcon": "图标",
+  "messengerTopicCount": "{count} 个话题",
+  "messengerNoTopics": "没有话题",
+  "messengerNoMessages": "没有消息",
+  "you": "你",
+  "messengerThread": "线程",
+  "messengerThreadReply": "回复",
+  "messengerThreadReplies": "回复",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "没有回复",
+  "messengerReplyHint": "回复线程...",
+  "messengerContactName": "联系人姓名",
+  "messengerOriginalName": "原始姓名: {name}",
+  "messengerDisplayName": "显示名称",
+  "messengerShareContact": "Taler ID 中的联系人: {name}",
+  "messengerAutoDelete": "自动删除消息",
+  "messengerAutoDeleteOff": "关闭",
+  "messengerAutoDelete7d": "7 天",
+  "messengerAutoDelete30d": "30 天",
+  "messengerAutoDelete90d": "90 天",
+  "messengerAutoDeleteDays": "{count} 天",
+  "messengerSettingsHeader": "设置",
+  "messengerAdminOnly": "仅管理员发布",
+  "messengerAdminOnlyDesc": "成员只能阅读",
+  "messengerTopics": "话题",
+  "messengerTopicsDesc": "将聊天分成话题",
+  "aiTwinSection": "AI 语音双胞胎",
+  "aiTwinEnabled": "启用 AI 双胞胎",
+  "aiTwinEnabledDesc": "如果你不接电话，你的 AI 双胞胎会用你的声音接听",
+  "aiTwinTimeout": "响应超时",
+  "aiTwinTimeoutValue": "{seconds} 秒",
+  "aiTwinPrompt": "AI 指令",
+  "aiTwinPromptSubtitle": "AI 双胞胎应如何介绍自己以及谈论什么",
+  "aiTwinPromptHint": "你好，这是 {name} 的 AI 语音双胞胎。{name} 现在无法接听。告诉我是谁打来的以及有什么事——我会转告。",
+  "aiTwinComingSoon": "自定义语音克隆即将推出。目前 AI 使用 {name} 的声音。",
+  "aiTwinDefaultName": "所有者",
+  "aiTwinPromptReset": "重置",
+  "callHistoryAiTwinAnswered": "AI 双胞胎已接听",
+  "callHistoryAiTwinSummary": "通话摘要",
+  "callHistoryAiTwinTranscript": "文字记录",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "来自 {name}",
+  "aiTwinOfferTitle": "未接听",
+  "aiTwinOfferBody": "{name} 没有接听。用他们的AI语音替身留言吗？",
+  "aiTwinOfferBodyUser": "用户",
+  "aiTwinOfferAccept": "是的，留言",
+  "aiTwinOfferKeepWaiting": "继续等待",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "您的AI替身",
+  "aiTwinHeroSubtitle": "当您无法接听时，用您的声音接听电话。",
+  "aiTwinProfileTitle": "AI替身",
+  "aiTwinProfileDesc": "用您的声音接听电话",
+  "aiTwinBadgeOn": "开启",
+  "aiAnalystTitle": "AI分析师",
+  "aiAnalystSubtitle": "文件、任务、分析 — Claude",
+  "channelsDiscover": "发现频道",
+  "channelsSearchHint": "搜索频道",
+  "channelsSubscribers": "订阅者",
+  "channelsSubscribe": "订阅",
+  "channelsUnsubscribe": "取消订阅",
+  "channelsSubscribedLabel": "您已订阅",
+  "channelsSettings": "频道设置",
+  "channelsDelete": "删除频道",
+  "channelsDeleteConfirm": "永久删除频道？",
+  "channelsEmpty": "暂无频道",
+  "channelsOpen": "打开",
+  "channelsNameLabel": "名称",
+  "channelsDescriptionLabel": "描述",
+  "channelsCannotUnsubscribeOwner": "所有者无法取消订阅。请删除频道。",
+  "channelsNotFoundRedirect": "频道不存在",
+  "analystSeamSearches": "{count, plural, =1{{count} 次搜索} other{{count} 次搜索}}",
+  "analystSeamFiles": "{count, plural, =1{{count} 个文件} other{{count} 个文件}}",
+  "analystSeamCommands": "{count, plural, =1{{count} 个命令} other{{count} 个命令}}",
+  "analystSeamImages": "{count, plural, =1{{count} 张图片} other{{count} 张图片}}",
+  "analystSeamOther": "{count, plural, =1{{count} 步} other{{count} 步}}",
+  "analystSeamDurationSeconds": "{seconds}秒",
+  "savedTitle": "已保存的消息",
+  "savedSubtitle": "您的私人云",
+  "savedOpenError": "无法打开已保存的消息",
+  "billingWalletTitle": "钱包",
+  "billingBuyPackage": "购买套餐",
+  "billingCurrentBalance": "当前余额",
+  "billingPackagesTitle": "套餐",
+  "billingPackagesUnavailable": "套餐不可用",
+  "billingRecentOperations": "最近操作",
+  "billingAllOperations": "所有操作",
+  "billingNoOperations": "无操作",
+  "billingOperationsTitle": "操作",
+  "billingOperationsEmptyTitle": "尚无操作",
+  "billingOperationsEmptySubtitle": "AI功能的充值和扣费将在此显示",
+  "billingPricebookTitle": "功能价格",
+  "billingPricebookUnavailable": "价格表不可用",
+  "billingAiFeaturesTitle": "AI功能",
+  "billingInsufficientFundsTitle": "资金不足",
+  "billingInsufficientFundsSubtitle": "充值余额以使用此功能。",
+  "billingRequiredLine": "需要：{required} μTAL",
+  "billingAvailableLine": "拥有：{available} μTAL",
+  "billingTopUp": "充值",
+  "billingCancel": "取消",
+  "billingRetry": "重试",
+  "billingLowBalanceWarning": "余额不足：{balance} μTAL",
+  "billingWalletAndBalance": "钱包与余额",
+  "billingSectionHeader": "计费与AI",
+  "billingFeatureVoiceAssistant": "语音助手",
+  "billingFeatureWebSearch": "助手网页搜索",
+  "billingFeatureAiTwin": "语音双胞胎",
+  "billingFeatureAiTwinLong": "语音双胞胎（AI Twin）",
+  "billingFeatureOutboundCall": "外呼机器人",
+  "billingFeatureOutboundCallLong": "外呼拨号机器人",
+  "billingFeatureWhisperTranscribe": "通话转录",
+  "billingFeatureMeetingSummary": "AI通话总结",
+  "billingConfigureAiTwin": "配置AI双胞胎",
+  "billingWebSearchSubtitle": "（由助手使用）",
+  "billingPackagePurchased": "已购买套餐：{balance} μTAL",
+  "billingRecommendedBadge": "推荐",
+  "billingSessionTerminatedNoFunds": "余额耗尽 — 会话结束",
+  "billingSessionTerminatedGeneric": "助手会话结束",
+  "billingBuyForPrice": "购买价格：€{price}",
+  "billingTxTypeTopup": "充值",
+  "billingTxTypeRefund": "退款",
+  "billingTxTypeSpend": "扣费",
+  "billingUnitMinute": "分钟",
+  "billingUnitRequest": "请求",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K tokens",
+  "billingUnitCall": "通话",
+  "groupCallSelectParticipants": "选择参与者",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "搜索",
+  "groupCallMaxReached": "最多7位参与者",
+  "groupCallLobbyTitle": "群组 • 大厅",
+  "groupCallHostLabel": "主持人: {name}",
+  "groupCallMicHint": "连接时麦克风将激活",
+  "groupCallCancel": "取消",
+  "groupCallNoAnswer": "无人接听",
+  "groupCallEndedByHost": "通话已被主持人结束",
+  "groupCallAllLeft": "所有人已离开通话",
+  "groupCallEnded": "通话已结束",
+  "groupCallActiveTitle": "群组 • {count}",
+  "groupCallConnectionLost": "连接已断开",
+  "groupCallMuteRequested": "主持人要求所有人静音",
+  "groupCallUnmute": "取消静音",
+  "groupCallMute": "静音",
+  "groupCallMuteAll": "全部静音",
+  "groupCallLeave": "离开",
+  "groupCallStatusCalling": "正在呼叫…",
+  "groupCallStatusDeclined": "已拒绝",
+  "groupCallStatusTimeout": "无人接听",
+  "groupCallStatusLeft": "已离开",
+  "groupCallKickConfirm": "将 {name} 移出通话",
+  "groupCallCancelAction": "取消",
+  "groupCallActiveBanner": "正在通话",
+  "groupCallBannerSummary": "群组: {host} + {count}",
+  "groupCallBannerSummaryAlone": "群组: {host}",
+  "groupCallCreateError": "无法创建通话",
+  "groupCallJoinError": "无法加入通话",
+  "groupCallLivekitError": "LiveKit 错误",
+  "groupCallDone": "完成",
+  "groupCallNoResults": "无结果",
+  "groupCallNoContacts": "无联系人",
+  "meshGcContactOffline": "不在此 Wi-Fi 上",
+  "meshGcOnlineViaMesh": "通过网格在线",
+  "meshGcMaxInvitees": "群组通话最多支持4位受邀者（共5人）。",
+  "meshGcStart": "开始群组通话",
+  "meshGcCancel": "取消",
+  "meshGcStatusCalling": "正在呼叫…",
+  "meshGcStatusJoined": "已加入",
+  "meshGcStatusDeclined": "已拒绝",
+  "meshGcStatusNoAnswer": "无人接听",
+  "meshGcStatusConnectionFailed": "连接失败",
+  "meshGcStatusLeft": "已离开",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "请先结束当前通话。",
+  "presenceOnline": "在线",
+  "presenceLastSeenJustNow": "刚刚在线",
+  "presenceLastSeenMinutesAgo": "{minutes}分钟前在线",
+  "presenceLastSeenToday": "今天{time}在线",
+  "presenceLastSeenYesterday": "昨天{time}在线",
+  "presenceLastSeenOnDate": "{date}在线",
+  "presenceLastSeenRecently": "最近在线",
+  "privacySectionTitle": "隐私",
+  "privacyLastSeenLabel": "谁可以看到你的最后上线时间",
+  "privacyEveryone": "所有人",
+  "privacyContacts": "仅联系人",
+  "privacyNobody": "无人",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

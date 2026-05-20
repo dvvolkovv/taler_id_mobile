@@ -1,0 +1,1691 @@
+{
+  "@@locale": "ha",
+  "appTitle": "Taler ID",
+  "search": "Bincike",
+  "appSubtitle": "Hadin kai na asalin yanayi",
+  "login": "Shiga",
+  "loginButton": "Shiga",
+  "register": "Ƙirƙiri Asusun",
+  "registerButton": "Ƙirƙiri Asusun",
+  "email": "Imel",
+  "password": "Kalmar wucewa",
+  "confirmPassword": "Tabbatar da Kalmar wucewa",
+  "firstName": "Sunan Farko",
+  "lastName": "Sunan Karshe",
+  "noAccount": "Ba ku da asusu?",
+  "createOne": "Ƙirƙiri ɗaya",
+  "haveAccount": "Kuna da asusu?",
+  "signIn": "Shiga",
+  "passwordMinLength": "Akalla haruffa 8",
+  "invalidEmail": "Shigar da ingantaccen imel",
+  "fieldRequired": "Filin da ake bukata",
+  "twoFATitle": "Tabbatarwa Mai Matakai Biyu",
+  "twoFASubtitle": "Shigar da lambar 6-dijit daga manhajar tabbatarwa",
+  "twoFACode": "Lambar 2FA",
+  "verify": "Tabbatar",
+  "tabProfile": "Bayanin Kai",
+  "tabKyc": "KYC",
+  "tabOrganization": "Ƙungiya",
+  "tabSettings": "Saituna",
+  "profile": "Bayanin Kai",
+  "editProfile": "Gyara Bayanai",
+  "phone": "Waya",
+  "country": "Ƙasa",
+  "dateOfBirth": "Ranar Haihuwa",
+  "documents": "Takardu",
+  "addDocument": "Ƙara Takarda",
+  "noDocuments": "Babu takardu da aka loda",
+  "save": "Ajiye",
+  "profileUpdated": "An sabunta bayanin kai",
+  "personalData": "Bayanai na Kai",
+  "passport": "Fasfo",
+  "drivingLicense": "Lasisin Tuƙi",
+  "diploma": "Diploma",
+  "nationalId": "Katin Shaida",
+  "certificate": "Takardar Shaida",
+  "notSpecified": "Ba a bayyana ba",
+  "notSpecifiedFemale": "Ba a bayyana ba",
+  "documentType": "Nau'in Takarda",
+  "passportId": "Fasfo / Katin Shaida",
+  "diplomaCertificate": "Diploma / Takardar Shaida",
+  "loadError": "Kuskuren lodawa",
+  "verification": "Tabbatarwa",
+  "countryAustria": "Austria",
+  "countryGermany": "Jamus",
+  "countryRussia": "Rasha",
+  "countryUkraine": "Ukraine",
+  "countryKazakhstan": "Kazakhstan",
+  "countryBelarus": "Belarus",
+  "countryOther": "Sauran",
+  "kycTitle": "Tabbatar da KYC",
+  "kycVerified": "An Tabbatar",
+  "kycPending": "Ana jira",
+  "kycRejected": "An ƙi",
+  "kycUnverified": "Ba a Tabbatar ba",
+  "kycVerifiedDesc": "An tabbatar da shaidarka. Kana da cikakken damar amfani da dukkan fasalolin tsarin Taler.",
+  "kycPendingDesc": "Ana duba takardunka. Yawanci yana ɗaukar kwanaki 1-2 na kasuwanci.",
+  "kycRejectedDesc": "Tabbatarwa ta kasa. Da fatan za a duba dalilin kuma sake gabatar da takardun.",
+  "kycUnverifiedDesc": "Kammala tabbatarwa don buɗe cikakken damar amfani da fasalolin kuɗi na tsarin Taler.",
+  "startVerification": "Fara Tabbatarwa",
+  "retryVerification": "Sake Gwada Tabbatarwa",
+  "verifiedAt": "An Tabbatar: {date}",
+  "documentsSubmitted": "An gabatar da takardu don dubawa",
+  "documentsSubmittedDesc": "Dubawa yawanci yana ɗaukar kwanaki 1-2 na kasuwanci. Za ku karɓi sanarwar turawa da sakamakon.",
+  "securityAes": "Ana kare bayananka da AES-256 ɓoyewa",
+  "verificationTime": "Tabbatarwa yana ɗaukar kwanaki 1-2 na kasuwanci",
+  "pushNotification": "Za ku karɓi sanarwar turawa da sakamakon",
+  "kycWebOnly": "Tabbatar da KYC yana samuwa ne kawai a cikin manhajar wayar hannu.",
+  "verificationError": "Kuskuren tabbatarwa: {code}",
+  "organizations": "Ƙungiyoyi",
+  "noOrganizations": "Babu ƙungiyoyi",
+  "noOrganizationsDesc": "Ƙirƙiri ƙungiya ko karɓi gayyata",
+  "createOrganization": "Ƙirƙiri Ƙungiya",
+  "newOrganization": "Sabuwar Ƙungiya",
+  "orgName": "Suna *",
+  "orgDescription": "Bayanin",
+  "orgEmail": "Imel na Tuntuɓa",
+  "orgWebsite": "Yanar Gizo",
+  "orgLegalAddress": "Adireshin Shari'a",
+  "create": "Ƙirƙiri",
+  "organization": "Ƙungiya",
+  "contacts": "Tuntuɓi",
+  "members": "Mambobi ({count})",
+  "inviteMember": "Gayyata Memba",
+  "invite": "Gayyata",
+  "sendInvite": "Aika Gayyata",
+  "inviteSent": "An aika gayyata zuwa {email}",
+  "role": "Matsayi",
+  "roleOwner": "Mai Shi",
+  "roleAdmin": "Mai Gudanarwa",
+  "roleOperator": "Mai Aiki",
+  "roleViewer": "Mai Kallo",
+  "editOrganization": "Gyara",
+  "editOrganizationTitle": "Gyara Ƙungiya",
+  "removeMember": "Cire Memba",
+  "removeMemberConfirm": "A cire {name} daga ƙungiya?",
+  "memberRemoved": "An cire memba",
+  "roleChanged": "An canza matsayi",
+  "kybVerified": "An Tabbatar",
+  "kybPending": "Ana Jira",
+  "kybRejected": "An Ki",
+  "kybNone": "Ba a Tabbatar ba",
+  "kybVerification": "Fara Tabbatar da KYB",
+  "kybStartBusiness": "Fara Tabbatar da Kasuwanci",
+  "kybStatusLabel": "Matsayin KYB",
+  "noKyb": "Babu KYB",
+  "kybBusinessVerificationTitle": "Tabbatar da Kasuwanci (KYB)",
+  "kybVerifiedOrgDesc": "An tabbatar da ƙungiya cikin nasara.",
+  "kybPendingOrgDesc": "Ana duba takardu. Wannan yawanci yana ɗaukar kwanaki 1-3 na kasuwanci.",
+  "kybRejectedOrgDesc": "Tabbatarwa ta gaza. Da fatan za a sake gwadawa.",
+  "kybNoneOrgDesc": "Tabbatar da ƙungiyarku don samun damar fasalolin kasuwanci.",
+  "invitePlus": "+ Gayyata",
+  "kybVerificationTitle": "Tabbatar da KYB",
+  "kybWebOnlyBusiness": "Binciken KYB yana samuwa ne kawai a cikin manhajar wayar hannu.",
+  "unknownDevice": "Na'ura ba a sani ba",
+  "ipUnknown": "IP ba a sani ba",
+  "currentSessionLabel": "Na yanzu",
+  "endSessionAction": "Rufe",
+  "deviceLoggedOut": "Za a fitar da na'urar.",
+  "acceptInvitationTitle": "Gayyata zuwa Ƙungiya",
+  "acceptInvitation": "Karɓi Gayyata",
+  "acceptInvitationDesc": "An gayyace ka ka shiga wata ƙungiya a cikin tsarin Taler.",
+  "accept": "Karɓi",
+  "reject": "Ki",
+  "sessions": "Zaman Aiki",
+  "currentSession": "Zaman yanzu",
+  "deleteSession": "Rufe Zama",
+  "deleteSessionConfirm": "Rufe wannan zaman?",
+  "sessionDeleted": "An rufe zaman",
+  "noSessions": "Babu zaman aiki",
+  "minutesAgo": "{count} min da suka wuce",
+  "hoursAgo": "{count} hr da suka wuce",
+  "daysAgo": "{count} kwanaki da suka wuce",
+  "justNow": "Yanzu-yanzu",
+  "settings": "Saituna",
+  "security": "Tsaro",
+  "biometrics": "Biometrics",
+  "biometricsDesc": "Shiga cikin sauri da Face ID ko yatsa",
+  "biometricsConfirm": "Tabbatar da biometrics don kunna shiga cikin sauri",
+  "biometricsError": "Gaza kunna biometrics. Duba saitunan na'ura.",
+  "changePassword": "Sauya Kalmar Wucewa",
+  "twoFactorAuth": "Tabbatarwa Biyu",
+  "currentPassword": "Kalmar Wucewa ta Yanzu",
+  "newPassword": "Sabuwar Kalmar Wucewa",
+  "confirmNewPassword": "Tabbatar da Sabuwar Kalmar Wucewa",
+  "passwordChanged": "An sauya kalmar wucewa",
+  "wrongCurrentPassword": "Kalmar wucewa ta yanzu ba daidai ba",
+  "passwordTooWeak": "Kalmar wucewa rauni: aƙalla haruffa 8, harafi da lamba suna bukata",
+  "passwordChangeFailed": "Gaza sauya kalmar wucewa",
+  "notifications": "Sanarwa",
+  "permissions": "Izini",
+  "permissionNotifications": "Sanarwar Tura",
+  "permissionNotificationsDesc": "Kira, saƙonni, halaye",
+  "permissionMicrophone": "Makirufo",
+  "permissionMicrophoneDesc": "Kiran waya da mataimaki na murya",
+  "permissionCamera": "Kamara",
+  "permissionCameraDesc": "Kiran bidiyo da tantancewa",
+  "permissionLocation": "Wuri",
+  "permissionLocationDesc": "Ana amfani da shi don tantancewa",
+  "permissionOpenSettings": "Don soke izini, bude saitunan tsarin",
+  "pushKycStatus": "Matsayin KYC",
+  "pushKycStatusDesc": "Sakamakon tantancewa",
+  "pushLogins": "Shiga na'ura",
+  "pushLoginsDesc": "Lokacin shiga daga sabuwar na'ura",
+  "account": "Asusu",
+  "language": "Harshe",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Harshe na Fuska",
+  "exportData": "Fitar da Bayanai (GDPR)",
+  "deleteAccount": "Goge Asusu",
+  "deleteAccountConfirm": "Goge asusu?",
+  "deleteAccountDesc": "Dukkan bayananka za a goge su (GDPR). Wannan aiki ba za a iya dawo da shi ba.",
+  "logout": "Fita",
+  "logoutConfirm": "Fita?",
+  "logoutDesc": "Za a fitar da kai daga Taler ID a wannan na'ura.",
+  "version": "Taler ID v{version}",
+  "pinCode": "Lambar PIN",
+  "pinCodeDesc": "Shiga da sauri tare da lamba mai lamba 4",
+  "setupPin": "Saita PIN",
+  "enterPin": "Shigar da PIN",
+  "confirmPin": "Tabbatar da PIN",
+  "pinMismatch": "PIN ba su dace ba",
+  "pinSet": "An saita PIN cikin nasara",
+  "enterPinToLogin": "Shigar da PIN don shiga",
+  "pinIncorrect": "PIN ba daidai ba",
+  "removePin": "Cire PIN",
+  "pinRemoved": "An cire PIN",
+  "cancel": "Soke",
+  "delete": "Goge",
+  "ok": "OK",
+  "retry": "Sake gwadawa",
+  "loading": "Ana loda...",
+  "error": "Kuskure",
+  "success": "Nasara",
+  "noData": "Babu bayanai",
+  "failedToLoad": "An kasa loda bayanai",
+  "failedToLoadProfile": "An kasa loda bayanin martaba",
+  "failedToSave": "An kasa adana canje-canje",
+  "failedToLoadOrgs": "An kasa loda kungiyoyi",
+  "failedToLoadOrg": "An kasa loda bayanan kungiya",
+  "failedToCreateOrg": "An kasa ƙirƙirar kungiya",
+  "failedToInvite": "An kasa aika gayyata",
+  "failedToAcceptInvite": "An kasa karɓar gayyata",
+  "failedToLoadSessions": "An kasa loda zamanai",
+  "failedToDeleteSession": "An kasa ƙare zaman",
+  "failedToLoadKyc": "An kasa loda matsayin tantancewa",
+  "failedToStartKyc": "An kasa fara tantancewa",
+  "verifiedPersonalInfo": "Bayanan da aka tantance",
+  "middleName": "Sunan Tsakiya",
+  "placeOfBirth": "Wurin Haihuwa",
+  "nationality": "Ƙasa",
+  "gender": "Jinsi",
+  "genderMale": "Namiji",
+  "genderFemale": "Mace",
+  "docNumber": "Lamba",
+  "docIssuedDate": "An bayar",
+  "docValidUntil": "Ya ƙare a",
+  "docIssuedBy": "An bayar da shi ta",
+  "address": "Adireshi",
+  "refreshData": "Sabunta Bayanai",
+  "failedToLoadSumsubData": "An kasa loda bayanan tantancewa",
+  "sumsubDataLoading": "Ana lodin bayanan tantancewa...",
+  "reviewResultGreen": "Tantancewa ta yi nasara",
+  "reviewResultRed": "Tantancewa ta kasa",
+  "tabAssistant": "Mataimaki",
+  "assistantConnecting": "Ana haɗawa…",
+  "assistantSpeaking": "Ana magana…",
+  "assistantListening": "Ana sauraro…",
+  "assistantTapToStart": "Matsa don farawa",
+  "assistantTapToTalk": "Matsa don magana da AI",
+  "assistantRealtimeDesc": "Mataimaki yana amsawa da murya a cikin lokaci na ainihi",
+  "assistantConnectingToAssistant": "Ana haɗawa da mataimaki...",
+  "assistantAiSpeaking": "AI na magana...",
+  "assistantAiListening": "AI na sauraro",
+  "assistantSpeakerOn": "Kunna lasifika",
+  "assistantSpeaker": "Lasifika",
+  "assistantEnd": "Ƙare",
+  "assistantUnmute": "Bude murya",
+  "assistantMicrophone": "Makirufo",
+  "assistantConnectionError": "Kuskuren haɗi",
+  "tabMessenger": "Saƙonni",
+  "tabCalls": "Kiran waya",
+  "tabCalendar": "Kalanda",
+  "appearance": "Bayyanar",
+  "appearanceSelect": "Zaɓi Jigo",
+  "themeLight": "Haske",
+  "themeDark": "Duƙu",
+  "themeSystem": "Tsarin",
+  "onboardingTitle1": "Shaidar Haɗin Kai",
+  "onboardingDesc1": "Taler ID shine fasfo ɗin ku na dijital a cikin tsarin Taler. Asusun guda ɗaya don duk ayyuka.",
+  "onboardingTitle2": "Tsaron Bayanai",
+  "onboardingDesc2": "Tabbatar da KYC, ɓoyayyen AES-256, da tabbatarwa ta hanyoyi biyu suna kare shaidar ku.",
+  "onboardingTitle3": "Kasance da Labari",
+  "onboardingDesc3": "Sami sanarwa game da matsayin tabbatarwa, shiga daga sabbin na'urori, da kiran shigowa.",
+  "onboardingNext": "Gaba",
+  "onboardingEnableNotifications": "Kunna Sanarwa",
+  "onboardingTitle4": "Kiran Murya",
+  "onboardingDesc4": "Ba da damar amfani da makirufo don kiran murya da mataimakin AI. Kuna iya canza wannan daga baya a cikin saituna.",
+  "onboardingEnableMicrophone": "Kunna Makirufo",
+  "onboardingStart": "Fara",
+  "onboardingSkip": "Tsallake",
+  "meshLocalNetworkPromptTitle": "Ba da damar shiga cibiyar sadarwa ta gida",
+  "meshLocalNetworkPromptBody": "Don nemo abokan hulɗa akan Wi-Fi (kiran rukuni na layi), iOS yana buƙatar izinin Cibiyar Sadarwa ta Gida. Buɗe Saituna → Sirri & Tsaro → Cibiyar Sadarwa ta Gida → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "Buɗe Saituna",
+  "meshLocalNetworkPromptDismiss": "Na gane",
+  "forgotPassword": "Manta kalmar sirri?",
+  "forgotPasswordTitle": "Sake saita Kalmar Sirri",
+  "forgotPasswordSubtitle": "Shigar da imel ɗin ku don karɓar lambar sake saiti",
+  "resetCodeSent": "An aika lamba zuwa {email}",
+  "enterResetCode": "Shigar da lambar",
+  "resetPasswordButton": "Sake saita Kalmar Sirri",
+  "passwordResetSuccess": "An sake saita kalmar sirri cikin nasara",
+  "sendCode": "Aika Lambar",
+  "resendCode": "Sake Aika Lambar",
+  "newGroup": "Sabon Rukuni",
+  "newChat": "Sabon Tattaunawa",
+  "groupName": "Sunan Rukuni",
+  "createGroup": "Ƙirƙiri Rukuni",
+  "groupInfo": "Bayanin Rukuni",
+  "groupMembers": "Mambobi ({count})",
+  "addMembers": "Ƙara Mambobi",
+  "leaveGroup": "Barin Rukuni",
+  "leaveGroupConfirm": "Bar wannan rukuni?",
+  "deleteGroup": "Goge Rukuni",
+  "deleteGroupConfirm": "Goge wannan rukuni? Ba za a iya dawo da shi ba.",
+  "groupRoleOwner": "Mai Rukuni",
+  "groupRoleAdmin": "Admin",
+  "groupRoleMember": "Mamba",
+  "selectParticipants": "Zaɓi mahalarta",
+  "selectedCount": "{count} an zaɓa",
+  "changeRole": "Canja Matsayi",
+  "groupCreated": "An ƙirƙiri rukuni",
+  "memberJoined": "{name} ya shiga",
+  "memberLeftGroup": "{name} ya bar",
+  "memberWasRemoved": "{name} an cire",
+  "roleChangedTo": "{name} yanzu {role}",
+  "participantsCount": "{count} mahalarta",
+  "enterGroupName": "Shigar da sunan rukuni",
+  "muteNotifications": "Dakatar da sanarwa",
+  "unmuteNotifications": "Sake kunna sanarwa",
+  "muteFor1Hour": "Na awa 1",
+  "muteFor8Hours": "Na awanni 8",
+  "muteFor2Days": "Na kwanaki 2",
+  "muteForever": "Har abada",
+  "muted": "An dakatar",
+  "tabTranslator": "Fassara",
+  "translatorTitle": "Mai Fassara",
+  "translatorSelectLanguage": "Zaɓi harshe",
+  "translatorDownloading": "Ana sauke samfuran harshe...",
+  "translatorDownloadingHint": "Ana buƙatar intanet ne kawai don sauke na farko",
+  "translatorTypeHint": "Rubuta rubutu ko danna makirufo",
+  "translatorListening": "Ana saurare...",
+  "translatorTapToSpeak": "Danna don magana",
+  "translatorTapToStop": "Danna don tsayawa",
+  "translatorAutoSpeak": "Magana ta atomatik",
+  "translatorCopied": "An kwafi",
+  "translatorLangRu": "Rasha",
+  "translatorLangEn": "Turanci",
+  "translatorLangDe": "Jamus",
+  "translatorLangFr": "Faransanci",
+  "translatorLangEs": "Sipaniya",
+  "translatorLangIt": "Italiyanci",
+  "translatorLangPt": "Fotugis",
+  "translatorLangTr": "Turkiyya",
+  "translatorLangZh": "Sinanci",
+  "translatorLangJa": "Jafananci",
+  "translatorLangKo": "Koreya",
+  "translatorLangAr": "Larabci",
+  "translatorLangPl": "Polish",
+  "translatorLangSk": "Slovak",
+  "translatorLangCs": "Czech",
+  "translatorLangNl": "Holanci",
+  "translatorLangSv": "Swedish",
+  "translatorLangDa": "Danish",
+  "translatorLangNo": "Norwegian",
+  "translatorLangFi": "Finnish",
+  "translatorLangUk": "Ukrainian",
+  "translatorLangEl": "Girka",
+  "translatorLangRo": "Romaniya",
+  "translatorLangHu": "Hungariyanci",
+  "translatorLangBg": "Bulgaria",
+  "translatorLangHr": "Kuroshiya",
+  "translatorLangSr": "Serbiya",
+  "translatorLangHi": "Hindi",
+  "translatorLangTh": "Thai",
+  "translatorLangVi": "Biyetinam",
+  "translatorLangId": "Indonesiya",
+  "translatorLangMs": "Malayu",
+  "translatorLangHe": "Ibrananci",
+  "translatorLangFa": "Farisa",
+  "callInProgress": "Ana ci gaba da kira",
+  "joinCall": "Shiga",
+  "createCallLink": "Link ɗin kira",
+  "callLinkCopied": "An kwafi link",
+  "callLinkTitle": "Link ɗin ɗaki",
+  "connectionUnstable": "Haɗin bai da ƙarfi — duba intanet ɗinka",
+  "today": "Yau",
+  "yesterday": "Jiya",
+  "errorTimeout": "Haɗin ya ƙare. Duba haɗin intanet ɗinka.",
+  "errorNoConnection": "Babu haɗin intanet.",
+  "errorGeneral": "An samu kuskure. Da fatan a sake gwadawa.",
+  "errorWithMessage": "Kuskure: {message}",
+  "notifChannelMessages": "Saƙonni",
+  "notifChannelMessagesDesc": "Sanarwar sabon saƙo",
+  "notifChannelMissedCalls": "Kiran da aka rasa",
+  "notifChannelMissedCallsDesc": "Sanarwar kiran da aka rasa",
+  "notifMissedCall": "Kiran da aka rasa",
+  "notifAccept": "Karɓa",
+  "notifDecline": "Ƙi",
+  "notifIncomingCall": "Kiran shigowa",
+  "notifIncomingCallChannel": "Kiran shigowa",
+  "notifMissedCallChannel": "Kiran da aka rasa",
+  "notifUnknown": "Ba a sani ba",
+  "effectNone": "Babu bango",
+  "effectBlur": "Duhu",
+  "effectOffice": "Ofis",
+  "effectNature": "Yanayi",
+  "effectGradient": "Gradient",
+  "effectLibrary": "Dakin karatu",
+  "effectCity": "Birni",
+  "effectMinimalism": "Minimalism",
+  "voiceParticipant": "Mai halarta",
+  "voiceInvitesToRoom": "yana gayyatarka zuwa ɗakin",
+  "voiceRoom": "Ɗaki",
+  "voicePasswordProtected": "An kiyaye da kalmar sirri",
+  "voicePasswordHint": "Kalmar sirri",
+  "voiceEnter": "Shiga",
+  "voiceJoinRoom": "Shiga ɗakin",
+  "voiceYourName": "Sunan ka",
+  "voiceInvitationSent": "An aika gayyata zuwa {name}",
+  "voiceNoActiveRoom": "Babu ɗaki mai aiki",
+  "voiceCameraPermission": "Bada izinin amfani da kyamara a Saituna → Sirri → Kyamara → TalerID",
+  "voiceOpenSettings": "Buɗe",
+  "voiceCameraError": "An kasa kunna kyamara: {error}",
+  "voiceAllAgreedRecording": "Duk sun yarda. An fara rikodi.",
+  "voiceNewParticipantAgreed": "Sabon mahalarta ya yarda da rikodi.",
+  "voiceDeclinedRecording": "Ka ƙi rikodi. Barin kiran.",
+  "voiceRecordingEnded": "An gama rikodi",
+  "voiceRecordingInProgress": "Rikodi yana gudana",
+  "voiceTranscriptionRequest": "Neman rubutun magana",
+  "voiceRecordingRequest": "Neman rikodi",
+  "voiceAgree": "Yarda",
+  "voiceDeclineAndLeave": "Ki yarda kuma bar",
+  "voiceAudioOutput": "Fitar sauti",
+  "voiceAudioPhone": "Waya",
+  "voiceAudioSpeaker": "Makarar magana",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Lasifikan kunne",
+  "voiceLinkCopied": "An kwafi mahaɗin",
+  "voiceTranslateTo": "Fassara zuwa",
+  "voiceSearchLanguage": "Neman harshe...",
+  "voiceRoomWithCreator": "Daki {name}",
+  "voiceVoiceCall": "Kiran murya",
+  "voiceOnHold": "A jira",
+  "voiceActiveCall": "Aiki",
+  "voiceEndAllCalls": "Gama duk kiran",
+  "voiceEndThisCall": "Gama wannan kiran",
+  "voiceCopyLink": "Kwafi mahaɗin",
+  "voiceAddParticipant": "Ƙara mahalarta",
+  "voiceReconnecting": "Sake haɗawa...",
+  "voiceConnectionError": "Kuskuren haɗi",
+  "voiceClose": "Rufe",
+  "voiceCalling": "Ana kira...",
+  "voiceCallActive": "Kira yana aiki",
+  "voiceWaiting": "Jiran",
+  "voiceWaitingUpper": "JIRAN",
+  "voiceRec": "RIKO",
+  "voiceStop": "Tsaya",
+  "voiceRecord": "Rikodi",
+  "voiceTranslation": "Fassara",
+  "voiceAudio": "Sauti",
+  "voiceFlipCamera": "Juya",
+  "voiceBackground": "Bango",
+  "voiceAssistantSpeakingStatus": "Mataimaki yana magana...",
+  "voiceAssistantListeningStatus": "Mataimaki yana sauraro...",
+  "voiceUnmute": "Bude murya",
+  "voiceMic": "Makirufo",
+  "voiceAssistantLabel": "Mataimaki",
+  "voiceCameraOn": "Kamera a kunne",
+  "voiceCameraLabel": "Kamera",
+  "voiceEndCall": "Ƙarshen kira",
+  "voiceWaitingParticipants": "Ana jiran mahalarta...",
+  "voiceYou": "Kai",
+  "voiceAiAssistant": "AI Mataimaki",
+  "voiceVideoUnavailable": "Bidiyo ba ya samuwa",
+  "voiceSearchNickname": "Nemo ta laƙabi...",
+  "voiceTranscriptionWord": "rubutawa",
+  "voiceRecordingWord": "rikodi",
+  "voiceConnecting": "Ana haɗawa...",
+  "voiceVideoBackground": "Bango na bidiyo",
+  "voiceCallSettings": "Saitunan kira",
+  "voiceEnableAI": "Kunna AI mataimaki",
+  "voiceAIParticipating": "AI zai shiga cikin tattaunawa",
+  "voiceNormalCall": "Kira na al'ada ba tare da AI ba",
+  "voiceCallConfirm": "Yi kira?",
+  "chatAlreadyInCall": "Tuni a cikin kira",
+  "chatCallError": "Kuskuren kira: {error}",
+  "chatPhotoVideo": "Hoto / Bidiyo",
+  "chatCamera": "Kamera",
+  "chatFile": "Fayil",
+  "chatContact": "Tuntuɓi",
+  "chatSelectContact": "Zaɓi tuntuɓi",
+  "chatNoContacts": "Babu tuntuɓi",
+  "chatUser": "Mai amfani",
+  "chatFileAttachment": "📎 Fayil",
+  "chatFileUploadError": "Kuskuren ɗora fayil: {error}",
+  "chatVoiceMessage": "🎤 Saƙon murya",
+  "chatGroup": "Rukuni",
+  "chatDialog": "Tattaunawa",
+  "chatCall": "Kira",
+  "chatStartConversation": "Fara tattaunawa",
+  "chatYou": "Kai",
+  "chatIsTyping": "yana rubutu...",
+  "chatUserIsTyping": "{name} yana rubutu...",
+  "chatUsersAreTyping": "{names} suna rubutu...",
+  "chatPreparingFile": "Ana shirya fayil…",
+  "chatUploading": "Ana ɗora… {progress}%",
+  "chatEdited": "An gyara",
+  "chatViaMesh": "ta hanyar mesh",
+  "chatReply": "Amsa",
+  "chatEdit": "Gyara",
+  "chatCopy": "Kwafi",
+  "chatCopied": "An kwafi",
+  "chatSaveMedia": "Ajiye",
+  "chatForward": "Mika",
+  "chatSaving": "Ana ajiye...",
+  "chatSavedToGallery": "An ajiye a gallery",
+  "chatNoSavePermission": "Babu izinin ajiya. Duba saituna.",
+  "chatFileSaveError": "Kuskuren ajiye fayil",
+  "chatDeleteMessage": "Goge saƙo",
+  "chatDeleteForMe": "Goge a gare ni",
+  "chatDeleteForEveryone": "Goge ga kowa",
+  "chatMessageForwarded": "An mika saƙo",
+  "chatContactTapToOpen": "Tuntuɓi · danna don buɗewa",
+  "chatForwardTo": "Mika zuwa...",
+  "chatSearchHint": "Bincika...",
+  "chatRecording": "Ana rikodi...",
+  "chatMessageHint": "Saƙo...",
+  "chatHideKeyboard": "Boye madannai",
+  "chatEditing": "Ana gyara",
+  "chatFileDownloadError": "Kuskuren sauke fayil",
+  "chatVoiceMessageShort": "Saƙon murya",
+  "chatVideoSavedToGallery": "An ajiye bidiyo a gallery",
+  "chatSavingError": "Kuskuren ajiya",
+  "convSetNickname": "Saita sunan lakabi",
+  "convNicknameRequired": "Ana buƙatar sunan lakabi don amfani da manzo. Sauran masu amfani za su iya samun ku da shi.",
+  "convNicknameRules": "Haruffa 3–30: haruffa, lambobi, _",
+  "convNicknameTaken": "An riga an ɗauki sunan lakabi",
+  "convSaveError": "Kuskuren ajiya",
+  "convContactsLabel": "Tuntuɓi",
+  "convDefaultUser": "Mai amfani",
+  "convNoDialogs": "Babu tattaunawa",
+  "convFindUserToChat": "Nemo mai amfani don fara hira",
+  "convDefaultContact": "Tuntuɓi",
+  "dashboardUser": "Mai amfani",
+  "dashboardIncomingCall": "Kiran shigowa",
+  "dashboardDecline": "Ki yarda",
+  "dashboardAccept": "Karɓa",
+  "dashboardActiveCall": "Kiran aiki — danna don dawowa",
+  "dashboardUpdateAvailable": "Sabuntawa akwai {version}",
+  "dashboardUpdate": "Sabuntawa",
+  "dashboardWhatsNew": "Menene sabo",
+  "dashboardWhatsNewTitle": "Menene sabo a {version}",
+  "dashboardInstalling": "Ana girkawa...",
+  "contactRequestsTitle": "Tuntuɓi",
+  "messengerContactRequestsSection": "Buƙatun tuntuɓa",
+  "messengerContactRequestsCount": "{count, plural, =1{buƙata 1 sabuwa} other{{count} buƙatu sabbi}}",
+  "contactRequestsSearch": "Bincika",
+  "contactRequestsIncoming": "Shigowa",
+  "contactRequestsSent": "An aika",
+  "contactRequestsSearchHint": "Sunan lakabi ko imel",
+  "contactRequestSent": "An aika buƙata",
+  "contactRequestsNoUsers": "Babu masu amfani da aka samu",
+  "contactRequestsSearchHelp": "Shigar da sunan lakabi ko imel daidai\nkuma danna bincika",
+  "contactRequestsSendTooltip": "Aika buƙata",
+  "contactRequestTitle": "Buƙatar tuntuɓa",
+  "contactRequestConfirm": "Aika buƙatar tuntuɓa zuwa {name}?",
+  "contactRequestSend": "Aika",
+  "contactRequestsNoIncoming": "Babu buƙatun shigowa",
+  "contactRequestsNoSent": "Babu buƙatun da aka aika",
+  "contactRequestStatusPending": "Ana jiran amsa",
+  "contactRequestStatusAccepted": "An karɓa",
+  "contactRequestStatusRejected": "An ƙi",
+  "userSearchTitle": "Nemo mai amfani",
+  "userSearchHint": "Sunan lakabi, waya ko imel",
+  "userSearchHelper": "Shigar da @nickname, imel ko suna don bincika",
+  "userSearchNoUsers": "Babu masu amfani da aka samu",
+  "userProfileShareContact": "Raba tuntuɓa",
+  "userProfileShareContactDesc": "Aika hanyar tuntuɓa",
+  "userProfileCopyLink": "Kwafi hanyar",
+  "userProfileCopied": "An kwafi",
+  "userProfileTitle": "Bayanan martaba",
+  "userProfileLoadError": "Kuskuren ɗaukar bayanin martaba",
+  "userProfileMessage": "Saƙo",
+  "userProfileCall": "Kira",
+  "userProfileRequestSent": "An aika buƙata",
+  "userProfileAccept": "Karɓa",
+  "userProfileDecline": "Ki yarda",
+  "userProfileAddToContacts": "Ƙara zuwa lambobi",
+  "userProfileMediaTab": "Kafofin watsa labarai",
+  "userProfileFilesTab": "Fayiloli",
+  "userProfileLinksTab": "Hanyoyin haɗi",
+  "userProfileRecordingsTab": "Rakodi",
+  "userProfileSummariesTab": "Taƙaitawa",
+  "userProfileNoMedia": "Babu fayilolin kafofin watsa labarai",
+  "userProfileNoFiles": "Babu fayiloli",
+  "userProfileNoLinks": "Babu hanyoyin haɗi",
+  "userProfileNoRecordings": "Babu rakodi",
+  "userProfileNoSummaries": "Babu taƙaitawa",
+  "userProfileMeetingSummary": "Taƙaitaccen taro",
+  "userProfileFailedOpenChat": "An kasa buɗe tattaunawa",
+  "sharedMediaTitle": "Kafofin watsa labarai da fayiloli",
+  "sharedMediaTab": "Kafofin watsa labarai",
+  "sharedFilesTab": "Fayiloli",
+  "sharedLinksTab": "Hanyoyin haɗi",
+  "sharedNoMedia": "Babu fayilolin kafofin watsa labarai",
+  "sharedNoFiles": "Babu fayiloli",
+  "sharedNoLinks": "Babu hanyoyin haɗi",
+  "shareToChat": "Mika zuwa tattaunawa",
+  "shareSelectChat": "Zaɓi tattaunawa",
+  "shareNoChats": "Babu tattaunawa",
+  "shareFilesCount": "{count} fayiloli",
+  "contactsTitle": "Lambobi",
+  "contactsAddTooltip": "Ƙara lamba",
+  "contactsSearchHint": "Nemo lambobi...",
+  "contactsNotFound": "Babu abin da aka samu",
+  "contactsEmpty": "Babu lambobi",
+  "contactsAdd": "Ƙara lamba",
+  "contactsPendingConfirmation": "Ana jiran tabbaci",
+  "contactsMessage": "Saƙo",
+  "contactsCall": "Kira",
+  "contactsResend": "Sake aika buƙata",
+  "contactsResendTimeout": "Sake gwadawa a cikin sa'o'i 24",
+  "contactsResent": "An sake aikawa",
+  "contactsWantsToConnect": "Na so haɗuwa da kai",
+  "contactsSearchPeople": "Nemo mutane",
+  "notesTitle": "Bayanan kula",
+  "notesAssistantSpeaking": "Mataimaki yana magana...",
+  "notesListening": "Sauraro...",
+  "notesEmpty": "Babu bayanan kula",
+  "notesEmptyHint": "Danna makirufo don rubutu\nt ko + don shigarwa da hannu",
+  "notesDeleteConfirm": "Share bayanin kula?",
+  "notesNew": "Sabon bayanin kula",
+  "notesEdit": "Gyara",
+  "notesTitleHint": "Suna",
+  "notesContentHint": "Rubuta tunaninka...",
+  "calendarTitle": "Kalanda",
+  "calendarStop": "Tsaya",
+  "calendarVoiceInput": "Shigar murya",
+  "calendarNewEvent": "Sabon taron",
+  "calendarAssistantSpeaking": "Mataimaki yana magana...",
+  "calendarListening": "Sauraro...",
+  "calendarInvitations": "Gayyata ({count})",
+  "calendarNoEvents": "Babu taruka",
+  "calendarDayMon": "Lit",
+  "calendarDayTue": "Tal",
+  "calendarDayWed": "Lar",
+  "calendarDayThu": "Alh",
+  "calendarDayFri": "Jum",
+  "calendarDaySat": "Asa",
+  "calendarDaySun": "Lah",
+  "calendarEnterRoom": "Shiga ɗakin",
+  "calendarMeeting": "Taro",
+  "calendarLocationPrefix": "Wuri: {location}",
+  "calendarEditEvent": "Gyara",
+  "calendarTitleHint": "Suna",
+  "calendarDescriptionHint": "Bayani",
+  "calendarTypeEvent": "Taro",
+  "calendarTypeMeeting": "Taro",
+  "calendarTypeReminder": "Tunatarwa",
+  "calendarTypeLabel": "Nau'i",
+  "calendarMeetingLink": "Hadin taro",
+  "calendarLocationHint": "Wuri",
+  "calendarDateLabel": "Kwanan wata",
+  "calendarTimeLabel": "Lokaci",
+  "calendarReminderLabel": "Tunatarwa",
+  "calendarReminderNone": "Babu",
+  "calendarReminder15min": "15 min kafin",
+  "calendarReminder30min": "30 min kafin",
+  "calendarReminder1hour": "1 awa kafin",
+  "calendarRepeatLabel": "Maimaici",
+  "calendarRepeatNone": "Babu maimaitawa",
+  "calendarRepeatDaily": "Kowace rana",
+  "calendarRepeatWeekly": "Kowane mako",
+  "calendarRepeatMonthly": "Kowane wata",
+  "calendarRepeatYearly": "Kowace shekara",
+  "calendarParticipants": "Masu halarta",
+  "calendarAddParticipant": "Ƙara",
+  "calendarSearchContacts": "Nemo lambobi...",
+  "calendarNoContacts": "Babu lambobi",
+  "calendarStatusAccepted": "An amince",
+  "calendarStatusDeclined": "An ƙi",
+  "calendarStatusMaybe": "Watakila",
+  "calendarStatusPending": "Ana jiran amsa",
+  "calendarEndTime": "Lokacin ƙarewa",
+  "calendarYourAnswer": "Amsarka:",
+  "calendarOrganizer": "Mai shirya",
+  "calendarDeleteError": "An kasa sharewa: {error}",
+  "calendarRsvpAccept": "Amince",
+  "calendarRsvpMaybe": "Watakila",
+  "calendarRsvpDecline": "Ƙi",
+  "callHistoryTitle": "Kiran waya",
+  "callHistoryTab": "Tarihin kira",
+  "callHistoryTempMeeting": "Taron wucin gadi",
+  "callHistoryCopy": "Kwafi",
+  "callHistoryLinkCopied": "An kwafi hanyar",
+  "callHistoryShare": "Raba",
+  "callHistoryEnter": "Shiga",
+  "callHistoryAlreadyInCall": "Tuni a cikin kira",
+  "callHistoryCouldNotDeterminePeer": "Ba a iya tantance ɗayan ɓangaren ba",
+  "callHistoryContacts": "Lambobi",
+  "callHistoryFailedLoadRoom": "An kasa ɗauko ɗakin ku",
+  "callHistoryYourRoom": "Dakin ku",
+  "callHistoryCreateMeeting": "Ƙirƙiri taro",
+  "callHistoryMeetingSummaries": "Takaitaccen taro",
+  "callHistoryMeetingRecordings": "Rakodin taro",
+  "callHistoryNoCalls": "Babu kira",
+  "callHistoryMissed": "An rasa",
+  "callHistoryRecording": "Rakodi",
+  "callHistorySummary": "Takaitawa",
+  "callHistoryCallAgain": "Kira sake",
+  "callHistoryTodayTime": "Yau, {time}",
+  "callHistoryYesterdayTime": "Jiya, {time}",
+  "callHistoryUnknown": "Ba a sani ba",
+  "callHistoryDetails": "Cikakken bayani na kira",
+  "callHistoryOutgoing": "Kiran fita",
+  "callHistoryIncoming": "Kiran shigowa",
+  "callHistoryDuration": "Tsawon lokaci: {duration}",
+  "callHistoryWithAI": "Tare da mataimakin AI",
+  "callHistoryParticipants": "Masu halarta",
+  "callDetailYouSuffix": "(Kai)",
+  "callHistoryMeetingSummary": "Takaitaccen taro",
+  "callHistoryMoreDetails": "Karin bayani",
+  "callHistorySummaryProcessing": "Ana sarrafa takaitawa...",
+  "callHistoryMeetingRecording": "Rakodin taro",
+  "callHistoryProcessing": "Ana sarrafawa...",
+  "callHistoryCreateTranscript": "Ƙirƙiri rubutun magana",
+  "callHistoryNoSummaries": "Babu takaitawa",
+  "callHistoryRecordDuringCall": "Danna \"Rakodi\" yayin kira",
+  "callHistoryMeetingTime": "Taro {time}",
+  "callHistoryTranscribing": "Ana rubuta magana da takaitawa...",
+  "callHistoryTranscriptCreated": "An ƙirƙiri rubutun magana",
+  "callHistoryNoRecordings": "Babu rakodi",
+  "callHistoryRecordingDate": "Rakodi {date}",
+  "callHistoryRecordingUnavailable": "Rakodin ba ya samuwa",
+  "callHistoryTranscriptReady": "Rubutun magana a shirye",
+  "callHistoryTranscript": "Rubutun magana",
+  "callHistoryKeyPoints": "Muhimman maki",
+  "callHistoryTasks": "Ayyuka",
+  "callHistoryAssignedTo": "An sanya wa: {assignee}",
+  "callHistoryDecisions": "Shawara",
+  "callHistoryShowTranscript": "Nuna cikakken rubutun magana",
+  "profileScanQr": "Duba QR",
+  "profileMyQrCode": "QR kaina",
+  "profileAddMeShare": "Ƙara ni a Taler ID!\ntalerid://user/{userId}",
+  "profileShowCode": "Nuna wannan lambar don ƙara ku",
+  "profileEditDesc": "Suna, sunan mahaifi, sunan uba, ranar haihuwa",
+  "profileAboutMe": "Game da ni",
+  "profileAboutMeDesc": "Dabi'u, kwarewa, sha'awa da ƙari",
+  "profileNotes": "Bayanan kula",
+  "profileNotesDesc": "Tunani, ra'ayoyi da bayanan kula",
+  "profileAvatarUpdated": "An sabunta hoto",
+  "profileNickname": "Sunan lakabi",
+  "profileNotSet": "Ba a saita ba",
+  "profileChangeNickname": "Canja sunan lakabi",
+  "profileNicknameUpdated": "An sabunta sunan lakabi",
+  "profileShareLabel": "Raba",
+  "profileScanQrCode": "Duba lambar QR",
+  "profilePointCamera": "Nuna kyamara a lambar QR",
+  "profilePhotoCamera": "Dauki hoto",
+  "profilePhotoGallery": "Zaɓi daga hotunan",
+  "editProfilePatronymic": "Sunan uba (na zaɓi)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "Game da ni",
+  "aboutMeClickToFill": "Danna don cika",
+  "aboutMeCoreValues": "Dabi'u",
+  "aboutMeWorldview": "Ra'ayin duniya",
+  "aboutMeSkills": "Kwarewa",
+  "aboutMeInterests": "Sha'awa",
+  "aboutMeDesires": "Buruka",
+  "aboutMeBackground": "Bayanin martaba",
+  "aboutMeLikes": "Abubuwan da nake so",
+  "aboutMeDislikes": "Abubuwan da bana so",
+  "aboutMeDeleteSection": "Share sashe?",
+  "aboutMeDeleteConfirm": "Dukkan bayanan da ke cikin wannan sashe za su bace.",
+  "aboutMeConnectionError": "Kuskuren haɗi: {error}",
+  "aboutMeVisibility": "Bayyanawa",
+  "aboutMeTags": "Alamomi",
+  "aboutMeAddTag": "Ƙara alama...",
+  "aboutMeDescription": "Bayani",
+  "aboutMeDescribeLong": "Faɗa mana ƙarin bayani...",
+  "aboutMeVisibilityEveryone": "Kowa",
+  "aboutMeVisibilityContacts": "Abokan hulɗa",
+  "aboutMeVisibilityOnlyMe": "Ni kaɗai",
+  "settingsProfileSubtitle": "Bayanin martaba",
+  "settingsWallpaper": "Hoton bango",
+  "settingsWallpaperDesc": "Hoton bango don dukkan app",
+  "settingsWallpaperNone": "Babu",
+  "settingsAccount": "Asusu",
+  "settingsKycVerification": "Tabbatar da Shaida (KYC)",
+  "settingsOrganizations": "Ƙungiyoyi",
+  "incomingCallLabel": "Kiran shigowa",
+  "incomingCallDecline": "Ƙi",
+  "incomingCallAccept": "Karɓa",
+  "meshIncomingCallLabel": "📡 Kiran mesh shigowa",
+  "meshDeviceFallback": "Na'urar mesh {hexPrefix}",
+  "callConflictAlreadyInCall": "Gama kiran da ake yi yanzu",
+  "callPopupTransportTitle": "Kira ta",
+  "callPopupTransportMesh": "📡 Mesh (peer-to-peer)",
+  "callPopupTransportLk": "📞 Uwar garke",
+  "callPopupTransportMeshUnavailable": "Ba za a iya samun lamba ta mesh ba",
+  "meshOnboardingTitle": "📡 Kiran mesh yana buƙatar app a buɗe",
+  "meshOnboardingBody": "Idan an kulle wayar, kiran mesh na iya yankewa bayan ~30 seconds (ƙuntatawar iOS).",
+  "meshOnboardingAck": "Na gane",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Lamba ba ta cikin jerin ku",
+  "meshCallStatusInviting": "Ana kira…",
+  "meshCallStatusConnecting": "Ana haɗawa…",
+  "meshCallEndedUserHangup": "An gama kiran",
+  "meshCallEndedRemoteHangup": "An gama daga ɗayan ɓangaren",
+  "meshCallEndedRejected": "An ƙi",
+  "meshCallEndedNoAnswer": "Babu amsa",
+  "meshCallEndedConnectionLost": "An rasa haɗi",
+  "meshCallEndedError": "Matsalar haɗi",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Kiran mesh mai dogaro",
+  "batteryExemptionBody": "Bada izinin app ɗin ya gudana ba tare da ƙuntatawar batir ba don Android ba ya kashe mesh a bango.",
+  "batteryExemptionAccept": "Buɗe saituna",
+  "batteryExemptionDismiss": "Ba yanzu ba",
+  "groupCamera": "Kamara",
+  "groupGallery": "Hotuna",
+  "groupAvatarUpdated": "An sabunta hoton rukuni",
+  "groupNameTitle": "Sunan rukuni",
+  "groupEnterName": "Shigar da suna",
+  "groupDescriptionTitle": "Bayanin rukuni",
+  "groupEnterDescription": "Shigar da bayanin rukuni",
+  "groupChangeRoleTitle": "Canza matsayi",
+  "groupRemoveMemberTitle": "Cire memba",
+  "groupDescription": "Bayanin",
+  "groupAddDescription": "Ƙara bayanin rukuni",
+  "groupNoDescription": "Babu bayani",
+  "groupMediaAndFiles": "Kafofi da fayiloli",
+  "groupMuteNotifications": "Kashe sanarwa",
+  "groupMuted": "An kashe",
+  "groupNoResults": "Babu sakamako",
+  "authInvalidCode": "Lambar ba daidai ba ce. Gwada sake.",
+  "loginSubtitle": "Yi amfani da imel da kalmar sirri",
+  "emailRequired": "Shigar da imel",
+  "emailInvalid": "Imel ba daidai ba",
+  "passwordRequired": "Shigar da kalmar sirri",
+  "registerSubtitle": "Asusu ɗaya don dukkan tsarin Taler",
+  "usernameOptional": "Sunan mai amfani (na zaɓi)",
+  "usernameMinLength": "Aƙalla haruffa 3",
+  "usernameMaxLength": "Mafi yawa haruffa 30",
+  "usernameInvalid": "Haruffa, lambobi da _ kawai",
+  "biometricLoginReason": "Shiga Taler ID",
+  "docTypePassport": "Fasfo",
+  "docTypeIdCard": "Katun Shaida",
+  "docTypeDriverLicense": "Lasisin Tuƙi",
+  "docTypeResidencePermit": "Izinin Zama",
+  "addressApartment": "apt. {number}",
+  "failedToUpdateProfile": "An kasa sabunta bayanin martaba",
+  "failedToStartKyb": "An kasa fara tantancewar KYB",
+  "orgUpdated": "An sabunta ƙungiya",
+  "failedToUpdateOrg": "An kasa sabunta ƙungiya",
+  "failedToChangeRole": "An kasa canza matsayi",
+  "failedToRemoveMember": "An kasa cire memba",
+  "capabilityMessagesTitle": "Saƙonni",
+  "capabilityMessagesDesc": "Duba saƙonni ko rubuta wa wani. Misali: \"Rubuta wa Viktor: zan zo cikin awa ɗaya\"",
+  "capabilityCallsTitle": "Kiran waya",
+  "capabilityCallsDesc": "Kira kowane lamba ta murya. Misali: \"Kira Viktor Viktorov\"",
+  "capabilityChatTitle": "Tarihin Tattaunawa",
+  "capabilityChatDesc": "Zan bincika tarihin tattaunawa. Misali: \"Me muka tattauna da Viktor?\"",
+  "capabilityProfileTitle": "Bayanin Kai",
+  "capabilityProfileDesc": "Zan nuna ko sabunta bayanin ka. Misali: \"Nuna bayanin kai na\"",
+  "capabilityCoachingTitle": "Koyarwa",
+  "capabilityCoachingDesc": "Yanayi: Koyarwar ICF, masanin halayyar dan Adam, shawarar HR. Ce: \"Mu yi koyarwa\"",
+  "capabilityCalendarTitle": "Kalanda",
+  "capabilityCalendarDesc": "Tsara taro ko saita tunatarwa. Misali: \"Tsara taro da Viktor gobe da karfe 15:00\"",
+  "capabilityNotesTitle": "Bayanan kula",
+  "capabilityNotesDesc": "Ajiye tunani ko karanta bayanan kula na baya-bayan nan. Misali: \"Rubuta wata ra'ayi...\" ko \"Karanta bayanan kula na baya-bayan nan\"",
+  "assistantCallConfirm": "Yi kira?",
+  "callNoAnswer": "Babu amsa",
+  "contactDelete": "Cire lamba",
+  "contactDeleteTitle": "Cire lamba",
+  "contactDeleteConfirm": "Ka tabbata? Za a cire wannan lamba.",
+  "contactBlock": "Toshe",
+  "contactBlockTitle": "Toshe mai amfani",
+  "contactBlockConfirm": "Wannan mai amfani ba zai iya aika saƙo ko kira ka ba.",
+  "contactUnblock": "Bude toshewa",
+  "contactBlocked": "An toshe",
+  "contactYouAreBlocked": "Wannan mai amfani ya toshe ka",
+  "chatBlockedByYou": "Ka toshe wannan mai amfani",
+  "chatYouAreBlocked": "An toshe ka daga wannan mai amfani",
+  "chatNotContacts": "Kara wannan mai amfani zuwa lambobi don aika saƙo",
+  "contactRevokeRequest": "Janye buƙata",
+  "messengerPoll": "Zaben ra'ayi",
+  "messengerCreatePoll": "Ƙirƙiri Zaben ra'ayi",
+  "messengerPollQuestion": "Tambaya",
+  "messengerPollOption": "Zaɓi {number}",
+  "messengerPollAddOption": "Ƙara zaɓi",
+  "messengerPollAnonymous": "Zaben ra'ayi ba tare da suna ba",
+  "messengerPollMultiple": "Zaɓuɓɓuka da yawa",
+  "messengerPollCreateError": "An kasa ƙirƙirar zaben ra'ayi",
+  "messengerPollUnavailable": "Zaben ra'ayi ba ya samuwa",
+  "messengerPollMultipleNote": "Za ka iya zaɓar da yawa",
+  "messengerPollVotes": "{count} kuri'u",
+  "messengerVideoMessage": "Saƙon bidiyo",
+  "messengerVideoRecordError": "Kuskuren rikodin bidiyo",
+  "messengerVideoPlaybackError": "Ba a iya kunna bidiyo ba",
+  "messengerGalleryAccessError": "Babu damar shiga gallery",
+  "messengerSearchInChat": "Nema a cikin hira...",
+  "messengerSaveToFavorites": "Ajiye a cikin abubuwan so",
+  "messengerSavedToFavorites": "An ajiye a cikin abubuwan so",
+  "messengerSearchInMessages": "Nema a cikin saƙonni...",
+  "messengerFoundInMessages": "An samo a cikin saƙonni ({count})",
+  "messengerGroupDefault": "Rukuni",
+  "messengerUserDefault": "Mai amfani",
+  "messengerPin": "Manne",
+  "messengerUnpin": "Cire manne",
+  "messengerArchive": "Ajiye a tarihi",
+  "messengerUnarchive": "Cire daga tarihi",
+  "messengerDeleteChat": "Share hira",
+  "messengerDeleteChatTitle": "Share hira?",
+  "messengerDeleteChatConfirm": "Share hira tare da {name}? Ba za a iya dawo da shi ba.",
+  "messengerCreateChannel": "Ƙirƙiri Tashar",
+  "messengerChannelName": "Suna",
+  "messengerChannelDescription": "Bayanin (na zaɓi)",
+  "messengerChannelCreateError": "An kasa ƙirƙirar tashar",
+  "messengerFilterAll": "Duka",
+  "messengerFilterUnread": "Ba a karanta ba",
+  "messengerFilterPersonal": "Na kaina",
+  "messengerFilterGroups": "Rukuni",
+  "messengerFilterChannels": "Tashoshi",
+  "messengerArchivedSection": "An ajiye a tarihi",
+  "messengerSavedSection": "Abubuwan so",
+  "messengerSavedSubtitle": "Ajiye a cikin ƙwaƙwalwa",
+  "messengerArchiveTitle": "Tarihi ({count})",
+  "messengerArchiveEmpty": "Tarihi babu komai",
+  "messengerYouPrefix": "Kai: {message}",
+  "messengerMissedCall": "Kira da aka rasa",
+  "messengerSavedTitle": "Abubuwan so",
+  "messengerNoSavedMessages": "Babu saƙonnin da aka ajiye",
+  "messengerSavedHint": "Danna dogon saƙo → \"Ajiye a cikin abubuwan so\"",
+  "messengerDefaultFile": "Fayil",
+  "messengerTopicDefault": "Janar",
+  "messengerTopicNew": "Sabon Jigo",
+  "messengerTopicNameHint": "Sunan jigo",
+  "messengerTopicIcon": "Alama",
+  "messengerTopicCount": "{count} jigogi",
+  "messengerNoTopics": "Babu jigogi",
+  "messengerNoMessages": "Babu saƙonni",
+  "you": "Kai",
+  "messengerThread": "Zaren",
+  "messengerThreadReply": "amsa",
+  "messengerThreadReplies": "amsoshi",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Babu amsoshi",
+  "messengerReplyHint": "Amsa zaren...",
+  "messengerContactName": "Sunan tuntuɓa",
+  "messengerOriginalName": "Asalin suna: {name}",
+  "messengerDisplayName": "Sunan nuni",
+  "messengerShareContact": "Tuntuɓa a Taler ID: {name}",
+  "messengerAutoDelete": "Share saƙonni ta atomatik",
+  "messengerAutoDeleteOff": "Kashe",
+  "messengerAutoDelete7d": "kwanaki 7",
+  "messengerAutoDelete30d": "kwanaki 30",
+  "messengerAutoDelete90d": "kwanaki 90",
+  "messengerAutoDeleteDays": "{count} kwanaki",
+  "messengerSettingsHeader": "Saituna",
+  "messengerAdminOnly": "Sanya admin kawai",
+  "messengerAdminOnlyDesc": "Membobi za su iya karantawa kawai",
+  "messengerTopics": "Batutuwa",
+  "messengerTopicsDesc": "Raba hira zuwa batutuwa",
+  "aiTwinSection": "AI Muryar Twin",
+  "aiTwinEnabled": "Kunna AI Twin",
+  "aiTwinEnabledDesc": "Idan ba ka amsa ba, AI twin ɗinka zai ɗauki kiran da muryarka",
+  "aiTwinTimeout": "Lokacin amsa",
+  "aiTwinTimeoutValue": "{seconds} sec",
+  "aiTwinPrompt": "Umarnin AI",
+  "aiTwinPromptSubtitle": "Yadda AI twin ya kamata ya gabatar da kansa da abin da za a tattauna",
+  "aiTwinPromptHint": "Sannu, wannan muryar AI twin na {name}. {name} ba zai iya ɗaukar kiran yanzu ba. Faɗa min wanda ke kira da abin da ya shafi — zan isar da saƙon.",
+  "aiTwinComingSoon": "Siffanta muryar clone na nan ba da jimawa ba. A yanzu AI yana magana da muryar {name}.",
+  "aiTwinDefaultName": "mai shi",
+  "aiTwinPromptReset": "Sake saiti",
+  "callHistoryAiTwinAnswered": "AI TWIN YA AMSA",
+  "callHistoryAiTwinSummary": "TAKAITACCEN KIRA",
+  "callHistoryAiTwinTranscript": "RUBUTU",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "Daga {name}",
+  "aiTwinOfferTitle": "Ba a amsa ba",
+  "aiTwinOfferBody": "{name} bai ɗauka ba. Ka bar saƙo tare da muryar AI ɗinsu?",
+  "aiTwinOfferBodyUser": "Mai amfani",
+  "aiTwinOfferAccept": "I, ajiye saƙo",
+  "aiTwinOfferKeepWaiting": "Ci gaba da jira",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Madadin AI naka",
+  "aiTwinHeroSubtitle": "Yana amsa kira da muryarka idan ba za ka iya ba.",
+  "aiTwinProfileTitle": "Madadin AI",
+  "aiTwinProfileDesc": "Yana amsa kira da muryarka",
+  "aiTwinBadgeOn": "AKAN",
+  "aiAnalystTitle": "Mai Bincike AI",
+  "aiAnalystSubtitle": "Fayiloli, ayyuka, bincike — Claude",
+  "channelsDiscover": "Nemo tashar",
+  "channelsSearchHint": "Bincika tashoshi",
+  "channelsSubscribers": "masu biyan kuɗi",
+  "channelsSubscribe": "Yi rijista",
+  "channelsUnsubscribe": "Ficewa",
+  "channelsSubscribedLabel": "Ka yi rijista",
+  "channelsSettings": "Saitunan tashar",
+  "channelsDelete": "Goge tashar",
+  "channelsDeleteConfirm": "Goge tashar dindindin?",
+  "channelsEmpty": "Babu tashoshi tukuna",
+  "channelsOpen": "Buɗe",
+  "channelsNameLabel": "Suna",
+  "channelsDescriptionLabel": "Bayanin",
+  "channelsCannotUnsubscribeOwner": "Mai shi ba zai iya ficewa ba. Goge tashar maimakon.",
+  "channelsNotFoundRedirect": "Tashar ba ta wanzu",
+  "analystSeamSearches": "{count, plural, =1{{count} bincike} other{{count} bincike}}",
+  "analystSeamFiles": "{count, plural, =1{{count} fayil} other{{count} fayiloli}}",
+  "analystSeamCommands": "{count, plural, =1{{count} umarni} other{{count} umarni}}",
+  "analystSeamImages": "{count, plural, =1{{count} hoto} other{{count} hotuna}}",
+  "analystSeamOther": "{count, plural, =1{{count} mataki} other{{count} matakai}}",
+  "analystSeamDurationSeconds": "{seconds}s",
+  "savedTitle": "Saƙonnin da aka ajiye",
+  "savedSubtitle": "Gajimare naka na sirri",
+  "savedOpenError": "Ba a iya buɗe Saƙonnin da aka ajiye ba",
+  "billingWalletTitle": "Aljihu",
+  "billingBuyPackage": "Saya fakiti",
+  "billingCurrentBalance": "Ma'auni na yanzu",
+  "billingPackagesTitle": "Fakitoci",
+  "billingPackagesUnavailable": "Ba a samun fakitoci",
+  "billingRecentOperations": "Ayyuka na baya-bayan nan",
+  "billingAllOperations": "Dukkan ayyuka",
+  "billingNoOperations": "Babu ayyuka",
+  "billingOperationsTitle": "Ayyuka",
+  "billingOperationsEmptyTitle": "Babu ayyuka tukuna",
+  "billingOperationsEmptySubtitle": "Karin kudi da cajin fasalolin AI za su bayyana a nan",
+  "billingPricebookTitle": "Farashin fasaloli",
+  "billingPricebookUnavailable": "Ba a samun jerin farashi",
+  "billingAiFeaturesTitle": "Fasalolin AI",
+  "billingInsufficientFundsTitle": "Kudin bai isa ba",
+  "billingInsufficientFundsSubtitle": "Kara kudin ka don amfani da wannan fasalin.",
+  "billingRequiredLine": "Bukata: {required} μTAL",
+  "billingAvailableLine": "Akwai: {available} μTAL",
+  "billingTopUp": "Kara kudi",
+  "billingCancel": "Soke",
+  "billingRetry": "Sake gwadawa",
+  "billingLowBalanceWarning": "Kudin yana raguwa: {balance} μTAL",
+  "billingWalletAndBalance": "Waleti & Ma'auni",
+  "billingSectionHeader": "Biyan kudi & AI",
+  "billingFeatureVoiceAssistant": "Mataimakin murya",
+  "billingFeatureWebSearch": "Binciken yanar gizo na mataimaki",
+  "billingFeatureAiTwin": "Muryar tagwaye",
+  "billingFeatureAiTwinLong": "Muryar tagwaye (AI Twin)",
+  "billingFeatureOutboundCall": "Bot mai kira",
+  "billingFeatureOutboundCallLong": "Bot mai kiran fita",
+  "billingFeatureWhisperTranscribe": "Fassarar kira",
+  "billingFeatureMeetingSummary": "Takaitaccen kiran AI",
+  "billingConfigureAiTwin": "Saita AI twin",
+  "billingWebSearchSubtitle": "(ana amfani da shi ta mataimaki)",
+  "billingPackagePurchased": "An sayi fakiti: {balance} μTAL",
+  "billingRecommendedBadge": "An ba da shawara",
+  "billingSessionTerminatedNoFunds": "Kudin ya kare — an dakatar da zaman",
+  "billingSessionTerminatedGeneric": "An dakatar da zaman mataimaki",
+  "billingBuyForPrice": "Sayi don €{price}",
+  "billingTxTypeTopup": "Kara kudi",
+  "billingTxTypeRefund": "Mayar da kudi",
+  "billingTxTypeSpend": "Caji",
+  "billingUnitMinute": "minti",
+  "billingUnitRequest": "buƙata",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K tokens",
+  "billingUnitCall": "kira",
+  "groupCallSelectParticipants": "Zaɓi mahalarta",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Bincika",
+  "groupCallMaxReached": "Mafi yawa 7 mahalarta",
+  "groupCallLobbyTitle": "Rukuni • Lobby",
+  "groupCallHostLabel": "Mai masauki: {name}",
+  "groupCallMicHint": "Mic zai kunna lokacin haɗawa",
+  "groupCallCancel": "Soke",
+  "groupCallNoAnswer": "Babu wanda ya amsa",
+  "groupCallEndedByHost": "Kira ya ƙare daga mai masauki",
+  "groupCallAllLeft": "Kowa ya bar kiran",
+  "groupCallEnded": "Kira ya ƙare",
+  "groupCallActiveTitle": "Rukuni • {count}",
+  "groupCallConnectionLost": "An rasa haɗin",
+  "groupCallMuteRequested": "Mai masauki ya nemi kowa ya yi shiru",
+  "groupCallUnmute": "Bude murya",
+  "groupCallMute": "Rufe murya",
+  "groupCallMuteAll": "Rufe kowa",
+  "groupCallLeave": "Barin",
+  "groupCallStatusCalling": "ana kira…",
+  "groupCallStatusDeclined": "an ƙi",
+  "groupCallStatusTimeout": "babu amsa",
+  "groupCallStatusLeft": "ya bar",
+  "groupCallKickConfirm": "Cire {name} daga kira",
+  "groupCallCancelAction": "Soke",
+  "groupCallActiveBanner": "Kira mai aiki",
+  "groupCallBannerSummary": "Rukuni: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Rukuni: {host}",
+  "groupCallCreateError": "Ba a iya ƙirƙirar kira ba",
+  "groupCallJoinError": "Ba a iya shiga kira ba",
+  "groupCallLivekitError": "Kuskuren LiveKit",
+  "groupCallDone": "An gama",
+  "groupCallNoResults": "Babu sakamako",
+  "groupCallNoContacts": "Babu lambobi",
+  "meshGcContactOffline": "Ba a kan wannan Wi-Fi",
+  "meshGcOnlineViaMesh": "A kan layi ta hanyar mesh",
+  "meshGcMaxInvitees": "Kiran rukuni yana goyan bayan har zuwa mutane 4 da aka gayyata (mutane 5 gaba ɗaya).",
+  "meshGcStart": "Fara kiran rukuni",
+  "meshGcCancel": "Soke",
+  "meshGcStatusCalling": "Ana kira…",
+  "meshGcStatusJoined": "An shiga",
+  "meshGcStatusDeclined": "An ƙi",
+  "meshGcStatusNoAnswer": "Babu amsa",
+  "meshGcStatusConnectionFailed": "Haɗin bai yi nasara ba",
+  "meshGcStatusLeft": "An bar",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Gama kiran da kake yi yanzu.",
+  "presenceOnline": "akan layi",
+  "presenceLastSeenJustNow": "an gani yanzu-yanzu",
+  "presenceLastSeenMinutesAgo": "an gani {minutes} min da suka wuce",
+  "presenceLastSeenToday": "an gani yau da {time}",
+  "presenceLastSeenYesterday": "an gani jiya da {time}",
+  "presenceLastSeenOnDate": "an gani {date}",
+  "presenceLastSeenRecently": "an gani kwanan nan",
+  "privacySectionTitle": "Sirri",
+  "privacyLastSeenLabel": "Wa zai ga lokacin da aka gan ka na ƙarshe",
+  "privacyEveryone": "Kowa",
+  "privacyContacts": "Abokan hulɗa kawai",
+  "privacyNobody": "Babu kowa",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

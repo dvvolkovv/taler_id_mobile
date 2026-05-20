@@ -1,0 +1,1691 @@
+{
+  "@@locale": "mr",
+  "appTitle": "Taler ID",
+  "search": "शोधा",
+  "appSubtitle": "एकत्रित परिसंस्था ओळख",
+  "login": "साइन इन",
+  "loginButton": "साइन इन",
+  "register": "खाते तयार करा",
+  "registerButton": "खाते तयार करा",
+  "email": "ईमेल",
+  "password": "पासवर्ड",
+  "confirmPassword": "पासवर्डची पुष्टी करा",
+  "firstName": "पहिले नाव",
+  "lastName": "आडनाव",
+  "noAccount": "खाते नाही?",
+  "createOne": "एक तयार करा",
+  "haveAccount": "खाते आधीच आहे?",
+  "signIn": "साइन इन",
+  "passwordMinLength": "किमान 8 अक्षरे",
+  "invalidEmail": "वैध ईमेल प्रविष्ट करा",
+  "fieldRequired": "आवश्यक क्षेत्र",
+  "twoFATitle": "दुहेरी घटक प्रमाणीकरण",
+  "twoFASubtitle": "आपल्या प्रमाणीकरण अनुप्रयोगातील 6-अंकी कोड प्रविष्ट करा",
+  "twoFACode": "2FA कोड",
+  "verify": "पडताळा",
+  "tabProfile": "प्रोफाइल",
+  "tabKyc": "KYC",
+  "tabOrganization": "संघटना",
+  "tabSettings": "सेटिंग्ज",
+  "profile": "प्रोफाइल",
+  "editProfile": "प्रोफाइल संपादित करा",
+  "phone": "फोन",
+  "country": "देश",
+  "dateOfBirth": "जन्मतारीख",
+  "documents": "दस्तऐवज",
+  "addDocument": "दस्तऐवज जोडा",
+  "noDocuments": "कोणतेही दस्तऐवज अपलोड केलेले नाहीत",
+  "save": "जतन करा",
+  "profileUpdated": "प्रोफाइल अद्यतनित केले",
+  "personalData": "वैयक्तिक डेटा",
+  "passport": "पासपोर्ट",
+  "drivingLicense": "वाहन चालविण्याचा परवाना",
+  "diploma": "डिप्लोमा",
+  "nationalId": "राष्ट्रीय ओळखपत्र",
+  "certificate": "प्रमाणपत्र",
+  "notSpecified": "निर्दिष्ट नाही",
+  "notSpecifiedFemale": "निर्दिष्ट नाही",
+  "documentType": "दस्तऐवज प्रकार",
+  "passportId": "पासपोर्ट / ओळखपत्र",
+  "diplomaCertificate": "डिप्लोमा / प्रमाणपत्र",
+  "loadError": "लोडिंग त्रुटी",
+  "verification": "सत्यापन",
+  "countryAustria": "ऑस्ट्रिया",
+  "countryGermany": "जर्मनी",
+  "countryRussia": "रशिया",
+  "countryUkraine": "युक्रेन",
+  "countryKazakhstan": "कझाकस्तान",
+  "countryBelarus": "बेलारूस",
+  "countryOther": "इतर",
+  "kycTitle": "KYC सत्यापन",
+  "kycVerified": "सत्यापित",
+  "kycPending": "प्रलंबित",
+  "kycRejected": "नाकारले",
+  "kycUnverified": "असत्यापित",
+  "kycVerifiedDesc": "आपली ओळख सत्यापित झाली आहे. आपल्याला Taler पर्यावरणातील सर्व वैशिष्ट्यांचा पूर्ण प्रवेश आहे.",
+  "kycPendingDesc": "आपले दस्तऐवज पुनरावलोकनात आहेत. हे सामान्यतः 1-2 व्यावसायिक दिवस घेतात.",
+  "kycRejectedDesc": "सत्यापन अयशस्वी. कृपया कारण पुनरावलोकन करा आणि आपले दस्तऐवज पुन्हा सबमिट करा.",
+  "kycUnverifiedDesc": "Taler पर्यावरणातील आर्थिक वैशिष्ट्यांचा पूर्ण प्रवेश अनलॉक करण्यासाठी सत्यापन पूर्ण करा.",
+  "startVerification": "सत्यापन प्रारंभ करा",
+  "retryVerification": "सत्यापन पुन्हा प्रयत्न करा",
+  "verifiedAt": "सत्यापित: {date}",
+  "documentsSubmitted": "पुनरावलोकनासाठी दस्तऐवज सबमिट केले",
+  "documentsSubmittedDesc": "पुनरावलोकन सामान्यतः 1-2 व्यावसायिक दिवस घेतात. आपल्याला निकालासह एक पुश सूचना प्राप्त होईल.",
+  "securityAes": "आपले डेटा AES-256 एन्क्रिप्शनसह संरक्षित आहे",
+  "verificationTime": "सत्यापनास 1-2 व्यावसायिक दिवस लागतात",
+  "pushNotification": "आपल्याला निकालासह एक पुश सूचना प्राप्त होईल",
+  "kycWebOnly": "KYC सत्यापन फक्त मोबाइल अॅपमध्ये उपलब्ध आहे.",
+  "verificationError": "सत्यापन त्रुटी: {code}",
+  "organizations": "संस्था",
+  "noOrganizations": "कोणतीही संस्था नाहीत",
+  "noOrganizationsDesc": "संस्था तयार करा किंवा आमंत्रण स्वीकारा",
+  "createOrganization": "संस्था तयार करा",
+  "newOrganization": "नवीन संस्था",
+  "orgName": "नाव *",
+  "orgDescription": "वर्णन",
+  "orgEmail": "संपर्क ईमेल",
+  "orgWebsite": "वेबसाइट",
+  "orgLegalAddress": "कायदेशीर पत्ता",
+  "create": "तयार करा",
+  "organization": "संस्था",
+  "contacts": "संपर्क",
+  "members": "सदस्य ({count})",
+  "inviteMember": "सदस्य आमंत्रित करा",
+  "invite": "आमंत्रण",
+  "sendInvite": "आमंत्रण पाठवा",
+  "inviteSent": "{email} वर आमंत्रण पाठवले",
+  "role": "भूमिका",
+  "roleOwner": "मालक",
+  "roleAdmin": "प्रशासक",
+  "roleOperator": "ऑपरेटर",
+  "roleViewer": "प्रेक्षक",
+  "editOrganization": "संपादन करा",
+  "editOrganizationTitle": "संस्था संपादन करा",
+  "removeMember": "सदस्य काढा",
+  "removeMemberConfirm": "संस्थेतून {name} काढा?",
+  "memberRemoved": "सदस्य काढला",
+  "roleChanged": "भूमिका बदलली",
+  "kybVerified": "प्रमाणित",
+  "kybPending": "प्रलंबित",
+  "kybRejected": "नाकारले",
+  "kybNone": "अप्रमाणित",
+  "kybVerification": "KYB प्रमाणीकरण सुरू करा",
+  "kybStartBusiness": "व्यवसाय प्रमाणीकरण सुरू करा",
+  "kybStatusLabel": "KYB स्थिती",
+  "noKyb": "KYB नाही",
+  "kybBusinessVerificationTitle": "व्यवसाय प्रमाणीकरण (KYB)",
+  "kybVerifiedOrgDesc": "संस्था यशस्वीरित्या प्रमाणित झाली.",
+  "kybPendingOrgDesc": "कागदपत्रे पुनरावलोकनात आहेत. हे सामान्यतः 1-3 व्यावसायिक दिवस घेतात.",
+  "kybRejectedOrgDesc": "प्रमाणीकरण अयशस्वी झाले. कृपया पुन्हा प्रयत्न करा.",
+  "kybNoneOrgDesc": "व्यवसाय वैशिष्ट्ये वापरण्यासाठी आपल्या संस्थेचे प्रमाणीकरण करा.",
+  "invitePlus": "+ आमंत्रण",
+  "kybVerificationTitle": "KYB प्रमाणीकरण",
+  "kybWebOnlyBusiness": "KYB पडताळणी फक्त मोबाइल अॅपमध्ये उपलब्ध आहे.",
+  "unknownDevice": "अज्ञात डिव्हाइस",
+  "ipUnknown": "IP अज्ञात",
+  "currentSessionLabel": "सध्याचे",
+  "endSessionAction": "समाप्त",
+  "deviceLoggedOut": "डिव्हाइस साइन आउट केले जाईल.",
+  "acceptInvitationTitle": "संघटना निमंत्रण",
+  "acceptInvitation": "निमंत्रण स्वीकारा",
+  "acceptInvitationDesc": "तुम्हाला Taler पर्यावरणात एका संघटनेत सामील होण्यासाठी आमंत्रित केले आहे.",
+  "accept": "स्वीकारा",
+  "reject": "नाकार",
+  "sessions": "सक्रिय सत्रे",
+  "currentSession": "सध्याचे सत्र",
+  "deleteSession": "सत्र समाप्त करा",
+  "deleteSessionConfirm": "हे सत्र समाप्त करायचे?",
+  "sessionDeleted": "सत्र समाप्त झाले",
+  "noSessions": "कोणतीही सक्रिय सत्रे नाहीत",
+  "minutesAgo": "{count} मिनिटांपूर्वी",
+  "hoursAgo": "{count} तासांपूर्वी",
+  "daysAgo": "{count} दिवसांपूर्वी",
+  "justNow": "आत्ताच",
+  "settings": "सेटिंग्ज",
+  "security": "सुरक्षा",
+  "biometrics": "बायोमेट्रिक्स",
+  "biometricsDesc": "फेस ID किंवा फिंगरप्रिंटसह जलद लॉगिन",
+  "biometricsConfirm": "जलद लॉगिन सक्षम करण्यासाठी बायोमेट्रिक्सची पुष्टी करा",
+  "biometricsError": "बायोमेट्रिक्स सक्षम करण्यात अयशस्वी. डिव्हाइस सेटिंग्ज तपासा.",
+  "changePassword": "पासवर्ड बदला",
+  "twoFactorAuth": "दुहेरी घटक प्रमाणीकरण",
+  "currentPassword": "सध्याचा पासवर्ड",
+  "newPassword": "नवीन पासवर्ड",
+  "confirmNewPassword": "नवीन पासवर्डची पुष्टी करा",
+  "passwordChanged": "पासवर्ड बदलला",
+  "wrongCurrentPassword": "चुकीचा सध्याचा पासवर्ड",
+  "passwordTooWeak": "पासवर्ड खूप कमकुवत: किमान 8 अक्षरे, अक्षर आणि अंक आवश्यक",
+  "passwordChangeFailed": "पासवर्ड बदलण्यात अयशस्वी",
+  "notifications": "सूचना",
+  "permissions": "परवानग्या",
+  "permissionNotifications": "पुश सूचना",
+  "permissionNotificationsDesc": "कॉल्स, संदेश, स्थिती",
+  "permissionMicrophone": "मायक्रोफोन",
+  "permissionMicrophoneDesc": "कॉल्स आणि व्हॉइस असिस्टंट",
+  "permissionCamera": "कॅमेरा",
+  "permissionCameraDesc": "व्हिडिओ कॉल्स आणि पडताळणी",
+  "permissionLocation": "स्थान",
+  "permissionLocationDesc": "पडताळणीसाठी वापरले जाते",
+  "permissionOpenSettings": "परवानगी रद्द करण्यासाठी, प्रणाली सेटिंग्ज उघडा",
+  "pushKycStatus": "KYC स्थिती पुश",
+  "pushKycStatusDesc": "पडताळणीचा निकाल",
+  "pushLogins": "लॉगिन पुश",
+  "pushLoginsDesc": "नवीन डिव्हाइसवर साइन इन करताना",
+  "account": "खाते",
+  "language": "भाषा",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "इंटरफेस भाषा",
+  "exportData": "डेटा निर्यात करा (GDPR)",
+  "deleteAccount": "खाते हटवा",
+  "deleteAccountConfirm": "खाते हटवायचे?",
+  "deleteAccountDesc": "तुमचा सर्व डेटा हटवला जाईल (GDPR). ही क्रिया अपरिवर्तनीय आहे.",
+  "logout": "साइन आउट",
+  "logoutConfirm": "साइन आउट करायचे?",
+  "logoutDesc": "तुम्ही या डिव्हाइसवरून Taler ID वरून साइन आउट केले जाल.",
+  "version": "Taler ID v{version}",
+  "pinCode": "PIN कोड",
+  "pinCodeDesc": "4-अंकी कोडसह जलद लॉगिन",
+  "setupPin": "PIN सेट करा",
+  "enterPin": "PIN प्रविष्ट करा",
+  "confirmPin": "PIN पुष्टी करा",
+  "pinMismatch": "PIN जुळत नाहीत",
+  "pinSet": "PIN यशस्वीरित्या सेट केला",
+  "enterPinToLogin": "साइन इन करण्यासाठी PIN प्रविष्ट करा",
+  "pinIncorrect": "चुकीचा PIN",
+  "removePin": "PIN काढा",
+  "pinRemoved": "PIN काढला",
+  "cancel": "रद्द करा",
+  "delete": "हटवा",
+  "ok": "ठीक आहे",
+  "retry": "पुन्हा प्रयत्न करा",
+  "loading": "लोड करत आहे...",
+  "error": "त्रुटी",
+  "success": "यशस्वी",
+  "noData": "माहिती नाही",
+  "failedToLoad": "माहिती लोड करण्यात अयशस्वी",
+  "failedToLoadProfile": "प्रोफाइल लोड करण्यात अयशस्वी",
+  "failedToSave": "बदल जतन करण्यात अयशस्वी",
+  "failedToLoadOrgs": "संस्था लोड करण्यात अयशस्वी",
+  "failedToLoadOrg": "संस्थेची माहिती लोड करण्यात अयशस्वी",
+  "failedToCreateOrg": "संस्था तयार करण्यात अयशस्वी",
+  "failedToInvite": "आमंत्रण पाठवण्यात अयशस्वी",
+  "failedToAcceptInvite": "आमंत्रण स्वीकारण्यात अयशस्वी",
+  "failedToLoadSessions": "सत्र लोड करण्यात अयशस्वी",
+  "failedToDeleteSession": "सत्र समाप्त करण्यात अयशस्वी",
+  "failedToLoadKyc": "सत्यापन स्थिती लोड करण्यात अयशस्वी",
+  "failedToStartKyc": "सत्यापन सुरू करण्यात अयशस्वी",
+  "verifiedPersonalInfo": "सत्यापित माहिती",
+  "middleName": "मधले नाव",
+  "placeOfBirth": "जन्मस्थान",
+  "nationality": "राष्ट्रीयत्व",
+  "gender": "लिंग",
+  "genderMale": "पुरुष",
+  "genderFemale": "स्त्री",
+  "docNumber": "क्रमांक",
+  "docIssuedDate": "जारी तारीख",
+  "docValidUntil": "वैध तारीख",
+  "docIssuedBy": "जारीकर्ता",
+  "address": "पत्ता",
+  "refreshData": "माहिती रीफ्रेश करा",
+  "failedToLoadSumsubData": "सत्यापन माहिती लोड करण्यात अयशस्वी",
+  "sumsubDataLoading": "सत्यापन माहिती लोड होत आहे...",
+  "reviewResultGreen": "सत्यापन यशस्वी",
+  "reviewResultRed": "सत्यापन अयशस्वी",
+  "tabAssistant": "सहाय्यक",
+  "assistantConnecting": "जोडले जात आहे…",
+  "assistantSpeaking": "बोलत आहे…",
+  "assistantListening": "ऐकत आहे…",
+  "assistantTapToStart": "सुरू करण्यासाठी टॅप करा",
+  "assistantTapToTalk": "AI शी बोलण्यासाठी टॅप करा",
+  "assistantRealtimeDesc": "सहाय्यक रिअल टाइममध्ये आवाजाने प्रतिसाद देतो",
+  "assistantConnectingToAssistant": "सहाय्यकाशी जोडले जात आहे...",
+  "assistantAiSpeaking": "AI बोलत आहे...",
+  "assistantAiListening": "AI ऐकत आहे",
+  "assistantSpeakerOn": "स्पीकर चालू",
+  "assistantSpeaker": "स्पीकर",
+  "assistantEnd": "समाप्त",
+  "assistantUnmute": "अनम्यूट",
+  "assistantMicrophone": "मायक्रोफोन",
+  "assistantConnectionError": "कनेक्शन त्रुटी",
+  "tabMessenger": "संदेश",
+  "tabCalls": "कॉल्स",
+  "tabCalendar": "कॅलेंडर",
+  "appearance": "देखावा",
+  "appearanceSelect": "थीम निवडा",
+  "themeLight": "लाइट",
+  "themeDark": "डार्क",
+  "themeSystem": "सिस्टम",
+  "onboardingTitle1": "एकत्रित ओळख",
+  "onboardingDesc1": "Taler ID हे Taler परिसंस्थेमधील तुमचे डिजिटल पासपोर्ट आहे. सर्व सेवांसाठी एक खाते.",
+  "onboardingTitle2": "डेटा सुरक्षा",
+  "onboardingDesc2": "KYC पडताळणी, AES-256 एन्क्रिप्शन, आणि दोन-घटक प्रमाणीकरण तुमची ओळख सुरक्षित ठेवतात.",
+  "onboardingTitle3": "माहिती मिळवा",
+  "onboardingDesc3": "पडताळणी स्थिती, नवीन उपकरणांवरील लॉगिन्स, आणि येणारे कॉल्स याबद्दल सूचना मिळवा.",
+  "onboardingNext": "पुढे",
+  "onboardingEnableNotifications": "सूचना सक्षम करा",
+  "onboardingTitle4": "व्हॉइस कॉल्स",
+  "onboardingDesc4": "व्हॉइस कॉल्स आणि AI सहाय्यकासाठी मायक्रोफोन प्रवेश द्या. तुम्ही हे नंतर सेटिंग्जमध्ये बदलू शकता.",
+  "onboardingEnableMicrophone": "मायक्रोफोन सक्षम करा",
+  "onboardingStart": "सुरू करा",
+  "onboardingSkip": "वगळा",
+  "meshLocalNetworkPromptTitle": "स्थानिक नेटवर्क प्रवेश द्या",
+  "meshLocalNetworkPromptBody": "Wi-Fi वर सहकारी शोधण्यासाठी (ऑफलाइन गट कॉल्स), iOS ला स्थानिक नेटवर्क परवानगी आवश्यक आहे. सेटिंग्ज उघडा → गोपनीयता आणि सुरक्षा → स्थानिक नेटवर्क → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "सेटिंग्ज उघडा",
+  "meshLocalNetworkPromptDismiss": "समजले",
+  "forgotPassword": "पासवर्ड विसरलात?",
+  "forgotPasswordTitle": "पासवर्ड रीसेट करा",
+  "forgotPasswordSubtitle": "रीसेट कोड प्राप्त करण्यासाठी तुमचा ईमेल प्रविष्ट करा",
+  "resetCodeSent": "कोड {email} वर पाठवला",
+  "enterResetCode": "कोड प्रविष्ट करा",
+  "resetPasswordButton": "पासवर्ड रीसेट करा",
+  "passwordResetSuccess": "पासवर्ड यशस्वीरित्या रीसेट केला",
+  "sendCode": "कोड पाठवा",
+  "resendCode": "कोड पुन्हा पाठवा",
+  "newGroup": "नवीन गट",
+  "newChat": "नवीन चॅट",
+  "groupName": "गटाचे नाव",
+  "createGroup": "गट तयार करा",
+  "groupInfo": "गट माहिती",
+  "groupMembers": "सदस्य ({count})",
+  "addMembers": "सदस्य जोडा",
+  "leaveGroup": "गट सोडा",
+  "leaveGroupConfirm": "हा गट सोडायचा?",
+  "deleteGroup": "गट हटवा",
+  "deleteGroupConfirm": "हा गट हटवायचा? हे पूर्ववत करता येणार नाही.",
+  "groupRoleOwner": "मालक",
+  "groupRoleAdmin": "प्रशासक",
+  "groupRoleMember": "सदस्य",
+  "selectParticipants": "सहभागी निवडा",
+  "selectedCount": "{count} निवडले",
+  "changeRole": "भूमिका बदला",
+  "groupCreated": "गट तयार झाला",
+  "memberJoined": "{name} सामील झाला",
+  "memberLeftGroup": "{name} सोडला",
+  "memberWasRemoved": "{name} काढला गेला",
+  "roleChangedTo": "{name} आता {role} आहे",
+  "participantsCount": "{count} सहभागी",
+  "enterGroupName": "गटाचे नाव प्रविष्ट करा",
+  "muteNotifications": "सूचना म्यूट करा",
+  "unmuteNotifications": "सूचना अनम्यूट करा",
+  "muteFor1Hour": "1 तासासाठी",
+  "muteFor8Hours": "8 तासांसाठी",
+  "muteFor2Days": "2 दिवसांसाठी",
+  "muteForever": "सर्वकाळासाठी",
+  "muted": "म्यूट केले",
+  "tabTranslator": "भाषांतर",
+  "translatorTitle": "भाषांतरकार",
+  "translatorSelectLanguage": "भाषा निवडा",
+  "translatorDownloading": "भाषा मॉडेल्स डाउनलोड करत आहे...",
+  "translatorDownloadingHint": "पहिल्या डाउनलोडसाठी इंटरनेट आवश्यक आहे",
+  "translatorTypeHint": "मजकूर टाइप करा किंवा मायक्रोफोनवर टॅप करा",
+  "translatorListening": "ऐकत आहे...",
+  "translatorTapToSpeak": "बोलण्यासाठी टॅप करा",
+  "translatorTapToStop": "थांबवण्यासाठी टॅप करा",
+  "translatorAutoSpeak": "स्वयंचलित बोलणे",
+  "translatorCopied": "कॉपी केले",
+  "translatorLangRu": "रशियन",
+  "translatorLangEn": "इंग्रजी",
+  "translatorLangDe": "जर्मन",
+  "translatorLangFr": "फ्रेंच",
+  "translatorLangEs": "स्पॅनिश",
+  "translatorLangIt": "इटालियन",
+  "translatorLangPt": "पोर्तुगीज",
+  "translatorLangTr": "तुर्की",
+  "translatorLangZh": "चिनी",
+  "translatorLangJa": "जपानी",
+  "translatorLangKo": "कोरियन",
+  "translatorLangAr": "अरबी",
+  "translatorLangPl": "पोलिश",
+  "translatorLangSk": "स्लोव्हाक",
+  "translatorLangCs": "झेक",
+  "translatorLangNl": "डच",
+  "translatorLangSv": "स्वीडिश",
+  "translatorLangDa": "डॅनिश",
+  "translatorLangNo": "नॉर्वेजियन",
+  "translatorLangFi": "फिन्निश",
+  "translatorLangUk": "युक्रेनियन",
+  "translatorLangEl": "ग्रीक",
+  "translatorLangRo": "रोमानियन",
+  "translatorLangHu": "हंगेरियन",
+  "translatorLangBg": "बल्गेरियन",
+  "translatorLangHr": "क्रोएशियन",
+  "translatorLangSr": "सर्बियन",
+  "translatorLangHi": "हिंदी",
+  "translatorLangTh": "थाई",
+  "translatorLangVi": "व्हिएतनामी",
+  "translatorLangId": "इंडोनेशियन",
+  "translatorLangMs": "मलय",
+  "translatorLangHe": "हिब्रू",
+  "translatorLangFa": "फारसी",
+  "callInProgress": "कॉल चालू आहे",
+  "joinCall": "सामील व्हा",
+  "createCallLink": "कॉल लिंक",
+  "callLinkCopied": "लिंक कॉपी केली",
+  "callLinkTitle": "रूम लिंक",
+  "connectionUnstable": "कनेक्शन अस्थिर आहे — तुमचे इंटरनेट तपासा",
+  "today": "आज",
+  "yesterday": "काल",
+  "errorTimeout": "कनेक्शनची वेळ संपली. तुमचे इंटरनेट कनेक्शन तपासा.",
+  "errorNoConnection": "कोणतेही इंटरनेट कनेक्शन नाही.",
+  "errorGeneral": "एक त्रुटी आली आहे. कृपया पुन्हा प्रयत्न करा.",
+  "errorWithMessage": "त्रुटी: {message}",
+  "notifChannelMessages": "संदेश",
+  "notifChannelMessagesDesc": "नवीन संदेश सूचना",
+  "notifChannelMissedCalls": "मिस्ड कॉल्स",
+  "notifChannelMissedCallsDesc": "मिस्ड कॉल सूचना",
+  "notifMissedCall": "मिस्ड कॉल",
+  "notifAccept": "स्वीकारा",
+  "notifDecline": "नकारा",
+  "notifIncomingCall": "येणारा कॉल",
+  "notifIncomingCallChannel": "येणारा कॉल",
+  "notifMissedCallChannel": "मिस्ड कॉल",
+  "notifUnknown": "अज्ञात",
+  "effectNone": "कोणताही पार्श्वभूमी नाही",
+  "effectBlur": "ब्लर",
+  "effectOffice": "ऑफिस",
+  "effectNature": "निसर्ग",
+  "effectGradient": "ग्रेडियंट",
+  "effectLibrary": "लायब्ररी",
+  "effectCity": "शहर",
+  "effectMinimalism": "मिनिमलिझम",
+  "voiceParticipant": "सहभागी",
+  "voiceInvitesToRoom": "तुम्हाला रूममध्ये आमंत्रित करतो",
+  "voiceRoom": "रूम",
+  "voicePasswordProtected": "पासवर्ड संरक्षित",
+  "voicePasswordHint": "पासवर्ड",
+  "voiceEnter": "प्रवेश करा",
+  "voiceJoinRoom": "रूममध्ये सामील व्हा",
+  "voiceYourName": "तुमचे नाव",
+  "voiceInvitationSent": "{name} ला आमंत्रण पाठवले",
+  "voiceNoActiveRoom": "कोणतीही सक्रिय रूम नाही",
+  "voiceCameraPermission": "सेटिंग्ज → प्रायव्हसी → कॅमेरा → TalerID मध्ये कॅमेरा प्रवेश परवानगी द्या",
+  "voiceOpenSettings": "उघडा",
+  "voiceCameraError": "कॅमेरा सक्षम करण्यात अयशस्वी: {error}",
+  "voiceAllAgreedRecording": "सर्व सहमत. रेकॉर्डिंग सुरू.",
+  "voiceNewParticipantAgreed": "नवीन सहभागी रेकॉर्डिंगसाठी सहमत.",
+  "voiceDeclinedRecording": "तुम्ही रेकॉर्डिंग नाकारले. कॉल सोडत आहे.",
+  "voiceRecordingEnded": "रेकॉर्डिंग संपले",
+  "voiceRecordingInProgress": "रेकॉर्डिंग चालू आहे",
+  "voiceTranscriptionRequest": "लिप्यंतरण विनंती",
+  "voiceRecordingRequest": "रेकॉर्डिंग विनंती",
+  "voiceAgree": "सहमत",
+  "voiceDeclineAndLeave": "नकार द्या आणि सोडा",
+  "voiceAudioOutput": "ऑडिओ आउटपुट",
+  "voiceAudioPhone": "फोन",
+  "voiceAudioSpeaker": "स्पीकर",
+  "voiceAudioBluetooth": "ब्लूटूथ",
+  "voiceAudioHeadphones": "हेडफोन्स",
+  "voiceLinkCopied": "लिंक कॉपी केली",
+  "voiceTranslateTo": "मध्ये भाषांतर करा",
+  "voiceSearchLanguage": "भाषा शोधा...",
+  "voiceRoomWithCreator": "रूम {name}",
+  "voiceVoiceCall": "व्हॉइस कॉल",
+  "voiceOnHold": "होल्डवर",
+  "voiceActiveCall": "सक्रिय",
+  "voiceEndAllCalls": "सर्व कॉल समाप्त करा",
+  "voiceEndThisCall": "हा कॉल समाप्त करा",
+  "voiceCopyLink": "लिंक कॉपी करा",
+  "voiceAddParticipant": "सहभागी जोडा",
+  "voiceReconnecting": "पुन्हा कनेक्ट करत आहे...",
+  "voiceConnectionError": "कनेक्शन त्रुटी",
+  "voiceClose": "बंद करा",
+  "voiceCalling": "कॉल करत आहे...",
+  "voiceCallActive": "कॉल सक्रिय",
+  "voiceWaiting": "प्रतीक्षा",
+  "voiceWaitingUpper": "प्रतीक्षा",
+  "voiceRec": "रेक",
+  "voiceStop": "थांबवा",
+  "voiceRecord": "रेकॉर्डिंग",
+  "voiceTranslation": "भाषांतर",
+  "voiceAudio": "ऑडिओ",
+  "voiceFlipCamera": "फ्लिप",
+  "voiceBackground": "पार्श्वभूमी",
+  "voiceAssistantSpeakingStatus": "सहाय्यक बोलत आहे...",
+  "voiceAssistantListeningStatus": "सहाय्यक ऐकत आहे...",
+  "voiceUnmute": "म्यूट बंद करा",
+  "voiceMic": "मायक्रोफोन",
+  "voiceAssistantLabel": "सहाय्यक",
+  "voiceCameraOn": "कॅमेरा चालू",
+  "voiceCameraLabel": "कॅमेरा",
+  "voiceEndCall": "कॉल समाप्त करा",
+  "voiceWaitingParticipants": "सहभागींची प्रतीक्षा करत आहे...",
+  "voiceYou": "तुम्ही",
+  "voiceAiAssistant": "AI सहाय्यक",
+  "voiceVideoUnavailable": "व्हिडिओ उपलब्ध नाही",
+  "voiceSearchNickname": "टोपणनावाने शोधा...",
+  "voiceTranscriptionWord": "लिप्यंतरण",
+  "voiceRecordingWord": "रेकॉर्डिंग",
+  "voiceConnecting": "जोडत आहे...",
+  "voiceVideoBackground": "व्हिडिओ पार्श्वभूमी",
+  "voiceCallSettings": "कॉल सेटिंग्ज",
+  "voiceEnableAI": "AI सहाय्यक सक्षम करा",
+  "voiceAIParticipating": "AI संभाषणात सहभागी होईल",
+  "voiceNormalCall": "AI शिवाय सामान्य कॉल",
+  "voiceCallConfirm": "कॉल करायचा आहे?",
+  "chatAlreadyInCall": "आधीच कॉलमध्ये आहे",
+  "chatCallError": "कॉल त्रुटी: {error}",
+  "chatPhotoVideo": "फोटो / व्हिडिओ",
+  "chatCamera": "कॅमेरा",
+  "chatFile": "फाइल",
+  "chatContact": "संपर्क",
+  "chatSelectContact": "संपर्क निवडा",
+  "chatNoContacts": "कोणतेही संपर्क नाहीत",
+  "chatUser": "वापरकर्ता",
+  "chatFileAttachment": "📎 फाइल",
+  "chatFileUploadError": "फाइल अपलोड त्रुटी: {error}",
+  "chatVoiceMessage": "🎤 व्हॉइस मेसेज",
+  "chatGroup": "गट",
+  "chatDialog": "संवाद",
+  "chatCall": "कॉल",
+  "chatStartConversation": "संभाषण सुरू करा",
+  "chatYou": "तुम्ही",
+  "chatIsTyping": "टाइप करत आहे...",
+  "chatUserIsTyping": "{name} टाइप करत आहे...",
+  "chatUsersAreTyping": "{names} टाइप करत आहेत...",
+  "chatPreparingFile": "फाइल तयार करत आहे…",
+  "chatUploading": "अपलोड करत आहे… {progress}%",
+  "chatEdited": "संपादित",
+  "chatViaMesh": "मेशद्वारे",
+  "chatReply": "उत्तर द्या",
+  "chatEdit": "संपादन करा",
+  "chatCopy": "कॉपी करा",
+  "chatCopied": "कॉपी केले",
+  "chatSaveMedia": "जतन करा",
+  "chatForward": "फॉरवर्ड करा",
+  "chatSaving": "जतन करत आहे...",
+  "chatSavedToGallery": "गॅलरीत जतन केले",
+  "chatNoSavePermission": "जतन करण्याची परवानगी नाही. सेटिंग्ज तपासा.",
+  "chatFileSaveError": "फाइल जतन त्रुटी",
+  "chatDeleteMessage": "संदेश हटवा",
+  "chatDeleteForMe": "माझ्यासाठी हटवा",
+  "chatDeleteForEveryone": "सर्वांसाठी हटवा",
+  "chatMessageForwarded": "संदेश फॉरवर्ड केला",
+  "chatContactTapToOpen": "संपर्क · उघडण्यासाठी टॅप करा",
+  "chatForwardTo": "याला फॉरवर्ड करा...",
+  "chatSearchHint": "शोधा...",
+  "chatRecording": "रेकॉर्डिंग...",
+  "chatMessageHint": "संदेश...",
+  "chatHideKeyboard": "कीबोर्ड लपवा",
+  "chatEditing": "संपादन करत आहे",
+  "chatFileDownloadError": "फाइल डाउनलोड त्रुटी",
+  "chatVoiceMessageShort": "व्हॉइस संदेश",
+  "chatVideoSavedToGallery": "व्हिडिओ गॅलरीत जतन केला",
+  "chatSavingError": "जतन त्रुटी",
+  "convSetNickname": "टोपणनाव सेट करा",
+  "convNicknameRequired": "मेसेंजर वापरण्यासाठी टोपणनाव आवश्यक आहे. इतर वापरकर्ते तुम्हाला त्याद्वारे शोधू शकतात.",
+  "convNicknameRules": "3–30 अक्षरे: अक्षरे, अंक, _",
+  "convNicknameTaken": "टोपणनाव आधीच घेतलेले आहे",
+  "convSaveError": "जतन त्रुटी",
+  "convContactsLabel": "संपर्क",
+  "convDefaultUser": "वापरकर्ता",
+  "convNoDialogs": "कोणत्याही संभाषण नाहीत",
+  "convFindUserToChat": "गप्पा सुरू करण्यासाठी वापरकर्ता शोधा",
+  "convDefaultContact": "संपर्क",
+  "dashboardUser": "वापरकर्ता",
+  "dashboardIncomingCall": "येणारी कॉल",
+  "dashboardDecline": "नकार",
+  "dashboardAccept": "स्वीकारा",
+  "dashboardActiveCall": "सक्रिय कॉल — परत जाण्यासाठी टॅप करा",
+  "dashboardUpdateAvailable": "अपडेट उपलब्ध {version}",
+  "dashboardUpdate": "अपडेट",
+  "dashboardWhatsNew": "नवीन काय आहे",
+  "dashboardWhatsNewTitle": "{version} मध्ये नवीन काय आहे",
+  "dashboardInstalling": "इंस्टॉल करत आहे...",
+  "contactRequestsTitle": "संपर्क",
+  "messengerContactRequestsSection": "संपर्क विनंत्या",
+  "messengerContactRequestsCount": "{count, plural, =1{1 नवीन विनंती} other{{count} नवीन विनंत्या}}",
+  "contactRequestsSearch": "शोधा",
+  "contactRequestsIncoming": "येणारे",
+  "contactRequestsSent": "पाठविलेले",
+  "contactRequestsSearchHint": "निकनेम किंवा ईमेल",
+  "contactRequestSent": "विनंती पाठविली",
+  "contactRequestsNoUsers": "कोणतेही वापरकर्ते सापडले नाहीत",
+  "contactRequestsSearchHelp": "अचूक निकनेम किंवा ईमेल प्रविष्ट करा\nआणि शोधा दाबा",
+  "contactRequestsSendTooltip": "विनंती पाठवा",
+  "contactRequestTitle": "संपर्क विनंती",
+  "contactRequestConfirm": "{name} ला संपर्क विनंती पाठवायची आहे का?",
+  "contactRequestSend": "पाठवा",
+  "contactRequestsNoIncoming": "कोणत्याही येणाऱ्या विनंत्या नाहीत",
+  "contactRequestsNoSent": "कोणत्याही पाठविलेल्या विनंत्या नाहीत",
+  "contactRequestStatusPending": "प्रतिसादाची प्रतीक्षा",
+  "contactRequestStatusAccepted": "स्वीकारले",
+  "contactRequestStatusRejected": "नाकारले",
+  "userSearchTitle": "वापरकर्ता शोधा",
+  "userSearchHint": "निकनेम, फोन किंवा ईमेल",
+  "userSearchHelper": "@nickname, ईमेल किंवा नाव प्रविष्ट करा शोधण्यासाठी",
+  "userSearchNoUsers": "कोणतेही वापरकर्ते सापडले नाहीत",
+  "userProfileShareContact": "संपर्क शेअर करा",
+  "userProfileShareContactDesc": "संपर्क लिंक पाठवा",
+  "userProfileCopyLink": "लिंक कॉपी करा",
+  "userProfileCopied": "कॉपी केले",
+  "userProfileTitle": "प्रोफाइल",
+  "userProfileLoadError": "प्रोफाइल लोड त्रुटी",
+  "userProfileMessage": "संदेश",
+  "userProfileCall": "कॉल",
+  "userProfileRequestSent": "विनंती पाठवली",
+  "userProfileAccept": "स्वीकारा",
+  "userProfileDecline": "नकारा",
+  "userProfileAddToContacts": "संपर्कांमध्ये जोडा",
+  "userProfileMediaTab": "मीडिया",
+  "userProfileFilesTab": "फाइल्स",
+  "userProfileLinksTab": "लिंक्स",
+  "userProfileRecordingsTab": "रेकॉर्डिंग्ज",
+  "userProfileSummariesTab": "सारांश",
+  "userProfileNoMedia": "मीडिया फाइल्स नाहीत",
+  "userProfileNoFiles": "फाइल्स नाहीत",
+  "userProfileNoLinks": "लिंक्स नाहीत",
+  "userProfileNoRecordings": "रेकॉर्डिंग्ज नाहीत",
+  "userProfileNoSummaries": "सारांश नाहीत",
+  "userProfileMeetingSummary": "बैठकीचा सारांश",
+  "userProfileFailedOpenChat": "चॅट उघडण्यात अयशस्वी",
+  "sharedMediaTitle": "मीडिया आणि फाइल्स",
+  "sharedMediaTab": "मीडिया",
+  "sharedFilesTab": "फाइल्स",
+  "sharedLinksTab": "लिंक्स",
+  "sharedNoMedia": "मीडिया फाइल्स नाहीत",
+  "sharedNoFiles": "फाइल्स नाहीत",
+  "sharedNoLinks": "लिंक्स नाहीत",
+  "shareToChat": "चॅटला फॉरवर्ड करा",
+  "shareSelectChat": "चॅट निवडा",
+  "shareNoChats": "चॅट्स नाहीत",
+  "shareFilesCount": "{count} फाइल्स",
+  "contactsTitle": "संपर्क",
+  "contactsAddTooltip": "संपर्क जोडा",
+  "contactsSearchHint": "संपर्क शोधा...",
+  "contactsNotFound": "काहीही सापडले नाही",
+  "contactsEmpty": "संपर्क नाहीत",
+  "contactsAdd": "संपर्क जोडा",
+  "contactsPendingConfirmation": "पुष्टीची प्रतीक्षा",
+  "contactsMessage": "संदेश",
+  "contactsCall": "कॉल",
+  "contactsResend": "विनंती पुन्हा पाठवा",
+  "contactsResendTimeout": "24 तासांनी पुन्हा प्रयत्न करा",
+  "contactsResent": "विनंती पुन्हा पाठवली",
+  "contactsWantsToConnect": "तुमच्याशी जोडले जाऊ इच्छिते",
+  "contactsSearchPeople": "लोक शोधा",
+  "notesTitle": "नोट्स",
+  "notesAssistantSpeaking": "सहाय्यक बोलत आहे...",
+  "notesListening": "ऐकत आहे...",
+  "notesEmpty": "कोणत्याही नोट्स नाहीत",
+  "notesEmptyHint": "डिक्टेशनसाठी मायक्रोफोन दाबा\nकिंवा मॅन्युअल एंट्रीसाठी + दाबा",
+  "notesDeleteConfirm": "नोट काढून टाका?",
+  "notesNew": "नवीन नोट",
+  "notesEdit": "संपादन करा",
+  "notesTitleHint": "शीर्षक",
+  "notesContentHint": "तुमचे विचार लिहा...",
+  "calendarTitle": "कॅलेंडर",
+  "calendarStop": "थांबा",
+  "calendarVoiceInput": "व्हॉइस इनपुट",
+  "calendarNewEvent": "नवीन कार्यक्रम",
+  "calendarAssistantSpeaking": "सहाय्यक बोलत आहे...",
+  "calendarListening": "ऐकत आहे...",
+  "calendarInvitations": "आमंत्रणे ({count})",
+  "calendarNoEvents": "कोणतेही कार्यक्रम नाहीत",
+  "calendarDayMon": "सोम",
+  "calendarDayTue": "मंगळ",
+  "calendarDayWed": "बुध",
+  "calendarDayThu": "गुरु",
+  "calendarDayFri": "शुक्र",
+  "calendarDaySat": "शनि",
+  "calendarDaySun": "रवि",
+  "calendarEnterRoom": "खोलीत प्रवेश करा",
+  "calendarMeeting": "बैठक",
+  "calendarLocationPrefix": "स्थान: {location}",
+  "calendarEditEvent": "संपादन करा",
+  "calendarTitleHint": "शीर्षक",
+  "calendarDescriptionHint": "वर्णन",
+  "calendarTypeEvent": "कार्यक्रम",
+  "calendarTypeMeeting": "बैठक",
+  "calendarTypeReminder": "स्मरणपत्र",
+  "calendarTypeLabel": "प्रकार",
+  "calendarMeetingLink": "बैठकीचा दुवा",
+  "calendarLocationHint": "स्थान",
+  "calendarDateLabel": "तारीख",
+  "calendarTimeLabel": "वेळ",
+  "calendarReminderLabel": "स्मरणपत्र",
+  "calendarReminderNone": "काहीही नाही",
+  "calendarReminder15min": "१५ मिनिटे आधी",
+  "calendarReminder30min": "३० मिनिटे आधी",
+  "calendarReminder1hour": "१ तास आधी",
+  "calendarRepeatLabel": "पुन्हा करा",
+  "calendarRepeatNone": "पुन्हा नाही",
+  "calendarRepeatDaily": "दररोज",
+  "calendarRepeatWeekly": "दर आठवड्याला",
+  "calendarRepeatMonthly": "दर महिन्याला",
+  "calendarRepeatYearly": "दर वर्षी",
+  "calendarParticipants": "सहभागी",
+  "calendarAddParticipant": "जोडा",
+  "calendarSearchContacts": "संपर्क शोधा...",
+  "calendarNoContacts": "संपर्क नाहीत",
+  "calendarStatusAccepted": "स्वीकारले",
+  "calendarStatusDeclined": "नाकारले",
+  "calendarStatusMaybe": "कदाचित",
+  "calendarStatusPending": "प्रलंबित",
+  "calendarEndTime": "समाप्ती वेळ",
+  "calendarYourAnswer": "तुमचे उत्तर:",
+  "calendarOrganizer": "आयोजक",
+  "calendarDeleteError": "हटविण्यात अयशस्वी: {error}",
+  "calendarRsvpAccept": "स्वीकारा",
+  "calendarRsvpMaybe": "कदाचित",
+  "calendarRsvpDecline": "नकारा",
+  "callHistoryTitle": "कॉल्स",
+  "callHistoryTab": "कॉल इतिहास",
+  "callHistoryTempMeeting": "तात्पुरती बैठक",
+  "callHistoryCopy": "कॉपी",
+  "callHistoryLinkCopied": "लिंक कॉपी केली",
+  "callHistoryShare": "शेअर",
+  "callHistoryEnter": "प्रवेश करा",
+  "callHistoryAlreadyInCall": "आधीच कॉलमध्ये आहे",
+  "callHistoryCouldNotDeterminePeer": "दुसरी पार्टी ओळखता आली नाही",
+  "callHistoryContacts": "संपर्क",
+  "callHistoryFailedLoadRoom": "तुमची खोली लोड करण्यात अयशस्वी",
+  "callHistoryYourRoom": "तुमची खोली",
+  "callHistoryCreateMeeting": "बैठक तयार करा",
+  "callHistoryMeetingSummaries": "बैठक सारांश",
+  "callHistoryMeetingRecordings": "बैठक रेकॉर्डिंग",
+  "callHistoryNoCalls": "कोणतेही कॉल नाहीत",
+  "callHistoryMissed": "चुकलेले",
+  "callHistoryRecording": "रेकॉर्डिंग",
+  "callHistorySummary": "सारांश",
+  "callHistoryCallAgain": "पुन्हा कॉल करा",
+  "callHistoryTodayTime": "आज, {time}",
+  "callHistoryYesterdayTime": "काल, {time}",
+  "callHistoryUnknown": "अज्ञात",
+  "callHistoryDetails": "कॉल तपशील",
+  "callHistoryOutgoing": "बाहेर जाणारा कॉल",
+  "callHistoryIncoming": "आत येणारा कॉल",
+  "callHistoryDuration": "कालावधी: {duration}",
+  "callHistoryWithAI": "AI सहाय्यकासह",
+  "callHistoryParticipants": "सहभागी",
+  "callDetailYouSuffix": "(तुम्ही)",
+  "callHistoryMeetingSummary": "बैठक सारांश",
+  "callHistoryMoreDetails": "अधिक तपशील",
+  "callHistorySummaryProcessing": "सारांश प्रक्रिया...",
+  "callHistoryMeetingRecording": "बैठक रेकॉर्डिंग",
+  "callHistoryProcessing": "प्रक्रिया...",
+  "callHistoryCreateTranscript": "प्रतिलिपी तयार करा",
+  "callHistoryNoSummaries": "कोणतेही सारांश नाहीत",
+  "callHistoryRecordDuringCall": "कॉल दरम्यान \"रेकॉर्ड\" दाबा",
+  "callHistoryMeetingTime": "बैठक {time}",
+  "callHistoryTranscribing": "प्रतिलिपीकरण आणि सारांश तयार करीत आहे...",
+  "callHistoryTranscriptCreated": "प्रतिलिपी तयार झाली",
+  "callHistoryNoRecordings": "कोणतेही रेकॉर्डिंग नाहीत",
+  "callHistoryRecordingDate": "रेकॉर्डिंग {date}",
+  "callHistoryRecordingUnavailable": "रेकॉर्डिंग अनुपलब्ध",
+  "callHistoryTranscriptReady": "प्रतिलिपी तयार",
+  "callHistoryTranscript": "प्रतिलिपी",
+  "callHistoryKeyPoints": "मुख्य मुद्दे",
+  "callHistoryTasks": "कार्ये",
+  "callHistoryAssignedTo": "नेमलेले: {assignee}",
+  "callHistoryDecisions": "निर्णय",
+  "callHistoryShowTranscript": "पूर्ण प्रतिलिपी दाखवा",
+  "profileScanQr": "QR स्कॅन करा",
+  "profileMyQrCode": "माझा QR कोड",
+  "profileAddMeShare": "मला Taler ID मध्ये जोडा!\ntalerid://user/{userId}",
+  "profileShowCode": "तुम्हाला जोडण्यासाठी हा कोड दाखवा",
+  "profileEditDesc": "नाव, आडनाव, वडिलांचे नाव, जन्मतारीख",
+  "profileAboutMe": "माझ्याबद्दल",
+  "profileAboutMeDesc": "मूल्ये, कौशल्ये, आवडी आणि अधिक",
+  "profileNotes": "टीप",
+  "profileNotesDesc": "विचार, कल्पना आणि टीप",
+  "profileAvatarUpdated": "अवतार अद्ययावत केला",
+  "profileNickname": "टोपणनाव",
+  "profileNotSet": "सेट केलेले नाही",
+  "profileChangeNickname": "टोपणनाव बदला",
+  "profileNicknameUpdated": "टोपणनाव अद्ययावत केले",
+  "profileShareLabel": "शेअर करा",
+  "profileScanQrCode": "QR कोड स्कॅन करा",
+  "profilePointCamera": "QR कोडकडे कॅमेरा दाखवा",
+  "profilePhotoCamera": "फोटो काढा",
+  "profilePhotoGallery": "गॅलरीमधून निवडा",
+  "editProfilePatronymic": "वडिलांचे नाव (पर्यायी)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "माझ्याबद्दल",
+  "aboutMeClickToFill": "भरण्यासाठी क्लिक करा",
+  "aboutMeCoreValues": "मूल्ये",
+  "aboutMeWorldview": "जगदृष्टी",
+  "aboutMeSkills": "कौशल्ये",
+  "aboutMeInterests": "आवडी",
+  "aboutMeDesires": "इच्छा",
+  "aboutMeBackground": "प्रोफाइल",
+  "aboutMeLikes": "आवडी",
+  "aboutMeDislikes": "नावडी",
+  "aboutMeDeleteSection": "विभाग हटवायचा?",
+  "aboutMeDeleteConfirm": "या विभागातील सर्व डेटा हटविला जाईल.",
+  "aboutMeConnectionError": "कनेक्शन त्रुटी: {error}",
+  "aboutMeVisibility": "दृश्यता",
+  "aboutMeTags": "टॅग",
+  "aboutMeAddTag": "टॅग जोडा...",
+  "aboutMeDescription": "वर्णन",
+  "aboutMeDescribeLong": "आम्हाला अधिक सांगा...",
+  "aboutMeVisibilityEveryone": "सर्वांना",
+  "aboutMeVisibilityContacts": "संपर्क",
+  "aboutMeVisibilityOnlyMe": "फक्त मी",
+  "settingsProfileSubtitle": "प्रोफाइल",
+  "settingsWallpaper": "वॉलपेपर",
+  "settingsWallpaperDesc": "संपूर्ण अॅपसाठी पार्श्वभूमी प्रतिमा",
+  "settingsWallpaperNone": "काहीही नाही",
+  "settingsAccount": "खाते",
+  "settingsKycVerification": "ओळख पडताळणी (KYC)",
+  "settingsOrganizations": "संस्था",
+  "incomingCallLabel": "आगामी कॉल",
+  "incomingCallDecline": "नकार",
+  "incomingCallAccept": "स्वीकारा",
+  "meshIncomingCallLabel": "📡 मेष कॉल येत आहे",
+  "meshDeviceFallback": "मेष उपकरण {hexPrefix}",
+  "callConflictAlreadyInCall": "सध्याचा कॉल आधी संपवा",
+  "callPopupTransportTitle": "कॉल द्वारे",
+  "callPopupTransportMesh": "📡 मेष (पीअर-टू-पीअर)",
+  "callPopupTransportLk": "📞 सर्व्हर",
+  "callPopupTransportMeshUnavailable": "मेषद्वारे संपर्क साधता येत नाही",
+  "meshOnboardingTitle": "📡 मेष कॉलसाठी अॅप उघडे ठेवा",
+  "meshOnboardingBody": "फोन लॉक असताना, मेष कॉल ~30 सेकंदांनंतर बंद होऊ शकतात (iOS मर्यादा).",
+  "meshOnboardingAck": "समजले",
+  "meshHistoryBadge": "📡 मेष",
+  "meshHistoryNoChatAvailable": "संपर्क तुमच्या यादीत नाही",
+  "meshCallStatusInviting": "कॉल करत आहे…",
+  "meshCallStatusConnecting": "जोडत आहे…",
+  "meshCallEndedUserHangup": "कॉल संपला",
+  "meshCallEndedRemoteHangup": "पीअरने संपवला",
+  "meshCallEndedRejected": "नाकारले",
+  "meshCallEndedNoAnswer": "उत्तर नाही",
+  "meshCallEndedConnectionLost": "कनेक्शन हरवले",
+  "meshCallEndedError": "कनेक्शन त्रुटी",
+  "meshCallTransportBadge": "📡 मेष · {transport}",
+  "meshCallTransportBadgePlain": "📡 मेष",
+  "batteryExemptionTitle": "📡 विश्वासार्ह मेष कॉल",
+  "batteryExemptionBody": "अॅपला बॅटरी निर्बंधांशिवाय चालू ठेवण्यासाठी परवानगी द्या, जेणेकरून Android पार्श्वभूमीत मेष बंद करणार नाही.",
+  "batteryExemptionAccept": "सेटिंग्ज उघडा",
+  "batteryExemptionDismiss": "आता नाही",
+  "groupCamera": "कॅमेरा",
+  "groupGallery": "गॅलरी",
+  "groupAvatarUpdated": "गटाचा अवतार अद्यतनित केला",
+  "groupNameTitle": "गटाचे नाव",
+  "groupEnterName": "नाव प्रविष्ट करा",
+  "groupDescriptionTitle": "गटाचे वर्णन",
+  "groupEnterDescription": "गटाचे वर्णन प्रविष्ट करा",
+  "groupChangeRoleTitle": "भूमिका बदला",
+  "groupRemoveMemberTitle": "सदस्य काढा",
+  "groupDescription": "वर्णन",
+  "groupAddDescription": "गटाचे वर्णन जोडा",
+  "groupNoDescription": "वर्णन नाही",
+  "groupMediaAndFiles": "मीडिया आणि फाइल्स",
+  "groupMuteNotifications": "सूचना म्यूट करा",
+  "groupMuted": "म्यूट केले",
+  "groupNoResults": "निकाल नाहीत",
+  "authInvalidCode": "अवैध कोड. पुन्हा प्रयत्न करा.",
+  "loginSubtitle": "ईमेल आणि पासवर्ड वापरा",
+  "emailRequired": "ईमेल प्रविष्ट करा",
+  "emailInvalid": "अवैध ईमेल",
+  "passwordRequired": "पासवर्ड प्रविष्ट करा",
+  "registerSubtitle": "संपूर्ण Taler पर्यावरणासाठी एक खाते",
+  "usernameOptional": "वापरकर्तानाव (ऐच्छिक)",
+  "usernameMinLength": "किमान 3 अक्षरे",
+  "usernameMaxLength": "कमाल 30 अक्षरे",
+  "usernameInvalid": "फक्त अक्षरे, अंक आणि _",
+  "biometricLoginReason": "Taler ID मध्ये साइन इन करा",
+  "docTypePassport": "पासपोर्ट",
+  "docTypeIdCard": "ओळखपत्र",
+  "docTypeDriverLicense": "ड्रायव्हरचा परवाना",
+  "docTypeResidencePermit": "निवास परवाना",
+  "addressApartment": "अपार्टमेंट {number}",
+  "failedToUpdateProfile": "प्रोफाइल अद्यतनित करण्यात अयशस्वी",
+  "failedToStartKyb": "KYB पडताळणी सुरू करण्यात अयशस्वी",
+  "orgUpdated": "संस्था अद्यतनित केली",
+  "failedToUpdateOrg": "संस्था अद्यतनित करण्यात अयशस्वी",
+  "failedToChangeRole": "भूमिका बदलण्यात अयशस्वी",
+  "failedToRemoveMember": "सदस्य काढण्यात अयशस्वी",
+  "capabilityMessagesTitle": "संदेश",
+  "capabilityMessagesDesc": "संदेश तपासा किंवा कोणाला लिहा. उदाहरणार्थ: \"विक्टरला लिहा: एक तासात तिथे येईन\"",
+  "capabilityCallsTitle": "कॉल्स",
+  "capabilityCallsDesc": "कोणत्याही संपर्काला आवाजाने कॉल करा. उदाहरणार्थ: \"विक्टर विक्टरोवला कॉल करा\"",
+  "capabilityChatTitle": "चॅट इतिहास",
+  "capabilityChatDesc": "मी चॅट इतिहासाचे विश्लेषण करेन. उदाहरणार्थ: \"आपण विक्टरसोबत काय चर्चा केली?\"",
+  "capabilityProfileTitle": "प्रोफाइल",
+  "capabilityProfileDesc": "मी तुमचे प्रोफाइल दाखवेन किंवा अद्यतनित करेन. उदाहरणार्थ: \"माझे प्रोफाइल दाखवा\"",
+  "capabilityCoachingTitle": "कोचिंग",
+  "capabilityCoachingDesc": "मोड्स: ICF कोचिंग, मानसशास्त्रज्ञ, HR सल्ला. बोला: \"कोचिंग करूया\"",
+  "capabilityCalendarTitle": "कॅलेंडर",
+  "capabilityCalendarDesc": "बैठक ठरवा किंवा स्मरणपत्र सेट करा. उदाहरणार्थ: \"उद्या 15:00 वाजता विक्टरसोबत बैठक ठरवा\"",
+  "capabilityNotesTitle": "नोट्स",
+  "capabilityNotesDesc": "विचार जतन करा किंवा अलीकडील नोट्स वाचा. उदाहरणार्थ: \"एक कल्पना लिहा...\" किंवा \"अलीकडील नोट्स वाचा\"",
+  "assistantCallConfirm": "कॉल करायचा?",
+  "callNoAnswer": "उत्तर नाही",
+  "contactDelete": "संपर्क काढा",
+  "contactDeleteTitle": "संपर्क काढा",
+  "contactDeleteConfirm": "तुम्हाला खात्री आहे? हा संपर्क काढला जाईल.",
+  "contactBlock": "ब्लॉक करा",
+  "contactBlockTitle": "वापरकर्ता ब्लॉक करा",
+  "contactBlockConfirm": "हा वापरकर्ता तुम्हाला संदेश किंवा कॉल करू शकणार नाही.",
+  "contactUnblock": "अनब्लॉक करा",
+  "contactBlocked": "ब्लॉक केलेले",
+  "contactYouAreBlocked": "या वापरकर्त्याने तुम्हाला ब्लॉक केले आहे",
+  "chatBlockedByYou": "तुम्ही या वापरकर्त्याला ब्लॉक केले आहे",
+  "chatYouAreBlocked": "तुम्हाला या वापरकर्त्याने ब्लॉक केले आहे",
+  "chatNotContacts": "संदेश पाठवण्यासाठी या वापरकर्त्याला संपर्कांमध्ये जोडा",
+  "contactRevokeRequest": "विनंती मागे घ्या",
+  "messengerPoll": "मतदान",
+  "messengerCreatePoll": "मतदान तयार करा",
+  "messengerPollQuestion": "प्रश्न",
+  "messengerPollOption": "पर्याय {number}",
+  "messengerPollAddOption": "पर्याय जोडा",
+  "messengerPollAnonymous": "अनामिक मतदान",
+  "messengerPollMultiple": "अनेक पर्याय",
+  "messengerPollCreateError": "मतदान तयार करण्यात अयशस्वी",
+  "messengerPollUnavailable": "मतदान उपलब्ध नाही",
+  "messengerPollMultipleNote": "तुम्ही अनेक निवड करू शकता",
+  "messengerPollVotes": "{count} मते",
+  "messengerVideoMessage": "व्हिडिओ संदेश",
+  "messengerVideoRecordError": "व्हिडिओ रेकॉर्डिंग त्रुटी",
+  "messengerVideoPlaybackError": "व्हिडिओ प्ले करू शकलो नाही",
+  "messengerGalleryAccessError": "गॅलरीसाठी प्रवेश नाही",
+  "messengerSearchInChat": "चॅटमध्ये शोधा...",
+  "messengerSaveToFavorites": "आवडीमध्ये जतन करा",
+  "messengerSavedToFavorites": "आवडीमध्ये जतन केले",
+  "messengerSearchInMessages": "संदेशांमध्ये शोधा...",
+  "messengerFoundInMessages": "संदेशांमध्ये सापडले ({count})",
+  "messengerGroupDefault": "गट",
+  "messengerUserDefault": "वापरकर्ता",
+  "messengerPin": "पिन",
+  "messengerUnpin": "अनपिन",
+  "messengerArchive": "संग्रहित करा",
+  "messengerUnarchive": "संग्रहातून काढा",
+  "messengerDeleteChat": "चॅट हटवा",
+  "messengerDeleteChatTitle": "चॅट हटवायचे?",
+  "messengerDeleteChatConfirm": "{name} सोबतचा चॅट हटवायचा? हे पूर्ववत करता येणार नाही.",
+  "messengerCreateChannel": "चॅनेल तयार करा",
+  "messengerChannelName": "नाव",
+  "messengerChannelDescription": "वर्णन (ऐच्छिक)",
+  "messengerChannelCreateError": "चॅनेल तयार करण्यात अयशस्वी",
+  "messengerFilterAll": "सर्व",
+  "messengerFilterUnread": "न वाचलेले",
+  "messengerFilterPersonal": "वैयक्तिक",
+  "messengerFilterGroups": "गट",
+  "messengerFilterChannels": "चॅनेल",
+  "messengerArchivedSection": "संग्रहित",
+  "messengerSavedSection": "आवडी",
+  "messengerSavedSubtitle": "स्मृतीत जतन करा",
+  "messengerArchiveTitle": "संग्रहित ({count})",
+  "messengerArchiveEmpty": "संग्रह रिकामा आहे",
+  "messengerYouPrefix": "तुम्ही: {message}",
+  "messengerMissedCall": "चुकलेला कॉल",
+  "messengerSavedTitle": "आवडी",
+  "messengerNoSavedMessages": "जतन केलेले संदेश नाहीत",
+  "messengerSavedHint": "संदेशावर लांब दाबा → \"आवडीमध्ये जतन करा\"",
+  "messengerDefaultFile": "फाइल",
+  "messengerTopicDefault": "सामान्य",
+  "messengerTopicNew": "नवीन विषय",
+  "messengerTopicNameHint": "विषयाचे नाव",
+  "messengerTopicIcon": "आयकॉन",
+  "messengerTopicCount": "{count} विषय",
+  "messengerNoTopics": "विषय नाहीत",
+  "messengerNoMessages": "कोणतेही संदेश नाहीत",
+  "you": "तुम्ही",
+  "messengerThread": "थ्रेड",
+  "messengerThreadReply": "उत्तर",
+  "messengerThreadReplies": "उत्तरे",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "कोणतीही उत्तरे नाहीत",
+  "messengerReplyHint": "थ्रेडला उत्तर द्या...",
+  "messengerContactName": "संपर्क नाव",
+  "messengerOriginalName": "मूळ नाव: {name}",
+  "messengerDisplayName": "प्रदर्शन नाव",
+  "messengerShareContact": "Taler ID मध्ये संपर्क: {name}",
+  "messengerAutoDelete": "संदेश आपोआप हटवा",
+  "messengerAutoDeleteOff": "बंद",
+  "messengerAutoDelete7d": "7 दिवस",
+  "messengerAutoDelete30d": "30 दिवस",
+  "messengerAutoDelete90d": "90 दिवस",
+  "messengerAutoDeleteDays": "{count} दिवस",
+  "messengerSettingsHeader": "सेटिंग्ज",
+  "messengerAdminOnly": "फक्त प्रशासक पोस्ट करू शकतो",
+  "messengerAdminOnlyDesc": "सदस्य फक्त वाचू शकतात",
+  "messengerTopics": "विषय",
+  "messengerTopicsDesc": "चॅटला विषयांमध्ये विभाजित करा",
+  "aiTwinSection": "AI व्हॉइस ट्विन",
+  "aiTwinEnabled": "AI ट्विन सक्षम करा",
+  "aiTwinEnabledDesc": "जर तुम्ही उत्तर दिले नाही तर, तुमचा AI ट्विन तुमच्या आवाजात कॉल घेईल",
+  "aiTwinTimeout": "प्रतिसाद वेळमर्यादा",
+  "aiTwinTimeoutValue": "{seconds} सेकंद",
+  "aiTwinPrompt": "AI सूचना",
+  "aiTwinPromptSubtitle": "AI ट्विनने स्वतःची ओळख कशी करून द्यावी आणि कोणत्या विषयावर बोलावे",
+  "aiTwinPromptHint": "नमस्कार, हा {name} चा AI व्हॉइस ट्विन आहे. {name} सध्या कॉल घेऊ शकत नाही. मला सांगा कोण बोलत आहे आणि कोणत्या विषयावर — मी ते पुढे देईन.",
+  "aiTwinComingSoon": "कस्टम व्हॉइस क्लोनिंग लवकरच येत आहे. सध्या AI {name} च्या आवाजात बोलतो.",
+  "aiTwinDefaultName": "मालक",
+  "aiTwinPromptReset": "रीसेट",
+  "callHistoryAiTwinAnswered": "AI ट्विनने उत्तर दिले",
+  "callHistoryAiTwinSummary": "कॉल सारांश",
+  "callHistoryAiTwinTranscript": "प्रतिलिपी",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "{name} कडून",
+  "aiTwinOfferTitle": "उत्तर देत नाही",
+  "aiTwinOfferBody": "{name} फोन उचलत नाहीत. त्यांच्या AI आवाज जुळवणीसह संदेश सोडायचा?",
+  "aiTwinOfferBodyUser": "वापरकर्ता",
+  "aiTwinOfferAccept": "होय, संदेश सोडा",
+  "aiTwinOfferKeepWaiting": "प्रतीक्षा करत रहा",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "तुमचा AI प्रतिनिधी",
+  "aiTwinHeroSubtitle": "जेव्हा तुम्ही नाही तेव्हा तुमच्या आवाजात कॉल्सला उत्तर देते.",
+  "aiTwinProfileTitle": "AI प्रतिनिधी",
+  "aiTwinProfileDesc": "तुमच्या आवाजात कॉल्सला उत्तर देते",
+  "aiTwinBadgeOn": "चालू",
+  "aiAnalystTitle": "AI विश्लेषक",
+  "aiAnalystSubtitle": "फाइल्स, कार्ये, विश्लेषण — Claude",
+  "channelsDiscover": "चॅनेल शोधा",
+  "channelsSearchHint": "चॅनेल शोधा",
+  "channelsSubscribers": "सदस्य",
+  "channelsSubscribe": "सदस्यता घ्या",
+  "channelsUnsubscribe": "सदस्यता रद्द करा",
+  "channelsSubscribedLabel": "तुम्ही सदस्य आहात",
+  "channelsSettings": "चॅनेल सेटिंग्ज",
+  "channelsDelete": "चॅनेल हटवा",
+  "channelsDeleteConfirm": "चॅनेल कायमचे हटवायचे?",
+  "channelsEmpty": "अद्याप कोणतेही चॅनेल नाहीत",
+  "channelsOpen": "उघडा",
+  "channelsNameLabel": "नाव",
+  "channelsDescriptionLabel": "वर्णन",
+  "channelsCannotUnsubscribeOwner": "मालक सदस्यता रद्द करू शकत नाहीत. त्याऐवजी चॅनेल हटवा.",
+  "channelsNotFoundRedirect": "चॅनेल आता अस्तित्वात नाही",
+  "analystSeamSearches": "{count, plural, =1{{count} शोध} other{{count} शोध}}",
+  "analystSeamFiles": "{count, plural, =1{{count} फाइल} other{{count} फाइल्स}}",
+  "analystSeamCommands": "{count, plural, =1{{count} आदेश} other{{count} आदेश}}",
+  "analystSeamImages": "{count, plural, =1{{count} प्रतिमा} other{{count} प्रतिमा}}",
+  "analystSeamOther": "{count, plural, =1{{count} पाऊल} other{{count} पावले}}",
+  "analystSeamDurationSeconds": "{seconds}से",
+  "savedTitle": "जतन केलेले संदेश",
+  "savedSubtitle": "तुमचे खाजगी क्लाउड",
+  "savedOpenError": "जतन केलेले संदेश उघडू शकले नाहीत",
+  "billingWalletTitle": "वॉलेट",
+  "billingBuyPackage": "पॅकेज खरेदी करा",
+  "billingCurrentBalance": "सध्याची शिल्लक",
+  "billingPackagesTitle": "पॅकेजेस",
+  "billingPackagesUnavailable": "पॅकेजेस उपलब्ध नाहीत",
+  "billingRecentOperations": "अलीकडील व्यवहार",
+  "billingAllOperations": "सर्व व्यवहार",
+  "billingNoOperations": "कोणतेही व्यवहार नाहीत",
+  "billingOperationsTitle": "व्यवहार",
+  "billingOperationsEmptyTitle": "अजून कोणतेही व्यवहार नाहीत",
+  "billingOperationsEmptySubtitle": "AI वैशिष्ट्यांसाठी टॉप-अप आणि शुल्क येथे दिसतील",
+  "billingPricebookTitle": "वैशिष्ट्यांचे दर",
+  "billingPricebookUnavailable": "दर सूची उपलब्ध नाही",
+  "billingAiFeaturesTitle": "AI वैशिष्ट्ये",
+  "billingInsufficientFundsTitle": "अपुरे निधी",
+  "billingInsufficientFundsSubtitle": "हे वैशिष्ट्य वापरण्यासाठी तुमचा शिल्लक रक्कम भरा.",
+  "billingRequiredLine": "आवश्यक: {required} μTAL",
+  "billingAvailableLine": "उपलब्ध: {available} μTAL",
+  "billingTopUp": "शिल्लक भरा",
+  "billingCancel": "रद्द करा",
+  "billingRetry": "पुन्हा प्रयत्न करा",
+  "billingLowBalanceWarning": "शिल्लक कमी आहे: {balance} μTAL",
+  "billingWalletAndBalance": "वॉलेट आणि शिल्लक",
+  "billingSectionHeader": "बिलिंग आणि AI",
+  "billingFeatureVoiceAssistant": "व्हॉइस असिस्टंट",
+  "billingFeatureWebSearch": "असिस्टंट वेब शोध",
+  "billingFeatureAiTwin": "व्हॉइस ट्विन",
+  "billingFeatureAiTwinLong": "व्हॉइस ट्विन (AI ट्विन)",
+  "billingFeatureOutboundCall": "आउटबाउंड बॉट",
+  "billingFeatureOutboundCallLong": "आउटबाउंड कॉलिंग बॉट",
+  "billingFeatureWhisperTranscribe": "कॉल ट्रान्सक्रिप्शन",
+  "billingFeatureMeetingSummary": "AI कॉल सारांश",
+  "billingConfigureAiTwin": "AI ट्विन कॉन्फिगर करा",
+  "billingWebSearchSubtitle": "(असिस्टंटद्वारे वापरले जाते)",
+  "billingPackagePurchased": "पॅकेज खरेदी केले: {balance} μTAL",
+  "billingRecommendedBadge": "शिफारस केलेले",
+  "billingSessionTerminatedNoFunds": "शिल्लक संपली — सत्र समाप्त",
+  "billingSessionTerminatedGeneric": "असिस्टंट सत्र समाप्त",
+  "billingBuyForPrice": "€{price} साठी खरेदी करा",
+  "billingTxTypeTopup": "टॉप-अप",
+  "billingTxTypeRefund": "परतावा",
+  "billingTxTypeSpend": "शुल्क",
+  "billingUnitMinute": "मिनिट",
+  "billingUnitRequest": "विनंती",
+  "billingUnitToken": "टोकन",
+  "billingUnitTokens1k": "1K टोकन्स",
+  "billingUnitCall": "कॉल",
+  "groupCallSelectParticipants": "सहभागी निवडा",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "शोधा",
+  "groupCallMaxReached": "कमाल 7 सहभागी",
+  "groupCallLobbyTitle": "गट • लॉबी",
+  "groupCallHostLabel": "होस्ट: {name}",
+  "groupCallMicHint": "कनेक्ट झाल्यावर माइक सक्रिय होईल",
+  "groupCallCancel": "रद्द करा",
+  "groupCallNoAnswer": "कोणीही उत्तर दिले नाही",
+  "groupCallEndedByHost": "होस्टने कॉल समाप्त केला",
+  "groupCallAllLeft": "सर्वांनी कॉल सोडला",
+  "groupCallEnded": "कॉल समाप्त",
+  "groupCallActiveTitle": "गट • {count}",
+  "groupCallConnectionLost": "कनेक्शन गमावले",
+  "groupCallMuteRequested": "होस्टने सर्वांना म्यूट करण्यास सांगितले",
+  "groupCallUnmute": "अनम्यूट",
+  "groupCallMute": "म्यूट",
+  "groupCallMuteAll": "सर्वांना म्यूट करा",
+  "groupCallLeave": "सोडा",
+  "groupCallStatusCalling": "कॉल करत आहे…",
+  "groupCallStatusDeclined": "नाकारले",
+  "groupCallStatusTimeout": "उत्तर नाही",
+  "groupCallStatusLeft": "सोडले",
+  "groupCallKickConfirm": "{name} ला कॉलमधून काढा",
+  "groupCallCancelAction": "रद्द करा",
+  "groupCallActiveBanner": "सक्रिय कॉल",
+  "groupCallBannerSummary": "गट: {host} + {count}",
+  "groupCallBannerSummaryAlone": "गट: {host}",
+  "groupCallCreateError": "कॉल तयार करू शकलो नाही",
+  "groupCallJoinError": "कॉलमध्ये सामील होऊ शकलो नाही",
+  "groupCallLivekitError": "LiveKit त्रुटी",
+  "groupCallDone": "पूर्ण",
+  "groupCallNoResults": "निकाल नाहीत",
+  "groupCallNoContacts": "संपर्क नाहीत",
+  "meshGcContactOffline": "या Wi-Fi वर नाही",
+  "meshGcOnlineViaMesh": "मेशद्वारे ऑनलाइन",
+  "meshGcMaxInvitees": "गट कॉल्समध्ये 4 आमंत्रित (एकूण 5 लोक) पर्यंत समर्थन आहे.",
+  "meshGcStart": "गट कॉल सुरू करा",
+  "meshGcCancel": "रद्द करा",
+  "meshGcStatusCalling": "कॉल करत आहे…",
+  "meshGcStatusJoined": "जोडले",
+  "meshGcStatusDeclined": "नकार दिला",
+  "meshGcStatusNoAnswer": "उत्तर नाही",
+  "meshGcStatusConnectionFailed": "कनेक्शन अयशस्वी",
+  "meshGcStatusLeft": "सोडले",
+  "meshGcTopTitle": "मेश",
+  "meshGcBusyOneOnOne": "तुमचा चालू कॉल आधी पूर्ण करा.",
+  "presenceOnline": "ऑनलाइन",
+  "presenceLastSeenJustNow": "आत्ताच शेवटचे पाहिले",
+  "presenceLastSeenMinutesAgo": "शेवटचे पाहिले {minutes} मिनिटांपूर्वी",
+  "presenceLastSeenToday": "आज {time} वाजता शेवटचे पाहिले",
+  "presenceLastSeenYesterday": "काल {time} वाजता शेवटचे पाहिले",
+  "presenceLastSeenOnDate": "शेवटचे पाहिले {date}",
+  "presenceLastSeenRecently": "अलीकडेच शेवटचे पाहिले",
+  "privacySectionTitle": "गोपनीयता",
+  "privacyLastSeenLabel": "तुमचा शेवटचा पाहिलेला वेळ कोण पाहतो",
+  "privacyEveryone": "सर्व",
+  "privacyContacts": "फक्त संपर्क",
+  "privacyNobody": "कोणीही नाही",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

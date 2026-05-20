@@ -1,0 +1,1691 @@
+{
+  "@@locale": "de",
+  "appTitle": "Taler ID",
+  "search": "Suche",
+  "appSubtitle": "Vereinheitlichte Ökosystem-Identität",
+  "login": "Anmelden",
+  "loginButton": "Anmelden",
+  "register": "Konto erstellen",
+  "registerButton": "Konto erstellen",
+  "email": "E-Mail",
+  "password": "Passwort",
+  "confirmPassword": "Passwort bestätigen",
+  "firstName": "Vorname",
+  "lastName": "Nachname",
+  "noAccount": "Noch kein Konto?",
+  "createOne": "Erstellen",
+  "haveAccount": "Bereits ein Konto?",
+  "signIn": "Anmelden",
+  "passwordMinLength": "Mindestens 8 Zeichen",
+  "invalidEmail": "Gültige E-Mail eingeben",
+  "fieldRequired": "Pflichtfeld",
+  "twoFATitle": "Zwei-Faktor-Authentifizierung",
+  "twoFASubtitle": "Geben Sie den 6-stelligen Code aus Ihrer Authentifizierungs-App ein",
+  "twoFACode": "2FA-Code",
+  "verify": "Verifizieren",
+  "tabProfile": "Profil",
+  "tabKyc": "KYC",
+  "tabOrganization": "Organisation",
+  "tabSettings": "Einstellungen",
+  "profile": "Profil",
+  "editProfile": "Profil bearbeiten",
+  "phone": "Telefon",
+  "country": "Land",
+  "dateOfBirth": "Geburtsdatum",
+  "documents": "Dokumente",
+  "addDocument": "Dokument hinzufügen",
+  "noDocuments": "Keine Dokumente hochgeladen",
+  "save": "Speichern",
+  "profileUpdated": "Profil aktualisiert",
+  "personalData": "Persönliche Daten",
+  "passport": "Reisepass",
+  "drivingLicense": "Führerschein",
+  "diploma": "Diplom",
+  "nationalId": "Personalausweis",
+  "certificate": "Zertifikat",
+  "notSpecified": "Nicht angegeben",
+  "notSpecifiedFemale": "Nicht angegeben",
+  "documentType": "Dokumenttyp",
+  "passportId": "Reisepass / Ausweis",
+  "diplomaCertificate": "Diplom / Zertifikat",
+  "loadError": "Ladefehler",
+  "verification": "Verifizierung",
+  "countryAustria": "Österreich",
+  "countryGermany": "Deutschland",
+  "countryRussia": "Russland",
+  "countryUkraine": "Ukraine",
+  "countryKazakhstan": "Kasachstan",
+  "countryBelarus": "Weißrussland",
+  "countryOther": "Andere",
+  "kycTitle": "KYC-Verifizierung",
+  "kycVerified": "Verifiziert",
+  "kycPending": "Ausstehend",
+  "kycRejected": "Abgelehnt",
+  "kycUnverified": "Unverifiziert",
+  "kycVerifiedDesc": "Ihre Identität wurde verifiziert. Sie haben vollen Zugriff auf alle Funktionen des Taler-Ökosystems.",
+  "kycPendingDesc": "Ihre Dokumente werden überprüft. Dies dauert normalerweise 1-2 Werktage.",
+  "kycRejectedDesc": "Verifizierung fehlgeschlagen. Bitte überprüfen Sie den Grund und reichen Sie Ihre Dokumente erneut ein.",
+  "kycUnverifiedDesc": "Schließen Sie die Verifizierung ab, um vollen Zugriff auf die Finanzfunktionen des Taler-Ökosystems zu erhalten.",
+  "startVerification": "Verifizierung starten",
+  "retryVerification": "Verifizierung erneut versuchen",
+  "verifiedAt": "Verifiziert: {date}",
+  "documentsSubmitted": "Dokumente zur Überprüfung eingereicht",
+  "documentsSubmittedDesc": "Die Überprüfung dauert normalerweise 1-2 Werktage. Sie erhalten eine Push-Benachrichtigung mit dem Ergebnis.",
+  "securityAes": "Ihre Daten sind mit AES-256-Verschlüsselung geschützt",
+  "verificationTime": "Die Verifizierung dauert 1-2 Werktage",
+  "pushNotification": "Sie erhalten eine Push-Benachrichtigung mit dem Ergebnis",
+  "kycWebOnly": "KYC-Verifizierung ist nur in der mobilen App verfügbar.",
+  "verificationError": "Verifizierungsfehler: {code}",
+  "organizations": "Organisationen",
+  "noOrganizations": "Keine Organisationen",
+  "noOrganizationsDesc": "Erstellen Sie eine Organisation oder nehmen Sie eine Einladung an",
+  "createOrganization": "Organisation erstellen",
+  "newOrganization": "Neue Organisation",
+  "orgName": "Name *",
+  "orgDescription": "Beschreibung",
+  "orgEmail": "Kontakt E-Mail",
+  "orgWebsite": "Webseite",
+  "orgLegalAddress": "Rechtliche Adresse",
+  "create": "Erstellen",
+  "organization": "Organisation",
+  "contacts": "Kontakte",
+  "members": "Mitglieder ({count})",
+  "inviteMember": "Mitglied einladen",
+  "invite": "Einladen",
+  "sendInvite": "Einladung senden",
+  "inviteSent": "Einladung gesendet an {email}",
+  "role": "Rolle",
+  "roleOwner": "Eigentümer",
+  "roleAdmin": "Admin",
+  "roleOperator": "Operator",
+  "roleViewer": "Betrachter",
+  "editOrganization": "Bearbeiten",
+  "editOrganizationTitle": "Organisation bearbeiten",
+  "removeMember": "Mitglied entfernen",
+  "removeMemberConfirm": "{name} aus der Organisation entfernen?",
+  "memberRemoved": "Mitglied entfernt",
+  "roleChanged": "Rolle geändert",
+  "kybVerified": "Verifiziert",
+  "kybPending": "Ausstehend",
+  "kybRejected": "Abgelehnt",
+  "kybNone": "Unverifiziert",
+  "kybVerification": "KYB-Verifizierung starten",
+  "kybStartBusiness": "Geschäftsverifizierung starten",
+  "kybStatusLabel": "KYB-Status",
+  "noKyb": "Kein KYB",
+  "kybBusinessVerificationTitle": "Geschäftsverifizierung (KYB)",
+  "kybVerifiedOrgDesc": "Organisation erfolgreich verifiziert.",
+  "kybPendingOrgDesc": "Dokumente werden überprüft. Dies dauert in der Regel 1-3 Werktage.",
+  "kybRejectedOrgDesc": "Verifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+  "kybNoneOrgDesc": "Verifizieren Sie Ihre Organisation, um auf Geschäftsmerkmale zuzugreifen.",
+  "invitePlus": "+ Einladen",
+  "kybVerificationTitle": "KYB-Verifizierung",
+  "kybWebOnlyBusiness": "KYB-Verifizierung ist nur in der mobilen App verfügbar.",
+  "unknownDevice": "Unbekanntes Gerät",
+  "ipUnknown": "IP unbekannt",
+  "currentSessionLabel": "Aktuell",
+  "endSessionAction": "Beenden",
+  "deviceLoggedOut": "Gerät wird abgemeldet.",
+  "acceptInvitationTitle": "Organisationseinladung",
+  "acceptInvitation": "Einladung annehmen",
+  "acceptInvitationDesc": "Sie wurden eingeladen, einer Organisation im Taler-Ökosystem beizutreten.",
+  "accept": "Annehmen",
+  "reject": "Ablehnen",
+  "sessions": "Aktive Sitzungen",
+  "currentSession": "Aktuelle Sitzung",
+  "deleteSession": "Sitzung beenden",
+  "deleteSessionConfirm": "Diese Sitzung beenden?",
+  "sessionDeleted": "Sitzung beendet",
+  "noSessions": "Keine aktiven Sitzungen",
+  "minutesAgo": "Vor {count} Min.",
+  "hoursAgo": "Vor {count} Std.",
+  "daysAgo": "Vor {count} Tagen",
+  "justNow": "Gerade eben",
+  "settings": "Einstellungen",
+  "security": "Sicherheit",
+  "biometrics": "Biometrie",
+  "biometricsDesc": "Schnelles Anmelden mit Face ID oder Fingerabdruck",
+  "biometricsConfirm": "Bestätigen Sie die Biometrie, um schnelles Anmelden zu aktivieren",
+  "biometricsError": "Aktivierung der Biometrie fehlgeschlagen. Überprüfen Sie die Geräteeinstellungen.",
+  "changePassword": "Passwort ändern",
+  "twoFactorAuth": "Zwei-Faktor-Authentifizierung",
+  "currentPassword": "Aktuelles Passwort",
+  "newPassword": "Neues Passwort",
+  "confirmNewPassword": "Neues Passwort bestätigen",
+  "passwordChanged": "Passwort geändert",
+  "wrongCurrentPassword": "Falsches aktuelles Passwort",
+  "passwordTooWeak": "Passwort zu schwach: mindestens 8 Zeichen, Buchstabe und Ziffer erforderlich",
+  "passwordChangeFailed": "Passwortänderung fehlgeschlagen",
+  "notifications": "Benachrichtigungen",
+  "permissions": "Berechtigungen",
+  "permissionNotifications": "Push-Benachrichtigungen",
+  "permissionNotificationsDesc": "Anrufe, Nachrichten, Status",
+  "permissionMicrophone": "Mikrofon",
+  "permissionMicrophoneDesc": "Anrufe und Sprachassistent",
+  "permissionCamera": "Kamera",
+  "permissionCameraDesc": "Videoanrufe und Verifizierung",
+  "permissionLocation": "Standort",
+  "permissionLocationDesc": "Wird zur Verifizierung verwendet",
+  "permissionOpenSettings": "Um eine Berechtigung zu widerrufen, öffnen Sie die Systemeinstellungen",
+  "pushKycStatus": "KYC-Status Push",
+  "pushKycStatusDesc": "Verifizierungsergebnis",
+  "pushLogins": "Login-Push",
+  "pushLoginsDesc": "Beim Anmelden von einem neuen Gerät",
+  "account": "Konto",
+  "language": "Sprache",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Oberflächensprache",
+  "exportData": "Daten exportieren (DSGVO)",
+  "deleteAccount": "Konto löschen",
+  "deleteAccountConfirm": "Konto löschen?",
+  "deleteAccountDesc": "Alle Ihre Daten werden gelöscht (DSGVO). Diese Aktion ist unwiderruflich.",
+  "logout": "Abmelden",
+  "logoutConfirm": "Abmelden?",
+  "logoutDesc": "Sie werden von Taler ID auf diesem Gerät abgemeldet.",
+  "version": "Taler ID v{version}",
+  "pinCode": "PIN-Code",
+  "pinCodeDesc": "Schnelles Anmelden mit 4-stelligem Code",
+  "setupPin": "PIN einrichten",
+  "enterPin": "PIN eingeben",
+  "confirmPin": "PIN bestätigen",
+  "pinMismatch": "PINs stimmen nicht überein",
+  "pinSet": "PIN erfolgreich gesetzt",
+  "enterPinToLogin": "PIN eingeben, um sich anzumelden",
+  "pinIncorrect": "Falsche PIN",
+  "removePin": "PIN entfernen",
+  "pinRemoved": "PIN entfernt",
+  "cancel": "Abbrechen",
+  "delete": "Löschen",
+  "ok": "OK",
+  "retry": "Erneut versuchen",
+  "loading": "Wird geladen...",
+  "error": "Fehler",
+  "success": "Erfolg",
+  "noData": "Keine Daten",
+  "failedToLoad": "Daten konnten nicht geladen werden",
+  "failedToLoadProfile": "Profil konnte nicht geladen werden",
+  "failedToSave": "Änderungen konnten nicht gespeichert werden",
+  "failedToLoadOrgs": "Organisationen konnten nicht geladen werden",
+  "failedToLoadOrg": "Organisationsdaten konnten nicht geladen werden",
+  "failedToCreateOrg": "Organisation konnte nicht erstellt werden",
+  "failedToInvite": "Einladung konnte nicht gesendet werden",
+  "failedToAcceptInvite": "Einladung konnte nicht angenommen werden",
+  "failedToLoadSessions": "Sitzungen konnten nicht geladen werden",
+  "failedToDeleteSession": "Sitzung konnte nicht beendet werden",
+  "failedToLoadKyc": "Verifizierungsstatus konnte nicht geladen werden",
+  "failedToStartKyc": "Verifizierung konnte nicht gestartet werden",
+  "verifiedPersonalInfo": "Verifizierte Daten",
+  "middleName": "Zweiter Vorname",
+  "placeOfBirth": "Geburtsort",
+  "nationality": "Nationalität",
+  "gender": "Geschlecht",
+  "genderMale": "Männlich",
+  "genderFemale": "Weiblich",
+  "docNumber": "Nummer",
+  "docIssuedDate": "Ausgestellt",
+  "docValidUntil": "Gültig bis",
+  "docIssuedBy": "Ausgestellt von",
+  "address": "Adresse",
+  "refreshData": "Daten aktualisieren",
+  "failedToLoadSumsubData": "Verifizierungsdaten konnten nicht geladen werden",
+  "sumsubDataLoading": "Verifizierungsdaten werden geladen...",
+  "reviewResultGreen": "Verifizierung bestanden",
+  "reviewResultRed": "Verifizierung fehlgeschlagen",
+  "tabAssistant": "Assistent",
+  "assistantConnecting": "Verbinden…",
+  "assistantSpeaking": "Sprechen…",
+  "assistantListening": "Zuhören…",
+  "assistantTapToStart": "Zum Starten tippen",
+  "assistantTapToTalk": "Tippen, um mit AI zu sprechen",
+  "assistantRealtimeDesc": "Assistent antwortet in Echtzeit mit Stimme",
+  "assistantConnectingToAssistant": "Verbindung zum Assistenten wird hergestellt...",
+  "assistantAiSpeaking": "KI spricht...",
+  "assistantAiListening": "KI hört zu",
+  "assistantSpeakerOn": "Lautsprecher an",
+  "assistantSpeaker": "Lautsprecher",
+  "assistantEnd": "Beenden",
+  "assistantUnmute": "Stummschaltung aufheben",
+  "assistantMicrophone": "Mikrofon",
+  "assistantConnectionError": "Verbindungsfehler",
+  "tabMessenger": "Nachrichten",
+  "tabCalls": "Anrufe",
+  "tabCalendar": "Kalender",
+  "appearance": "Erscheinungsbild",
+  "appearanceSelect": "Thema wählen",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "themeSystem": "System",
+  "onboardingTitle1": "Einheitliche Identität",
+  "onboardingDesc1": "Taler ID ist Ihr digitaler Pass im Taler-Ökosystem. Ein Konto für alle Dienste.",
+  "onboardingTitle2": "Datensicherheit",
+  "onboardingDesc2": "KYC-Verifizierung, AES-256-Verschlüsselung und Zwei-Faktor-Authentifizierung schützen Ihre Identität.",
+  "onboardingTitle3": "Bleiben Sie informiert",
+  "onboardingDesc3": "Erhalten Sie Benachrichtigungen über den Verifizierungsstatus, Anmeldungen von neuen Geräten und eingehende Anrufe.",
+  "onboardingNext": "Weiter",
+  "onboardingEnableNotifications": "Benachrichtigungen aktivieren",
+  "onboardingTitle4": "Sprachanrufe",
+  "onboardingDesc4": "Erlauben Sie den Mikrofonzugriff für Sprachanrufe und den KI-Assistenten. Sie können dies später in den Einstellungen ändern.",
+  "onboardingEnableMicrophone": "Mikrofon aktivieren",
+  "onboardingStart": "Loslegen",
+  "onboardingSkip": "Überspringen",
+  "meshLocalNetworkPromptTitle": "Zugriff auf lokales Netzwerk erlauben",
+  "meshLocalNetworkPromptBody": "Um Peers im WLAN zu finden (Offline-Gruppenanrufe), benötigt iOS die Berechtigung für das lokale Netzwerk. Öffnen Sie Einstellungen → Datenschutz & Sicherheit → Lokales Netzwerk → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "Einstellungen öffnen",
+  "meshLocalNetworkPromptDismiss": "Verstanden",
+  "forgotPassword": "Passwort vergessen?",
+  "forgotPasswordTitle": "Passwort zurücksetzen",
+  "forgotPasswordSubtitle": "Geben Sie Ihre E-Mail ein, um einen Rücksetzcode zu erhalten",
+  "resetCodeSent": "Code gesendet an {email}",
+  "enterResetCode": "Code eingeben",
+  "resetPasswordButton": "Passwort zurücksetzen",
+  "passwordResetSuccess": "Passwort erfolgreich zurückgesetzt",
+  "sendCode": "Code senden",
+  "resendCode": "Code erneut senden",
+  "newGroup": "Neue Gruppe",
+  "newChat": "Neuer Chat",
+  "groupName": "Gruppenname",
+  "createGroup": "Gruppe erstellen",
+  "groupInfo": "Gruppeninfo",
+  "groupMembers": "Mitglieder ({count})",
+  "addMembers": "Mitglieder hinzufügen",
+  "leaveGroup": "Gruppe verlassen",
+  "leaveGroupConfirm": "Diese Gruppe verlassen?",
+  "deleteGroup": "Gruppe löschen",
+  "deleteGroupConfirm": "Diese Gruppe löschen? Dies kann nicht rückgängig gemacht werden.",
+  "groupRoleOwner": "Besitzer",
+  "groupRoleAdmin": "Admin",
+  "groupRoleMember": "Mitglied",
+  "selectParticipants": "Teilnehmer auswählen",
+  "selectedCount": "{count} ausgewählt",
+  "changeRole": "Rolle ändern",
+  "groupCreated": "Gruppe erstellt",
+  "memberJoined": "{name} ist beigetreten",
+  "memberLeftGroup": "{name} hat die Gruppe verlassen",
+  "memberWasRemoved": "{name} wurde entfernt",
+  "roleChangedTo": "{name} ist jetzt {role}",
+  "participantsCount": "{count} Teilnehmer",
+  "enterGroupName": "Gruppennamen eingeben",
+  "muteNotifications": "Benachrichtigungen stummschalten",
+  "unmuteNotifications": "Benachrichtigungen aktivieren",
+  "muteFor1Hour": "Für 1 Stunde",
+  "muteFor8Hours": "Für 8 Stunden",
+  "muteFor2Days": "Für 2 Tage",
+  "muteForever": "Für immer",
+  "muted": "Stummgeschaltet",
+  "tabTranslator": "Übersetzen",
+  "translatorTitle": "Übersetzer",
+  "translatorSelectLanguage": "Sprache auswählen",
+  "translatorDownloading": "Sprachmodelle werden heruntergeladen...",
+  "translatorDownloadingHint": "Internet wird nur für den ersten Download benötigt",
+  "translatorTypeHint": "Text eingeben oder Mikrofon antippen",
+  "translatorListening": "Zuhören...",
+  "translatorTapToSpeak": "Tippen, um zu sprechen",
+  "translatorTapToStop": "Tippen, um zu stoppen",
+  "translatorAutoSpeak": "Automatisch sprechen",
+  "translatorCopied": "Kopiert",
+  "translatorLangRu": "Russisch",
+  "translatorLangEn": "Englisch",
+  "translatorLangDe": "Deutsch",
+  "translatorLangFr": "Französisch",
+  "translatorLangEs": "Spanisch",
+  "translatorLangIt": "Italienisch",
+  "translatorLangPt": "Portugiesisch",
+  "translatorLangTr": "Türkisch",
+  "translatorLangZh": "Chinesisch",
+  "translatorLangJa": "Japanisch",
+  "translatorLangKo": "Koreanisch",
+  "translatorLangAr": "Arabisch",
+  "translatorLangPl": "Polnisch",
+  "translatorLangSk": "Slowakisch",
+  "translatorLangCs": "Tschechisch",
+  "translatorLangNl": "Niederländisch",
+  "translatorLangSv": "Schwedisch",
+  "translatorLangDa": "Dänisch",
+  "translatorLangNo": "Norwegisch",
+  "translatorLangFi": "Finnisch",
+  "translatorLangUk": "Ukrainisch",
+  "translatorLangEl": "Griechisch",
+  "translatorLangRo": "Rumänisch",
+  "translatorLangHu": "Ungarisch",
+  "translatorLangBg": "Bulgarisch",
+  "translatorLangHr": "Kroatisch",
+  "translatorLangSr": "Serbisch",
+  "translatorLangHi": "Hindi",
+  "translatorLangTh": "Thailändisch",
+  "translatorLangVi": "Vietnamesisch",
+  "translatorLangId": "Indonesisch",
+  "translatorLangMs": "Malaiisch",
+  "translatorLangHe": "Hebräisch",
+  "translatorLangFa": "Persisch",
+  "callInProgress": "Anruf läuft",
+  "joinCall": "Beitreten",
+  "createCallLink": "Anruflink",
+  "callLinkCopied": "Link kopiert",
+  "callLinkTitle": "Raumlink",
+  "connectionUnstable": "Verbindung instabil — Überprüfen Sie Ihr Internet",
+  "today": "Heute",
+  "yesterday": "Gestern",
+  "errorTimeout": "Verbindung abgelaufen. Überprüfen Sie Ihre Internetverbindung.",
+  "errorNoConnection": "Keine Internetverbindung.",
+  "errorGeneral": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+  "errorWithMessage": "Fehler: {message}",
+  "notifChannelMessages": "Nachrichten",
+  "notifChannelMessagesDesc": "Benachrichtigungen über neue Nachrichten",
+  "notifChannelMissedCalls": "Verpasste Anrufe",
+  "notifChannelMissedCallsDesc": "Benachrichtigungen über verpasste Anrufe",
+  "notifMissedCall": "Verpasster Anruf",
+  "notifAccept": "Annehmen",
+  "notifDecline": "Ablehnen",
+  "notifIncomingCall": "Eingehender Anruf",
+  "notifIncomingCallChannel": "Eingehender Anruf",
+  "notifMissedCallChannel": "Verpasster Anruf",
+  "notifUnknown": "Unbekannt",
+  "effectNone": "Kein Hintergrund",
+  "effectBlur": "Weichzeichnen",
+  "effectOffice": "Büro",
+  "effectNature": "Natur",
+  "effectGradient": "Verlauf",
+  "effectLibrary": "Bibliothek",
+  "effectCity": "Stadt",
+  "effectMinimalism": "Minimalismus",
+  "voiceParticipant": "Teilnehmer",
+  "voiceInvitesToRoom": "lädt Sie in den Raum ein",
+  "voiceRoom": "Raum",
+  "voicePasswordProtected": "Passwortgeschützt",
+  "voicePasswordHint": "Passwort",
+  "voiceEnter": "Eintreten",
+  "voiceJoinRoom": "Dem Raum beitreten",
+  "voiceYourName": "Ihr Name",
+  "voiceInvitationSent": "Einladung an {name} gesendet",
+  "voiceNoActiveRoom": "Kein aktiver Raum",
+  "voiceCameraPermission": "Kamerazugriff erlauben unter Einstellungen → Datenschutz → Kamera → TalerID",
+  "voiceOpenSettings": "Öffnen",
+  "voiceCameraError": "Kamera konnte nicht aktiviert werden: {error}",
+  "voiceAllAgreedRecording": "Alle einverstanden. Aufnahme gestartet.",
+  "voiceNewParticipantAgreed": "Neuer Teilnehmer hat der Aufnahme zugestimmt.",
+  "voiceDeclinedRecording": "Sie haben die Aufnahme abgelehnt. Verlassen des Anrufs.",
+  "voiceRecordingEnded": "Aufnahme beendet",
+  "voiceRecordingInProgress": "Aufnahme läuft",
+  "voiceTranscriptionRequest": "Transkriptionsanfrage",
+  "voiceRecordingRequest": "Aufnahmeanfrage",
+  "voiceAgree": "Zustimmen",
+  "voiceDeclineAndLeave": "Ablehnen und verlassen",
+  "voiceAudioOutput": "Audioausgabe",
+  "voiceAudioPhone": "Telefon",
+  "voiceAudioSpeaker": "Lautsprecher",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Kopfhörer",
+  "voiceLinkCopied": "Link kopiert",
+  "voiceTranslateTo": "Übersetzen nach",
+  "voiceSearchLanguage": "Sprache suchen...",
+  "voiceRoomWithCreator": "Raum {name}",
+  "voiceVoiceCall": "Sprachanruf",
+  "voiceOnHold": "Wartend",
+  "voiceActiveCall": "Aktiv",
+  "voiceEndAllCalls": "Alle Anrufe beenden",
+  "voiceEndThisCall": "Diesen Anruf beenden",
+  "voiceCopyLink": "Link kopieren",
+  "voiceAddParticipant": "Teilnehmer hinzufügen",
+  "voiceReconnecting": "Wiederverbinden...",
+  "voiceConnectionError": "Verbindungsfehler",
+  "voiceClose": "Schließen",
+  "voiceCalling": "Anrufen...",
+  "voiceCallActive": "Anruf aktiv",
+  "voiceWaiting": "Warten",
+  "voiceWaitingUpper": "WARTEN",
+  "voiceRec": "AUF",
+  "voiceStop": "Stopp",
+  "voiceRecord": "Aufnahme",
+  "voiceTranslation": "Übersetzung",
+  "voiceAudio": "Audio",
+  "voiceFlipCamera": "Kamera wechseln",
+  "voiceBackground": "Hintergrund",
+  "voiceAssistantSpeakingStatus": "Assistent spricht...",
+  "voiceAssistantListeningStatus": "Assistent hört zu...",
+  "voiceUnmute": "Stummschaltung aufheben",
+  "voiceMic": "Mikrofon",
+  "voiceAssistantLabel": "Assistent",
+  "voiceCameraOn": "Kamera an",
+  "voiceCameraLabel": "Kamera",
+  "voiceEndCall": "Anruf beenden",
+  "voiceWaitingParticipants": "Warten auf Teilnehmer...",
+  "voiceYou": "Du",
+  "voiceAiAssistant": "AI-Assistent",
+  "voiceVideoUnavailable": "Video nicht verfügbar",
+  "voiceSearchNickname": "Nach Spitzname suchen...",
+  "voiceTranscriptionWord": "Transkription",
+  "voiceRecordingWord": "Aufnahme",
+  "voiceConnecting": "Verbinden...",
+  "voiceVideoBackground": "Videohintergrund",
+  "voiceCallSettings": "Anrufeinstellungen",
+  "voiceEnableAI": "AI-Assistent aktivieren",
+  "voiceAIParticipating": "AI wird an der Unterhaltung teilnehmen",
+  "voiceNormalCall": "Normaler Anruf ohne AI",
+  "voiceCallConfirm": "Anruf tätigen?",
+  "chatAlreadyInCall": "Bereits im Anruf",
+  "chatCallError": "Anruf Fehler: {error}",
+  "chatPhotoVideo": "Foto / Video",
+  "chatCamera": "Kamera",
+  "chatFile": "Datei",
+  "chatContact": "Kontakt",
+  "chatSelectContact": "Einen Kontakt auswählen",
+  "chatNoContacts": "Keine Kontakte",
+  "chatUser": "Benutzer",
+  "chatFileAttachment": "📎 Datei",
+  "chatFileUploadError": "Datei-Upload-Fehler: {error}",
+  "chatVoiceMessage": "🎤 Sprachnachricht",
+  "chatGroup": "Gruppe",
+  "chatDialog": "Dialog",
+  "chatCall": "Anruf",
+  "chatStartConversation": "Unterhaltung beginnen",
+  "chatYou": "Du",
+  "chatIsTyping": "schreibt...",
+  "chatUserIsTyping": "{name} schreibt...",
+  "chatUsersAreTyping": "{names} schreiben...",
+  "chatPreparingFile": "Datei wird vorbereitet…",
+  "chatUploading": "Hochladen… {progress}%",
+  "chatEdited": "Bearbeitet",
+  "chatViaMesh": "über Mesh",
+  "chatReply": "Antworten",
+  "chatEdit": "Bearbeiten",
+  "chatCopy": "Kopieren",
+  "chatCopied": "Kopiert",
+  "chatSaveMedia": "Speichern",
+  "chatForward": "Weiterleiten",
+  "chatSaving": "Speichern...",
+  "chatSavedToGallery": "In Galerie gespeichert",
+  "chatNoSavePermission": "Keine Berechtigung zum Speichern. Einstellungen prüfen.",
+  "chatFileSaveError": "Fehler beim Speichern der Datei",
+  "chatDeleteMessage": "Nachricht löschen",
+  "chatDeleteForMe": "Für mich löschen",
+  "chatDeleteForEveryone": "Für alle löschen",
+  "chatMessageForwarded": "Nachricht weitergeleitet",
+  "chatContactTapToOpen": "Kontakt · tippen zum Öffnen",
+  "chatForwardTo": "Weiterleiten an...",
+  "chatSearchHint": "Suchen...",
+  "chatRecording": "Aufnahme...",
+  "chatMessageHint": "Nachricht...",
+  "chatHideKeyboard": "Tastatur ausblenden",
+  "chatEditing": "Bearbeiten",
+  "chatFileDownloadError": "Fehler beim Herunterladen der Datei",
+  "chatVoiceMessageShort": "Sprachnachricht",
+  "chatVideoSavedToGallery": "Video in Galerie gespeichert",
+  "chatSavingError": "Fehler beim Speichern",
+  "convSetNickname": "Spitznamen festlegen",
+  "convNicknameRequired": "Ein Spitzname ist erforderlich, um den Messenger zu nutzen. Andere Nutzer können Sie darüber finden.",
+  "convNicknameRules": "3–30 Zeichen: Buchstaben, Ziffern, _",
+  "convNicknameTaken": "Spitzname bereits vergeben",
+  "convSaveError": "Fehler beim Speichern",
+  "convContactsLabel": "Kontakte",
+  "convDefaultUser": "Benutzer",
+  "convNoDialogs": "Keine Unterhaltungen",
+  "convFindUserToChat": "Finde einen Benutzer, um zu chatten",
+  "convDefaultContact": "Kontakt",
+  "dashboardUser": "Benutzer",
+  "dashboardIncomingCall": "Eingehender Anruf",
+  "dashboardDecline": "Ablehnen",
+  "dashboardAccept": "Annehmen",
+  "dashboardActiveCall": "Aktiver Anruf — tippen, um zurückzukehren",
+  "dashboardUpdateAvailable": "Update verfügbar {version}",
+  "dashboardUpdate": "Aktualisieren",
+  "dashboardWhatsNew": "Neues",
+  "dashboardWhatsNewTitle": "Neues in {version}",
+  "dashboardInstalling": "Installiere...",
+  "contactRequestsTitle": "Kontakte",
+  "messengerContactRequestsSection": "Kontaktanfragen",
+  "messengerContactRequestsCount": "{count, plural, =1{1 neue Anfrage} other{{count} neue Anfragen}}",
+  "contactRequestsSearch": "Suchen",
+  "contactRequestsIncoming": "Eingehend",
+  "contactRequestsSent": "Gesendet",
+  "contactRequestsSearchHint": "Spitzname oder E-Mail",
+  "contactRequestSent": "Anfrage gesendet",
+  "contactRequestsNoUsers": "Keine Benutzer gefunden",
+  "contactRequestsSearchHelp": "Geben Sie den genauen Spitznamen oder die E-Mail ein\nund drücken Sie auf Suchen",
+  "contactRequestsSendTooltip": "Anfrage senden",
+  "contactRequestTitle": "Kontaktanfrage",
+  "contactRequestConfirm": "Kontaktanfrage an {name} senden?",
+  "contactRequestSend": "Senden",
+  "contactRequestsNoIncoming": "Keine eingehenden Anfragen",
+  "contactRequestsNoSent": "Keine gesendeten Anfragen",
+  "contactRequestStatusPending": "Warte auf Antwort",
+  "contactRequestStatusAccepted": "Akzeptiert",
+  "contactRequestStatusRejected": "Abgelehnt",
+  "userSearchTitle": "Benutzer finden",
+  "userSearchHint": "Spitzname, Telefon oder E-Mail",
+  "userSearchHelper": "Geben Sie @Spitzname, E-Mail oder Name ein, um zu suchen",
+  "userSearchNoUsers": "Keine Benutzer gefunden",
+  "userProfileShareContact": "Kontakt teilen",
+  "userProfileShareContactDesc": "Kontaktlink senden",
+  "userProfileCopyLink": "Link kopieren",
+  "userProfileCopied": "Kopiert",
+  "userProfileTitle": "Profil",
+  "userProfileLoadError": "Profil-Ladefehler",
+  "userProfileMessage": "Nachricht",
+  "userProfileCall": "Anruf",
+  "userProfileRequestSent": "Anfrage gesendet",
+  "userProfileAccept": "Akzeptieren",
+  "userProfileDecline": "Ablehnen",
+  "userProfileAddToContacts": "Zu Kontakten hinzufügen",
+  "userProfileMediaTab": "Medien",
+  "userProfileFilesTab": "Dateien",
+  "userProfileLinksTab": "Links",
+  "userProfileRecordingsTab": "Aufnahmen",
+  "userProfileSummariesTab": "Zusammenfassungen",
+  "userProfileNoMedia": "Keine Mediendateien",
+  "userProfileNoFiles": "Keine Dateien",
+  "userProfileNoLinks": "Keine Links",
+  "userProfileNoRecordings": "Keine Aufnahmen",
+  "userProfileNoSummaries": "Keine Zusammenfassungen",
+  "userProfileMeetingSummary": "Besprechungszusammenfassung",
+  "userProfileFailedOpenChat": "Chat konnte nicht geöffnet werden",
+  "sharedMediaTitle": "Medien und Dateien",
+  "sharedMediaTab": "Medien",
+  "sharedFilesTab": "Dateien",
+  "sharedLinksTab": "Links",
+  "sharedNoMedia": "Keine Mediendateien",
+  "sharedNoFiles": "Keine Dateien",
+  "sharedNoLinks": "Keine Links",
+  "shareToChat": "An Chat weiterleiten",
+  "shareSelectChat": "Chat auswählen",
+  "shareNoChats": "Keine Chats",
+  "shareFilesCount": "{count} Dateien",
+  "contactsTitle": "Kontakte",
+  "contactsAddTooltip": "Kontakt hinzufügen",
+  "contactsSearchHint": "Kontakte suchen...",
+  "contactsNotFound": "Nichts gefunden",
+  "contactsEmpty": "Keine Kontakte",
+  "contactsAdd": "Kontakt hinzufügen",
+  "contactsPendingConfirmation": "Warten auf Bestätigung",
+  "contactsMessage": "Nachricht",
+  "contactsCall": "Anruf",
+  "contactsResend": "Anfrage erneut senden",
+  "contactsResendTimeout": "Erneut versuchen in 24h",
+  "contactsResent": "Anfrage erneut gesendet",
+  "contactsWantsToConnect": "Möchte sich mit Ihnen verbinden",
+  "contactsSearchPeople": "Personen finden",
+  "notesTitle": "Notizen",
+  "notesAssistantSpeaking": "Assistent spricht...",
+  "notesListening": "Hört zu...",
+  "notesEmpty": "Keine Notizen",
+  "notesEmptyHint": "Drücken Sie das Mikrofon für Diktat\noder + für manuelle Eingabe",
+  "notesDeleteConfirm": "Notiz löschen?",
+  "notesNew": "Neue Notiz",
+  "notesEdit": "Bearbeiten",
+  "notesTitleHint": "Titel",
+  "notesContentHint": "Schreiben Sie Ihre Gedanken...",
+  "calendarTitle": "Kalender",
+  "calendarStop": "Stopp",
+  "calendarVoiceInput": "Spracheingabe",
+  "calendarNewEvent": "Neues Ereignis",
+  "calendarAssistantSpeaking": "Assistent spricht...",
+  "calendarListening": "Hört zu...",
+  "calendarInvitations": "Einladungen ({count})",
+  "calendarNoEvents": "Keine Ereignisse",
+  "calendarDayMon": "Mo",
+  "calendarDayTue": "Di",
+  "calendarDayWed": "Mi",
+  "calendarDayThu": "Do",
+  "calendarDayFri": "Fr",
+  "calendarDaySat": "Sa",
+  "calendarDaySun": "So",
+  "calendarEnterRoom": "Raum betreten",
+  "calendarMeeting": "Besprechung",
+  "calendarLocationPrefix": "Ort: {location}",
+  "calendarEditEvent": "Bearbeiten",
+  "calendarTitleHint": "Titel",
+  "calendarDescriptionHint": "Beschreibung",
+  "calendarTypeEvent": "Ereignis",
+  "calendarTypeMeeting": "Besprechung",
+  "calendarTypeReminder": "Erinnerung",
+  "calendarTypeLabel": "Typ",
+  "calendarMeetingLink": "Besprechungslink",
+  "calendarLocationHint": "Ort",
+  "calendarDateLabel": "Datum",
+  "calendarTimeLabel": "Uhrzeit",
+  "calendarReminderLabel": "Erinnerung",
+  "calendarReminderNone": "Keine",
+  "calendarReminder15min": "15 Min. vorher",
+  "calendarReminder30min": "30 Min. vorher",
+  "calendarReminder1hour": "1 Stunde vorher",
+  "calendarRepeatLabel": "Wiederholen",
+  "calendarRepeatNone": "Keine Wiederholung",
+  "calendarRepeatDaily": "Jeden Tag",
+  "calendarRepeatWeekly": "Jede Woche",
+  "calendarRepeatMonthly": "Jeden Monat",
+  "calendarRepeatYearly": "Jedes Jahr",
+  "calendarParticipants": "Teilnehmer",
+  "calendarAddParticipant": "Hinzufügen",
+  "calendarSearchContacts": "Kontakte suchen...",
+  "calendarNoContacts": "Keine Kontakte",
+  "calendarStatusAccepted": "Angenommen",
+  "calendarStatusDeclined": "Abgelehnt",
+  "calendarStatusMaybe": "Vielleicht",
+  "calendarStatusPending": "Ausstehend",
+  "calendarEndTime": "Endzeit",
+  "calendarYourAnswer": "Ihre Antwort:",
+  "calendarOrganizer": "Organisator",
+  "calendarDeleteError": "Löschen fehlgeschlagen: {error}",
+  "calendarRsvpAccept": "Annehmen",
+  "calendarRsvpMaybe": "Vielleicht",
+  "calendarRsvpDecline": "Ablehnen",
+  "callHistoryTitle": "Anrufe",
+  "callHistoryTab": "Anrufverlauf",
+  "callHistoryTempMeeting": "Temporäres Meeting",
+  "callHistoryCopy": "Kopieren",
+  "callHistoryLinkCopied": "Link kopiert",
+  "callHistoryShare": "Teilen",
+  "callHistoryEnter": "Betreten",
+  "callHistoryAlreadyInCall": "Bereits in einem Anruf",
+  "callHistoryCouldNotDeterminePeer": "Konnte die andere Partei nicht bestimmen",
+  "callHistoryContacts": "Kontakte",
+  "callHistoryFailedLoadRoom": "Laden Ihres Raumes fehlgeschlagen",
+  "callHistoryYourRoom": "Ihr Raum",
+  "callHistoryCreateMeeting": "Meeting erstellen",
+  "callHistoryMeetingSummaries": "Besprechungszusammenfassungen",
+  "callHistoryMeetingRecordings": "Besprechungsaufzeichnungen",
+  "callHistoryNoCalls": "Keine Anrufe",
+  "callHistoryMissed": "Verpasst",
+  "callHistoryRecording": "Aufnahme",
+  "callHistorySummary": "Zusammenfassung",
+  "callHistoryCallAgain": "Erneut anrufen",
+  "callHistoryTodayTime": "Heute, {time}",
+  "callHistoryYesterdayTime": "Gestern, {time}",
+  "callHistoryUnknown": "Unbekannt",
+  "callHistoryDetails": "Anrufdetails",
+  "callHistoryOutgoing": "Ausgehender Anruf",
+  "callHistoryIncoming": "Eingehender Anruf",
+  "callHistoryDuration": "Dauer: {duration}",
+  "callHistoryWithAI": "Mit AI-Assistent",
+  "callHistoryParticipants": "Teilnehmer",
+  "callDetailYouSuffix": "(Sie)",
+  "callHistoryMeetingSummary": "Besprechungszusammenfassung",
+  "callHistoryMoreDetails": "Mehr Details",
+  "callHistorySummaryProcessing": "Zusammenfassung wird verarbeitet...",
+  "callHistoryMeetingRecording": "Besprechungsaufzeichnung",
+  "callHistoryProcessing": "Wird verarbeitet...",
+  "callHistoryCreateTranscript": "Transkript erstellen",
+  "callHistoryNoSummaries": "Keine Zusammenfassungen",
+  "callHistoryRecordDuringCall": "Drücken Sie \"Aufnehmen\" während eines Anrufs",
+  "callHistoryMeetingTime": "Besprechung {time}",
+  "callHistoryTranscribing": "Transkribieren und zusammenfassen...",
+  "callHistoryTranscriptCreated": "Transkript erstellt",
+  "callHistoryNoRecordings": "Keine Aufnahmen",
+  "callHistoryRecordingDate": "Aufnahme {date}",
+  "callHistoryRecordingUnavailable": "Aufnahme nicht verfügbar",
+  "callHistoryTranscriptReady": "Transkript bereit",
+  "callHistoryTranscript": "Transkript",
+  "callHistoryKeyPoints": "Wichtige Punkte",
+  "callHistoryTasks": "Aufgaben",
+  "callHistoryAssignedTo": "Zugewiesen an: {assignee}",
+  "callHistoryDecisions": "Entscheidungen",
+  "callHistoryShowTranscript": "Vollständiges Transkript anzeigen",
+  "profileScanQr": "QR scannen",
+  "profileMyQrCode": "Mein QR-Code",
+  "profileAddMeShare": "Füge mich in Taler ID hinzu!\ntalerid://user/{userId}",
+  "profileShowCode": "Zeige diesen Code, um dich hinzuzufügen",
+  "profileEditDesc": "Name, Nachname, Vatersname, Geburtsdatum",
+  "profileAboutMe": "Über mich",
+  "profileAboutMeDesc": "Werte, Fähigkeiten, Interessen und mehr",
+  "profileNotes": "Notizen",
+  "profileNotesDesc": "Gedanken, Ideen und Notizen",
+  "profileAvatarUpdated": "Avatar aktualisiert",
+  "profileNickname": "Spitzname",
+  "profileNotSet": "Nicht festgelegt",
+  "profileChangeNickname": "Spitzname ändern",
+  "profileNicknameUpdated": "Spitzname aktualisiert",
+  "profileShareLabel": "Teilen",
+  "profileScanQrCode": "QR-Code scannen",
+  "profilePointCamera": "Kamera auf QR-Code richten",
+  "profilePhotoCamera": "Foto aufnehmen",
+  "profilePhotoGallery": "Aus Galerie wählen",
+  "editProfilePatronymic": "Vatersname (optional)",
+  "editProfileDateFormat": "TT.MM.JJJJ",
+  "aboutMeTitle": "Über mich",
+  "aboutMeClickToFill": "Zum Ausfüllen klicken",
+  "aboutMeCoreValues": "Werte",
+  "aboutMeWorldview": "Weltanschauung",
+  "aboutMeSkills": "Fähigkeiten",
+  "aboutMeInterests": "Interessen",
+  "aboutMeDesires": "Wünsche",
+  "aboutMeBackground": "Profil",
+  "aboutMeLikes": "Vorlieben",
+  "aboutMeDislikes": "Abneigungen",
+  "aboutMeDeleteSection": "Abschnitt löschen?",
+  "aboutMeDeleteConfirm": "Alle Daten in diesem Abschnitt werden gelöscht.",
+  "aboutMeConnectionError": "Verbindungsfehler: {error}",
+  "aboutMeVisibility": "Sichtbarkeit",
+  "aboutMeTags": "Tags",
+  "aboutMeAddTag": "Tag hinzufügen...",
+  "aboutMeDescription": "Beschreibung",
+  "aboutMeDescribeLong": "Erzähle uns mehr...",
+  "aboutMeVisibilityEveryone": "Jeder",
+  "aboutMeVisibilityContacts": "Kontakte",
+  "aboutMeVisibilityOnlyMe": "Nur ich",
+  "settingsProfileSubtitle": "Profil",
+  "settingsWallpaper": "Hintergrundbild",
+  "settingsWallpaperDesc": "Hintergrundbild für die gesamte App",
+  "settingsWallpaperNone": "Kein",
+  "settingsAccount": "Konto",
+  "settingsKycVerification": "Identitätsprüfung (KYC)",
+  "settingsOrganizations": "Organisationen",
+  "incomingCallLabel": "Eingehender Anruf",
+  "incomingCallDecline": "Ablehnen",
+  "incomingCallAccept": "Annehmen",
+  "meshIncomingCallLabel": "📡 Eingehender Mesh-Anruf",
+  "meshDeviceFallback": "Mesh-Gerät {hexPrefix}",
+  "callConflictAlreadyInCall": "Beenden Sie zuerst den aktuellen Anruf",
+  "callPopupTransportTitle": "Anruf über",
+  "callPopupTransportMesh": "📡 Mesh (Peer-to-Peer)",
+  "callPopupTransportLk": "📞 Server",
+  "callPopupTransportMeshUnavailable": "Kontakt über Mesh nicht erreichbar",
+  "meshOnboardingTitle": "📡 Mesh-Anrufe benötigen die geöffnete App",
+  "meshOnboardingBody": "Wenn das Telefon gesperrt ist, können Mesh-Anrufe nach ~30 Sekunden abbrechen (iOS-Einschränkung).",
+  "meshOnboardingAck": "Verstanden",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Kontakt ist nicht in Ihrer Liste",
+  "meshCallStatusInviting": "Rufe an…",
+  "meshCallStatusConnecting": "Verbinden…",
+  "meshCallEndedUserHangup": "Anruf beendet",
+  "meshCallEndedRemoteHangup": "Vom Teilnehmer beendet",
+  "meshCallEndedRejected": "Abgelehnt",
+  "meshCallEndedNoAnswer": "Keine Antwort",
+  "meshCallEndedConnectionLost": "Verbindung verloren",
+  "meshCallEndedError": "Verbindungsfehler",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Zuverlässige Mesh-Anrufe",
+  "batteryExemptionBody": "Erlauben Sie der App, ohne Batterieeinschränkungen zu laufen, damit Android das Mesh im Hintergrund nicht beendet.",
+  "batteryExemptionAccept": "Einstellungen öffnen",
+  "batteryExemptionDismiss": "Nicht jetzt",
+  "groupCamera": "Kamera",
+  "groupGallery": "Galerie",
+  "groupAvatarUpdated": "Gruppenavatar aktualisiert",
+  "groupNameTitle": "Gruppenname",
+  "groupEnterName": "Name eingeben",
+  "groupDescriptionTitle": "Gruppenbeschreibung",
+  "groupEnterDescription": "Gruppenbeschreibung eingeben",
+  "groupChangeRoleTitle": "Rolle ändern",
+  "groupRemoveMemberTitle": "Mitglied entfernen",
+  "groupDescription": "Beschreibung",
+  "groupAddDescription": "Gruppenbeschreibung hinzufügen",
+  "groupNoDescription": "Keine Beschreibung",
+  "groupMediaAndFiles": "Medien und Dateien",
+  "groupMuteNotifications": "Benachrichtigungen stummschalten",
+  "groupMuted": "Stummgeschaltet",
+  "groupNoResults": "Keine Ergebnisse",
+  "authInvalidCode": "Ungültiger Code. Versuchen Sie es erneut.",
+  "loginSubtitle": "Verwenden Sie E-Mail und Passwort",
+  "emailRequired": "E-Mail eingeben",
+  "emailInvalid": "Ungültige E-Mail",
+  "passwordRequired": "Passwort eingeben",
+  "registerSubtitle": "Ein Konto für das gesamte Taler-Ökosystem",
+  "usernameOptional": "Benutzername (optional)",
+  "usernameMinLength": "Mindestens 3 Zeichen",
+  "usernameMaxLength": "Maximal 30 Zeichen",
+  "usernameInvalid": "Nur Buchstaben, Ziffern und _",
+  "biometricLoginReason": "Bei Taler ID anmelden",
+  "docTypePassport": "Reisepass",
+  "docTypeIdCard": "Personalausweis",
+  "docTypeDriverLicense": "Führerschein",
+  "docTypeResidencePermit": "Aufenthaltserlaubnis",
+  "addressApartment": "Whg. {number}",
+  "failedToUpdateProfile": "Profilaktualisierung fehlgeschlagen",
+  "failedToStartKyb": "KYB-Verifizierung konnte nicht gestartet werden",
+  "orgUpdated": "Organisation aktualisiert",
+  "failedToUpdateOrg": "Organisation konnte nicht aktualisiert werden",
+  "failedToChangeRole": "Rollenänderung fehlgeschlagen",
+  "failedToRemoveMember": "Mitglied konnte nicht entfernt werden",
+  "capabilityMessagesTitle": "Nachrichten",
+  "capabilityMessagesDesc": "Nachrichten prüfen oder jemandem schreiben. Zum Beispiel: \"Schreibe an Viktor: bin in einer Stunde da\"",
+  "capabilityCallsTitle": "Anrufe",
+  "capabilityCallsDesc": "Jeden Kontakt per Sprache anrufen. Zum Beispiel: \"Rufe Viktor Viktorov an\"",
+  "capabilityChatTitle": "Chatverlauf",
+  "capabilityChatDesc": "Ich analysiere den Chatverlauf. Zum Beispiel: \"Was haben wir mit Viktor besprochen?\"",
+  "capabilityProfileTitle": "Profil",
+  "capabilityProfileDesc": "Ich zeige oder aktualisiere dein Profil. Zum Beispiel: \"Zeige mein Profil\"",
+  "capabilityCoachingTitle": "Coaching",
+  "capabilityCoachingDesc": "Modi: ICF-Coaching, Psychologe, HR-Beratung. Sage: \"Lass uns Coaching machen\"",
+  "capabilityCalendarTitle": "Kalender",
+  "capabilityCalendarDesc": "Plane ein Meeting oder setze eine Erinnerung. Zum Beispiel: \"Plane ein Meeting mit Viktor für morgen um 15:00\"",
+  "capabilityNotesTitle": "Notizen",
+  "capabilityNotesDesc": "Speichere einen Gedanken oder lies aktuelle Notizen. Zum Beispiel: \"Schreibe eine Idee auf...\" oder \"Lies aktuelle Notizen\"",
+  "assistantCallConfirm": "Anruf tätigen?",
+  "callNoAnswer": "Keine Antwort",
+  "contactDelete": "Kontakt entfernen",
+  "contactDeleteTitle": "Kontakt entfernen",
+  "contactDeleteConfirm": "Bist du sicher? Dieser Kontakt wird entfernt.",
+  "contactBlock": "Blockieren",
+  "contactBlockTitle": "Benutzer blockieren",
+  "contactBlockConfirm": "Dieser Benutzer kann dir keine Nachrichten senden oder dich anrufen.",
+  "contactUnblock": "Entblocken",
+  "contactBlocked": "Blockiert",
+  "contactYouAreBlocked": "Dieser Benutzer hat dich blockiert",
+  "chatBlockedByYou": "Du hast diesen Benutzer blockiert",
+  "chatYouAreBlocked": "Du wurdest von diesem Benutzer blockiert",
+  "chatNotContacts": "Füge diesen Benutzer zu den Kontakten hinzu, um ihm Nachrichten zu senden",
+  "contactRevokeRequest": "Anfrage widerrufen",
+  "messengerPoll": "Umfrage",
+  "messengerCreatePoll": "Umfrage erstellen",
+  "messengerPollQuestion": "Frage",
+  "messengerPollOption": "Option {number}",
+  "messengerPollAddOption": "Option hinzufügen",
+  "messengerPollAnonymous": "Anonyme Abstimmung",
+  "messengerPollMultiple": "Mehrfachauswahl",
+  "messengerPollCreateError": "Umfrage konnte nicht erstellt werden",
+  "messengerPollUnavailable": "Umfrage nicht verfügbar",
+  "messengerPollMultipleNote": "Du kannst mehrere auswählen",
+  "messengerPollVotes": "{count} Stimmen",
+  "messengerVideoMessage": "Videonachricht",
+  "messengerVideoRecordError": "Fehler bei der Videoaufnahme",
+  "messengerVideoPlaybackError": "Video konnte nicht abgespielt werden",
+  "messengerGalleryAccessError": "Kein Zugriff auf die Galerie",
+  "messengerSearchInChat": "Im Chat suchen...",
+  "messengerSaveToFavorites": "Zu Favoriten speichern",
+  "messengerSavedToFavorites": "Zu Favoriten gespeichert",
+  "messengerSearchInMessages": "In Nachrichten suchen...",
+  "messengerFoundInMessages": "In Nachrichten gefunden ({count})",
+  "messengerGroupDefault": "Gruppe",
+  "messengerUserDefault": "Benutzer",
+  "messengerPin": "Anheften",
+  "messengerUnpin": "Lösen",
+  "messengerArchive": "Archivieren",
+  "messengerUnarchive": "Wiederherstellen",
+  "messengerDeleteChat": "Chat löschen",
+  "messengerDeleteChatTitle": "Chat löschen?",
+  "messengerDeleteChatConfirm": "Chat mit {name} löschen? Dies kann nicht rückgängig gemacht werden.",
+  "messengerCreateChannel": "Kanal erstellen",
+  "messengerChannelName": "Name",
+  "messengerChannelDescription": "Beschreibung (optional)",
+  "messengerChannelCreateError": "Kanal konnte nicht erstellt werden",
+  "messengerFilterAll": "Alle",
+  "messengerFilterUnread": "Ungelesen",
+  "messengerFilterPersonal": "Persönlich",
+  "messengerFilterGroups": "Gruppen",
+  "messengerFilterChannels": "Kanäle",
+  "messengerArchivedSection": "Archiviert",
+  "messengerSavedSection": "Favoriten",
+  "messengerSavedSubtitle": "Zur Erinnerung speichern",
+  "messengerArchiveTitle": "Archiv ({count})",
+  "messengerArchiveEmpty": "Archiv ist leer",
+  "messengerYouPrefix": "Du: {message}",
+  "messengerMissedCall": "Verpasster Anruf",
+  "messengerSavedTitle": "Favoriten",
+  "messengerNoSavedMessages": "Keine gespeicherten Nachrichten",
+  "messengerSavedHint": "Nachricht lange drücken → \"Zu Favoriten speichern\"",
+  "messengerDefaultFile": "Datei",
+  "messengerTopicDefault": "Allgemein",
+  "messengerTopicNew": "Neues Thema",
+  "messengerTopicNameHint": "Themenname",
+  "messengerTopicIcon": "Symbol",
+  "messengerTopicCount": "{count} Themen",
+  "messengerNoTopics": "Keine Themen",
+  "messengerNoMessages": "Keine Nachrichten",
+  "you": "Du",
+  "messengerThread": "Thread",
+  "messengerThreadReply": "antworten",
+  "messengerThreadReplies": "Antworten",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Keine Antworten",
+  "messengerReplyHint": "Auf Thread antworten...",
+  "messengerContactName": "Kontaktname",
+  "messengerOriginalName": "Originalname: {name}",
+  "messengerDisplayName": "Anzeigename",
+  "messengerShareContact": "Kontakt in Taler ID: {name}",
+  "messengerAutoDelete": "Nachrichten automatisch löschen",
+  "messengerAutoDeleteOff": "Aus",
+  "messengerAutoDelete7d": "7 Tage",
+  "messengerAutoDelete30d": "30 Tage",
+  "messengerAutoDelete90d": "90 Tage",
+  "messengerAutoDeleteDays": "{count} Tage",
+  "messengerSettingsHeader": "Einstellungen",
+  "messengerAdminOnly": "Nur Admin-Postings",
+  "messengerAdminOnlyDesc": "Mitglieder können nur lesen",
+  "messengerTopics": "Themen",
+  "messengerTopicsDesc": "Chat in Themen aufteilen",
+  "aiTwinSection": "AI Voice Twin",
+  "aiTwinEnabled": "AI Twin aktivieren",
+  "aiTwinEnabledDesc": "Wenn du nicht antwortest, übernimmt dein AI Twin den Anruf in deiner Stimme",
+  "aiTwinTimeout": "Antwort-Timeout",
+  "aiTwinTimeoutValue": "{seconds} Sek",
+  "aiTwinPrompt": "AI-Anweisungen",
+  "aiTwinPromptSubtitle": "Wie sich der AI Twin vorstellen soll und worüber er sprechen soll",
+  "aiTwinPromptHint": "Hallo, hier ist {name}s AI Voice Twin. {name} konnte gerade nicht rangehen. Sag mir, wer anruft und worum es geht — ich gebe es weiter.",
+  "aiTwinComingSoon": "Individuelles Stimmenklonen kommt bald. Derzeit spricht die AI mit {name}s Stimme.",
+  "aiTwinDefaultName": "der Besitzer",
+  "aiTwinPromptReset": "Zurücksetzen",
+  "callHistoryAiTwinAnswered": "AI TWIN HAT GEANTWORTET",
+  "callHistoryAiTwinSummary": "ANRUFZUSAMMENFASSUNG",
+  "callHistoryAiTwinTranscript": "TRANSKRIPT",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "Von {name}",
+  "aiTwinOfferTitle": "Nicht antworten",
+  "aiTwinOfferBody": "{name} geht nicht ran. Eine Nachricht mit ihrem AI-Stimmzwilling hinterlassen?",
+  "aiTwinOfferBodyUser": "Benutzer",
+  "aiTwinOfferAccept": "Ja, Nachricht hinterlassen",
+  "aiTwinOfferKeepWaiting": "Weiter warten",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Dein AI-Vertreter",
+  "aiTwinHeroSubtitle": "Nimmt Anrufe in deiner Stimme entgegen, wenn du nicht kannst.",
+  "aiTwinProfileTitle": "AI-Vertreter",
+  "aiTwinProfileDesc": "Nimmt Anrufe in deiner Stimme entgegen",
+  "aiTwinBadgeOn": "AN",
+  "aiAnalystTitle": "AI-Analyst",
+  "aiAnalystSubtitle": "Dateien, Aufgaben, Analyse — Claude",
+  "channelsDiscover": "Kanal finden",
+  "channelsSearchHint": "Kanäle suchen",
+  "channelsSubscribers": "Abonnenten",
+  "channelsSubscribe": "Abonnieren",
+  "channelsUnsubscribe": "Abbestellen",
+  "channelsSubscribedLabel": "Du bist abonniert",
+  "channelsSettings": "Kanaleinstellungen",
+  "channelsDelete": "Kanal löschen",
+  "channelsDeleteConfirm": "Kanal dauerhaft löschen?",
+  "channelsEmpty": "Noch keine Kanäle",
+  "channelsOpen": "Öffnen",
+  "channelsNameLabel": "Name",
+  "channelsDescriptionLabel": "Beschreibung",
+  "channelsCannotUnsubscribeOwner": "Eigentümer kann nicht abbestellen. Lösche stattdessen den Kanal.",
+  "channelsNotFoundRedirect": "Kanal existiert nicht mehr",
+  "analystSeamSearches": "{count, plural, =1{{count} Suche} other{{count} Suchen}}",
+  "analystSeamFiles": "{count, plural, =1{{count} Datei} other{{count} Dateien}}",
+  "analystSeamCommands": "{count, plural, =1{{count} Befehl} other{{count} Befehle}}",
+  "analystSeamImages": "{count, plural, =1{{count} Bild} other{{count} Bilder}}",
+  "analystSeamOther": "{count, plural, =1{{count} Schritt} other{{count} Schritte}}",
+  "analystSeamDurationSeconds": "{seconds}s",
+  "savedTitle": "Gespeicherte Nachrichten",
+  "savedSubtitle": "Deine private Cloud",
+  "savedOpenError": "Konnte Gespeicherte Nachrichten nicht öffnen",
+  "billingWalletTitle": "Geldbörse",
+  "billingBuyPackage": "Paket kaufen",
+  "billingCurrentBalance": "Aktueller Kontostand",
+  "billingPackagesTitle": "Pakete",
+  "billingPackagesUnavailable": "Pakete nicht verfügbar",
+  "billingRecentOperations": "Letzte Vorgänge",
+  "billingAllOperations": "Alle Vorgänge",
+  "billingNoOperations": "Keine Vorgänge",
+  "billingOperationsTitle": "Vorgänge",
+  "billingOperationsEmptyTitle": "Noch keine Vorgänge",
+  "billingOperationsEmptySubtitle": "Aufladungen und Gebühren für AI-Funktionen werden hier angezeigt",
+  "billingPricebookTitle": "Funktionspreise",
+  "billingPricebookUnavailable": "Preisliste nicht verfügbar",
+  "billingAiFeaturesTitle": "AI-Funktionen",
+  "billingInsufficientFundsTitle": "Unzureichende Mittel",
+  "billingInsufficientFundsSubtitle": "Laden Sie Ihr Guthaben auf, um diese Funktion zu nutzen.",
+  "billingRequiredLine": "Benötigt: {required} μTAL",
+  "billingAvailableLine": "Verfügbar: {available} μTAL",
+  "billingTopUp": "Aufladen",
+  "billingCancel": "Abbrechen",
+  "billingRetry": "Erneut versuchen",
+  "billingLowBalanceWarning": "Guthaben niedrig: {balance} μTAL",
+  "billingWalletAndBalance": "Wallet & Guthaben",
+  "billingSectionHeader": "Abrechnung & AI",
+  "billingFeatureVoiceAssistant": "Sprachassistent",
+  "billingFeatureWebSearch": "Assistent Websuche",
+  "billingFeatureAiTwin": "Stimmzwilling",
+  "billingFeatureAiTwinLong": "Stimmzwilling (AI Twin)",
+  "billingFeatureOutboundCall": "Ausgehender Bot",
+  "billingFeatureOutboundCallLong": "Ausgehender Anrufbot",
+  "billingFeatureWhisperTranscribe": "Anruftranskription",
+  "billingFeatureMeetingSummary": "AI-Anrufzusammenfassungen",
+  "billingConfigureAiTwin": "AI Twin konfigurieren",
+  "billingWebSearchSubtitle": "(vom Assistenten verwendet)",
+  "billingPackagePurchased": "Paket gekauft: {balance} μTAL",
+  "billingRecommendedBadge": "Empfohlen",
+  "billingSessionTerminatedNoFunds": "Guthaben aufgebraucht — Sitzung beendet",
+  "billingSessionTerminatedGeneric": "Assistentensitzung beendet",
+  "billingBuyForPrice": "Kaufen für €{price}",
+  "billingTxTypeTopup": "Aufladung",
+  "billingTxTypeRefund": "Rückerstattung",
+  "billingTxTypeSpend": "Gebühr",
+  "billingUnitMinute": "Minute",
+  "billingUnitRequest": "Anfrage",
+  "billingUnitToken": "Token",
+  "billingUnitTokens1k": "1K Tokens",
+  "billingUnitCall": "Anruf",
+  "groupCallSelectParticipants": "Teilnehmer auswählen",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Suchen",
+  "groupCallMaxReached": "Maximal 7 Teilnehmer",
+  "groupCallLobbyTitle": "Gruppe • Lobby",
+  "groupCallHostLabel": "Host: {name}",
+  "groupCallMicHint": "Mikrofon wird bei Verbindung aktiviert",
+  "groupCallCancel": "Abbrechen",
+  "groupCallNoAnswer": "Niemand hat geantwortet",
+  "groupCallEndedByHost": "Anruf vom Host beendet",
+  "groupCallAllLeft": "Alle haben den Anruf verlassen",
+  "groupCallEnded": "Anruf beendet",
+  "groupCallActiveTitle": "Gruppe • {count}",
+  "groupCallConnectionLost": "Verbindung verloren",
+  "groupCallMuteRequested": "Host hat alle gebeten, stummzuschalten",
+  "groupCallUnmute": "Stummschaltung aufheben",
+  "groupCallMute": "Stummschalten",
+  "groupCallMuteAll": "Alle stummschalten",
+  "groupCallLeave": "Verlassen",
+  "groupCallStatusCalling": "ruft an…",
+  "groupCallStatusDeclined": "abgelehnt",
+  "groupCallStatusTimeout": "keine Antwort",
+  "groupCallStatusLeft": "verlassen",
+  "groupCallKickConfirm": "{name} aus dem Anruf entfernen",
+  "groupCallCancelAction": "Abbrechen",
+  "groupCallActiveBanner": "Aktiver Anruf",
+  "groupCallBannerSummary": "Gruppe: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Gruppe: {host}",
+  "groupCallCreateError": "Anruf konnte nicht erstellt werden",
+  "groupCallJoinError": "Anruf konnte nicht beigetreten werden",
+  "groupCallLivekitError": "LiveKit-Fehler",
+  "groupCallDone": "Fertig",
+  "groupCallNoResults": "Keine Ergebnisse",
+  "groupCallNoContacts": "Keine Kontakte",
+  "meshGcContactOffline": "Nicht in diesem WLAN",
+  "meshGcOnlineViaMesh": "Online über Mesh",
+  "meshGcMaxInvitees": "Gruppenanrufe unterstützen bis zu 4 Eingeladene (insgesamt 5 Personen).",
+  "meshGcStart": "Gruppenanruf starten",
+  "meshGcCancel": "Abbrechen",
+  "meshGcStatusCalling": "Ruft an…",
+  "meshGcStatusJoined": "Beigetreten",
+  "meshGcStatusDeclined": "Abgelehnt",
+  "meshGcStatusNoAnswer": "Keine Antwort",
+  "meshGcStatusConnectionFailed": "Verbindung fehlgeschlagen",
+  "meshGcStatusLeft": "Verlassen",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Beenden Sie zuerst Ihren aktuellen Anruf.",
+  "presenceOnline": "online",
+  "presenceLastSeenJustNow": "zuletzt gesehen gerade eben",
+  "presenceLastSeenMinutesAgo": "zuletzt gesehen vor {minutes} Min.",
+  "presenceLastSeenToday": "zuletzt gesehen heute um {time}",
+  "presenceLastSeenYesterday": "zuletzt gesehen gestern um {time}",
+  "presenceLastSeenOnDate": "zuletzt gesehen am {date}",
+  "presenceLastSeenRecently": "zuletzt gesehen kürzlich",
+  "privacySectionTitle": "Datenschutz",
+  "privacyLastSeenLabel": "Wer sieht Ihre zuletzt gesehen Zeit",
+  "privacyEveryone": "Jeder",
+  "privacyContacts": "Nur Kontakte",
+  "privacyNobody": "Niemand",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

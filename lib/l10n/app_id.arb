@@ -1,0 +1,1691 @@
+{
+  "@@locale": "id",
+  "appTitle": "Taler ID",
+  "search": "Cari",
+  "appSubtitle": "Identitas ekosistem terpadu",
+  "login": "Masuk",
+  "loginButton": "Masuk",
+  "register": "Buat Akun",
+  "registerButton": "Buat Akun",
+  "email": "Email",
+  "password": "Kata Sandi",
+  "confirmPassword": "Konfirmasi Kata Sandi",
+  "firstName": "Nama Depan",
+  "lastName": "Nama Belakang",
+  "noAccount": "Belum punya akun?",
+  "createOne": "Buat satu",
+  "haveAccount": "Sudah punya akun?",
+  "signIn": "Masuk",
+  "passwordMinLength": "Minimal 8 karakter",
+  "invalidEmail": "Masukkan email yang valid",
+  "fieldRequired": "Kolom wajib diisi",
+  "twoFATitle": "Otentikasi Dua Faktor",
+  "twoFASubtitle": "Masukkan kode 6 digit dari aplikasi autentikator Anda",
+  "twoFACode": "Kode 2FA",
+  "verify": "Verifikasi",
+  "tabProfile": "Profil",
+  "tabKyc": "KYC",
+  "tabOrganization": "Organisasi",
+  "tabSettings": "Pengaturan",
+  "profile": "Profil",
+  "editProfile": "Edit Profil",
+  "phone": "Telepon",
+  "country": "Negara",
+  "dateOfBirth": "Tanggal Lahir",
+  "documents": "Dokumen",
+  "addDocument": "Tambah Dokumen",
+  "noDocuments": "Tidak ada dokumen yang diunggah",
+  "save": "Simpan",
+  "profileUpdated": "Profil diperbarui",
+  "personalData": "Data Pribadi",
+  "passport": "Paspor",
+  "drivingLicense": "SIM",
+  "diploma": "Diploma",
+  "nationalId": "KTP",
+  "certificate": "Sertifikat",
+  "notSpecified": "Tidak ditentukan",
+  "notSpecifiedFemale": "Tidak ditentukan",
+  "documentType": "Jenis Dokumen",
+  "passportId": "Paspor / KTP",
+  "diplomaCertificate": "Diploma / Sertifikat",
+  "loadError": "Kesalahan memuat",
+  "verification": "Verifikasi",
+  "countryAustria": "Austria",
+  "countryGermany": "Jerman",
+  "countryRussia": "Rusia",
+  "countryUkraine": "Ukraina",
+  "countryKazakhstan": "Kazakhstan",
+  "countryBelarus": "Belarus",
+  "countryOther": "Lainnya",
+  "kycTitle": "Verifikasi KYC",
+  "kycVerified": "Terverifikasi",
+  "kycPending": "Menunggu",
+  "kycRejected": "Ditolak",
+  "kycUnverified": "Belum Terverifikasi",
+  "kycVerifiedDesc": "Identitas Anda telah diverifikasi. Anda memiliki akses penuh ke semua fitur ekosistem Taler.",
+  "kycPendingDesc": "Dokumen Anda sedang ditinjau. Ini biasanya memakan waktu 1-2 hari kerja.",
+  "kycRejectedDesc": "Verifikasi gagal. Silakan tinjau alasannya dan kirim ulang dokumen Anda.",
+  "kycUnverifiedDesc": "Selesaikan verifikasi untuk membuka akses penuh ke fitur keuangan ekosistem Taler.",
+  "startVerification": "Mulai Verifikasi",
+  "retryVerification": "Coba Lagi Verifikasi",
+  "verifiedAt": "Terverifikasi: {date}",
+  "documentsSubmitted": "Dokumen dikirim untuk ditinjau",
+  "documentsSubmittedDesc": "Peninjauan biasanya memakan waktu 1-2 hari kerja. Anda akan menerima notifikasi push dengan hasilnya.",
+  "securityAes": "Data Anda dilindungi dengan enkripsi AES-256",
+  "verificationTime": "Verifikasi memakan waktu 1-2 hari kerja",
+  "pushNotification": "Anda akan menerima notifikasi push dengan hasilnya",
+  "kycWebOnly": "Verifikasi KYC hanya tersedia di aplikasi seluler.",
+  "verificationError": "Kesalahan verifikasi: {code}",
+  "organizations": "Organisasi",
+  "noOrganizations": "Tidak ada organisasi",
+  "noOrganizationsDesc": "Buat organisasi atau terima undangan",
+  "createOrganization": "Buat Organisasi",
+  "newOrganization": "Organisasi Baru",
+  "orgName": "Nama *",
+  "orgDescription": "Deskripsi",
+  "orgEmail": "Email Kontak",
+  "orgWebsite": "Situs Web",
+  "orgLegalAddress": "Alamat Legal",
+  "create": "Buat",
+  "organization": "Organisasi",
+  "contacts": "Kontak",
+  "members": "Anggota ({count})",
+  "inviteMember": "Undang Anggota",
+  "invite": "Undang",
+  "sendInvite": "Kirim Undangan",
+  "inviteSent": "Undangan dikirim ke {email}",
+  "role": "Peran",
+  "roleOwner": "Pemilik",
+  "roleAdmin": "Admin",
+  "roleOperator": "Operator",
+  "roleViewer": "Penonton",
+  "editOrganization": "Edit",
+  "editOrganizationTitle": "Edit Organisasi",
+  "removeMember": "Hapus Anggota",
+  "removeMemberConfirm": "Hapus {name} dari organisasi?",
+  "memberRemoved": "Anggota dihapus",
+  "roleChanged": "Peran diubah",
+  "kybVerified": "Terverifikasi",
+  "kybPending": "Menunggu",
+  "kybRejected": "Ditolak",
+  "kybNone": "Belum Terverifikasi",
+  "kybVerification": "Mulai Verifikasi KYB",
+  "kybStartBusiness": "Mulai Verifikasi Bisnis",
+  "kybStatusLabel": "Status KYB",
+  "noKyb": "Tidak ada KYB",
+  "kybBusinessVerificationTitle": "Verifikasi Bisnis (KYB)",
+  "kybVerifiedOrgDesc": "Organisasi berhasil diverifikasi.",
+  "kybPendingOrgDesc": "Dokumen sedang ditinjau. Ini biasanya memakan waktu 1-3 hari kerja.",
+  "kybRejectedOrgDesc": "Verifikasi gagal. Silakan coba lagi.",
+  "kybNoneOrgDesc": "Verifikasi organisasi Anda untuk mengakses fitur bisnis.",
+  "invitePlus": "+ Undang",
+  "kybVerificationTitle": "Verifikasi KYB",
+  "kybWebOnlyBusiness": "Verifikasi KYB hanya tersedia di aplikasi seluler.",
+  "unknownDevice": "Perangkat tidak dikenal",
+  "ipUnknown": "IP tidak dikenal",
+  "currentSessionLabel": "Saat ini",
+  "endSessionAction": "Akhiri",
+  "deviceLoggedOut": "Perangkat akan keluar.",
+  "acceptInvitationTitle": "Undangan Organisasi",
+  "acceptInvitation": "Terima Undangan",
+  "acceptInvitationDesc": "Anda diundang untuk bergabung dengan organisasi di ekosistem Taler.",
+  "accept": "Terima",
+  "reject": "Tolak",
+  "sessions": "Sesi Aktif",
+  "currentSession": "Sesi saat ini",
+  "deleteSession": "Akhiri Sesi",
+  "deleteSessionConfirm": "Akhiri sesi ini?",
+  "sessionDeleted": "Sesi berakhir",
+  "noSessions": "Tidak ada sesi aktif",
+  "minutesAgo": "{count} menit yang lalu",
+  "hoursAgo": "{count} jam yang lalu",
+  "daysAgo": "{count} hari yang lalu",
+  "justNow": "Baru saja",
+  "settings": "Pengaturan",
+  "security": "Keamanan",
+  "biometrics": "Biometrik",
+  "biometricsDesc": "Login cepat dengan Face ID atau sidik jari",
+  "biometricsConfirm": "Konfirmasi biometrik untuk mengaktifkan login cepat",
+  "biometricsError": "Gagal mengaktifkan biometrik. Periksa pengaturan perangkat.",
+  "changePassword": "Ubah Kata Sandi",
+  "twoFactorAuth": "Otentikasi Dua Faktor",
+  "currentPassword": "Kata Sandi Saat Ini",
+  "newPassword": "Kata Sandi Baru",
+  "confirmNewPassword": "Konfirmasi Kata Sandi Baru",
+  "passwordChanged": "Kata sandi diubah",
+  "wrongCurrentPassword": "Kata sandi saat ini salah",
+  "passwordTooWeak": "Kata sandi terlalu lemah: minimal 8 karakter, huruf dan angka diperlukan",
+  "passwordChangeFailed": "Gagal mengubah kata sandi",
+  "notifications": "Notifikasi",
+  "permissions": "Izin",
+  "permissionNotifications": "Notifikasi Push",
+  "permissionNotificationsDesc": "Panggilan, pesan, status",
+  "permissionMicrophone": "Mikrofon",
+  "permissionMicrophoneDesc": "Panggilan dan asisten suara",
+  "permissionCamera": "Kamera",
+  "permissionCameraDesc": "Panggilan video dan verifikasi",
+  "permissionLocation": "Lokasi",
+  "permissionLocationDesc": "Digunakan untuk verifikasi",
+  "permissionOpenSettings": "Untuk mencabut izin, buka pengaturan sistem",
+  "pushKycStatus": "Push Status KYC",
+  "pushKycStatusDesc": "Hasil verifikasi",
+  "pushLogins": "Push Login",
+  "pushLoginsDesc": "Saat masuk dari perangkat baru",
+  "account": "Akun",
+  "language": "Bahasa",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Bahasa Antarmuka",
+  "exportData": "Ekspor Data (GDPR)",
+  "deleteAccount": "Hapus Akun",
+  "deleteAccountConfirm": "Hapus akun?",
+  "deleteAccountDesc": "Semua data Anda akan dihapus (GDPR). Tindakan ini tidak dapat dibatalkan.",
+  "logout": "Keluar",
+  "logoutConfirm": "Keluar?",
+  "logoutDesc": "Anda akan keluar dari Taler ID di perangkat ini.",
+  "version": "Taler ID v{version}",
+  "pinCode": "Kode PIN",
+  "pinCodeDesc": "Login cepat dengan kode 4 digit",
+  "setupPin": "Atur PIN",
+  "enterPin": "Masukkan PIN",
+  "confirmPin": "Konfirmasi PIN",
+  "pinMismatch": "PIN tidak cocok",
+  "pinSet": "PIN berhasil diatur",
+  "enterPinToLogin": "Masukkan PIN untuk masuk",
+  "pinIncorrect": "PIN salah",
+  "removePin": "Hapus PIN",
+  "pinRemoved": "PIN dihapus",
+  "cancel": "Batal",
+  "delete": "Hapus",
+  "ok": "OK",
+  "retry": "Coba Lagi",
+  "loading": "Memuat...",
+  "error": "Kesalahan",
+  "success": "Berhasil",
+  "noData": "Tidak ada data",
+  "failedToLoad": "Gagal memuat data",
+  "failedToLoadProfile": "Gagal memuat profil",
+  "failedToSave": "Gagal menyimpan perubahan",
+  "failedToLoadOrgs": "Gagal memuat organisasi",
+  "failedToLoadOrg": "Gagal memuat data organisasi",
+  "failedToCreateOrg": "Gagal membuat organisasi",
+  "failedToInvite": "Gagal mengirim undangan",
+  "failedToAcceptInvite": "Gagal menerima undangan",
+  "failedToLoadSessions": "Gagal memuat sesi",
+  "failedToDeleteSession": "Gagal mengakhiri sesi",
+  "failedToLoadKyc": "Gagal memuat status verifikasi",
+  "failedToStartKyc": "Gagal memulai verifikasi",
+  "verifiedPersonalInfo": "Data Terverifikasi",
+  "middleName": "Nama Tengah",
+  "placeOfBirth": "Tempat Lahir",
+  "nationality": "Kewarganegaraan",
+  "gender": "Jenis Kelamin",
+  "genderMale": "Laki-laki",
+  "genderFemale": "Perempuan",
+  "docNumber": "Nomor",
+  "docIssuedDate": "Dikeluarkan",
+  "docValidUntil": "Berlaku Hingga",
+  "docIssuedBy": "Dikeluarkan Oleh",
+  "address": "Alamat",
+  "refreshData": "Segarkan Data",
+  "failedToLoadSumsubData": "Gagal memuat data verifikasi",
+  "sumsubDataLoading": "Memuat data verifikasi...",
+  "reviewResultGreen": "Verifikasi berhasil",
+  "reviewResultRed": "Verifikasi gagal",
+  "tabAssistant": "Asisten",
+  "assistantConnecting": "Menghubungkan…",
+  "assistantSpeaking": "Berbicara…",
+  "assistantListening": "Mendengarkan…",
+  "assistantTapToStart": "Ketuk untuk memulai",
+  "assistantTapToTalk": "Ketuk untuk berbicara dengan AI",
+  "assistantRealtimeDesc": "Asisten merespons dengan suara secara real time",
+  "assistantConnectingToAssistant": "Menghubungkan ke asisten...",
+  "assistantAiSpeaking": "AI berbicara...",
+  "assistantAiListening": "AI mendengarkan",
+  "assistantSpeakerOn": "Speaker aktif",
+  "assistantSpeaker": "Speaker",
+  "assistantEnd": "Akhiri",
+  "assistantUnmute": "Buka suara",
+  "assistantMicrophone": "Mikrofon",
+  "assistantConnectionError": "Kesalahan koneksi",
+  "tabMessenger": "Pesan",
+  "tabCalls": "Panggilan",
+  "tabCalendar": "Kalender",
+  "appearance": "Tampilan",
+  "appearanceSelect": "Pilih Tema",
+  "themeLight": "Terang",
+  "themeDark": "Gelap",
+  "themeSystem": "Sistem",
+  "onboardingTitle1": "Identitas Terpadu",
+  "onboardingDesc1": "Taler ID adalah paspor digital Anda di ekosistem Taler. Satu akun untuk semua layanan.",
+  "onboardingTitle2": "Keamanan Data",
+  "onboardingDesc2": "Verifikasi KYC, enkripsi AES-256, dan autentikasi dua faktor melindungi identitas Anda.",
+  "onboardingTitle3": "Tetap Terinformasi",
+  "onboardingDesc3": "Dapatkan pemberitahuan tentang status verifikasi, login dari perangkat baru, dan panggilan masuk.",
+  "onboardingNext": "Berikutnya",
+  "onboardingEnableNotifications": "Aktifkan Notifikasi",
+  "onboardingTitle4": "Panggilan Suara",
+  "onboardingDesc4": "Beri akses mikrofon untuk panggilan suara dan asisten AI. Anda dapat mengubah ini nanti di pengaturan.",
+  "onboardingEnableMicrophone": "Aktifkan Mikrofon",
+  "onboardingStart": "Mulai",
+  "onboardingSkip": "Lewati",
+  "meshLocalNetworkPromptTitle": "Izinkan akses jaringan lokal",
+  "meshLocalNetworkPromptBody": "Untuk menemukan rekan di Wi-Fi (panggilan grup offline), iOS memerlukan izin Jaringan Lokal. Buka Pengaturan → Privasi & Keamanan → Jaringan Lokal → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "Buka Pengaturan",
+  "meshLocalNetworkPromptDismiss": "Mengerti",
+  "forgotPassword": "Lupa kata sandi?",
+  "forgotPasswordTitle": "Atur Ulang Kata Sandi",
+  "forgotPasswordSubtitle": "Masukkan email Anda untuk menerima kode reset",
+  "resetCodeSent": "Kode dikirim ke {email}",
+  "enterResetCode": "Masukkan kode",
+  "resetPasswordButton": "Atur Ulang Kata Sandi",
+  "passwordResetSuccess": "Kata sandi berhasil diatur ulang",
+  "sendCode": "Kirim Kode",
+  "resendCode": "Kirim Ulang Kode",
+  "newGroup": "Grup Baru",
+  "newChat": "Chat Baru",
+  "groupName": "Nama Grup",
+  "createGroup": "Buat Grup",
+  "groupInfo": "Info Grup",
+  "groupMembers": "Anggota ({count})",
+  "addMembers": "Tambah Anggota",
+  "leaveGroup": "Keluar Grup",
+  "leaveGroupConfirm": "Keluar dari grup ini?",
+  "deleteGroup": "Hapus Grup",
+  "deleteGroupConfirm": "Hapus grup ini? Ini tidak dapat dibatalkan.",
+  "groupRoleOwner": "Pemilik",
+  "groupRoleAdmin": "Admin",
+  "groupRoleMember": "Anggota",
+  "selectParticipants": "Pilih peserta",
+  "selectedCount": "{count} dipilih",
+  "changeRole": "Ubah Peran",
+  "groupCreated": "Grup dibuat",
+  "memberJoined": "{name} bergabung",
+  "memberLeftGroup": "{name} keluar",
+  "memberWasRemoved": "{name} dihapus",
+  "roleChangedTo": "{name} sekarang {role}",
+  "participantsCount": "{count} peserta",
+  "enterGroupName": "Masukkan nama grup",
+  "muteNotifications": "Bisukan notifikasi",
+  "unmuteNotifications": "Bunyikan notifikasi",
+  "muteFor1Hour": "Selama 1 jam",
+  "muteFor8Hours": "Selama 8 jam",
+  "muteFor2Days": "Selama 2 hari",
+  "muteForever": "Selamanya",
+  "muted": "Dibisukan",
+  "tabTranslator": "Terjemahkan",
+  "translatorTitle": "Penerjemah",
+  "translatorSelectLanguage": "Pilih bahasa",
+  "translatorDownloading": "Mengunduh model bahasa...",
+  "translatorDownloadingHint": "Internet hanya diperlukan untuk unduhan pertama",
+  "translatorTypeHint": "Ketik teks atau ketuk mikrofon",
+  "translatorListening": "Mendengarkan...",
+  "translatorTapToSpeak": "Ketuk untuk berbicara",
+  "translatorTapToStop": "Ketuk untuk berhenti",
+  "translatorAutoSpeak": "Otomatis berbicara",
+  "translatorCopied": "Disalin",
+  "translatorLangRu": "Rusia",
+  "translatorLangEn": "Inggris",
+  "translatorLangDe": "Jerman",
+  "translatorLangFr": "Perancis",
+  "translatorLangEs": "Spanyol",
+  "translatorLangIt": "Italia",
+  "translatorLangPt": "Portugis",
+  "translatorLangTr": "Turki",
+  "translatorLangZh": "Cina",
+  "translatorLangJa": "Jepang",
+  "translatorLangKo": "Korea",
+  "translatorLangAr": "Arab",
+  "translatorLangPl": "Polandia",
+  "translatorLangSk": "Slovakia",
+  "translatorLangCs": "Ceko",
+  "translatorLangNl": "Belanda",
+  "translatorLangSv": "Swedia",
+  "translatorLangDa": "Denmark",
+  "translatorLangNo": "Norwegia",
+  "translatorLangFi": "Finlandia",
+  "translatorLangUk": "Ukraina",
+  "translatorLangEl": "Yunani",
+  "translatorLangRo": "Rumania",
+  "translatorLangHu": "Hungaria",
+  "translatorLangBg": "Bulgaria",
+  "translatorLangHr": "Kroasia",
+  "translatorLangSr": "Serbia",
+  "translatorLangHi": "Hindi",
+  "translatorLangTh": "Thailand",
+  "translatorLangVi": "Vietnam",
+  "translatorLangId": "Indonesia",
+  "translatorLangMs": "Melayu",
+  "translatorLangHe": "Ibrani",
+  "translatorLangFa": "Persia",
+  "callInProgress": "Panggilan sedang berlangsung",
+  "joinCall": "Bergabung",
+  "createCallLink": "Tautan panggilan",
+  "callLinkCopied": "Tautan disalin",
+  "callLinkTitle": "Tautan ruang",
+  "connectionUnstable": "Koneksi tidak stabil — periksa internet Anda",
+  "today": "Hari ini",
+  "yesterday": "Kemarin",
+  "errorTimeout": "Koneksi habis waktu. Periksa koneksi internet Anda.",
+  "errorNoConnection": "Tidak ada koneksi internet.",
+  "errorGeneral": "Terjadi kesalahan. Silakan coba lagi.",
+  "errorWithMessage": "Kesalahan: {message}",
+  "notifChannelMessages": "Pesan",
+  "notifChannelMessagesDesc": "Notifikasi pesan baru",
+  "notifChannelMissedCalls": "Panggilan tak terjawab",
+  "notifChannelMissedCallsDesc": "Notifikasi panggilan tak terjawab",
+  "notifMissedCall": "Panggilan tak terjawab",
+  "notifAccept": "Terima",
+  "notifDecline": "Tolak",
+  "notifIncomingCall": "Panggilan masuk",
+  "notifIncomingCallChannel": "Panggilan masuk",
+  "notifMissedCallChannel": "Panggilan tak terjawab",
+  "notifUnknown": "Tidak dikenal",
+  "effectNone": "Tanpa latar belakang",
+  "effectBlur": "Kabur",
+  "effectOffice": "Kantor",
+  "effectNature": "Alam",
+  "effectGradient": "Gradasi",
+  "effectLibrary": "Perpustakaan",
+  "effectCity": "Kota",
+  "effectMinimalism": "Minimalisme",
+  "voiceParticipant": "Peserta",
+  "voiceInvitesToRoom": "mengundang Anda ke ruang",
+  "voiceRoom": "Ruang",
+  "voicePasswordProtected": "Dilindungi kata sandi",
+  "voicePasswordHint": "Kata sandi",
+  "voiceEnter": "Masuk",
+  "voiceJoinRoom": "Bergabung ke ruang",
+  "voiceYourName": "Nama Anda",
+  "voiceInvitationSent": "Undangan dikirim ke {name}",
+  "voiceNoActiveRoom": "Tidak ada ruang aktif",
+  "voiceCameraPermission": "Izinkan akses kamera di Pengaturan → Privasi → Kamera → TalerID",
+  "voiceOpenSettings": "Buka",
+  "voiceCameraError": "Gagal mengaktifkan kamera: {error}",
+  "voiceAllAgreedRecording": "Semua setuju. Perekaman dimulai.",
+  "voiceNewParticipantAgreed": "Peserta baru setuju untuk merekam.",
+  "voiceDeclinedRecording": "Anda menolak perekaman. Keluar dari panggilan.",
+  "voiceRecordingEnded": "Perekaman selesai",
+  "voiceRecordingInProgress": "Perekaman sedang berlangsung",
+  "voiceTranscriptionRequest": "Permintaan transkripsi",
+  "voiceRecordingRequest": "Permintaan perekaman",
+  "voiceAgree": "Setuju",
+  "voiceDeclineAndLeave": "Tolak dan keluar",
+  "voiceAudioOutput": "Output audio",
+  "voiceAudioPhone": "Telepon",
+  "voiceAudioSpeaker": "Speaker",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Headphone",
+  "voiceLinkCopied": "Tautan disalin",
+  "voiceTranslateTo": "Terjemahkan ke",
+  "voiceSearchLanguage": "Cari bahasa...",
+  "voiceRoomWithCreator": "Ruang {name}",
+  "voiceVoiceCall": "Panggilan suara",
+  "voiceOnHold": "Ditahan",
+  "voiceActiveCall": "Aktif",
+  "voiceEndAllCalls": "Akhiri semua panggilan",
+  "voiceEndThisCall": "Akhiri panggilan ini",
+  "voiceCopyLink": "Salin tautan",
+  "voiceAddParticipant": "Tambah peserta",
+  "voiceReconnecting": "Menyambungkan kembali...",
+  "voiceConnectionError": "Kesalahan koneksi",
+  "voiceClose": "Tutup",
+  "voiceCalling": "Memanggil...",
+  "voiceCallActive": "Panggilan aktif",
+  "voiceWaiting": "Menunggu",
+  "voiceWaitingUpper": "MENUNGGU",
+  "voiceRec": "REC",
+  "voiceStop": "Berhenti",
+  "voiceRecord": "Merekam",
+  "voiceTranslation": "Terjemahan",
+  "voiceAudio": "Audio",
+  "voiceFlipCamera": "Balik",
+  "voiceBackground": "Latar belakang",
+  "voiceAssistantSpeakingStatus": "Asisten sedang berbicara...",
+  "voiceAssistantListeningStatus": "Asisten mendengarkan...",
+  "voiceUnmute": "Buka suara",
+  "voiceMic": "Mikrofon",
+  "voiceAssistantLabel": "Asisten",
+  "voiceCameraOn": "Kamera aktif",
+  "voiceCameraLabel": "Kamera",
+  "voiceEndCall": "Akhiri panggilan",
+  "voiceWaitingParticipants": "Menunggu peserta...",
+  "voiceYou": "Anda",
+  "voiceAiAssistant": "Asisten AI",
+  "voiceVideoUnavailable": "Video tidak tersedia",
+  "voiceSearchNickname": "Cari berdasarkan nama panggilan...",
+  "voiceTranscriptionWord": "transkripsi",
+  "voiceRecordingWord": "rekaman",
+  "voiceConnecting": "Menghubungkan...",
+  "voiceVideoBackground": "Latar belakang video",
+  "voiceCallSettings": "Pengaturan panggilan",
+  "voiceEnableAI": "Aktifkan asisten AI",
+  "voiceAIParticipating": "AI akan berpartisipasi dalam percakapan",
+  "voiceNormalCall": "Panggilan normal tanpa AI",
+  "voiceCallConfirm": "Lakukan panggilan?",
+  "chatAlreadyInCall": "Sudah dalam panggilan",
+  "chatCallError": "Kesalahan panggilan: {error}",
+  "chatPhotoVideo": "Foto / Video",
+  "chatCamera": "Kamera",
+  "chatFile": "Berkas",
+  "chatContact": "Kontak",
+  "chatSelectContact": "Pilih kontak",
+  "chatNoContacts": "Tidak ada kontak",
+  "chatUser": "Pengguna",
+  "chatFileAttachment": "📎 Berkas",
+  "chatFileUploadError": "Kesalahan unggah berkas: {error}",
+  "chatVoiceMessage": "🎤 Pesan suara",
+  "chatGroup": "Grup",
+  "chatDialog": "Dialog",
+  "chatCall": "Panggilan",
+  "chatStartConversation": "Mulai percakapan",
+  "chatYou": "Anda",
+  "chatIsTyping": "sedang mengetik...",
+  "chatUserIsTyping": "{name} sedang mengetik...",
+  "chatUsersAreTyping": "{names} sedang mengetik...",
+  "chatPreparingFile": "Menyiapkan file…",
+  "chatUploading": "Mengunggah… {progress}%",
+  "chatEdited": "Diedit",
+  "chatViaMesh": "melalui mesh",
+  "chatReply": "Balas",
+  "chatEdit": "Edit",
+  "chatCopy": "Salin",
+  "chatCopied": "Disalin",
+  "chatSaveMedia": "Simpan",
+  "chatForward": "Teruskan",
+  "chatSaving": "Menyimpan...",
+  "chatSavedToGallery": "Disimpan ke galeri",
+  "chatNoSavePermission": "Tidak ada izin untuk menyimpan. Periksa pengaturan.",
+  "chatFileSaveError": "Kesalahan menyimpan file",
+  "chatDeleteMessage": "Hapus pesan",
+  "chatDeleteForMe": "Hapus untuk saya",
+  "chatDeleteForEveryone": "Hapus untuk semua orang",
+  "chatMessageForwarded": "Pesan diteruskan",
+  "chatContactTapToOpen": "Kontak · ketuk untuk membuka",
+  "chatForwardTo": "Teruskan ke...",
+  "chatSearchHint": "Cari...",
+  "chatRecording": "Merekam...",
+  "chatMessageHint": "Pesan...",
+  "chatHideKeyboard": "Sembunyikan keyboard",
+  "chatEditing": "Mengedit",
+  "chatFileDownloadError": "Kesalahan mengunduh file",
+  "chatVoiceMessageShort": "Pesan suara",
+  "chatVideoSavedToGallery": "Video disimpan ke galeri",
+  "chatSavingError": "Kesalahan menyimpan",
+  "convSetNickname": "Tetapkan nama panggilan",
+  "convNicknameRequired": "Nama panggilan diperlukan untuk menggunakan messenger. Pengguna lain dapat menemukan Anda dengan itu.",
+  "convNicknameRules": "3–30 karakter: huruf, angka, _",
+  "convNicknameTaken": "Nama panggilan sudah digunakan",
+  "convSaveError": "Kesalahan menyimpan",
+  "convContactsLabel": "Kontak",
+  "convDefaultUser": "Pengguna",
+  "convNoDialogs": "Tidak ada percakapan",
+  "convFindUserToChat": "Cari pengguna untuk mulai mengobrol",
+  "convDefaultContact": "Kontak",
+  "dashboardUser": "Pengguna",
+  "dashboardIncomingCall": "Panggilan masuk",
+  "dashboardDecline": "Tolak",
+  "dashboardAccept": "Terima",
+  "dashboardActiveCall": "Panggilan aktif — ketuk untuk kembali",
+  "dashboardUpdateAvailable": "Pembaruan tersedia {version}",
+  "dashboardUpdate": "Perbarui",
+  "dashboardWhatsNew": "Apa yang baru",
+  "dashboardWhatsNewTitle": "Apa yang baru di {version}",
+  "dashboardInstalling": "Menginstal...",
+  "contactRequestsTitle": "Kontak",
+  "messengerContactRequestsSection": "Permintaan kontak",
+  "messengerContactRequestsCount": "{count, plural, =1{1 permintaan baru} other{{count} permintaan baru}}",
+  "contactRequestsSearch": "Cari",
+  "contactRequestsIncoming": "Masuk",
+  "contactRequestsSent": "Terkirim",
+  "contactRequestsSearchHint": "Nama panggilan atau email",
+  "contactRequestSent": "Permintaan terkirim",
+  "contactRequestsNoUsers": "Tidak ada pengguna ditemukan",
+  "contactRequestsSearchHelp": "Masukkan nama panggilan atau email\ntepat dan tekan cari",
+  "contactRequestsSendTooltip": "Kirim permintaan",
+  "contactRequestTitle": "Permintaan kontak",
+  "contactRequestConfirm": "Kirim permintaan kontak ke {name}?",
+  "contactRequestSend": "Kirim",
+  "contactRequestsNoIncoming": "Tidak ada permintaan masuk",
+  "contactRequestsNoSent": "Tidak ada permintaan terkirim",
+  "contactRequestStatusPending": "Menunggu tanggapan",
+  "contactRequestStatusAccepted": "Diterima",
+  "contactRequestStatusRejected": "Ditolak",
+  "userSearchTitle": "Cari pengguna",
+  "userSearchHint": "Nama panggilan, telepon atau email",
+  "userSearchHelper": "Masukkan @nama panggilan, email atau nama untuk mencari",
+  "userSearchNoUsers": "Tidak ada pengguna ditemukan",
+  "userProfileShareContact": "Bagikan kontak",
+  "userProfileShareContactDesc": "Kirim tautan kontak",
+  "userProfileCopyLink": "Salin tautan",
+  "userProfileCopied": "Tersalin",
+  "userProfileTitle": "Profil",
+  "userProfileLoadError": "Kesalahan memuat profil",
+  "userProfileMessage": "Pesan",
+  "userProfileCall": "Panggil",
+  "userProfileRequestSent": "Permintaan terkirim",
+  "userProfileAccept": "Terima",
+  "userProfileDecline": "Tolak",
+  "userProfileAddToContacts": "Tambahkan ke kontak",
+  "userProfileMediaTab": "Media",
+  "userProfileFilesTab": "Berkas",
+  "userProfileLinksTab": "Tautan",
+  "userProfileRecordingsTab": "Rekaman",
+  "userProfileSummariesTab": "Ringkasan",
+  "userProfileNoMedia": "Tidak ada berkas media",
+  "userProfileNoFiles": "Tidak ada berkas",
+  "userProfileNoLinks": "Tidak ada tautan",
+  "userProfileNoRecordings": "Tidak ada rekaman",
+  "userProfileNoSummaries": "Tidak ada ringkasan",
+  "userProfileMeetingSummary": "Ringkasan pertemuan",
+  "userProfileFailedOpenChat": "Gagal membuka obrolan",
+  "sharedMediaTitle": "Media dan berkas",
+  "sharedMediaTab": "Media",
+  "sharedFilesTab": "Berkas",
+  "sharedLinksTab": "Tautan",
+  "sharedNoMedia": "Tidak ada berkas media",
+  "sharedNoFiles": "Tidak ada berkas",
+  "sharedNoLinks": "Tidak ada tautan",
+  "shareToChat": "Teruskan ke obrolan",
+  "shareSelectChat": "Pilih obrolan",
+  "shareNoChats": "Tidak ada obrolan",
+  "shareFilesCount": "{count} berkas",
+  "contactsTitle": "Kontak",
+  "contactsAddTooltip": "Tambahkan kontak",
+  "contactsSearchHint": "Cari kontak...",
+  "contactsNotFound": "Tidak ditemukan",
+  "contactsEmpty": "Tidak ada kontak",
+  "contactsAdd": "Tambahkan kontak",
+  "contactsPendingConfirmation": "Menunggu konfirmasi",
+  "contactsMessage": "Pesan",
+  "contactsCall": "Panggil",
+  "contactsResend": "Kirim ulang permintaan",
+  "contactsResendTimeout": "Coba lagi dalam 24 jam",
+  "contactsResent": "Permintaan dikirim ulang",
+  "contactsWantsToConnect": "Ingin terhubung dengan Anda",
+  "contactsSearchPeople": "Cari orang",
+  "notesTitle": "Catatan",
+  "notesAssistantSpeaking": "Asisten berbicara...",
+  "notesListening": "Mendengarkan...",
+  "notesEmpty": "Tidak ada catatan",
+  "notesEmptyHint": "Tekan mic untuk dikte\natau + untuk entri manual",
+  "notesDeleteConfirm": "Hapus catatan?",
+  "notesNew": "Catatan baru",
+  "notesEdit": "Edit",
+  "notesTitleHint": "Judul",
+  "notesContentHint": "Tulis pemikiran Anda...",
+  "calendarTitle": "Kalender",
+  "calendarStop": "Berhenti",
+  "calendarVoiceInput": "Input suara",
+  "calendarNewEvent": "Acara baru",
+  "calendarAssistantSpeaking": "Asisten berbicara...",
+  "calendarListening": "Mendengarkan...",
+  "calendarInvitations": "Undangan ({count})",
+  "calendarNoEvents": "Tidak ada acara",
+  "calendarDayMon": "Sen",
+  "calendarDayTue": "Sel",
+  "calendarDayWed": "Rab",
+  "calendarDayThu": "Kam",
+  "calendarDayFri": "Jum",
+  "calendarDaySat": "Sab",
+  "calendarDaySun": "Min",
+  "calendarEnterRoom": "Masuk ruangan",
+  "calendarMeeting": "Rapat",
+  "calendarLocationPrefix": "Lokasi: {location}",
+  "calendarEditEvent": "Edit",
+  "calendarTitleHint": "Judul",
+  "calendarDescriptionHint": "Deskripsi",
+  "calendarTypeEvent": "Acara",
+  "calendarTypeMeeting": "Rapat",
+  "calendarTypeReminder": "Pengingat",
+  "calendarTypeLabel": "Jenis",
+  "calendarMeetingLink": "Tautan rapat",
+  "calendarLocationHint": "Lokasi",
+  "calendarDateLabel": "Tanggal",
+  "calendarTimeLabel": "Waktu",
+  "calendarReminderLabel": "Pengingat",
+  "calendarReminderNone": "Tidak ada",
+  "calendarReminder15min": "15 menit sebelum",
+  "calendarReminder30min": "30 menit sebelum",
+  "calendarReminder1hour": "1 jam sebelum",
+  "calendarRepeatLabel": "Ulangi",
+  "calendarRepeatNone": "Tidak berulang",
+  "calendarRepeatDaily": "Setiap hari",
+  "calendarRepeatWeekly": "Setiap minggu",
+  "calendarRepeatMonthly": "Setiap bulan",
+  "calendarRepeatYearly": "Setiap tahun",
+  "calendarParticipants": "Peserta",
+  "calendarAddParticipant": "Tambah",
+  "calendarSearchContacts": "Cari kontak...",
+  "calendarNoContacts": "Tidak ada kontak",
+  "calendarStatusAccepted": "Diterima",
+  "calendarStatusDeclined": "Ditolak",
+  "calendarStatusMaybe": "Mungkin",
+  "calendarStatusPending": "Menunggu",
+  "calendarEndTime": "Waktu selesai",
+  "calendarYourAnswer": "Jawaban Anda:",
+  "calendarOrganizer": "Penyelenggara",
+  "calendarDeleteError": "Gagal menghapus: {error}",
+  "calendarRsvpAccept": "Terima",
+  "calendarRsvpMaybe": "Mungkin",
+  "calendarRsvpDecline": "Tolak",
+  "callHistoryTitle": "Panggilan",
+  "callHistoryTab": "Riwayat panggilan",
+  "callHistoryTempMeeting": "Pertemuan sementara",
+  "callHistoryCopy": "Salin",
+  "callHistoryLinkCopied": "Tautan disalin",
+  "callHistoryShare": "Bagikan",
+  "callHistoryEnter": "Masuk",
+  "callHistoryAlreadyInCall": "Sudah dalam panggilan",
+  "callHistoryCouldNotDeterminePeer": "Tidak dapat menentukan pihak lain",
+  "callHistoryContacts": "Kontak",
+  "callHistoryFailedLoadRoom": "Gagal memuat ruangan Anda",
+  "callHistoryYourRoom": "Ruang Anda",
+  "callHistoryCreateMeeting": "Buat pertemuan",
+  "callHistoryMeetingSummaries": "Ringkasan pertemuan",
+  "callHistoryMeetingRecordings": "Rekaman pertemuan",
+  "callHistoryNoCalls": "Tidak ada panggilan",
+  "callHistoryMissed": "Terlewat",
+  "callHistoryRecording": "Merekam",
+  "callHistorySummary": "Ringkasan",
+  "callHistoryCallAgain": "Panggil lagi",
+  "callHistoryTodayTime": "Hari ini, {time}",
+  "callHistoryYesterdayTime": "Kemarin, {time}",
+  "callHistoryUnknown": "Tidak diketahui",
+  "callHistoryDetails": "Detail panggilan",
+  "callHistoryOutgoing": "Panggilan keluar",
+  "callHistoryIncoming": "Panggilan masuk",
+  "callHistoryDuration": "Durasi: {duration}",
+  "callHistoryWithAI": "Dengan asisten AI",
+  "callHistoryParticipants": "Peserta",
+  "callDetailYouSuffix": "(Anda)",
+  "callHistoryMeetingSummary": "Ringkasan pertemuan",
+  "callHistoryMoreDetails": "Detail lebih lanjut",
+  "callHistorySummaryProcessing": "Memproses ringkasan...",
+  "callHistoryMeetingRecording": "Rekaman pertemuan",
+  "callHistoryProcessing": "Memproses...",
+  "callHistoryCreateTranscript": "Buat transkrip",
+  "callHistoryNoSummaries": "Tidak ada ringkasan",
+  "callHistoryRecordDuringCall": "Tekan \"Rekam\" selama panggilan",
+  "callHistoryMeetingTime": "Pertemuan {time}",
+  "callHistoryTranscribing": "Mentranskrip dan merangkum...",
+  "callHistoryTranscriptCreated": "Transkrip dibuat",
+  "callHistoryNoRecordings": "Tidak ada rekaman",
+  "callHistoryRecordingDate": "Rekaman {date}",
+  "callHistoryRecordingUnavailable": "Rekaman tidak tersedia",
+  "callHistoryTranscriptReady": "Transkrip siap",
+  "callHistoryTranscript": "Transkrip",
+  "callHistoryKeyPoints": "Poin penting",
+  "callHistoryTasks": "Tugas",
+  "callHistoryAssignedTo": "Ditugaskan kepada: {assignee}",
+  "callHistoryDecisions": "Keputusan",
+  "callHistoryShowTranscript": "Tampilkan transkrip lengkap",
+  "profileScanQr": "Pindai QR",
+  "profileMyQrCode": "Kode QR saya",
+  "profileAddMeShare": "Tambahkan saya di Taler ID!\ntalerid://user/{userId}",
+  "profileShowCode": "Tunjukkan kode ini untuk menambahkan Anda",
+  "profileEditDesc": "Nama, nama belakang, patronimik, tanggal lahir",
+  "profileAboutMe": "Tentang saya",
+  "profileAboutMeDesc": "Nilai, keterampilan, minat, dan lainnya",
+  "profileNotes": "Catatan",
+  "profileNotesDesc": "Pikiran, ide, dan catatan",
+  "profileAvatarUpdated": "Avatar diperbarui",
+  "profileNickname": "Nama panggilan",
+  "profileNotSet": "Belum diatur",
+  "profileChangeNickname": "Ubah nama panggilan",
+  "profileNicknameUpdated": "Nama panggilan diperbarui",
+  "profileShareLabel": "Bagikan",
+  "profileScanQrCode": "Pindai kode QR",
+  "profilePointCamera": "Arahkan kamera ke kode QR",
+  "profilePhotoCamera": "Ambil foto",
+  "profilePhotoGallery": "Pilih dari galeri",
+  "editProfilePatronymic": "Patronimik (opsional)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "Tentang saya",
+  "aboutMeClickToFill": "Klik untuk mengisi",
+  "aboutMeCoreValues": "Nilai",
+  "aboutMeWorldview": "Pandangan dunia",
+  "aboutMeSkills": "Keterampilan",
+  "aboutMeInterests": "Minat",
+  "aboutMeDesires": "Keinginan",
+  "aboutMeBackground": "Profil",
+  "aboutMeLikes": "Suka",
+  "aboutMeDislikes": "Tidak suka",
+  "aboutMeDeleteSection": "Hapus bagian?",
+  "aboutMeDeleteConfirm": "Semua data di bagian ini akan dihapus.",
+  "aboutMeConnectionError": "Kesalahan koneksi: {error}",
+  "aboutMeVisibility": "Visibilitas",
+  "aboutMeTags": "Tag",
+  "aboutMeAddTag": "Tambahkan tag...",
+  "aboutMeDescription": "Deskripsi",
+  "aboutMeDescribeLong": "Ceritakan lebih banyak...",
+  "aboutMeVisibilityEveryone": "Semua orang",
+  "aboutMeVisibilityContacts": "Kontak",
+  "aboutMeVisibilityOnlyMe": "Hanya saya",
+  "settingsProfileSubtitle": "Profil",
+  "settingsWallpaper": "Wallpaper",
+  "settingsWallpaperDesc": "Gambar latar untuk seluruh aplikasi",
+  "settingsWallpaperNone": "Tidak ada",
+  "settingsAccount": "Akun",
+  "settingsKycVerification": "Verifikasi Identitas (KYC)",
+  "settingsOrganizations": "Organisasi",
+  "incomingCallLabel": "Panggilan masuk",
+  "incomingCallDecline": "Tolak",
+  "incomingCallAccept": "Terima",
+  "meshIncomingCallLabel": "📡 Panggilan mesh masuk",
+  "meshDeviceFallback": "Perangkat mesh {hexPrefix}",
+  "callConflictAlreadyInCall": "Selesaikan panggilan saat ini terlebih dahulu",
+  "callPopupTransportTitle": "Panggil melalui",
+  "callPopupTransportMesh": "📡 Mesh (peer-to-peer)",
+  "callPopupTransportLk": "📞 Server",
+  "callPopupTransportMeshUnavailable": "Kontak tidak dapat dijangkau melalui mesh",
+  "meshOnboardingTitle": "📡 Panggilan mesh memerlukan aplikasi terbuka",
+  "meshOnboardingBody": "Ketika ponsel terkunci, panggilan mesh dapat terputus setelah ~30 detik (batasan iOS).",
+  "meshOnboardingAck": "Mengerti",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Kontak tidak ada dalam daftar Anda",
+  "meshCallStatusInviting": "Memanggil…",
+  "meshCallStatusConnecting": "Menghubungkan…",
+  "meshCallEndedUserHangup": "Panggilan berakhir",
+  "meshCallEndedRemoteHangup": "Dihentikan oleh rekan",
+  "meshCallEndedRejected": "Ditolak",
+  "meshCallEndedNoAnswer": "Tidak ada jawaban",
+  "meshCallEndedConnectionLost": "Koneksi terputus",
+  "meshCallEndedError": "Kesalahan koneksi",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Panggilan mesh yang andal",
+  "batteryExemptionBody": "Izinkan aplikasi berjalan tanpa batasan baterai agar Android tidak mematikan mesh di latar belakang.",
+  "batteryExemptionAccept": "Buka pengaturan",
+  "batteryExemptionDismiss": "Tidak sekarang",
+  "groupCamera": "Kamera",
+  "groupGallery": "Galeri",
+  "groupAvatarUpdated": "Avatar grup diperbarui",
+  "groupNameTitle": "Nama grup",
+  "groupEnterName": "Masukkan nama",
+  "groupDescriptionTitle": "Deskripsi grup",
+  "groupEnterDescription": "Masukkan deskripsi grup",
+  "groupChangeRoleTitle": "Ubah peran",
+  "groupRemoveMemberTitle": "Hapus anggota",
+  "groupDescription": "Deskripsi",
+  "groupAddDescription": "Tambahkan deskripsi grup",
+  "groupNoDescription": "Tidak ada deskripsi",
+  "groupMediaAndFiles": "Media dan file",
+  "groupMuteNotifications": "Bisukan notifikasi",
+  "groupMuted": "Dibisukan",
+  "groupNoResults": "Tidak ada hasil",
+  "authInvalidCode": "Kode tidak valid. Coba lagi.",
+  "loginSubtitle": "Gunakan email dan kata sandi",
+  "emailRequired": "Masukkan email",
+  "emailInvalid": "Email tidak valid",
+  "passwordRequired": "Masukkan kata sandi",
+  "registerSubtitle": "Satu akun untuk seluruh ekosistem Taler",
+  "usernameOptional": "Nama pengguna (opsional)",
+  "usernameMinLength": "Minimal 3 karakter",
+  "usernameMaxLength": "Maksimal 30 karakter",
+  "usernameInvalid": "Hanya huruf, angka, dan _",
+  "biometricLoginReason": "Masuk ke Taler ID",
+  "docTypePassport": "Paspor",
+  "docTypeIdCard": "KTP",
+  "docTypeDriverLicense": "SIM",
+  "docTypeResidencePermit": "Izin Tinggal",
+  "addressApartment": "apt. {number}",
+  "failedToUpdateProfile": "Gagal memperbarui profil",
+  "failedToStartKyb": "Gagal memulai verifikasi KYB",
+  "orgUpdated": "Organisasi diperbarui",
+  "failedToUpdateOrg": "Gagal memperbarui organisasi",
+  "failedToChangeRole": "Gagal mengubah peran",
+  "failedToRemoveMember": "Gagal menghapus anggota",
+  "capabilityMessagesTitle": "Pesan",
+  "capabilityMessagesDesc": "Periksa pesan atau tulis kepada seseorang. Misalnya: \"Tulis kepada Viktor: akan tiba dalam satu jam\"",
+  "capabilityCallsTitle": "Panggilan",
+  "capabilityCallsDesc": "Panggil kontak mana pun dengan suara. Misalnya: \"Panggil Viktor Viktorov\"",
+  "capabilityChatTitle": "Riwayat Chat",
+  "capabilityChatDesc": "Saya akan menganalisis riwayat chat. Contohnya: \"Apa yang kita diskusikan dengan Viktor?\"",
+  "capabilityProfileTitle": "Profil",
+  "capabilityProfileDesc": "Saya akan menampilkan atau memperbarui profil Anda. Contohnya: \"Tampilkan profil saya\"",
+  "capabilityCoachingTitle": "Pelatihan",
+  "capabilityCoachingDesc": "Mode: pelatihan ICF, psikolog, konsultasi HR. Katakan: \"Mari lakukan pelatihan\"",
+  "capabilityCalendarTitle": "Kalender",
+  "capabilityCalendarDesc": "Jadwalkan pertemuan atau atur pengingat. Contohnya: \"Jadwalkan pertemuan dengan Viktor untuk besok pukul 15:00\"",
+  "capabilityNotesTitle": "Catatan",
+  "capabilityNotesDesc": "Simpan pemikiran atau baca catatan terbaru. Contohnya: \"Tulis ide...\" atau \"Baca catatan terbaru\"",
+  "assistantCallConfirm": "Lakukan panggilan?",
+  "callNoAnswer": "Tidak ada jawaban",
+  "contactDelete": "Hapus kontak",
+  "contactDeleteTitle": "Hapus kontak",
+  "contactDeleteConfirm": "Apakah Anda yakin? Kontak ini akan dihapus.",
+  "contactBlock": "Blokir",
+  "contactBlockTitle": "Blokir pengguna",
+  "contactBlockConfirm": "Pengguna ini tidak akan dapat mengirim pesan atau menelepon Anda.",
+  "contactUnblock": "Buka blokir",
+  "contactBlocked": "Diblokir",
+  "contactYouAreBlocked": "Pengguna ini telah memblokir Anda",
+  "chatBlockedByYou": "Anda telah memblokir pengguna ini",
+  "chatYouAreBlocked": "Anda telah diblokir oleh pengguna ini",
+  "chatNotContacts": "Tambahkan pengguna ini ke kontak untuk mengirim pesan",
+  "contactRevokeRequest": "Batalkan permintaan",
+  "messengerPoll": "Jajak pendapat",
+  "messengerCreatePoll": "Buat Jajak Pendapat",
+  "messengerPollQuestion": "Pertanyaan",
+  "messengerPollOption": "Opsi {number}",
+  "messengerPollAddOption": "Tambah opsi",
+  "messengerPollAnonymous": "Pemungutan suara anonim",
+  "messengerPollMultiple": "Pilihan ganda",
+  "messengerPollCreateError": "Gagal membuat jajak pendapat",
+  "messengerPollUnavailable": "Jajak pendapat tidak tersedia",
+  "messengerPollMultipleNote": "Anda dapat memilih lebih dari satu",
+  "messengerPollVotes": "{count} suara",
+  "messengerVideoMessage": "Pesan video",
+  "messengerVideoRecordError": "Kesalahan perekaman video",
+  "messengerVideoPlaybackError": "Tidak dapat memutar video",
+  "messengerGalleryAccessError": "Tidak ada akses ke galeri",
+  "messengerSearchInChat": "Cari di obrolan...",
+  "messengerSaveToFavorites": "Simpan ke favorit",
+  "messengerSavedToFavorites": "Disimpan ke favorit",
+  "messengerSearchInMessages": "Cari di pesan...",
+  "messengerFoundInMessages": "Ditemukan di pesan ({count})",
+  "messengerGroupDefault": "Grup",
+  "messengerUserDefault": "Pengguna",
+  "messengerPin": "Sematkan",
+  "messengerUnpin": "Lepaskan sematan",
+  "messengerArchive": "Arsipkan",
+  "messengerUnarchive": "Batalkan arsip",
+  "messengerDeleteChat": "Hapus obrolan",
+  "messengerDeleteChatTitle": "Hapus obrolan?",
+  "messengerDeleteChatConfirm": "Hapus obrolan dengan {name}? Ini tidak dapat dibatalkan.",
+  "messengerCreateChannel": "Buat Saluran",
+  "messengerChannelName": "Nama",
+  "messengerChannelDescription": "Deskripsi (opsional)",
+  "messengerChannelCreateError": "Gagal membuat saluran",
+  "messengerFilterAll": "Semua",
+  "messengerFilterUnread": "Belum dibaca",
+  "messengerFilterPersonal": "Pribadi",
+  "messengerFilterGroups": "Grup",
+  "messengerFilterChannels": "Saluran",
+  "messengerArchivedSection": "Diarsipkan",
+  "messengerSavedSection": "Favorit",
+  "messengerSavedSubtitle": "Simpan ke memori",
+  "messengerArchiveTitle": "Arsip ({count})",
+  "messengerArchiveEmpty": "Arsip kosong",
+  "messengerYouPrefix": "Anda: {message}",
+  "messengerMissedCall": "Panggilan tak terjawab",
+  "messengerSavedTitle": "Favorit",
+  "messengerNoSavedMessages": "Tidak ada pesan yang disimpan",
+  "messengerSavedHint": "Tekan lama pesan → \"Simpan ke favorit\"",
+  "messengerDefaultFile": "Berkas",
+  "messengerTopicDefault": "Umum",
+  "messengerTopicNew": "Topik Baru",
+  "messengerTopicNameHint": "Nama topik",
+  "messengerTopicIcon": "Ikon",
+  "messengerTopicCount": "{count} topik",
+  "messengerNoTopics": "Tidak ada topik",
+  "messengerNoMessages": "Tidak ada pesan",
+  "you": "Anda",
+  "messengerThread": "Utasan",
+  "messengerThreadReply": "balas",
+  "messengerThreadReplies": "balasan",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Tidak ada balasan",
+  "messengerReplyHint": "Balas utasan...",
+  "messengerContactName": "Nama kontak",
+  "messengerOriginalName": "Nama asli: {name}",
+  "messengerDisplayName": "Nama tampilan",
+  "messengerShareContact": "Kontak di Taler ID: {name}",
+  "messengerAutoDelete": "Hapus pesan otomatis",
+  "messengerAutoDeleteOff": "Mati",
+  "messengerAutoDelete7d": "7 hari",
+  "messengerAutoDelete30d": "30 hari",
+  "messengerAutoDelete90d": "90 hari",
+  "messengerAutoDeleteDays": "{count} hari",
+  "messengerSettingsHeader": "Pengaturan",
+  "messengerAdminOnly": "Hanya admin yang dapat memposting",
+  "messengerAdminOnlyDesc": "Anggota hanya dapat membaca",
+  "messengerTopics": "Topik",
+  "messengerTopicsDesc": "Pisahkan obrolan ke dalam topik",
+  "aiTwinSection": "AI Voice Twin",
+  "aiTwinEnabled": "Aktifkan AI Twin",
+  "aiTwinEnabledDesc": "Jika Anda tidak menjawab, AI twin Anda akan menerima panggilan dengan suara Anda",
+  "aiTwinTimeout": "Batas waktu respons",
+  "aiTwinTimeoutValue": "{seconds} detik",
+  "aiTwinPrompt": "Instruksi AI",
+  "aiTwinPromptSubtitle": "Bagaimana AI twin harus memperkenalkan diri dan apa yang harus dibicarakan",
+  "aiTwinPromptHint": "Hai, ini adalah AI voice twin {name}. {name} tidak dapat menjawab saat ini. Beritahu saya siapa yang menelepon dan tentang apa — saya akan menyampaikannya.",
+  "aiTwinComingSoon": "Peniruan suara khusus segera hadir. Untuk saat ini AI berbicara dengan suara {name}.",
+  "aiTwinDefaultName": "pemilik",
+  "aiTwinPromptReset": "Atur ulang",
+  "callHistoryAiTwinAnswered": "AI TWIN MENJAWAB",
+  "callHistoryAiTwinSummary": "RINGKASAN PANGGILAN",
+  "callHistoryAiTwinTranscript": "TRANSKRIP",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "Dari {name}",
+  "aiTwinOfferTitle": "Tidak menjawab",
+  "aiTwinOfferBody": "{name} tidak menjawab. Tinggalkan pesan dengan kembaran suara AI mereka?",
+  "aiTwinOfferBodyUser": "Pengguna",
+  "aiTwinOfferAccept": "Ya, tinggalkan pesan",
+  "aiTwinOfferKeepWaiting": "Tetap menunggu",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Pengganti AI Anda",
+  "aiTwinHeroSubtitle": "Menjawab panggilan dengan suara Anda saat Anda tidak bisa.",
+  "aiTwinProfileTitle": "Pengganti AI",
+  "aiTwinProfileDesc": "Menjawab panggilan dengan suara Anda",
+  "aiTwinBadgeOn": "AKTIF",
+  "aiAnalystTitle": "Analis AI",
+  "aiAnalystSubtitle": "Berkas, tugas, analisis — Claude",
+  "channelsDiscover": "Temukan saluran",
+  "channelsSearchHint": "Cari saluran",
+  "channelsSubscribers": "pelanggan",
+  "channelsSubscribe": "Berlangganan",
+  "channelsUnsubscribe": "Berhenti berlangganan",
+  "channelsSubscribedLabel": "Anda berlangganan",
+  "channelsSettings": "Pengaturan saluran",
+  "channelsDelete": "Hapus saluran",
+  "channelsDeleteConfirm": "Hapus saluran secara permanen?",
+  "channelsEmpty": "Belum ada saluran",
+  "channelsOpen": "Buka",
+  "channelsNameLabel": "Nama",
+  "channelsDescriptionLabel": "Deskripsi",
+  "channelsCannotUnsubscribeOwner": "Pemilik tidak dapat berhenti berlangganan. Hapus saluran sebagai gantinya.",
+  "channelsNotFoundRedirect": "Saluran tidak lagi ada",
+  "analystSeamSearches": "{count, plural, =1{{count} pencarian} other{{count} pencarian}}",
+  "analystSeamFiles": "{count, plural, =1{{count} berkas} other{{count} berkas}}",
+  "analystSeamCommands": "{count, plural, =1{{count} perintah} other{{count} perintah}}",
+  "analystSeamImages": "{count, plural, =1{{count} gambar} other{{count} gambar}}",
+  "analystSeamOther": "{count, plural, =1{{count} langkah} other{{count} langkah}}",
+  "analystSeamDurationSeconds": "{seconds}d",
+  "savedTitle": "Pesan Tersimpan",
+  "savedSubtitle": "Awan pribadi Anda",
+  "savedOpenError": "Tidak dapat membuka Pesan Tersimpan",
+  "billingWalletTitle": "Dompet",
+  "billingBuyPackage": "Beli paket",
+  "billingCurrentBalance": "Saldo saat ini",
+  "billingPackagesTitle": "Paket",
+  "billingPackagesUnavailable": "Paket tidak tersedia",
+  "billingRecentOperations": "Operasi terbaru",
+  "billingAllOperations": "Semua operasi",
+  "billingNoOperations": "Tidak ada operasi",
+  "billingOperationsTitle": "Operasi",
+  "billingOperationsEmptyTitle": "Belum ada operasi",
+  "billingOperationsEmptySubtitle": "Isi ulang dan biaya fitur AI akan muncul di sini",
+  "billingPricebookTitle": "Harga fitur",
+  "billingPricebookUnavailable": "Daftar harga tidak tersedia",
+  "billingAiFeaturesTitle": "Fitur AI",
+  "billingInsufficientFundsTitle": "Dana tidak mencukupi",
+  "billingInsufficientFundsSubtitle": "Isi saldo Anda untuk menggunakan fitur ini.",
+  "billingRequiredLine": "Dibutuhkan: {required} μTAL",
+  "billingAvailableLine": "Tersedia: {available} μTAL",
+  "billingTopUp": "Isi ulang",
+  "billingCancel": "Batal",
+  "billingRetry": "Coba lagi",
+  "billingLowBalanceWarning": "Saldo hampir habis: {balance} μTAL",
+  "billingWalletAndBalance": "Dompet & Saldo",
+  "billingSectionHeader": "Penagihan & AI",
+  "billingFeatureVoiceAssistant": "Asisten suara",
+  "billingFeatureWebSearch": "Pencarian web asisten",
+  "billingFeatureAiTwin": "Kembaran suara",
+  "billingFeatureAiTwinLong": "Kembaran suara (AI Twin)",
+  "billingFeatureOutboundCall": "Bot panggilan keluar",
+  "billingFeatureOutboundCallLong": "Bot panggilan keluar",
+  "billingFeatureWhisperTranscribe": "Transkripsi panggilan",
+  "billingFeatureMeetingSummary": "Ringkasan panggilan AI",
+  "billingConfigureAiTwin": "Konfigurasi kembaran AI",
+  "billingWebSearchSubtitle": "(digunakan oleh asisten)",
+  "billingPackagePurchased": "Paket dibeli: {balance} μTAL",
+  "billingRecommendedBadge": "Direkomendasikan",
+  "billingSessionTerminatedNoFunds": "Saldo habis — sesi berakhir",
+  "billingSessionTerminatedGeneric": "Sesi asisten berakhir",
+  "billingBuyForPrice": "Beli seharga €{price}",
+  "billingTxTypeTopup": "Isi ulang",
+  "billingTxTypeRefund": "Pengembalian dana",
+  "billingTxTypeSpend": "Biaya",
+  "billingUnitMinute": "menit",
+  "billingUnitRequest": "permintaan",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K token",
+  "billingUnitCall": "panggilan",
+  "groupCallSelectParticipants": "Pilih peserta",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Cari",
+  "groupCallMaxReached": "Maksimal 7 peserta",
+  "groupCallLobbyTitle": "Grup • Lobi",
+  "groupCallHostLabel": "Host: {name}",
+  "groupCallMicHint": "Mic akan aktif saat terhubung",
+  "groupCallCancel": "Batal",
+  "groupCallNoAnswer": "Tidak ada yang menjawab",
+  "groupCallEndedByHost": "Panggilan diakhiri oleh host",
+  "groupCallAllLeft": "Semua meninggalkan panggilan",
+  "groupCallEnded": "Panggilan diakhiri",
+  "groupCallActiveTitle": "Grup • {count}",
+  "groupCallConnectionLost": "Koneksi terputus",
+  "groupCallMuteRequested": "Host meminta semua untuk membisukan",
+  "groupCallUnmute": "Buka suara",
+  "groupCallMute": "Bisukan",
+  "groupCallMuteAll": "Bisukan semua",
+  "groupCallLeave": "Tinggalkan",
+  "groupCallStatusCalling": "memanggil…",
+  "groupCallStatusDeclined": "ditolak",
+  "groupCallStatusTimeout": "tidak ada jawaban",
+  "groupCallStatusLeft": "meninggalkan",
+  "groupCallKickConfirm": "Hapus {name} dari panggilan",
+  "groupCallCancelAction": "Batal",
+  "groupCallActiveBanner": "Panggilan aktif",
+  "groupCallBannerSummary": "Grup: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Grup: {host}",
+  "groupCallCreateError": "Tidak dapat membuat panggilan",
+  "groupCallJoinError": "Tidak dapat bergabung dengan panggilan",
+  "groupCallLivekitError": "Kesalahan LiveKit",
+  "groupCallDone": "Selesai",
+  "groupCallNoResults": "Tidak ada hasil",
+  "groupCallNoContacts": "Tidak ada kontak",
+  "meshGcContactOffline": "Tidak di Wi-Fi ini",
+  "meshGcOnlineViaMesh": "Online melalui mesh",
+  "meshGcMaxInvitees": "Panggilan grup mendukung hingga 4 undangan (total 5 orang).",
+  "meshGcStart": "Mulai panggilan grup",
+  "meshGcCancel": "Batalkan",
+  "meshGcStatusCalling": "Memanggil…",
+  "meshGcStatusJoined": "Bergabung",
+  "meshGcStatusDeclined": "Ditolak",
+  "meshGcStatusNoAnswer": "Tidak ada jawaban",
+  "meshGcStatusConnectionFailed": "Koneksi gagal",
+  "meshGcStatusLeft": "Keluar",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Selesaikan panggilan Anda saat ini terlebih dahulu.",
+  "presenceOnline": "online",
+  "presenceLastSeenJustNow": "terakhir terlihat baru saja",
+  "presenceLastSeenMinutesAgo": "terakhir terlihat {minutes} menit yang lalu",
+  "presenceLastSeenToday": "terakhir terlihat hari ini pukul {time}",
+  "presenceLastSeenYesterday": "terakhir terlihat kemarin pukul {time}",
+  "presenceLastSeenOnDate": "terakhir terlihat {date}",
+  "presenceLastSeenRecently": "terakhir terlihat baru-baru ini",
+  "privacySectionTitle": "Privasi",
+  "privacyLastSeenLabel": "Siapa yang dapat melihat waktu terakhir Anda terlihat",
+  "privacyEveryone": "Semua orang",
+  "privacyContacts": "Hanya kontak",
+  "privacyNobody": "Tidak ada",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

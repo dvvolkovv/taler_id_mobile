@@ -1,0 +1,1691 @@
+{
+  "@@locale": "vi",
+  "appTitle": "Taler ID",
+  "search": "Tìm kiếm",
+  "appSubtitle": "Danh tính hệ sinh thái hợp nhất",
+  "login": "Đăng nhập",
+  "loginButton": "Đăng nhập",
+  "register": "Tạo tài khoản",
+  "registerButton": "Tạo tài khoản",
+  "email": "Email",
+  "password": "Mật khẩu",
+  "confirmPassword": "Xác nhận mật khẩu",
+  "firstName": "Tên",
+  "lastName": "Họ",
+  "noAccount": "Chưa có tài khoản?",
+  "createOne": "Tạo một tài khoản",
+  "haveAccount": "Đã có tài khoản?",
+  "signIn": "Đăng nhập",
+  "passwordMinLength": "Tối thiểu 8 ký tự",
+  "invalidEmail": "Nhập email hợp lệ",
+  "fieldRequired": "Trường bắt buộc",
+  "twoFATitle": "Xác thực hai yếu tố",
+  "twoFASubtitle": "Nhập mã 6 chữ số từ ứng dụng xác thực của bạn",
+  "twoFACode": "Mã 2FA",
+  "verify": "Xác minh",
+  "tabProfile": "Hồ sơ",
+  "tabKyc": "KYC",
+  "tabOrganization": "Tổ chức",
+  "tabSettings": "Cài đặt",
+  "profile": "Hồ sơ",
+  "editProfile": "Chỉnh sửa hồ sơ",
+  "phone": "Điện thoại",
+  "country": "Quốc gia",
+  "dateOfBirth": "Ngày sinh",
+  "documents": "Tài liệu",
+  "addDocument": "Thêm tài liệu",
+  "noDocuments": "Chưa tải lên tài liệu nào",
+  "save": "Lưu",
+  "profileUpdated": "Hồ sơ đã được cập nhật",
+  "personalData": "Dữ liệu cá nhân",
+  "passport": "Hộ chiếu",
+  "drivingLicense": "Giấy phép lái xe",
+  "diploma": "Bằng cấp",
+  "nationalId": "CMND",
+  "certificate": "Chứng chỉ",
+  "notSpecified": "Chưa xác định",
+  "notSpecifiedFemale": "Chưa xác định",
+  "documentType": "Loại tài liệu",
+  "passportId": "Hộ chiếu / CMND",
+  "diplomaCertificate": "Bằng cấp / Chứng chỉ",
+  "loadError": "Lỗi tải",
+  "verification": "Xác minh",
+  "countryAustria": "Áo",
+  "countryGermany": "Đức",
+  "countryRussia": "Nga",
+  "countryUkraine": "Ukraine",
+  "countryKazakhstan": "Kazakhstan",
+  "countryBelarus": "Belarus",
+  "countryOther": "Khác",
+  "kycTitle": "Xác minh KYC",
+  "kycVerified": "Đã xác minh",
+  "kycPending": "Đang chờ",
+  "kycRejected": "Bị từ chối",
+  "kycUnverified": "Chưa xác minh",
+  "kycVerifiedDesc": "Danh tính của bạn đã được xác minh. Bạn có quyền truy cập đầy đủ vào tất cả các tính năng của hệ sinh thái Taler.",
+  "kycPendingDesc": "Tài liệu của bạn đang được xem xét. Thường mất 1-2 ngày làm việc.",
+  "kycRejectedDesc": "Xác minh thất bại. Vui lòng xem lại lý do và gửi lại tài liệu của bạn.",
+  "kycUnverifiedDesc": "Hoàn thành xác minh để mở khóa quyền truy cập đầy đủ vào các tính năng tài chính của hệ sinh thái Taler.",
+  "startVerification": "Bắt đầu xác minh",
+  "retryVerification": "Thử lại xác minh",
+  "verifiedAt": "Đã xác minh: {date}",
+  "documentsSubmitted": "Tài liệu đã gửi để xem xét",
+  "documentsSubmittedDesc": "Thường mất 1-2 ngày làm việc để xem xét. Bạn sẽ nhận được thông báo đẩy với kết quả.",
+  "securityAes": "Dữ liệu của bạn được bảo vệ bằng mã hóa AES-256",
+  "verificationTime": "Xác minh mất 1-2 ngày làm việc",
+  "pushNotification": "Bạn sẽ nhận được thông báo đẩy với kết quả",
+  "kycWebOnly": "Xác minh KYC chỉ có sẵn trong ứng dụng di động.",
+  "verificationError": "Lỗi xác minh: {code}",
+  "organizations": "Tổ chức",
+  "noOrganizations": "Không có tổ chức",
+  "noOrganizationsDesc": "Tạo một tổ chức hoặc chấp nhận lời mời",
+  "createOrganization": "Tạo tổ chức",
+  "newOrganization": "Tổ chức mới",
+  "orgName": "Tên *",
+  "orgDescription": "Mô tả",
+  "orgEmail": "Email liên hệ",
+  "orgWebsite": "Trang web",
+  "orgLegalAddress": "Địa chỉ pháp lý",
+  "create": "Tạo",
+  "organization": "Tổ chức",
+  "contacts": "Liên hệ",
+  "members": "Thành viên ({count})",
+  "inviteMember": "Mời thành viên",
+  "invite": "Mời",
+  "sendInvite": "Gửi lời mời",
+  "inviteSent": "Đã gửi lời mời đến {email}",
+  "role": "Vai trò",
+  "roleOwner": "Chủ sở hữu",
+  "roleAdmin": "Quản trị viên",
+  "roleOperator": "Người vận hành",
+  "roleViewer": "Người xem",
+  "editOrganization": "Chỉnh sửa",
+  "editOrganizationTitle": "Chỉnh sửa tổ chức",
+  "removeMember": "Xóa thành viên",
+  "removeMemberConfirm": "Xóa {name} khỏi tổ chức?",
+  "memberRemoved": "Đã xóa thành viên",
+  "roleChanged": "Đã thay đổi vai trò",
+  "kybVerified": "Đã xác minh",
+  "kybPending": "Đang chờ xử lý",
+  "kybRejected": "Bị từ chối",
+  "kybNone": "Chưa xác minh",
+  "kybVerification": "Bắt đầu xác minh KYB",
+  "kybStartBusiness": "Bắt đầu xác minh doanh nghiệp",
+  "kybStatusLabel": "Trạng thái KYB",
+  "noKyb": "Không có KYB",
+  "kybBusinessVerificationTitle": "Xác minh doanh nghiệp (KYB)",
+  "kybVerifiedOrgDesc": "Tổ chức đã được xác minh thành công.",
+  "kybPendingOrgDesc": "Tài liệu đang được xem xét. Thường mất 1-3 ngày làm việc.",
+  "kybRejectedOrgDesc": "Xác minh thất bại. Vui lòng thử lại.",
+  "kybNoneOrgDesc": "Xác minh tổ chức của bạn để truy cập các tính năng doanh nghiệp.",
+  "invitePlus": "+ Mời",
+  "kybVerificationTitle": "Xác minh KYB",
+  "kybWebOnlyBusiness": "Xác minh KYB chỉ có sẵn trong ứng dụng di động.",
+  "unknownDevice": "Thiết bị không xác định",
+  "ipUnknown": "IP không xác định",
+  "currentSessionLabel": "Hiện tại",
+  "endSessionAction": "Kết thúc",
+  "deviceLoggedOut": "Thiết bị sẽ bị đăng xuất.",
+  "acceptInvitationTitle": "Lời mời tham gia tổ chức",
+  "acceptInvitation": "Chấp nhận lời mời",
+  "acceptInvitationDesc": "Bạn đã được mời tham gia một tổ chức trong hệ sinh thái Taler.",
+  "accept": "Chấp nhận",
+  "reject": "Từ chối",
+  "sessions": "Phiên hoạt động",
+  "currentSession": "Phiên hiện tại",
+  "deleteSession": "Kết thúc phiên",
+  "deleteSessionConfirm": "Kết thúc phiên này?",
+  "sessionDeleted": "Phiên đã kết thúc",
+  "noSessions": "Không có phiên hoạt động",
+  "minutesAgo": "{count} phút trước",
+  "hoursAgo": "{count} giờ trước",
+  "daysAgo": "{count} ngày trước",
+  "justNow": "Vừa xong",
+  "settings": "Cài đặt",
+  "security": "Bảo mật",
+  "biometrics": "Sinh trắc học",
+  "biometricsDesc": "Đăng nhập nhanh bằng Face ID hoặc vân tay",
+  "biometricsConfirm": "Xác nhận sinh trắc học để bật đăng nhập nhanh",
+  "biometricsError": "Không thể bật sinh trắc học. Kiểm tra cài đặt thiết bị.",
+  "changePassword": "Đổi mật khẩu",
+  "twoFactorAuth": "Xác thực hai yếu tố",
+  "currentPassword": "Mật khẩu hiện tại",
+  "newPassword": "Mật khẩu mới",
+  "confirmNewPassword": "Xác nhận mật khẩu mới",
+  "passwordChanged": "Mật khẩu đã được thay đổi",
+  "wrongCurrentPassword": "Mật khẩu hiện tại không đúng",
+  "passwordTooWeak": "Mật khẩu quá yếu: ít nhất 8 ký tự, cần có chữ cái và số",
+  "passwordChangeFailed": "Không thể thay đổi mật khẩu",
+  "notifications": "Thông báo",
+  "permissions": "Quyền",
+  "permissionNotifications": "Thông báo đẩy",
+  "permissionNotificationsDesc": "Cuộc gọi, tin nhắn, trạng thái",
+  "permissionMicrophone": "Micro",
+  "permissionMicrophoneDesc": "Cuộc gọi và trợ lý giọng nói",
+  "permissionCamera": "Máy ảnh",
+  "permissionCameraDesc": "Cuộc gọi video và xác minh",
+  "permissionLocation": "Vị trí",
+  "permissionLocationDesc": "Dùng để xác minh",
+  "permissionOpenSettings": "Để thu hồi quyền, mở cài đặt hệ thống",
+  "pushKycStatus": "Thông báo trạng thái KYC",
+  "pushKycStatusDesc": "Kết quả xác minh",
+  "pushLogins": "Thông báo đăng nhập",
+  "pushLoginsDesc": "Khi đăng nhập từ thiết bị mới",
+  "account": "Tài khoản",
+  "language": "Ngôn ngữ",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Ngôn ngữ giao diện",
+  "exportData": "Xuất dữ liệu (GDPR)",
+  "deleteAccount": "Xóa tài khoản",
+  "deleteAccountConfirm": "Xóa tài khoản?",
+  "deleteAccountDesc": "Tất cả dữ liệu của bạn sẽ bị xóa (GDPR). Hành động này không thể hoàn tác.",
+  "logout": "Đăng xuất",
+  "logoutConfirm": "Đăng xuất?",
+  "logoutDesc": "Bạn sẽ bị đăng xuất khỏi Taler ID trên thiết bị này.",
+  "version": "Taler ID v{version}",
+  "pinCode": "Mã PIN",
+  "pinCodeDesc": "Đăng nhập nhanh với mã 4 chữ số",
+  "setupPin": "Thiết lập PIN",
+  "enterPin": "Nhập PIN",
+  "confirmPin": "Xác nhận PIN",
+  "pinMismatch": "PIN không khớp",
+  "pinSet": "Thiết lập PIN thành công",
+  "enterPinToLogin": "Nhập PIN để đăng nhập",
+  "pinIncorrect": "PIN không đúng",
+  "removePin": "Xóa PIN",
+  "pinRemoved": "PIN đã được xóa",
+  "cancel": "Hủy",
+  "delete": "Xóa",
+  "ok": "OK",
+  "retry": "Thử lại",
+  "loading": "Đang tải...",
+  "error": "Lỗi",
+  "success": "Thành công",
+  "noData": "Không có dữ liệu",
+  "failedToLoad": "Không tải được dữ liệu",
+  "failedToLoadProfile": "Không tải được hồ sơ",
+  "failedToSave": "Không lưu được thay đổi",
+  "failedToLoadOrgs": "Không tải được tổ chức",
+  "failedToLoadOrg": "Không tải được dữ liệu tổ chức",
+  "failedToCreateOrg": "Không tạo được tổ chức",
+  "failedToInvite": "Không gửi được lời mời",
+  "failedToAcceptInvite": "Không chấp nhận được lời mời",
+  "failedToLoadSessions": "Không tải được phiên",
+  "failedToDeleteSession": "Không kết thúc được phiên",
+  "failedToLoadKyc": "Không tải được trạng thái xác minh",
+  "failedToStartKyc": "Không bắt đầu được xác minh",
+  "verifiedPersonalInfo": "Dữ liệu đã xác minh",
+  "middleName": "Tên đệm",
+  "placeOfBirth": "Nơi sinh",
+  "nationality": "Quốc tịch",
+  "gender": "Giới tính",
+  "genderMale": "Nam",
+  "genderFemale": "Nữ",
+  "docNumber": "Số",
+  "docIssuedDate": "Ngày cấp",
+  "docValidUntil": "Có hiệu lực đến",
+  "docIssuedBy": "Cơ quan cấp",
+  "address": "Địa chỉ",
+  "refreshData": "Làm mới dữ liệu",
+  "failedToLoadSumsubData": "Không tải được dữ liệu xác minh",
+  "sumsubDataLoading": "Đang tải dữ liệu xác minh...",
+  "reviewResultGreen": "Xác minh thành công",
+  "reviewResultRed": "Xác minh thất bại",
+  "tabAssistant": "Trợ lý",
+  "assistantConnecting": "Đang kết nối…",
+  "assistantSpeaking": "Đang nói…",
+  "assistantListening": "Đang nghe…",
+  "assistantTapToStart": "Nhấn để bắt đầu",
+  "assistantTapToTalk": "Nhấn để nói chuyện với AI",
+  "assistantRealtimeDesc": "Trợ lý phản hồi bằng giọng nói theo thời gian thực",
+  "assistantConnectingToAssistant": "Đang kết nối với trợ lý...",
+  "assistantAiSpeaking": "AI đang nói...",
+  "assistantAiListening": "AI đang nghe",
+  "assistantSpeakerOn": "Bật loa",
+  "assistantSpeaker": "Loa",
+  "assistantEnd": "Kết thúc",
+  "assistantUnmute": "Bật tiếng",
+  "assistantMicrophone": "Micro",
+  "assistantConnectionError": "Lỗi kết nối",
+  "tabMessenger": "Tin nhắn",
+  "tabCalls": "Cuộc gọi",
+  "tabCalendar": "Lịch",
+  "appearance": "Giao diện",
+  "appearanceSelect": "Chọn chủ đề",
+  "themeLight": "Sáng",
+  "themeDark": "Tối",
+  "themeSystem": "Hệ thống",
+  "onboardingTitle1": "Danh tính hợp nhất",
+  "onboardingDesc1": "Taler ID là hộ chiếu kỹ thuật số của bạn trong hệ sinh thái Taler. Một tài khoản cho tất cả dịch vụ.",
+  "onboardingTitle2": "Bảo mật dữ liệu",
+  "onboardingDesc2": "Xác minh KYC, mã hóa AES-256 và xác thực hai yếu tố bảo vệ danh tính của bạn.",
+  "onboardingTitle3": "Luôn được thông báo",
+  "onboardingDesc3": "Nhận thông báo về trạng thái xác minh, đăng nhập từ thiết bị mới và cuộc gọi đến.",
+  "onboardingNext": "Tiếp theo",
+  "onboardingEnableNotifications": "Bật thông báo",
+  "onboardingTitle4": "Cuộc gọi thoại",
+  "onboardingDesc4": "Cấp quyền truy cập micro cho cuộc gọi thoại và trợ lý AI. Bạn có thể thay đổi điều này sau trong cài đặt.",
+  "onboardingEnableMicrophone": "Bật micro",
+  "onboardingStart": "Bắt đầu",
+  "onboardingSkip": "Bỏ qua",
+  "meshLocalNetworkPromptTitle": "Cho phép truy cập mạng cục bộ",
+  "meshLocalNetworkPromptBody": "Để tìm kiếm đồng nghiệp trên Wi-Fi (cuộc gọi nhóm ngoại tuyến), iOS yêu cầu quyền Mạng Cục Bộ. Mở Cài đặt → Quyền riêng tư & Bảo mật → Mạng Cục Bộ → Taler ID.",
+  "meshLocalNetworkPromptOpenSettings": "Mở Cài đặt",
+  "meshLocalNetworkPromptDismiss": "Đã hiểu",
+  "forgotPassword": "Quên mật khẩu?",
+  "forgotPasswordTitle": "Đặt lại mật khẩu",
+  "forgotPasswordSubtitle": "Nhập email của bạn để nhận mã đặt lại",
+  "resetCodeSent": "Mã đã gửi đến {email}",
+  "enterResetCode": "Nhập mã",
+  "resetPasswordButton": "Đặt lại mật khẩu",
+  "passwordResetSuccess": "Đặt lại mật khẩu thành công",
+  "sendCode": "Gửi mã",
+  "resendCode": "Gửi lại mã",
+  "newGroup": "Nhóm mới",
+  "newChat": "Trò chuyện mới",
+  "groupName": "Tên nhóm",
+  "createGroup": "Tạo nhóm",
+  "groupInfo": "Thông tin nhóm",
+  "groupMembers": "Thành viên ({count})",
+  "addMembers": "Thêm thành viên",
+  "leaveGroup": "Rời nhóm",
+  "leaveGroupConfirm": "Rời nhóm này?",
+  "deleteGroup": "Xóa nhóm",
+  "deleteGroupConfirm": "Xóa nhóm này? Không thể hoàn tác.",
+  "groupRoleOwner": "Chủ sở hữu",
+  "groupRoleAdmin": "Quản trị viên",
+  "groupRoleMember": "Thành viên",
+  "selectParticipants": "Chọn người tham gia",
+  "selectedCount": "{count} đã chọn",
+  "changeRole": "Thay đổi vai trò",
+  "groupCreated": "Đã tạo nhóm",
+  "memberJoined": "{name} đã tham gia",
+  "memberLeftGroup": "{name} đã rời",
+  "memberWasRemoved": "{name} đã bị xóa",
+  "roleChangedTo": "{name} hiện là {role}",
+  "participantsCount": "{count} người tham gia",
+  "enterGroupName": "Nhập tên nhóm",
+  "muteNotifications": "Tắt thông báo",
+  "unmuteNotifications": "Bật thông báo",
+  "muteFor1Hour": "Trong 1 giờ",
+  "muteFor8Hours": "Trong 8 giờ",
+  "muteFor2Days": "Trong 2 ngày",
+  "muteForever": "Mãi mãi",
+  "muted": "Đã tắt",
+  "tabTranslator": "Dịch",
+  "translatorTitle": "Trình dịch",
+  "translatorSelectLanguage": "Chọn ngôn ngữ",
+  "translatorDownloading": "Đang tải xuống mô hình ngôn ngữ...",
+  "translatorDownloadingHint": "Chỉ cần internet cho lần tải đầu tiên",
+  "translatorTypeHint": "Nhập văn bản hoặc chạm vào micro",
+  "translatorListening": "Đang nghe...",
+  "translatorTapToSpeak": "Nhấn để nói",
+  "translatorTapToStop": "Nhấn để dừng",
+  "translatorAutoSpeak": "Tự động nói",
+  "translatorCopied": "Đã sao chép",
+  "translatorLangRu": "Tiếng Nga",
+  "translatorLangEn": "Tiếng Anh",
+  "translatorLangDe": "Tiếng Đức",
+  "translatorLangFr": "Tiếng Pháp",
+  "translatorLangEs": "Tiếng Tây Ban Nha",
+  "translatorLangIt": "Tiếng Ý",
+  "translatorLangPt": "Tiếng Bồ Đào Nha",
+  "translatorLangTr": "Tiếng Thổ Nhĩ Kỳ",
+  "translatorLangZh": "Tiếng Trung",
+  "translatorLangJa": "Tiếng Nhật",
+  "translatorLangKo": "Tiếng Hàn",
+  "translatorLangAr": "Tiếng Ả Rập",
+  "translatorLangPl": "Tiếng Ba Lan",
+  "translatorLangSk": "Tiếng Slovakia",
+  "translatorLangCs": "Tiếng Séc",
+  "translatorLangNl": "Tiếng Hà Lan",
+  "translatorLangSv": "Tiếng Thụy Điển",
+  "translatorLangDa": "Tiếng Đan Mạch",
+  "translatorLangNo": "Tiếng Na Uy",
+  "translatorLangFi": "Tiếng Phần Lan",
+  "translatorLangUk": "Tiếng Ukraina",
+  "translatorLangEl": "Tiếng Hy Lạp",
+  "translatorLangRo": "Tiếng Romania",
+  "translatorLangHu": "Tiếng Hungary",
+  "translatorLangBg": "Tiếng Bulgaria",
+  "translatorLangHr": "Tiếng Croatia",
+  "translatorLangSr": "Tiếng Serbia",
+  "translatorLangHi": "Tiếng Hindi",
+  "translatorLangTh": "Tiếng Thái",
+  "translatorLangVi": "Tiếng Việt",
+  "translatorLangId": "Tiếng Indonesia",
+  "translatorLangMs": "Tiếng Mã Lai",
+  "translatorLangHe": "Tiếng Hebrew",
+  "translatorLangFa": "Tiếng Ba Tư",
+  "callInProgress": "Cuộc gọi đang diễn ra",
+  "joinCall": "Tham gia",
+  "createCallLink": "Liên kết cuộc gọi",
+  "callLinkCopied": "Đã sao chép liên kết",
+  "callLinkTitle": "Liên kết phòng",
+  "connectionUnstable": "Kết nối không ổn định — kiểm tra internet của bạn",
+  "today": "Hôm nay",
+  "yesterday": "Hôm qua",
+  "errorTimeout": "Kết nối đã hết thời gian. Kiểm tra kết nối internet của bạn.",
+  "errorNoConnection": "Không có kết nối internet.",
+  "errorGeneral": "Đã xảy ra lỗi. Vui lòng thử lại.",
+  "errorWithMessage": "Lỗi: {message}",
+  "notifChannelMessages": "Tin nhắn",
+  "notifChannelMessagesDesc": "Thông báo tin nhắn mới",
+  "notifChannelMissedCalls": "Cuộc gọi nhỡ",
+  "notifChannelMissedCallsDesc": "Thông báo cuộc gọi nhỡ",
+  "notifMissedCall": "Cuộc gọi nhỡ",
+  "notifAccept": "Chấp nhận",
+  "notifDecline": "Từ chối",
+  "notifIncomingCall": "Cuộc gọi đến",
+  "notifIncomingCallChannel": "Cuộc gọi đến",
+  "notifMissedCallChannel": "Cuộc gọi nhỡ",
+  "notifUnknown": "Không xác định",
+  "effectNone": "Không có nền",
+  "effectBlur": "Làm mờ",
+  "effectOffice": "Văn phòng",
+  "effectNature": "Thiên nhiên",
+  "effectGradient": "Chuyển màu",
+  "effectLibrary": "Thư viện",
+  "effectCity": "Thành phố",
+  "effectMinimalism": "Tối giản",
+  "voiceParticipant": "Người tham gia",
+  "voiceInvitesToRoom": "mời bạn vào phòng",
+  "voiceRoom": "Phòng",
+  "voicePasswordProtected": "Được bảo vệ bằng mật khẩu",
+  "voicePasswordHint": "Mật khẩu",
+  "voiceEnter": "Vào",
+  "voiceJoinRoom": "Tham gia phòng",
+  "voiceYourName": "Tên của bạn",
+  "voiceInvitationSent": "Đã gửi lời mời đến {name}",
+  "voiceNoActiveRoom": "Không có phòng hoạt động",
+  "voiceCameraPermission": "Cho phép truy cập camera trong Cài đặt → Quyền riêng tư → Camera → TalerID",
+  "voiceOpenSettings": "Mở",
+  "voiceCameraError": "Không thể bật camera: {error}",
+  "voiceAllAgreedRecording": "Tất cả đã đồng ý. Bắt đầu ghi âm.",
+  "voiceNewParticipantAgreed": "Người tham gia mới đã đồng ý ghi âm.",
+  "voiceDeclinedRecording": "Bạn đã từ chối ghi âm. Rời khỏi cuộc gọi.",
+  "voiceRecordingEnded": "Đã kết thúc ghi âm",
+  "voiceRecordingInProgress": "Đang ghi âm",
+  "voiceTranscriptionRequest": "Yêu cầu phiên âm",
+  "voiceRecordingRequest": "Yêu cầu ghi âm",
+  "voiceAgree": "Đồng ý",
+  "voiceDeclineAndLeave": "Từ chối và rời đi",
+  "voiceAudioOutput": "Đầu ra âm thanh",
+  "voiceAudioPhone": "Điện thoại",
+  "voiceAudioSpeaker": "Loa",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Tai nghe",
+  "voiceLinkCopied": "Đã sao chép liên kết",
+  "voiceTranslateTo": "Dịch sang",
+  "voiceSearchLanguage": "Tìm kiếm ngôn ngữ...",
+  "voiceRoomWithCreator": "Phòng {name}",
+  "voiceVoiceCall": "Cuộc gọi thoại",
+  "voiceOnHold": "Đang giữ",
+  "voiceActiveCall": "Đang hoạt động",
+  "voiceEndAllCalls": "Kết thúc tất cả cuộc gọi",
+  "voiceEndThisCall": "Kết thúc cuộc gọi này",
+  "voiceCopyLink": "Sao chép liên kết",
+  "voiceAddParticipant": "Thêm người tham gia",
+  "voiceReconnecting": "Đang kết nối lại...",
+  "voiceConnectionError": "Lỗi kết nối",
+  "voiceClose": "Đóng",
+  "voiceCalling": "Đang gọi...",
+  "voiceCallActive": "Cuộc gọi đang hoạt động",
+  "voiceWaiting": "Đang chờ",
+  "voiceWaitingUpper": "ĐANG CHỜ",
+  "voiceRec": "GHI",
+  "voiceStop": "Dừng",
+  "voiceRecord": "Ghi âm",
+  "voiceTranslation": "Dịch",
+  "voiceAudio": "Âm thanh",
+  "voiceFlipCamera": "Lật",
+  "voiceBackground": "Nền",
+  "voiceAssistantSpeakingStatus": "Trợ lý đang nói...",
+  "voiceAssistantListeningStatus": "Trợ lý đang nghe...",
+  "voiceUnmute": "Bật âm",
+  "voiceMic": "Micro",
+  "voiceAssistantLabel": "Trợ lý",
+  "voiceCameraOn": "Bật camera",
+  "voiceCameraLabel": "Camera",
+  "voiceEndCall": "Kết thúc cuộc gọi",
+  "voiceWaitingParticipants": "Đang chờ người tham gia...",
+  "voiceYou": "Bạn",
+  "voiceAiAssistant": "Trợ lý AI",
+  "voiceVideoUnavailable": "Video không khả dụng",
+  "voiceSearchNickname": "Tìm kiếm theo biệt danh...",
+  "voiceTranscriptionWord": "chuyển ngữ",
+  "voiceRecordingWord": "ghi âm",
+  "voiceConnecting": "Đang kết nối...",
+  "voiceVideoBackground": "Nền video",
+  "voiceCallSettings": "Cài đặt cuộc gọi",
+  "voiceEnableAI": "Kích hoạt trợ lý AI",
+  "voiceAIParticipating": "AI sẽ tham gia vào cuộc trò chuyện",
+  "voiceNormalCall": "Cuộc gọi thông thường không có AI",
+  "voiceCallConfirm": "Thực hiện cuộc gọi?",
+  "chatAlreadyInCall": "Đã trong cuộc gọi",
+  "chatCallError": "Lỗi cuộc gọi: {error}",
+  "chatPhotoVideo": "Ảnh / Video",
+  "chatCamera": "Camera",
+  "chatFile": "Tệp",
+  "chatContact": "Liên hệ",
+  "chatSelectContact": "Chọn một liên hệ",
+  "chatNoContacts": "Không có liên hệ",
+  "chatUser": "Người dùng",
+  "chatFileAttachment": "📎 Tệp",
+  "chatFileUploadError": "Lỗi tải lên tệp: {error}",
+  "chatVoiceMessage": "🎤 Tin nhắn thoại",
+  "chatGroup": "Nhóm",
+  "chatDialog": "Hội thoại",
+  "chatCall": "Cuộc gọi",
+  "chatStartConversation": "Bắt đầu cuộc trò chuyện",
+  "chatYou": "Bạn",
+  "chatIsTyping": "đang nhập...",
+  "chatUserIsTyping": "{name} đang nhập...",
+  "chatUsersAreTyping": "{names} đang nhập...",
+  "chatPreparingFile": "Đang chuẩn bị tệp...",
+  "chatUploading": "Đang tải lên… {progress}%",
+  "chatEdited": "Đã chỉnh sửa",
+  "chatViaMesh": "qua mesh",
+  "chatReply": "Trả lời",
+  "chatEdit": "Chỉnh sửa",
+  "chatCopy": "Sao chép",
+  "chatCopied": "Đã sao chép",
+  "chatSaveMedia": "Lưu",
+  "chatForward": "Chuyển tiếp",
+  "chatSaving": "Đang lưu...",
+  "chatSavedToGallery": "Đã lưu vào thư viện",
+  "chatNoSavePermission": "Không có quyền lưu. Kiểm tra cài đặt.",
+  "chatFileSaveError": "Lỗi lưu tệp",
+  "chatDeleteMessage": "Xóa tin nhắn",
+  "chatDeleteForMe": "Xóa cho tôi",
+  "chatDeleteForEveryone": "Xóa cho mọi người",
+  "chatMessageForwarded": "Tin nhắn đã được chuyển tiếp",
+  "chatContactTapToOpen": "Liên hệ · chạm để mở",
+  "chatForwardTo": "Chuyển tiếp đến...",
+  "chatSearchHint": "Tìm kiếm...",
+  "chatRecording": "Đang ghi âm...",
+  "chatMessageHint": "Tin nhắn...",
+  "chatHideKeyboard": "Ẩn bàn phím",
+  "chatEditing": "Đang chỉnh sửa",
+  "chatFileDownloadError": "Lỗi tải tệp",
+  "chatVoiceMessageShort": "Tin nhắn thoại",
+  "chatVideoSavedToGallery": "Video đã lưu vào thư viện",
+  "chatSavingError": "Lỗi lưu",
+  "convSetNickname": "Đặt biệt danh",
+  "convNicknameRequired": "Cần có biệt danh để sử dụng trình nhắn tin. Người dùng khác có thể tìm bạn qua đó.",
+  "convNicknameRules": "3–30 ký tự: chữ cái, chữ số, _",
+  "convNicknameTaken": "Biệt danh đã được sử dụng",
+  "convSaveError": "Lỗi lưu",
+  "convContactsLabel": "Danh bạ",
+  "convDefaultUser": "Người dùng",
+  "convNoDialogs": "Không có cuộc trò chuyện",
+  "convFindUserToChat": "Tìm người dùng để bắt đầu trò chuyện",
+  "convDefaultContact": "Liên hệ",
+  "dashboardUser": "Người dùng",
+  "dashboardIncomingCall": "Cuộc gọi đến",
+  "dashboardDecline": "Từ chối",
+  "dashboardAccept": "Chấp nhận",
+  "dashboardActiveCall": "Cuộc gọi đang hoạt động — chạm để quay lại",
+  "dashboardUpdateAvailable": "Có bản cập nhật {version}",
+  "dashboardUpdate": "Cập nhật",
+  "dashboardWhatsNew": "Có gì mới",
+  "dashboardWhatsNewTitle": "Có gì mới trong {version}",
+  "dashboardInstalling": "Đang cài đặt...",
+  "contactRequestsTitle": "Danh bạ",
+  "messengerContactRequestsSection": "Yêu cầu kết bạn",
+  "messengerContactRequestsCount": "{count, plural, =1{1 yêu cầu mới} other{{count} yêu cầu mới}}",
+  "contactRequestsSearch": "Tìm kiếm",
+  "contactRequestsIncoming": "Đến",
+  "contactRequestsSent": "Đã gửi",
+  "contactRequestsSearchHint": "Biệt danh hoặc email",
+  "contactRequestSent": "Đã gửi yêu cầu",
+  "contactRequestsNoUsers": "Không tìm thấy người dùng",
+  "contactRequestsSearchHelp": "Nhập chính xác biệt danh hoặc email\nvà nhấn tìm kiếm",
+  "contactRequestsSendTooltip": "Gửi yêu cầu",
+  "contactRequestTitle": "Yêu cầu kết bạn",
+  "contactRequestConfirm": "Gửi yêu cầu kết bạn tới {name}?",
+  "contactRequestSend": "Gửi",
+  "contactRequestsNoIncoming": "Không có yêu cầu đến",
+  "contactRequestsNoSent": "Không có yêu cầu đã gửi",
+  "contactRequestStatusPending": "Đang chờ phản hồi",
+  "contactRequestStatusAccepted": "Đã chấp nhận",
+  "contactRequestStatusRejected": "Đã từ chối",
+  "userSearchTitle": "Tìm người dùng",
+  "userSearchHint": "Biệt danh, số điện thoại hoặc email",
+  "userSearchHelper": "Nhập @nickname, email hoặc tên để tìm kiếm",
+  "userSearchNoUsers": "Không tìm thấy người dùng",
+  "userProfileShareContact": "Chia sẻ liên hệ",
+  "userProfileShareContactDesc": "Gửi liên kết liên hệ",
+  "userProfileCopyLink": "Sao chép liên kết",
+  "userProfileCopied": "Đã sao chép",
+  "userProfileTitle": "Hồ sơ",
+  "userProfileLoadError": "Lỗi tải hồ sơ",
+  "userProfileMessage": "Tin nhắn",
+  "userProfileCall": "Gọi",
+  "userProfileRequestSent": "Yêu cầu đã gửi",
+  "userProfileAccept": "Chấp nhận",
+  "userProfileDecline": "Từ chối",
+  "userProfileAddToContacts": "Thêm vào danh bạ",
+  "userProfileMediaTab": "Phương tiện",
+  "userProfileFilesTab": "Tệp",
+  "userProfileLinksTab": "Liên kết",
+  "userProfileRecordingsTab": "Ghi âm",
+  "userProfileSummariesTab": "Tóm tắt",
+  "userProfileNoMedia": "Không có tệp phương tiện",
+  "userProfileNoFiles": "Không có tệp",
+  "userProfileNoLinks": "Không có liên kết",
+  "userProfileNoRecordings": "Không có ghi âm",
+  "userProfileNoSummaries": "Không có tóm tắt",
+  "userProfileMeetingSummary": "Tóm tắt cuộc họp",
+  "userProfileFailedOpenChat": "Không mở được trò chuyện",
+  "sharedMediaTitle": "Phương tiện và tệp",
+  "sharedMediaTab": "Phương tiện",
+  "sharedFilesTab": "Tệp",
+  "sharedLinksTab": "Liên kết",
+  "sharedNoMedia": "Không có tệp phương tiện",
+  "sharedNoFiles": "Không có tệp",
+  "sharedNoLinks": "Không có liên kết",
+  "shareToChat": "Chuyển tiếp đến trò chuyện",
+  "shareSelectChat": "Chọn trò chuyện",
+  "shareNoChats": "Không có trò chuyện",
+  "shareFilesCount": "{count} tệp",
+  "contactsTitle": "Danh bạ",
+  "contactsAddTooltip": "Thêm liên hệ",
+  "contactsSearchHint": "Tìm kiếm danh bạ...",
+  "contactsNotFound": "Không tìm thấy",
+  "contactsEmpty": "Không có danh bạ",
+  "contactsAdd": "Thêm liên hệ",
+  "contactsPendingConfirmation": "Đang chờ xác nhận",
+  "contactsMessage": "Tin nhắn",
+  "contactsCall": "Gọi",
+  "contactsResend": "Gửi lại yêu cầu",
+  "contactsResendTimeout": "Thử lại sau 24h",
+  "contactsResent": "Yêu cầu đã được gửi lại",
+  "contactsWantsToConnect": "Muốn kết nối với bạn",
+  "contactsSearchPeople": "Tìm người",
+  "notesTitle": "Ghi chú",
+  "notesAssistantSpeaking": "Trợ lý đang nói...",
+  "notesListening": "Đang nghe...",
+  "notesEmpty": "Không có ghi chú",
+  "notesEmptyHint": "Nhấn mic để nhập liệu\nhoặc + để nhập thủ công",
+  "notesDeleteConfirm": "Xóa ghi chú?",
+  "notesNew": "Ghi chú mới",
+  "notesEdit": "Chỉnh sửa",
+  "notesTitleHint": "Tiêu đề",
+  "notesContentHint": "Viết suy nghĩ của bạn...",
+  "calendarTitle": "Lịch",
+  "calendarStop": "Dừng",
+  "calendarVoiceInput": "Nhập giọng nói",
+  "calendarNewEvent": "Sự kiện mới",
+  "calendarAssistantSpeaking": "Trợ lý đang nói...",
+  "calendarListening": "Đang nghe...",
+  "calendarInvitations": "Lời mời ({count})",
+  "calendarNoEvents": "Không có sự kiện",
+  "calendarDayMon": "Thứ Hai",
+  "calendarDayTue": "Thứ Ba",
+  "calendarDayWed": "Thứ Tư",
+  "calendarDayThu": "Thứ Năm",
+  "calendarDayFri": "Thứ Sáu",
+  "calendarDaySat": "Thứ Bảy",
+  "calendarDaySun": "Chủ Nhật",
+  "calendarEnterRoom": "Vào phòng",
+  "calendarMeeting": "Cuộc họp",
+  "calendarLocationPrefix": "Địa điểm: {location}",
+  "calendarEditEvent": "Chỉnh sửa",
+  "calendarTitleHint": "Tiêu đề",
+  "calendarDescriptionHint": "Mô tả",
+  "calendarTypeEvent": "Sự kiện",
+  "calendarTypeMeeting": "Cuộc họp",
+  "calendarTypeReminder": "Nhắc nhở",
+  "calendarTypeLabel": "Loại",
+  "calendarMeetingLink": "Liên kết cuộc họp",
+  "calendarLocationHint": "Địa điểm",
+  "calendarDateLabel": "Ngày",
+  "calendarTimeLabel": "Thời gian",
+  "calendarReminderLabel": "Nhắc nhở",
+  "calendarReminderNone": "Không",
+  "calendarReminder15min": "15 phút trước",
+  "calendarReminder30min": "30 phút trước",
+  "calendarReminder1hour": "1 giờ trước",
+  "calendarRepeatLabel": "Lặp lại",
+  "calendarRepeatNone": "Không lặp lại",
+  "calendarRepeatDaily": "Mỗi ngày",
+  "calendarRepeatWeekly": "Mỗi tuần",
+  "calendarRepeatMonthly": "Mỗi tháng",
+  "calendarRepeatYearly": "Mỗi năm",
+  "calendarParticipants": "Người tham gia",
+  "calendarAddParticipant": "Thêm",
+  "calendarSearchContacts": "Tìm kiếm liên hệ...",
+  "calendarNoContacts": "Không có liên hệ",
+  "calendarStatusAccepted": "Đã chấp nhận",
+  "calendarStatusDeclined": "Đã từ chối",
+  "calendarStatusMaybe": "Có thể",
+  "calendarStatusPending": "Đang chờ",
+  "calendarEndTime": "Thời gian kết thúc",
+  "calendarYourAnswer": "Câu trả lời của bạn:",
+  "calendarOrganizer": "Người tổ chức",
+  "calendarDeleteError": "Xóa thất bại: {error}",
+  "calendarRsvpAccept": "Chấp nhận",
+  "calendarRsvpMaybe": "Có thể",
+  "calendarRsvpDecline": "Từ chối",
+  "callHistoryTitle": "Cuộc gọi",
+  "callHistoryTab": "Lịch sử cuộc gọi",
+  "callHistoryTempMeeting": "Cuộc họp tạm thời",
+  "callHistoryCopy": "Sao chép",
+  "callHistoryLinkCopied": "Đã sao chép liên kết",
+  "callHistoryShare": "Chia sẻ",
+  "callHistoryEnter": "Tham gia",
+  "callHistoryAlreadyInCall": "Đã trong cuộc gọi",
+  "callHistoryCouldNotDeterminePeer": "Không thể xác định bên kia",
+  "callHistoryContacts": "Danh bạ",
+  "callHistoryFailedLoadRoom": "Không thể tải phòng của bạn",
+  "callHistoryYourRoom": "Phòng của bạn",
+  "callHistoryCreateMeeting": "Tạo cuộc họp",
+  "callHistoryMeetingSummaries": "Tóm tắt cuộc họp",
+  "callHistoryMeetingRecordings": "Ghi âm cuộc họp",
+  "callHistoryNoCalls": "Không có cuộc gọi",
+  "callHistoryMissed": "Bỏ lỡ",
+  "callHistoryRecording": "Đang ghi âm",
+  "callHistorySummary": "Tóm tắt",
+  "callHistoryCallAgain": "Gọi lại",
+  "callHistoryTodayTime": "Hôm nay, {time}",
+  "callHistoryYesterdayTime": "Hôm qua, {time}",
+  "callHistoryUnknown": "Không xác định",
+  "callHistoryDetails": "Chi tiết cuộc gọi",
+  "callHistoryOutgoing": "Cuộc gọi đi",
+  "callHistoryIncoming": "Cuộc gọi đến",
+  "callHistoryDuration": "Thời lượng: {duration}",
+  "callHistoryWithAI": "Với trợ lý AI",
+  "callHistoryParticipants": "Người tham gia",
+  "callDetailYouSuffix": "(Bạn)",
+  "callHistoryMeetingSummary": "Tóm tắt cuộc họp",
+  "callHistoryMoreDetails": "Thêm chi tiết",
+  "callHistorySummaryProcessing": "Đang xử lý tóm tắt...",
+  "callHistoryMeetingRecording": "Ghi âm cuộc họp",
+  "callHistoryProcessing": "Đang xử lý...",
+  "callHistoryCreateTranscript": "Tạo bản ghi",
+  "callHistoryNoSummaries": "Không có tóm tắt",
+  "callHistoryRecordDuringCall": "Nhấn \"Ghi âm\" trong cuộc gọi",
+  "callHistoryMeetingTime": "Cuộc họp {time}",
+  "callHistoryTranscribing": "Đang ghi và tóm tắt...",
+  "callHistoryTranscriptCreated": "Bản ghi đã được tạo",
+  "callHistoryNoRecordings": "Không có ghi âm",
+  "callHistoryRecordingDate": "Ghi âm {date}",
+  "callHistoryRecordingUnavailable": "Ghi âm không khả dụng",
+  "callHistoryTranscriptReady": "Bản ghi đã sẵn sàng",
+  "callHistoryTranscript": "Bản ghi",
+  "callHistoryKeyPoints": "Điểm chính",
+  "callHistoryTasks": "Nhiệm vụ",
+  "callHistoryAssignedTo": "Giao cho: {assignee}",
+  "callHistoryDecisions": "Quyết định",
+  "callHistoryShowTranscript": "Hiển thị toàn bộ bản ghi",
+  "profileScanQr": "Quét mã QR",
+  "profileMyQrCode": "Mã QR của tôi",
+  "profileAddMeShare": "Thêm tôi vào Taler ID!\ntalerid://user/{userId}",
+  "profileShowCode": "Hiển thị mã này để thêm bạn",
+  "profileEditDesc": "Tên, họ, tên đệm, ngày sinh",
+  "profileAboutMe": "Về tôi",
+  "profileAboutMeDesc": "Giá trị, kỹ năng, sở thích và hơn thế nữa",
+  "profileNotes": "Ghi chú",
+  "profileNotesDesc": "Suy nghĩ, ý tưởng và ghi chú",
+  "profileAvatarUpdated": "Ảnh đại diện đã được cập nhật",
+  "profileNickname": "Biệt danh",
+  "profileNotSet": "Chưa thiết lập",
+  "profileChangeNickname": "Thay đổi biệt danh",
+  "profileNicknameUpdated": "Biệt danh đã được cập nhật",
+  "profileShareLabel": "Chia sẻ",
+  "profileScanQrCode": "Quét mã QR",
+  "profilePointCamera": "Chỉ camera vào mã QR",
+  "profilePhotoCamera": "Chụp ảnh",
+  "profilePhotoGallery": "Chọn từ thư viện",
+  "editProfilePatronymic": "Tên đệm (tùy chọn)",
+  "editProfileDateFormat": "DD.MM.YYYY",
+  "aboutMeTitle": "Về tôi",
+  "aboutMeClickToFill": "Nhấp để điền",
+  "aboutMeCoreValues": "Giá trị",
+  "aboutMeWorldview": "Thế giới quan",
+  "aboutMeSkills": "Kỹ năng",
+  "aboutMeInterests": "Sở thích",
+  "aboutMeDesires": "Mong muốn",
+  "aboutMeBackground": "Hồ sơ",
+  "aboutMeLikes": "Thích",
+  "aboutMeDislikes": "Không thích",
+  "aboutMeDeleteSection": "Xóa phần?",
+  "aboutMeDeleteConfirm": "Tất cả dữ liệu trong phần này sẽ bị xóa.",
+  "aboutMeConnectionError": "Lỗi kết nối: {error}",
+  "aboutMeVisibility": "Khả năng hiển thị",
+  "aboutMeTags": "Thẻ",
+  "aboutMeAddTag": "Thêm thẻ...",
+  "aboutMeDescription": "Mô tả",
+  "aboutMeDescribeLong": "Hãy cho chúng tôi biết thêm...",
+  "aboutMeVisibilityEveryone": "Mọi người",
+  "aboutMeVisibilityContacts": "Danh bạ",
+  "aboutMeVisibilityOnlyMe": "Chỉ mình tôi",
+  "settingsProfileSubtitle": "Hồ sơ",
+  "settingsWallpaper": "Hình nền",
+  "settingsWallpaperDesc": "Hình nền cho toàn bộ ứng dụng",
+  "settingsWallpaperNone": "Không có",
+  "settingsAccount": "Tài khoản",
+  "settingsKycVerification": "Xác minh danh tính (KYC)",
+  "settingsOrganizations": "Tổ chức",
+  "incomingCallLabel": "Cuộc gọi đến",
+  "incomingCallDecline": "Từ chối",
+  "incomingCallAccept": "Chấp nhận",
+  "meshIncomingCallLabel": "📡 Cuộc gọi mesh đến",
+  "meshDeviceFallback": "Thiết bị mesh {hexPrefix}",
+  "callConflictAlreadyInCall": "Kết thúc cuộc gọi hiện tại trước",
+  "callPopupTransportTitle": "Gọi qua",
+  "callPopupTransportMesh": "📡 Mesh (ngang hàng)",
+  "callPopupTransportLk": "📞 Máy chủ",
+  "callPopupTransportMeshUnavailable": "Không thể liên lạc qua mesh",
+  "meshOnboardingTitle": "📡 Cuộc gọi mesh cần mở ứng dụng",
+  "meshOnboardingBody": "Khi điện thoại bị khóa, cuộc gọi mesh có thể bị ngắt sau ~30 giây (hạn chế của iOS).",
+  "meshOnboardingAck": "Hiểu rồi",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Liên hệ không có trong danh sách của bạn",
+  "meshCallStatusInviting": "Đang gọi…",
+  "meshCallStatusConnecting": "Đang kết nối…",
+  "meshCallEndedUserHangup": "Cuộc gọi kết thúc",
+  "meshCallEndedRemoteHangup": "Đã kết thúc bởi đối tác",
+  "meshCallEndedRejected": "Đã từ chối",
+  "meshCallEndedNoAnswer": "Không có trả lời",
+  "meshCallEndedConnectionLost": "Mất kết nối",
+  "meshCallEndedError": "Lỗi kết nối",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Cuộc gọi mesh đáng tin cậy",
+  "batteryExemptionBody": "Cho phép ứng dụng chạy mà không bị hạn chế pin để Android không tắt mesh trong nền.",
+  "batteryExemptionAccept": "Mở cài đặt",
+  "batteryExemptionDismiss": "Không phải bây giờ",
+  "groupCamera": "Máy ảnh",
+  "groupGallery": "Thư viện",
+  "groupAvatarUpdated": "Ảnh đại diện nhóm đã được cập nhật",
+  "groupNameTitle": "Tên nhóm",
+  "groupEnterName": "Nhập tên",
+  "groupDescriptionTitle": "Mô tả nhóm",
+  "groupEnterDescription": "Nhập mô tả nhóm",
+  "groupChangeRoleTitle": "Thay đổi vai trò",
+  "groupRemoveMemberTitle": "Xóa thành viên",
+  "groupDescription": "Mô tả",
+  "groupAddDescription": "Thêm mô tả nhóm",
+  "groupNoDescription": "Không có mô tả",
+  "groupMediaAndFiles": "Phương tiện và tệp",
+  "groupMuteNotifications": "Tắt thông báo",
+  "groupMuted": "Đã tắt",
+  "groupNoResults": "Không có kết quả",
+  "authInvalidCode": "Mã không hợp lệ. Thử lại.",
+  "loginSubtitle": "Sử dụng email và mật khẩu",
+  "emailRequired": "Nhập email",
+  "emailInvalid": "Email không hợp lệ",
+  "passwordRequired": "Nhập mật khẩu",
+  "registerSubtitle": "Một tài khoản cho toàn bộ hệ sinh thái Taler",
+  "usernameOptional": "Tên người dùng (tùy chọn)",
+  "usernameMinLength": "Tối thiểu 3 ký tự",
+  "usernameMaxLength": "Tối đa 30 ký tự",
+  "usernameInvalid": "Chỉ chữ cái, số và _",
+  "biometricLoginReason": "Đăng nhập vào Taler ID",
+  "docTypePassport": "Hộ chiếu",
+  "docTypeIdCard": "Thẻ căn cước",
+  "docTypeDriverLicense": "Giấy phép lái xe",
+  "docTypeResidencePermit": "Giấy phép cư trú",
+  "addressApartment": "căn hộ {number}",
+  "failedToUpdateProfile": "Cập nhật hồ sơ thất bại",
+  "failedToStartKyb": "Bắt đầu xác minh KYB thất bại",
+  "orgUpdated": "Tổ chức đã được cập nhật",
+  "failedToUpdateOrg": "Cập nhật tổ chức thất bại",
+  "failedToChangeRole": "Thay đổi vai trò thất bại",
+  "failedToRemoveMember": "Xóa thành viên thất bại",
+  "capabilityMessagesTitle": "Tin nhắn",
+  "capabilityMessagesDesc": "Kiểm tra tin nhắn hoặc viết cho ai đó. Ví dụ: \"Viết cho Viktor: sẽ đến trong một giờ\"",
+  "capabilityCallsTitle": "Cuộc gọi",
+  "capabilityCallsDesc": "Gọi bất kỳ liên hệ nào bằng giọng nói. Ví dụ: \"Gọi Viktor Viktorov\"",
+  "capabilityChatTitle": "Lịch sử trò chuyện",
+  "capabilityChatDesc": "Tôi sẽ phân tích lịch sử trò chuyện. Ví dụ: \"Chúng ta đã thảo luận gì với Viktor?\"",
+  "capabilityProfileTitle": "Hồ sơ",
+  "capabilityProfileDesc": "Tôi sẽ hiển thị hoặc cập nhật hồ sơ của bạn. Ví dụ: \"Hiển thị hồ sơ của tôi\"",
+  "capabilityCoachingTitle": "Huấn luyện",
+  "capabilityCoachingDesc": "Chế độ: huấn luyện ICF, nhà tâm lý học, tư vấn nhân sự. Nói: \"Hãy huấn luyện\"",
+  "capabilityCalendarTitle": "Lịch",
+  "capabilityCalendarDesc": "Lên lịch họp hoặc đặt lời nhắc. Ví dụ: \"Lên lịch họp với Viktor vào ngày mai lúc 15:00\"",
+  "capabilityNotesTitle": "Ghi chú",
+  "capabilityNotesDesc": "Lưu ý tưởng hoặc đọc ghi chú gần đây. Ví dụ: \"Ghi lại một ý tưởng...\" hoặc \"Đọc ghi chú gần đây\"",
+  "assistantCallConfirm": "Thực hiện cuộc gọi?",
+  "callNoAnswer": "Không có câu trả lời",
+  "contactDelete": "Xóa liên hệ",
+  "contactDeleteTitle": "Xóa liên hệ",
+  "contactDeleteConfirm": "Bạn có chắc không? Liên hệ này sẽ bị xóa.",
+  "contactBlock": "Chặn",
+  "contactBlockTitle": "Chặn người dùng",
+  "contactBlockConfirm": "Người dùng này sẽ không thể nhắn tin hoặc gọi cho bạn.",
+  "contactUnblock": "Bỏ chặn",
+  "contactBlocked": "Đã chặn",
+  "contactYouAreBlocked": "Người dùng này đã chặn bạn",
+  "chatBlockedByYou": "Bạn đã chặn người dùng này",
+  "chatYouAreBlocked": "Bạn đã bị người dùng này chặn",
+  "chatNotContacts": "Thêm người dùng này vào danh bạ để nhắn tin",
+  "contactRevokeRequest": "Thu hồi yêu cầu",
+  "messengerPoll": "Khảo sát",
+  "messengerCreatePoll": "Tạo khảo sát",
+  "messengerPollQuestion": "Câu hỏi",
+  "messengerPollOption": "Tùy chọn {number}",
+  "messengerPollAddOption": "Thêm tùy chọn",
+  "messengerPollAnonymous": "Bỏ phiếu ẩn danh",
+  "messengerPollMultiple": "Lựa chọn nhiều",
+  "messengerPollCreateError": "Tạo khảo sát thất bại",
+  "messengerPollUnavailable": "Khảo sát không khả dụng",
+  "messengerPollMultipleNote": "Bạn có thể chọn nhiều",
+  "messengerPollVotes": "{count} phiếu bầu",
+  "messengerVideoMessage": "Tin nhắn video",
+  "messengerVideoRecordError": "Lỗi ghi video",
+  "messengerVideoPlaybackError": "Không thể phát video",
+  "messengerGalleryAccessError": "Không có quyền truy cập vào thư viện",
+  "messengerSearchInChat": "Tìm kiếm trong trò chuyện...",
+  "messengerSaveToFavorites": "Lưu vào mục yêu thích",
+  "messengerSavedToFavorites": "Đã lưu vào mục yêu thích",
+  "messengerSearchInMessages": "Tìm kiếm trong tin nhắn...",
+  "messengerFoundInMessages": "Đã tìm thấy trong tin nhắn ({count})",
+  "messengerGroupDefault": "Nhóm",
+  "messengerUserDefault": "Người dùng",
+  "messengerPin": "Ghim",
+  "messengerUnpin": "Bỏ ghim",
+  "messengerArchive": "Lưu trữ",
+  "messengerUnarchive": "Bỏ lưu trữ",
+  "messengerDeleteChat": "Xóa trò chuyện",
+  "messengerDeleteChatTitle": "Xóa trò chuyện?",
+  "messengerDeleteChatConfirm": "Xóa trò chuyện với {name}? Không thể hoàn tác.",
+  "messengerCreateChannel": "Tạo Kênh",
+  "messengerChannelName": "Tên",
+  "messengerChannelDescription": "Mô tả (tùy chọn)",
+  "messengerChannelCreateError": "Tạo kênh thất bại",
+  "messengerFilterAll": "Tất cả",
+  "messengerFilterUnread": "Chưa đọc",
+  "messengerFilterPersonal": "Cá nhân",
+  "messengerFilterGroups": "Nhóm",
+  "messengerFilterChannels": "Kênh",
+  "messengerArchivedSection": "Đã lưu trữ",
+  "messengerSavedSection": "Mục yêu thích",
+  "messengerSavedSubtitle": "Lưu vào bộ nhớ",
+  "messengerArchiveTitle": "Lưu trữ ({count})",
+  "messengerArchiveEmpty": "Lưu trữ trống",
+  "messengerYouPrefix": "Bạn: {message}",
+  "messengerMissedCall": "Cuộc gọi nhỡ",
+  "messengerSavedTitle": "Mục yêu thích",
+  "messengerNoSavedMessages": "Không có tin nhắn đã lưu",
+  "messengerSavedHint": "Nhấn giữ một tin nhắn → \"Lưu vào mục yêu thích\"",
+  "messengerDefaultFile": "Tệp",
+  "messengerTopicDefault": "Chung",
+  "messengerTopicNew": "Chủ đề Mới",
+  "messengerTopicNameHint": "Tên chủ đề",
+  "messengerTopicIcon": "Biểu tượng",
+  "messengerTopicCount": "{count} chủ đề",
+  "messengerNoTopics": "Không có chủ đề",
+  "messengerNoMessages": "Không có tin nhắn",
+  "you": "Bạn",
+  "messengerThread": "Chuỗi",
+  "messengerThreadReply": "trả lời",
+  "messengerThreadReplies": "trả lời",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Không có trả lời",
+  "messengerReplyHint": "Trả lời chuỗi...",
+  "messengerContactName": "Tên liên hệ",
+  "messengerOriginalName": "Tên gốc: {name}",
+  "messengerDisplayName": "Tên hiển thị",
+  "messengerShareContact": "Liên hệ trong Taler ID: {name}",
+  "messengerAutoDelete": "Tự động xóa tin nhắn",
+  "messengerAutoDeleteOff": "Tắt",
+  "messengerAutoDelete7d": "7 ngày",
+  "messengerAutoDelete30d": "30 ngày",
+  "messengerAutoDelete90d": "90 ngày",
+  "messengerAutoDeleteDays": "{count} ngày",
+  "messengerSettingsHeader": "Cài đặt",
+  "messengerAdminOnly": "Chỉ quản trị viên đăng bài",
+  "messengerAdminOnlyDesc": "Thành viên chỉ có thể đọc",
+  "messengerTopics": "Chủ đề",
+  "messengerTopicsDesc": "Chia cuộc trò chuyện thành các chủ đề",
+  "aiTwinSection": "AI Voice Twin",
+  "aiTwinEnabled": "Kích hoạt AI Twin",
+  "aiTwinEnabledDesc": "Nếu bạn không trả lời, AI twin của bạn sẽ nhận cuộc gọi bằng giọng của bạn",
+  "aiTwinTimeout": "Thời gian chờ phản hồi",
+  "aiTwinTimeoutValue": "{seconds} giây",
+  "aiTwinPrompt": "Hướng dẫn AI",
+  "aiTwinPromptSubtitle": "Cách AI twin nên giới thiệu và nói về điều gì",
+  "aiTwinPromptHint": "Xin chào, đây là AI voice twin của {name}. {name} không thể nghe máy ngay bây giờ. Cho tôi biết ai đang gọi và về vấn đề gì — tôi sẽ chuyển lời.",
+  "aiTwinComingSoon": "Sao chép giọng nói tùy chỉnh sắp ra mắt. Hiện tại AI nói bằng giọng của {name}.",
+  "aiTwinDefaultName": "chủ sở hữu",
+  "aiTwinPromptReset": "Đặt lại",
+  "callHistoryAiTwinAnswered": "AI TWIN ĐÃ TRẢ LỜI",
+  "callHistoryAiTwinSummary": "TÓM TẮT CUỘC GỌI",
+  "callHistoryAiTwinTranscript": "BẢN GHI",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "Từ {name}",
+  "aiTwinOfferTitle": "Không trả lời",
+  "aiTwinOfferBody": "{name} không trả lời. Để lại tin nhắn với giọng nói AI của họ?",
+  "aiTwinOfferBodyUser": "Người dùng",
+  "aiTwinOfferAccept": "Có, để lại tin nhắn",
+  "aiTwinOfferKeepWaiting": "Tiếp tục chờ",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "Người đại diện AI của bạn",
+  "aiTwinHeroSubtitle": "Trả lời cuộc gọi bằng giọng nói của bạn khi bạn không thể.",
+  "aiTwinProfileTitle": "Người đại diện AI",
+  "aiTwinProfileDesc": "Trả lời cuộc gọi bằng giọng nói của bạn",
+  "aiTwinBadgeOn": "BẬT",
+  "aiAnalystTitle": "Nhà phân tích AI",
+  "aiAnalystSubtitle": "Tệp, nhiệm vụ, phân tích — Claude",
+  "channelsDiscover": "Tìm kênh",
+  "channelsSearchHint": "Tìm kiếm kênh",
+  "channelsSubscribers": "người đăng ký",
+  "channelsSubscribe": "Đăng ký",
+  "channelsUnsubscribe": "Hủy đăng ký",
+  "channelsSubscribedLabel": "Bạn đã đăng ký",
+  "channelsSettings": "Cài đặt kênh",
+  "channelsDelete": "Xóa kênh",
+  "channelsDeleteConfirm": "Xóa kênh vĩnh viễn?",
+  "channelsEmpty": "Chưa có kênh nào",
+  "channelsOpen": "Mở",
+  "channelsNameLabel": "Tên",
+  "channelsDescriptionLabel": "Mô tả",
+  "channelsCannotUnsubscribeOwner": "Chủ sở hữu không thể hủy đăng ký. Thay vào đó, hãy xóa kênh.",
+  "channelsNotFoundRedirect": "Kênh không còn tồn tại",
+  "analystSeamSearches": "{count, plural, =1{{count} tìm kiếm} other{{count} tìm kiếm}}",
+  "analystSeamFiles": "{count, plural, =1{{count} tệp} other{{count} tệp}}",
+  "analystSeamCommands": "{count, plural, =1{{count} lệnh} other{{count} lệnh}}",
+  "analystSeamImages": "{count, plural, =1{{count} hình ảnh} other{{count} hình ảnh}}",
+  "analystSeamOther": "{count, plural, =1{{count} bước} other{{count} bước}}",
+  "analystSeamDurationSeconds": "{seconds}s",
+  "savedTitle": "Tin nhắn đã lưu",
+  "savedSubtitle": "Đám mây riêng của bạn",
+  "savedOpenError": "Không thể mở Tin nhắn đã lưu",
+  "billingWalletTitle": "Ví",
+  "billingBuyPackage": "Mua gói",
+  "billingCurrentBalance": "Số dư hiện tại",
+  "billingPackagesTitle": "Gói",
+  "billingPackagesUnavailable": "Gói không khả dụng",
+  "billingRecentOperations": "Hoạt động gần đây",
+  "billingAllOperations": "Tất cả hoạt động",
+  "billingNoOperations": "Không có hoạt động",
+  "billingOperationsTitle": "Hoạt động",
+  "billingOperationsEmptyTitle": "Chưa có hoạt động",
+  "billingOperationsEmptySubtitle": "Nạp tiền và phí cho các tính năng AI sẽ xuất hiện ở đây",
+  "billingPricebookTitle": "Giá tính năng",
+  "billingPricebookUnavailable": "Danh sách giá không khả dụng",
+  "billingAiFeaturesTitle": "Tính năng AI",
+  "billingInsufficientFundsTitle": "Không đủ tiền",
+  "billingInsufficientFundsSubtitle": "Nạp thêm tiền để sử dụng tính năng này.",
+  "billingRequiredLine": "Cần: {required} μTAL",
+  "billingAvailableLine": "Có: {available} μTAL",
+  "billingTopUp": "Nạp tiền",
+  "billingCancel": "Hủy",
+  "billingRetry": "Thử lại",
+  "billingLowBalanceWarning": "Số dư thấp: {balance} μTAL",
+  "billingWalletAndBalance": "Ví & Số dư",
+  "billingSectionHeader": "Thanh toán & AI",
+  "billingFeatureVoiceAssistant": "Trợ lý giọng nói",
+  "billingFeatureWebSearch": "Tìm kiếm web trợ lý",
+  "billingFeatureAiTwin": "Giọng nói song sinh",
+  "billingFeatureAiTwinLong": "Giọng nói song sinh (AI Twin)",
+  "billingFeatureOutboundCall": "Bot gọi ra",
+  "billingFeatureOutboundCallLong": "Bot gọi điện ra ngoài",
+  "billingFeatureWhisperTranscribe": "Chép lại cuộc gọi",
+  "billingFeatureMeetingSummary": "Tóm tắt cuộc gọi AI",
+  "billingConfigureAiTwin": "Cấu hình AI twin",
+  "billingWebSearchSubtitle": "(được trợ lý sử dụng)",
+  "billingPackagePurchased": "Gói đã mua: {balance} μTAL",
+  "billingRecommendedBadge": "Đề xuất",
+  "billingSessionTerminatedNoFunds": "Hết số dư — phiên đã kết thúc",
+  "billingSessionTerminatedGeneric": "Phiên trợ lý đã kết thúc",
+  "billingBuyForPrice": "Mua với giá €{price}",
+  "billingTxTypeTopup": "Nạp tiền",
+  "billingTxTypeRefund": "Hoàn tiền",
+  "billingTxTypeSpend": "Phí",
+  "billingUnitMinute": "phút",
+  "billingUnitRequest": "yêu cầu",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K token",
+  "billingUnitCall": "cuộc gọi",
+  "groupCallSelectParticipants": "Chọn người tham gia",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Tìm kiếm",
+  "groupCallMaxReached": "Tối đa 7 người tham gia",
+  "groupCallLobbyTitle": "Nhóm • Sảnh chờ",
+  "groupCallHostLabel": "Chủ trì: {name}",
+  "groupCallMicHint": "Mic sẽ kích hoạt khi kết nối",
+  "groupCallCancel": "Hủy",
+  "groupCallNoAnswer": "Không ai trả lời",
+  "groupCallEndedByHost": "Cuộc gọi kết thúc bởi chủ trì",
+  "groupCallAllLeft": "Mọi người đã rời cuộc gọi",
+  "groupCallEnded": "Cuộc gọi kết thúc",
+  "groupCallActiveTitle": "Nhóm • {count}",
+  "groupCallConnectionLost": "Mất kết nối",
+  "groupCallMuteRequested": "Chủ trì yêu cầu mọi người tắt tiếng",
+  "groupCallUnmute": "Bật tiếng",
+  "groupCallMute": "Tắt tiếng",
+  "groupCallMuteAll": "Tắt tiếng tất cả",
+  "groupCallLeave": "Rời đi",
+  "groupCallStatusCalling": "đang gọi…",
+  "groupCallStatusDeclined": "từ chối",
+  "groupCallStatusTimeout": "không trả lời",
+  "groupCallStatusLeft": "đã rời",
+  "groupCallKickConfirm": "Xóa {name} khỏi cuộc gọi",
+  "groupCallCancelAction": "Hủy",
+  "groupCallActiveBanner": "Cuộc gọi đang hoạt động",
+  "groupCallBannerSummary": "Nhóm: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Nhóm: {host}",
+  "groupCallCreateError": "Không thể tạo cuộc gọi",
+  "groupCallJoinError": "Không thể tham gia cuộc gọi",
+  "groupCallLivekitError": "Lỗi LiveKit",
+  "groupCallDone": "Xong",
+  "groupCallNoResults": "Không có kết quả",
+  "groupCallNoContacts": "Không có liên hệ",
+  "meshGcContactOffline": "Không có trên Wi-Fi này",
+  "meshGcOnlineViaMesh": "Trực tuyến qua mesh",
+  "meshGcMaxInvitees": "Cuộc gọi nhóm hỗ trợ tối đa 4 người được mời (tổng cộng 5 người).",
+  "meshGcStart": "Bắt đầu cuộc gọi nhóm",
+  "meshGcCancel": "Hủy",
+  "meshGcStatusCalling": "Đang gọi…",
+  "meshGcStatusJoined": "Đã tham gia",
+  "meshGcStatusDeclined": "Đã từ chối",
+  "meshGcStatusNoAnswer": "Không có câu trả lời",
+  "meshGcStatusConnectionFailed": "Kết nối thất bại",
+  "meshGcStatusLeft": "Đã rời",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Hoàn thành cuộc gọi hiện tại trước.",
+  "presenceOnline": "trực tuyến",
+  "presenceLastSeenJustNow": "vừa mới thấy",
+  "presenceLastSeenMinutesAgo": "đã thấy {minutes} phút trước",
+  "presenceLastSeenToday": "đã thấy hôm nay lúc {time}",
+  "presenceLastSeenYesterday": "đã thấy hôm qua lúc {time}",
+  "presenceLastSeenOnDate": "đã thấy {date}",
+  "presenceLastSeenRecently": "đã thấy gần đây",
+  "privacySectionTitle": "Quyền riêng tư",
+  "privacyLastSeenLabel": "Ai có thể thấy thời gian bạn truy cập lần cuối",
+  "privacyEveryone": "Mọi người",
+  "privacyContacts": "Chỉ danh bạ",
+  "privacyNobody": "Không ai",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}

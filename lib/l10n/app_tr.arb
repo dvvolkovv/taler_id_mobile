@@ -1,0 +1,1691 @@
+{
+  "@@locale": "tr",
+  "appTitle": "Taler ID",
+  "search": "Ara",
+  "appSubtitle": "Birleşik ekosistem kimliği",
+  "login": "Giriş Yap",
+  "loginButton": "Giriş Yap",
+  "register": "Hesap Oluştur",
+  "registerButton": "Hesap Oluştur",
+  "email": "E-posta",
+  "password": "Şifre",
+  "confirmPassword": "Şifreyi Onayla",
+  "firstName": "Ad",
+  "lastName": "Soyad",
+  "noAccount": "Hesabınız yok mu?",
+  "createOne": "Bir tane oluştur",
+  "haveAccount": "Zaten bir hesabınız var mı?",
+  "signIn": "Giriş Yap",
+  "passwordMinLength": "Minimum 8 karakter",
+  "invalidEmail": "Geçerli bir e-posta girin",
+  "fieldRequired": "Zorunlu alan",
+  "twoFATitle": "İki Faktörlü Kimlik Doğrulama",
+  "twoFASubtitle": "Doğrulayıcı uygulamanızdan 6 haneli kodu girin",
+  "twoFACode": "2FA Kodu",
+  "verify": "Doğrula",
+  "tabProfile": "Profil",
+  "tabKyc": "KYC",
+  "tabOrganization": "Organizasyon",
+  "tabSettings": "Ayarlar",
+  "profile": "Profil",
+  "editProfile": "Profili Düzenle",
+  "phone": "Telefon",
+  "country": "Ülke",
+  "dateOfBirth": "Doğum Tarihi",
+  "documents": "Belgeler",
+  "addDocument": "Belge Ekle",
+  "noDocuments": "Yüklenmiş belge yok",
+  "save": "Kaydet",
+  "profileUpdated": "Profil güncellendi",
+  "personalData": "Kişisel Bilgiler",
+  "passport": "Pasaport",
+  "drivingLicense": "Sürücü Belgesi",
+  "diploma": "Diploma",
+  "nationalId": "Ulusal Kimlik",
+  "certificate": "Sertifika",
+  "notSpecified": "Belirtilmedi",
+  "notSpecifiedFemale": "Belirtilmedi",
+  "documentType": "Belge Türü",
+  "passportId": "Pasaport / Kimlik",
+  "diplomaCertificate": "Diploma / Sertifika",
+  "loadError": "Yükleme hatası",
+  "verification": "Doğrulama",
+  "countryAustria": "Avusturya",
+  "countryGermany": "Almanya",
+  "countryRussia": "Rusya",
+  "countryUkraine": "Ukrayna",
+  "countryKazakhstan": "Kazakistan",
+  "countryBelarus": "Belarus",
+  "countryOther": "Diğer",
+  "kycTitle": "KYC Doğrulama",
+  "kycVerified": "Doğrulandı",
+  "kycPending": "Beklemede",
+  "kycRejected": "Reddedildi",
+  "kycUnverified": "Doğrulanmadı",
+  "kycVerifiedDesc": "Kimliğiniz doğrulandı. Taler ekosisteminin tüm özelliklerine tam erişiminiz var.",
+  "kycPendingDesc": "Belgeleriniz inceleniyor. Bu genellikle 1-2 iş günü sürer.",
+  "kycRejectedDesc": "Doğrulama başarısız oldu. Lütfen nedeni gözden geçirin ve belgelerinizi yeniden gönderin.",
+  "kycUnverifiedDesc": "Taler ekosisteminin finansal özelliklerine tam erişim sağlamak için doğrulamayı tamamlayın.",
+  "startVerification": "Doğrulamayı Başlat",
+  "retryVerification": "Doğrulamayı Tekrar Dene",
+  "verifiedAt": "Doğrulandı: {date}",
+  "documentsSubmitted": "İnceleme için belgeler gönderildi",
+  "documentsSubmittedDesc": "İnceleme genellikle 1-2 iş günü sürer. Sonuçla ilgili bir push bildirimi alacaksınız.",
+  "securityAes": "Verileriniz AES-256 şifreleme ile korunmaktadır",
+  "verificationTime": "Doğrulama 1-2 iş günü sürer",
+  "pushNotification": "Sonuçla ilgili bir push bildirimi alacaksınız",
+  "kycWebOnly": "KYC doğrulaması yalnızca mobil uygulamada mevcuttur.",
+  "verificationError": "Doğrulama hatası: {code}",
+  "organizations": "Organizasyonlar",
+  "noOrganizations": "Organizasyon yok",
+  "noOrganizationsDesc": "Bir organizasyon oluşturun veya bir daveti kabul edin",
+  "createOrganization": "Organizasyon Oluştur",
+  "newOrganization": "Yeni Organizasyon",
+  "orgName": "Ad *",
+  "orgDescription": "Açıklama",
+  "orgEmail": "İletişim E-postası",
+  "orgWebsite": "Web Sitesi",
+  "orgLegalAddress": "Yasal Adres",
+  "create": "Oluştur",
+  "organization": "Organizasyon",
+  "contacts": "Kişiler",
+  "members": "Üyeler ({count})",
+  "inviteMember": "Üye Davet Et",
+  "invite": "Davet Et",
+  "sendInvite": "Davet Gönder",
+  "inviteSent": "{email} adresine davet gönderildi",
+  "role": "Rol",
+  "roleOwner": "Sahip",
+  "roleAdmin": "Yönetici",
+  "roleOperator": "Operatör",
+  "roleViewer": "Görüntüleyici",
+  "editOrganization": "Düzenle",
+  "editOrganizationTitle": "Organizasyonu Düzenle",
+  "removeMember": "Üyeyi Kaldır",
+  "removeMemberConfirm": "{name} organizasyondan kaldırılsın mı?",
+  "memberRemoved": "Üye kaldırıldı",
+  "roleChanged": "Rol değiştirildi",
+  "kybVerified": "Doğrulandı",
+  "kybPending": "Beklemede",
+  "kybRejected": "Reddedildi",
+  "kybNone": "Doğrulanmadı",
+  "kybVerification": "KYB Doğrulamasını Başlat",
+  "kybStartBusiness": "İşletme Doğrulamasını Başlat",
+  "kybStatusLabel": "KYB Durumu",
+  "noKyb": "KYB Yok",
+  "kybBusinessVerificationTitle": "İşletme Doğrulaması (KYB)",
+  "kybVerifiedOrgDesc": "Organizasyon başarıyla doğrulandı.",
+  "kybPendingOrgDesc": "Belgeler inceleniyor. Bu genellikle 1-3 iş günü sürer.",
+  "kybRejectedOrgDesc": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",
+  "kybNoneOrgDesc": "İşletme özelliklerine erişmek için organizasyonunuzu doğrulayın.",
+  "invitePlus": "+ Davet Et",
+  "kybVerificationTitle": "KYB Doğrulaması",
+  "kybWebOnlyBusiness": "KYB doğrulaması yalnızca mobil uygulamada kullanılabilir.",
+  "unknownDevice": "Bilinmeyen cihaz",
+  "ipUnknown": "IP bilinmiyor",
+  "currentSessionLabel": "Mevcut",
+  "endSessionAction": "Sonlandır",
+  "deviceLoggedOut": "Cihaz oturumu kapatılacak.",
+  "acceptInvitationTitle": "Organizasyon Daveti",
+  "acceptInvitation": "Daveti Kabul Et",
+  "acceptInvitationDesc": "Taler ekosisteminde bir organizasyona katılmak için davet edildiniz.",
+  "accept": "Kabul Et",
+  "reject": "Reddet",
+  "sessions": "Aktif Oturumlar",
+  "currentSession": "Mevcut oturum",
+  "deleteSession": "Oturumu Sonlandır",
+  "deleteSessionConfirm": "Bu oturumu sonlandır?",
+  "sessionDeleted": "Oturum sonlandırıldı",
+  "noSessions": "Aktif oturum yok",
+  "minutesAgo": "{count} dk önce",
+  "hoursAgo": "{count} saat önce",
+  "daysAgo": "{count} gün önce",
+  "justNow": "Az önce",
+  "settings": "Ayarlar",
+  "security": "Güvenlik",
+  "biometrics": "Biyometrik",
+  "biometricsDesc": "Face ID veya parmak izi ile hızlı giriş",
+  "biometricsConfirm": "Hızlı girişi etkinleştirmek için biyometrik doğrulayın",
+  "biometricsError": "Biyometrik etkinleştirilemedi. Cihaz ayarlarını kontrol edin.",
+  "changePassword": "Şifreyi Değiştir",
+  "twoFactorAuth": "İki Faktörlü Kimlik Doğrulama",
+  "currentPassword": "Mevcut Şifre",
+  "newPassword": "Yeni Şifre",
+  "confirmNewPassword": "Yeni Şifreyi Onayla",
+  "passwordChanged": "Şifre değiştirildi",
+  "wrongCurrentPassword": "Yanlış mevcut şifre",
+  "passwordTooWeak": "Şifre çok zayıf: en az 8 karakter, harf ve rakam gerekli",
+  "passwordChangeFailed": "Şifre değiştirilemedi",
+  "notifications": "Bildirimler",
+  "permissions": "İzinler",
+  "permissionNotifications": "Push Bildirimleri",
+  "permissionNotificationsDesc": "Aramalar, mesajlar, durumlar",
+  "permissionMicrophone": "Mikrofon",
+  "permissionMicrophoneDesc": "Aramalar ve sesli asistan",
+  "permissionCamera": "Kamera",
+  "permissionCameraDesc": "Görüntülü aramalar ve doğrulama",
+  "permissionLocation": "Konum",
+  "permissionLocationDesc": "Doğrulama için kullanılır",
+  "permissionOpenSettings": "Bir izni iptal etmek için sistem ayarlarını açın",
+  "pushKycStatus": "KYC Durum Bildirimi",
+  "pushKycStatusDesc": "Doğrulama sonucu",
+  "pushLogins": "Giriş Bildirimi",
+  "pushLoginsDesc": "Yeni bir cihazdan giriş yapıldığında",
+  "account": "Hesap",
+  "language": "Dil",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "languageSelect": "Arayüz Dili",
+  "exportData": "Verileri Dışa Aktar (GDPR)",
+  "deleteAccount": "Hesabı Sil",
+  "deleteAccountConfirm": "Hesabı sil?",
+  "deleteAccountDesc": "Tüm verileriniz silinecek (GDPR). Bu işlem geri alınamaz.",
+  "logout": "Çıkış Yap",
+  "logoutConfirm": "Çıkış yapılsın mı?",
+  "logoutDesc": "Bu cihazda Taler ID'den çıkış yapacaksınız.",
+  "version": "Taler ID v{version}",
+  "pinCode": "PIN Kodu",
+  "pinCodeDesc": "4 haneli kodla hızlı giriş",
+  "setupPin": "PIN Ayarla",
+  "enterPin": "PIN Girin",
+  "confirmPin": "PIN'i Onayla",
+  "pinMismatch": "PIN'ler eşleşmiyor",
+  "pinSet": "PIN başarıyla ayarlandı",
+  "enterPinToLogin": "Giriş yapmak için PIN girin",
+  "pinIncorrect": "Hatalı PIN",
+  "removePin": "PIN'i Kaldır",
+  "pinRemoved": "PIN kaldırıldı",
+  "cancel": "İptal",
+  "delete": "Sil",
+  "ok": "Tamam",
+  "retry": "Tekrar Dene",
+  "loading": "Yükleniyor...",
+  "error": "Hata",
+  "success": "Başarılı",
+  "noData": "Veri yok",
+  "failedToLoad": "Veri yüklenemedi",
+  "failedToLoadProfile": "Profil yüklenemedi",
+  "failedToSave": "Değişiklikler kaydedilemedi",
+  "failedToLoadOrgs": "Organizasyonlar yüklenemedi",
+  "failedToLoadOrg": "Organizasyon verileri yüklenemedi",
+  "failedToCreateOrg": "Organizasyon oluşturulamadı",
+  "failedToInvite": "Davet gönderilemedi",
+  "failedToAcceptInvite": "Davet kabul edilemedi",
+  "failedToLoadSessions": "Oturumlar yüklenemedi",
+  "failedToDeleteSession": "Oturum sonlandırılamadı",
+  "failedToLoadKyc": "Doğrulama durumu yüklenemedi",
+  "failedToStartKyc": "Doğrulama başlatılamadı",
+  "verifiedPersonalInfo": "Doğrulanmış Veri",
+  "middleName": "İkinci İsim",
+  "placeOfBirth": "Doğum Yeri",
+  "nationality": "Uyruk",
+  "gender": "Cinsiyet",
+  "genderMale": "Erkek",
+  "genderFemale": "Kadın",
+  "docNumber": "Numara",
+  "docIssuedDate": "Veriliş Tarihi",
+  "docValidUntil": "Geçerlilik Tarihi",
+  "docIssuedBy": "Veren Kurum",
+  "address": "Adres",
+  "refreshData": "Verileri Yenile",
+  "failedToLoadSumsubData": "Doğrulama verileri yüklenemedi",
+  "sumsubDataLoading": "Doğrulama verileri yükleniyor...",
+  "reviewResultGreen": "Doğrulama başarılı",
+  "reviewResultRed": "Doğrulama başarısız",
+  "tabAssistant": "Asistan",
+  "assistantConnecting": "Bağlanıyor…",
+  "assistantSpeaking": "Konuşuyor…",
+  "assistantListening": "Dinliyor…",
+  "assistantTapToStart": "Başlamak için dokunun",
+  "assistantTapToTalk": "AI ile konuşmak için dokunun",
+  "assistantRealtimeDesc": "Asistan gerçek zamanlı olarak sesle yanıt verir",
+  "assistantConnectingToAssistant": "Asistana bağlanılıyor...",
+  "assistantAiSpeaking": "AI konuşuyor...",
+  "assistantAiListening": "AI dinliyor",
+  "assistantSpeakerOn": "Hoparlör açık",
+  "assistantSpeaker": "Hoparlör",
+  "assistantEnd": "Bitir",
+  "assistantUnmute": "Sesi aç",
+  "assistantMicrophone": "Mikrofon",
+  "assistantConnectionError": "Bağlantı hatası",
+  "tabMessenger": "Mesajlar",
+  "tabCalls": "Aramalar",
+  "tabCalendar": "Takvim",
+  "appearance": "Görünüm",
+  "appearanceSelect": "Tema Seçin",
+  "themeLight": "Açık",
+  "themeDark": "Koyu",
+  "themeSystem": "Sistem",
+  "onboardingTitle1": "Birleşik Kimlik",
+  "onboardingDesc1": "Taler ID, Taler ekosisteminde dijital pasaportunuzdur. Tüm hizmetler için tek hesap.",
+  "onboardingTitle2": "Veri Güvenliği",
+  "onboardingDesc2": "KYC doğrulaması, AES-256 şifreleme ve iki faktörlü kimlik doğrulama kimliğinizi korur.",
+  "onboardingTitle3": "Bilgili Kalın",
+  "onboardingDesc3": "Doğrulama durumu, yeni cihazlardan girişler ve gelen aramalar hakkında bildirim alın.",
+  "onboardingNext": "İleri",
+  "onboardingEnableNotifications": "Bildirimleri Etkinleştir",
+  "onboardingTitle4": "Sesli Aramalar",
+  "onboardingDesc4": "Sesli aramalar ve AI asistanı için mikrofon erişimi verin. Bunu daha sonra ayarlardan değiştirebilirsiniz.",
+  "onboardingEnableMicrophone": "Mikrofonu Etkinleştir",
+  "onboardingStart": "Başlayın",
+  "onboardingSkip": "Atla",
+  "meshLocalNetworkPromptTitle": "Yerel ağ erişimine izin ver",
+  "meshLocalNetworkPromptBody": "Wi-Fi'da eşleri bulmak için (çevrimdışı grup aramaları), iOS Yerel Ağ iznini gerektirir. Ayarlar → Gizlilik ve Güvenlik → Yerel Ağ → Taler ID'yi açın.",
+  "meshLocalNetworkPromptOpenSettings": "Ayarları Aç",
+  "meshLocalNetworkPromptDismiss": "Anladım",
+  "forgotPassword": "Şifrenizi mi unuttunuz?",
+  "forgotPasswordTitle": "Şifreyi Sıfırla",
+  "forgotPasswordSubtitle": "Sıfırlama kodu almak için e-posta adresinizi girin",
+  "resetCodeSent": "Kod {email} adresine gönderildi",
+  "enterResetCode": "Kodu girin",
+  "resetPasswordButton": "Şifreyi Sıfırla",
+  "passwordResetSuccess": "Şifre başarıyla sıfırlandı",
+  "sendCode": "Kodu Gönder",
+  "resendCode": "Kodu Yeniden Gönder",
+  "newGroup": "Yeni Grup",
+  "newChat": "Yeni Sohbet",
+  "groupName": "Grup Adı",
+  "createGroup": "Grup Oluştur",
+  "groupInfo": "Grup Bilgisi",
+  "groupMembers": "Üyeler ({count})",
+  "addMembers": "Üye Ekle",
+  "leaveGroup": "Gruptan Ayrıl",
+  "leaveGroupConfirm": "Bu gruptan ayrılmak istiyor musunuz?",
+  "deleteGroup": "Grubu Sil",
+  "deleteGroupConfirm": "Bu grubu silmek istiyor musunuz? Bu işlem geri alınamaz.",
+  "groupRoleOwner": "Sahip",
+  "groupRoleAdmin": "Yönetici",
+  "groupRoleMember": "Üye",
+  "selectParticipants": "Katılımcıları Seç",
+  "selectedCount": "{count} seçildi",
+  "changeRole": "Rolü Değiştir",
+  "groupCreated": "Grup oluşturuldu",
+  "memberJoined": "{name} katıldı",
+  "memberLeftGroup": "{name} ayrıldı",
+  "memberWasRemoved": "{name} çıkarıldı",
+  "roleChangedTo": "{name} artık {role}",
+  "participantsCount": "{count} katılımcı",
+  "enterGroupName": "Grup adını girin",
+  "muteNotifications": "Bildirimleri Sessize Al",
+  "unmuteNotifications": "Bildirimleri Aç",
+  "muteFor1Hour": "1 saatliğine",
+  "muteFor8Hours": "8 saatliğine",
+  "muteFor2Days": "2 günlüğüne",
+  "muteForever": "Süresiz",
+  "muted": "Sessize Alındı",
+  "tabTranslator": "Çevir",
+  "translatorTitle": "Çevirici",
+  "translatorSelectLanguage": "Dili Seç",
+  "translatorDownloading": "Dil modelleri indiriliyor...",
+  "translatorDownloadingHint": "İnternet sadece ilk indirme için gereklidir",
+  "translatorTypeHint": "Metin yazın veya mikrofona dokunun",
+  "translatorListening": "Dinleniyor...",
+  "translatorTapToSpeak": "Konuşmak için dokunun",
+  "translatorTapToStop": "Durdurmak için dokunun",
+  "translatorAutoSpeak": "Otomatik konuşma",
+  "translatorCopied": "Kopyalandı",
+  "translatorLangRu": "Rusça",
+  "translatorLangEn": "İngilizce",
+  "translatorLangDe": "Almanca",
+  "translatorLangFr": "Fransızca",
+  "translatorLangEs": "İspanyolca",
+  "translatorLangIt": "İtalyanca",
+  "translatorLangPt": "Portekizce",
+  "translatorLangTr": "Türkçe",
+  "translatorLangZh": "Çince",
+  "translatorLangJa": "Japonca",
+  "translatorLangKo": "Korece",
+  "translatorLangAr": "Arapça",
+  "translatorLangPl": "Lehçe",
+  "translatorLangSk": "Slovakça",
+  "translatorLangCs": "Çekçe",
+  "translatorLangNl": "Felemenkçe",
+  "translatorLangSv": "İsveççe",
+  "translatorLangDa": "Danca",
+  "translatorLangNo": "Norveççe",
+  "translatorLangFi": "Fince",
+  "translatorLangUk": "Ukraynaca",
+  "translatorLangEl": "Yunanca",
+  "translatorLangRo": "Romence",
+  "translatorLangHu": "Macarca",
+  "translatorLangBg": "Bulgarca",
+  "translatorLangHr": "Hırvatça",
+  "translatorLangSr": "Sırpça",
+  "translatorLangHi": "Hintçe",
+  "translatorLangTh": "Tayca",
+  "translatorLangVi": "Vietnamca",
+  "translatorLangId": "Endonezce",
+  "translatorLangMs": "Malayca",
+  "translatorLangHe": "İbranice",
+  "translatorLangFa": "Farsça",
+  "callInProgress": "Görüşme devam ediyor",
+  "joinCall": "Katıl",
+  "createCallLink": "Çağrı bağlantısı",
+  "callLinkCopied": "Bağlantı kopyalandı",
+  "callLinkTitle": "Oda bağlantısı",
+  "connectionUnstable": "Bağlantı kararsız — internetinizi kontrol edin",
+  "today": "Bugün",
+  "yesterday": "Dün",
+  "errorTimeout": "Bağlantı zaman aşımına uğradı. İnternet bağlantınızı kontrol edin.",
+  "errorNoConnection": "İnternet bağlantısı yok.",
+  "errorGeneral": "Bir hata oluştu. Lütfen tekrar deneyin.",
+  "errorWithMessage": "Hata: {message}",
+  "notifChannelMessages": "Mesajlar",
+  "notifChannelMessagesDesc": "Yeni mesaj bildirimleri",
+  "notifChannelMissedCalls": "Cevapsız çağrılar",
+  "notifChannelMissedCallsDesc": "Cevapsız çağrı bildirimleri",
+  "notifMissedCall": "Cevapsız çağrı",
+  "notifAccept": "Kabul et",
+  "notifDecline": "Reddet",
+  "notifIncomingCall": "Gelen çağrı",
+  "notifIncomingCallChannel": "Gelen çağrı",
+  "notifMissedCallChannel": "Cevapsız çağrı",
+  "notifUnknown": "Bilinmeyen",
+  "effectNone": "Arka plan yok",
+  "effectBlur": "Bulanık",
+  "effectOffice": "Ofis",
+  "effectNature": "Doğa",
+  "effectGradient": "Gradyan",
+  "effectLibrary": "Kütüphane",
+  "effectCity": "Şehir",
+  "effectMinimalism": "Minimalizm",
+  "voiceParticipant": "Katılımcı",
+  "voiceInvitesToRoom": "sizi odaya davet ediyor",
+  "voiceRoom": "Oda",
+  "voicePasswordProtected": "Şifre korumalı",
+  "voicePasswordHint": "Şifre",
+  "voiceEnter": "Giriş yap",
+  "voiceJoinRoom": "Odaya katıl",
+  "voiceYourName": "Adınız",
+  "voiceInvitationSent": "{name} kişisine davet gönderildi",
+  "voiceNoActiveRoom": "Aktif oda yok",
+  "voiceCameraPermission": "Ayarlar → Gizlilik → Kamera → TalerID'de kamera erişimine izin verin",
+  "voiceOpenSettings": "Aç",
+  "voiceCameraError": "Kamera etkinleştirilemedi: {error}",
+  "voiceAllAgreedRecording": "Herkes kabul etti. Kayıt başladı.",
+  "voiceNewParticipantAgreed": "Yeni katılımcı kaydı kabul etti.",
+  "voiceDeclinedRecording": "Kaydı reddettiniz. Görüşmeden ayrılıyorsunuz.",
+  "voiceRecordingEnded": "Kayıt sona erdi",
+  "voiceRecordingInProgress": "Kayıt devam ediyor",
+  "voiceTranscriptionRequest": "Transkripsiyon isteği",
+  "voiceRecordingRequest": "Kayıt isteği",
+  "voiceAgree": "Kabul et",
+  "voiceDeclineAndLeave": "Reddet ve ayrıl",
+  "voiceAudioOutput": "Ses çıkışı",
+  "voiceAudioPhone": "Telefon",
+  "voiceAudioSpeaker": "Hoparlör",
+  "voiceAudioBluetooth": "Bluetooth",
+  "voiceAudioHeadphones": "Kulaklık",
+  "voiceLinkCopied": "Bağlantı kopyalandı",
+  "voiceTranslateTo": "Çevir",
+  "voiceSearchLanguage": "Dil ara...",
+  "voiceRoomWithCreator": "Oda {name}",
+  "voiceVoiceCall": "Sesli arama",
+  "voiceOnHold": "Beklemede",
+  "voiceActiveCall": "Aktif",
+  "voiceEndAllCalls": "Tüm aramaları bitir",
+  "voiceEndThisCall": "Bu aramayı bitir",
+  "voiceCopyLink": "Bağlantıyı kopyala",
+  "voiceAddParticipant": "Katılımcı ekle",
+  "voiceReconnecting": "Yeniden bağlanıyor...",
+  "voiceConnectionError": "Bağlantı hatası",
+  "voiceClose": "Kapat",
+  "voiceCalling": "Aranıyor...",
+  "voiceCallActive": "Arama aktif",
+  "voiceWaiting": "Bekleniyor",
+  "voiceWaitingUpper": "BEKLENİYOR",
+  "voiceRec": "KAYIT",
+  "voiceStop": "Durdur",
+  "voiceRecord": "Kayıt",
+  "voiceTranslation": "Çeviri",
+  "voiceAudio": "Ses",
+  "voiceFlipCamera": "Çevir",
+  "voiceBackground": "Arka plan",
+  "voiceAssistantSpeakingStatus": "Asistan konuşuyor...",
+  "voiceAssistantListeningStatus": "Asistan dinliyor...",
+  "voiceUnmute": "Sesi aç",
+  "voiceMic": "Mikrofon",
+  "voiceAssistantLabel": "Asistan",
+  "voiceCameraOn": "Kamera açık",
+  "voiceCameraLabel": "Kamera",
+  "voiceEndCall": "Çağrıyı bitir",
+  "voiceWaitingParticipants": "Katılımcılar bekleniyor...",
+  "voiceYou": "Sen",
+  "voiceAiAssistant": "AI Asistan",
+  "voiceVideoUnavailable": "Video kullanılamıyor",
+  "voiceSearchNickname": "Takma ad ile ara...",
+  "voiceTranscriptionWord": "transkripsiyon",
+  "voiceRecordingWord": "kayıt",
+  "voiceConnecting": "Bağlanıyor...",
+  "voiceVideoBackground": "Video arka planı",
+  "voiceCallSettings": "Çağrı ayarları",
+  "voiceEnableAI": "AI asistanı etkinleştir",
+  "voiceAIParticipating": "AI konuşmaya katılacak",
+  "voiceNormalCall": "AI olmadan normal çağrı",
+  "voiceCallConfirm": "Çağrı yapılsın mı?",
+  "chatAlreadyInCall": "Zaten bir çağrıda",
+  "chatCallError": "Çağrı hatası: {error}",
+  "chatPhotoVideo": "Fotoğraf / Video",
+  "chatCamera": "Kamera",
+  "chatFile": "Dosya",
+  "chatContact": "Kişi",
+  "chatSelectContact": "Bir kişi seç",
+  "chatNoContacts": "Kişi yok",
+  "chatUser": "Kullanıcı",
+  "chatFileAttachment": "📎 Dosya",
+  "chatFileUploadError": "Dosya yükleme hatası: {error}",
+  "chatVoiceMessage": "🎤 Sesli mesaj",
+  "chatGroup": "Grup",
+  "chatDialog": "Diyalog",
+  "chatCall": "Çağrı",
+  "chatStartConversation": "Sohbet başlat",
+  "chatYou": "Sen",
+  "chatIsTyping": "yazıyor...",
+  "chatUserIsTyping": "{name} yazıyor...",
+  "chatUsersAreTyping": "{names} yazıyor...",
+  "chatPreparingFile": "Dosya hazırlanıyor…",
+  "chatUploading": "Yükleniyor… {progress}%",
+  "chatEdited": "Düzenlendi",
+  "chatViaMesh": "ağ üzerinden",
+  "chatReply": "Yanıtla",
+  "chatEdit": "Düzenle",
+  "chatCopy": "Kopyala",
+  "chatCopied": "Kopyalandı",
+  "chatSaveMedia": "Kaydet",
+  "chatForward": "İlet",
+  "chatSaving": "Kaydediliyor...",
+  "chatSavedToGallery": "Galeriye kaydedildi",
+  "chatNoSavePermission": "Kaydetme izni yok. Ayarları kontrol edin.",
+  "chatFileSaveError": "Dosya kaydetme hatası",
+  "chatDeleteMessage": "Mesajı sil",
+  "chatDeleteForMe": "Benim için sil",
+  "chatDeleteForEveryone": "Herkes için sil",
+  "chatMessageForwarded": "Mesaj iletildi",
+  "chatContactTapToOpen": "Kişi · açmak için dokunun",
+  "chatForwardTo": "Şuraya ilet...",
+  "chatSearchHint": "Ara...",
+  "chatRecording": "Kaydediliyor...",
+  "chatMessageHint": "Mesaj...",
+  "chatHideKeyboard": "Klavye gizle",
+  "chatEditing": "Düzenleniyor",
+  "chatFileDownloadError": "Dosya indirme hatası",
+  "chatVoiceMessageShort": "Sesli mesaj",
+  "chatVideoSavedToGallery": "Video galeriye kaydedildi",
+  "chatSavingError": "Kaydetme hatası",
+  "convSetNickname": "Bir takma ad belirleyin",
+  "convNicknameRequired": "Mesajlaşmayı kullanmak için bir takma ad gereklidir. Diğer kullanıcılar sizi bu adla bulabilir.",
+  "convNicknameRules": "3–30 karakter: harfler, rakamlar, _",
+  "convNicknameTaken": "Takma ad zaten alınmış",
+  "convSaveError": "Kaydetme hatası",
+  "convContactsLabel": "Kişiler",
+  "convDefaultUser": "Kullanıcı",
+  "convNoDialogs": "Sohbet yok",
+  "convFindUserToChat": "Sohbet başlatmak için bir kullanıcı bulun",
+  "convDefaultContact": "Kişi",
+  "dashboardUser": "Kullanıcı",
+  "dashboardIncomingCall": "Gelen arama",
+  "dashboardDecline": "Reddet",
+  "dashboardAccept": "Kabul et",
+  "dashboardActiveCall": "Aktif arama — geri dönmek için dokunun",
+  "dashboardUpdateAvailable": "Güncelleme mevcut {version}",
+  "dashboardUpdate": "Güncelle",
+  "dashboardWhatsNew": "Yenilikler",
+  "dashboardWhatsNewTitle": "{version} sürümündeki yenilikler",
+  "dashboardInstalling": "Yükleniyor...",
+  "contactRequestsTitle": "Kişiler",
+  "messengerContactRequestsSection": "Kişi istekleri",
+  "messengerContactRequestsCount": "{count, plural, =1{1 yeni istek} other{{count} yeni istek}}",
+  "contactRequestsSearch": "Ara",
+  "contactRequestsIncoming": "Gelen",
+  "contactRequestsSent": "Gönderilen",
+  "contactRequestsSearchHint": "Takma ad veya e-posta",
+  "contactRequestSent": "İstek gönderildi",
+  "contactRequestsNoUsers": "Kullanıcı bulunamadı",
+  "contactRequestsSearchHelp": "Tam takma ad veya e-posta girin\nve ara'ya basın",
+  "contactRequestsSendTooltip": "İstek gönder",
+  "contactRequestTitle": "Kişi isteği",
+  "contactRequestConfirm": "{name} kişisine istek gönderilsin mi?",
+  "contactRequestSend": "Gönder",
+  "contactRequestsNoIncoming": "Gelen istek yok",
+  "contactRequestsNoSent": "Gönderilen istek yok",
+  "contactRequestStatusPending": "Yanıt bekleniyor",
+  "contactRequestStatusAccepted": "Kabul edildi",
+  "contactRequestStatusRejected": "Reddedildi",
+  "userSearchTitle": "Kullanıcı bul",
+  "userSearchHint": "Takma ad, telefon veya e-posta",
+  "userSearchHelper": "Aramak için @takmaad, e-posta veya isim girin",
+  "userSearchNoUsers": "Kullanıcı bulunamadı",
+  "userProfileShareContact": "Kişiyi paylaş",
+  "userProfileShareContactDesc": "Kişi bağlantısını gönder",
+  "userProfileCopyLink": "Bağlantıyı kopyala",
+  "userProfileCopied": "Kopyalandı",
+  "userProfileTitle": "Profil",
+  "userProfileLoadError": "Profil yükleme hatası",
+  "userProfileMessage": "Mesaj",
+  "userProfileCall": "Ara",
+  "userProfileRequestSent": "İstek gönderildi",
+  "userProfileAccept": "Kabul et",
+  "userProfileDecline": "Reddet",
+  "userProfileAddToContacts": "Kişilere ekle",
+  "userProfileMediaTab": "Medya",
+  "userProfileFilesTab": "Dosyalar",
+  "userProfileLinksTab": "Bağlantılar",
+  "userProfileRecordingsTab": "Kayıtlar",
+  "userProfileSummariesTab": "Özetler",
+  "userProfileNoMedia": "Medya dosyası yok",
+  "userProfileNoFiles": "Dosya yok",
+  "userProfileNoLinks": "Bağlantı yok",
+  "userProfileNoRecordings": "Kayıt yok",
+  "userProfileNoSummaries": "Özet yok",
+  "userProfileMeetingSummary": "Toplantı özeti",
+  "userProfileFailedOpenChat": "Sohbet açılamadı",
+  "sharedMediaTitle": "Medya ve dosyalar",
+  "sharedMediaTab": "Medya",
+  "sharedFilesTab": "Dosyalar",
+  "sharedLinksTab": "Bağlantılar",
+  "sharedNoMedia": "Medya dosyası yok",
+  "sharedNoFiles": "Dosya yok",
+  "sharedNoLinks": "Bağlantı yok",
+  "shareToChat": "Sohbete ilet",
+  "shareSelectChat": "Sohbet seç",
+  "shareNoChats": "Sohbet yok",
+  "shareFilesCount": "{count} dosya",
+  "contactsTitle": "Kişiler",
+  "contactsAddTooltip": "Kişi ekle",
+  "contactsSearchHint": "Kişilerde ara...",
+  "contactsNotFound": "Hiçbir şey bulunamadı",
+  "contactsEmpty": "Kişi yok",
+  "contactsAdd": "Kişi ekle",
+  "contactsPendingConfirmation": "Onay bekleniyor",
+  "contactsMessage": "Mesaj",
+  "contactsCall": "Ara",
+  "contactsResend": "İsteği yeniden gönder",
+  "contactsResendTimeout": "24 saat sonra tekrar dene",
+  "contactsResent": "İstek yeniden gönderildi",
+  "contactsWantsToConnect": "Sizinle bağlantı kurmak istiyor",
+  "contactsSearchPeople": "Kişi bul",
+  "notesTitle": "Notlar",
+  "notesAssistantSpeaking": "Asistan konuşuyor...",
+  "notesListening": "Dinliyor...",
+  "notesEmpty": "Not yok",
+  "notesEmptyHint": "Dikte için mikrofona basın\nveya manuel giriş için +",
+  "notesDeleteConfirm": "Notu sil?",
+  "notesNew": "Yeni not",
+  "notesEdit": "Düzenle",
+  "notesTitleHint": "Başlık",
+  "notesContentHint": "Düşüncelerinizi yazın...",
+  "calendarTitle": "Takvim",
+  "calendarStop": "Durdur",
+  "calendarVoiceInput": "Sesli giriş",
+  "calendarNewEvent": "Yeni etkinlik",
+  "calendarAssistantSpeaking": "Asistan konuşuyor...",
+  "calendarListening": "Dinliyor...",
+  "calendarInvitations": "Davetler ({count})",
+  "calendarNoEvents": "Etkinlik yok",
+  "calendarDayMon": "Pzt",
+  "calendarDayTue": "Sal",
+  "calendarDayWed": "Çar",
+  "calendarDayThu": "Per",
+  "calendarDayFri": "Cum",
+  "calendarDaySat": "Cmt",
+  "calendarDaySun": "Paz",
+  "calendarEnterRoom": "Odaya gir",
+  "calendarMeeting": "Toplantı",
+  "calendarLocationPrefix": "Konum: {location}",
+  "calendarEditEvent": "Düzenle",
+  "calendarTitleHint": "Başlık",
+  "calendarDescriptionHint": "Açıklama",
+  "calendarTypeEvent": "Etkinlik",
+  "calendarTypeMeeting": "Toplantı",
+  "calendarTypeReminder": "Hatırlatıcı",
+  "calendarTypeLabel": "Tür",
+  "calendarMeetingLink": "Toplantı bağlantısı",
+  "calendarLocationHint": "Konum",
+  "calendarDateLabel": "Tarih",
+  "calendarTimeLabel": "Saat",
+  "calendarReminderLabel": "Hatırlatıcı",
+  "calendarReminderNone": "Yok",
+  "calendarReminder15min": "15 dk önce",
+  "calendarReminder30min": "30 dk önce",
+  "calendarReminder1hour": "1 saat önce",
+  "calendarRepeatLabel": "Tekrar",
+  "calendarRepeatNone": "Tekrar yok",
+  "calendarRepeatDaily": "Her gün",
+  "calendarRepeatWeekly": "Her hafta",
+  "calendarRepeatMonthly": "Her ay",
+  "calendarRepeatYearly": "Her yıl",
+  "calendarParticipants": "Katılımcılar",
+  "calendarAddParticipant": "Ekle",
+  "calendarSearchContacts": "Kişilerde ara...",
+  "calendarNoContacts": "Kişi yok",
+  "calendarStatusAccepted": "Kabul edildi",
+  "calendarStatusDeclined": "Reddedildi",
+  "calendarStatusMaybe": "Belki",
+  "calendarStatusPending": "Beklemede",
+  "calendarEndTime": "Bitiş saati",
+  "calendarYourAnswer": "Cevabınız:",
+  "calendarOrganizer": "Organizatör",
+  "calendarDeleteError": "Silme başarısız: {error}",
+  "calendarRsvpAccept": "Kabul et",
+  "calendarRsvpMaybe": "Belki",
+  "calendarRsvpDecline": "Reddet",
+  "callHistoryTitle": "Aramalar",
+  "callHistoryTab": "Arama geçmişi",
+  "callHistoryTempMeeting": "Geçici toplantı",
+  "callHistoryCopy": "Kopyala",
+  "callHistoryLinkCopied": "Bağlantı kopyalandı",
+  "callHistoryShare": "Paylaş",
+  "callHistoryEnter": "Giriş yap",
+  "callHistoryAlreadyInCall": "Zaten bir aramada",
+  "callHistoryCouldNotDeterminePeer": "Diğer taraf belirlenemedi",
+  "callHistoryContacts": "Kişiler",
+  "callHistoryFailedLoadRoom": "Odanız yüklenemedi",
+  "callHistoryYourRoom": "Odanız",
+  "callHistoryCreateMeeting": "Toplantı oluştur",
+  "callHistoryMeetingSummaries": "Toplantı özetleri",
+  "callHistoryMeetingRecordings": "Toplantı kayıtları",
+  "callHistoryNoCalls": "Arama yok",
+  "callHistoryMissed": "Cevapsız",
+  "callHistoryRecording": "Kayıt",
+  "callHistorySummary": "Özet",
+  "callHistoryCallAgain": "Tekrar ara",
+  "callHistoryTodayTime": "Bugün, {time}",
+  "callHistoryYesterdayTime": "Dün, {time}",
+  "callHistoryUnknown": "Bilinmeyen",
+  "callHistoryDetails": "Arama detayları",
+  "callHistoryOutgoing": "Giden arama",
+  "callHistoryIncoming": "Gelen arama",
+  "callHistoryDuration": "Süre: {duration}",
+  "callHistoryWithAI": "AI asistan ile",
+  "callHistoryParticipants": "Katılımcılar",
+  "callDetailYouSuffix": "(Siz)",
+  "callHistoryMeetingSummary": "Toplantı özeti",
+  "callHistoryMoreDetails": "Daha fazla detay",
+  "callHistorySummaryProcessing": "Özet işleniyor...",
+  "callHistoryMeetingRecording": "Toplantı kaydı",
+  "callHistoryProcessing": "İşleniyor...",
+  "callHistoryCreateTranscript": "Transkript oluştur",
+  "callHistoryNoSummaries": "Özet yok",
+  "callHistoryRecordDuringCall": "Arama sırasında \"Kayıt\"a basın",
+  "callHistoryMeetingTime": "Toplantı {time}",
+  "callHistoryTranscribing": "Transkript ve özet oluşturuluyor...",
+  "callHistoryTranscriptCreated": "Transkript oluşturuldu",
+  "callHistoryNoRecordings": "Kayıt yok",
+  "callHistoryRecordingDate": "Kayıt {date}",
+  "callHistoryRecordingUnavailable": "Kayıt mevcut değil",
+  "callHistoryTranscriptReady": "Transkript hazır",
+  "callHistoryTranscript": "Transkript",
+  "callHistoryKeyPoints": "Ana noktalar",
+  "callHistoryTasks": "Görevler",
+  "callHistoryAssignedTo": "Atanan: {assignee}",
+  "callHistoryDecisions": "Kararlar",
+  "callHistoryShowTranscript": "Tam transkripti göster",
+  "profileScanQr": "QR Tara",
+  "profileMyQrCode": "Benim QR kodum",
+  "profileAddMeShare": "Beni Taler ID'de ekle!\ntalerid://user/{userId}",
+  "profileShowCode": "Seni eklemek için bu kodu göster",
+  "profileEditDesc": "Ad, soyad, baba adı, doğum tarihi",
+  "profileAboutMe": "Hakkımda",
+  "profileAboutMeDesc": "Değerler, beceriler, ilgi alanları ve daha fazlası",
+  "profileNotes": "Notlar",
+  "profileNotesDesc": "Düşünceler, fikirler ve notlar",
+  "profileAvatarUpdated": "Avatar güncellendi",
+  "profileNickname": "Takma ad",
+  "profileNotSet": "Ayarlanmadı",
+  "profileChangeNickname": "Takma adı değiştir",
+  "profileNicknameUpdated": "Takma ad güncellendi",
+  "profileShareLabel": "Paylaş",
+  "profileScanQrCode": "QR kodu tara",
+  "profilePointCamera": "Kamerayı QR koda yönelt",
+  "profilePhotoCamera": "Fotoğraf çek",
+  "profilePhotoGallery": "Galeriden seç",
+  "editProfilePatronymic": "Baba adı (isteğe bağlı)",
+  "editProfileDateFormat": "GG.AA.YYYY",
+  "aboutMeTitle": "Hakkımda",
+  "aboutMeClickToFill": "Doldurmak için tıklayın",
+  "aboutMeCoreValues": "Değerler",
+  "aboutMeWorldview": "Dünya görüşü",
+  "aboutMeSkills": "Beceriler",
+  "aboutMeInterests": "İlgi alanları",
+  "aboutMeDesires": "İstekler",
+  "aboutMeBackground": "Profil",
+  "aboutMeLikes": "Beğeniler",
+  "aboutMeDislikes": "Beğenmediklerim",
+  "aboutMeDeleteSection": "Bölümü sil?",
+  "aboutMeDeleteConfirm": "Bu bölümdeki tüm veriler silinecek.",
+  "aboutMeConnectionError": "Bağlantı hatası: {error}",
+  "aboutMeVisibility": "Görünürlük",
+  "aboutMeTags": "Etiketler",
+  "aboutMeAddTag": "Etiket ekle...",
+  "aboutMeDescription": "Açıklama",
+  "aboutMeDescribeLong": "Daha fazla bilgi ver...",
+  "aboutMeVisibilityEveryone": "Herkes",
+  "aboutMeVisibilityContacts": "Kişiler",
+  "aboutMeVisibilityOnlyMe": "Sadece ben",
+  "settingsProfileSubtitle": "Profil",
+  "settingsWallpaper": "Duvar Kağıdı",
+  "settingsWallpaperDesc": "Tüm uygulama için arka plan resmi",
+  "settingsWallpaperNone": "Yok",
+  "settingsAccount": "Hesap",
+  "settingsKycVerification": "Kimlik Doğrulama (KYC)",
+  "settingsOrganizations": "Organizasyonlar",
+  "incomingCallLabel": "Gelen arama",
+  "incomingCallDecline": "Reddet",
+  "incomingCallAccept": "Kabul et",
+  "meshIncomingCallLabel": "📡 Gelen mesh araması",
+  "meshDeviceFallback": "Mesh cihazı {hexPrefix}",
+  "callConflictAlreadyInCall": "Önce mevcut aramayı bitir",
+  "callPopupTransportTitle": "Arama ile",
+  "callPopupTransportMesh": "📡 Mesh (eşler arası)",
+  "callPopupTransportLk": "📞 Sunucu",
+  "callPopupTransportMeshUnavailable": "Kişi mesh üzerinden ulaşılamaz",
+  "meshOnboardingTitle": "📡 Mesh aramaları için uygulama açık olmalı",
+  "meshOnboardingBody": "Telefon kilitliyken, mesh aramaları ~30 saniye sonra düşebilir (iOS kısıtlaması).",
+  "meshOnboardingAck": "Anladım",
+  "meshHistoryBadge": "📡 Mesh",
+  "meshHistoryNoChatAvailable": "Kişi listenizde değil",
+  "meshCallStatusInviting": "Aranıyor…",
+  "meshCallStatusConnecting": "Bağlanıyor…",
+  "meshCallEndedUserHangup": "Arama sona erdi",
+  "meshCallEndedRemoteHangup": "Karşı taraf sonlandırdı",
+  "meshCallEndedRejected": "Reddedildi",
+  "meshCallEndedNoAnswer": "Yanıt yok",
+  "meshCallEndedConnectionLost": "Bağlantı kaybedildi",
+  "meshCallEndedError": "Bağlantı hatası",
+  "meshCallTransportBadge": "📡 Mesh · {transport}",
+  "meshCallTransportBadgePlain": "📡 Mesh",
+  "batteryExemptionTitle": "📡 Güvenilir mesh aramaları",
+  "batteryExemptionBody": "Android'in arka planda mesh'i kapatmaması için uygulamanın pil kısıtlamaları olmadan çalışmasına izin verin.",
+  "batteryExemptionAccept": "Ayarları aç",
+  "batteryExemptionDismiss": "Şimdi değil",
+  "groupCamera": "Kamera",
+  "groupGallery": "Galeri",
+  "groupAvatarUpdated": "Grup avatarı güncellendi",
+  "groupNameTitle": "Grup adı",
+  "groupEnterName": "Ad girin",
+  "groupDescriptionTitle": "Grup açıklaması",
+  "groupEnterDescription": "Grup açıklaması girin",
+  "groupChangeRoleTitle": "Rolü değiştir",
+  "groupRemoveMemberTitle": "Üyeyi kaldır",
+  "groupDescription": "Açıklama",
+  "groupAddDescription": "Grup açıklaması ekle",
+  "groupNoDescription": "Açıklama yok",
+  "groupMediaAndFiles": "Medya ve dosyalar",
+  "groupMuteNotifications": "Bildirimleri sessize al",
+  "groupMuted": "Sessize alındı",
+  "groupNoResults": "Sonuç yok",
+  "authInvalidCode": "Geçersiz kod. Tekrar deneyin.",
+  "loginSubtitle": "E-posta ve şifre kullanın",
+  "emailRequired": "E-posta girin",
+  "emailInvalid": "Geçersiz e-posta",
+  "passwordRequired": "Şifre girin",
+  "registerSubtitle": "Taler ekosisteminin tamamı için tek hesap",
+  "usernameOptional": "Kullanıcı adı (isteğe bağlı)",
+  "usernameMinLength": "En az 3 karakter",
+  "usernameMaxLength": "En fazla 30 karakter",
+  "usernameInvalid": "Sadece harfler, rakamlar ve _",
+  "biometricLoginReason": "Taler ID'ye giriş yapın",
+  "docTypePassport": "Pasaport",
+  "docTypeIdCard": "Kimlik Kartı",
+  "docTypeDriverLicense": "Sürücü Belgesi",
+  "docTypeResidencePermit": "Oturma İzni",
+  "addressApartment": "daire {number}",
+  "failedToUpdateProfile": "Profil güncellenemedi",
+  "failedToStartKyb": "KYB doğrulaması başlatılamadı",
+  "orgUpdated": "Organizasyon güncellendi",
+  "failedToUpdateOrg": "Organizasyon güncellenemedi",
+  "failedToChangeRole": "Rol değiştirilemedi",
+  "failedToRemoveMember": "Üye kaldırılamadı",
+  "capabilityMessagesTitle": "Mesajlar",
+  "capabilityMessagesDesc": "Mesajları kontrol edin veya birine yazın. Örneğin: \"Viktor'a yaz: bir saat içinde orada olacağım\"",
+  "capabilityCallsTitle": "Aramalar",
+  "capabilityCallsDesc": "Herhangi bir kişiyi sesli arayın. Örneğin: \"Viktor Viktorov'u ara\"",
+  "capabilityChatTitle": "Sohbet Geçmişi",
+  "capabilityChatDesc": "Sohbet geçmişini analiz edeceğim. Örneğin: \"Viktor ile ne konuştuk?\"",
+  "capabilityProfileTitle": "Profil",
+  "capabilityProfileDesc": "Profilinizi göstereceğim veya güncelleyeceğim. Örneğin: \"Profilimi göster\"",
+  "capabilityCoachingTitle": "Koçluk",
+  "capabilityCoachingDesc": "Modlar: ICF koçluk, psikolog, İK danışmanlığı. Şunu söyleyin: \"Koçluk yapalım\"",
+  "capabilityCalendarTitle": "Takvim",
+  "capabilityCalendarDesc": "Bir toplantı planlayın veya hatırlatıcı ayarlayın. Örneğin: \"Yarın saat 15:00'te Viktor ile toplantı planla\"",
+  "capabilityNotesTitle": "Notlar",
+  "capabilityNotesDesc": "Bir düşünceyi kaydedin veya son notları okuyun. Örneğin: \"Bir fikir yaz...\" veya \"Son notları oku\"",
+  "assistantCallConfirm": "Arama yapılsın mı?",
+  "callNoAnswer": "Cevap yok",
+  "contactDelete": "Kişiyi kaldır",
+  "contactDeleteTitle": "Kişiyi kaldır",
+  "contactDeleteConfirm": "Emin misiniz? Bu kişi kaldırılacak.",
+  "contactBlock": "Engelle",
+  "contactBlockTitle": "Kullanıcıyı engelle",
+  "contactBlockConfirm": "Bu kullanıcı size mesaj gönderemeyecek veya sizi arayamayacak.",
+  "contactUnblock": "Engeli kaldır",
+  "contactBlocked": "Engellendi",
+  "contactYouAreBlocked": "Bu kullanıcı sizi engelledi",
+  "chatBlockedByYou": "Bu kullanıcıyı engellediniz",
+  "chatYouAreBlocked": "Bu kullanıcı tarafından engellendiniz",
+  "chatNotContacts": "Mesaj göndermek için bu kullanıcıyı kişilere ekleyin",
+  "contactRevokeRequest": "İsteği geri çek",
+  "messengerPoll": "Anket",
+  "messengerCreatePoll": "Anket Oluştur",
+  "messengerPollQuestion": "Soru",
+  "messengerPollOption": "Seçenek {number}",
+  "messengerPollAddOption": "Seçenek ekle",
+  "messengerPollAnonymous": "Anonim oylama",
+  "messengerPollMultiple": "Çoklu seçim",
+  "messengerPollCreateError": "Anket oluşturulamadı",
+  "messengerPollUnavailable": "Anket kullanılamıyor",
+  "messengerPollMultipleNote": "Birden fazla seçebilirsiniz",
+  "messengerPollVotes": "{count} oy",
+  "messengerVideoMessage": "Video mesajı",
+  "messengerVideoRecordError": "Video kaydetme hatası",
+  "messengerVideoPlaybackError": "Video oynatılamadı",
+  "messengerGalleryAccessError": "Galerilere erişim yok",
+  "messengerSearchInChat": "Sohbette ara...",
+  "messengerSaveToFavorites": "Favorilere kaydet",
+  "messengerSavedToFavorites": "Favorilere kaydedildi",
+  "messengerSearchInMessages": "Mesajlarda ara...",
+  "messengerFoundInMessages": "Mesajlarda bulundu ({count})",
+  "messengerGroupDefault": "Grup",
+  "messengerUserDefault": "Kullanıcı",
+  "messengerPin": "Sabitle",
+  "messengerUnpin": "Sabitliği kaldır",
+  "messengerArchive": "Arşivle",
+  "messengerUnarchive": "Arşivden çıkar",
+  "messengerDeleteChat": "Sohbeti sil",
+  "messengerDeleteChatTitle": "Sohbeti sil?",
+  "messengerDeleteChatConfirm": "{name} ile sohbeti sil? Bu işlem geri alınamaz.",
+  "messengerCreateChannel": "Kanal Oluştur",
+  "messengerChannelName": "Ad",
+  "messengerChannelDescription": "Açıklama (isteğe bağlı)",
+  "messengerChannelCreateError": "Kanal oluşturulamadı",
+  "messengerFilterAll": "Tümü",
+  "messengerFilterUnread": "Okunmamış",
+  "messengerFilterPersonal": "Kişisel",
+  "messengerFilterGroups": "Gruplar",
+  "messengerFilterChannels": "Kanallar",
+  "messengerArchivedSection": "Arşivlenmiş",
+  "messengerSavedSection": "Favoriler",
+  "messengerSavedSubtitle": "Hafızaya kaydet",
+  "messengerArchiveTitle": "Arşiv ({count})",
+  "messengerArchiveEmpty": "Arşiv boş",
+  "messengerYouPrefix": "Sen: {message}",
+  "messengerMissedCall": "Cevapsız çağrı",
+  "messengerSavedTitle": "Favoriler",
+  "messengerNoSavedMessages": "Kaydedilmiş mesaj yok",
+  "messengerSavedHint": "Bir mesaja uzun bas → \"Favorilere kaydet\"",
+  "messengerDefaultFile": "Dosya",
+  "messengerTopicDefault": "Genel",
+  "messengerTopicNew": "Yeni Konu",
+  "messengerTopicNameHint": "Konu adı",
+  "messengerTopicIcon": "Simge",
+  "messengerTopicCount": "{count} konu",
+  "messengerNoTopics": "Konu yok",
+  "messengerNoMessages": "Mesaj yok",
+  "you": "Sen",
+  "messengerThread": "Konu",
+  "messengerThreadReply": "yanıtla",
+  "messengerThreadReplies": "yanıtlar",
+  "messengerThreadReplyCount": "{count} {word}",
+  "messengerNoReplies": "Yanıt yok",
+  "messengerReplyHint": "Konuya yanıtla...",
+  "messengerContactName": "Kişi adı",
+  "messengerOriginalName": "Orijinal ad: {name}",
+  "messengerDisplayName": "Görünen ad",
+  "messengerShareContact": "Taler ID'de kişi: {name}",
+  "messengerAutoDelete": "Mesajları otomatik sil",
+  "messengerAutoDeleteOff": "Kapalı",
+  "messengerAutoDelete7d": "7 gün",
+  "messengerAutoDelete30d": "30 gün",
+  "messengerAutoDelete90d": "90 gün",
+  "messengerAutoDeleteDays": "{count} gün",
+  "messengerSettingsHeader": "Ayarlar",
+  "messengerAdminOnly": "Yalnızca yönetici gönderimi",
+  "messengerAdminOnlyDesc": "Üyeler sadece okuyabilir",
+  "messengerTopics": "Konular",
+  "messengerTopicsDesc": "Sohbeti konulara ayır",
+  "aiTwinSection": "AI Ses İkizi",
+  "aiTwinEnabled": "AI İkizini Etkinleştir",
+  "aiTwinEnabledDesc": "Cevap vermezseniz, AI ikiziniz sizin sesinizle aramayı alır",
+  "aiTwinTimeout": "Yanıt süresi",
+  "aiTwinTimeoutValue": "{seconds} sn",
+  "aiTwinPrompt": "AI talimatları",
+  "aiTwinPromptSubtitle": "AI ikizi kendini nasıl tanıtmalı ve ne hakkında konuşmalı",
+  "aiTwinPromptHint": "Merhaba, ben {name}'in AI ses ikiziyim. {name} şu anda cevap veremiyor. Kimin aradığını ve ne hakkında olduğunu söyleyin — ileteceğim.",
+  "aiTwinComingSoon": "Özel ses klonlama yakında geliyor. Şimdilik AI, {name}'in sesiyle konuşuyor.",
+  "aiTwinDefaultName": "sahip",
+  "aiTwinPromptReset": "Sıfırla",
+  "callHistoryAiTwinAnswered": "AI İKİZİ CEVAPLADI",
+  "callHistoryAiTwinSummary": "ARAMA ÖZETİ",
+  "callHistoryAiTwinTranscript": "TRANSKRİPT",
+  "callHistoryAiTwinLabel": "AI",
+  "callHistoryFromCaller": "{name}'den",
+  "aiTwinOfferTitle": "Cevap vermiyor",
+  "aiTwinOfferBody": "{name} cevap vermiyor. AI ses ikiziyle mesaj bırakmak ister misiniz?",
+  "aiTwinOfferBodyUser": "Kullanıcı",
+  "aiTwinOfferAccept": "Evet, mesaj bırak",
+  "aiTwinOfferKeepWaiting": "Beklemeye devam et",
+  "aiTwinLabel": "AI",
+  "aiTwinHeroTitle": "AI yedeğiniz",
+  "aiTwinHeroSubtitle": "Cevap veremediğinizde aramaları sesinizle yanıtlar.",
+  "aiTwinProfileTitle": "AI Yedeği",
+  "aiTwinProfileDesc": "Aramaları sesinizle yanıtlar",
+  "aiTwinBadgeOn": "AÇIK",
+  "aiAnalystTitle": "AI Analisti",
+  "aiAnalystSubtitle": "Dosyalar, görevler, analiz — Claude",
+  "channelsDiscover": "Kanal bul",
+  "channelsSearchHint": "Kanalları ara",
+  "channelsSubscribers": "aboneler",
+  "channelsSubscribe": "Abone ol",
+  "channelsUnsubscribe": "Abonelikten çık",
+  "channelsSubscribedLabel": "Abonesiniz",
+  "channelsSettings": "Kanal ayarları",
+  "channelsDelete": "Kanalı sil",
+  "channelsDeleteConfirm": "Kanalı kalıcı olarak sil?",
+  "channelsEmpty": "Henüz kanal yok",
+  "channelsOpen": "Aç",
+  "channelsNameLabel": "Ad",
+  "channelsDescriptionLabel": "Açıklama",
+  "channelsCannotUnsubscribeOwner": "Sahibi abonelikten çıkamaz. Bunun yerine kanalı silin.",
+  "channelsNotFoundRedirect": "Kanal artık mevcut değil",
+  "analystSeamSearches": "{count, plural, =1{{count} arama} other{{count} arama}}",
+  "analystSeamFiles": "{count, plural, =1{{count} dosya} other{{count} dosya}}",
+  "analystSeamCommands": "{count, plural, =1{{count} komut} other{{count} komut}}",
+  "analystSeamImages": "{count, plural, =1{{count} resim} other{{count} resim}}",
+  "analystSeamOther": "{count, plural, =1{{count} adım} other{{count} adım}}",
+  "analystSeamDurationSeconds": "{seconds}s",
+  "savedTitle": "Kaydedilen Mesajlar",
+  "savedSubtitle": "Özel bulutunuz",
+  "savedOpenError": "Kaydedilen Mesajlar açılamadı",
+  "billingWalletTitle": "Cüzdan",
+  "billingBuyPackage": "Paket satın al",
+  "billingCurrentBalance": "Mevcut bakiye",
+  "billingPackagesTitle": "Paketler",
+  "billingPackagesUnavailable": "Paketler mevcut değil",
+  "billingRecentOperations": "Son işlemler",
+  "billingAllOperations": "Tüm işlemler",
+  "billingNoOperations": "İşlem yok",
+  "billingOperationsTitle": "İşlemler",
+  "billingOperationsEmptyTitle": "Henüz işlem yok",
+  "billingOperationsEmptySubtitle": "AI özellikleri için yapılan yüklemeler ve ücretlendirmeler burada görünecek",
+  "billingPricebookTitle": "Özellik fiyatları",
+  "billingPricebookUnavailable": "Fiyat listesi mevcut değil",
+  "billingAiFeaturesTitle": "AI özellikleri",
+  "billingInsufficientFundsTitle": "Yetersiz bakiye",
+  "billingInsufficientFundsSubtitle": "Bu özelliği kullanmak için bakiyenizi doldurun.",
+  "billingRequiredLine": "Gerekli: {required} μTAL",
+  "billingAvailableLine": "Mevcut: {available} μTAL",
+  "billingTopUp": "Bakiye yükle",
+  "billingCancel": "İptal",
+  "billingRetry": "Tekrar dene",
+  "billingLowBalanceWarning": "Bakiye düşük: {balance} μTAL",
+  "billingWalletAndBalance": "Cüzdan & Bakiye",
+  "billingSectionHeader": "Faturalama & AI",
+  "billingFeatureVoiceAssistant": "Sesli asistan",
+  "billingFeatureWebSearch": "Asistan web araması",
+  "billingFeatureAiTwin": "Ses ikizi",
+  "billingFeatureAiTwinLong": "Ses ikizi (AI Twin)",
+  "billingFeatureOutboundCall": "Giden bot",
+  "billingFeatureOutboundCallLong": "Giden arama botu",
+  "billingFeatureWhisperTranscribe": "Çağrı transkripsiyonu",
+  "billingFeatureMeetingSummary": "AI çağrı özetleri",
+  "billingConfigureAiTwin": "AI ikizini yapılandır",
+  "billingWebSearchSubtitle": "(asistan tarafından kullanılır)",
+  "billingPackagePurchased": "Paket satın alındı: {balance} μTAL",
+  "billingRecommendedBadge": "Önerilen",
+  "billingSessionTerminatedNoFunds": "Bakiye tükendi — oturum sona erdi",
+  "billingSessionTerminatedGeneric": "Asistan oturumu sona erdi",
+  "billingBuyForPrice": "€{price} karşılığında satın al",
+  "billingTxTypeTopup": "Bakiye yükleme",
+  "billingTxTypeRefund": "İade",
+  "billingTxTypeSpend": "Ücretlendirme",
+  "billingUnitMinute": "dakika",
+  "billingUnitRequest": "istek",
+  "billingUnitToken": "token",
+  "billingUnitTokens1k": "1K token",
+  "billingUnitCall": "arama",
+  "groupCallSelectParticipants": "Katılımcıları seç",
+  "groupCallSelectedCount": "{n}/7",
+  "groupCallSearch": "Ara",
+  "groupCallMaxReached": "Maksimum 7 katılımcı",
+  "groupCallLobbyTitle": "Grup • Lobi",
+  "groupCallHostLabel": "Ev sahibi: {name}",
+  "groupCallMicHint": "Bağlanınca mikrofon açılacak",
+  "groupCallCancel": "İptal",
+  "groupCallNoAnswer": "Kimse cevap vermedi",
+  "groupCallEndedByHost": "Arama ev sahibi tarafından sonlandırıldı",
+  "groupCallAllLeft": "Herkes aramadan ayrıldı",
+  "groupCallEnded": "Arama sona erdi",
+  "groupCallActiveTitle": "Grup • {count}",
+  "groupCallConnectionLost": "Bağlantı kesildi",
+  "groupCallMuteRequested": "Ev sahibi herkesin sessize almasını istedi",
+  "groupCallUnmute": "Sesi aç",
+  "groupCallMute": "Sessize al",
+  "groupCallMuteAll": "Herkesi sessize al",
+  "groupCallLeave": "Ayrıl",
+  "groupCallStatusCalling": "aranıyor…",
+  "groupCallStatusDeclined": "reddedildi",
+  "groupCallStatusTimeout": "cevap yok",
+  "groupCallStatusLeft": "ayrıldı",
+  "groupCallKickConfirm": "{name} aramadan çıkarılsın mı?",
+  "groupCallCancelAction": "İptal",
+  "groupCallActiveBanner": "Aktif arama",
+  "groupCallBannerSummary": "Grup: {host} + {count}",
+  "groupCallBannerSummaryAlone": "Grup: {host}",
+  "groupCallCreateError": "Arama oluşturulamadı",
+  "groupCallJoinError": "Aramaya katılamadı",
+  "groupCallLivekitError": "LiveKit hatası",
+  "groupCallDone": "Tamam",
+  "groupCallNoResults": "Sonuç yok",
+  "groupCallNoContacts": "Kişi yok",
+  "meshGcContactOffline": "Bu Wi-Fi'da değil",
+  "meshGcOnlineViaMesh": "Mesh üzerinden çevrimiçi",
+  "meshGcMaxInvitees": "Grup aramaları en fazla 4 davetliyi destekler (toplam 5 kişi).",
+  "meshGcStart": "Grup çağrısını başlat",
+  "meshGcCancel": "İptal",
+  "meshGcStatusCalling": "Aranıyor…",
+  "meshGcStatusJoined": "Katıldı",
+  "meshGcStatusDeclined": "Reddedildi",
+  "meshGcStatusNoAnswer": "Yanıt yok",
+  "meshGcStatusConnectionFailed": "Bağlantı başarısız",
+  "meshGcStatusLeft": "Ayrıldı",
+  "meshGcTopTitle": "Mesh",
+  "meshGcBusyOneOnOne": "Önce mevcut çağrınızı bitirin.",
+  "presenceOnline": "çevrimiçi",
+  "presenceLastSeenJustNow": "az önce görüldü",
+  "presenceLastSeenMinutesAgo": "{minutes} dk önce görüldü",
+  "presenceLastSeenToday": "bugün {time} görüldü",
+  "presenceLastSeenYesterday": "dün {time} görüldü",
+  "presenceLastSeenOnDate": "{date} görüldü",
+  "presenceLastSeenRecently": "son zamanlarda görüldü",
+  "privacySectionTitle": "Gizlilik",
+  "privacyLastSeenLabel": "Son görülme zamanınızı kim görebilir",
+  "privacyEveryone": "Herkes",
+  "privacyContacts": "Sadece kişiler",
+  "privacyNobody": "Kimse",
+  "@verifiedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@verificationError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "@members": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@inviteSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@removeMemberConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@minutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@hoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@version": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetCodeSent": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@memberJoined": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberLeftGroup": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@memberWasRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@roleChangedTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "@participantsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorWithMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceInvitationSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCameraError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceRoomWithCreator": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatCallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatFileUploadError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUserIsTyping": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUsersAreTyping": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatUploading": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      }
+    }
+  },
+  "@dashboardUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@dashboardWhatsNewTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerContactRequestsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@contactRequestConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@shareFilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarInvitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@calendarLocationPrefix": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@calendarDeleteError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryTodayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryYesterdayTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryDuration": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@callDetailYouSuffix": {
+    "description": "Suffix appended to the current user's display name in the call details participants list."
+  },
+  "@callHistoryMeetingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryRecordingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryAssignedTo": {
+    "placeholders": {
+      "assignee": {
+        "type": "String"
+      }
+    }
+  },
+  "@profileAddMeShare": {
+    "placeholders": {
+      "userId": {
+        "type": "String"
+      }
+    }
+  },
+  "@aboutMeConnectionError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshDeviceFallback": {
+    "placeholders": {
+      "hexPrefix": {
+        "type": "String"
+      }
+    }
+  },
+  "@meshCallTransportBadge": {
+    "placeholders": {
+      "transport": {
+        "type": "String"
+      }
+    }
+  },
+  "@addressApartment": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerPollOption": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerPollVotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerFoundInMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerDeleteChatConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerArchiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerYouPrefix": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerTopicCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@messengerThreadReplyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "word": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerOriginalName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerShareContact": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@messengerAutoDeleteDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinTimeoutValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@aiTwinPromptHint": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinComingSoon": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@callHistoryFromCaller": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@aiTwinOfferBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "@billingRequiredLine": {
+    "placeholders": {
+      "required": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingAvailableLine": {
+    "placeholders": {
+      "available": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingLowBalanceWarning": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingPackagePurchased": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "@billingBuyForPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallSelectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallHostLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallActiveTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallKickConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@groupCallBannerSummary": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@groupCallBannerSummaryAlone": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenMinutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "@presenceLastSeenToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenYesterday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@presenceLastSeenOnDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  }
+}
