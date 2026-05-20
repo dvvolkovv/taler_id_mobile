@@ -16,6 +16,9 @@ class ActivityBar extends StatelessWidget {
       _ActivityBarItem(icon: Icons.call_outlined, route: RouteConstants.callHistory, tooltip: 'Calls'),
       _ActivityBarItem(icon: Icons.smart_toy_outlined, route: RouteConstants.assistant, tooltip: 'Assistant'),
       _ActivityBarItem(icon: Icons.calendar_today_outlined, route: RouteConstants.calendar, tooltip: 'Calendar'),
+      _ActivityBarItem(icon: Icons.sticky_note_2_outlined, route: RouteConstants.notes, tooltip: 'Notes'),
+      _ActivityBarItem(icon: Icons.people_outline, route: RouteConstants.contacts, tooltip: 'Contacts'),
+      _ActivityBarItem(icon: Icons.person_outline, route: RouteConstants.profile, tooltip: 'Profile'),
       _ActivityBarItem(icon: Icons.settings_outlined, route: RouteConstants.settings, tooltip: 'Settings'),
     ];
 
