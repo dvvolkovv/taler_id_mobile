@@ -58,4 +58,6 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("com.google.mlkit:segmentation-selfie:16.0.0-beta6")
     compileOnly("io.github.webrtc-sdk:android:125.6422.03")
+    // Phase 1A: Kotlin unit tests for the notifications module.
+    testImplementation("junit:junit:4.13.2")
 }
