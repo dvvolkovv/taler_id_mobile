@@ -4274,6 +4274,34 @@ class _InputBarState extends State<_InputBar> {
   /// true = mic mode (default), false = video mode
   bool _micMode = true;
 
+  KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
+    if (!PlatformUtils.instance.isDesktop) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.enter &&
+        event.logicalKey != LogicalKeyboardKey.numpadEnter) {
+      return KeyEventResult.ignored;
+    }
+    final keys = HardwareKeyboard.instance.logicalKeysPressed;
+    final cmdPressed = keys.contains(LogicalKeyboardKey.metaLeft) ||
+        keys.contains(LogicalKeyboardKey.metaRight) ||
+        keys.contains(LogicalKeyboardKey.controlLeft) ||
+        keys.contains(LogicalKeyboardKey.controlRight);
+    if (cmdPressed) {
+      final controller = widget.controller;
+      final sel = controller.selection;
+      final start = sel.start < 0 ? controller.text.length : sel.start;
+      final end = sel.end < 0 ? controller.text.length : sel.end;
+      final newText = controller.text.replaceRange(start, end, '\n');
+      controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start + 1),
+      );
+      return KeyEventResult.handled;
+    }
+    widget.onSend();
+    return KeyEventResult.handled;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
@@ -4307,18 +4335,21 @@ class _InputBarState extends State<_InputBar> {
                       ),
                     ],
                   )
-                : TextField(
-                    controller: widget.controller,
-                    style: TextStyle(color: colors.textPrimary),
-                    textCapitalization: TextCapitalization.sentences,
-                    minLines: 1,
-                    maxLines: 5,
-                    decoration: InputDecoration(
-                      hintText: AppLocalizations.of(context)!.chatMessageHint,
-                      hintStyle: TextStyle(color: colors.textSecondary),
-                      border: InputBorder.none,
+                : Focus(
+                    onKeyEvent: _handleKey,
+                    child: TextField(
+                      controller: widget.controller,
+                      style: TextStyle(color: colors.textPrimary),
+                      textCapitalization: TextCapitalization.sentences,
+                      minLines: 1,
+                      maxLines: 5,
+                      decoration: InputDecoration(
+                        hintText: AppLocalizations.of(context)!.chatMessageHint,
+                        hintStyle: TextStyle(color: colors.textSecondary),
+                        border: InputBorder.none,
+                      ),
+                      textInputAction: TextInputAction.newline,
                     ),
-                    textInputAction: TextInputAction.newline,
                   ),
           ),
           // Mic / Video toggle button:

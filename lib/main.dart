@@ -35,6 +35,7 @@ import 'core/desktop_tray/desktop_tray_service.dart';
 import 'core/notifications/desktop/desktop_notifications_service.dart';
 import 'core/notifications/desktop/notification_routing.dart';
 import 'core/url_scheme/url_scheme_handler.dart';
+import 'core/platform/desktop_av_permission.dart';
 
 /// Global navigator key used by:
 /// - GoRouter (as `navigatorKey`)
@@ -344,6 +345,19 @@ Future<void> main() async {
 
   // Initialize custom URL scheme handler (talerid://) — desktop only.
   await UrlSchemeHandler.instance.initialize();
+
+  // macOS desktop: request mic+camera via native AVCaptureDevice.requestAccess
+  // through DesktopAvPermission. permission_handler 11.x/12.x has no macOS
+  // implementation, so the previous Permission.microphone.request() was a
+  // silent no-op and the app never appeared in System Settings → Privacy.
+  if (PlatformUtils.instance.isDesktop) {
+    try {
+      await DesktopAvPermission.requestMicrophone();
+      await DesktopAvPermission.requestCamera();
+    } catch (_) {
+      // Best-effort. Errors here are non-fatal.
+    }
+  }
 
   // Init web token storage (Hive-based, avoids flutter_secure_storage hang)
   await SecureStorageService.initWeb();

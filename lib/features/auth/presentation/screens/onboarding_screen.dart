@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../core/platform/desktop_av_permission.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -70,7 +71,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Future<void> _requestMicrophone() async {
     if (!kIsWeb) {
-      await Permission.microphone.request();
+      // Use macOS-native AVCaptureDevice.requestAccess on desktop because
+      // permission_handler does not support macOS.
+      await DesktopAvPermission.requestMicrophone();
     }
     setState(() => _microphoneRequested = true);
   }
