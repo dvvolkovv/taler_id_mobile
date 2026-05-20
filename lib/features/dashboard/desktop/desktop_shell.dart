@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/core/keyboard_shortcuts/shortcut_dispatcher.dart';
+import 'package:taler_id_mobile/core/storage/secure_storage_service.dart';
 import 'package:taler_id_mobile/core/utils/constants.dart';
+import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_bloc.dart';
+import 'package:taler_id_mobile/features/messenger/presentation/bloc/messenger_event.dart';
 import 'widgets/activity_bar.dart';
 import 'widgets/title_bar.dart';
 
-class DesktopShell extends StatelessWidget {
+class DesktopShell extends StatefulWidget {
   final String currentRoute;
   final Widget child;
   const DesktopShell({
@@ -14,17 +19,46 @@ class DesktopShell extends StatelessWidget {
   });
 
   @override
+  State<DesktopShell> createState() => _DesktopShellState();
+}
+
+class _DesktopShellState extends State<DesktopShell> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _connectMessenger());
+  }
+
+  Future<void> _connectMessenger() async {
+    if (!mounted) return;
+    final bloc = context.read<MessengerBloc>();
+    try {
+      final storage = sl<SecureStorageService>();
+      final token = await storage.getAccessToken();
+      final userId = await storage.getUserId();
+      if (bloc.state.isConnected &&
+          userId != null &&
+          bloc.state.currentUserId == userId) {
+        return;
+      }
+      if (token != null && mounted) {
+        bloc.add(ConnectMessenger(token, userId: userId));
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ShortcutDispatcher(
       child: Scaffold(
         body: Column(
           children: [
-            TitleBar(sectionName: _sectionNameFor(currentRoute)),
+            TitleBar(sectionName: _sectionNameFor(widget.currentRoute)),
             Expanded(
               child: Row(
                 children: [
-                  ActivityBar(currentRoute: currentRoute),
-                  Expanded(child: child),
+                  ActivityBar(currentRoute: widget.currentRoute),
+                  Expanded(child: widget.child),
                 ],
               ),
             ),
