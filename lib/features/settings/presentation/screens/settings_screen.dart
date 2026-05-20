@@ -369,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     icon: Icons.language_outlined,
                     iconColor: AppColors.of(context).textSecondary,
                     title: l10n.language,
-                    trailing: _currentLang == 'ru' ? l10n.languageRussian : l10n.languageEnglish,
+                    trailing: _languageNativeName(_currentLang),
                     onTap: () => _showLanguagePicker(context),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
@@ -807,33 +807,88 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     );
   }
 
+  /// (code, flag emoji, native language name).
+  /// Order: ru + en first (legacy defaults), then top-20 spoken languages by
+  /// speaker count, then Hausa + Slovak (per product request 1.0.77).
+  static const _languages = [
+    ('ru', '🇷🇺', 'Русский'),
+    ('en', '🇬🇧', 'English'),
+    ('zh', '🇨🇳', '中文'),
+    ('hi', '🇮🇳', 'हिन्दी'),
+    ('es', '🇪🇸', 'Español'),
+    ('ar', '🇸🇦', 'العربية'),
+    ('bn', '🇧🇩', 'বাংলা'),
+    ('pt', '🇵🇹', 'Português'),
+    ('ur', '🇵🇰', 'اردو'),
+    ('id', '🇮🇩', 'Bahasa Indonesia'),
+    ('de', '🇩🇪', 'Deutsch'),
+    ('ja', '🇯🇵', '日本語'),
+    ('fr', '🇫🇷', 'Français'),
+    ('mr', '🇮🇳', 'मराठी'),
+    ('te', '🇮🇳', 'తెలుగు'),
+    ('tr', '🇹🇷', 'Türkçe'),
+    ('ta', '🇮🇳', 'தமிழ்'),
+    ('vi', '🇻🇳', 'Tiếng Việt'),
+    ('ko', '🇰🇷', '한국어'),
+    ('it', '🇮🇹', 'Italiano'),
+    ('fa', '🇮🇷', 'فارسی'),
+    ('pa', '🇮🇳', 'ਪੰਜਾਬੀ'),
+    ('ha', '🇳🇬', 'Hausa'),
+    ('sk', '🇸🇰', 'Slovenčina'),
+  ];
+
+  String _languageNativeName(String code) =>
+      _languages.firstWhere((l) => l.$1 == code, orElse: () => _languages[1]).$3;
+
   void _showLanguagePicker(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.of(context).card,
+      backgroundColor: colors.card,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(l10n.languageSelect,
-                style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Text('\u{1f1f7}\u{1f1fa}', style: TextStyle(fontSize: 24)),
-              title: Text(l10n.languageRussian, style: TextStyle(color: AppColors.of(context).textPrimary)),
-              trailing: _currentLang == 'ru' ? Icon(Icons.check, color: AppColors.of(context).primary) : null,
-              onTap: () => _selectLanguage('ru'),
-            ),
-            ListTile(
-              leading: const Text('\u{1f1ec}\u{1f1e7}', style: TextStyle(fontSize: 24)),
-              title: Text(l10n.languageEnglish, style: TextStyle(color: AppColors.of(context).textPrimary)),
-              trailing: _currentLang == 'en' ? Icon(Icons.check, color: AppColors.of(context).primary) : null,
-              onTap: () => _selectLanguage('en'),
-            ),
-          ],
+      // Make the sheet scrollable — 24 languages don't fit on most phones at once.
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (_, scrollController) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: colors.textSecondary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Text(l10n.languageSelect,
+                  style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: _languages.length,
+                  itemBuilder: (_, i) {
+                    final (code, flag, name) = _languages[i];
+                    final selected = _currentLang == code;
+                    return ListTile(
+                      leading: Text(flag, style: const TextStyle(fontSize: 24)),
+                      title: Text(name, style: TextStyle(color: colors.textPrimary)),
+                      trailing: selected ? Icon(Icons.check, color: colors.primary) : null,
+                      onTap: () => _selectLanguage(code),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
