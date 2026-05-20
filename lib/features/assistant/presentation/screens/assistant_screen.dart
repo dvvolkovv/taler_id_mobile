@@ -2494,6 +2494,9 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Widget _buildIdle(AppLocalizations l10n) {
     final colors = AppColors.of(context);
+    if (PlatformUtils.instance.isDesktop) {
+      return _buildIdleDesktop(l10n, colors);
+    }
     final screenSize = MediaQuery.of(context).size;
     final shortSide = screenSize.width < screenSize.height ? screenSize.width : screenSize.height;
     final orbitRadius = (shortSide * 0.30).clamp(100.0, 220.0);
@@ -2724,6 +2727,79 @@ class _AssistantScreenState extends State<AssistantScreen>
           ],
         );
       },
+    );
+  }
+
+  Widget _buildIdleDesktop(AppLocalizations l10n, AppColorsExtension colors) {
+    return Center(
+      child: GestureDetector(
+        onTap: _connect,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ScaleTransition(
+              scale: _pulseAnim,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.card,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: 0.4),
+                      blurRadius: 40,
+                      spreadRadius: 4,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _logoVideoReady && _logoVideo != null
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _logoVideo!.value.size.width,
+                            height: _logoVideo!.value.size.height,
+                            child: VideoPlayer(_logoVideo!),
+                          ),
+                        )
+                      : Container(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.black
+                              : Colors.white,
+                          padding: const EdgeInsets.all(12),
+                          child: Image.asset(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? 'assets/app_icon_dark.png'
+                                : 'assets/app_icon_light.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.assistantTapToStart,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
