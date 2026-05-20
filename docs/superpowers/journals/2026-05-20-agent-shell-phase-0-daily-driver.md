@@ -84,5 +84,19 @@ End each day with one-line **Verdict:** keep / rollback / iterate.
 
 **Note про навигацию:** добавил иконку микрофона в AppBar `_AgentShellScaffold` (commit ниже) — без неё с экрана Agent Shell (text chat) к голосовому Assistant не было пути, когда `AGENT_SHELL_AS_HOME=true`.
 
-**Что ещё нужно потестировать:** TC1+TC2 WhatsApp (главный месенджер), TC4 SMS, TC5 Gmail, TC6 permission revocation, групповые чаты, медиа-сообщения.
+**Что ещё нужно потестировать:** TC1+TC2 WhatsApp (главный месенджер), TC4 SMS, TC6 permission revocation, групповые чаты, медиа-сообщения.
+
+**2026-05-20 ~23:00 — Gmail работает после серии фиксов:**
+
+Цепка проблем выявленных вечером (всё закрыто 4 коммитами на main: `5beeeaa`, `1b699c6`, `673cf3e`, `318bd98`):
+
+1. **Bug:** filter `app:'gmail'` искал substring 'gmail' в package name, но Gmail's package — `com.google.android.gm` (без 'gmail'). Модель говорила "нет доступа к Gmail" хотя нотификации лежали в системе. **Fix:** APP_ALIASES map в `NotificationStoreNative.kt`: gmail/whatsapp/telegram/sms/messages/instagram/viber/signal/slack/discord/wechat → точные package names. Если фильтр — известный alias, точный match; иначе substring fallback.
+
+2. **Bug:** После старта приложения буфер пустой до первой новой нотификации. Старые в статус-баре игнорировались. **Fix:** `onListenerConnected` теперь вызывает `activeNotifications` и прогоняет каждую через extract+addPosted. На свежем install буфер сразу заполняется (10 нотификаций replayed на твоём устройстве).
+
+3. **Bug:** На MIUI 14 после reinstall система НЕ биндила listener даже когда Notification access ВКЛ. **Fix #1 (Android-side):** `requestRebind` в `NotificationBridge.init {...}`. **Fix #2 (MIUI specifically):** юзер должен включить **Autostart** в MIUI Security → Permissions → Autostart. Без этого AutoStartManagerService отвергает bind: `MIUILOG- Reject service ... AutStart Unable to bind`. На сток-Android этот шаг НЕ нужен.
+
+4. **UX-fix:** Когда `AGENT_SHELL_AS_HOME=true`, app открывался на text Agent Shell (Phase 0 spike). Юзер хотел сразу в голос. **Fix:** Router initial route теперь `/dashboard/assistant`. Text chat доступен только по прямому URL.
+
+5. **End-to-end:** Gmail-агрегация работает. Yandex-через-Gmail нотификации захватываются и читаются голосом. Phase 1C (Gmail OAuth) больше не критичен — Phase 1A покрывает базу.
 
