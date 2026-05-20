@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 ///   - `!handled` → primary "Разрешить" tonal button on the right
 ///   - `handled && granted` → green ✓ + "Разрешено" text on the right
 ///   - `handled && !granted` → red ✗ + "Запрещено" text on the right
-///     + a red [deniedHint] rendered under the row
+///     + a red [deniedHint] rendered under the row (tappable if [onDeniedHintTap] is set)
 class PermissionRowCard extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -14,6 +14,7 @@ class PermissionRowCard extends StatelessWidget {
   final bool handled;
   final bool granted;
   final String deniedHint;
+  final VoidCallback? onDeniedHintTap;
   final List<Color> accentGradient;
   final VoidCallback onPressed;
 
@@ -25,6 +26,7 @@ class PermissionRowCard extends StatelessWidget {
     required this.handled,
     required this.granted,
     required this.deniedHint,
+    this.onDeniedHintTap,
     required this.accentGradient,
     required this.onPressed,
   });
@@ -94,11 +96,18 @@ class PermissionRowCard extends StatelessWidget {
         if (handled && !granted)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
-            child: Text(
-              deniedHint,
-              style: TextStyle(
-                color: theme.colorScheme.error,
-                fontSize: 12,
+            child: GestureDetector(
+              onTap: onDeniedHintTap,
+              child: Text(
+                deniedHint,
+                style: TextStyle(
+                  color: theme.colorScheme.error,
+                  fontSize: 12,
+                  decoration: onDeniedHintTap != null
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor: theme.colorScheme.error,
+                ),
               ),
             ),
           ),

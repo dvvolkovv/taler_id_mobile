@@ -1,0 +1,25 @@
+<!--
+    Dev-flavor manifest overlay.
+
+    Adds CATEGORY_HOME to MainActivity so the dev build of Taler ID can be
+    selected as the Android home launcher (Agent Shell Phase 0 daily-driver
+    testing). The production flavor intentionally does NOT declare this
+    filter — we don't want to offer Taler ID as a home launcher to real
+    users.
+
+    The Android manifest merger will combine this <intent-filter> with the
+    filters already declared on MainActivity in src/main/AndroidManifest.xml.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

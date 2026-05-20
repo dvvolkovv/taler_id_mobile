@@ -5,6 +5,7 @@ import 'package:taler_id_mobile/core/platform/desktop_av_permission.dart';
 import 'package:taler_id_mobile/core/platform/fcm_messaging.dart';
 import 'package:taler_id_mobile/core/storage/secure_storage_service.dart';
 import 'package:taler_id_mobile/core/utils/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'controllers/onboarding_progress.dart';
 import 'widgets/onboarding_animated_background.dart';
 import 'widgets/permission_row_card.dart';
@@ -80,6 +81,10 @@ class _OnboardingDesktopScreenState extends State<OnboardingDesktopScreen>
     await OnboardingProgress.saveStep(_notificationsHandled ? 2 : 1);
   }
 
+  Future<void> _openSystemSettings(String url) async {
+    await launchUrl(Uri.parse(url));
+  }
+
   Future<void> _finish() async {
     await OnboardingProgress.clear();
     final storage = sl<SecureStorageService>();
@@ -151,6 +156,10 @@ class _OnboardingDesktopScreenState extends State<OnboardingDesktopScreen>
                       granted: _notificationsGranted,
                       deniedHint:
                           '⚠ Включить в System Settings → Notifications → Taler ID',
+                      onDeniedHintTap: _notificationsHandled && !_notificationsGranted
+                          ? () => _openSystemSettings(
+                              'x-apple.systempreferences:com.apple.preference.notifications')
+                          : null,
                       accentGradient: _notifGradient,
                       onPressed: _onClickNotifications,
                     ),
@@ -164,6 +173,10 @@ class _OnboardingDesktopScreenState extends State<OnboardingDesktopScreen>
                       granted: _microphoneGranted,
                       deniedHint:
                           '⚠ Включить в System Settings → Privacy & Security → Microphone',
+                      onDeniedHintTap: _microphoneHandled && !_microphoneGranted
+                          ? () => _openSystemSettings(
+                              'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone')
+                          : null,
                       accentGradient: _micGradient,
                       onPressed: _onClickMicrophone,
                     ),

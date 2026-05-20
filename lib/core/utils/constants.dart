@@ -49,6 +49,9 @@ class RouteConstants {
   static const profileSections = '/dashboard/profile/sections';
   static const aiTwin = '/dashboard/profile/ai-twin';
 
+  // Agent Shell (Phase 0)
+  static const agentShell = '/agent-shell';
+
   // Group voice rooms (Phase 1)
   static const newGroupCall = '/new-group-call';
   static const groupCallLobby = '/group-call/:id/lobby';
