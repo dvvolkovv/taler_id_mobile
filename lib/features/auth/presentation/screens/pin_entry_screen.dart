@@ -3,6 +3,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/desktop/desktop_adaptive_scaffold.dart';
+import '../../../../core/desktop/desktop_breakpoints.dart';
 import '../../../../core/platform/biometric_auth.dart';
 import '../../../../core/router/post_login_redirect.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -96,49 +98,58 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      backgroundColor: AppColors.of(context).background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Spacer(),
-            ClipRRect(
+    return DesktopAdaptiveScaffold(
+      cardMaxWidth: kCardWidthForm,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 8),
+          Center(
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.asset('app_icon_1024.png', width: 64, height: 64),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Taler ID',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.enterPin,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
+          ),
+          const SizedBox(height: 32),
+          PinDots(filled: _pin.length),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
             Text(
-              'Taler ID',
-              style: TextStyle(color: AppColors.of(context).textPrimary, fontSize: 24, fontWeight: FontWeight.bold),
+              _error!,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.of(context).error, fontSize: 13),
             ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.enterPin,
-              style: TextStyle(color: AppColors.of(context).textSecondary, fontSize: 16),
+          ],
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: PinKeyboard(
+              onDigit: _onDigit,
+              onDelete: _onDelete,
+              onBiometric: _biometricAvailable ? _tryBiometric : null,
             ),
-            const SizedBox(height: 32),
-            PinDots(filled: _pin.length),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: TextStyle(color: AppColors.of(context).error, fontSize: 13)),
-            ],
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 48),
-              child: PinKeyboard(
-                onDigit: _onDigit,
-                onDelete: _onDelete,
-                onBiometric: _biometricAvailable ? _tryBiometric : null,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton(
               onPressed: () => context.go(RouteConstants.login),
               child: Text(l10n.loginButton, style: TextStyle(color: AppColors.of(context).textSecondary)),
             ),
-            const SizedBox(height: 16),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
