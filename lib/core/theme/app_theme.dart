@@ -348,3 +348,19 @@ class AppTheme {
     );
   }
 }
+
+extension AppDesktopTextScale on ThemeData {
+  /// Увеличенный typography scale для десктопа.
+  /// Body 14 → 15, H1 30 → 34, и т.д.
+  TextTheme get desktopTextTheme => textTheme.copyWith(
+    displayLarge: textTheme.displayLarge?.copyWith(fontSize: 56, height: 1.1),
+    headlineLarge: textTheme.headlineLarge?.copyWith(fontSize: 40, height: 1.15),
+    headlineMedium: textTheme.headlineMedium?.copyWith(fontSize: 34, height: 1.2),
+    headlineSmall: textTheme.headlineSmall?.copyWith(fontSize: 28, height: 1.25),
+    titleLarge: textTheme.titleLarge?.copyWith(fontSize: 22, height: 1.3),
+    titleMedium: textTheme.titleMedium?.copyWith(fontSize: 17, height: 1.4),
+    bodyLarge: textTheme.bodyLarge?.copyWith(fontSize: 16, height: 1.5),
+    bodyMedium: textTheme.bodyMedium?.copyWith(fontSize: 15, height: 1.5),
+    bodySmall: textTheme.bodySmall?.copyWith(fontSize: 13, height: 1.45),
+  );
+}
