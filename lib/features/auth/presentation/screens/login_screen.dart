@@ -1,9 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/desktop/animated_blob_background.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/router/post_login_redirect.dart';
@@ -20,28 +19,16 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
-  late final AnimationController _bgCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _bgCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 14),
-    )..repeat();
-  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _bgCtrl.dispose();
     super.dispose();
   }
 
@@ -72,16 +59,7 @@ class _LoginScreenState extends State<LoginScreen>
           return Stack(
             children: [
               // Animated background blobs
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: AnimatedBuilder(
-                    animation: _bgCtrl,
-                    builder: (context, _) => CustomPaint(
-                      painter: _LoginBgPainter(time: _bgCtrl.value * 2 * math.pi),
-                    ),
-                  ),
-                ),
-              ),
+              const Positioned.fill(child: AnimatedBlobBackground()),
               SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -275,37 +253,4 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
   }
-}
-
-class _LoginBgPainter extends CustomPainter {
-  final double time;
-  _LoginBgPainter({required this.time});
-
-  static const _blobColors = [
-    Color(0xFF3B82F6),
-    Color(0xFFA855F7),
-    Color(0xFF22D3EE),
-  ];
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    for (var i = 0; i < _blobColors.length; i++) {
-      final phaseX = time * 0.4 + i * 1.8;
-      final phaseY = time * 0.3 + i * 2.4;
-      final cx = size.width * (0.5 + 0.42 * math.sin(phaseX));
-      final cy = size.height * (0.35 + 0.33 * math.cos(phaseY));
-      final radius = size.width * 0.75;
-      final paint = Paint()
-        ..shader = RadialGradient(
-          colors: [
-            _blobColors[i].withOpacity(0.18),
-            _blobColors[i].withOpacity(0.0),
-          ],
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: radius));
-      canvas.drawCircle(Offset(cx, cy), radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _LoginBgPainter old) => old.time != time;
 }
