@@ -35,7 +35,17 @@ class DesktopAdaptiveScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!PlatformUtils.instance.isDesktop) return child;
+    if (!PlatformUtils.instance.isDesktop) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: child,
+          ),
+        ),
+      );
+    }
 
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= kDesktopBreakpoint;

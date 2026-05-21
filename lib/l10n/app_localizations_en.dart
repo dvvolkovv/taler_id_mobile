@@ -2596,6 +2596,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordRequired => 'Enter password';
 
   @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
+
+  @override
   String get registerSubtitle => 'One account for the entire Taler ecosystem';
 
   @override
