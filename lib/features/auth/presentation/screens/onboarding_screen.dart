@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
+import '../../../../core/desktop/desktop_adaptive_scaffold.dart';
+import '../../../../core/desktop/desktop_breakpoints.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/platform/desktop_av_permission.dart';
+import '../../../../core/platform/platform_utils.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -108,6 +111,86 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     ];
 
     final currentGradient = _pageGradients[_currentPage];
+    final isDesktop = PlatformUtils.instance.isDesktop;
+
+    final content = Column(
+      mainAxisSize: isDesktop ? MainAxisSize.min : MainAxisSize.max,
+      children: [
+        // Skip button
+        Align(
+          alignment: Alignment.topRight,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12, right: 16),
+            child: TextButton(
+              onPressed: _finish,
+              child: Text(
+                l10n.onboardingSkip,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+              ),
+            ),
+          ),
+        ),
+
+        // Pages
+        isDesktop
+            ? SizedBox(
+                height: 460,
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (i) => setState(() => _currentPage = i),
+                  children: pages,
+                ),
+              )
+            : Expanded(
+                child: PageView(
+                  controller: _pageController,
+                  onPageChanged: (i) => setState(() => _currentPage = i),
+                  children: pages,
+                ),
+              ),
+
+        // Dots indicator
+        Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_totalPages, (i) {
+              final active = i == _currentPage;
+              final inactiveColor = colors.textSecondary.withValues(alpha: 0.3);
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOutBack,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: active ? 28 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  // Use color (not gradient) to keep the decoration
+                  // type consistent across animation frames — lerping
+                  // between gradient and non-gradient BoxDecoration
+                  // can throw.
+                  color: active ? _pageGradients[i].first : inactiveColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
+        ),
+
+        // Bottom buttons
+        Padding(
+          padding: EdgeInsets.fromLTRB(isDesktop ? 0 : 24, 0, isDesktop ? 0 : 24, isDesktop ? 0 : 32),
+          child: _buildBottomButtons(l10n, colors, currentGradient),
+        ),
+      ],
+    );
+
+    if (isDesktop) {
+      return DesktopAdaptiveScaffold(
+        cardMaxWidth: kCardWidthWide,
+        cardPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        child: content,
+      );
+    }
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -128,68 +211,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ),
           ),
 
-          SafeArea(
-            child: Column(
-              children: [
-                // Skip button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 12, right: 16),
-                    child: TextButton(
-                      onPressed: _finish,
-                      child: Text(
-                        l10n.onboardingSkip,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 14),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Pages
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    onPageChanged: (i) => setState(() => _currentPage = i),
-                    children: pages,
-                  ),
-                ),
-
-                // Dots indicator
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 24),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_totalPages, (i) {
-                      final active = i == _currentPage;
-                      final inactiveColor = colors.textSecondary.withValues(alpha: 0.3);
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOutBack,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: active ? 28 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          // Use color (not gradient) to keep the decoration
-                          // type consistent across animation frames — lerping
-                          // between gradient and non-gradient BoxDecoration
-                          // can throw.
-                          color: active ? _pageGradients[i].first : inactiveColor,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-
-                // Bottom buttons
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                  child: _buildBottomButtons(l10n, colors, currentGradient),
-                ),
-              ],
-            ),
-          ),
+          SafeArea(child: content),
         ],
       ),
     );

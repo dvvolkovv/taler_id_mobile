@@ -11,7 +11,6 @@ import '../../features/auth/presentation/screens/two_fa_screen.dart';
 import '../../features/auth/presentation/screens/pin_setup_screen.dart';
 import '../../features/auth/presentation/screens/pin_entry_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
-import '../../features/auth/desktop/onboarding_desktop_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
@@ -84,9 +83,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: RouteConstants.onboarding,
-      builder: (_, __) => PlatformUtils.instance.isDesktop
-          ? const OnboardingDesktopScreen()
-          : const OnboardingScreen(),
+      builder: (_, __) => const OnboardingScreen(),
     ),
     GoRoute(
       path: RouteConstants.login,
