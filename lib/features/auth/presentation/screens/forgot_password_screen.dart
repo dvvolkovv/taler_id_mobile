@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
+import '../../../../core/desktop/desktop_adaptive_scaffold.dart';
+import '../../../../core/desktop/desktop_breakpoints.dart';
+import '../../../../core/desktop/desktop_input_decoration.dart';
+import '../../../../core/desktop/hover_lift.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../bloc/auth_bloc.dart';
@@ -37,58 +41,73 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  void _onBack(BuildContext context) {
+    if (_step > 0) {
+      setState(() => _step--);
+    } else {
+      context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      appBar: AppBar(
-        title: Text(l10n.forgotPasswordTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (_step > 0) {
-              setState(() => _step--);
-            } else {
-              context.pop();
-            }
-          },
-        ),
-      ),
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is PasswordResetCodeSent) {
-            _email = state.email;
-            setState(() => _step = 1);
-          } else if (state is PasswordResetCodeVerified) {
-            _resetToken = state.resetToken;
-            setState(() => _step = 2);
-          } else if (state is PasswordResetSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(l10n.passwordResetSuccess),
-                backgroundColor: colors.primary,
-              ),
-            );
-            context.pop();
-          } else if (state is AuthFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: colors.error,
-              ),
-            );
-          }
-        },
-        child: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            final isLoading = state is AuthLoading;
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: AnimatedSwitcher(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is PasswordResetCodeSent) {
+          _email = state.email;
+          setState(() => _step = 1);
+        } else if (state is PasswordResetCodeVerified) {
+          _resetToken = state.resetToken;
+          setState(() => _step = 2);
+        } else if (state is PasswordResetSuccess) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.passwordResetSuccess),
+              backgroundColor: colors.primary,
+            ),
+          );
+          context.pop();
+        } else if (state is AuthFailure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: colors.error,
+            ),
+          );
+        }
+      },
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+          return DesktopAdaptiveScaffold(
+            cardMaxWidth: kCardWidthForm,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Tooltip(
+                      message: MaterialLocalizations.of(context).backButtonTooltip,
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back, color: colors.textPrimary),
+                        onPressed: () => _onBack(context),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.forgotPasswordTitle,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: _step == 0
                       ? _buildEmailStep(l10n, colors, isLoading)
@@ -96,10 +115,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           ? _buildCodeStep(l10n, colors, isLoading)
                           : _buildPasswordStep(l10n, colors, isLoading),
                 ),
-              ),
-            );
-          },
-        ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -131,23 +150,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             style: TextStyle(color: colors.textPrimary),
-            decoration: InputDecoration(
-              labelText: l10n.email,
-              filled: true,
-              fillColor: colors.card,
-              prefixIcon: Icon(Icons.email_outlined, color: colors.textSecondary),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colors.border),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colors.border),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: colors.primary, width: 2),
-              ),
+            decoration: desktopInputDecoration(
+              context,
+              label: l10n.email,
+              icon: Icons.email_outlined,
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return l10n.fieldRequired;
@@ -157,16 +163,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        LoadingButton(
-          text: l10n.sendCode,
-          loading: isLoading,
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              context.read<AuthBloc>().add(
-                ForgotPasswordRequested(email: _emailController.text.trim()),
-              );
-            }
-          },
+        HoverLift(
+          shadowBoost: colors.primary,
+          child: LoadingButton(
+            text: l10n.sendCode,
+            loading: isLoading,
+            onPressed: () {
+              if (_formKey.currentState!.validate()) {
+                context.read<AuthBloc>().add(
+                  ForgotPasswordRequested(email: _emailController.text.trim()),
+                );
+              }
+            },
+          ),
         ),
       ],
     );
@@ -231,19 +240,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           },
         ),
         const SizedBox(height: 24),
-        LoadingButton(
-          text: l10n.verify,
-          loading: isLoading,
-          onPressed: () {
-            if (_codeController.text.length == 6) {
-              context.read<AuthBloc>().add(
-                ForgotPasswordCodeVerified(
-                  email: _email,
-                  code: _codeController.text,
-                ),
-              );
-            }
-          },
+        HoverLift(
+          shadowBoost: colors.primary,
+          child: LoadingButton(
+            text: l10n.verify,
+            loading: isLoading,
+            onPressed: () {
+              if (_codeController.text.length == 6) {
+                context.read<AuthBloc>().add(
+                  ForgotPasswordCodeVerified(
+                    email: _email,
+                    code: _codeController.text,
+                  ),
+                );
+              }
+            },
+          ),
         ),
         const SizedBox(height: 12),
         Center(
@@ -295,29 +307,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _passwordController,
           obscureText: _obscurePassword,
           style: TextStyle(color: colors.textPrimary),
-          decoration: InputDecoration(
-            labelText: l10n.newPassword,
-            filled: true,
-            fillColor: colors.card,
-            prefixIcon: Icon(Icons.lock_outlined, color: colors.textSecondary),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: colors.textSecondary,
+          decoration: desktopInputDecoration(
+            context,
+            label: l10n.newPassword,
+            icon: Icons.lock_outlined,
+            suffix: Tooltip(
+              message: _obscurePassword ? l10n.showPassword : l10n.hidePassword,
+              child: IconButton(
+                icon: Icon(
+                  _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: colors.textSecondary,
+                ),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               ),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.primary, width: 2),
             ),
           ),
         ),
@@ -326,29 +328,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           controller: _confirmController,
           obscureText: _obscureConfirm,
           style: TextStyle(color: colors.textPrimary),
-          decoration: InputDecoration(
-            labelText: l10n.confirmNewPassword,
-            filled: true,
-            fillColor: colors.card,
-            prefixIcon: Icon(Icons.lock_outlined, color: colors.textSecondary),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                color: colors.textSecondary,
+          decoration: desktopInputDecoration(
+            context,
+            label: l10n.confirmNewPassword,
+            icon: Icons.lock_outlined,
+            suffix: Tooltip(
+              message: _obscureConfirm ? l10n.showPassword : l10n.hidePassword,
+              child: IconButton(
+                icon: Icon(
+                  _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  color: colors.textSecondary,
+                ),
+                onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
               ),
-              onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: colors.primary, width: 2),
             ),
           ),
         ),
@@ -358,38 +350,41 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           style: TextStyle(color: colors.textSecondary, fontSize: 12),
         ),
         const SizedBox(height: 24),
-        LoadingButton(
-          text: l10n.resetPasswordButton,
-          loading: isLoading,
-          onPressed: () {
-            final pwd = _passwordController.text;
-            final confirm = _confirmController.text;
-            if (pwd.isEmpty || confirm.isEmpty) return;
-            if (pwd.length < 8) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.passwordMinLength),
-                  backgroundColor: AppColors.of(context).error,
+        HoverLift(
+          shadowBoost: colors.primary,
+          child: LoadingButton(
+            text: l10n.resetPasswordButton,
+            loading: isLoading,
+            onPressed: () {
+              final pwd = _passwordController.text;
+              final confirm = _confirmController.text;
+              if (pwd.isEmpty || confirm.isEmpty) return;
+              if (pwd.length < 8) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.passwordMinLength),
+                    backgroundColor: AppColors.of(context).error,
+                  ),
+                );
+                return;
+              }
+              if (pwd != confirm) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.pinMismatch),
+                    backgroundColor: AppColors.of(context).error,
+                  ),
+                );
+                return;
+              }
+              context.read<AuthBloc>().add(
+                ForgotPasswordNewPassword(
+                  resetToken: _resetToken,
+                  newPassword: pwd,
                 ),
               );
-              return;
-            }
-            if (pwd != confirm) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.pinMismatch),
-                  backgroundColor: AppColors.of(context).error,
-                ),
-              );
-              return;
-            }
-            context.read<AuthBloc>().add(
-              ForgotPasswordNewPassword(
-                resetToken: _resetToken,
-                newPassword: pwd,
-              ),
-            );
-          },
+            },
+          ),
         ),
       ],
     );
