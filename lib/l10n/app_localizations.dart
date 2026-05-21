@@ -5056,6 +5056,18 @@ abstract class AppLocalizations {
   /// **'Enter password'**
   String get passwordRequired;
 
+  /// No description provided for @showPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get showPassword;
+
+  /// No description provided for @hidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get hidePassword;
+
   /// No description provided for @registerSubtitle.
   ///
   /// In en, this message translates to:

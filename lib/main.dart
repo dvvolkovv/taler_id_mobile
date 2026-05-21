@@ -491,8 +491,12 @@ class _TalerIdAppState extends State<TalerIdApp> {
         },
         child: MaterialApp.router(
           title: 'Taler ID',
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
+          theme: PlatformUtils.instance.isDesktop
+              ? AppTheme.light.copyWith(textTheme: AppTheme.light.desktopTextTheme)
+              : AppTheme.light,
+          darkTheme: PlatformUtils.instance.isDesktop
+              ? AppTheme.dark.copyWith(textTheme: AppTheme.dark.desktopTextTheme)
+              : AppTheme.dark,
           themeMode: _themeMode,
           routerConfig: appRouter,
           debugShowCheckedModeBanner: false,

@@ -1125,6 +1125,8 @@
   "emailRequired": "Enter email",
   "emailInvalid": "Invalid email",
   "passwordRequired": "Enter password",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
   "registerSubtitle": "One account for the entire Taler ecosystem",
   "usernameOptional": "Username (optional)",
   "usernameMinLength": "Minimum 3 characters",

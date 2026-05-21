@@ -56,4 +56,12 @@ abstract class SecureStorage {
   static void debugResetForTest() {
     _instance = null;
   }
+
+  /// Overrides the singleton with a test double. **Test use only** — never
+  /// call in production code. Call [debugResetForTest] in `tearDown` to clean
+  /// up.
+  @visibleForTesting
+  static set debugInstance(SecureStorage instance) {
+    _instance = instance;
+  }
 }
