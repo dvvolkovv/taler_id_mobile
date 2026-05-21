@@ -2606,6 +2606,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get passwordRequired => 'Введите пароль';
 
   @override
+  String get showPassword => 'Показать пароль';
+
+  @override
+  String get hidePassword => 'Скрыть пароль';
+
+  @override
   String get registerSubtitle => 'Один аккаунт для всей экосистемы Taler';
 
   @override

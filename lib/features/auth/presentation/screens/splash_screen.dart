@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
+import '../../../../core/desktop/animated_blob_background.dart';
+import '../../../../core/desktop/desktop_window_chrome.dart';
 import '../../../../core/platform/biometric_auth.dart';
+import '../../../../core/platform/platform_utils.dart';
 import '../../../../core/router/post_login_redirect.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -130,114 +133,133 @@ class _SplashScreenState extends State<SplashScreen>
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
 
-    return Scaffold(
-      backgroundColor: colors.background,
-      body: FadeTransition(
-        opacity: _fadeAnim,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 140,
-                height: 140,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Rotating conic-gradient ring
-                    AnimatedBuilder(
-                      animation: _ringCtrl,
-                      builder: (context, _) => Transform.rotate(
-                        angle: _ringCtrl.value * 2 * math.pi,
-                        child: CustomPaint(
-                          size: const Size(128, 128),
-                          painter: _SplashRingPainter(
-                            colors: const [
-                              Color(0xFF22D3EE),
-                              Color(0xFFA855F7),
-                              Color(0xFFFBBF24),
-                              Color(0xFFFB7185),
-                              Color(0xFF22D3EE),
-                            ],
-                          ),
+    final body = FadeTransition(
+      opacity: _fadeAnim,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 140,
+              height: 140,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Rotating conic-gradient ring
+                  AnimatedBuilder(
+                    animation: _ringCtrl,
+                    builder: (context, _) => Transform.rotate(
+                      angle: _ringCtrl.value * 2 * math.pi,
+                      child: CustomPaint(
+                        size: const Size(128, 128),
+                        painter: _SplashRingPainter(
+                          colors: const [
+                            Color(0xFF22D3EE),
+                            Color(0xFFA855F7),
+                            Color(0xFFFBBF24),
+                            Color(0xFFFB7185),
+                            Color(0xFF22D3EE),
+                          ],
                         ),
                       ),
                     ),
-                    // Logo container with multi-color glow
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.primary.withOpacity(0.45),
-                            blurRadius: 30,
-                            spreadRadius: 4,
-                          ),
-                          BoxShadow(
-                            color: const Color(0xFFA855F7).withOpacity(0.25),
-                            blurRadius: 50,
-                            spreadRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: _videoReady && _videoController != null
-                            ? FittedBox(
-                                fit: BoxFit.cover,
-                                child: SizedBox(
-                                  width: _videoController!.value.size.width,
-                                  height: _videoController!.value.size.height,
-                                  child: VideoPlayer(_videoController!),
-                                ),
-                              )
-                            : Container(
-                                width: 80,
-                                height: 80,
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Image.asset(
-                                    Theme.of(context).brightness == Brightness.dark
-                                        ? 'assets/app_icon_dark.png'
-                                        : 'assets/app_icon_light.png',
-                                    fit: BoxFit.contain,
-                                  ),
+                  ),
+                  // Logo container with multi-color glow
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primary.withOpacity(0.45),
+                          blurRadius: 30,
+                          spreadRadius: 4,
+                        ),
+                        BoxShadow(
+                          color: const Color(0xFFA855F7).withOpacity(0.25),
+                          blurRadius: 50,
+                          spreadRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: _videoReady && _videoController != null
+                          ? FittedBox(
+                              fit: BoxFit.cover,
+                              child: SizedBox(
+                                width: _videoController!.value.size.width,
+                                height: _videoController!.value.size.height,
+                                child: VideoPlayer(_videoController!),
+                              ),
+                            )
+                          : Container(
+                              width: 80,
+                              height: 80,
+                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
+                              child: Padding(
+                                padding: const EdgeInsets.all(10),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
                                 ),
                               ),
-                      ),
+                            ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              ShaderMask(
-                shaderCallback: (rect) => const LinearGradient(
-                  colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ).createShader(rect),
-                child: const Text(
-                  'Taler ID',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ShaderMask(
+              shaderCallback: (rect) => const LinearGradient(
+                colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(rect),
+              child: const Text(
+                'Taler ID',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                l10n.appSubtitle,
-                style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                textAlign: TextAlign.center,
-              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.appSubtitle,
+              style: TextStyle(color: colors.textSecondary, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (!PlatformUtils.instance.isDesktop) {
+      return Scaffold(
+        backgroundColor: colors.background,
+        body: body,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AnimatedBlobBackground()),
+          Column(
+            children: [
+              const DesktopWindowChrome(),
+              Expanded(child: Center(child: body)),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

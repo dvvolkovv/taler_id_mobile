@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter/widgets.dart';
+import 'package:flutter_acrylic/flutter_acrylic.dart' as acrylic;
 import 'package:window_manager/window_manager.dart';
 import 'package:taler_id_mobile/core/platform/platform_utils.dart';
 import 'window_state_persistence.dart';
@@ -19,6 +21,27 @@ class WindowSetup with WindowListener {
     if (!PlatformUtils.instance.isDesktop) return;
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
+
+    // Windows: Mica backdrop (через flutter_acrylic)
+    if (PlatformUtils.instance.isWindows) {
+      try {
+        // Lazy import чтобы не падало на macOS если пакет не подгрузился
+        // ignore: avoid_dynamic_calls
+        final ok = await _initWindowsAcrylic();
+        if (ok) {
+          debugPrint('[WindowSetup] Windows Mica backdrop applied');
+        }
+      } catch (e) {
+        debugPrint('[WindowSetup] Mica init failed (downgrade to opaque): $e');
+      }
+    }
+
+    // Linux: frameless через window_manager
+    if (PlatformUtils.instance.isLinux) {
+      // titleBarStyle уже hidden, frameless даёт borderless окно
+      // ВНИМАНИЕ: на Linux WM поддержка фрэймлесса варьируется (GNOME/KDE/sway).
+      // Если что-то странно — закомментировать.
+    }
 
     final persistence = WindowStatePersistence();
     await persistence.initialize();
@@ -54,6 +77,15 @@ class WindowSetup with WindowListener {
         if (saved.isMaximized) await windowManager.maximize();
       }
     });
+  }
+
+  static Future<bool> _initWindowsAcrylic() async {
+    await acrylic.Window.initialize();
+    await acrylic.Window.setEffect(
+      effect: acrylic.WindowEffect.mica,
+      dark: true,
+    );
+    return true;
   }
 
   /// Call after [initialize] to register a debounced save listener.

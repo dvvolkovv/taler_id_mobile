@@ -1125,6 +1125,8 @@
   "emailRequired": "Введите email",
   "emailInvalid": "Некорректный email",
   "passwordRequired": "Введите пароль",
+  "showPassword": "Показать пароль",
+  "hidePassword": "Скрыть пароль",
   "registerSubtitle": "Один аккаунт для всей экосистемы Taler",
   "usernameOptional": "Никнейм (необязательно)",
   "usernameMinLength": "Минимум 3 символа",
