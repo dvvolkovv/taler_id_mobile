@@ -8,6 +8,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/platform/biometric_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:taler_id_mobile/core/platform/fcm_messaging.dart';
+import '../../../../core/platform/desktop_av_permission.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
@@ -40,7 +41,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
   bool _biometricAvailable = _cachedBiometricAvailable ?? false;
   bool _pinEnabled = false;
   String _currentLang = 'ru';
-  String _currentTheme = 'light';
+  String _currentTheme =
+      PlatformUtils.instance.isDesktop ? 'dark' : 'light';
   bool _wakeWordEnabled = WakeWordService.isSettingEnabled;
   String _appVersion = '';
   bool _permNotifications = false;
@@ -76,15 +78,30 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     try {
       notif = await FcmMessagingPlatform.instance.hasPermission();
     } catch (_) {}
-    final mic = await Permission.microphone.status;
-    final cam = await Permission.camera.status;
-    final loc = await Permission.locationWhenInUse.status;
+    final bool micGranted;
+    final bool camGranted;
+    final bool locGranted;
+    if (PlatformUtils.instance.isDesktop) {
+      // permission_handler 11.x/12.x has no macOS implementation —
+      // route through DesktopAvPermission. Linux/Windows have no TCC and
+      // checkX() returns granted (3).
+      micGranted = (await DesktopAvPermission.checkMicrophone()) == 3;
+      camGranted = (await DesktopAvPermission.checkCamera()) == 3;
+      locGranted = true; // no location prompt on desktop in this app
+    } else {
+      final mic = await Permission.microphone.status;
+      final cam = await Permission.camera.status;
+      final loc = await Permission.locationWhenInUse.status;
+      micGranted = mic.isGranted || mic.isLimited;
+      camGranted = cam.isGranted || cam.isLimited;
+      locGranted = loc.isGranted || loc.isLimited;
+    }
     if (!mounted) return;
     setState(() {
       _permNotifications = notif;
-      _permMicrophone = mic.isGranted || mic.isLimited;
-      _permCamera = cam.isGranted || cam.isLimited;
-      _permLocation = loc.isGranted || loc.isLimited;
+      _permMicrophone = micGranted;
+      _permCamera = camGranted;
+      _permLocation = locGranted;
     });
   }
 
@@ -99,6 +116,28 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
         ),
       );
       await openAppSettings();
+    } else {
+      await requestFn();
+    }
+    await _loadPermissions();
+  }
+
+  /// Desktop-aware toggle for mic/camera that routes through DesktopAvPermission
+  /// (permission_handler has no macOS implementation).
+  Future<void> _toggleAvPermissionDesktop({
+    required bool currentlyGranted,
+    required Future<bool> Function() requestFn,
+  }) async {
+    if (currentlyGranted) {
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.permissionOpenSettings),
+          backgroundColor: AppColors.of(context).primary,
+        ),
+      );
+      // On macOS open System Settings → Privacy & Security manually.
+      // openAppSettings() from permission_handler is a no-op on macOS.
     } else {
       await requestFn();
     }
@@ -128,7 +167,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
     final biometricEnabled = await _storage.isBiometricEnabled;
     final pinEnabled = await _storage.isPinEnabled;
     final savedLang = await _storage.getLanguage() ?? 'ru';
-    final savedTheme = await _storage.getThemeMode() ?? 'light';
+    final savedTheme = await _storage.getThemeMode() ??
+        (PlatformUtils.instance.isDesktop ? 'dark' : 'light');
     bool available = false;
     try {
       final bio = BiometricAuthPlatform.instance;
@@ -295,10 +335,15 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     title: l10n.permissionMicrophone,
                     subtitle: l10n.permissionMicrophoneDesc,
                     value: _permMicrophone,
-                    onChanged: (_) => _togglePermission(
-                      _permMicrophone,
-                      () => Permission.microphone.request(),
-                    ),
+                    onChanged: (_) => PlatformUtils.instance.isDesktop
+                        ? _toggleAvPermissionDesktop(
+                            currentlyGranted: _permMicrophone,
+                            requestFn: DesktopAvPermission.requestMicrophone,
+                          )
+                        : _togglePermission(
+                            _permMicrophone,
+                            () => Permission.microphone.request(),
+                          ),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _switchTile(
@@ -307,10 +352,15 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     title: l10n.permissionCamera,
                     subtitle: l10n.permissionCameraDesc,
                     value: _permCamera,
-                    onChanged: (_) => _togglePermission(
-                      _permCamera,
-                      () => Permission.camera.request(),
-                    ),
+                    onChanged: (_) => PlatformUtils.instance.isDesktop
+                        ? _toggleAvPermissionDesktop(
+                            currentlyGranted: _permCamera,
+                            requestFn: DesktopAvPermission.requestCamera,
+                          )
+                        : _togglePermission(
+                            _permCamera,
+                            () => Permission.camera.request(),
+                          ),
                   ),
                   Divider(color: AppColors.of(context).border, height: 1),
                   _switchTile(

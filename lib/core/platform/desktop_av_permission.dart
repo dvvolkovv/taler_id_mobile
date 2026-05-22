@@ -76,4 +76,26 @@ class DesktopAvPermission {
     }
     return 3; // assume granted on Win/Linux
   }
+
+  /// Returns current camera authorization status.
+  /// macOS values: 0=notDetermined, 1=restricted, 2=denied, 3=authorized.
+  /// Falls back to 0 (notDetermined) if the macOS channel does not implement
+  /// `checkCamera` yet; the request flow still works because
+  /// [requestCamera] triggers the system popup.
+  static Future<int> checkCamera() async {
+    if (PlatformUtils.instance.isMacOS) {
+      try {
+        return await _channel.invokeMethod<int>('checkCamera') ?? 0;
+      } catch (_) {
+        return 0;
+      }
+    }
+    if (PlatformUtils.instance.isMobile) {
+      final s = await Permission.camera.status;
+      if (s.isGranted) return 3;
+      if (s.isDenied) return 2;
+      return 0;
+    }
+    return 3; // assume granted on Win/Linux
+  }
 }

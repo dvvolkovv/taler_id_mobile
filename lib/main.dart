@@ -395,17 +395,22 @@ Future<void> main() async {
   // Load saved language & theme
   final storage = sl<SecureStorageService>();
   String? savedLang;
-  ThemeMode themeMode = ThemeMode.light;
+  // Default to dark on desktop (per Taler ID spec — dark-only brand), light on mobile.
+  ThemeMode themeMode =
+      PlatformUtils.instance.isDesktop ? ThemeMode.dark : ThemeMode.light;
   try {
     savedLang = await storage.getLanguage();
     final savedTheme = await storage.getThemeMode();
-    themeMode = switch (savedTheme) {
-      'dark' => ThemeMode.dark,
-      'system' => ThemeMode.system,
-      _ => ThemeMode.light,
-    };
+    if (savedTheme != null) {
+      themeMode = switch (savedTheme) {
+        'dark' => ThemeMode.dark,
+        'light' => ThemeMode.light,
+        'system' => ThemeMode.system,
+        _ => themeMode, // keep platform default
+      };
+    }
   } catch (_) {
-    // Corrupted storage — use defaults
+    // Corrupted storage — use platform default
   }
 
   // Load persisted wallpaper choice

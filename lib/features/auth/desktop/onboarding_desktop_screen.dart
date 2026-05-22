@@ -86,7 +86,7 @@ class _OnboardingDesktopScreenState extends State<OnboardingDesktopScreen> {
     if (!mounted) return;
     final hasToken = await storage.hasRefreshToken;
     if (!mounted) return;
-    context.go(hasToken ? RouteConstants.assistant : RouteConstants.login);
+    context.go(hasToken ? RouteConstants.messenger : RouteConstants.login);
   }
 
   bool get _canContinue => _notificationsHandled && _microphoneHandled;

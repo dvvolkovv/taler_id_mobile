@@ -501,10 +501,13 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
               centerTitle: true,
               floating: true,
               snap: true,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                onPressed: () => context.go('/dashboard/assistant'),
-              ),
+              automaticallyImplyLeading: !PlatformUtils.instance.isDesktop,
+              leading: PlatformUtils.instance.isDesktop
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                      onPressed: () => context.go('/dashboard/assistant'),
+                    ),
               title: Text(l10n.callHistoryTitle),
               actions: [
                 const Padding(

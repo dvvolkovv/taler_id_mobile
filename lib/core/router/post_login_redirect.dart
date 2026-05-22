@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/oauth/data/oauth_pending_request.dart';
 import '../di/service_locator.dart';
+import '../platform/platform_utils.dart';
 import '../storage/secure_storage_service.dart';
 import '../utils/constants.dart';
 
@@ -21,5 +22,8 @@ Future<void> postLoginNavigate(BuildContext context) async {
   final storage = sl<SecureStorageService>();
   final seen = await storage.isOnboardingSeen;
   if (!context.mounted) return;
-  context.go(seen ? RouteConstants.assistant : RouteConstants.onboarding);
+  final defaultRoute = PlatformUtils.instance.isDesktop
+      ? RouteConstants.messenger
+      : RouteConstants.assistant;
+  context.go(seen ? defaultRoute : RouteConstants.onboarding);
 }
