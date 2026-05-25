@@ -2953,6 +2953,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
 
     return GestureDetector(
       onLongPress: () => _showMessageActions(context),
+      onSecondaryTap: () => _showMessageActions(context),
       onHorizontalDragUpdate: (details) {
         if (details.delta.dx > 0 || _dragOffset > 0) {
           final newOffset = (_dragOffset + details.delta.dx).clamp(0.0, _maxDrag);
@@ -3647,6 +3648,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
     const size = 200.0;
     return GestureDetector(
       onLongPress: () => _showMessageActions(context),
+      onSecondaryTap: () => _showMessageActions(context),
       child: Align(
         alignment: widget.isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: Padding(
