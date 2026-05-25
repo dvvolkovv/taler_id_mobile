@@ -783,7 +783,7 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                           if (oldCtrl.text.isEmpty || newCtrl.text.isEmpty || confirmCtrl.text.isEmpty) return;
                           if (newCtrl.text != confirmCtrl.text) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.pinMismatch), backgroundColor: colors.error),
+                              SnackBar(content: Text(l10n.passwordMismatch), backgroundColor: colors.error),
                             );
                             return;
                           }

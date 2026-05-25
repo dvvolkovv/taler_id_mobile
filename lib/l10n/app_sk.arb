@@ -190,6 +190,7 @@
   "enterPin": "Zadajte PIN",
   "confirmPin": "Potvrďte PIN",
   "pinMismatch": "PIN kódy sa nezhodujú",
+  "passwordMismatch": "Heslá sa nezhodujú",
   "pinSet": "PIN úspešne nastavený",
   "enterPinToLogin": "Zadajte PIN na prihlásenie",
   "pinIncorrect": "Nesprávny PIN",

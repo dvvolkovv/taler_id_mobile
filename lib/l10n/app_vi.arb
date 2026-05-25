@@ -190,6 +190,7 @@
   "enterPin": "Nhập PIN",
   "confirmPin": "Xác nhận PIN",
   "pinMismatch": "PIN không khớp",
+  "passwordMismatch": "Mật khẩu không khớp",
   "pinSet": "Thiết lập PIN thành công",
   "enterPinToLogin": "Nhập PIN để đăng nhập",
   "pinIncorrect": "PIN không đúng",

@@ -190,6 +190,7 @@
   "enterPin": "پن درج کریں",
   "confirmPin": "پن کی تصدیق کریں",
   "pinMismatch": "پن مماثل نہیں ہیں",
+  "passwordMismatch": "پاس ورڈ مماثل نہیں ہیں",
   "pinSet": "پن کامیابی سے سیٹ ہو گیا",
   "enterPinToLogin": "سائن ان کرنے کے لئے پن درج کریں",
   "pinIncorrect": "غلط پن",

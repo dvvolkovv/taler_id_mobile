@@ -190,6 +190,7 @@
   "enterPin": "Masukkan PIN",
   "confirmPin": "Konfirmasi PIN",
   "pinMismatch": "PIN tidak cocok",
+  "passwordMismatch": "Kata sandi tidak cocok",
   "pinSet": "PIN berhasil diatur",
   "enterPinToLogin": "Masukkan PIN untuk masuk",
   "pinIncorrect": "PIN salah",

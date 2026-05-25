@@ -371,7 +371,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               if (pwd != confirm) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(l10n.pinMismatch),
+                    content: Text(l10n.passwordMismatch),
                     backgroundColor: AppColors.of(context).error,
                   ),
                 );

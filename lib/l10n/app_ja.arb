@@ -190,6 +190,7 @@
   "enterPin": "PINを入力",
   "confirmPin": "PINを確認",
   "pinMismatch": "PINが一致しません",
+  "passwordMismatch": "パスワードが一致しません",
   "pinSet": "PINが正常に設定されました",
   "enterPinToLogin": "サインインするにはPINを入力",
   "pinIncorrect": "PINが正しくありません",

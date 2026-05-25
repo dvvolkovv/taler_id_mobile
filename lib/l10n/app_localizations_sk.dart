@@ -614,6 +614,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get pinMismatch => 'PIN kódy sa nezhodujú';
 
   @override
+  String get passwordMismatch => 'Heslá sa nezhodujú';
+
+  @override
   String get pinSet => 'PIN úspešne nastavený';
 
   @override
@@ -2601,6 +2604,12 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Zadajte heslo';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Jeden účet pre celý ekosystém Taler';

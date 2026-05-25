@@ -190,6 +190,7 @@
   "enterPin": "أدخل رمز PIN",
   "confirmPin": "تأكيد رمز PIN",
   "pinMismatch": "الرموز غير متطابقة",
+  "passwordMismatch": "كلمات المرور غير متطابقة",
   "pinSet": "تم تعيين رمز PIN بنجاح",
   "enterPinToLogin": "أدخل رمز PIN لتسجيل الدخول",
   "pinIncorrect": "رمز PIN غير صحيح",

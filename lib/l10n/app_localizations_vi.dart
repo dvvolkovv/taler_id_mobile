@@ -611,6 +611,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get pinMismatch => 'PIN không khớp';
 
   @override
+  String get passwordMismatch => 'Mật khẩu không khớp';
+
+  @override
   String get pinSet => 'Thiết lập PIN thành công';
 
   @override
@@ -2590,6 +2593,12 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Nhập mật khẩu';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Một tài khoản cho toàn bộ hệ sinh thái Taler';

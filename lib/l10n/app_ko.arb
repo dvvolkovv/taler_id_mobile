@@ -190,6 +190,7 @@
   "enterPin": "PIN 입력",
   "confirmPin": "PIN 확인",
   "pinMismatch": "PIN이 일치하지 않습니다",
+  "passwordMismatch": "비밀번호가 일치하지 않습니다",
   "pinSet": "PIN이 성공적으로 설정되었습니다",
   "enterPinToLogin": "로그인하려면 PIN을 입력하세요",
   "pinIncorrect": "잘못된 PIN",

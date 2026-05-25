@@ -190,6 +190,7 @@
   "enterPin": "PIN Girin",
   "confirmPin": "PIN'i Onayla",
   "pinMismatch": "PIN'ler eşleşmiyor",
+  "passwordMismatch": "Şifreler eşleşmiyor",
   "pinSet": "PIN başarıyla ayarlandı",
   "enterPinToLogin": "Giriş yapmak için PIN girin",
   "pinIncorrect": "Hatalı PIN",

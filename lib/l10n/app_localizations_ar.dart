@@ -611,6 +611,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pinMismatch => 'الرموز غير متطابقة';
 
   @override
+  String get passwordMismatch => 'كلمات المرور غير متطابقة';
+
+  @override
   String get pinSet => 'تم تعيين رمز PIN بنجاح';
 
   @override
@@ -2587,6 +2590,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get passwordRequired => 'أدخل كلمة المرور';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'حساب واحد لكل نظام Taler';

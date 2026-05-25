@@ -614,6 +614,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get pinMismatch => 'PIN जुळत नाहीत';
 
   @override
+  String get passwordMismatch => 'पासवर्ड जुळत नाहीत';
+
+  @override
   String get pinSet => 'PIN यशस्वीरित्या सेट केला';
 
   @override
@@ -2595,6 +2598,12 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get passwordRequired => 'पासवर्ड प्रविष्ट करा';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'संपूर्ण Taler पर्यावरणासाठी एक खाते';

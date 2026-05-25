@@ -615,6 +615,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pinMismatch => 'PIN-коды не совпадают';
 
   @override
+  String get passwordMismatch => 'Пароли не совпадают';
+
+  @override
   String get pinSet => 'PIN-код установлен';
 
   @override

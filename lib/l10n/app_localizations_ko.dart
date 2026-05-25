@@ -599,6 +599,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pinMismatch => 'PIN이 일치하지 않습니다';
 
   @override
+  String get passwordMismatch => '비밀번호가 일치하지 않습니다';
+
+  @override
   String get pinSet => 'PIN이 성공적으로 설정되었습니다';
 
   @override
@@ -2567,6 +2570,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get passwordRequired => '비밀번호 입력';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Taler 생태계 전체를 위한 하나의 계정';

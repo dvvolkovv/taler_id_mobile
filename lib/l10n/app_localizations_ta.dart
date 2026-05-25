@@ -619,6 +619,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get pinMismatch => 'பின்கள் பொருந்தவில்லை';
 
   @override
+  String get passwordMismatch => 'கடவுச்சொற்கள் பொருந்தவில்லை';
+
+  @override
   String get pinSet => 'பின் வெற்றிகரமாக அமைக்கப்பட்டது';
 
   @override
@@ -2614,6 +2617,12 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get passwordRequired => 'கடவுச்சொல்லை உள்ளிடவும்';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'முழு Taler சூழலுக்கான ஒரு கணக்கு';

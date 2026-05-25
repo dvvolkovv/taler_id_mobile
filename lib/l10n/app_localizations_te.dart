@@ -615,6 +615,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get pinMismatch => 'PINలు సరిపోలడం లేదు';
 
   @override
+  String get passwordMismatch => 'పాస్‌వర్డ్‌లు సరిపోలడం లేదు';
+
+  @override
   String get pinSet => 'PIN విజయవంతంగా సెటప్ చేయబడింది';
 
   @override
@@ -2605,6 +2608,12 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get passwordRequired => 'పాస్‌వర్డ్ నమోదు చేయండి';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'మొత్తం Taler పర్యావరణ వ్యవస్థకు ఒక ఖాతా';
