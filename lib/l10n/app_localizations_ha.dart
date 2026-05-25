@@ -613,6 +613,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get pinMismatch => 'PIN ba su dace ba';
 
   @override
+  String get passwordMismatch => 'Kalmomin sirri ba su dace ba';
+
+  @override
   String get pinSet => 'An saita PIN cikin nasara';
 
   @override
@@ -2594,6 +2597,12 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Shigar da kalmar sirri';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Asusu ɗaya don dukkan tsarin Taler';

@@ -253,6 +253,7 @@
   "enterPin": "Enter PIN",
   "confirmPin": "Confirm PIN",
   "pinMismatch": "PINs don't match",
+  "passwordMismatch": "Passwords don't match",
   "pinSet": "PIN set successfully",
   "enterPinToLogin": "Enter PIN to sign in",
   "pinIncorrect": "Incorrect PIN",
@@ -735,7 +736,11 @@
   "messengerContactRequestsSection": "Contact requests",
   "messengerContactRequestsCount": "{count, plural, =1{1 new request} other{{count} new requests}}",
   "@messengerContactRequestsCount": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "contactRequestsSearch": "Search",
   "contactRequestsIncoming": "Incoming",
@@ -898,7 +903,9 @@
   "calendarDeleteError": "Failed to delete: {error}",
   "@calendarDeleteError": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "calendarRsvpAccept": "Accept",
@@ -1096,7 +1103,9 @@
   "meshCallTransportBadge": "📡 Mesh · {transport}",
   "@meshCallTransportBadge": {
     "placeholders": {
-      "transport": { "type": "String" }
+      "transport": {
+        "type": "String"
+      }
     }
   },
   "meshCallTransportBadgePlain": "📡 Mesh",
@@ -1180,7 +1189,6 @@
   "chatYouAreBlocked": "You have been blocked by this user",
   "chatNotContacts": "Add this user to contacts to message them",
   "contactRevokeRequest": "Revoke request",
-
   "messengerPoll": "Poll",
   "messengerCreatePoll": "Create Poll",
   "messengerPollQuestion": "Question",
@@ -1339,8 +1347,6 @@
   "messengerAdminOnlyDesc": "Members can only read",
   "messengerTopics": "Topics",
   "messengerTopicsDesc": "Split chat into topics",
-  "cancel": "Cancel",
-  "create": "Create",
   "aiTwinSection": "AI Voice Twin",
   "aiTwinEnabled": "Enable AI Twin",
   "aiTwinEnabledDesc": "If you don't answer, your AI twin takes the call in your voice",
@@ -1421,17 +1427,53 @@
   "channelsCannotUnsubscribeOwner": "Owner cannot unsubscribe. Delete the channel instead.",
   "channelsNotFoundRedirect": "Channel no longer exists",
   "analystSeamSearches": "{count, plural, =1{{count} search} other{{count} searches}}",
-  "@analystSeamSearches": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamFiles": "{count, plural, =1{{count} file} other{{count} files}}",
-  "@analystSeamFiles": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamCommands": "{count, plural, =1{{count} command} other{{count} commands}}",
-  "@analystSeamCommands": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamImages": "{count, plural, =1{{count} image} other{{count} images}}",
-  "@analystSeamImages": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamOther": "{count, plural, =1{{count} step} other{{count} steps}}",
-  "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamDurationSeconds": "{seconds}s",
-  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "savedTitle": "Saved Messages",
   "savedSubtitle": "Your private cloud",
   "savedOpenError": "Couldn't open Saved Messages",
@@ -1454,13 +1496,17 @@
   "billingRequiredLine": "Need: {required} μTAL",
   "@billingRequiredLine": {
     "placeholders": {
-      "required": {"type": "String"}
+      "required": {
+        "type": "String"
+      }
     }
   },
   "billingAvailableLine": "Have: {available} μTAL",
   "@billingAvailableLine": {
     "placeholders": {
-      "available": {"type": "String"}
+      "available": {
+        "type": "String"
+      }
     }
   },
   "billingTopUp": "Top up",
@@ -1469,7 +1515,9 @@
   "billingLowBalanceWarning": "Balance running low: {balance} μTAL",
   "@billingLowBalanceWarning": {
     "placeholders": {
-      "balance": {"type": "String"}
+      "balance": {
+        "type": "String"
+      }
     }
   },
   "billingWalletAndBalance": "Wallet & Balance",
@@ -1487,7 +1535,9 @@
   "billingPackagePurchased": "Package purchased: {balance} μTAL",
   "@billingPackagePurchased": {
     "placeholders": {
-      "balance": {"type": "String"}
+      "balance": {
+        "type": "String"
+      }
     }
   },
   "billingRecommendedBadge": "Recommended",
@@ -1496,7 +1546,9 @@
   "billingBuyForPrice": "Buy for €{price}",
   "@billingBuyForPrice": {
     "placeholders": {
-      "price": {"type": "String"}
+      "price": {
+        "type": "String"
+      }
     }
   },
   "billingTxTypeTopup": "Top-up",
@@ -1603,19 +1655,35 @@
   "presenceLastSeenJustNow": "last seen just now",
   "presenceLastSeenMinutesAgo": "last seen {minutes} min ago",
   "@presenceLastSeenMinutesAgo": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "presenceLastSeenToday": "last seen today at {time}",
   "@presenceLastSeenToday": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenYesterday": "last seen yesterday at {time}",
   "@presenceLastSeenYesterday": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenOnDate": "last seen {date}",
   "@presenceLastSeenOnDate": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenRecently": "last seen recently",
   "privacySectionTitle": "Privacy",

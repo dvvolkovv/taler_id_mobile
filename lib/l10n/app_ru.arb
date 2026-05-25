@@ -253,6 +253,7 @@
   "enterPin": "Введите PIN-код",
   "confirmPin": "Подтвердите PIN-код",
   "pinMismatch": "PIN-коды не совпадают",
+  "passwordMismatch": "Пароли не совпадают",
   "pinSet": "PIN-код установлен",
   "enterPinToLogin": "Введите PIN для входа",
   "pinIncorrect": "Неверный PIN-код",
@@ -735,7 +736,11 @@
   "messengerContactRequestsSection": "Заявки в контакты",
   "messengerContactRequestsCount": "{count, plural, =1{1 новая заявка} few{{count} новые заявки} many{{count} новых заявок} other{{count} новых заявок}}",
   "@messengerContactRequestsCount": {
-    "placeholders": {"count": {"type": "int"}}
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "contactRequestsSearch": "Поиск",
   "contactRequestsIncoming": "Входящие",
@@ -898,7 +903,9 @@
   "calendarDeleteError": "Не удалось удалить: {error}",
   "@calendarDeleteError": {
     "placeholders": {
-      "error": {"type": "String"}
+      "error": {
+        "type": "String"
+      }
     }
   },
   "calendarRsvpAccept": "Принять",
@@ -1096,7 +1103,9 @@
   "meshCallTransportBadge": "📡 Mesh · {transport}",
   "@meshCallTransportBadge": {
     "placeholders": {
-      "transport": { "type": "String" }
+      "transport": {
+        "type": "String"
+      }
     }
   },
   "meshCallTransportBadgePlain": "📡 Mesh",
@@ -1180,7 +1189,6 @@
   "chatYouAreBlocked": "Вы заблокированы этим пользователем",
   "chatNotContacts": "Добавьте пользователя в контакты, чтобы писать",
   "contactRevokeRequest": "Отозвать запрос",
-
   "messengerPoll": "Опрос",
   "messengerCreatePoll": "Создать опрос",
   "messengerPollQuestion": "Вопрос",
@@ -1339,8 +1347,6 @@
   "messengerAdminOnlyDesc": "Участники могут только читать",
   "messengerTopics": "Темы",
   "messengerTopicsDesc": "Разделить чат на темы",
-  "cancel": "Отмена",
-  "create": "Создать",
   "aiTwinSection": "Голосовой двойник",
   "aiTwinEnabled": "Включить AI-двойника",
   "aiTwinEnabledDesc": "Если вы не ответите на звонок, AI-двойник примет его вашим голосом",
@@ -1421,17 +1427,53 @@
   "channelsCannotUnsubscribeOwner": "Владелец не может отписаться. Удалите канал.",
   "channelsNotFoundRedirect": "Канал больше не существует",
   "analystSeamSearches": "{count, plural, =1{{count} поиск} few{{count} поиска} many{{count} поисков} other{{count} поиска}}",
-  "@analystSeamSearches": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamSearches": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamFiles": "{count, plural, =1{{count} файл} few{{count} файла} many{{count} файлов} other{{count} файла}}",
-  "@analystSeamFiles": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamCommands": "{count, plural, =1{{count} команда} few{{count} команды} many{{count} команд} other{{count} команды}}",
-  "@analystSeamCommands": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamCommands": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamImages": "{count, plural, =1{{count} картинка} few{{count} картинки} many{{count} картинок} other{{count} картинки}}",
-  "@analystSeamImages": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamOther": "{count, plural, =1{{count} шаг} few{{count} шага} many{{count} шагов} other{{count} шага}}",
-  "@analystSeamOther": { "placeholders": { "count": { "type": "int" } } },
+  "@analystSeamOther": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "analystSeamDurationSeconds": "{seconds} с",
-  "@analystSeamDurationSeconds": { "placeholders": { "seconds": { "type": "int" } } },
+  "@analystSeamDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "savedTitle": "Избранное",
   "savedSubtitle": "Ваше личное облако",
   "savedOpenError": "Не удалось открыть Избранное",
@@ -1454,13 +1496,17 @@
   "billingRequiredLine": "Нужно: {required} μTAL",
   "@billingRequiredLine": {
     "placeholders": {
-      "required": {"type": "String"}
+      "required": {
+        "type": "String"
+      }
     }
   },
   "billingAvailableLine": "Есть: {available} μTAL",
   "@billingAvailableLine": {
     "placeholders": {
-      "available": {"type": "String"}
+      "available": {
+        "type": "String"
+      }
     }
   },
   "billingTopUp": "Пополнить",
@@ -1469,7 +1515,9 @@
   "billingLowBalanceWarning": "Баланс на исходе: {balance} μTAL",
   "@billingLowBalanceWarning": {
     "placeholders": {
-      "balance": {"type": "String"}
+      "balance": {
+        "type": "String"
+      }
     }
   },
   "billingWalletAndBalance": "Кошелёк и баланс",
@@ -1487,7 +1535,9 @@
   "billingPackagePurchased": "Пакет куплен: {balance} μTAL",
   "@billingPackagePurchased": {
     "placeholders": {
-      "balance": {"type": "String"}
+      "balance": {
+        "type": "String"
+      }
     }
   },
   "billingRecommendedBadge": "Рекомендуем",
@@ -1496,7 +1546,9 @@
   "billingBuyForPrice": "Купить за €{price}",
   "@billingBuyForPrice": {
     "placeholders": {
-      "price": {"type": "String"}
+      "price": {
+        "type": "String"
+      }
     }
   },
   "billingTxTypeTopup": "Пополнение",
@@ -1603,19 +1655,35 @@
   "presenceLastSeenJustNow": "был(а) в сети только что",
   "presenceLastSeenMinutesAgo": "был(а) в сети {minutes} мин назад",
   "@presenceLastSeenMinutesAgo": {
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "presenceLastSeenToday": "был(а) в сети сегодня в {time}",
   "@presenceLastSeenToday": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenYesterday": "был(а) в сети вчера в {time}",
   "@presenceLastSeenYesterday": {
-    "placeholders": { "time": { "type": "String" } }
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenOnDate": "был(а) в сети {date}",
   "@presenceLastSeenOnDate": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "presenceLastSeenRecently": "был(а) в сети недавно",
   "privacySectionTitle": "Конфиденциальность",

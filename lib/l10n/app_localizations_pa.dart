@@ -613,6 +613,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get pinMismatch => 'PIN ਮੇਲ ਨਹੀਂ ਖਾਂਦੇ';
 
   @override
+  String get passwordMismatch => 'ਪਾਸਵਰਡ ਮੇਲ ਨਹੀਂ ਖਾਂਦੇ';
+
+  @override
   String get pinSet => 'PIN ਸਫਲਤਾਪੂਰਵਕ ਸੈੱਟ ਕੀਤਾ ਗਿਆ';
 
   @override
@@ -2597,6 +2600,12 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get passwordRequired => 'ਪਾਸਵਰਡ ਦਰਜ ਕਰੋ';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'ਸਾਰੇ Taler ਪਰਿਸਰ ਲਈ ਇੱਕ ਖਾਤਾ';

@@ -190,6 +190,7 @@
   "enterPin": "输入 PIN",
   "confirmPin": "确认 PIN",
   "pinMismatch": "PIN 不匹配",
+  "passwordMismatch": "密码不匹配",
   "pinSet": "PIN 设置成功",
   "enterPinToLogin": "输入 PIN 以登录",
   "pinIncorrect": "PIN 错误",

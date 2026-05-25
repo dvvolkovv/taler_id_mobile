@@ -190,6 +190,7 @@
   "enterPin": "পিন প্রবেশ করুন",
   "confirmPin": "পিন নিশ্চিত করুন",
   "pinMismatch": "পিন মিলছে না",
+  "passwordMismatch": "পাসওয়ার্ড মিলছে না",
   "pinSet": "পিন সফলভাবে সেট হয়েছে",
   "enterPinToLogin": "সাইন ইন করতে পিন প্রবেশ করুন",
   "pinIncorrect": "ভুল পিন",

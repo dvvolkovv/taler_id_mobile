@@ -190,6 +190,7 @@
   "enterPin": "पिन दर्ज करें",
   "confirmPin": "पिन की पुष्टि करें",
   "pinMismatch": "पिन मेल नहीं खाते",
+  "passwordMismatch": "पासवर्ड मेल नहीं खाते",
   "pinSet": "पिन सफलतापूर्वक सेट किया गया",
   "enterPinToLogin": "साइन इन करने के लिए पिन दर्ज करें",
   "pinIncorrect": "गलत पिन",

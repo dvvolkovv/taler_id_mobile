@@ -613,6 +613,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get pinMismatch => 'کدهای PIN مطابقت ندارند';
 
   @override
+  String get passwordMismatch => 'رمزهای عبور مطابقت ندارند';
+
+  @override
   String get pinSet => 'کد PIN با موفقیت تنظیم شد';
 
   @override
@@ -2593,6 +2596,12 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get passwordRequired => 'رمز عبور را وارد کنید';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'یک حساب برای کل اکوسیستم Taler';

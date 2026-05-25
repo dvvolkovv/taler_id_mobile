@@ -615,6 +615,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get pinMismatch => 'PIN\'ler eşleşmiyor';
 
   @override
+  String get passwordMismatch => 'Şifreler eşleşmiyor';
+
+  @override
   String get pinSet => 'PIN başarıyla ayarlandı';
 
   @override
@@ -2599,6 +2602,12 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Şifre girin';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Taler ekosisteminin tamamı için tek hesap';

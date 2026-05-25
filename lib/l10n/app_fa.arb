@@ -190,6 +190,7 @@
   "enterPin": "وارد کردن کد PIN",
   "confirmPin": "تأیید کد PIN",
   "pinMismatch": "کدهای PIN مطابقت ندارند",
+  "passwordMismatch": "رمزهای عبور مطابقت ندارند",
   "pinSet": "کد PIN با موفقیت تنظیم شد",
   "enterPinToLogin": "برای ورود کد PIN را وارد کنید",
   "pinIncorrect": "کد PIN نادرست است",

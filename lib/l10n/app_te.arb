@@ -190,6 +190,7 @@
   "enterPin": "PIN నమోదు చేయండి",
   "confirmPin": "PIN నిర్ధారించండి",
   "pinMismatch": "PINలు సరిపోలడం లేదు",
+  "passwordMismatch": "పాస్‌వర్డ్‌లు సరిపోలడం లేదు",
   "pinSet": "PIN విజయవంతంగా సెటప్ చేయబడింది",
   "enterPinToLogin": "సైన్ ఇన్ చేయడానికి PIN నమోదు చేయండి",
   "pinIncorrect": "తప్పు PIN",

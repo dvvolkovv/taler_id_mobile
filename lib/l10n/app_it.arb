@@ -190,6 +190,7 @@
   "enterPin": "Inserisci PIN",
   "confirmPin": "Conferma PIN",
   "pinMismatch": "I PIN non corrispondono",
+  "passwordMismatch": "Le password non corrispondono",
   "pinSet": "PIN impostato con successo",
   "enterPinToLogin": "Inserisci PIN per accedere",
   "pinIncorrect": "PIN errato",

@@ -613,6 +613,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get pinMismatch => 'پن مماثل نہیں ہیں';
 
   @override
+  String get passwordMismatch => 'پاس ورڈ مماثل نہیں ہیں';
+
+  @override
   String get pinSet => 'پن کامیابی سے سیٹ ہو گیا';
 
   @override
@@ -2600,6 +2603,12 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get passwordRequired => 'پاس ورڈ درج کریں';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'پورے Taler ماحولیاتی نظام کے لئے ایک اکاؤنٹ';

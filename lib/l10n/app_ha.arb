@@ -190,6 +190,7 @@
   "enterPin": "Shigar da PIN",
   "confirmPin": "Tabbatar da PIN",
   "pinMismatch": "PIN ba su dace ba",
+  "passwordMismatch": "Kalmomin sirri ba su dace ba",
   "pinSet": "An saita PIN cikin nasara",
   "enterPinToLogin": "Shigar da PIN don shiga",
   "pinIncorrect": "PIN ba daidai ba",

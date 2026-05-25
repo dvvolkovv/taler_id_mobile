@@ -617,6 +617,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pinMismatch => 'Los PIN no coinciden';
 
   @override
+  String get passwordMismatch => 'Las contraseñas no coinciden';
+
+  @override
   String get pinSet => 'PIN configurado con éxito';
 
   @override
@@ -2605,6 +2608,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Introduce la contraseña';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Una cuenta para todo el ecosistema Taler';

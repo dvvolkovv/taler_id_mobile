@@ -614,6 +614,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pinMismatch => 'PINs don\'t match';
 
   @override
+  String get passwordMismatch => 'Passwords don\'t match';
+
+  @override
   String get pinSet => 'PIN set successfully';
 
   @override

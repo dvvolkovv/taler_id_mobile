@@ -1282,6 +1282,12 @@ abstract class AppLocalizations {
   /// **'PINs don\'t match'**
   String get pinMismatch;
 
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords don\'t match'**
+  String get passwordMismatch;
+
   /// No description provided for @pinSet.
   ///
   /// In en, this message translates to:

@@ -597,6 +597,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get pinMismatch => 'PIN 不匹配';
 
   @override
+  String get passwordMismatch => '密码不匹配';
+
+  @override
   String get pinSet => 'PIN 设置成功';
 
   @override
@@ -2559,6 +2562,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get passwordRequired => '输入密码';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => '一个账户畅享整个 Taler 生态系统';

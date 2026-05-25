@@ -597,6 +597,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pinMismatch => 'PINが一致しません';
 
   @override
+  String get passwordMismatch => 'パスワードが一致しません';
+
+  @override
   String get pinSet => 'PINが正常に設定されました';
 
   @override
@@ -2565,6 +2568,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get passwordRequired => 'パスワードを入力';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Talerエコシステム全体で1つのアカウント';

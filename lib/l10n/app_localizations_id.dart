@@ -613,6 +613,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get pinMismatch => 'PIN tidak cocok';
 
   @override
+  String get passwordMismatch => 'Kata sandi tidak cocok';
+
+  @override
   String get pinSet => 'PIN berhasil diatur';
 
   @override
@@ -2599,6 +2602,12 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get passwordRequired => 'Masukkan kata sandi';
+
+  @override
+  String get showPassword => 'Show password';
+
+  @override
+  String get hidePassword => 'Hide password';
 
   @override
   String get registerSubtitle => 'Satu akun untuk seluruh ekosistem Taler';
