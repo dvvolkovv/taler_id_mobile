@@ -312,11 +312,18 @@ class _AssistantScreenState extends State<AssistantScreen>
       }
 
       // 2. Connect to backend WebSocket proxy
+      // billingSessionId lets the proxy call gating.endSession when the WS
+      // dies (app crash, network drop) — without it the cron keeps tickling
+      // the wallet at /10s for a zombie session (incident 2026-05-26).
       final wsUrl = Uri(
         scheme: 'wss',
         host: Uri.parse(ApiConstants.baseUrl).host,
         path: '/voice/realtime-proxy',
-        queryParameters: {'token': token},
+        queryParameters: {
+          'token': token,
+          if (_billing?.sessionId?.isNotEmpty == true)
+            'billingSessionId': _billing!.sessionId!,
+        },
       ).toString();
       _ws = await WebSocket.connect(wsUrl);
 
@@ -1461,7 +1468,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         scheme: 'wss',
         host: Uri.parse(ApiConstants.baseUrl).host,
         path: '/voice/realtime-proxy',
-        queryParameters: {'token': token},
+        queryParameters: {
+          'token': token,
+          if (_billing?.sessionId?.isNotEmpty == true)
+            'billingSessionId': _billing!.sessionId!,
+        },
       ).toString();
       _ws = await WebSocket.connect(wsUrl);
       _ws!.listen(
