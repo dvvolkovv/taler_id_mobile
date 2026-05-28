@@ -17,7 +17,8 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    if (options.extra['skipAuth'] == true) {
+    if (options.extra['skipAuth'] == true ||
+        options.path.contains('/auth/forgot-password')) {
       handler.next(options);
       return;
     }
@@ -41,7 +42,8 @@ class AuthInterceptor extends Interceptor {
     // Don't retry refresh endpoint itself
     if (err.requestOptions.path.contains('/auth/refresh') ||
         err.requestOptions.path.contains('/auth/login') ||
-        err.requestOptions.path.contains('/auth/register')) {
+        err.requestOptions.path.contains('/auth/register') ||
+        err.requestOptions.path.contains('/auth/forgot-password')) {
       handler.next(err);
       return;
     }
