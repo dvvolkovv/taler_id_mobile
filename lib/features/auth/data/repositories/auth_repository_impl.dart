@@ -175,6 +175,14 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<void> resetPassword({required String resetToken, required String newPassword}) async {
     await remote.resetPassword(resetToken: resetToken, newPassword: newPassword);
   }
+
+  @override
+  Future<Map<String, dynamic>> sendEmailVerification() =>
+      remote.sendEmailVerification();
+
+  @override
+  Future<void> confirmEmailVerification(String code) =>
+      remote.confirmEmailVerification(code);
 }
 
 class TwoFARequiredException implements Exception {

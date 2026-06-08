@@ -353,6 +353,26 @@
   "passwordResetSuccess": "Пароль успешно изменён",
   "sendCode": "Отправить код",
   "resendCode": "Отправить повторно",
+  "verifyEmailTitle": "Подтверждение email",
+  "verifyEmailSubtitle": "Отправим 6-значный код на {email}.",
+  "@verifyEmailSubtitle": {
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "verifyEmailCodeSent": "Код отправлен на {email}. Введите его ниже.",
+  "@verifyEmailCodeSent": {
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "verifyEmailSendCode": "Отправить код",
+  "verifyEmailConfirm": "Подтвердить",
+  "verifyEmailResend": "Отправить код повторно",
+  "verifyEmailSuccess": "Email подтверждён ✓",
+  "verifyEmailAlreadyVerified": "Email уже подтверждён",
+  "verifyEmailBannerTitle": "Подтвердите email",
+  "verifyEmailBannerSubtitle": "Нажмите, чтобы получить 6-значный код и подтвердить адрес.",
   "newGroup": "Новая группа",
   "newChat": "Новый чат",
   "groupName": "Название группы",

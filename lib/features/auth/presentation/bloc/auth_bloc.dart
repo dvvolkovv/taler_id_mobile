@@ -25,6 +25,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<ForgotPasswordRequested>(_onForgotPassword);
     on<ForgotPasswordCodeVerified>(_onForgotPasswordCodeVerified);
     on<ForgotPasswordNewPassword>(_onForgotPasswordNewPassword);
+    on<EmailVerifySendRequested>(_onEmailVerifySend);
+    on<EmailVerifySubmitted>(_onEmailVerifySubmit);
   }
 
   Future<void> _onLogin(LoginSubmitted event, Emitter<AuthState> emit) async {
@@ -133,6 +135,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthFailure(e.message));
     } catch (e) {
       emit(AuthFailure(ErrorKeys.generalError));
+    }
+  }
+
+  Future<void> _onEmailVerifySend(EmailVerifySendRequested event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final result = await authRepository.sendEmailVerification();
+      emit(EmailVerifyCodeSent(alreadyVerified: result['alreadyVerified'] == true));
+    } on ApiException catch (e) {
+      emit(AuthFailure(e.message));
+    } catch (e) {
+      emit(AuthFailure(ErrorKeys.generalError));
+    }
+  }
+
+  Future<void> _onEmailVerifySubmit(EmailVerifySubmitted event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      await authRepository.confirmEmailVerification(event.code);
+      emit(EmailVerifySuccess());
+    } on ApiException catch (e) {
+      emit(AuthFailure(e.message));
+    } catch (e) {
+      emit(AuthFailure(ErrorKeys.invalidCode));
     }
   }
 
