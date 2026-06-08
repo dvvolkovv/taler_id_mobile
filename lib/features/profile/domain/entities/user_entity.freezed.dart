@@ -31,6 +31,7 @@ mixin _$UserEntity {
   String? get postalCode => throw _privateConstructorUsedError;
   String? get dateOfBirth => throw _privateConstructorUsedError;
   KycStatus get kycStatus => throw _privateConstructorUsedError;
+  bool get emailVerified => throw _privateConstructorUsedError;
   String? get fcmToken => throw _privateConstructorUsedError;
   String? get username => throw _privateConstructorUsedError;
   String? get status => throw _privateConstructorUsedError;
@@ -64,6 +65,7 @@ abstract class $UserEntityCopyWith<$Res> {
       String? postalCode,
       String? dateOfBirth,
       KycStatus kycStatus,
+      bool emailVerified,
       String? fcmToken,
       String? username,
       String? status,
@@ -98,6 +100,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? postalCode = freezed,
     Object? dateOfBirth = freezed,
     Object? kycStatus = null,
+    Object? emailVerified = null,
     Object? fcmToken = freezed,
     Object? username = freezed,
     Object? status = freezed,
@@ -152,6 +155,10 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
           ? _value.kycStatus
           : kycStatus // ignore: cast_nullable_to_non_nullable
               as KycStatus,
+      emailVerified: null == emailVerified
+          ? _value.emailVerified
+          : emailVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
       fcmToken: freezed == fcmToken
           ? _value.fcmToken
           : fcmToken // ignore: cast_nullable_to_non_nullable
@@ -208,6 +215,7 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       String? postalCode,
       String? dateOfBirth,
       KycStatus kycStatus,
+      bool emailVerified,
       String? fcmToken,
       String? username,
       String? status,
@@ -240,6 +248,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? postalCode = freezed,
     Object? dateOfBirth = freezed,
     Object? kycStatus = null,
+    Object? emailVerified = null,
     Object? fcmToken = freezed,
     Object? username = freezed,
     Object? status = freezed,
@@ -294,6 +303,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
           ? _value.kycStatus
           : kycStatus // ignore: cast_nullable_to_non_nullable
               as KycStatus,
+      emailVerified: null == emailVerified
+          ? _value.emailVerified
+          : emailVerified // ignore: cast_nullable_to_non_nullable
+              as bool,
       fcmToken: freezed == fcmToken
           ? _value.fcmToken
           : fcmToken // ignore: cast_nullable_to_non_nullable
@@ -345,6 +358,7 @@ class _$UserEntityImpl implements _UserEntity {
       this.postalCode,
       this.dateOfBirth,
       this.kycStatus = KycStatus.unverified,
+      this.emailVerified = false,
       this.fcmToken,
       this.username,
       this.status,
@@ -381,6 +395,9 @@ class _$UserEntityImpl implements _UserEntity {
   @JsonKey()
   final KycStatus kycStatus;
   @override
+  @JsonKey()
+  final bool emailVerified;
+  @override
   final String? fcmToken;
   @override
   final String? username;
@@ -402,7 +419,7 @@ class _$UserEntityImpl implements _UserEntity {
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId, lastSeenPrivacy: $lastSeenPrivacy)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, emailVerified: $emailVerified, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId, lastSeenPrivacy: $lastSeenPrivacy)';
   }
 
   @override
@@ -428,6 +445,8 @@ class _$UserEntityImpl implements _UserEntity {
                 other.dateOfBirth == dateOfBirth) &&
             (identical(other.kycStatus, kycStatus) ||
                 other.kycStatus == kycStatus) &&
+            (identical(other.emailVerified, emailVerified) ||
+                other.emailVerified == emailVerified) &&
             (identical(other.fcmToken, fcmToken) ||
                 other.fcmToken == fcmToken) &&
             (identical(other.username, username) ||
@@ -460,6 +479,7 @@ class _$UserEntityImpl implements _UserEntity {
         postalCode,
         dateOfBirth,
         kycStatus,
+        emailVerified,
         fcmToken,
         username,
         status,
@@ -497,6 +517,7 @@ abstract class _UserEntity implements UserEntity {
       final String? postalCode,
       final String? dateOfBirth,
       final KycStatus kycStatus,
+      final bool emailVerified,
       final String? fcmToken,
       final String? username,
       final String? status,
@@ -531,6 +552,8 @@ abstract class _UserEntity implements UserEntity {
   String? get dateOfBirth;
   @override
   KycStatus get kycStatus;
+  @override
+  bool get emailVerified;
   @override
   String? get fcmToken;
   @override

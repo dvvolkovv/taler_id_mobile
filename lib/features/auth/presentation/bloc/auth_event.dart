@@ -57,3 +57,12 @@ class ForgotPasswordNewPassword extends AuthEvent {
   @override
   List<Object?> get props => [resetToken, newPassword];
 }
+
+class EmailVerifySendRequested extends AuthEvent {}
+
+class EmailVerifySubmitted extends AuthEvent {
+  final String code;
+  EmailVerifySubmitted({required this.code});
+  @override
+  List<Object?> get props => [code];
+}

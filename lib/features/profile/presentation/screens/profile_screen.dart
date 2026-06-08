@@ -145,6 +145,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                if (!user.emailVerified) ...[
+                  _verifyEmailBanner(context, user, l10n),
+                  const SizedBox(height: 12),
+                ],
                 // Avatar + name
                 AppCard(
                   child: Row(
@@ -632,6 +636,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (code == null || code.isEmpty) return null;
     final locale = Localizations.localeOf(context).languageCode;
     return countryName(code, locale);
+  }
+
+  Widget _verifyEmailBanner(BuildContext context, UserEntity user, AppLocalizations l10n) {
+    final colors = AppColors.of(context);
+    return Material(
+      color: colors.warning.withOpacity(0.12),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.push(
+          RouteConstants.verifyEmail,
+          extra: {'email': user.email},
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(Icons.mark_email_unread_outlined, color: colors.warning, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.verifyEmailBannerTitle,
+                      style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.verifyEmailBannerSubtitle,
+                      style: TextStyle(color: colors.textSecondary, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: colors.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _usernameRow(BuildContext context, UserEntity user) => Padding(

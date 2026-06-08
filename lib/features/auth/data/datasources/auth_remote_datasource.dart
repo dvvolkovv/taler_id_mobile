@@ -84,4 +84,20 @@ class AuthRemoteDataSource {
       'newPassword': newPassword,
     });
   }
+
+  /// Trigger sending a 6-digit verification code to the user's registered email.
+  /// Returns `{sent: bool, alreadyVerified?: bool}` — `alreadyVerified=true` is
+  /// not an error, just a no-op when the address was already confirmed.
+  Future<Map<String, dynamic>> sendEmailVerification() async {
+    return client.post<Map<String, dynamic>>(
+      '/auth/email/verify/send',
+      data: const {},
+      fromJson: (data) => Map<String, dynamic>.from(data),
+    );
+  }
+
+  /// Submit the 6-digit code received by email. Throws on invalid/expired code.
+  Future<void> confirmEmailVerification(String code) async {
+    await client.post('/auth/email/verify/confirm', data: {'code': code});
+  }
 }

@@ -48,3 +48,14 @@ class PasswordResetCodeVerified extends AuthState {
 }
 
 class PasswordResetSuccess extends AuthState {}
+
+class EmailVerifyCodeSent extends AuthState {
+  /// Set when the backend reports the address was already verified — the UI
+  /// should treat that as success and not show the code-entry step.
+  final bool alreadyVerified;
+  EmailVerifyCodeSent({this.alreadyVerified = false});
+  @override
+  List<Object?> get props => [alreadyVerified];
+}
+
+class EmailVerifySuccess extends AuthState {}

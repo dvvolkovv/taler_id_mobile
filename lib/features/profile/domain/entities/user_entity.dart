@@ -24,6 +24,7 @@ class UserEntity with _$UserEntity {
     String? postalCode,
     String? dateOfBirth,
     @Default(KycStatus.unverified) KycStatus kycStatus,
+    @Default(false) bool emailVerified,
     String? fcmToken,
     String? username,
     String? status,

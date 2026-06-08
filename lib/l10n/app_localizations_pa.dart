@@ -901,6 +901,41 @@ class AppLocalizationsPa extends AppLocalizations {
   String get resendCode => 'ਕੋਡ ਮੁੜ ਭੇਜੋ';
 
   @override
+  String get verifyEmailTitle => 'Verify Email';
+
+  @override
+  String verifyEmailSubtitle(String email) {
+    return 'We\'ll send a 6-digit code to $email.';
+  }
+
+  @override
+  String verifyEmailCodeSent(String email) {
+    return 'Code sent to $email. Enter it below.';
+  }
+
+  @override
+  String get verifyEmailSendCode => 'Send Code';
+
+  @override
+  String get verifyEmailConfirm => 'Verify';
+
+  @override
+  String get verifyEmailResend => 'Resend code';
+
+  @override
+  String get verifyEmailSuccess => 'Email verified ✓';
+
+  @override
+  String get verifyEmailAlreadyVerified => 'Email is already verified';
+
+  @override
+  String get verifyEmailBannerTitle => 'Verify your email';
+
+  @override
+  String get verifyEmailBannerSubtitle =>
+      'Tap to receive a 6-digit code and confirm your address.';
+
+  @override
   String get newGroup => 'ਨਵਾਂ ਗਰੁੱਪ';
 
   @override
