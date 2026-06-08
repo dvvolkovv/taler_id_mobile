@@ -13,6 +13,7 @@ import '../../features/auth/presentation/screens/pin_entry_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
 import '../../features/auth/desktop/onboarding_desktop_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
+import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/ai_twin_screen.dart';
@@ -95,6 +96,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteConstants.forgotPassword,
       builder: (_, __) => const ForgotPasswordScreen(),
+    ),
+    GoRoute(
+      path: RouteConstants.verifyEmail,
+      builder: (_, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return VerifyEmailScreen(email: extra?['email'] as String? ?? '');
+      },
     ),
     GoRoute(
       path: RouteConstants.register,

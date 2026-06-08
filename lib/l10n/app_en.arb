@@ -353,6 +353,26 @@
   "passwordResetSuccess": "Password reset successfully",
   "sendCode": "Send Code",
   "resendCode": "Resend Code",
+  "verifyEmailTitle": "Verify Email",
+  "verifyEmailSubtitle": "We'll send a 6-digit code to {email}.",
+  "@verifyEmailSubtitle": {
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "verifyEmailCodeSent": "Code sent to {email}. Enter it below.",
+  "@verifyEmailCodeSent": {
+    "placeholders": {
+      "email": { "type": "String" }
+    }
+  },
+  "verifyEmailSendCode": "Send Code",
+  "verifyEmailConfirm": "Verify",
+  "verifyEmailResend": "Resend code",
+  "verifyEmailSuccess": "Email verified ✓",
+  "verifyEmailAlreadyVerified": "Email is already verified",
+  "verifyEmailBannerTitle": "Verify your email",
+  "verifyEmailBannerSubtitle": "Tap to receive a 6-digit code and confirm your address.",
   "newGroup": "New Group",
   "newChat": "New Chat",
   "groupName": "Group Name",

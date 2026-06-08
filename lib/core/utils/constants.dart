@@ -45,6 +45,7 @@ class RouteConstants {
   static const calendar = '/dashboard/calendar';
   static const onboarding = '/onboarding';
   static const forgotPassword = '/auth/forgot-password';
+  static const verifyEmail = '/dashboard/profile/verify-email';
   static const translator = '/dashboard/translator';
   static const profileSections = '/dashboard/profile/sections';
   static const aiTwin = '/dashboard/profile/ai-twin';

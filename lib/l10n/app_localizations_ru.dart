@@ -903,6 +903,41 @@ class AppLocalizationsRu extends AppLocalizations {
   String get resendCode => 'Отправить повторно';
 
   @override
+  String get verifyEmailTitle => 'Подтверждение email';
+
+  @override
+  String verifyEmailSubtitle(String email) {
+    return 'Отправим 6-значный код на $email.';
+  }
+
+  @override
+  String verifyEmailCodeSent(String email) {
+    return 'Код отправлен на $email. Введите его ниже.';
+  }
+
+  @override
+  String get verifyEmailSendCode => 'Отправить код';
+
+  @override
+  String get verifyEmailConfirm => 'Подтвердить';
+
+  @override
+  String get verifyEmailResend => 'Отправить код повторно';
+
+  @override
+  String get verifyEmailSuccess => 'Email подтверждён ✓';
+
+  @override
+  String get verifyEmailAlreadyVerified => 'Email уже подтверждён';
+
+  @override
+  String get verifyEmailBannerTitle => 'Подтвердите email';
+
+  @override
+  String get verifyEmailBannerSubtitle =>
+      'Нажмите, чтобы получить 6-значный код и подтвердить адрес.';
+
+  @override
   String get newGroup => 'Новая группа';
 
   @override

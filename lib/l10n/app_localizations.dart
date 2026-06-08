@@ -1840,6 +1840,66 @@ abstract class AppLocalizations {
   /// **'Resend Code'**
   String get resendCode;
 
+  /// No description provided for @verifyEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Email'**
+  String get verifyEmailTitle;
+
+  /// No description provided for @verifyEmailSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll send a 6-digit code to {email}.'**
+  String verifyEmailSubtitle(String email);
+
+  /// No description provided for @verifyEmailCodeSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to {email}. Enter it below.'**
+  String verifyEmailCodeSent(String email);
+
+  /// No description provided for @verifyEmailSendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Code'**
+  String get verifyEmailSendCode;
+
+  /// No description provided for @verifyEmailConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyEmailConfirm;
+
+  /// No description provided for @verifyEmailResend.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get verifyEmailResend;
+
+  /// No description provided for @verifyEmailSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verified ✓'**
+  String get verifyEmailSuccess;
+
+  /// No description provided for @verifyEmailAlreadyVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Email is already verified'**
+  String get verifyEmailAlreadyVerified;
+
+  /// No description provided for @verifyEmailBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email'**
+  String get verifyEmailBannerTitle;
+
+  /// No description provided for @verifyEmailBannerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to receive a 6-digit code and confirm your address.'**
+  String get verifyEmailBannerSubtitle;
+
   /// No description provided for @newGroup.
   ///
   /// In en, this message translates to:
