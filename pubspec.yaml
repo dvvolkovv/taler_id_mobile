@@ -178,3 +178,8 @@ flutter:
     - app_icon_1024.png
     - assets/backgrounds/
     - assets/tray/
+    # Bundled Inter font weights — keeps google_fonts offline (no
+    # fonts.gstatic.com runtime fetch). Required for stable startup on
+    # devices with poor connectivity and for integration tests on emulators
+    # where the gstatic TLS handshake is flaky.
+    - google_fonts/
