@@ -33,16 +33,14 @@ class KycApplicantDataLoading extends KycState {
 }
 
 class KycSdkReady extends KycState {
-  /// Mobile SDK token — non-null on mobile, null on desktop.
-  final String? sdkToken;
+  /// WebSDK URL — `${SUMSUB_BASE_URL}/idensic/sdk/checkup?accessToken=...`.
+  /// Used on every platform (the mock_ss service does not support native SDKs).
+  final String webSdkUrl;
 
-  /// Web SDK URL — non-null on desktop, null on mobile.
-  final String? webSdkUrl;
-
-  KycSdkReady({this.sdkToken, this.webSdkUrl});
+  KycSdkReady({required this.webSdkUrl});
 
   @override
-  List<Object?> get props => [sdkToken, webSdkUrl];
+  List<Object?> get props => [webSdkUrl];
 }
 
 class KycSdkDone extends KycState {} // SDK finished, waiting for webhook

@@ -130,8 +130,8 @@ class TenantBloc extends Bloc<TenantEvent, TenantState> {
   Future<void> _onKybStart(TenantKybStartRequested event, Emitter<TenantState> emit) async {
     emit(TenantLoading());
     try {
-      final token = await repo.startKyb(event.tenantId);
-      emit(TenantKybSdkReady(sdkToken: token, tenantId: event.tenantId));
+      final webSdkUrl = await repo.startKyb(event.tenantId);
+      emit(TenantKybSdkReady(webSdkUrl: webSdkUrl, tenantId: event.tenantId));
     } on ApiException catch (e) {
       emit(TenantError(e.message));
     } catch (_) {

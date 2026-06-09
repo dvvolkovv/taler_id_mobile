@@ -30,13 +30,15 @@ class TenantRemoteDataSource {
   Future<void> removeMember({required String tenantId, required String userId}) =>
       client.delete('/tenant/$tenantId/members/$userId');
 
+  /// Returns the KYB WebSDK URL — backend issues an access token against the
+  /// SumSub-compatible mock and builds the wizard URL.
   Future<String> startKyb(String tenantId) async {
     final data = await client.post<Map<String, dynamic>>(
       '/tenant/$tenantId/kyb/start',
       data: {},
       fromJson: (d) => Map<String, dynamic>.from(d),
     );
-    return data['sdkToken'] as String;
+    return (data['webSdkUrl'] as String?) ?? '';
   }
 
   Future<Map<String, dynamic>> getKybStatus(String tenantId) =>

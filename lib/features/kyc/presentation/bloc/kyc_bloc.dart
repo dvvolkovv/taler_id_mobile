@@ -64,7 +64,7 @@ class KycBloc extends Bloc<KycEvent, KycState> {
     emit(KycLoading());
     try {
       final response = await repo.startKyc();
-      emit(KycSdkReady(sdkToken: response.sdkToken, webSdkUrl: response.webSdkUrl));
+      emit(KycSdkReady(webSdkUrl: response.webSdkUrl));
     } on ApiException catch (e) {
       emit(KycError(e.message));
     } catch (_) {

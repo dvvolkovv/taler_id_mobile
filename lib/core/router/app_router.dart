@@ -212,26 +212,26 @@ final appRouter = GoRouter(
     ),
     // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
     // InsufficientFundsSheet and LowBalanceBanner across the app.
-    // Desktop KYC: Sumsub Web SDK in a WebView (replaces Phase-1 stub).
-    if (PlatformUtils.instance.isDesktop)
-      GoRoute(
-        path: '/kyc/webview',
-        builder: (context, state) {
-          final url = state.extra as String?;
-          if (url == null || url.isEmpty) {
-            return const Scaffold(
-              body: Center(child: Text('KYC URL не передан')),
-            );
-          }
-          return KycWebViewScreen(
-            webSdkUrl: url,
-            onComplete: () {
-              // Pop the WebView screen and signal success to KycLauncherDesktop.
-              if (context.canPop()) context.pop(true);
-            },
+    // KYC WebSDK in a WebView — used on all native platforms (iOS, Android,
+    // macOS, Linux, Windows). The mock_ss service does not support native
+    // SumSub mobile SDKs; WebView is the canonical wire.
+    GoRoute(
+      path: '/kyc/webview',
+      builder: (context, state) {
+        final url = state.extra as String?;
+        if (url == null || url.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text('KYC URL не передан')),
           );
-        },
-      ),
+        }
+        return KycWebViewScreen(
+          webSdkUrl: url,
+          onComplete: () {
+            if (context.canPop()) context.pop(true);
+          },
+        );
+      },
+    ),
     GoRoute(
       path: '/billing/wallet',
       builder: (_, state) {

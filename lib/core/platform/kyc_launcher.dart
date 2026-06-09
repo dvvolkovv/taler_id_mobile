@@ -1,16 +1,13 @@
 // lib/core/platform/kyc_launcher.dart
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart' show Locale;
-import 'platform_utils.dart';
-import 'kyc_launcher_mobile.dart';
 import 'kyc_launcher_desktop.dart';
 
-/// Result of a KYC/KYB SDK session.
+/// Result of a KYC SDK session.
 class KycLaunchResult {
   /// Whether the user completed the verification flow successfully.
   final bool success;
 
-  /// Whether the session was skipped (e.g. desktop platform, web, or test stub).
+  /// Whether the session was skipped (e.g. web platform, or no URL provided).
   final bool skipped;
 
   /// Human-readable error message, if any.
@@ -26,7 +23,6 @@ class KycLaunchResult {
     this.errorType,
   });
 
-  /// Convenience constructor for a platform-not-supported result.
   const KycLaunchResult.skipped()
       : success = false,
         skipped = true,
@@ -34,36 +30,22 @@ class KycLaunchResult {
         errorType = null;
 }
 
-/// Platform-agnostic interface for launching the Sumsub KYC/KYB SDK.
+/// Launches the KYC WebSDK wizard.
 ///
-/// Mobile (iOS, Android) → [KycLauncherMobile] (delegates to
-/// `flutter_idensic_mobile_sdk_plugin`).
-/// Desktop (macOS, Windows, Linux) → [KycLauncherDesktop] (navigates to
-/// `/kyc/webview` with the Sumsub Web SDK URL).
+/// All native platforms (iOS, Android, macOS, Linux, Windows) open the WebSDK
+/// inside an in-app WebView via the `/kyc/webview` route. Web shows a
+/// platform-not-supported result (the caller renders a dialog).
 ///
-/// Use [debugResetForTest] in unit tests to force re-initialisation.
+/// `webSdkUrl` is built by the backend as
+/// `${SUMSUB_BASE_URL}/idensic/sdk/checkup?accessToken=<token>` — the wizard is
+/// auth'd via the access-token in the URL, no extra headers.
 abstract class KycLauncherPlatform {
   static KycLauncherPlatform? _instance;
 
   static KycLauncherPlatform get instance =>
-      _instance ??= PlatformUtils.instance.isMobile
-          ? KycLauncherMobile()
-          : KycLauncherDesktop();
+      _instance ??= KycLauncherDesktop();
 
-  /// Launch the Sumsub KYC SDK.
-  ///
-  /// [sdkToken] is the Sumsub Mobile SDK token (mobile only; null on desktop).
-  /// [webSdkUrl] is the Sumsub Web SDK URL (desktop only; null on mobile).
-  /// [onTokenExpiration] is called when the token expires; must return a fresh token.
-  /// [locale] sets the SDK UI language (defaults to 'ru').
-  /// [debug] enables SDK debug logging.
-  Future<KycLaunchResult> launch({
-    String? sdkToken,
-    String? webSdkUrl,
-    required Future<String?> Function() onTokenExpiration,
-    Locale locale = const Locale('ru'),
-    bool debug = true,
-  });
+  Future<KycLaunchResult> launch({required String webSdkUrl});
 
   @visibleForTesting
   static void debugResetForTest() => _instance = null;
