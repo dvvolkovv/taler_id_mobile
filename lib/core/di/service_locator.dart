@@ -78,6 +78,12 @@ import '../../features/kyc/data/repositories/kyc_repository_impl.dart';
 import '../../features/kyc/domain/repositories/i_kyc_repository.dart';
 import '../../features/kyc/presentation/bloc/kyc_bloc.dart';
 
+// Voice Enrollment (voice-gate owner)
+import '../../features/voice_enrollment/data/datasources/voice_enrollment_remote.dart';
+import '../../features/voice_enrollment/data/repositories/voice_enrollment_repository_impl.dart';
+import '../../features/voice_enrollment/domain/repositories/voice_enrollment_repository.dart';
+import '../../features/voice_enrollment/presentation/bloc/voice_enrollment_bloc.dart';
+
 // Tenant
 import '../../features/tenant/data/datasources/tenant_remote_datasource.dart';
 import '../../features/tenant/data/repositories/tenant_repository_impl.dart';
@@ -558,6 +564,7 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => AuthRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => ProfileRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => KycRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton(() => VoiceEnrollmentRemote(sl<DioClient>()));
   sl.registerLazySingleton(() => TenantRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => SessionsRemoteDataSource(sl<DioClient>()));
   sl.registerLazySingleton(() => OAuthRemoteDatasource(sl<DioClient>()));
@@ -580,6 +587,9 @@ Future<void> setupDependencies() async {
       remote: sl<KycRemoteDataSource>(),
       cache: sl<CacheService>(),
     ),
+  );
+  sl.registerLazySingleton<VoiceEnrollmentRepository>(
+    () => VoiceEnrollmentRepositoryImpl(sl<VoiceEnrollmentRemote>()),
   );
   sl.registerLazySingleton<ITenantRepository>(
     () => TenantRepositoryImpl(
@@ -752,6 +762,7 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => AuthBloc(authRepository: sl<IAuthRepository>()));
   sl.registerFactory(() => ProfileBloc(repo: sl<IProfileRepository>()));
   sl.registerFactory(() => KycBloc(repo: sl<IKycRepository>()));
+  sl.registerFactory(() => VoiceEnrollmentBloc(repo: sl<VoiceEnrollmentRepository>()));
   sl.registerFactory(() => TenantBloc(repo: sl<ITenantRepository>()));
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
   sl.registerFactory(() => OAuthAuthorizeBloc(sl<OAuthRepository>()));
