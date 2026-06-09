@@ -9,6 +9,10 @@ import 'package:flutter/services.dart';
 import '../../../../core/platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:record/record.dart';
+import '../../../voice_enrollment/presentation/bloc/voice_enrollment_bloc.dart';
+import '../../../voice_enrollment/presentation/bloc/voice_enrollment_event.dart';
+import '../../../voice_enrollment/presentation/bloc/voice_enrollment_state.dart';
+import '../../../voice_enrollment/presentation/widgets/owner_enrollment_sheet.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
@@ -281,6 +285,32 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
+  /// Voice owner gating bootstrap: check whether the user has enrolled
+  /// their voice profile. If not, show a bottom sheet to record it. Cancel
+  /// is non-fatal — the WS proxy on the backend fails open when no embedding
+  /// is stored, so the assistant still works without gating.
+  Future<bool> _ensureOwnerEnrolled() async {
+    final bloc = sl<VoiceEnrollmentBloc>();
+    bloc.add(const Check());
+    final settled = await bloc.stream.firstWhere(
+      (s) => s is Enrolled || s is NotEnrolled || s is Failed,
+    );
+    if (settled is Enrolled) return true;
+    if (settled is Failed) return false; // be forgiving — let the session run
+    if (!mounted) return false;
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      builder: (ctx) => BlocProvider.value(
+        value: bloc,
+        child: const OwnerEnrollmentSheet(),
+      ),
+    );
+    return result == true;
+  }
+
   Future<void> _connect() async {
     setState(() {
       _state = _CallState.connecting;
@@ -310,6 +340,14 @@ class _AssistantScreenState extends State<AssistantScreen>
         _billing = null;
         rethrow;
       }
+
+      // 1b. Voice owner gating (experimental). First-time users get a
+      // bottom sheet asking them to record ~20 sec of their voice; that
+      // profile lets the WS proxy retract OpenAI input when a non-owner
+      // voice (TV, other person) leaks into the mic. If the user cancels
+      // the sheet we still let the session run — the proxy fails open.
+      await _ensureOwnerEnrolled();
+      if (!mounted) return;
 
       // 2. Connect to backend WebSocket proxy
       // billingSessionId lets the proxy call gating.endSession when the WS
