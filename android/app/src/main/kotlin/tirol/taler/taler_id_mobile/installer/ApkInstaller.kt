@@ -97,7 +97,7 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
                 val status = intent?.getIntExtra(PackageInstaller.EXTRA_STATUS, -999) ?: -999
                 val msg = intent?.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
                 if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
-                    val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                    val confirm = intent?.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
                     if (confirm != null) {
                         confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         try { context.startActivity(confirm) }
