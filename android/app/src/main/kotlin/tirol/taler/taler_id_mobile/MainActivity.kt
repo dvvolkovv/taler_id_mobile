@@ -19,6 +19,7 @@ import android.util.Log
 import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
 import tirol.taler.taler_id_mobile.audio.AudioCaptureChannel
 import tirol.taler.taler_id_mobile.audio.AudioPlaybackChannel
+import tirol.taler.taler_id_mobile.installer.ApkInstaller
 import tirol.taler.taler_id_mobile.notifications.NotificationBridge
 import com.cloudwebrtc.webrtc.LocalTrack
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
@@ -323,6 +324,9 @@ class MainActivity : FlutterFragmentActivity() {
         // Phase 1A: bridge for the on-device NotificationListenerService — exposes captured
         // notifications + inline reply over MethodChannel/EventChannel.
         NotificationBridge(flutterEngine, this)
+
+        // In-app APK updater: native PackageInstaller session + visible MediaStore copy.
+        ApkInstaller(applicationContext, flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/mesh_fg_service")
             .setMethodCallHandler { call, result ->

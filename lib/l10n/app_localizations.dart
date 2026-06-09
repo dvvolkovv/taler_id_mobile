@@ -3400,6 +3400,36 @@ abstract class AppLocalizations {
   /// **'Installing...'**
   String get dashboardInstalling;
 
+  /// No description provided for @updateInstallConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update in place'**
+  String get updateInstallConflictTitle;
+
+  /// No description provided for @updateInstallConflictBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The installed version is signed with a different certificate, so Android refuses to update it. Uninstall the app via Settings → Apps → Taler ID, then open the Downloads folder in your file manager and tap {filename} to install fresh. This step is only needed once.'**
+  String updateInstallConflictBody(String filename);
+
+  /// No description provided for @updateInstallFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Install failed'**
+  String get updateInstallFailedTitle;
+
+  /// No description provided for @updateInstallFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{reason}\n\nThe APK was saved to your Downloads folder as {filename} — you can try installing it manually from a file manager.'**
+  String updateInstallFailedBody(String reason, String filename);
+
+  /// No description provided for @updateInstallOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get updateInstallOk;
+
   /// No description provided for @contactRequestsTitle.
   ///
   /// In en, this message translates to:

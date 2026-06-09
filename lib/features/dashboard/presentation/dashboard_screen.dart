@@ -20,7 +20,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:dio/dio.dart' as dio_pkg;
-import 'package:open_filex/open_filex.dart';
+import '../../../core/services/apk_installer_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/services/share_intent_service.dart';
@@ -1123,7 +1123,6 @@ class _UpdateBannerState extends State<_UpdateBanner> {
   Future<void> _downloadAndInstall() async {
     if (_progress != null || _installing) return;
 
-    // Android-only: download APK and install
     if (!Platform.isAndroid) {
       final uri = Uri.parse(widget.downloadUrl);
       if (await canLaunchUrl(uri)) {
@@ -1133,6 +1132,7 @@ class _UpdateBannerState extends State<_UpdateBanner> {
     }
 
     setState(() => _progress = 0);
+    final displayName = 'talerid-${widget.version}.apk';
     try {
       final dir = await getTemporaryDirectory();
       final apkPath = '${dir.path}/taler_id_update.apk';
@@ -1150,10 +1150,61 @@ class _UpdateBannerState extends State<_UpdateBanner> {
       if (!mounted) return;
       setState(() { _progress = null; _installing = true; });
 
-      await OpenFilex.open(apkPath, type: 'application/vnd.android.package-archive');
+      final res = await ApkInstallerService.install(
+        filePath: apkPath,
+        displayName: displayName,
+      );
+      if (mounted) {
+        setState(() { _installing = false; });
+        _handleInstallResult(res, displayName);
+      }
     } catch (_) {
       if (mounted) setState(() { _progress = null; _installing = false; });
     }
+  }
+
+  void _handleInstallResult(ApkInstallResponse res, String displayName) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (res.status) {
+      case ApkInstallStatus.success:
+      case ApkInstallStatus.aborted:
+        return;
+      case ApkInstallStatus.conflict:
+        _showInstallDialog(
+          l10n.updateInstallConflictTitle,
+          l10n.updateInstallConflictBody(displayName),
+        );
+        return;
+      case ApkInstallStatus.downloadFailed:
+      case ApkInstallStatus.incompatible:
+      case ApkInstallStatus.blocked:
+      case ApkInstallStatus.storage:
+      case ApkInstallStatus.invalid:
+      case ApkInstallStatus.failureUnknown:
+        final reason = res.message.isNotEmpty ? res.message : res.status.name;
+        _showInstallDialog(
+          l10n.updateInstallFailedTitle,
+          l10n.updateInstallFailedBody(reason, displayName),
+        );
+        return;
+    }
+  }
+
+  void _showInstallDialog(String title, String body) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.updateInstallOk),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

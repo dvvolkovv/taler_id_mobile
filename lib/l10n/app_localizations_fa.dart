@@ -1727,6 +1727,25 @@ class AppLocalizationsFa extends AppLocalizations {
   String get dashboardInstalling => 'در حال نصب...';
 
   @override
+  String get updateInstallConflictTitle => 'Couldn\'t update in place';
+
+  @override
+  String updateInstallConflictBody(String filename) {
+    return 'The installed version is signed with a different certificate, so Android refuses to update it. Uninstall the app via Settings → Apps → Taler ID, then open the Downloads folder in your file manager and tap $filename to install fresh. This step is only needed once.';
+  }
+
+  @override
+  String get updateInstallFailedTitle => 'Install failed';
+
+  @override
+  String updateInstallFailedBody(String reason, String filename) {
+    return '$reason\n\nThe APK was saved to your Downloads folder as $filename — you can try installing it manually from a file manager.';
+  }
+
+  @override
+  String get updateInstallOk => 'OK';
+
+  @override
   String get contactRequestsTitle => 'مخاطبین';
 
   @override
