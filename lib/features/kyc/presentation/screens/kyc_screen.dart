@@ -1,12 +1,9 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/platform/kyc_launcher.dart';
-import '../../../../core/platform/platform_utils.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/theme/widgets.dart';
 import '../../../../core/utils/error_keys.dart';
 import '../bloc/kyc_bloc.dart';
 import '../bloc/kyc_event.dart';
@@ -36,7 +33,7 @@ class _KycScreenState extends State<KycScreen> {
       body: BlocConsumer<KycBloc, KycState>(
         listener: (context, state) {
           if (state is KycSdkReady) {
-            _launchSumsub(context, sdkToken: state.sdkToken, webSdkUrl: state.webSdkUrl);
+            _launchSumsub(context, webSdkUrl: state.webSdkUrl);
           } else if (state is KycError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -398,8 +395,10 @@ class _KycScreenState extends State<KycScreen> {
     }
   }
 
-  void _launchSumsub(BuildContext context, {String? sdkToken, String? webSdkUrl}) async {
+  void _launchSumsub(BuildContext context, {required String webSdkUrl}) async {
     if (kIsWeb) {
+      // Web: cannot embed mock_ss in an iframe from inside a Flutter web app
+      // without extra CSP work — direct users to the native/desktop apps.
       final l10n = AppLocalizations.of(context)!;
       showDialog(
         context: context,
@@ -418,33 +417,8 @@ class _KycScreenState extends State<KycScreen> {
       return;
     }
 
-    // Desktop: push WebView screen — KycLauncherDesktop navigates to /kyc/webview.
-    if (PlatformUtils.instance.isDesktop) {
-      final bloc = context.read<KycBloc>();
-      final result = await KycLauncherPlatform.instance.launch(
-        webSdkUrl: webSdkUrl,
-        onTokenExpiration: () async {
-          final r = await bloc.repo.startKyc();
-          return r.sdkToken ?? '';
-        },
-      );
-      if (!mounted) return;
-      if (!result.skipped) {
-        bloc.add(KycStatusRequested());
-      }
-      return;
-    }
-
-    // Mobile: Sumsub Mobile SDK.
-    if (sdkToken == null) return;
     final bloc = context.read<KycBloc>();
-    final result = await KycLauncherPlatform.instance.launch(
-      sdkToken: sdkToken,
-      onTokenExpiration: () async {
-        final r = await bloc.repo.startKyc();
-        return r.sdkToken ?? '';
-      },
-    );
+    final result = await KycLauncherPlatform.instance.launch(webSdkUrl: webSdkUrl);
     if (!mounted) return;
     if (result.skipped) {
       ScaffoldMessenger.of(context).showSnackBar(

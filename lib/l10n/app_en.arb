@@ -752,6 +752,28 @@
     }
   },
   "dashboardInstalling": "Installing...",
+  "updateInstallConflictTitle": "Couldn't update in place",
+  "updateInstallConflictBody": "The installed version is signed with a different certificate, so Android refuses to update it. Uninstall the app via Settings → Apps → Taler ID, then open the Downloads folder in your file manager and tap {filename} to install fresh. This step is only needed once.",
+  "@updateInstallConflictBody": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallFailedTitle": "Install failed",
+  "updateInstallFailedBody": "{reason}\n\nThe APK was saved to your Downloads folder as {filename} — you can try installing it manually from a file manager.",
+  "@updateInstallFailedBody": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      },
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallOk": "OK",
   "contactRequestsTitle": "Contacts",
   "messengerContactRequestsSection": "Contact requests",
   "messengerContactRequestsCount": "{count, plural, =1{1 new request} other{{count} new requests}}",

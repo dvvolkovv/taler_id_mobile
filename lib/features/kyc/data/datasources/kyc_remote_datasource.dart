@@ -1,38 +1,35 @@
 import '../../../../core/api/dio_client.dart';
-import '../../../../core/platform/platform_utils.dart';
 
-/// Unified response from POST /kyc/start.
+/// Response from POST /kyc/start.
 ///
-/// Shape differs by platform:
-///   mobile  → { platform: 'mobile', sdkToken, sumsubApplicantId, status }
-///   desktop → { platform: 'desktop', webSdkUrl, sumsubApplicantId, status }
+/// Backend now serves the same shape to all platforms — KYC runs through the
+/// SumSub-compatible mock WebSDK over an in-app WebView (no native SDK token).
 class KycStartResponse {
-  final String platform;
-  final String sumsubApplicantId;
-
-  /// Sumsub Mobile SDK token — present on mobile only.
-  final String? sdkToken;
-
-  /// Sumsub Web SDK URL — present on desktop only.
-  final String? webSdkUrl;
-
+  final String applicantId;
+  final String webSdkUrl;
+  final String sdkBaseUrl;
   final String status;
+  final String? expiresAt;
 
   const KycStartResponse({
-    required this.platform,
-    required this.sumsubApplicantId,
-    this.sdkToken,
-    this.webSdkUrl,
+    required this.applicantId,
+    required this.webSdkUrl,
+    required this.sdkBaseUrl,
     required this.status,
+    this.expiresAt,
   });
 
-  factory KycStartResponse.fromJson(Map<String, dynamic> json) => KycStartResponse(
-        platform: json['platform'] as String? ?? 'mobile',
-        sumsubApplicantId: json['sumsubApplicantId'] as String? ?? '',
-        sdkToken: json['sdkToken'] as String?,
-        webSdkUrl: json['webSdkUrl'] as String?,
-        status: json['status'] as String? ?? 'PENDING',
-      );
+  factory KycStartResponse.fromJson(Map<String, dynamic> json) {
+    final applicantId =
+        (json['applicantId'] ?? json['sumsubApplicantId']) as String? ?? '';
+    return KycStartResponse(
+      applicantId: applicantId,
+      webSdkUrl: json['webSdkUrl'] as String? ?? '',
+      sdkBaseUrl: json['sdkBaseUrl'] as String? ?? '',
+      status: json['status'] as String? ?? 'PENDING',
+      expiresAt: json['expiresAt'] as String?,
+    );
+  }
 }
 
 class KycRemoteDataSource {
@@ -40,9 +37,8 @@ class KycRemoteDataSource {
   KycRemoteDataSource(this.client);
 
   Future<KycStartResponse> startKyc() async {
-    final platform = PlatformUtils.instance.isDesktop ? 'desktop' : 'mobile';
     final data = await client.post<Map<String, dynamic>>(
-      '/kyc/start?platform=$platform',
+      '/kyc/start',
       data: {},
       fromJson: (d) => Map<String, dynamic>.from(d),
     );

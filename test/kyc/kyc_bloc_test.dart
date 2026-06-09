@@ -125,12 +125,12 @@ void main() {
 
   group('KycStartRequested', () {
     blocTest<KycBloc, KycState>(
-      'emits [Loading, SdkReady] with SDK token',
+      'emits [Loading, SdkReady] with WebSDK url',
       build: () {
         when(() => repo.startKyc()).thenAnswer((_) async => const KycStartResponse(
-              platform: 'mobile',
-              sumsubApplicantId: 'app-123',
-              sdkToken: 'sdk-token-xyz',
+              applicantId: 'app-123',
+              webSdkUrl: 'https://mockss-test.up.railway.app/idensic/sdk/checkup?accessToken=tok',
+              sdkBaseUrl: 'https://mockss-test.up.railway.app',
               status: 'PENDING',
             ));
         return bloc;
@@ -138,7 +138,11 @@ void main() {
       act: (b) => b.add(KycStartRequested()),
       expect: () => [
         isA<KycLoading>(),
-        isA<KycSdkReady>().having((s) => s.sdkToken, 'sdkToken', 'sdk-token-xyz'),
+        isA<KycSdkReady>().having(
+          (s) => s.webSdkUrl,
+          'webSdkUrl',
+          contains('accessToken=tok'),
+        ),
       ],
     );
 

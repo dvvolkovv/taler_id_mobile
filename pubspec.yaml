@@ -48,9 +48,6 @@ dependencies:
   image_picker: ^1.1.2
   wechat_assets_picker: ^9.4.1
 
-  # KYC / Sumsub
-  flutter_idensic_mobile_sdk_plugin: ^1.40.2
-
   # Deep links
   app_links: ^6.3.4
 

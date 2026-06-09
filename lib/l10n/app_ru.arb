@@ -752,6 +752,28 @@
     }
   },
   "dashboardInstalling": "Устанавливается...",
+  "updateInstallConflictTitle": "Не удалось обновить поверх",
+  "updateInstallConflictBody": "Установленная версия подписана другим сертификатом, поэтому Android отказывается её обновить. Удали приложение через Настройки → Приложения → Taler ID, затем открой папку «Загрузки» в файловом менеджере и тапни по {filename} чтобы установить заново. Этот шаг нужен один раз.",
+  "@updateInstallConflictBody": {
+    "placeholders": {
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallFailedTitle": "Установка не удалась",
+  "updateInstallFailedBody": "{reason}\n\nAPK сохранён в папку «Загрузки» как {filename} — можно попробовать установить вручную из файлового менеджера.",
+  "@updateInstallFailedBody": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      },
+      "filename": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstallOk": "Понятно",
   "contactRequestsTitle": "Контакты",
   "messengerContactRequestsSection": "Заявки в контакты",
   "messengerContactRequestsCount": "{count, plural, =1{1 новая заявка} few{{count} новые заявки} many{{count} новых заявок} other{{count} новых заявок}}",

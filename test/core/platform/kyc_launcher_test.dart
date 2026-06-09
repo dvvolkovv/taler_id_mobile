@@ -1,5 +1,4 @@
 // test/core/platform/kyc_launcher_test.dart
-import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/platform/kyc_launcher.dart';
 import 'package:taler_id_mobile/core/platform/kyc_launcher_desktop.dart';
@@ -40,22 +39,10 @@ void main() {
 
     setUp(() => desktop = KycLauncherDesktop());
 
-    test('launch returns skipped result', () async {
-      final result = await desktop.launch(
-        sdkToken: 'test-token',
-        onTokenExpiration: () async => 'new-token',
-      );
+    test('launch with empty webSdkUrl returns skipped', () async {
+      final result = await desktop.launch(webSdkUrl: '');
       expect(result.skipped, isTrue);
       expect(result.success, isFalse);
-    });
-
-    test('launch with custom locale still skips', () async {
-      final result = await desktop.launch(
-        sdkToken: 'tok',
-        onTokenExpiration: () async => null,
-        locale: const Locale('en'),
-      );
-      expect(result.skipped, isTrue);
     });
   });
 

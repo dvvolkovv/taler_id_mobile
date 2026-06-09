@@ -62,7 +62,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
               SnackBar(content: Text(resolveErrorMessage(l10n, state.message)), backgroundColor: AppColors.of(context).error),
             );
           } else if (state is TenantKybSdkReady) {
-            _launchKybSumsub(context, state.sdkToken, state.tenantId);
+            _launchKybSumsub(context, state.webSdkUrl, state.tenantId);
           }
         },
         builder: (context, state) {
@@ -586,7 +586,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     );
   }
 
-  void _launchKybSumsub(BuildContext context, String sdkToken, String tenantId) async {
+  void _launchKybSumsub(BuildContext context, String webSdkUrl, String tenantId) async {
     final l10n = AppLocalizations.of(context)!;
     if (kIsWeb) {
       showDialog(
@@ -610,12 +610,7 @@ class _OrganizationDetailScreenState extends State<OrganizationDetailScreen> {
     }
 
     final bloc = context.read<TenantBloc>();
-    final locale = Locale(Localizations.localeOf(context).languageCode);
-    final result = await KycLauncherPlatform.instance.launch(
-      sdkToken: sdkToken,
-      onTokenExpiration: () async => await bloc.repo.startKyb(tenantId),
-      locale: locale,
-    );
+    final result = await KycLauncherPlatform.instance.launch(webSdkUrl: webSdkUrl);
 
     if (!mounted) return;
 

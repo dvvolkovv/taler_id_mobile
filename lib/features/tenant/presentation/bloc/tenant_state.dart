@@ -38,11 +38,13 @@ class TenantError extends TenantState {
 }
 
 class TenantKybSdkReady extends TenantState {
-  final String sdkToken;
+  /// KYB WebSDK URL — `${SUMSUB_BASE_URL}/idensic/sdk/checkup?accessToken=...`
+  /// (built by the backend).
+  final String webSdkUrl;
   final String tenantId;
-  TenantKybSdkReady({required this.sdkToken, required this.tenantId});
+  TenantKybSdkReady({required this.webSdkUrl, required this.tenantId});
   @override
-  List<Object?> get props => [sdkToken, tenantId];
+  List<Object?> get props => [webSdkUrl, tenantId];
 }
 
 class TenantKybDone extends TenantState {}
