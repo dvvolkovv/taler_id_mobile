@@ -10,7 +10,17 @@ import 'secure_storage.dart';
 ///   e.g. for VoIP push handlers).
 class SecureStorageMobile implements SecureStorage {
   static const _fss = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    // resetOnError: if AndroidKeyStore master key is invalidated (system
+    // events: biometric re-enrollment, lock-screen change, backup/restore,
+    // OS upgrade) EncryptedSharedPreferences throws AEADBadTagException on
+    // read and the app dies before runApp() — see incident 2026-06-10.
+    // resetOnError tells FSS to wipe the corrupted prefs file on first read
+    // failure so subsequent reads return null and writes succeed: user is
+    // logged out and mesh identity is regenerated, but the app boots.
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true,
+    ),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 

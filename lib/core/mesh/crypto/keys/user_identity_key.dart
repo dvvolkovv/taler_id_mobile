@@ -49,22 +49,33 @@ class UserIdentityKey {
     );
   }
 
-  /// Read the identity key from [storage] under [storageKey]. If absent,
-  /// generate a new keypair, persist it, and return it. This call is
-  /// idempotent across app launches.
+  /// Read the identity key from [storage] under [storageKey]. If absent or
+  /// unreadable, generate a new keypair, persist it, and return it. This call
+  /// is idempotent across app launches and never throws — a corrupted entry
+  /// (e.g. AndroidKeyStore master key invalidated by a system event) is
+  /// treated as missing so the app can boot. See incident 2026-06-10.
   static Future<UserIdentityKey> loadOrCreate(
     SecureStorage storage,
   ) async {
-    final encoded = await storage.read(storageKey);
+    String? encoded;
+    try {
+      encoded = await storage.read(storageKey);
+    } catch (_) {
+      try { await storage.delete(storageKey); } catch (_) {}
+      encoded = null;
+    }
     if (encoded != null && encoded.isNotEmpty) {
       final bytes = Uint8List.fromList(base64Decode(encoded));
       if (bytes.length == 32) {
         return _fromPrivateKeyBytes(bytes);
       }
-      // Length mismatch — treat as corrupted, regenerate.
     }
     final fresh = await generate();
-    await storage.write(storageKey, base64Encode(fresh.privateKeyBytes));
+    try {
+      await storage.write(storageKey, base64Encode(fresh.privateKeyBytes));
+    } catch (_) {
+      // Best-effort persist; in-memory key still works for this session.
+    }
     return fresh;
   }
 
