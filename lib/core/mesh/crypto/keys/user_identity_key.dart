@@ -57,18 +57,20 @@ class UserIdentityKey {
   static Future<UserIdentityKey> loadOrCreate(
     SecureStorage storage,
   ) async {
-    String? encoded;
+    // flutter_secure_storage 9.x with AndroidOptions.resetOnError does not
+    // throw on AEADBadTagException — it wipes the prefs file and returns the
+    // sentinel string "Data has been reset". Any failure (read throws,
+    // decode throws, length mismatch) must collapse to regeneration.
     try {
-      encoded = await storage.read(storageKey);
+      final encoded = await storage.read(storageKey);
+      if (encoded != null && encoded.isNotEmpty) {
+        final bytes = Uint8List.fromList(base64Decode(encoded));
+        if (bytes.length == 32) {
+          return _fromPrivateKeyBytes(bytes);
+        }
+      }
     } catch (_) {
       try { await storage.delete(storageKey); } catch (_) {}
-      encoded = null;
-    }
-    if (encoded != null && encoded.isNotEmpty) {
-      final bytes = Uint8List.fromList(base64Decode(encoded));
-      if (bytes.length == 32) {
-        return _fromPrivateKeyBytes(bytes);
-      }
     }
     final fresh = await generate();
     try {
