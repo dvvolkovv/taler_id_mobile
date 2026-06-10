@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'dart:async';
 import 'core/api/dio_client.dart';
@@ -309,6 +310,11 @@ Future<void> _checkInitialCallKitCall() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Use bundled Inter font assets only — no runtime fetch from
+  // fonts.gstatic.com. The TTFs live under google_fonts/ (declared as an
+  // asset in pubspec.yaml) and google_fonts resolves them locally.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // Set up CallKit listener early — before runApp — to catch accept events
   // that arrive while the app is cold-starting.
