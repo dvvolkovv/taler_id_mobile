@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/constants.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/services/outbox_replay_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/services/call_state_service.dart';
@@ -445,6 +446,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // Refresh badge counts when app resumes
       try {
         context.read<MessengerBloc>().add(LoadBadgeCounts());
+      } catch (_) {}
+      // Drain any outbox ops that piled up while the device was offline
+      // or that landed in the queue without a connectivity event to flush them.
+      try {
+        sl<OutboxReplayService>().drain();
       } catch (_) {}
       // Resume wake word when app comes back to foreground
       _resumeWakeWordIfNeeded();

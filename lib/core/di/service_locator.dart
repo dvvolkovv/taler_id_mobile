@@ -737,6 +737,7 @@ Future<void> setupDependencies() async {
         local: sl<ContactsLocalDataSource>(),
         remote: sl<MessengerRemoteDataSource>(),
         outbox: sl<OutboxQueue>(),
+        replay: sl<OutboxReplayService>(),
       ));
   sl.registerLazySingleton<ContactsOutboxReplayHandler>(() => ContactsOutboxReplayHandler(
         remote: sl<MessengerRemoteDataSource>(),

@@ -17,6 +17,15 @@ class OutboxReplayService {
     _handlers[handler.feature] = handler;
   }
 
+  /// Persists [op] and triggers a drain so the op is replayed immediately
+  /// when the device is online. Without this, the op would sit in the queue
+  /// until the next connectivity-up event or app cold start.
+  Future<void> enqueue(OutboxOp op) async {
+    await _queue.enqueue(op);
+    // Fire-and-forget; errors are handled inside drain → handler chain.
+    unawaited(drain());
+  }
+
   /// Drains all currently-pending ops (single-flight).
   /// Each op is processed at most once per drain call — retried ops are
   /// left for the next drain triggered by the next connectivity event.
