@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:taler_id_mobile/core/services/outbox_replay_service.dart';
 import 'package:taler_id_mobile/core/storage/outbox_op.dart';
 import 'package:taler_id_mobile/core/storage/outbox_queue.dart';
 import 'package:taler_id_mobile/features/contacts/data/datasources/contacts_local_datasource.dart';
@@ -27,6 +28,7 @@ void main() {
   late Directory tempDir;
   late ContactsLocalDataSource local;
   late OutboxQueue queue;
+  late OutboxReplayService replay;
   late _MockRemote remote;
   late ContactsRepositoryImpl repo;
 
@@ -40,8 +42,14 @@ void main() {
     await Hive.openBox<String>(OutboxQueue.boxName);
     local = ContactsLocalDataSource();
     queue = OutboxQueue();
+    replay = OutboxReplayService(queue: queue);
     remote = _MockRemote();
-    repo = ContactsRepositoryImpl(local: local, remote: remote, outbox: queue);
+    repo = ContactsRepositoryImpl(
+      local: local,
+      remote: remote,
+      outbox: queue,
+      replay: replay,
+    );
   });
 
   tearDown(() async {

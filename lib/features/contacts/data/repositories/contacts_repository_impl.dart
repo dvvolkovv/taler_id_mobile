@@ -1,5 +1,6 @@
 // lib/features/contacts/data/repositories/contacts_repository_impl.dart
 import 'dart:async';
+import '../../../../core/services/outbox_replay_service.dart';
 import '../../../../core/storage/outbox_op.dart';
 import '../../../../core/storage/outbox_queue.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
@@ -13,15 +14,18 @@ class ContactsRepositoryImpl implements IContactsRepository {
   final ContactsLocalDataSource _local;
   final MessengerRemoteDataSource _remote;
   final OutboxQueue _outbox;
+  final OutboxReplayService _replay;
   final Uuid _uuid = const Uuid();
 
   ContactsRepositoryImpl({
     required ContactsLocalDataSource local,
     required MessengerRemoteDataSource remote,
     required OutboxQueue outbox,
+    required OutboxReplayService replay,
   })  : _local = local,
         _remote = remote,
-        _outbox = outbox;
+        _outbox = outbox,
+        _replay = replay;
 
   @override
   Stream<List<ContactItemEntity>> watchAll() => _local.watchAll();
@@ -140,7 +144,7 @@ class ContactsRepositoryImpl implements IContactsRepository {
         await _outbox.remove(op.opId);
       }
     }
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'contacts',
       op: OutboxOpKind.update,
