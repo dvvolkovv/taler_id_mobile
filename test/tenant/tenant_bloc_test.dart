@@ -311,7 +311,7 @@ void main() {
       expect: () => [
         isA<TenantLoading>(),
         isA<TenantKybSdkReady>()
-            .having((s) => s.sdkToken, 'sdkToken', 'kyb-sdk-token')
+            .having((s) => s.webSdkUrl, 'webSdkUrl', 'kyb-sdk-token')
             .having((s) => s.tenantId, 'tenantId', 'tenant-1'),
       ],
     );
