@@ -8,7 +8,7 @@ class DefaultFirebaseOptions {
     if (kIsWeb) throw UnsupportedError('Web is not supported');
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        return android;
+        return _taleridPublic ? androidTalerid : android;
       case TargetPlatform.iOS:
         return ios;
       default:
@@ -18,9 +18,20 @@ class DefaultFirebaseOptions {
     }
   }
 
+  // Public DigitalOcean app (io.talerid.app), selected via --dart-define=TALERID_PUBLIC=true.
+  static const bool _taleridPublic = bool.fromEnvironment('TALERID_PUBLIC');
+
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyCNTilLiCbGOAIFfsivLmL9NLCVe9bGifo',
     appId: '1:337152405350:android:29d8c7c9fa75c9dd65a2a7',
+    messagingSenderId: '337152405350',
+    projectId: 'talerid-afd44',
+    storageBucket: 'talerid-afd44.firebasestorage.app',
+  );
+
+  static const FirebaseOptions androidTalerid = FirebaseOptions(
+    apiKey: 'AIzaSyCNTilLiCbGOAIFfsivLmL9NLCVe9bGifo',
+    appId: '1:337152405350:android:3a74e7f11285486265a2a7',
     messagingSenderId: '337152405350',
     projectId: 'talerid-afd44',
     storageBucket: 'talerid-afd44.firebasestorage.app',
