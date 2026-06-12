@@ -34,8 +34,8 @@ import 'package:taler_id_mobile/main.dart' as app;
 // ── Config ─────────────────────────────────────────────────────────────────
 
 /// Тестовый аккаунт на DEV (staging). Создаётся один раз, не удаляется.
-const _testEmail = 'integration_test@taler-test.com';
-const _testPass = 'IntegrationTest123!';
+const _testEmail = String.fromEnvironment('TEST_EMAIL', defaultValue: 'integration_test@taler-test.com');
+const _testPass = String.fromEnvironment('TEST_PASSWORD', defaultValue: 'IntegrationTest123!');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
