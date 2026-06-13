@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -448,8 +449,19 @@ Future<void> main() async {
 
   // Launch-smoke marker: emitted once the first frame is drawn, so CI smoke
   // gates can confirm the app reached runApp() and rendered (not just built).
-  WidgetsBinding.instance
-      .addPostFrameCallback((_) => debugPrint('TalerID: first frame rendered'));
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    debugPrint('TalerID: first frame rendered');
+    // File marker (HOME-relative) so CI smoke gates can confirm a rendered frame
+    // without stdout/screenshots/automation (works on Linux/macOS/Windows over SSH).
+    try {
+      final home =
+          Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+      if (home != null) {
+        File('$home/.talerid_first_frame')
+            .writeAsStringSync(DateTime.now().toIso8601String());
+      }
+    } catch (_) {}
+  });
   runApp(TalerIdApp(initialLocale: savedLang, initialThemeMode: themeMode));
 }
 
