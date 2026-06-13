@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_acrylic/flutter_acrylic.dart' as acrylic;
 import 'package:window_manager/window_manager.dart';
 import 'package:taler_id_mobile/core/platform/platform_utils.dart';
+import 'package:taler_id_mobile/core/desktop_tray/desktop_tray_service.dart';
 import 'window_state_persistence.dart';
 
 class WindowSetup with WindowListener {
@@ -127,8 +128,12 @@ class WindowSetup with WindowListener {
     // Intercept close and hide instead. Quit happens via tray "Выйти" menu
     // (see DesktopTrayService) or programmatic windowManager.destroy().
     final isPreventClose = await windowManager.isPreventClose();
-    if (isPreventClose) {
+    // Minimize-to-tray ONLY when the tray fully initialized; otherwise quit so
+    // the user is never trapped (hidden window + dead/blank tray menu).
+    if (isPreventClose && DesktopTrayService.available) {
       await windowManager.hide();
+    } else {
+      await windowManager.destroy();
     }
   }
 }

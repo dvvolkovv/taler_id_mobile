@@ -9,6 +9,11 @@ class DesktopTrayService with TrayListener {
 
   final ValueNotifier<int> unreadCount = ValueNotifier(0);
 
+  /// True only when the tray FULLY initialized (icon + context menu + listener).
+  /// When false (e.g. Linux without a working tray host / appindicator), the
+  /// window close button must quit the app instead of hiding to a dead tray.
+  static bool available = false;
+
   Future<void> initialize() async {
     if (!PlatformUtils.instance.isDesktop) return;
     // The system tray is OPTIONAL. On Linux without a tray host / D-Bus /
@@ -22,6 +27,7 @@ class DesktopTrayService with TrayListener {
       await _rebuildMenu();
       trayManager.addListener(this);
       unreadCount.addListener(_onUnreadChanged);
+      available = true;
     } catch (e) {
       debugPrint('[DesktopTray] tray unavailable — continuing without it: $e');
     }
