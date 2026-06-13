@@ -130,31 +130,70 @@ class SecureStorageDesktop implements SecureStorage {
   /// an ephemeral session key is used. The Hive box will still be encrypted in
   /// memory; however data will not survive between restarts in that fallback.
   Future<(List<int>, bool)> _loadOrGenerateKey() async {
+    // Try the OS keychain (macOS Keychain / Windows Credential Manager /
+    // Linux libsecret) FIRST, but with a hard timeout. On a plain Linux
+    // desktop a missing or locked Secret Service (no running gnome-keyring,
+    // headless/remote session) makes the libsecret call BLOCK indefinitely —
+    // which would hang main() before runApp() and show a black window. The
+    // timeout converts that hang into a graceful fallback to a local key file
+    // so the app always reaches runApp().
+    const kcTimeout = Duration(seconds: 4);
     String? existing;
+    var keychainUsable = true;
     try {
-      existing = await _fss.read(key: _hiveKeyAlias);
+      existing = await _fss.read(key: _hiveKeyAlias).timeout(kcTimeout);
     } catch (e) {
+      keychainUsable = false;
       developer.log(
-        '[SecureStorage] Keychain read failed ($e). '
-        'Falling back to ephemeral session key — data will NOT persist.',
+        '[SecureStorage] Keychain unavailable on read ($e) — '
+        'falling back to a local key file.',
         name: 'SecureStorage',
         level: 900, // WARNING
       );
-      final rng = Random.secure();
-      return (List<int>.generate(32, (_) => rng.nextInt(256)), true);
     }
     if (existing != null) return (base64Decode(existing), false);
+    if (!keychainUsable) return _fileBackedKey();
+
     final rng = Random.secure();
     final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
     try {
-      await _fss.write(key: _hiveKeyAlias, value: base64Encode(bytes));
+      await _fss
+          .write(key: _hiveKeyAlias, value: base64Encode(bytes))
+          .timeout(kcTimeout);
+      return (bytes, true);
     } catch (e) {
       developer.log(
-        '[SecureStorage] Keychain write failed ($e). '
-        'Using ephemeral session key — data will NOT persist.',
+        '[SecureStorage] Keychain unavailable on write ($e) — '
+        'falling back to a local key file.',
         name: 'SecureStorage',
         level: 900, // WARNING
       );
+      return _fileBackedKey();
+    }
+  }
+
+  /// Persistent fallback used when the OS keychain is unavailable — typical on
+  /// plain Linux desktops without a running/unlocked keyring. The AES key is
+  /// stored in an owner-only (0600) file under the app support dir so data
+  /// survives restarts (unlike an ephemeral key). Less hardened than the
+  /// keychain, but the Hive box stays AES-256 encrypted and the key file is
+  /// readable only by the user.
+  Future<(List<int>, bool)> _fileBackedKey() async {
+    final dir = _hiveDir ?? (await getApplicationSupportDirectory()).path;
+    final f = File('$dir/.secure_box_v2.key');
+    if (await f.exists()) {
+      try {
+        final b = base64Decode((await f.readAsString()).trim());
+        if (b.length == 32) return (b, false);
+      } catch (_) {/* corrupt — regenerate below */}
+    }
+    final rng = Random.secure();
+    final bytes = List<int>.generate(32, (_) => rng.nextInt(256));
+    await f.writeAsString(base64Encode(bytes), flush: true);
+    if (Platform.isLinux || Platform.isMacOS) {
+      try {
+        await Process.run('chmod', ['600', f.path]);
+      } catch (_) {/* best effort */}
     }
     return (bytes, true);
   }

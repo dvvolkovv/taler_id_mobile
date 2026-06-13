@@ -13,6 +13,7 @@
 //
 // This keeps the tests fully hermetic — no plugin channels required.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -78,6 +79,38 @@ class _MemFss implements FlutterSecureStorage {
     WindowsOptions? wOptions,
   }) async =>
       _data.clear();
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Fake FlutterSecureStorage whose calls never complete — simulates a blocked
+/// Linux libsecret (no/locked keyring) that previously hung startup.
+class _HangingFss implements FlutterSecureStorage {
+  @override
+  Future<String?> read({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) =>
+      Completer<String?>().future;
+
+  @override
+  Future<void> write({
+    required String key,
+    required String? value,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) =>
+      Completer<void>().future;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -153,5 +186,25 @@ void main() {
 
     // Legacy box must be gone from disk after migration.
     expect(await Hive.boxExists('auth_tokens'), isFalse);
+  });
+
+  test('initialize() does not hang when the keychain blocks (timeout -> key file)', () async {
+    // Regression for the Linux black-screen bug: a missing/locked libsecret made
+    // FlutterSecureStorage.read() block forever, hanging main() before runApp().
+    // The 4s timeout must convert that into a file-backed-key fallback so the
+    // app still starts.
+    await Hive.close(); // release the box opened by setUp()
+    final dir = await Directory.systemTemp.createTemp('secure_storage_hang_');
+    final ss = SecureStorageDesktop(fss: _HangingFss(), hiveDir: dir.path);
+    await ss.initialize().timeout(
+      const Duration(seconds: 15),
+      onTimeout: () => fail('initialize() hung — keychain timeout/fallback failed'),
+    );
+    await ss.write('k', 'v');
+    expect(await ss.read('k'), equals('v'));
+    expect(File('${dir.path}/.secure_box_v2.key').existsSync(), isTrue,
+        reason: 'file-backed AES key should be created when keychain is unavailable');
+    await Hive.close();
+    await dir.delete(recursive: true);
   });
 }
