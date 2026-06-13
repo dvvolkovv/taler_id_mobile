@@ -29,7 +29,10 @@ class DesktopTrayService with TrayListener {
       unreadCount.addListener(_onUnreadChanged);
       available = true;
     } catch (e) {
-      debugPrint('[DesktopTray] tray unavailable — continuing without it: $e');
+      debugPrint('[DesktopTray] tray unavailable — removing icon: $e');
+      try {
+        await trayManager.destroy();
+      } catch (_) {/* best effort: remove any half-created dead tray icon */}
     }
   }
 
