@@ -446,6 +446,10 @@ Future<void> main() async {
     // Storage read failed — leave heartbeat in default (off) state.
   }
 
+  // Launch-smoke marker: emitted once the first frame is drawn, so CI smoke
+  // gates can confirm the app reached runApp() and rendered (not just built).
+  WidgetsBinding.instance
+      .addPostFrameCallback((_) => debugPrint('TalerID: first frame rendered'));
   runApp(TalerIdApp(initialLocale: savedLang, initialThemeMode: themeMode));
 }
 
