@@ -337,17 +337,23 @@ Future<void> main() async {
   // Initialize window manager AFTER Hive (WindowStatePersistence uses Hive.openBox).
   await WindowSetup.initialize();
   WindowSetup.attachStateSaver();
-  await DesktopTrayService.instance.initialize();
-  await DesktopNotificationsService.instance.initialize(
-    onTap: (payload) {
-      final route = NotificationRouting.routeFor(payload);
-      if (route != null) {
-        try {
-          appRouter.go(route);
-        } catch (_) {}
-      }
-    },
-  );
+  // Optional desktop integrations (tray, native notifications). A failure here
+  // must NEVER abort startup before runApp() — guard the whole block.
+  try {
+    await DesktopTrayService.instance.initialize();
+    await DesktopNotificationsService.instance.initialize(
+      onTap: (payload) {
+        final route = NotificationRouting.routeFor(payload);
+        if (route != null) {
+          try {
+            appRouter.go(route);
+          } catch (_) {}
+        }
+      },
+    );
+  } catch (e) {
+    debugPrint('[main] optional desktop services unavailable: $e');
+  }
 
   // Initialize custom URL scheme handler (talerid://) — desktop only.
   await UrlSchemeHandler.instance.initialize();

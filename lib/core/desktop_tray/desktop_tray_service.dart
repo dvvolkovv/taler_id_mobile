@@ -11,11 +11,20 @@ class DesktopTrayService with TrayListener {
 
   Future<void> initialize() async {
     if (!PlatformUtils.instance.isDesktop) return;
-    await trayManager.setIcon('assets/tray/tray_idle.png');
-    await trayManager.setToolTip('Taler ID');
-    await _rebuildMenu();
-    trayManager.addListener(this);
-    unreadCount.addListener(_onUnreadChanged);
+    // The system tray is OPTIONAL. On Linux without a tray host / D-Bus /
+    // libayatana-appindicator (or if the tray_manager platform plugin is not
+    // registered) these calls throw MissingPluginException — which previously
+    // propagated out of main() before runApp(), producing a black window.
+    // Swallow and continue so the app always starts.
+    try {
+      await trayManager.setIcon('assets/tray/tray_idle.png');
+      await trayManager.setToolTip('Taler ID');
+      await _rebuildMenu();
+      trayManager.addListener(this);
+      unreadCount.addListener(_onUnreadChanged);
+    } catch (e) {
+      debugPrint('[DesktopTray] tray unavailable — continuing without it: $e');
+    }
   }
 
   void _onUnreadChanged() {
