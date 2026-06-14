@@ -65,7 +65,6 @@ android {
         create("talerid") {
             dimension = "environment"
             applicationId = "io.talerid.app"
-            ndk { abiFilters += listOf("arm64-v8a") }   // arm64-only public APK (~65MB vs 167MB universal); dev/prod keep all ABIs for emulator tests
             resValue("string", "app_name", "Taler ID")
             signingConfig = signingConfigs.getByName("release")
         }
