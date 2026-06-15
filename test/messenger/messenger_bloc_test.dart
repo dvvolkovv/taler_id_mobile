@@ -673,6 +673,130 @@ void main() {
             )).called(greaterThanOrEqualTo(1));
       },
     );
+
+    // 2026-06-15 — phantom resend on cross-session pending leak.
+    // Pending Hive box persisted through logout; on the next account's first
+    // connect, _resendPending flushed the previous user's drafts under the
+    // new JWT. Regression locks down: drafts whose senderId does not match
+    // the connecting user MUST be evicted, not transmitted.
+    test('cross-session pending entries are evicted, never resent', () async {
+      final pending = _PopulatedPendingMessageService();
+      sl.unregister<PendingMessageService>();
+      sl.registerSingleton<PendingMessageService>(pending);
+
+      // Seed pending with a draft authored by a previous account.
+      await pending.save('temp_old_user_draft', {
+        'conversationId': 'conv-1',
+        'content': 'leftover from previous account',
+        'sentAt': DateTime.now().toIso8601String(),
+        'senderId': 'previous-user',
+      });
+
+      when(() => repo.joinConversation(any())).thenReturn(null);
+      when(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          )).thenReturn(null);
+
+      final bloc = buildBloc();
+      bloc.add(const ConnectMessenger('token', userId: 'new-user'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verifyNever(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          ));
+      expect(pending.getAll(), isEmpty,
+          reason: 'stale draft for previous-user must be evicted from Hive');
+
+      await bloc.close();
+    });
+
+    // 2026-06-15 — pending drained reliably by clientTempId, not content.
+    // The content+senderId heuristic in _onMessageReceived silently fails for
+    // file messages / edited bodies. message_acked carries (clientTempId →
+    // messageId); the bloc keeps the mapping so the next new_message echo
+    // drops pending by messageId even when the content match misses.
+    test('new_message drops pending by messageId when content mismatches',
+        () async {
+      final pending = _PopulatedPendingMessageService();
+      sl.unregister<PendingMessageService>();
+      sl.registerSingleton<PendingMessageService>(pending);
+
+      final ackCtrl = StreamController<Map<String, dynamic>>.broadcast();
+      final msgCtrl = StreamController<MessageEntity>.broadcast();
+      when(() => repo.messageAckedStream).thenAnswer((_) => ackCtrl.stream);
+      when(() => repo.messageStream).thenAnswer((_) => msgCtrl.stream);
+      when(() => repo.joinConversation(any())).thenReturn(null);
+      when(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          )).thenReturn(null);
+
+      final bloc = buildBloc();
+      bloc.add(const ConnectMessenger('token', userId: 'user-1'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      bloc.add(const SendMessage('conv-1', 'original body'));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      final tempId = pending.getAll().first['id'] as String;
+
+      // Server acks with the canonical messageId mapping.
+      ackCtrl.add({'clientTempId': tempId, 'messageId': 'srv-msg-1'});
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      // Server echo arrives with normalized/edited content — the legacy
+      // senderId+content heuristic would have missed.
+      msgCtrl.add(MessageEntity(
+        id: 'srv-msg-1',
+        conversationId: 'conv-1',
+        senderId: 'user-1',
+        content: 'normalized body',
+        sentAt: DateTime.now(),
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+
+      expect(pending.getAll(), isEmpty,
+          reason:
+              'pending must be cleared by messageId mapping even when content mismatches');
+
+      await bloc.close();
+      await ackCtrl.close();
+      await msgCtrl.close();
+    });
   });
 
   // ── Search users ──────────────────────────────────────────────────────────

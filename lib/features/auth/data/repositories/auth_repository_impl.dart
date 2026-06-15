@@ -9,6 +9,7 @@ import '../datasources/auth_remote_datasource.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/services/messenger_cache_service.dart';
+import '../../../../core/services/pending_message_service.dart';
 import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
 import '../../../../core/di/service_locator.dart';
 
@@ -157,6 +158,13 @@ class AuthRepositoryImpl implements IAuthRepository {
     } catch (_) {}
     try {
       await sl<MessengerCacheService>().clearAll();
+    } catch (_) {}
+    // Wipe persisted outgoing-message queue. Without this, drafts queued by
+    // the previous account survive logout and are flushed to the server under
+    // the new user's JWT on next ConnectMessenger — observed 2026-06-15 as
+    // "phantom messages from cache, Android shown as initiator".
+    try {
+      await sl<PendingMessageService>().clearAll();
     } catch (_) {}
   }
 
