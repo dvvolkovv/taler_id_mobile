@@ -67,6 +67,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   /// socket flaps multiple times before the server ACK round-trips.
   final Set<String> _inFlightTempIds = {};
 
+  /// Maps the server-assigned messageId received in `message_acked` back to
+  /// the original local tempId. Lets _onMessageReceived clear pending by
+  /// id when the senderId+content heuristic misses (file messages, content
+  /// normalization, edited bodies). Bounded to 256 entries.
+  final Map<String, String> _tempIdByServerMessageId = <String, String>{};
+
   /// Phase 2 — window for cross-transport dedup heuristic. When a logical
   /// message arrives via mesh and the server echo (or vice versa) within
   /// this window with matching (senderId, content), the second copy is
@@ -155,13 +161,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       ConnectMessenger event, Emitter<MessengerState> emit) async {
     await _repo.connect(event.accessToken);
     // Flush any pending messages (queued while offline) now that we're connected.
-    _resendPending();
+    // event.userId is the just-logged-in user — pass it explicitly because
+    // state.currentUserId is only assigned a few lines below (line 339); on
+    // the very first connect of a session it is still null when we land here.
+    _resendPending(currentUserId: event.userId);
     add(const SyncMessagesRequested());
     // Re-send on each reconnect too.
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
       debugPrint('[mesh-reconnect] socket reconnected — resending pending + refreshing contact keys');
-      _resendPending();
+      _resendPending(currentUserId: event.userId);
       _refreshMeshContactKeys();
       add(const SyncMessagesRequested());
     });
@@ -252,17 +261,29 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       if (tempId == null) return;
       // Server confirmed receipt (`message_acked`). Stop in-flight tracking
       // so a future reconnect storm doesn't double-emit. We do NOT drop the
-      // persistent pending entry here — the ack means "the socket frame
-      // landed", but the corresponding `new_message` echo may still be in
-      // flight. If we cleared `_pending` now and the app restarted before
-      // the echo arrived, the bubble would vanish on next chat open
-      // (because `_appendPending` would find nothing in Hive and the
-      // server's GET /messages list wouldn't yet include the new id).
-      // The persistent entry is dropped only by `_onMessageReceived` when
-      // the echo arrives, and the server's Redis 1h dedup catches any
-      // duplicate that a between-restart resend triggers.
+      // persistent pending entry here — see commit 8ecbb3f: keeping it until
+      // the matching `new_message` echo guards against the (rare) case where
+      // the server crashes between insert+ack and broadcast.
+      //
+      // The 2026-06-15 phantom-resend incident was NOT caused by this delay
+      // — it was caused by (a) PendingMessageService surviving logout and
+      // (b) the senderId+content dedup in _onMessageReceived silently
+      // failing for files/edited content. (a) is fixed in AuthRepository
+      // logout; (b) is fixed by also recording (messageId → tempId) here so
+      // _onMessageReceived can drop pending by id when the content match
+      // misses.
+      final messageId = data['messageId'] as String?;
+      if (messageId != null) {
+        _tempIdByServerMessageId[messageId] = tempId;
+        // Bound the map so a long-lived bloc with many sends doesn't grow
+        // it unbounded. 256 entries is far above any realistic in-flight
+        // window — when full, evict the oldest insertion-order entry.
+        if (_tempIdByServerMessageId.length > 256) {
+          _tempIdByServerMessageId.remove(_tempIdByServerMessageId.keys.first);
+        }
+      }
       _inFlightTempIds.remove(tempId);
-      debugPrint('[MessengerBloc] message_acked: cleared in-flight tempId=$tempId (pending kept until echo)');
+      debugPrint('[MessengerBloc] message_acked: cleared in-flight tempId=$tempId messageId=$messageId');
     });
     _typingSub?.cancel();
     _typingSub = _repo.typingStream.listen((data) {
@@ -560,16 +581,52 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   }
 
 
+  /// Maximum age of a pending message that we will still try to resend.
+  /// Older entries are evicted on the next [_resendPending] scan. Without an
+  /// upper bound a stale Hive entry (e.g. server permanently rejecting the
+  /// message because of a content/contact change) would be re-emitted every
+  /// reconnect forever.
+  static const Duration _pendingMaxAge = Duration(days: 7);
+
   /// Re-emit all persisted pending messages over the socket. Safe to call
   /// multiple times — each tempId is tracked in [_inFlightTempIds] so a
   /// reconnect storm cannot trigger the same message to be emitted twice.
   /// The entry is removed from the set when the matching `new_message`
   /// broadcast arrives back (see [_onMessageReceived]).
-  void _resendPending() {
+  ///
+  /// [currentUserId] gates whose drafts may be flushed. Drafts whose
+  /// `senderId` does not match are evicted, not sent — this catches stale
+  /// entries from a previous account on the same device (e.g. Hive box
+  /// surviving logout). Pass null only when the user is unknown; in that
+  /// case the resend is skipped entirely (we cannot safely attribute the
+  /// drafts).
+  void _resendPending({String? currentUserId}) {
+    if (currentUserId == null || currentUserId.isEmpty) {
+      debugPrint('[MessengerBloc] _resendPending skipped: currentUserId unknown');
+      return;
+    }
     final items = _pending.getAll();
+    final now = DateTime.now();
     for (final m in items) {
       final tempId = m['id'] as String?;
       if (tempId == null) continue;
+      final senderId = m['senderId'] as String?;
+      if (senderId != null && senderId != currentUserId) {
+        debugPrint(
+            '[MessengerBloc] Evict stale pending: $tempId senderId=$senderId != current=$currentUserId');
+        _pending.remove(tempId);
+        continue;
+      }
+      final sentAtStr = m['sentAt'] as String?;
+      if (sentAtStr != null) {
+        final sentAt = DateTime.tryParse(sentAtStr);
+        if (sentAt != null && now.difference(sentAt) > _pendingMaxAge) {
+          debugPrint(
+              '[MessengerBloc] Evict aged pending: $tempId age=${now.difference(sentAt).inDays}d');
+          _pending.remove(tempId);
+          continue;
+        }
+      }
       if (_inFlightTempIds.contains(tempId)) {
         debugPrint('[MessengerBloc] Skip resend: $tempId already in flight');
         continue;
@@ -792,6 +849,16 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     // multi-device user with one device offline — server only delivered to
     // online devices; the mesh-only path to the offline device is bypassed.
     // Acceptable today since most users have one device per account.)
+    // If the content/sender heuristic above missed (e.g. file messages whose
+    // content is normalized server-side, edited body, channel-prefix tweak),
+    // fall back to the server's authoritative clientTempId mapping captured
+    // from `message_acked`. Without this, the pending entry stayed in Hive
+    // and got re-emitted on every reconnect — the 2026-06-15 phantom-send
+    // regression.
+    final ackedTempId = _tempIdByServerMessageId.remove(msg.id);
+    if (ackedTempId != null && !removed.contains(ackedTempId)) {
+      removed.add(ackedTempId);
+    }
     for (final tempId in removed) {
       _pending.remove(tempId);
       _inFlightTempIds.remove(tempId);
