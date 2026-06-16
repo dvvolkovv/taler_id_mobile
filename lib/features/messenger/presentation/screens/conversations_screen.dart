@@ -23,6 +23,8 @@ import '../../../billing/presentation/widgets/balance_chip.dart';
 import 'saved_messages_screen.dart';
 import 'topics_list_screen.dart';
 import '../widgets/saved_pinned_tile.dart';
+import '../../../profile/presentation/bloc/profile_bloc.dart';
+import '../../../profile/presentation/bloc/profile_state.dart';
 
 enum _FilterTab { all, unread, personal, groups, channels }
 
@@ -639,8 +641,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
     bool archivedOnly = false,
   }) {
     var result = convs.where((c) {
-      // SAVED, AI_ANALYST, AI_OUTBOUND are pinned separately at the top — exclude from the list
-      if (c.type == 'SAVED' || c.type == 'AI_ANALYST' || c.type == 'AI_OUTBOUND') return false;
+      // SAVED, AI_ANALYST, AI_OUTBOUND, AI_INFORMER are pinned separately at the top — exclude from the list
+      if (c.type == 'SAVED' ||
+          c.type == 'AI_ANALYST' ||
+          c.type == 'AI_OUTBOUND' ||
+          c.type == 'AI_INFORMER') return false;
       return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
     }).toList();
 
@@ -1101,6 +1106,76 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         } catch (_) {}
                       },
                     ),
+                  ),
+                // Informer Bot — wallet/balance monitoring for ops users
+                if (_searchQuery.isEmpty)
+                  BlocBuilder<ProfileBloc, ProfileState>(
+                    buildWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
+                    builder: (context, state) {
+                      final hasAccess = state is ProfileLoaded &&
+                          state.user?.availableBots.informer == true;
+                      if (!hasAccess) {
+                        return const SliverToBoxAdapter(child: SizedBox.shrink());
+                      }
+                      return SliverToBoxAdapter(
+                        child: ListTile(
+                          dense: true,
+                          visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                          leading: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFFFB300), width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFFFB300).withValues(alpha: 0.45),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFFFFB300), Color(0xFFFF7043)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                              ),
+                              child: const Icon(Icons.radar, color: Colors.white, size: 20),
+                            ),
+                          ),
+                          title: Text(
+                            AppLocalizations.of(context)!.informerBotTitle,
+                            style: TextStyle(
+                              color: colors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(context)!.informerBotSubtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: colors.textSecondary, fontSize: 13),
+                          ),
+                          onTap: () async {
+                            try {
+                              final res = await sl<DioClient>().post(
+                                '/informer-bot',
+                                fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                              );
+                              final convId = res['conversationId'] as String?;
+                              if (convId != null && context.mounted) {
+                                context.push('/dashboard/messenger/$convId');
+                              }
+                            } catch (_) {}
+                          },
+                        ),
+                      );
+                    },
                   ),
                 // Saved Messages (Избранное) — real chat
                 if (_searchQuery.isEmpty)
