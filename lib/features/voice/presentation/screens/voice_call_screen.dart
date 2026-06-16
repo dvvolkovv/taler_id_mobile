@@ -15,7 +15,7 @@ import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import '../../../../core/config/app_config.dart';
+import '../../../../core/api/endpoint_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/di/service_locator.dart';
 import 'package:dio/dio.dart' as dio_pkg;
@@ -666,7 +666,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _subscribeRoomEvents();
 
       await _room!.connect(
-        '${AppConfig.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
         token,
         connectOptions: const lk.ConnectOptions(autoSubscribe: false),
       );
@@ -1079,7 +1079,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _subscribeRoomEvents();
 
         await newRoom.connect(
-          '${AppConfig.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+          '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
           token,
           connectOptions: const lk.ConnectOptions(autoSubscribe: false),
         );
@@ -1430,7 +1430,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
     try {
       final token = await sl<SecureStorageService>().getAccessToken();
-      final baseUrl = AppConfig.baseUrl.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
+      final baseUrl = sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://').replaceFirst('http://', 'ws://');
       final wsUrl = '$baseUrl/voice/realtime-proxy?token=$token';
       _assistantWs = await WebSocket.connect(wsUrl);
 

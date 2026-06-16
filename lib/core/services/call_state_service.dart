@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import '../api/dio_client.dart';
-import '../config/app_config.dart';
+import '../api/endpoint_service.dart';
 import '../di/service_locator.dart';
 
 /// Represents a single call line.
@@ -250,7 +250,7 @@ class CallStateService {
       }
 
       await r.connect(
-        '${AppConfig.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
         token,
         roomOptions: lk.RoomOptions(
           e2eeOptions: e2eeOptions,
