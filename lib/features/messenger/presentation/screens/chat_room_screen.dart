@@ -6295,39 +6295,122 @@ class _AiBotContent extends StatelessWidget {
         for (final url in recordingUrls) _RecordingPlayer(url: url),
         if (actions.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: actions.map((action) => ElevatedButton.icon(
-              onPressed: () {
-                final now = DateTime.now();
-                if (now.difference(_lastActionTap).inMilliseconds < 1500) return;
-                _lastActionTap = now;
-                context.read<MessengerBloc>().add(SendMessage(conversationId, action, topicId: topicId));
-              },
-              icon: Icon(
-                action.contains('Ищи') || action.contains('Search') ? Icons.search
-                  : action.contains('Достаточно') || action.contains('Стоп') ? Icons.stop_rounded
-                  : action.contains('Сводка') || action.contains('Итоги') ? Icons.analytics_rounded
-                  : action.contains('Продолжить') || action.contains('Начинай') ? Icons.play_arrow_rounded
-                  : Icons.check_rounded,
-                size: 18,
-              ),
-              label: Text(action),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: action.contains('Достаточно') || action.contains('Стоп')
-                  ? const Color(0xFFF59E0B) // amber for stop
-                  : action.contains('Сводка') || action.contains('Итоги')
-                    ? const Color(0xFF3B82F6) // blue for summary
-                    : const Color(0xFF34D399), // green for action
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-            )).toList(),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < actions.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _ActionCardButton(
+                  action: actions[i],
+                  onTap: () {
+                    final now = DateTime.now();
+                    if (now.difference(_lastActionTap).inMilliseconds < 1500) return;
+                    _lastActionTap = now;
+                    context.read<MessengerBloc>().add(
+                          SendMessage(conversationId, actions[i], topicId: topicId),
+                        );
+                  },
+                ),
+              ],
+            ],
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Pretty full-width action button used for AI bot replies. Each action gets
+/// a colored gradient, an icon picked from the label content, and a chevron
+/// on the right so it reads as a tappable card rather than a chip.
+class _ActionCardButton extends StatelessWidget {
+  final String action;
+  final VoidCallback onTap;
+  const _ActionCardButton({required this.action, required this.onTap});
+
+  ({Color color, IconData icon}) _pickStyle(String a) {
+    final s = a.toLowerCase();
+    // Emoji-prefixed labels (Informer + future bots) take priority.
+    if (a.contains('📋')) return (color: const Color(0xFF6366F1), icon: Icons.list_alt_rounded);
+    if (a.contains('💰')) return (color: const Color(0xFFFFB300), icon: Icons.account_balance_wallet_rounded);
+    if (a.contains('🏦')) return (color: const Color(0xFF14B8A6), icon: Icons.account_balance_rounded);
+    if (a.contains('🔄')) return (color: const Color(0xFFEF4444), icon: Icons.refresh_rounded);
+    if (a.contains('🎧')) return (color: const Color(0xFF8B5CF6), icon: Icons.headphones_rounded);
+    // Word-based fallbacks for legacy AI Обзвон / AI Аналитик buttons.
+    if (s.contains('достаточно') || s.contains('стоп')) {
+      return (color: const Color(0xFFF59E0B), icon: Icons.stop_rounded);
+    }
+    if (s.contains('сводка') || s.contains('итоги')) {
+      return (color: const Color(0xFF3B82F6), icon: Icons.analytics_rounded);
+    }
+    if (s.contains('продолжить') || s.contains('начинай')) {
+      return (color: const Color(0xFF34D399), icon: Icons.play_arrow_rounded);
+    }
+    if (s.contains('ищи') || s.contains('search')) {
+      return (color: const Color(0xFF8B5CF6), icon: Icons.search_rounded);
+    }
+    return (color: const Color(0xFF34D399), icon: Icons.check_rounded);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = _pickStyle(action);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.white.withValues(alpha: 0.15),
+        highlightColor: Colors.white.withValues(alpha: 0.08),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [style.color, style.color.withValues(alpha: 0.85)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: style.color.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.22),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(style.icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  action,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withValues(alpha: 0.85),
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
