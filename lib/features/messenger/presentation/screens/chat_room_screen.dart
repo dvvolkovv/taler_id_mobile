@@ -1800,7 +1800,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   final isChannel = conv?.type == 'CHANNEL';
                   final isAiAnalyst = conv?.type == 'AI_ANALYST';
                   final isAiOutbound = conv?.type == 'AI_OUTBOUND';
-                  final name = isAiOutbound
+                  final isAiInformer = conv?.type == 'AI_INFORMER';
+                  final name = isAiInformer
+                      ? l10n.informerBotTitle
+                      : isAiOutbound
                       ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
                       : isAiAnalyst
                       ? l10n.aiAnalystTitle
@@ -1809,7 +1812,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           : (isGroup || isChannel)
                               ? (conv?.name ?? l10n.chatGroup)
                               : conv?.otherUserName;
-                  final avatarUrl = (isAiAnalyst || isAiOutbound)
+                  final avatarUrl = (isAiAnalyst || isAiOutbound || isAiInformer)
                       ? null
                       : (isGroup || isChannel) ? conv?.avatarUrl : conv?.otherUserAvatar;
                   final otherUserId = conv?.otherUserId;
@@ -1883,6 +1886,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                               ),
                             ),
                             child: const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                          )
+                        : isAiInformer
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFFFB300), Color(0xFFFF7043)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                            ),
+                            child: const Icon(Icons.radar, color: Colors.white, size: 18),
                           )
                         : CircleAvatar(
                       radius: 18,
@@ -2015,6 +2032,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     // Hide call button for AI bots and channels
                     if (conv?.type != 'AI_ANALYST' &&
                         conv?.type != 'AI_OUTBOUND' &&
+                        conv?.type != 'AI_INFORMER' &&
                         conv?.type != 'CHANNEL')
                       // InkWell natively handles both onTap and onLongPress.
                       // GestureDetector wrapping IconButton lost the long-press
@@ -2297,15 +2315,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
                           final messageBubble = _MessageBubble(
                                 message: msg,
-                                isMe: (msg.isSystem && (conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND')) ? false
+                                isMe: (msg.isSystem && (conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND' || conv?.type == 'AI_INFORMER')) ? false
                                     : (msg.senderId == 'ai-outbound-bot') ? false
                                     : isMe,
                                 isGroup: isGroup,
-                                isAiAnalyst: conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND',
+                                isAiAnalyst: conv?.type == 'AI_ANALYST' || conv?.type == 'AI_OUTBOUND' || conv?.type == 'AI_INFORMER',
                                 senderName: (msg.senderId == 'ai-outbound-bot' || (msg.isSystem && conv?.type == 'AI_OUTBOUND'))
                                     ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
                                     : msg.isSystem && conv?.type == 'AI_ANALYST'
                                     ? AppLocalizations.of(context)!.aiAnalystTitle
+                                    : msg.isSystem && conv?.type == 'AI_INFORMER'
+                                    ? AppLocalizations.of(context)!.informerBotTitle
                                     : sName,
                                 isFirstInGroup: isFirstInGroup,
                                 isLastInGroup: isLastInGroup,
