@@ -24,6 +24,7 @@ import 'saved_messages_screen.dart';
 import 'topics_list_screen.dart';
 import '../widgets/saved_pinned_tile.dart';
 import '../../../profile/presentation/bloc/profile_bloc.dart';
+import '../../../profile/presentation/bloc/profile_event.dart';
 import '../../../profile/presentation/bloc/profile_state.dart';
 
 enum _FilterTab { all, unread, personal, groups, channels }
@@ -42,6 +43,11 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
   void initState() {
     super.initState();
     _loadConversationsIfNeeded();
+    // Fire ProfileLoadRequested so the pinned Informer tile can react to
+    // /profile.availableBots — without this, ProfileBloc stays at
+    // ProfileInitial until the user opens the Profile screen, and the
+    // tile never appears for newly-granted operators.
+    context.read<ProfileBloc>().add(ProfileLoadRequested());
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkUsername());
   }
 
