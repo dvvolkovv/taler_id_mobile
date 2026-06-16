@@ -3590,4 +3590,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get privacyNobody => '아무도';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

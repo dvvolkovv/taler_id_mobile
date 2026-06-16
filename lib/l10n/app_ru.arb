@@ -357,13 +357,17 @@
   "verifyEmailSubtitle": "Отправим 6-значный код на {email}.",
   "@verifyEmailSubtitle": {
     "placeholders": {
-      "email": { "type": "String" }
+      "email": {
+        "type": "String"
+      }
     }
   },
   "verifyEmailCodeSent": "Код отправлен на {email}. Введите его ниже.",
   "@verifyEmailCodeSent": {
     "placeholders": {
-      "email": { "type": "String" }
+      "email": {
+        "type": "String"
+      }
     }
   },
   "verifyEmailSendCode": "Отправить код",
@@ -1732,5 +1736,6 @@
   "privacyLastSeenLabel": "Кто видит время последнего входа",
   "privacyEveryone": "Все",
   "privacyContacts": "Только контакты",
-  "privacyNobody": "Никто"
+  "privacyNobody": "Никто",
+  "voiceTurnOffTranslation": "Выключить переводчик"
 }

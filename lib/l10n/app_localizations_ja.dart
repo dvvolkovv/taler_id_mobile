@@ -3588,4 +3588,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get privacyNobody => '誰も見れない';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

@@ -3658,4 +3658,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Niemand';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

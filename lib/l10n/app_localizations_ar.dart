@@ -3619,4 +3619,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get privacyNobody => 'لا أحد';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

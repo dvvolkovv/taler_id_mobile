@@ -3639,4 +3639,7 @@ class AppLocalizationsSk extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Nikto';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

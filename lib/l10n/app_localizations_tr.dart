@@ -3636,4 +3636,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Kimse';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

@@ -3635,4 +3635,7 @@ class AppLocalizationsPa extends AppLocalizations {
 
   @override
   String get privacyNobody => 'ਕੋਈ ਨਹੀਂ';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

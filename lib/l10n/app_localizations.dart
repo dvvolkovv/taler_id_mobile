@@ -6861,6 +6861,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nobody'**
   String get privacyNobody;
+
+  /// No description provided for @voiceTurnOffTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off translator'**
+  String get voiceTurnOffTranslation;
 }
 
 class _AppLocalizationsDelegate
