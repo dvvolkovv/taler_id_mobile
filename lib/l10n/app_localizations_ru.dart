@@ -3653,4 +3653,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get voiceTurnOffTranslation => 'Выключить переводчик';
+
+  @override
+  String get informerBotTitle => 'Informer';
+
+  @override
+  String get informerBotSubtitle => 'Мониторинг кошельков и балансов';
 }

@@ -6867,6 +6867,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn off translator'**
   String get voiceTurnOffTranslation;
+
+  /// Title of the pinned Informer bot tile in messenger
+  ///
+  /// In en, this message translates to:
+  /// **'Informer'**
+  String get informerBotTitle;
+
+  /// Subtitle of the Informer bot tile
+  ///
+  /// In en, this message translates to:
+  /// **'Wallet and balance monitoring'**
+  String get informerBotSubtitle;
 }
 
 class _AppLocalizationsDelegate

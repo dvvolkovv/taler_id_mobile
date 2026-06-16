@@ -6,6 +6,20 @@ part of 'user_entity.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$AvailableBotsImpl _$$AvailableBotsImplFromJson(Map<String, dynamic> json) =>
+    _$AvailableBotsImpl(
+      analyst: json['analyst'] as bool? ?? true,
+      outbound: json['outbound'] as bool? ?? true,
+      informer: json['informer'] as bool? ?? false,
+    );
+
+Map<String, dynamic> _$$AvailableBotsImplToJson(_$AvailableBotsImpl instance) =>
+    <String, dynamic>{
+      'analyst': instance.analyst,
+      'outbound': instance.outbound,
+      'informer': instance.informer,
+    };
+
 _$UserEntityImpl _$$UserEntityImplFromJson(Map<String, dynamic> json) =>
     _$UserEntityImpl(
       id: json['id'] as String,
@@ -30,6 +44,10 @@ _$UserEntityImpl _$$UserEntityImplFromJson(Map<String, dynamic> json) =>
       aiTwinPrompt: json['aiTwinPrompt'] as String?,
       aiTwinVoiceId: json['aiTwinVoiceId'] as String?,
       lastSeenPrivacy: json['lastSeenPrivacy'] as String? ?? 'EVERYONE',
+      availableBots: json['availableBots'] == null
+          ? const AvailableBots()
+          : AvailableBots.fromJson(
+              json['availableBots'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
@@ -54,6 +72,7 @@ Map<String, dynamic> _$$UserEntityImplToJson(_$UserEntityImpl instance) =>
       'aiTwinPrompt': instance.aiTwinPrompt,
       'aiTwinVoiceId': instance.aiTwinVoiceId,
       'lastSeenPrivacy': instance.lastSeenPrivacy,
+      'availableBots': instance.availableBots,
     };
 
 const _$KycStatusEnumMap = {
