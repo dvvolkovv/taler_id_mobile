@@ -11,6 +11,18 @@ enum KycStatus {
 }
 
 @freezed
+class AvailableBots with _$AvailableBots {
+  const factory AvailableBots({
+    @Default(true) bool analyst,
+    @Default(true) bool outbound,
+    @Default(false) bool informer,
+  }) = _AvailableBots;
+
+  factory AvailableBots.fromJson(Map<String, dynamic> json) =>
+      _$AvailableBotsFromJson(json);
+}
+
+@freezed
 class UserEntity with _$UserEntity {
   const factory UserEntity({
     required String id,
@@ -33,6 +45,7 @@ class UserEntity with _$UserEntity {
     String? aiTwinPrompt,
     String? aiTwinVoiceId,
     @Default('EVERYONE') String lastSeenPrivacy,
+    @Default(AvailableBots()) AvailableBots availableBots,
   }) = _UserEntity;
 
   factory UserEntity.fromJson(Map<String, dynamic> json) =>

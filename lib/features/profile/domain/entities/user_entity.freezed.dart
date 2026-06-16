@@ -14,6 +14,183 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+AvailableBots _$AvailableBotsFromJson(Map<String, dynamic> json) {
+  return _AvailableBots.fromJson(json);
+}
+
+/// @nodoc
+mixin _$AvailableBots {
+  bool get analyst => throw _privateConstructorUsedError;
+  bool get outbound => throw _privateConstructorUsedError;
+  bool get informer => throw _privateConstructorUsedError;
+
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  @JsonKey(ignore: true)
+  $AvailableBotsCopyWith<AvailableBots> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $AvailableBotsCopyWith<$Res> {
+  factory $AvailableBotsCopyWith(
+          AvailableBots value, $Res Function(AvailableBots) then) =
+      _$AvailableBotsCopyWithImpl<$Res, AvailableBots>;
+  @useResult
+  $Res call({bool analyst, bool outbound, bool informer});
+}
+
+/// @nodoc
+class _$AvailableBotsCopyWithImpl<$Res, $Val extends AvailableBots>
+    implements $AvailableBotsCopyWith<$Res> {
+  _$AvailableBotsCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? analyst = null,
+    Object? outbound = null,
+    Object? informer = null,
+  }) {
+    return _then(_value.copyWith(
+      analyst: null == analyst
+          ? _value.analyst
+          : analyst // ignore: cast_nullable_to_non_nullable
+              as bool,
+      outbound: null == outbound
+          ? _value.outbound
+          : outbound // ignore: cast_nullable_to_non_nullable
+              as bool,
+      informer: null == informer
+          ? _value.informer
+          : informer // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$AvailableBotsImplCopyWith<$Res>
+    implements $AvailableBotsCopyWith<$Res> {
+  factory _$$AvailableBotsImplCopyWith(
+          _$AvailableBotsImpl value, $Res Function(_$AvailableBotsImpl) then) =
+      __$$AvailableBotsImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({bool analyst, bool outbound, bool informer});
+}
+
+/// @nodoc
+class __$$AvailableBotsImplCopyWithImpl<$Res>
+    extends _$AvailableBotsCopyWithImpl<$Res, _$AvailableBotsImpl>
+    implements _$$AvailableBotsImplCopyWith<$Res> {
+  __$$AvailableBotsImplCopyWithImpl(
+      _$AvailableBotsImpl _value, $Res Function(_$AvailableBotsImpl) _then)
+      : super(_value, _then);
+
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? analyst = null,
+    Object? outbound = null,
+    Object? informer = null,
+  }) {
+    return _then(_$AvailableBotsImpl(
+      analyst: null == analyst
+          ? _value.analyst
+          : analyst // ignore: cast_nullable_to_non_nullable
+              as bool,
+      outbound: null == outbound
+          ? _value.outbound
+          : outbound // ignore: cast_nullable_to_non_nullable
+              as bool,
+      informer: null == informer
+          ? _value.informer
+          : informer // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$AvailableBotsImpl implements _AvailableBots {
+  const _$AvailableBotsImpl(
+      {this.analyst = true, this.outbound = true, this.informer = false});
+
+  factory _$AvailableBotsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$AvailableBotsImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final bool analyst;
+  @override
+  @JsonKey()
+  final bool outbound;
+  @override
+  @JsonKey()
+  final bool informer;
+
+  @override
+  String toString() {
+    return 'AvailableBots(analyst: $analyst, outbound: $outbound, informer: $informer)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AvailableBotsImpl &&
+            (identical(other.analyst, analyst) || other.analyst == analyst) &&
+            (identical(other.outbound, outbound) ||
+                other.outbound == outbound) &&
+            (identical(other.informer, informer) ||
+                other.informer == informer));
+  }
+
+  @JsonKey(ignore: true)
+  @override
+  int get hashCode => Object.hash(runtimeType, analyst, outbound, informer);
+
+  @JsonKey(ignore: true)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AvailableBotsImplCopyWith<_$AvailableBotsImpl> get copyWith =>
+      __$$AvailableBotsImplCopyWithImpl<_$AvailableBotsImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$AvailableBotsImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _AvailableBots implements AvailableBots {
+  const factory _AvailableBots(
+      {final bool analyst,
+      final bool outbound,
+      final bool informer}) = _$AvailableBotsImpl;
+
+  factory _AvailableBots.fromJson(Map<String, dynamic> json) =
+      _$AvailableBotsImpl.fromJson;
+
+  @override
+  bool get analyst;
+  @override
+  bool get outbound;
+  @override
+  bool get informer;
+  @override
+  @JsonKey(ignore: true)
+  _$$AvailableBotsImplCopyWith<_$AvailableBotsImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 UserEntity _$UserEntityFromJson(Map<String, dynamic> json) {
   return _UserEntity.fromJson(json);
 }
@@ -40,6 +217,7 @@ mixin _$UserEntity {
   String? get aiTwinPrompt => throw _privateConstructorUsedError;
   String? get aiTwinVoiceId => throw _privateConstructorUsedError;
   String get lastSeenPrivacy => throw _privateConstructorUsedError;
+  AvailableBots get availableBots => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -73,7 +251,10 @@ abstract class $UserEntityCopyWith<$Res> {
       int aiTwinTimeoutSeconds,
       String? aiTwinPrompt,
       String? aiTwinVoiceId,
-      String lastSeenPrivacy});
+      String lastSeenPrivacy,
+      AvailableBots availableBots});
+
+  $AvailableBotsCopyWith<$Res> get availableBots;
 }
 
 /// @nodoc
@@ -109,6 +290,7 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
     Object? aiTwinPrompt = freezed,
     Object? aiTwinVoiceId = freezed,
     Object? lastSeenPrivacy = null,
+    Object? availableBots = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -191,7 +373,19 @@ class _$UserEntityCopyWithImpl<$Res, $Val extends UserEntity>
           ? _value.lastSeenPrivacy
           : lastSeenPrivacy // ignore: cast_nullable_to_non_nullable
               as String,
+      availableBots: null == availableBots
+          ? _value.availableBots
+          : availableBots // ignore: cast_nullable_to_non_nullable
+              as AvailableBots,
     ) as $Val);
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $AvailableBotsCopyWith<$Res> get availableBots {
+    return $AvailableBotsCopyWith<$Res>(_value.availableBots, (value) {
+      return _then(_value.copyWith(availableBots: value) as $Val);
+    });
   }
 }
 
@@ -223,7 +417,11 @@ abstract class _$$UserEntityImplCopyWith<$Res>
       int aiTwinTimeoutSeconds,
       String? aiTwinPrompt,
       String? aiTwinVoiceId,
-      String lastSeenPrivacy});
+      String lastSeenPrivacy,
+      AvailableBots availableBots});
+
+  @override
+  $AvailableBotsCopyWith<$Res> get availableBots;
 }
 
 /// @nodoc
@@ -257,6 +455,7 @@ class __$$UserEntityImplCopyWithImpl<$Res>
     Object? aiTwinPrompt = freezed,
     Object? aiTwinVoiceId = freezed,
     Object? lastSeenPrivacy = null,
+    Object? availableBots = null,
   }) {
     return _then(_$UserEntityImpl(
       id: null == id
@@ -339,6 +538,10 @@ class __$$UserEntityImplCopyWithImpl<$Res>
           ? _value.lastSeenPrivacy
           : lastSeenPrivacy // ignore: cast_nullable_to_non_nullable
               as String,
+      availableBots: null == availableBots
+          ? _value.availableBots
+          : availableBots // ignore: cast_nullable_to_non_nullable
+              as AvailableBots,
     ));
   }
 }
@@ -366,7 +569,8 @@ class _$UserEntityImpl implements _UserEntity {
       this.aiTwinTimeoutSeconds = 30,
       this.aiTwinPrompt,
       this.aiTwinVoiceId,
-      this.lastSeenPrivacy = 'EVERYONE'});
+      this.lastSeenPrivacy = 'EVERYONE',
+      this.availableBots = const AvailableBots()});
 
   factory _$UserEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$UserEntityImplFromJson(json);
@@ -416,10 +620,13 @@ class _$UserEntityImpl implements _UserEntity {
   @override
   @JsonKey()
   final String lastSeenPrivacy;
+  @override
+  @JsonKey()
+  final AvailableBots availableBots;
 
   @override
   String toString() {
-    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, emailVerified: $emailVerified, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId, lastSeenPrivacy: $lastSeenPrivacy)';
+    return 'UserEntity(id: $id, email: $email, phone: $phone, firstName: $firstName, lastName: $lastName, middleName: $middleName, country: $country, avatarUrl: $avatarUrl, postalCode: $postalCode, dateOfBirth: $dateOfBirth, kycStatus: $kycStatus, emailVerified: $emailVerified, fcmToken: $fcmToken, username: $username, status: $status, aiTwinEnabled: $aiTwinEnabled, aiTwinTimeoutSeconds: $aiTwinTimeoutSeconds, aiTwinPrompt: $aiTwinPrompt, aiTwinVoiceId: $aiTwinVoiceId, lastSeenPrivacy: $lastSeenPrivacy, availableBots: $availableBots)';
   }
 
   @override
@@ -461,7 +668,9 @@ class _$UserEntityImpl implements _UserEntity {
             (identical(other.aiTwinVoiceId, aiTwinVoiceId) ||
                 other.aiTwinVoiceId == aiTwinVoiceId) &&
             (identical(other.lastSeenPrivacy, lastSeenPrivacy) ||
-                other.lastSeenPrivacy == lastSeenPrivacy));
+                other.lastSeenPrivacy == lastSeenPrivacy) &&
+            (identical(other.availableBots, availableBots) ||
+                other.availableBots == availableBots));
   }
 
   @JsonKey(ignore: true)
@@ -487,7 +696,8 @@ class _$UserEntityImpl implements _UserEntity {
         aiTwinTimeoutSeconds,
         aiTwinPrompt,
         aiTwinVoiceId,
-        lastSeenPrivacy
+        lastSeenPrivacy,
+        availableBots
       ]);
 
   @JsonKey(ignore: true)
@@ -525,7 +735,8 @@ abstract class _UserEntity implements UserEntity {
       final int aiTwinTimeoutSeconds,
       final String? aiTwinPrompt,
       final String? aiTwinVoiceId,
-      final String lastSeenPrivacy}) = _$UserEntityImpl;
+      final String lastSeenPrivacy,
+      final AvailableBots availableBots}) = _$UserEntityImpl;
 
   factory _UserEntity.fromJson(Map<String, dynamic> json) =
       _$UserEntityImpl.fromJson;
@@ -570,6 +781,8 @@ abstract class _UserEntity implements UserEntity {
   String? get aiTwinVoiceId;
   @override
   String get lastSeenPrivacy;
+  @override
+  AvailableBots get availableBots;
   @override
   @JsonKey(ignore: true)
   _$$UserEntityImplCopyWith<_$UserEntityImpl> get copyWith =>
