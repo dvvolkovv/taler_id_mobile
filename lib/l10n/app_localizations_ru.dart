@@ -3650,4 +3650,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Никто';
+
+  @override
+  String get voiceTurnOffTranslation => 'Выключить переводчик';
 }

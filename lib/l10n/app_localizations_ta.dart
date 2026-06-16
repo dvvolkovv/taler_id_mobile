@@ -3654,4 +3654,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get privacyNobody => 'யாரும் இல்லை';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

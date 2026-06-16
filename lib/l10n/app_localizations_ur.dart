@@ -3638,4 +3638,7 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get privacyNobody => 'کوئی نہیں';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

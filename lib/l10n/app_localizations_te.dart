@@ -3642,4 +3642,7 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get privacyNobody => 'ఎవరూ కాదు';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

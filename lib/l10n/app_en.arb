@@ -357,13 +357,17 @@
   "verifyEmailSubtitle": "We'll send a 6-digit code to {email}.",
   "@verifyEmailSubtitle": {
     "placeholders": {
-      "email": { "type": "String" }
+      "email": {
+        "type": "String"
+      }
     }
   },
   "verifyEmailCodeSent": "Code sent to {email}. Enter it below.",
   "@verifyEmailCodeSent": {
     "placeholders": {
-      "email": { "type": "String" }
+      "email": {
+        "type": "String"
+      }
     }
   },
   "verifyEmailSendCode": "Send Code",
@@ -1732,5 +1736,6 @@
   "privacyLastSeenLabel": "Who sees your last seen time",
   "privacyEveryone": "Everyone",
   "privacyContacts": "Contacts only",
-  "privacyNobody": "Nobody"
+  "privacyNobody": "Nobody",
+  "voiceTurnOffTranslation": "Turn off translator"
 }

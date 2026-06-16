@@ -3627,4 +3627,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Không ai';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

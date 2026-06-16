@@ -3630,4 +3630,7 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get privacyNobody => 'هیچ‌کس';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

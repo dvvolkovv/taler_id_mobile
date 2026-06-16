@@ -27,11 +27,27 @@ class NotesRepositoryImpl implements INotesRepository {
   @override
   Future<void> refresh() async {
     try {
+      // Entities that have an outbox op still in flight (pending or inflight)
+      // must NOT be touched by the server-merge below: the most common case
+      // is a queued DELETE whose HTTP call hasn't reached the server yet —
+      // upserting the server copy here would resurrect the deleted note and
+      // the user would see it reappear on pull-to-refresh. See incident
+      // 2026-06-16. Squashed/dead ops aren't filtered: a dead DELETE means
+      // the server kept the note and the user should see it back.
+      final inFlightIds = (await _outbox.pending())
+          .where((o) =>
+              o.feature == 'notes' &&
+              (o.status == OutboxOpStatus.pending ||
+                  o.status == OutboxOpStatus.inflight))
+          .map((o) => o.entityId)
+          .toSet();
+
       final remoteList = await _remote.getAll(limit: 200);
       final remoteIds = remoteList.map((m) => m['id'] as String).toSet();
       final localList = await _local.getAll();
       for (final r in remoteList) {
         final entity = _entityFromServerJson(r);
+        if (inFlightIds.contains(entity.id)) continue;
         final localNote = await _local.getById(entity.id);
         if (localNote != null && localNote.localPending) {
           // preserve local in-flight edits
@@ -40,7 +56,9 @@ class NotesRepositoryImpl implements INotesRepository {
         await _local.upsert(entity);
       }
       for (final l in localList) {
-        if (!remoteIds.contains(l.id) && !l.localPending) {
+        if (!remoteIds.contains(l.id) &&
+            !l.localPending &&
+            !inFlightIds.contains(l.id)) {
           await _local.remove(l.id);
         }
       }

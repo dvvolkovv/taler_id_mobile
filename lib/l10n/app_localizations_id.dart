@@ -3636,4 +3636,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Tidak ada';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

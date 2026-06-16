@@ -3577,4 +3577,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get privacyNobody => '无人';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

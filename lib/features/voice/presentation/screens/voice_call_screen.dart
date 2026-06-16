@@ -918,6 +918,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity == 'voice-translator') {
           if (_translationEnabled) _updateTranslationTrackSubscription();
         }
+        // New peer audio track may arrive at peer-default volume; re-apply
+        // ducking so this participant is quieter than the translator track.
+        if (_translationActive) _applyTranslationDucking();
       })
       ..on<lk.TrackPublishedEvent>((event) {
         if (event.participant.identity == 'voice-translator') {
@@ -925,9 +928,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           if (_translationEnabled && event.publication.name == wantedName) {
             try { event.publication.subscribe(); } catch (_) {}
           }
+          if (_translationActive) _applyTranslationDucking();
           return;
         }
         try { event.publication.subscribe(); } catch (_) {}
+        // A peer just published a new audio track — duck it immediately if
+        // the translator is active, otherwise it would land at full volume.
+        if (_translationActive) _applyTranslationDucking();
+      })
+      ..on<lk.TrackSubscribedEvent>((event) {
+        // Volume can only be set on a subscribed RemoteAudioTrack; re-apply
+        // ducking the moment a track becomes subscribable.
+        if (_translationActive) _applyTranslationDucking();
       })
       ..on<lk.ParticipantDisconnectedEvent>((event) {
         if (!mounted || _navigatedAway) return;
@@ -2905,6 +2917,39 @@ Answer briefly — the user is in the middle of a conversation.''';
       await _stopServerTranslator();
     }
     _updateTranslationTrackSubscription();
+    _applyTranslationDucking();
+  }
+
+  /// Duck (lower) all peer audio tracks while the translator track is the
+  /// foreground audio. Without this, the original speaker and the translator
+  /// play at equal volume and listeners can't make out the translation.
+  /// Volume choice: 0.25 keeps the original voice perceptible (so you know
+  /// who is speaking and follow tone) but pushes it clearly behind the TTS.
+  /// Idempotent — safe to call from track-published / participant-connected
+  /// events, and from the toggle itself.
+  static const double _duckedPeerVolume = 0.25;
+  static const double _fullVolume = 1.0;
+
+  void _applyTranslationDucking() {
+    final room = _room;
+    if (room == null) return;
+    final ducked = _translationActive;
+    for (final p in room.remoteParticipants.values) {
+      final isTranslator = p.identity == 'voice-translator';
+      for (final pub in p.audioTrackPublications) {
+        final track = pub.track;
+        if (track is! lk.RemoteAudioTrack) continue;
+        final mst = track.mediaStreamTrack;
+        // livekit_client 2.4 doesn't expose per-track gain on RemoteAudioTrack;
+        // drop to the underlying flutter_webrtc MediaStreamTrack and use the
+        // platform helper. Fire-and-forget — failures are non-fatal (volume
+        // stays at default 1.0).
+        final volume = isTranslator
+            ? _fullVolume
+            : (ducked ? _duckedPeerVolume : _fullVolume);
+        rtc.Helper.setVolume(volume, mst).catchError((_) {});
+      }
+    }
   }
 
   Future<void> _startServerTranslator() async {
@@ -3046,6 +3091,30 @@ Answer briefly — the user is in the middle of a conversation.''';
                     child: ListView(
                       controller: scrollController,
                       children: [
+                        // Explicit OFF entry — only visible while translation
+                        // is on. Users found "tap selected lang again to turn
+                        // off" undiscoverable, so surface a dedicated row.
+                        if (_translationEnabled)
+                          ListTile(
+                            leading: Icon(
+                              Icons.translate_rounded,
+                              color: colors.error,
+                            ),
+                            title: Text(
+                              AppLocalizations.of(context)!.voiceTurnOffTranslation,
+                              style: TextStyle(
+                                color: colors.error,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _toggleTranslation(false);
+                              setState(() => _preferredLang = '');
+                            },
+                          ),
+                        if (_translationEnabled)
+                          Divider(color: colors.border, height: 1),
                         ...filtered.map((e) => ListTile(
                           leading: Icon(
                             Icons.language_rounded,

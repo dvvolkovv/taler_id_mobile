@@ -3630,4 +3630,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyNobody => 'Nobody';
+
+  @override
+  String get voiceTurnOffTranslation => 'Turn off translator';
 }

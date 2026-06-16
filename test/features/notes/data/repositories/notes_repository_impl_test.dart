@@ -186,4 +186,53 @@ void main() {
     expect(localNow.localPending, false);
     expect(localNow.conflictedWith, isNull);
   });
+
+  // 2026-06-16 — "deleted note reappears after pull-to-refresh".
+  // refresh() races against the outbox: a queued DELETE that hasn't reached
+  // the server yet still has the note on the server side, and the merge
+  // would re-upsert it locally. The fix: refresh() skips entities with
+  // pending/inflight outbox ops.
+  test('refresh skips entities with in-flight DELETE so they do not resurrect',
+      () async {
+    // Seed local + server with the note, then delete locally (which removes
+    // local + enqueues a DELETE op).
+    final n = NoteEntity(
+      id: 'n-del',
+      title: 'doomed',
+      content: 'gone soon',
+      createdAt: DateTime.parse('2026-06-16T10:00:00Z'),
+      updatedAt: DateTime.parse('2026-06-16T10:00:00Z'),
+    );
+    await local.upsert(n);
+
+    await repo.delete('n-del');
+
+    // Local already removed; outbox holds a pending DELETE op.
+    expect(await local.getById('n-del'), isNull);
+    final pendingOps = await queue.pending();
+    expect(pendingOps.length, 1);
+    expect(pendingOps[0].op, OutboxOpKind.delete);
+    expect(pendingOps[0].status, OutboxOpStatus.pending);
+
+    // Server still has the note (DELETE has not been sent yet).
+    when(() => remote.getAll(limit: any(named: 'limit'))).thenAnswer(
+      (_) async => [
+        {
+          'id': 'n-del',
+          'title': 'doomed',
+          'content': 'gone soon',
+          'source': 'MANUAL',
+          'createdAt': '2026-06-16T10:00:00.000Z',
+          'updatedAt': '2026-06-16T10:00:00.000Z',
+        },
+      ],
+    );
+
+    await repo.refresh();
+
+    // The note must NOT have been resurrected into local store by the merge.
+    expect(await local.getById('n-del'), isNull,
+        reason:
+            'pull-to-refresh must not undo a queued DELETE that has not yet hit the server');
+  });
 }
