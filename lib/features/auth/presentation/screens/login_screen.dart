@@ -35,6 +35,19 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Single submit path shared by the Login button and the keyboard Enter/Done
+  // action on the password field, so pressing Enter logs in like clicking.
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      context.read<AuthBloc>().add(
+            LoginSubmitted(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            ),
+          );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -124,6 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
                       style: TextStyle(color: AppColors.of(context).textPrimary),
                       decoration: desktopInputDecoration(
                         context,
@@ -140,6 +154,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submit(),
                       style: TextStyle(color: AppColors.of(context).textPrimary),
                       decoration: desktopInputDecoration(
                         context,
@@ -171,16 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: LoadingButton(
                         text: l10n.loginButton,
                         loading: state is AuthLoading,
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            context.read<AuthBloc>().add(
-                              LoginSubmitted(
-                                email: _emailController.text.trim(),
-                                password: _passwordController.text,
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: _submit,
                       ),
                     ),
                     const SizedBox(height: 8),
