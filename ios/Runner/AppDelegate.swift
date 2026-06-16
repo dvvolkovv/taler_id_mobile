@@ -367,7 +367,24 @@ import flutter_callkit_incoming
 
   private func doRestoreAudioSession(_ session: AVAudioSession) {
     do {
-      try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+      // Restoration MUST mirror enableCallAudioMix exactly, otherwise iOS
+      // re-interrupts immediately after recovery: when another VoIP app
+      // (WhatsApp, Telegram) triggered the interruption, its CallKit state
+      // may still be active for a brief window after the user declines, and
+      // a session category without `.mixWithOthers` is treated as exclusive
+      // → iOS prefers the other app's call and tears ours down again. This
+      // was the 2026-06-16 incident where a declined WhatsApp ring killed
+      // a Taler ID call with no recovery.
+      try session.setCategory(
+        .playAndRecord,
+        mode: .voiceChat,
+        options: [
+          .mixWithOthers,
+          .allowBluetooth,
+          .allowBluetoothA2DP,
+          .defaultToSpeaker,
+        ]
+      )
       try session.setActive(true, options: .notifyOthersOnDeactivation)
     } catch {
       NSLog("[Audio] Failed to restore session: %@", error.localizedDescription)
