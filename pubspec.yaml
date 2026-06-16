@@ -1,7 +1,7 @@
 name: taler_id_mobile
 description: Taler ID — мобильное приложение для iOS и Android
 publish_to: 'none'
-version: 1.0.88+185
+version: 1.0.89+186
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

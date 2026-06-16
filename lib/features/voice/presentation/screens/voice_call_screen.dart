@@ -2621,15 +2621,28 @@ Answer briefly — the user is in the middle of a conversation.''';
   }
 
   bool _hangingUp = false;
+  // Set once we've notified the server (via either socket or HTTP) that this
+  // call ended. Prevents multiple invocations of _hangUp/_hangUpAll on the
+  // same screen instance (CallKit event + LiveKit room.disconnected + user
+  // red-button + onDispose) from emitting 3-4 call_ended events to the
+  // backend. Server already dedups via SETNX, but stopping the noise at the
+  // source is cheaper and easier to reason about.
+  bool _callEndedSent = false;
 
   /// End all calls and close the screen.
   Future<void> _hangUpAll() async {
     _hangingUp = true;
-    // End every line via CallStateService
+    // End every line via CallStateService — but track per-room idempotency
+    // so a re-entry of _hangUpAll (or interleaving with _hangUp) doesn't
+    // re-emit call_ended for the same room.
     final cs = CallStateService.instance;
     for (final line in List<CallLine>.from(cs.allLines)) {
       final convId = line.conversationId;
       if (convId != null) {
+        // If we already sent for the current screen's primary room, skip it
+        // — _hangUp shares state with this method via _callEndedSent.
+        if (_callEndedSent && line.roomName == _roomName) continue;
+        if (line.roomName == _roomName) _callEndedSent = true;
         try { sl<MessengerRemoteDataSource>().sendCallEnded(convId, line.roomName); } catch (_) {}
         try { sl<DioClient>().post('/messenger/call-ended', data: {'conversationId': convId, 'roomName': line.roomName}, fromJson: (d) => d); } catch (_) {}
       }
@@ -2745,11 +2758,16 @@ Answer briefly — the user is in the middle of a conversation.''';
     } catch (e) {
       debugPrint('[VoiceCall] mic disable error: $e');
     }
-    // Notify the other party that the call ended
+    // Notify the other party that the call ended — but exactly once per
+    // screen instance, even if _hangUpInner is reached via multiple paths
+    // (CallKit, LiveKit room.disconnected, red-button, dispose).
     final convId = widget.conversationId ?? cs.conversationId;
     final rName = _roomName ?? cs.roomName;
-    debugPrint('[VoiceCall] sendCallEnded convId=$convId, rName=$rName');
-    if (convId != null && rName != null) {
+    if (_callEndedSent) {
+      debugPrint('[VoiceCall] sendCallEnded skipped — already sent for this screen');
+    } else if (convId != null && rName != null) {
+      _callEndedSent = true;
+      debugPrint('[VoiceCall] sendCallEnded convId=$convId, rName=$rName');
       try { sl<MessengerRemoteDataSource>().sendCallEnded(convId, rName); } catch (_) {}
       try { sl<DioClient>().post('/messenger/call-ended', data: {'conversationId': convId, 'roomName': rName}, fromJson: (d) => d); } catch (_) {}
       debugPrint('[VoiceCall] sendCallEnded sent (socket+http)');
