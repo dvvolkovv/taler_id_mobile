@@ -3,12 +3,14 @@ import '../utils/constants.dart';
 import 'auth_interceptor.dart';
 import 'api_error_handler.dart';
 import 'billing_paywall_interceptor.dart';
+import 'endpoint_service.dart';
 
 class _RetryInterceptor extends Interceptor {
   final Dio dio;
   final int maxRetries;
+  final EndpointService? endpoint;
 
-  _RetryInterceptor(this.dio, {this.maxRetries = 2});
+  _RetryInterceptor(this.dio, {this.maxRetries = 2, this.endpoint});
 
   @override
   Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
@@ -31,6 +33,31 @@ class _RetryInterceptor extends Interceptor {
         return handler.next(err);
       }
     }
+
+    // Transient retries on the current endpoint are exhausted. If this is a CIS
+    // build with RU edges, fail over to the next endpoint and retry there. This
+    // is what moves a DPI-blocked client onto ru/ru2.talerid.io.
+    final ep = endpoint;
+    final failoverCount = err.requestOptions.extra['failoverCount'] as int? ?? 0;
+    if (isNetworkError &&
+        !isLogout &&
+        ep != null &&
+        ep.hasFallback &&
+        failoverCount < ep.candidates.length - 1) {
+      final switched = await ep.reportFailureAndFallback();
+      if (switched) {
+        final opts = err.requestOptions;
+        opts.baseUrl = ep.baseUrl; // retarget this request at the new edge
+        opts.extra['retryCount'] = 0; // fresh transient retries on the new base
+        opts.extra['failoverCount'] = failoverCount + 1;
+        try {
+          final response = await dio.fetch(opts);
+          return handler.resolve(response);
+        } catch (e) {
+          return handler.next(err);
+        }
+      }
+    }
     return handler.next(err);
   }
 }
@@ -42,10 +69,13 @@ class DioClient {
 
   static DioClient? _instance;
 
-  static DioClient create({required AuthInterceptor authInterceptor}) {
+  static DioClient create({
+    required AuthInterceptor authInterceptor,
+    EndpointService? endpoint,
+  }) {
     final dio = Dio(
       BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
+        baseUrl: endpoint?.baseUrl ?? ApiConstants.baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 30),
         headers: {
@@ -55,11 +85,18 @@ class DioClient {
       ),
     );
 
+    // Keep this client's baseUrl in lock-step with the resolved endpoint so all
+    // FUTURE requests use the edge once we've failed over (the interceptor only
+    // retargets the in-flight request).
+    endpoint?.activeUrl.addListener(() {
+      dio.options.baseUrl = endpoint.baseUrl;
+    });
+
     // Order rationale: retry first (transient errors get a second chance
     // before anything else reacts), auth next (token refresh + retry on 401),
     // then paywall (we react to 402 which auth/retry can't recover from),
     // finally log (observability after everyone has had their say).
-    dio.interceptors.add(_RetryInterceptor(dio));
+    dio.interceptors.add(_RetryInterceptor(dio, endpoint: endpoint));
     dio.interceptors.add(authInterceptor);
     dio.interceptors.add(BillingPaywallInterceptor());
     dio.interceptors.add(LogInterceptor(
