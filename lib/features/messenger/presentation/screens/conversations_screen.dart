@@ -1110,7 +1110,18 @@ class _ConversationsViewState extends State<_ConversationsView> {
                 // Informer Bot — wallet/balance monitoring for ops users
                 if (_searchQuery.isEmpty)
                   BlocBuilder<ProfileBloc, ProfileState>(
-                    buildWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
+                    buildWhen: (prev, curr) {
+                      // Rebuild whenever the informer flag changes (or the
+                      // whole state type changes). Avoid `runtimeType !=` only
+                      // — that would miss the case where a stale ProfileLoaded
+                      // is replaced by a fresh ProfileLoaded with the flag.
+                      final prevAccess = prev is ProfileLoaded &&
+                          prev.user?.availableBots.informer == true;
+                      final currAccess = curr is ProfileLoaded &&
+                          curr.user?.availableBots.informer == true;
+                      return prev.runtimeType != curr.runtimeType ||
+                          prevAccess != currAccess;
+                    },
                     builder: (context, state) {
                       final hasAccess = state is ProfileLoaded &&
                           state.user?.availableBots.informer == true;
