@@ -1737,5 +1737,9 @@
   "privacyEveryone": "Everyone",
   "privacyContacts": "Contacts only",
   "privacyNobody": "Nobody",
-  "voiceTurnOffTranslation": "Turn off translator"
+  "voiceTurnOffTranslation": "Turn off translator",
+  "informerBotTitle": "Informer",
+  "@informerBotTitle": {"description": "Title of the pinned Informer bot tile in messenger"},
+  "informerBotSubtitle": "Wallet and balance monitoring",
+  "@informerBotSubtitle": {"description": "Subtitle of the Informer bot tile"}
 }

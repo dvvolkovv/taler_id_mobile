@@ -3580,4 +3580,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceTurnOffTranslation => 'Turn off translator';
+
+  @override
+  String get informerBotTitle => 'Informer';
+
+  @override
+  String get informerBotSubtitle => 'Wallet and balance monitoring';
 }
