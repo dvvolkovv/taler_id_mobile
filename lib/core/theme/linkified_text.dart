@@ -98,7 +98,7 @@ class LinkifiedText extends StatelessWidget {
     final uri = Uri.tryParse(normalized);
     if (uri == null) return;
 
-    const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol'};
+    const talerHosts = {'id.taler.tirol', 'staging.id.taler.tirol', 'talerid.io'};
     final isTaler = talerHosts.contains(uri.host);
 
     // Room links → open in-app voice screen

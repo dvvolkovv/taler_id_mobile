@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:taler_id_mobile/core/config/app_config.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -293,7 +294,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                 await Future.delayed(const Duration(milliseconds: 250));
                 if (!context.mounted) return;
                 final text = username != null
-                    ? '${AppLocalizations.of(context)!.messengerShareContact(fullName)} (@$username)\nhttps://id.taler.tirol/u/$username'
+                    ? '${AppLocalizations.of(context)!.messengerShareContact(fullName)} (@$username)\n${AppConfig.webUrl}/u/$username'
                     : AppLocalizations.of(context)!.messengerShareContact(fullName);
                 shareText(context, text);
               },
@@ -304,7 +305,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
               onTap: () {
                 Navigator.pop(ctx);
                 final link = username != null
-                    ? 'https://id.taler.tirol/u/$username'
+                    ? '${AppConfig.webUrl}/u/$username'
                     : fullName;
                 Clipboard.setData(ClipboardData(text: link));
                 ScaffoldMessenger.of(context).showSnackBar(

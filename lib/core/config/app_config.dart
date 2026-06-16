@@ -7,6 +7,12 @@ class AppConfig {
     defaultValue: 'https://id.taler.tirol',
   );
 
+  // Public web domain for share links, OAuth fallback, deep links (NOT the API host).
+  static const String webUrl = String.fromEnvironment(
+    'WEB_URL',
+    defaultValue: 'https://id.taler.tirol',
+  );
+
   static bool get isDev => flavor == 'dev';
   static bool get isProd => flavor == 'prod';
 }

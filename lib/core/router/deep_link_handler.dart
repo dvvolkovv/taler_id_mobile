@@ -30,7 +30,7 @@ class DeepLinkHandler {
     // https://id.taler.tirol/oauth/authorize?...
     // https://staging.id.taler.tirol/oauth/authorize?...
     if (uri.path == '/oauth/authorize' &&
-        (uri.host == 'id.taler.tirol' || uri.host == 'staging.id.taler.tirol')) {
+        (uri.host == 'id.taler.tirol' || uri.host == 'staging.id.taler.tirol' || uri.host == 'talerid.io')) {
       final query = uri.query.isEmpty ? '' : '?${uri.query}';
       router.push('/oauth/authorize$query');
       return;

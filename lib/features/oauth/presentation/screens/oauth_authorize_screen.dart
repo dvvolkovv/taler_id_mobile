@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:taler_id_mobile/core/config/app_config.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../domain/entities/grant_info.dart';
@@ -142,7 +143,7 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
   }
 
   Widget _buildFailure(BuildContext context, String message) {
-    final fallback = Uri.parse('https://id.taler.tirol/oauth/authorize').replace(
+    final fallback = Uri.parse('${AppConfig.webUrl}/oauth/authorize').replace(
       queryParameters: widget.params.toQueryParameters(),
     );
     return Padding(
