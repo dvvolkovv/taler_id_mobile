@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'dart:async';
 import 'core/api/dio_client.dart';
+import 'core/api/endpoint_service.dart';
 import 'core/di/service_locator.dart';
 import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/presence/presentation/services/presence_heartbeat_service.dart';
@@ -378,6 +379,11 @@ Future<void> main() async {
   // Setup DI first — must happen before NotificationService.init() so that
   // DioClient is registered when we try to save FCM/VoIP tokens.
   await setupDependencies();
+
+  // CIS failover: pick a reachable backend before the first request so a
+  // DPI-blocked client doesn't eat a full connect-timeout on login. Time-boxed
+  // and inert for non-CIS builds (no fallbacks configured).
+  await sl<EndpointService>().probe();
 
   // Wire mesh group call incoming notifications (requires DI to be ready).
   _setupMeshGroupCallIncoming();

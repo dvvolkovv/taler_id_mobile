@@ -3,7 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:get_it/get_it.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../../../../core/api/dio_client.dart';
-import '../../../../core/config/app_config.dart';
+import '../../../../core/api/endpoint_service.dart';
 import '../../../billing/data/services/billing_socket_listener.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/message_entity.dart';
@@ -63,12 +63,27 @@ class MessengerRemoteDataSource {
   final _analystChunkCtrl = StreamController<AnalystChunk>.broadcast();
   final _analystSeamCtrl  = StreamController<AnalystSeam>.broadcast();
 
-  MessengerRemoteDataSource(this._http);
+  final EndpointService _endpoints;
+  String? _accessToken;
+  int _connectErrorStreak = 0;
+
+  MessengerRemoteDataSource(this._http, this._endpoints) {
+    // When HTTP failover moves the active endpoint to an RU edge, reconnect the
+    // socket to the same endpoint so realtime messaging follows the REST layer.
+    _endpoints.activeUrl.addListener(_onEndpointChanged);
+  }
+
+  void _onEndpointChanged() {
+    final token = _accessToken;
+    if (token == null) return; // not connected yet; connect() will use new base
+    connect(token); // rebuild the socket against the new base URL
+  }
 
   Future<void> connect(String accessToken) async {
+    _accessToken = accessToken;
     _socket?.dispose();
     _socket = io.io(
-      '${AppConfig.baseUrl}/messenger',
+      '${_endpoints.baseUrl}/messenger',
       io.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': accessToken})
@@ -232,9 +247,20 @@ class MessengerRemoteDataSource {
       _socketErrorCtrl.add(msg.toString());
     });
     _socket!.on('connect', (_) {
+      _connectErrorStreak = 0; // healthy on this endpoint
       _reconnectCtrl.add(null);
       for (final id in _joinedConversations) {
         _socket?.emit('join', {'conversationId': id});
+      }
+    });
+    // If the socket can't reach the current endpoint repeatedly (e.g. DPI block
+    // and HTTP hasn't run lately), fail over to the next edge. Switching the
+    // active endpoint fires _onEndpointChanged -> reconnect on the new base.
+    _socket!.onConnectError((_) {
+      _connectErrorStreak++;
+      if (_connectErrorStreak >= 3 && _endpoints.hasFallback) {
+        _connectErrorStreak = 0;
+        _endpoints.reportFailureAndFallback();
       }
     });
     _socket!.on('disconnect', (reason) {

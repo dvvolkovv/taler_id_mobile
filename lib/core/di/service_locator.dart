@@ -9,6 +9,7 @@ import '../../features/notifications/notification_platform.dart';
 import '../../features/notifications/notification_store.dart';
 import '../api/auth_interceptor.dart';
 import '../api/dio_client.dart';
+import '../api/endpoint_service.dart';
 import '../audio/default_mesh_voice_audio_engine.dart';
 import '../config/app_config.dart';
 import '../mesh/voice/mesh_voice_service.dart';
@@ -231,18 +232,30 @@ Future<void> setupDependencies() async {
   await calendarCache.init();
   sl.registerSingleton<SimpleListCache>(calendarCache, instanceName: 'calendar');
 
-  // Dio (raw, for auth interceptor use)
+  // Endpoint resolver (CIS failover). Loads the last-known-good base URL so a
+  // blocked client starts on the RU edge it already discovered. Must run after
+  // Hive init (CacheService.init above) since it persists to a Hive box.
+  final endpoint = EndpointService();
+  await endpoint.init();
+  sl.registerSingleton<EndpointService>(endpoint);
+
+  // Dio (raw, for auth interceptor use). baseUrl tracks the resolved endpoint so
+  // token refresh follows the same failover as the main client.
   final rawDio = Dio(
     BaseOptions(
-      baseUrl: AppConfig.baseUrl,
+      baseUrl: endpoint.baseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       headers: {'Content-Type': 'application/json'},
     ),
   );
+  endpoint.activeUrl.addListener(() => rawDio.options.baseUrl = endpoint.baseUrl);
 
   final authInterceptor = AuthInterceptor(dio: rawDio, storage: storage);
-  final dioClient = DioClient.create(authInterceptor: authInterceptor);
+  final dioClient = DioClient.create(
+    authInterceptor: authInterceptor,
+    endpoint: endpoint,
+  );
   sl.registerSingleton<DioClient>(dioClient);
 
   // === Agent Shell (Phase 0) ===
@@ -601,7 +614,8 @@ Future<void> setupDependencies() async {
   );
 
   // Messenger
-  sl.registerLazySingleton(() => MessengerRemoteDataSource(sl<DioClient>()));
+  sl.registerLazySingleton(
+      () => MessengerRemoteDataSource(sl<DioClient>(), sl<EndpointService>()));
   sl.registerLazySingleton(() => PendingMeshSendQueue());
   sl.registerLazySingleton<IMessengerRepository>(
     () => MessengerRepositoryImpl(
