@@ -39,6 +39,11 @@ class EndpointService {
   final Map<String, DateTime> _failedAt = {};
   static const Duration _cooldown = Duration(minutes: 5);
   String? _persistedGood;
+  // Endpoints that have ever served a successful response/connect. Used as the
+  // tiebreak when every candidate is cooling down: we reuse a proven-good edge
+  // rather than the endpoint whose failure happens to be oldest — otherwise the
+  // DPI-blocked primary (which fails first, so "oldest") gets reselected.
+  final Set<String> _everGood = {};
 
   /// Fires whenever the active base URL changes (Dio + Socket.IO listen to this).
   final ValueNotifier<String> activeUrl =
@@ -137,19 +142,30 @@ class EndpointService {
         break;
       }
     }
-    // Everything is cooling down -> reuse the least-recently-failed endpoint
-    // (excluding the one that just failed) so the client keeps trying *something*.
+    // Everything is cooling down. Prefer a proven-good edge (one that has ever
+    // succeeded) over the endpoint whose failure is merely oldest — the blocked
+    // primary fails first, so an oldest-failure rule would keep reselecting it.
+    // Among the preferred set, take the least-recently-failed to keep rotating.
     if (pick == null) {
-      DateTime? oldest;
+      DateTime? oldestGood;
+      DateTime? oldestAny;
+      int? anyPick;
       for (var i = 0; i < _candidates.length; i++) {
         if (i == _idx) continue;
-        final f = _failedAt[_candidates[i]];
-        if (f != null && (oldest == null || f.isBefore(oldest))) {
-          oldest = f;
+        final url = _candidates[i];
+        final f = _failedAt[url];
+        if (f == null) continue;
+        if (oldestAny == null || f.isBefore(oldestAny)) {
+          oldestAny = f;
+          anyPick = i;
+        }
+        if (_everGood.contains(url) &&
+            (oldestGood == null || f.isBefore(oldestGood))) {
+          oldestGood = f;
           pick = i;
         }
       }
-      pick ??= (_idx + 1) % _candidates.length;
+      pick ??= anyPick ?? (_idx + 1) % _candidates.length;
     }
 
     final url = _candidates[pick];
@@ -164,6 +180,7 @@ class EndpointService {
   Future<void> reportSuccess() async {
     if (!hasFallback) return;
     _failedAt.remove(activeUrl.value);
+    _everGood.add(activeUrl.value);
     if (_persistedGood != activeUrl.value) {
       _persistedGood = activeUrl.value;
       try {
