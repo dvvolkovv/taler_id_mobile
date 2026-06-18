@@ -209,7 +209,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     }
   }
 
+  bool _callStarting = false;
   Future<void> _startDirectCall() async {
+    // Debounce: a second tap during the async room-create (before the call
+    // registers in CallStateService) would otherwise start a SECOND call to the
+    // same destination — two rooms, two rings, crossed teardowns.
+    if (_callStarting) return;
+    _callStarting = true;
+    try {
+      await _startDirectCallInner();
+    } finally {
+      _callStarting = false;
+    }
+  }
+
+  Future<void> _startDirectCallInner() async {
     if (CallStateService.instance.isInCall && !CallStateService.instance.canAddLine) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

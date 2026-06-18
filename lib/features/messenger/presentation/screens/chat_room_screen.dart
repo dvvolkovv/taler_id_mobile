@@ -585,7 +585,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  bool _callStarting = false;
   Future<void> _autoPickCall() async {
+    // Debounce: without this, a second tap during the async room-create starts a
+    // SECOND simultaneous call to the same destination (two rooms/rings, crossed
+    // teardowns). Reset in finally so a later, legitimate call still works.
+    if (_callStarting) return;
+    _callStarting = true;
+    try {
+      await _autoPickCallInner();
+    } finally {
+      _callStarting = false;
+    }
+  }
+
+  Future<void> _autoPickCallInner() async {
     // Desktop: mesh transport unavailable — always use LK.
     if (!PlatformUtils.instance.isMobile) {
       return _startLkCall();
