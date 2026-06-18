@@ -3443,26 +3443,10 @@ Answer briefly — the user is in the middle of a conversation.''';
         }
       });
     }
-    return PopScope(
-      // Intercept system/gesture back: never silently pop (which can get stuck
-      // when the route can't pop and leaves the call running). Always exit via
-      // the user-initiated hangup, which force-tears-down + navigates.
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (didPop) return;
-        _hangUp(userInitiated: true);
-      },
-      child: Scaffold(
+    return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
       appBar: hideAppBar ? null : AppBar(
-        // Explicit back button so the top-left arrow always exits the call
-        // (the default BackButton just calls maybePop, which no-ops when the
-        // call route can't pop — trapping the user).
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => _hangUp(userInitiated: true),
-        ),
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
@@ -3601,7 +3585,6 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
             ),
         ],
-      ),
       ),
     );
   }
