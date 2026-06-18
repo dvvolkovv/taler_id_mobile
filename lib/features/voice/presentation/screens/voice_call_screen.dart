@@ -1057,6 +1057,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _eventsListener?.dispose();
         _eventsListener = null;
         _room?.removeListener(_onRoomChanged);
+        // Fully disconnect the old room BEFORE rejoining. Otherwise its
+        // (now device-unique, but same-per-session) server-side participant
+        // lingers and the fresh join collides with it (DUPLICATE_IDENTITY),
+        // which kicks the connection and feeds the ~10s reconnect churn.
+        try {
+          await _room?.disconnect().timeout(const Duration(seconds: 3));
+        } catch (_) {}
 
         // Re-apply E2EE on reconnect
         lk.E2EEOptions? reconnectE2eeOptions;
@@ -2690,8 +2697,12 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
 
     // Unconditionally navigate away, even if inner cleanup didn't finish.
+    // A user-initiated hangup (red button / back) must ALWAYS navigate — never
+    // bail on _navigatedAway, or a stuck/aborted earlier teardown (e.g. during a
+    // reconnect loop, where _navigatedAway was set but navigation never landed)
+    // leaves the red button a no-op and traps the user on the call screen.
     if (!mounted) return;
-    if (_navigatedAway) return;
+    if (_navigatedAway && !userInitiated) return;
     _navigatedAway = true;
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
     try { await _audioChannel.invokeMethod('deactivateAudioSession'); } catch (_) {}
@@ -3432,10 +3443,26 @@ Answer briefly — the user is in the middle of a conversation.''';
         }
       });
     }
-    return Scaffold(
+    return PopScope(
+      // Intercept system/gesture back: never silently pop (which can get stuck
+      // when the route can't pop and leaves the call running). Always exit via
+      // the user-initiated hangup, which force-tears-down + navigates.
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        _hangUp(userInitiated: true);
+      },
+      child: Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.of(context).background,
       appBar: hideAppBar ? null : AppBar(
+        // Explicit back button so the top-left arrow always exits the call
+        // (the default BackButton just calls maybePop, which no-ops when the
+        // call route can't pop — trapping the user).
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => _hangUp(userInitiated: true),
+        ),
         title: Builder(
           builder: (context) {
             final l10n = AppLocalizations.of(context)!;
@@ -3574,6 +3601,7 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
             ),
         ],
+      ),
       ),
     );
   }
