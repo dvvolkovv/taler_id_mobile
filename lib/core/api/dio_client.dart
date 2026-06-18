@@ -97,6 +97,17 @@ class DioClient {
     // then paywall (we react to 402 which auth/retry can't recover from),
     // finally log (observability after everyone has had their say).
     dio.interceptors.add(_RetryInterceptor(dio, endpoint: endpoint));
+    // A successful response proves the active endpoint is reachable — pin it as
+    // last-known-good and clear its failure cooldown so failover stays sticky to
+    // a working edge instead of cycling back onto the DPI-blocked primary.
+    if (endpoint != null && endpoint.hasFallback) {
+      dio.interceptors.add(InterceptorsWrapper(
+        onResponse: (response, handler) {
+          endpoint.reportSuccess();
+          handler.next(response);
+        },
+      ));
+    }
     dio.interceptors.add(authInterceptor);
     dio.interceptors.add(BillingPaywallInterceptor());
     dio.interceptors.add(LogInterceptor(

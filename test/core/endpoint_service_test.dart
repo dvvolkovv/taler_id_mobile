@@ -51,6 +51,47 @@ void main() {
       expect(ep.baseUrl, 'https://a');
     });
 
+    test('does not return to a failed endpoint while a healthy one exists', () async {
+      final ep = EndpointService(
+        candidates: const ['https://primary', 'https://ru', 'https://ru2'],
+      );
+      // primary unreachable -> fail over to ru
+      await ep.reportFailureAndFallback();
+      expect(ep.baseUrl, 'https://ru');
+      await ep.reportSuccess(); // ru works
+      // transient blip on ru -> move to ru2, NOT back to the blocked primary
+      await ep.reportFailureAndFallback();
+      expect(ep.baseUrl, 'https://ru2');
+      await ep.reportSuccess(); // ru2 works
+      // blip on ru2 -> back to the healthy ru, still never the blocked primary
+      await ep.reportFailureAndFallback();
+      expect(ep.baseUrl, 'https://ru');
+    });
+
+    test('falls back to primary only when every edge has also failed', () async {
+      final ep = EndpointService(
+        candidates: const ['https://primary', 'https://ru', 'https://ru2'],
+      );
+      await ep.reportFailureAndFallback(); // primary -> ru
+      await ep.reportFailureAndFallback(); // ru -> ru2
+      // all three failed in quick succession -> oldest mark (primary) is reused
+      await ep.reportFailureAndFallback(); // ru2 -> primary
+      expect(ep.baseUrl, 'https://primary');
+    });
+
+    test('reportSuccess clears the failure mark so the endpoint is eligible again', () async {
+      final ep = EndpointService(
+        candidates: const ['https://a', 'https://b', 'https://c'],
+      );
+      await ep.reportFailureAndFallback(); // a -> b (a failed)
+      await ep.reportSuccess();            // b good
+      await ep.reportFailureAndFallback(); // b -> c (b failed)
+      await ep.reportSuccess();            // c good
+      // c blips: a still in cooldown (never succeeded), b cleared by success
+      await ep.reportFailureAndFallback(); // c -> b
+      expect(ep.baseUrl, 'https://b');
+    });
+
     test('candidates are de-duplicated, order preserved', () {
       final ep = EndpointService(
         candidates: const ['https://a', 'https://a', 'https://b'],

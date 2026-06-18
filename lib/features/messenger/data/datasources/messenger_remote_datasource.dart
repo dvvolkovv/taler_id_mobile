@@ -248,6 +248,7 @@ class MessengerRemoteDataSource {
     });
     _socket!.on('connect', (_) {
       _connectErrorStreak = 0; // healthy on this endpoint
+      _endpoints.reportSuccess(); // pin this edge good; clear its failover cooldown
       _reconnectCtrl.add(null);
       for (final id in _joinedConversations) {
         _socket?.emit('join', {'conversationId': id});
