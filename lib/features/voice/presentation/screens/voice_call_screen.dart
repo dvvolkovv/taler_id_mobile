@@ -4288,10 +4288,14 @@ Answer briefly — the user is in the middle of a conversation.''';
   Future<void> _fetchParticipantAvatar(String identity) async {
     if (_participantAvatars.containsKey(identity)) return;
     if (identity == 'ai-assistant' || identity == 'meeting-recorder' || identity == 'voice-translator') return;
+    // Device-unique identities are `${userId}#${deviceHash}` (multi-device). The
+    // profile lookup needs the bare userId; keep the avatar map keyed by the full
+    // identity so the per-participant display lookup still matches.
+    final userId = identity.contains('#') ? identity.split('#').first : identity;
     try {
-      debugPrint('[VoiceCall] Fetching avatar for identity: $identity');
+      debugPrint('[VoiceCall] Fetching avatar for identity: $identity (user $userId)');
       final res = await sl<DioClient>().get<Map<String, dynamic>>(
-        '/profile/$identity',
+        '/profile/$userId',
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       debugPrint('[VoiceCall] Profile response for $identity: $res');
