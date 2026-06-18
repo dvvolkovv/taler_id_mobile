@@ -10,7 +10,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return _taleridPublic ? androidTalerid : android;
       case TargetPlatform.iOS:
-        return ios;
+        return _taleridPublic ? iosTalerid : ios;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
@@ -35,6 +35,18 @@ class DefaultFirebaseOptions {
     messagingSenderId: '337152405350',
     projectId: 'talerid-afd44',
     storageBucket: 'talerid-afd44.firebasestorage.app',
+  );
+
+  // Public DigitalOcean iOS app (io.talerid.app) in the talerid-afd44 project.
+  // Selected only when TALERID_PUBLIC=true, so the aeza dev/prod iOS config below
+  // (tirol.taler.talerIdMobile) is left untouched — both environments stay supported.
+  static const FirebaseOptions iosTalerid = FirebaseOptions(
+    apiKey: 'AIzaSyAuMsMgk63qIMGpQWN8iSRq2HXclZfZA48',
+    appId: '1:337152405350:ios:dababd62bfbd70c365a2a7',
+    messagingSenderId: '337152405350',
+    projectId: 'talerid-afd44',
+    storageBucket: 'talerid-afd44.firebasestorage.app',
+    iosBundleId: 'io.talerid.app',
   );
 
   static FirebaseOptions get ios {
