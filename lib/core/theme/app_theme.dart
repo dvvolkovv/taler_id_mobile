@@ -15,6 +15,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color textSecondary;
   final Color error;
   final Color warning;
+  final Color success;
   final Color border;
   final Color glassColor;
   final double glassOpacity;
@@ -35,6 +36,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     required this.textSecondary,
     required this.error,
     required this.warning,
+    required this.success,
     required this.border,
     required this.glassColor,
     required this.glassOpacity,
@@ -57,6 +59,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     textSecondary: Color(0xFF94A3B8),
     error: Color(0xFFEF4444),
     warning: Color(0xFFF59E0B),
+    success: Color(0xFF22C55E),
     border: Color(0xFF1E3A5F),
     glassColor: Colors.white,
     glassOpacity: 0.10,
@@ -87,6 +90,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     textSecondary: Color(0xFF64748B),
     error: Color(0xFFDC2626),
     warning: Color(0xFFD97706),
+    success: Color(0xFF16A34A),
     border: Color(0xFFCBD5E1),
     glassColor: Colors.black,
     glassOpacity: 0.04,
@@ -117,6 +121,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     Color? textSecondary,
     Color? error,
     Color? warning,
+    Color? success,
     Color? border,
     Color? glassColor,
     double? glassOpacity,
@@ -137,6 +142,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       textSecondary: textSecondary ?? this.textSecondary,
       error: error ?? this.error,
       warning: warning ?? this.warning,
+      success: success ?? this.success,
       border: border ?? this.border,
       glassColor: glassColor ?? this.glassColor,
       glassOpacity: glassOpacity ?? this.glassOpacity,
@@ -162,6 +168,7 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
       error: Color.lerp(error, other.error, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      success: Color.lerp(success, other.success, t)!,
       border: Color.lerp(border, other.border, t)!,
       glassColor: Color.lerp(glassColor, other.glassColor, t)!,
       glassOpacity: lerpDouble(glassOpacity, other.glassOpacity, t) ?? glassOpacity,
