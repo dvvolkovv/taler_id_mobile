@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../../../../core/theme/app_theme.dart';
 
@@ -125,5 +126,27 @@ class ColorBadgeInlineSyntax extends md.InlineSyntax {
     final element = md.Element('color_badge', [md.Text(body)]);
     element.attributes['color'] = color;
     parser.addNode(element);
+  }
+}
+
+/// Renders a `color_text` element as a [Text] tinted by the canonical
+/// color attribute. Unknown color names fall back to plain unstyled text.
+class ColorTextBuilder extends MarkdownElementBuilder {
+  ColorTextBuilder(this.context);
+  final BuildContext context;
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final color = MarkdownColorPalette.textColor(
+      context,
+      element.attributes['color'] ?? '',
+    );
+    if (color == null) {
+      return Text(element.textContent);
+    }
+    return Text(
+      element.textContent,
+      style: (preferredStyle ?? const TextStyle()).copyWith(color: color),
+    );
   }
 }

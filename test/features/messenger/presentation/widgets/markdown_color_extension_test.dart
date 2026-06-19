@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:taler_id_mobile/core/theme/app_theme.dart';
@@ -175,6 +176,63 @@ void main() {
     test('unknown badge color [B:purple]x[/B] does not match', () {
       final nodes = parse('[B:purple]x[/B]');
       expect(nodes.whereType<md.Element>().where((e) => e.tag == 'color_badge'), isEmpty);
+    });
+  });
+
+  group('ColorTextBuilder', () {
+    Widget renderMarkdown(String data, {bool dark = true}) {
+      return MaterialApp(
+        theme: dark ? AppTheme.dark : AppTheme.light,
+        home: Scaffold(
+          body: Builder(
+            builder: (ctx) => MarkdownBody(
+              data: data,
+              extensionSet: md.ExtensionSet(
+                md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                [ColorTextInlineSyntax(), ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes],
+              ),
+              builders: {'color_text': ColorTextBuilder(ctx)},
+            ),
+          ),
+        ),
+      );
+    }
+
+    Text findColoredText(WidgetTester tester, String content, Color expected) {
+      return tester.widgetList<Text>(find.text(content))
+          .firstWhere((w) => w.style?.color == expected,
+              orElse: () => throw StateError(
+                'no Text with content="$content" and color=$expected — '
+                'found ${tester.widgetList<Text>(find.text(content)).map((w) => w.style?.color).toList()}'));
+    }
+
+    testWidgets('[HOT]x[/HOT] renders text in dark-theme red', (tester) async {
+      await tester.pumpWidget(renderMarkdown('[HOT]hot wallet[/HOT]'));
+      await tester.pumpAndSettle();
+      final text = findColoredText(tester, 'hot wallet', const Color(0xFFEF4444));
+      expect(text.style?.color, const Color(0xFFEF4444));
+    });
+
+    testWidgets('[COLD]x[/COLD] renders text in light-theme blue', (tester) async {
+      await tester.pumpWidget(renderMarkdown('[COLD]cold wallet[/COLD]', dark: false));
+      await tester.pumpAndSettle();
+      final text = findColoredText(tester, 'cold wallet', const Color(0xFF1570D6));
+      expect(text.style?.color, const Color(0xFF1570D6));
+    });
+
+    testWidgets('all four [C:name] colors render correctly in dark theme', (tester) async {
+      const expected = {
+        'red':    Color(0xFFEF4444),
+        'blue':   Color(0xFF167EF2),
+        'yellow': Color(0xFFF59E0B),
+        'green':  Color(0xFF22C55E),
+      };
+      for (final entry in expected.entries) {
+        await tester.pumpWidget(renderMarkdown('[C:${entry.key}]label[/C]'));
+        await tester.pumpAndSettle();
+        final text = findColoredText(tester, 'label', entry.value);
+        expect(text.style?.color, entry.value, reason: 'for color ${entry.key}');
+      }
     });
   });
 }
