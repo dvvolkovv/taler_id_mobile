@@ -698,56 +698,33 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return;
     }
 
-    try {
-      const withAi = false;
-      final client = sl<DioClient>();
-      final res = await client.post(
-        '/voice/rooms',
-        data: {'withAi': withAi, 'conversationId': widget.conversationId},
-        fromJson: (d) => Map<String, dynamic>.from(d as Map),
-      );
-      final roomName = res['roomName'] as String;
-      sl<MessengerRemoteDataSource>()
-          .sendCallInvite(widget.conversationId, roomName);
-      final allConvs = context.read<MessengerBloc>().state.conversations;
-      debugPrint('[ChatRoom] _startLkCall: convCount=${allConvs.length}, looking for convId=${widget.conversationId}');
-      final _conv = allConvs
-          .where((c) => c.id == widget.conversationId)
-          .firstOrNull;
-      debugPrint('[ChatRoom] _startLkCall: found conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}');
-      final calleeName = _conv?.type == 'GROUP' ? _conv?.name : _conv?.otherUserName;
-      final calleeAvatar = _conv?.type == 'GROUP' ? _conv?.avatarUrl : _conv?.otherUserAvatar;
-      final calleeParam = calleeName != null && calleeName.isNotEmpty
-          ? '&callee=${Uri.encodeComponent(calleeName)}'
-          : '';
-      final avatarParam = calleeAvatar != null && calleeAvatar.isNotEmpty
-          ? '&calleeAvatar=${Uri.encodeComponent(calleeAvatar)}'
-          : '';
-      var calleeId = _conv?.type == 'DIRECT' ? _conv?.otherUserId : null;
-      debugPrint('[ChatRoom] _startLkCall: conv=${_conv != null}, type=${_conv?.type}, otherUserId=${_conv?.otherUserId}, participantIds=${_conv?.participantIds}, calleeAvatar=$calleeAvatar');
-      // Fallback: get otherUserId from participantIds if otherUserId is null
-      if (calleeId == null && _conv != null && _conv.type == 'DIRECT' && _conv.participantIds.length == 2) {
-        final myId = await sl<SecureStorageService>().getUserId();
-        debugPrint('[ChatRoom] myId=$myId');
-        if (myId != null) {
-          calleeId = _conv.participantIds.firstWhere((id) => id != myId, orElse: () => '');
-          if (calleeId!.isEmpty) calleeId = null;
-        }
+    // Resolve callee display info from LOCAL state (fast) and navigate to the
+    // call screen IMMEDIATELY with no room yet (outgoing=1). The screen shows
+    // "Calling…" instantly and does the room-create + call_invite itself —
+    // removing the ~10s dead-tap where createRoom blocked before any UI appeared.
+    final allConvs = context.read<MessengerBloc>().state.conversations;
+    final _conv = allConvs.where((c) => c.id == widget.conversationId).firstOrNull;
+    final calleeName = _conv?.type == 'GROUP' ? _conv?.name : _conv?.otherUserName;
+    final calleeAvatar = _conv?.type == 'GROUP' ? _conv?.avatarUrl : _conv?.otherUserAvatar;
+    final calleeParam = calleeName != null && calleeName.isNotEmpty
+        ? '&callee=${Uri.encodeComponent(calleeName)}'
+        : '';
+    final avatarParam = calleeAvatar != null && calleeAvatar.isNotEmpty
+        ? '&calleeAvatar=${Uri.encodeComponent(calleeAvatar)}'
+        : '';
+    var calleeId = _conv?.type == 'DIRECT' ? _conv?.otherUserId : null;
+    if (calleeId == null && _conv != null && _conv.type == 'DIRECT' && _conv.participantIds.length == 2) {
+      final myId = await sl<SecureStorageService>().getUserId();
+      if (myId != null) {
+        calleeId = _conv.participantIds.firstWhere((id) => id != myId, orElse: () => '');
+        if (calleeId!.isEmpty) calleeId = null;
       }
-      final calleeIdParam = calleeId != null && calleeId.isNotEmpty
-          ? '&calleeId=$calleeId'
-          : '';
-      if (mounted) context.push('/dashboard/voice?room=$roomName&convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam');
-    } catch (e) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.chatCallError(e.toString())),
-            backgroundColor: AppColors.of(context).error,
-          ),
-        );
-      }
+    }
+    final calleeIdParam = calleeId != null && calleeId.isNotEmpty
+        ? '&calleeId=$calleeId'
+        : '';
+    if (mounted) {
+      context.push('/dashboard/voice?convId=${widget.conversationId}$calleeParam$avatarParam$calleeIdParam&outgoing=1');
     }
   }
 

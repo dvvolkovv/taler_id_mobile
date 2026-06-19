@@ -57,6 +57,7 @@ class VoiceCallScreen extends StatefulWidget {
   final String? calleeId; // userId of the person being called (for avatar loading)
   final String? e2eeKey; // E2EE shared key for human-to-human calls (null = no E2EE)
   final String? publicCode; // public room code — join without auth via /voice/rooms/public/{code}/join
+  final bool outgoing; // true = outgoing call placed with no room yet; screen creates it + sends the invite (so the "Calling…" screen shows instantly instead of after a ~10s round-trip)
   const VoiceCallScreen({
     super.key,
     this.roomName,
@@ -67,6 +68,7 @@ class VoiceCallScreen extends StatefulWidget {
     this.calleeId,
     this.e2eeKey,
     this.publicCode,
+    this.outgoing = false,
   });
 
   @override
@@ -644,6 +646,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final token = res['token'] as String;
       _roomName = (res['roomName'] as String?) ?? widget.roomName ?? 'room-${DateTime.now().millisecondsSinceEpoch}';
       debugPrint('[VoiceCall] API join OK, roomName=$_roomName, e2ee=${widget.e2eeKey != null}');
+      // Outgoing call placed with no pre-created room: now that the room exists,
+      // ring the callee. (The caller navigated here instantly for the "Calling…"
+      // screen; createRoom + invite happen here instead of blocking the tap.)
+      if (widget.outgoing && widget.roomName == null && widget.conversationId != null) {
+        try {
+          sl<MessengerRemoteDataSource>().sendCallInvite(widget.conversationId!, _roomName!);
+          debugPrint('[VoiceCall] outgoing call_invite sent for room=$_roomName conv=${widget.conversationId}');
+        } catch (e) {
+          debugPrint('[VoiceCall] outgoing sendCallInvite failed: $e');
+        }
+      }
       // Configure E2EE for human-to-human calls
       lk.E2EEOptions? e2eeOptions;
       final e2eeKey = widget.e2eeKey ?? CallStateService.instance.e2eeKey;
@@ -665,12 +678,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _room!.addListener(_onRoomChanged);
       _subscribeRoomEvents();
 
+      // CIS clients (on a Russian fallback edge) can't HOLD a direct UDP path to
+      // the RU SFU — it dies ~every 7s. Force ICE relay-only so they use the
+      // TURN/TLS relay (advertised by the SFU) from the start instead of letting
+      // the always-initially-winning-then-dying UDP candidate churn the call.
+      // Non-CIS (primary endpoint) keep direct UDP (lower latency).
+      final _ep = sl<EndpointService>();
+      final _onEdge = _ep.hasFallback && _ep.baseUrl != _ep.candidates.first;
       await _room!.connect(
-        '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        '${_ep.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
         token,
-        connectOptions: const lk.ConnectOptions(autoSubscribe: false),
+        connectOptions: _onEdge
+            ? const lk.ConnectOptions(
+                autoSubscribe: false,
+                rtcConfiguration: lk.RTCConfiguration(
+                  iceTransportPolicy: lk.RTCIceTransportPolicy.relay,
+                ),
+              )
+            : const lk.ConnectOptions(autoSubscribe: false),
       );
-      debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}');
+      debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}, relayOnly=$_onEdge');
       try {
         await _audioChannel.invokeMethod('enableCallAudioMix');
       } catch (e) {
@@ -1085,10 +1112,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         newRoom.addListener(_onRoomChanged);
         _subscribeRoomEvents();
 
+        final rcEp = sl<EndpointService>();
+        final rcOnEdge = rcEp.hasFallback && rcEp.baseUrl != rcEp.candidates.first;
         await newRoom.connect(
-          '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+          '${rcEp.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
           token,
-          connectOptions: const lk.ConnectOptions(autoSubscribe: false),
+          connectOptions: rcOnEdge
+              ? const lk.ConnectOptions(
+                  autoSubscribe: false,
+                  rtcConfiguration: lk.RTCConfiguration(
+                    iceTransportPolicy: lk.RTCIceTransportPolicy.relay,
+                  ),
+                )
+              : const lk.ConnectOptions(autoSubscribe: false),
         );
 
         CallStateService.instance.setRoom(newRoom, roomName, widget.conversationId, e2eeKeyValue: reconnectKey);
