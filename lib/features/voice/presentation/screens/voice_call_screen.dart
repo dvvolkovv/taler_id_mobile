@@ -678,26 +678,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _room!.addListener(_onRoomChanged);
       _subscribeRoomEvents();
 
-      // CIS clients (on a Russian fallback edge) can't HOLD a direct UDP path to
-      // the RU SFU — it dies ~every 7s. Force ICE relay-only so they use the
-      // TURN/TLS relay (advertised by the SFU) from the start instead of letting
-      // the always-initially-winning-then-dying UDP candidate churn the call.
-      // Non-CIS (primary endpoint) keep direct UDP (lower latency).
-      final _ep = sl<EndpointService>();
-      final _onEdge = _ep.hasFallback && _ep.baseUrl != _ep.candidates.first;
+      // NB: forcing ICE relay-only for CIS was reverted — the TURN server wasn't
+      // actually reaching clients (rtc.turn_servers not advertised), so relay-only
+      // had no candidate and failed instantly. Re-enable only once TURN is verified
+      // end-to-end (advertised + DPI-reachable). For now: direct (UDP), as before.
       await _room!.connect(
-        '${_ep.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
         token,
-        connectOptions: _onEdge
-            ? const lk.ConnectOptions(
-                autoSubscribe: false,
-                rtcConfiguration: lk.RTCConfiguration(
-                  iceTransportPolicy: lk.RTCIceTransportPolicy.relay,
-                ),
-              )
-            : const lk.ConnectOptions(autoSubscribe: false),
+        connectOptions: const lk.ConnectOptions(autoSubscribe: false),
       );
-      debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}, relayOnly=$_onEdge');
+      debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}');
       try {
         await _audioChannel.invokeMethod('enableCallAudioMix');
       } catch (e) {
@@ -1112,19 +1102,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         newRoom.addListener(_onRoomChanged);
         _subscribeRoomEvents();
 
-        final rcEp = sl<EndpointService>();
-        final rcOnEdge = rcEp.hasFallback && rcEp.baseUrl != rcEp.candidates.first;
         await newRoom.connect(
-          '${rcEp.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+          '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
           token,
-          connectOptions: rcOnEdge
-              ? const lk.ConnectOptions(
-                  autoSubscribe: false,
-                  rtcConfiguration: lk.RTCConfiguration(
-                    iceTransportPolicy: lk.RTCIceTransportPolicy.relay,
-                  ),
-                )
-              : const lk.ConnectOptions(autoSubscribe: false),
+          connectOptions: const lk.ConnectOptions(autoSubscribe: false),
         );
 
         CallStateService.instance.setRoom(newRoom, roomName, widget.conversationId, e2eeKeyValue: reconnectKey);
