@@ -235,4 +235,58 @@ void main() {
       }
     });
   });
+
+  group('ColorBadgeBuilder', () {
+    Widget renderMarkdown(String data, {bool dark = true}) {
+      return MaterialApp(
+        theme: dark ? AppTheme.dark : AppTheme.light,
+        home: Scaffold(
+          body: Builder(
+            builder: (ctx) => MarkdownBody(
+              data: data,
+              extensionSet: md.ExtensionSet(
+                md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                [ColorBadgeInlineSyntax(), ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes],
+              ),
+              builders: {'color_badge': ColorBadgeBuilder(ctx)},
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('[HOT_BADGE]HOT[/HOT_BADGE] renders pill with red bg/border/text', (tester) async {
+      await tester.pumpWidget(renderMarkdown('[HOT_BADGE]HOT[/HOT_BADGE]'));
+      await tester.pumpAndSettle();
+
+      final containers = tester.widgetList<Container>(find.descendant(
+        of: find.byType(MarkdownBody),
+        matching: find.byType(Container),
+      ));
+      final badge = containers.firstWhere(
+        (c) => c.decoration is BoxDecoration &&
+               (c.decoration as BoxDecoration).borderRadius == BorderRadius.circular(6),
+        orElse: () => throw StateError('no badge container with radius 6 found'),
+      );
+      final deco = badge.decoration as BoxDecoration;
+      expect(deco.color, const Color(0xFFEF4444).withOpacity(0.15));
+      expect(deco.border, isA<Border>());
+      expect((deco.border as Border).top.color,
+          const Color(0xFFEF4444).withOpacity(0.35));
+
+      final text = tester.widgetList<Text>(find.text('HOT'))
+          .firstWhere((w) => w.style?.color == const Color(0xFFEF4444));
+      expect(text.style?.color, const Color(0xFFEF4444));
+      expect(text.style?.fontWeight, FontWeight.w600);
+      expect(text.style?.fontSize, 13);
+    });
+
+    testWidgets('[B:green]OK[/B] renders green pill', (tester) async {
+      await tester.pumpWidget(renderMarkdown('[B:green]OK[/B]'));
+      await tester.pumpAndSettle();
+      expect(find.text('OK'), findsOneWidget);
+      final text = tester.widget<Text>(find.text('OK'));
+      expect(text.style?.color, const Color(0xFF22C55E));
+    });
+  });
 }

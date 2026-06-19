@@ -150,3 +150,38 @@ class ColorTextBuilder extends MarkdownElementBuilder {
     );
   }
 }
+
+/// Renders a `color_badge` element as a pill-shaped [Container] with a
+/// tinted background, matching border, and bold text in the canonical
+/// color. Unknown color names fall back to plain unstyled text.
+class ColorBadgeBuilder extends MarkdownElementBuilder {
+  ColorBadgeBuilder(this.context);
+  final BuildContext context;
+
+  @override
+  Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
+    final name = element.attributes['color'] ?? '';
+    final fg = MarkdownColorPalette.textColor(context, name);
+    final bg = MarkdownColorPalette.badgeBackground(context, name);
+    final border = MarkdownColorPalette.badgeBorder(context, name);
+    if (fg == null || bg == null || border == null) {
+      return Text(element.textContent);
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border, width: 1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        element.textContent,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+}
