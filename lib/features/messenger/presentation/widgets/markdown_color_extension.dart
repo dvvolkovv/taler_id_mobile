@@ -85,3 +85,45 @@ class ColorTextInlineSyntax extends md.InlineSyntax {
     parser.addNode(element);
   }
 }
+
+/// Parses inline color badge tags into `color_badge` elements.
+///
+/// Surface forms (three-branch alternation):
+///   `[HOT_BADGE]…[/HOT_BADGE]`     → color=red
+///   `[COLD_BADGE]…[/COLD_BADGE]`   → color=blue
+///   `[B:<name>]…[/B]`              → color=<name>, name ∈ {red, blue, yellow, green}
+class ColorBadgeInlineSyntax extends md.InlineSyntax {
+  ColorBadgeInlineSyntax()
+      : super(
+          r'(?:\[HOT_BADGE\]([\s\S]+?)\[/HOT_BADGE\])'
+          r'|(?:\[COLD_BADGE\]([\s\S]+?)\[/COLD_BADGE\])'
+          r'|(?:\[B:(red|blue|yellow|green)\]([\s\S]+?)\[/B\])',
+        );
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final hotBody = match.group(1);
+    if (hotBody != null) {
+      _emit(parser, color: 'red', body: hotBody);
+      return true;
+    }
+    final coldBody = match.group(2);
+    if (coldBody != null) {
+      _emit(parser, color: 'blue', body: coldBody);
+      return true;
+    }
+    final bName = match.group(3);
+    final bBody = match.group(4);
+    if (bName != null && bBody != null) {
+      _emit(parser, color: bName, body: bBody);
+      return true;
+    }
+    return false;
+  }
+
+  void _emit(md.InlineParser parser, {required String color, required String body}) {
+    final element = md.Element('color_badge', [md.Text(body)]);
+    element.attributes['color'] = color;
+    parser.addNode(element);
+  }
+}

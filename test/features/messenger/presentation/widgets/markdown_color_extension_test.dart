@@ -126,4 +126,55 @@ void main() {
       expect(elements[1].textContent, 'b');
     });
   });
+
+  group('ColorBadgeInlineSyntax', () {
+    List<md.Node> parse(String input) {
+      final doc = md.Document(
+        encodeHtml: false,
+        inlineSyntaxes: [ColorBadgeInlineSyntax()],
+      );
+      return doc.parseInline(input);
+    }
+
+    md.Element firstBadge(List<md.Node> nodes) {
+      return nodes.whereType<md.Element>().firstWhere(
+        (e) => e.tag == 'color_badge',
+        orElse: () => throw StateError('no color_badge element'),
+      );
+    }
+
+    test('[HOT_BADGE]x[/HOT_BADGE] emits color_badge red', () {
+      final el = firstBadge(parse('[HOT_BADGE]HOT[/HOT_BADGE]'));
+      expect(el.attributes['color'], 'red');
+      expect(el.textContent, 'HOT');
+    });
+
+    test('[COLD_BADGE]x[/COLD_BADGE] emits color_badge blue', () {
+      final el = firstBadge(parse('[COLD_BADGE]COLD[/COLD_BADGE]'));
+      expect(el.attributes['color'], 'blue');
+      expect(el.textContent, 'COLD');
+    });
+
+    test('[B:red]/[B:blue]/[B:yellow]/[B:green] emit canonical badges', () {
+      for (final c in const ['red', 'blue', 'yellow', 'green']) {
+        final el = firstBadge(parse('[B:$c]LBL[/B]'));
+        expect(el.attributes['color'], c, reason: 'for color $c');
+      }
+    });
+
+    test('mismatched [HOT_BADGE]x[/COLD_BADGE] does not match', () {
+      final nodes = parse('[HOT_BADGE]x[/COLD_BADGE]');
+      expect(nodes.whereType<md.Element>().where((e) => e.tag == 'color_badge'), isEmpty);
+    });
+
+    test('unclosed [HOT_BADGE]x does not match', () {
+      final nodes = parse('[HOT_BADGE]x');
+      expect(nodes.whereType<md.Element>().where((e) => e.tag == 'color_badge'), isEmpty);
+    });
+
+    test('unknown badge color [B:purple]x[/B] does not match', () {
+      final nodes = parse('[B:purple]x[/B]');
+      expect(nodes.whereType<md.Element>().where((e) => e.tag == 'color_badge'), isEmpty);
+    });
+  });
 }
