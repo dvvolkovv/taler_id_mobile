@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:markdown/markdown.dart' as md;
 import '../../../../core/theme/app_theme.dart';
 
 /// Resolves canonical color names used in the chat markdown color tags
@@ -37,5 +38,50 @@ class MarkdownColorPalette {
   /// or `null` if [name] is unknown.
   static Color? badgeBorder(BuildContext context, String name) {
     return textColor(context, name)?.withOpacity(0.35);
+  }
+}
+
+/// Parses inline color tags into `color_text` elements.
+///
+/// Surface forms (three-branch alternation):
+///   `[HOT]…[/HOT]`         → color=red
+///   `[COLD]…[/COLD]`       → color=blue
+///   `[C:<name>]…[/C]`      → color=<name>, where name ∈ {red, blue, yellow, green}
+///
+/// Body is non-greedy and may span multiple lines. Mismatched or unclosed
+/// tags simply do not match — the raw text passes through unchanged.
+class ColorTextInlineSyntax extends md.InlineSyntax {
+  ColorTextInlineSyntax()
+      : super(
+          r'(?:\[HOT\]([\s\S]+?)\[/HOT\])'
+          r'|(?:\[COLD\]([\s\S]+?)\[/COLD\])'
+          r'|(?:\[C:(red|blue|yellow|green)\]([\s\S]+?)\[/C\])',
+        );
+
+  @override
+  bool onMatch(md.InlineParser parser, Match match) {
+    final hotBody = match.group(1);
+    if (hotBody != null) {
+      _emit(parser, color: 'red', body: hotBody);
+      return true;
+    }
+    final coldBody = match.group(2);
+    if (coldBody != null) {
+      _emit(parser, color: 'blue', body: coldBody);
+      return true;
+    }
+    final cName = match.group(3);
+    final cBody = match.group(4);
+    if (cName != null && cBody != null) {
+      _emit(parser, color: cName, body: cBody);
+      return true;
+    }
+    return false;
+  }
+
+  void _emit(md.InlineParser parser, {required String color, required String body}) {
+    final element = md.Element('color_text', [md.Text(body)]);
+    element.attributes['color'] = color;
+    parser.addNode(element);
   }
 }
