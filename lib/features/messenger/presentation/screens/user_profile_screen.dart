@@ -239,38 +239,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
     final convId = await _getOrCreateConversation();
     if (convId == null || !mounted) return;
 
-    try {
-      final client = sl<DioClient>();
-      final res = await client.post(
-        '/voice/rooms',
-        data: {'withAi': false, 'conversationId': convId},
-        fromJson: (d) => Map<String, dynamic>.from(d as Map),
-      );
-      final roomName = res['roomName'] as String;
-      sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
-
-      final firstName = _profile?['firstName'] as String? ?? '';
-      final lastName = _profile?['lastName'] as String? ?? '';
-      final calleeName = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
-      final calleeParam = calleeName.isNotEmpty
-          ? '&callee=${Uri.encodeComponent(calleeName)}'
-          : '';
-      final avatarUrl = _profile?['avatarUrl'] as String?;
-      final avatarParam = avatarUrl != null && avatarUrl.isNotEmpty
-          ? '&calleeAvatar=${Uri.encodeComponent(avatarUrl)}'
-          : '';
-      if (mounted) {
-        context.push('/dashboard/voice?room=$roomName&convId=$convId$calleeParam$avatarParam');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.chatCallError(e.toString())),
-            backgroundColor: AppColors.of(context).error,
-          ),
-        );
-      }
+    // Navigate to the call screen IMMEDIATELY with no room (outgoing=1); the
+    // screen shows "Calling…" instantly and does the room-create + invite itself,
+    // instead of blocking the tap on a ~10s round-trip with no UI feedback.
+    final firstName = _profile?['firstName'] as String? ?? '';
+    final lastName = _profile?['lastName'] as String? ?? '';
+    final calleeName = [firstName, lastName].where((s) => s.isNotEmpty).join(' ');
+    final calleeParam = calleeName.isNotEmpty
+        ? '&callee=${Uri.encodeComponent(calleeName)}'
+        : '';
+    final avatarUrl = _profile?['avatarUrl'] as String?;
+    final avatarParam = avatarUrl != null && avatarUrl.isNotEmpty
+        ? '&calleeAvatar=${Uri.encodeComponent(avatarUrl)}'
+        : '';
+    if (mounted) {
+      context.push('/dashboard/voice?convId=$convId$calleeParam$avatarParam&outgoing=1');
     }
   }
 
