@@ -207,11 +207,18 @@ class _DesktopShellState extends State<DesktopShell> {
   Widget build(BuildContext context) {
     return BlocListener<MessengerBloc, MessengerState>(
       listenWhen: (prev, curr) =>
-          curr.pendingCallInvite != null &&
           prev.pendingCallInvite != curr.pendingCallInvite,
       listener: (context, state) {
         if (state.pendingCallInvite != null) {
           _showIncomingCallDialog(context, state.pendingCallInvite!);
+        } else if (_showingCallDialogRoom != null) {
+          // The invite was cleared (DismissCallInvite) because the call was
+          // answered or ended — here OR on another device of the same account.
+          // The modal ring sheet won't close itself on state change, so pop it.
+          _showingCallDialogRoom = null;
+          try {
+            Navigator.of(context, rootNavigator: true).pop();
+          } catch (_) {}
         }
       },
       child: ShortcutDispatcher(

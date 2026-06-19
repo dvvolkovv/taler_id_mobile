@@ -291,6 +291,12 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   Stream<Map<String, dynamic>> get callInviteStream => _remote.callInviteStream;
 
   @override
+  Stream<String> get callAnsweredStream => _remote.callAnsweredStream;
+
+  @override
+  Stream<String> get callEndedStream => _remote.callEndedStream;
+
+  @override
   Stream<Map<String, dynamic>> get messageUpdatedStream => _remote.messageUpdatedStream;
 
   @override

@@ -63,6 +63,8 @@ void main() {
     when(() => repo.messageStream).thenAnswer((_) => const Stream.empty());
     when(() => repo.typingStream).thenAnswer((_) => const Stream.empty());
     when(() => repo.callInviteStream).thenAnswer((_) => const Stream.empty());
+    when(() => repo.callAnsweredStream).thenAnswer((_) => const Stream<String>.empty());
+    when(() => repo.callEndedStream).thenAnswer((_) => const Stream<String>.empty());
     when(() => repo.messageUpdatedStream).thenAnswer((_) => const Stream.empty());
     when(() => repo.messagesReadStream).thenAnswer((_) => const Stream.empty());
     when(() => repo.groupUpdatedStream).thenAnswer((_) => const Stream.empty());

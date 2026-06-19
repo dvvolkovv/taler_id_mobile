@@ -20,6 +20,8 @@ abstract class IMessengerRepository {
   void sendCallInvite(String conversationId, String roomName);
   Stream<MessageEntity> get messageStream;
   Stream<Map<String, dynamic>> get callInviteStream;
+  Stream<String> get callAnsweredStream;
+  Stream<String> get callEndedStream;
   Stream<Map<String, dynamic>> get messageUpdatedStream;
   Stream<Map<String, dynamic>> get messageDeletedStream;
   Stream<Map<String, dynamic>> get messageAckedStream;

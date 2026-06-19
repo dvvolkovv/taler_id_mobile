@@ -66,6 +66,8 @@ MessageEntity _msg(String id, String conv, DateTime sentAt) => MessageEntity(
 void _stubAllStreams(_StubRepo repo) {
   when(() => repo.messageStream).thenAnswer((_) => _empty());
   when(() => repo.callInviteStream).thenAnswer((_) => _empty());
+  when(() => repo.callAnsweredStream).thenAnswer((_) => const Stream<String>.empty());
+  when(() => repo.callEndedStream).thenAnswer((_) => const Stream<String>.empty());
   when(() => repo.messageUpdatedStream).thenAnswer((_) => _empty());
   when(() => repo.messageDeletedStream).thenAnswer((_) => _empty());
   when(() => repo.messagesReadStream).thenAnswer((_) => _empty());

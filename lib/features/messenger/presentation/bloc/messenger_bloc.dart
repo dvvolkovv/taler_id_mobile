@@ -34,6 +34,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   final PendingMeshSendQueue _pendingMeshQueue = sl<PendingMeshSendQueue>();
   StreamSubscription? _msgSub;
   StreamSubscription? _callSub;
+  StreamSubscription? _callAnsweredSub;
+  StreamSubscription? _callEndedSub;
   StreamSubscription? _msgUpdatedSub;
   StreamSubscription? _msgsReadSub;
   StreamSubscription? _groupUpdatedSub;
@@ -187,6 +189,24 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     _msgSub = _repo.messageStream.listen((msg) => add(MessageReceived(msg)));
     _callSub?.cancel();
     _callSub = _repo.callInviteStream.listen((data) => add(CallInviteReceived(data)));
+    // Dismiss a pending incoming-call invite when the call is answered or ended —
+    // here OR on another device of the same account. Centralised in the bloc so it
+    // works on every shell (mobile dashboard AND desktop_shell, which has no such
+    // listener of its own → was the cause of the Linux ring that never stopped).
+    _callAnsweredSub?.cancel();
+    _callAnsweredSub = _repo.callAnsweredStream.listen((roomName) {
+      final pending = state.pendingCallInvite;
+      if (pending != null && pending['roomName'] == roomName) {
+        add(DismissCallInvite());
+      }
+    });
+    _callEndedSub?.cancel();
+    _callEndedSub = _repo.callEndedStream.listen((roomName) {
+      final pending = state.pendingCallInvite;
+      if (pending != null && pending['roomName'] == roomName) {
+        add(DismissCallInvite());
+      }
+    });
     _msgUpdatedSub?.cancel();
     _msgUpdatedSub = _repo.messageUpdatedStream.listen((data) {
       final id = data['id'] as String?;
@@ -1266,6 +1286,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     WidgetsBinding.instance.removeObserver(this);
     _msgSub?.cancel();
     _callSub?.cancel();
+    _callAnsweredSub?.cancel();
+    _callEndedSub?.cancel();
     _msgUpdatedSub?.cancel();
     _msgsReadSub?.cancel();
     _groupUpdatedSub?.cancel();

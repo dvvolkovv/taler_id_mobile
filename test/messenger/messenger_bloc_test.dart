@@ -198,6 +198,8 @@ void main() {
   void stubAllStreams() {
     when(() => repo.messageStream).thenAnswer((_) => emptyStream<MessageEntity>());
     when(() => repo.callInviteStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.callAnsweredStream).thenAnswer((_) => const Stream<String>.empty());
+    when(() => repo.callEndedStream).thenAnswer((_) => const Stream<String>.empty());
     when(() => repo.messageUpdatedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messageDeletedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messageAckedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
