@@ -32,6 +32,7 @@ import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:camera/camera.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../widgets/markdown_color_extension.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/services/wallpaper_service.dart';
 import '../../../../core/theme/chat_wallpaper_painters.dart';
@@ -3223,7 +3224,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
               // AI bot responses are markdown — render with
               // flutter_markdown for headers, bold, code blocks, lists,
               // clickable links, and action buttons [ACTION:xxx].
-              _AiBotContent(
+              AiBotContent(
                 content: widget.message.content,
                 conversationId: widget.message.conversationId,
                 topicId: widget.message.topicId,
@@ -6226,11 +6227,11 @@ class _RecordingPlayerState extends State<_RecordingPlayer> {
 
 // ── AI Bot content with markdown + action buttons ──
 
-class _AiBotContent extends StatelessWidget {
+class AiBotContent extends StatelessWidget {
   final String content;
   final String conversationId;
   final String? topicId;
-  const _AiBotContent({required this.content, required this.conversationId, this.topicId});
+  const AiBotContent({super.key, required this.content, required this.conversationId, this.topicId});
 
   static DateTime _lastActionTap = DateTime(2000);
 
@@ -6266,8 +6267,17 @@ class _AiBotContent extends StatelessWidget {
             softLineBreak: true,
             extensionSet: md.ExtensionSet(
               md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-              [...md.ExtensionSet.gitHubFlavored.inlineSyntaxes, md.AutolinkExtensionSyntax()],
+              [
+                ColorTextInlineSyntax(),
+                ColorBadgeInlineSyntax(),
+                ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes,
+                md.AutolinkExtensionSyntax(),
+              ],
             ),
+            builders: {
+              'color_text': ColorTextBuilder(context),
+              'color_badge': ColorBadgeBuilder(context),
+            },
             onTapLink: (text, href, title) {
               if (href == null) return;
               final uri = Uri.tryParse(href.startsWith('http') ? href : 'https://$href');
