@@ -25,4 +25,22 @@ class AppConfig {
 
   static bool get isDev => flavor == 'dev';
   static bool get isProd => flavor == 'prod';
+  static bool get isTalerid => flavor == 'talerid';
+
+  /// Short label shown in the Settings screen in front of the version
+  /// number — mirrors the app-icon name prefix so the user can tell at a
+  /// glance which build (DEV/TEST/PROD) they are on without launching
+  /// the app. Empty for the canonical talerid (DO) PROD flavor.
+  static String get versionPrefix {
+    switch (flavor) {
+      case 'dev':
+        return 'DEV';
+      case 'prod':
+        return 'TEST';
+      case 'talerid':
+        return '';
+      default:
+        return '';
+    }
+  }
 }
