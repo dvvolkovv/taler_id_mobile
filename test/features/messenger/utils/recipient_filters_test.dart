@@ -20,13 +20,23 @@ void main() {
       expect(result.map((c) => c.id), ['c1', 'c2']);
     });
 
-    test('includes SAVED, AI_ANALYST, AI_OUTBOUND', () {
+    test('includes SAVED and AI_ANALYST', () {
       final result = filterRecipients([
         _conv('s', 'SAVED'),
         _conv('a', 'AI_ANALYST'),
+      ]);
+      expect(result.map((c) => c.id), ['s', 'a']);
+    });
+
+    // AI_OUTBOUND chats existed in pre-1.1.0 builds but the feature was
+    // sunset; the case was removed from _canPost so any stale AI_OUTBOUND
+    // conversation falls through to the default "unknown" branch and is
+    // excluded from the recipient picker.
+    test('AI_OUTBOUND (legacy) is excluded', () {
+      final result = filterRecipients([
         _conv('o', 'AI_OUTBOUND'),
       ]);
-      expect(result.map((c) => c.id), ['s', 'a', 'o']);
+      expect(result, isEmpty);
     });
 
     test('CHANNEL: includes OWNER and ADMIN, excludes SUBSCRIBER and null role', () {
