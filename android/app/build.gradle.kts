@@ -53,18 +53,26 @@ android {
             dimension = "environment"
             applicationId = "tirol.taler.taler_id_mobile.dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "Taler ID Dev")
+            // Three-track naming (1.1.1+): app icon shows the environment so
+            // testers don't mix builds. DEV=aeza staging, TEST=aeza prod
+            // (legacy bundle, kept for existing installs until DO cutover),
+            // no-prefix=DO prod (io.talerid.app).
+            resValue("string", "app_name", "DEV Taler ID")
             signingConfig = signingConfigs.getByName("debug")
         }
         create("prod") {
             dimension = "environment"
             applicationId = "tirol.taler.taler_id_mobile"
-            resValue("string", "app_name", "Taler ID")
+            // aeza prod track repositioned as TEST. Existing users upgrading
+            // from 1.1.0 will see their icon name change to "TEST Taler ID"
+            // — release notes explain the new three-track layout.
+            resValue("string", "app_name", "TEST Taler ID")
             signingConfig = signingConfigs.getByName("debug")
         }
         create("talerid") {
             dimension = "environment"
             applicationId = "io.talerid.app"
+            // DO production — canonical "Taler ID" with no prefix.
             resValue("string", "app_name", "Taler ID")
             signingConfig = signingConfigs.getByName("release")
         }

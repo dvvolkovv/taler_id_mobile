@@ -189,7 +189,10 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
       _pinEnabled = pinEnabled;
       _currentLang = savedLang;
       _currentTheme = savedTheme;
-      _appVersion = '${info.version}+${info.buildNumber}';
+      final prefix = AppConfig.versionPrefix;
+      _appVersion = prefix.isEmpty
+          ? '${info.version}+${info.buildNumber}'
+          : '$prefix ${info.version}+${info.buildNumber}';
     });
   }
 
