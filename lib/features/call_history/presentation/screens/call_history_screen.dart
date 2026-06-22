@@ -380,30 +380,55 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       );
       return;
     }
-    if (!e.withAi && (e.conversationId == null || e.conversationId!.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l10n.callHistoryCouldNotDeterminePeer),
-          backgroundColor: AppColors.of(context).error,
-        ),
-      );
-      return;
+    // Resolve a conversationId for the redial. Older CallLog rows (and any
+     // call started without a chat — direct dial by code/link) have
+     // conversationId=null; in that case fall back to looking up / creating
+     // the 1:1 chat by the participant userId so the callee actually gets a
+     // socket invite. Without this the button just errored out.
+    String? convId = e.conversationId;
+    if (!e.withAi && (convId == null || convId.isEmpty)) {
+      if (e.otherPartyId == null || e.otherPartyId!.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.callHistoryCouldNotDeterminePeer),
+            backgroundColor: AppColors.of(context).error,
+          ),
+        );
+        return;
+      }
+      setState(() => _calling = true);
+      try {
+        final conv = await sl<MessengerRemoteDataSource>()
+            .createConversation(e.otherPartyId!);
+        convId = conv.id;
+      } catch (err) {
+        if (mounted) {
+          setState(() => _calling = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.errorWithMessage(err.toString())),
+              backgroundColor: AppColors.of(context).error,
+            ),
+          );
+        }
+        return;
+      }
+    } else {
+      setState(() => _calling = true);
     }
 
-    setState(() => _calling = true);
     try {
       final res = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms',
         data: {
           'withAi': e.withAi,
-          if (e.conversationId != null && e.conversationId!.isNotEmpty)
-            'conversationId': e.conversationId,
+          if (convId != null && convId.isNotEmpty) 'conversationId': convId,
         },
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       final roomName = res['roomName'] as String;
-      if (e.conversationId != null && e.conversationId!.isNotEmpty) {
-        sl<MessengerRemoteDataSource>().sendCallInvite(e.conversationId!, roomName);
+      if (convId != null && convId.isNotEmpty) {
+        sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
       }
       if (mounted) {
         final calleeParam = e.otherPartyName.isNotEmpty
@@ -417,7 +442,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             : '';
         context.push(
           '/dashboard/voice?room=$roomName'
-          '${e.conversationId != null && e.conversationId!.isNotEmpty ? "&convId=${e.conversationId}" : ""}'
+          '${convId != null && convId.isNotEmpty ? "&convId=$convId" : ""}'
           '$calleeParam$avatarParam$calleeIdParam',
         );
       }
