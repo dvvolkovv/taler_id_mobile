@@ -736,6 +736,71 @@ void main() {
       await bloc.close();
     });
 
+    // 2026-06-18 — phantom-resend recurrence on pre-1.0.86 legacy entries.
+    // Before 1.0.86 the pending Hive box wrote entries WITHOUT senderId or
+    // sentAt. The 1.0.86 guards treated NULL fields as "unknown → keep",
+    // so legacy entries lived forever and re-fired on every reconnect for
+    // months ("Не выдерживает твоего напора" → trientes/@NARAYANA chats).
+    // STRICT policy: any entry missing senderId OR sentAt is evicted, not
+    // sent.
+    test(
+        'legacy entry (no senderId, no sentAt) is evicted, never resent — 2026-06-18 phantom-resend recurrence',
+        () async {
+      final pending = _PopulatedPendingMessageService();
+      sl.unregister<PendingMessageService>();
+      sl.registerSingleton<PendingMessageService>(pending);
+
+      // Pre-1.0.86-style entry: no senderId, no sentAt — both NULL on read.
+      await pending.save('temp_pre_1086_legacy', {
+        'conversationId': 'conv-1',
+        'content': 'Не выдерживает твоего напора',
+      });
+      // Sanity: 1 entry seeded.
+      expect(pending.getAll(), hasLength(1));
+
+      when(() => repo.joinConversation(any())).thenReturn(null);
+      when(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          )).thenReturn(null);
+
+      final bloc = buildBloc();
+      bloc.add(const ConnectMessenger('token', userId: 'current-user'));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verifyNever(() => repo.sendMessage(
+            any(),
+            any(),
+            fileUrl: any(named: 'fileUrl'),
+            fileName: any(named: 'fileName'),
+            fileSize: any(named: 'fileSize'),
+            fileType: any(named: 'fileType'),
+            s3Key: any(named: 's3Key'),
+            thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+            thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+            thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+            fileRecordId: any(named: 'fileRecordId'),
+            topicId: any(named: 'topicId'),
+            clientTempId: any(named: 'clientTempId'),
+          ));
+      expect(pending.getAll(), isEmpty,
+          reason:
+              'legacy entry without metadata MUST be evicted, never resent — otherwise the message phantom-fires forever');
+
+      await bloc.close();
+    });
+
     // 2026-06-15 — pending drained reliably by clientTempId, not content.
     // The content+senderId heuristic in _onMessageReceived silently fails for
     // file messages / edited bodies. message_acked carries (clientTempId →
