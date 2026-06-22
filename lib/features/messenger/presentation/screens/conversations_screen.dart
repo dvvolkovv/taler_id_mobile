@@ -1045,74 +1045,10 @@ class _ConversationsViewState extends State<_ConversationsView> {
                       },
                     ),
                   ),
-                // AI Outbound Bot — automated calling campaigns
-                if (_searchQuery.isEmpty)
-                  SliverToBoxAdapter(
-                    child: ListTile(
-                      dense: true,
-                      visualDensity: const VisualDensity(horizontal: 0, vertical: -2),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                      leading: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF34D399), width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF34D399).withValues(alpha: 0.45),
-                              blurRadius: 10,
-                            ),
-                          ],
-                        ),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [Color(0xFF34D399), Color(0xFF059669)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                          ),
-                          child: const Icon(Icons.phone_forwarded_rounded, color: Colors.white, size: 20),
-                        ),
-                      ),
-                      title: Text(
-                        Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller',
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        Localizations.localeOf(context).languageCode == 'ru'
-                            ? 'Автоматический обзвон бизнесов'
-                            : 'Automated business calling',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: colors.textSecondary, fontSize: 13),
-                      ),
-                      onTap: () async {
-                        try {
-                          final res = await sl<DioClient>().get<Map<String, dynamic>>(
-                            '/outbound-bot/chat',
-                            fromJson: (d) => Map<String, dynamic>.from(d as Map),
-                          );
-                          final convId = res['conversationId'] as String?;
-                          if (convId != null && context.mounted) {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => TopicsListScreen(
-                                conversationId: convId,
-                                groupName: Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller',
-                                isOutboundBot: true,
-                              ),
-                            ));
-                          }
-                        } catch (_) {}
-                      },
-                    ),
-                  ),
+                // AI Outbound Bot tile removed in 1.0.99 — feature is being
+                // sunset. Existing AI_OUTBOUND conversations are filtered out
+                // of the main list above (line 650-653); the backend will
+                // refuse new campaign creation once Phase 2 ships.
                 // Informer Bot — wallet/balance monitoring for ops users
                 if (_searchQuery.isEmpty)
                   BlocBuilder<ProfileBloc, ProfileState>(
