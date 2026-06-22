@@ -647,7 +647,10 @@ class _ConversationsViewState extends State<_ConversationsView> {
     bool archivedOnly = false,
   }) {
     var result = convs.where((c) {
-      // SAVED, AI_ANALYST, AI_OUTBOUND, AI_INFORMER are pinned separately at the top — exclude from the list
+      // SAVED, AI_ANALYST, AI_INFORMER are pinned separately at the top —
+      // exclude from the list. AI_OUTBOUND was sunset in 1.0.99 and fully
+      // removed in 1.1.0; any leftover AI_OUTBOUND conversations are also
+      // hidden so they don't appear as orphans.
       if (c.type == 'SAVED' ||
           c.type == 'AI_ANALYST' ||
           c.type == 'AI_OUTBOUND' ||
@@ -1291,10 +1294,7 @@ class _ConversationTile extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
     final isAiAnalyst = conversation.type == 'AI_ANALYST';
-    final isAiOutbound = conversation.type == 'AI_OUTBOUND';
-    final displayName = isAiOutbound
-        ? (Localizations.localeOf(context).languageCode == 'ru' ? 'AI Обзвон' : 'AI Caller')
-        : isAiAnalyst
+    final displayName = isAiAnalyst
         ? l10n.aiAnalystTitle
         : isGroup
             ? (conversation.name ?? l10n.chatGroup)
@@ -1519,7 +1519,7 @@ class _ConversationTile extends StatelessWidget {
         );
       }(),
       onTap: () {
-        if (conversation.topicsEnabled && (conversation.type == 'GROUP' || conversation.type == 'AI_OUTBOUND')) {
+        if (conversation.topicsEnabled && conversation.type == 'GROUP') {
           Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => TopicsListScreen(
               conversationId: conversation.id,

@@ -8,7 +8,7 @@ const _channelPostingRoles = {'OWNER', 'ADMIN'};
 /// Inclusions:
 ///   - DIRECT, GROUP — always
 ///   - CHANNEL — only when user role is OWNER or ADMIN
-///   - SAVED, AI_ANALYST, AI_OUTBOUND — always (single-participant or bot chats)
+///   - SAVED, AI_ANALYST — always (single-participant or bot chats)
 ///
 /// Exclusions:
 ///   - CHANNEL with SUBSCRIBER role (read-only)
@@ -23,7 +23,6 @@ bool _canPost(ConversationEntity c) {
     case 'GROUP':
     case 'SAVED':
     case 'AI_ANALYST':
-    case 'AI_OUTBOUND':
       return true;
     case 'CHANNEL':
       return _channelPostingRoles.contains(c.myRole);
