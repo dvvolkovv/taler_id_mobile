@@ -630,22 +630,34 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     for (final m in items) {
       final tempId = m['id'] as String?;
       if (tempId == null) continue;
+      // STRICT policy (post-2026-06-18 phantom-resend incident): only resend
+      // entries that *both* identify the current user AS sender AND have a
+      // recent `sentAt`. The previous (1.0.86) policy treated NULL senderId
+      // / NULL sentAt as "unknown → keep" which let pre-1.0.86 legacy Hive
+      // entries (no metadata fields) live forever — they re-fired as
+      // phantom messages months after authoring (observed: VDV → trientes
+      // and @NARAYANA chats, "Не выдерживает твоего напора" firing weeks
+      // later).
       final senderId = m['senderId'] as String?;
-      if (senderId != null && senderId != currentUserId) {
+      if (senderId != currentUserId) {
         debugPrint(
-            '[MessengerBloc] Evict stale pending: $tempId senderId=$senderId != current=$currentUserId');
+            '[MessengerBloc] Evict pending wrong/missing senderId: $tempId senderId=$senderId current=$currentUserId');
         _pending.remove(tempId);
         continue;
       }
       final sentAtStr = m['sentAt'] as String?;
-      if (sentAtStr != null) {
-        final sentAt = DateTime.tryParse(sentAtStr);
-        if (sentAt != null && now.difference(sentAt) > _pendingMaxAge) {
-          debugPrint(
-              '[MessengerBloc] Evict aged pending: $tempId age=${now.difference(sentAt).inDays}d');
-          _pending.remove(tempId);
-          continue;
-        }
+      final sentAt = sentAtStr != null ? DateTime.tryParse(sentAtStr) : null;
+      if (sentAt == null) {
+        debugPrint(
+            '[MessengerBloc] Evict pending without sentAt (legacy pre-1.0.86 entry): $tempId');
+        _pending.remove(tempId);
+        continue;
+      }
+      if (now.difference(sentAt) > _pendingMaxAge) {
+        debugPrint(
+            '[MessengerBloc] Evict aged pending: $tempId age=${now.difference(sentAt).inDays}d');
+        _pending.remove(tempId);
+        continue;
       }
       if (_inFlightTempIds.contains(tempId)) {
         debugPrint('[MessengerBloc] Skip resend: $tempId already in flight');
@@ -654,6 +666,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       final convId = m['conversationId'] as String?;
       final content = m['content'] as String?;
       if (convId == null || content == null) continue;
+      debugPrint(
+          '[MessengerBloc] Resend pending: $tempId convId=$convId age=${now.difference(sentAt).inMinutes}m');
       _inFlightTempIds.add(tempId);
       _repo.sendMessage(
         convId,
