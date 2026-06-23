@@ -1,6 +1,16 @@
 class AppConfig {
-  static const String flavor =
+  static const String _flavorEnv =
       String.fromEnvironment('FLAVOR', defaultValue: 'prod');
+
+  // Set by the DO talerid build pipeline (ios-build.sh, Android build-droplet).
+  // The talerid track is the only one that asserts this flag, so we treat it
+  // as the authoritative flavor signal — older scripts in the pipeline pass
+  // BASE_URL/WEB_URL/TALERID_PUBLIC but forget FLAVOR, which would otherwise
+  // make this build identify as 'prod' (and render the "TEST" version prefix).
+  static const bool _talerIdPublic =
+      bool.fromEnvironment('TALERID_PUBLIC', defaultValue: false);
+
+  static String get flavor => _talerIdPublic ? 'talerid' : _flavorEnv;
 
   static const String baseUrl = String.fromEnvironment(
     'BASE_URL',
