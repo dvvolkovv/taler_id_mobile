@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_player/video_player.dart';
 import '../../../../core/desktop/animated_blob_background.dart';
 import '../../../../core/desktop/desktop_window_chrome.dart';
 import '../../../../core/platform/biometric_auth.dart';
@@ -27,9 +26,6 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animController;
   late AnimationController _ringCtrl;
   late Animation<double> _fadeAnim;
-  VideoPlayerController? _videoController;
-  bool _videoReady = false;
-  bool _videoInitialized = false;
 
   @override
   void initState() {
@@ -43,28 +39,9 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
+    _animController.forward();
 
     _checkAuthState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_videoInitialized) {
-      _videoInitialized = true;
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      final asset = isDark ? 'assets/video.mp4' : 'assets/video_light.mp4';
-      _videoController = VideoPlayerController.asset(asset)
-        ..setLooping(true)
-        ..setVolume(0)
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() => _videoReady = true);
-            _videoController!.play();
-            _animController.forward();
-          }
-        });
-    }
   }
 
   Future<void> _checkAuthState() async {
@@ -124,7 +101,6 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _animController.dispose();
     _ringCtrl.dispose();
-    _videoController?.dispose();
     super.dispose();
   }
 
@@ -185,29 +161,22 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: _videoReady && _videoController != null
-                          ? FittedBox(
-                              fit: BoxFit.cover,
-                              child: SizedBox(
-                                width: _videoController!.value.size.width,
-                                height: _videoController!.value.size.height,
-                                child: VideoPlayer(_videoController!),
-                              ),
-                            )
-                          : Container(
-                              width: 80,
-                              height: 80,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                              child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Image.asset(
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? 'assets/app_icon_dark.png'
-                                      : 'assets/app_icon_light.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
+                      child: Container(
+                        width: 80,
+                        height: 80,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Image.asset(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? 'assets/app_icon_dark.png'
+                                : 'assets/app_icon_light.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
