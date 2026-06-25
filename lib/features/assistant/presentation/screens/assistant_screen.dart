@@ -10,7 +10,6 @@ import '../../../../core/platform/platform_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:video_player/video_player.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/agent/agent_client.dart';
 import '../../../../core/di/service_locator.dart';
@@ -89,10 +88,6 @@ class _AssistantScreenState extends State<AssistantScreen>
   static const double _defaultOrbitSpeed = 0.07; // ~90s per revolution
   static const double _friction = 0.97; // velocity decay per tick
 
-  VideoPlayerController? _logoVideo;
-  bool _logoVideoReady = false;
-  bool? _logoVideoDark; // tracks which theme the current video was loaded for
-
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   // Function call buffering
@@ -163,27 +158,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    if (_logoVideoDark == isDark) return; // theme unchanged, skip
-    _logoVideoDark = isDark;
-    final asset = isDark ? 'assets/video.mp4' : 'assets/video_light.mp4';
-    final oldVideo = _logoVideo;
-    setState(() => _logoVideoReady = false);
-    _logoVideo = VideoPlayerController.asset(asset)
-      ..setLooping(true)
-      ..setVolume(0)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _logoVideoReady = true);
-          _logoVideo!.play();
-        }
-        oldVideo?.dispose();
-      });
-  }
-
   void _tickOrbit() {
     if (!mounted) return;
     final now = _orbitCtrl.lastElapsedDuration ?? Duration.zero;
@@ -240,7 +214,6 @@ class _AssistantScreenState extends State<AssistantScreen>
     _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
     _orbitCtrl.dispose();
-    _logoVideo?.dispose();
     _transcriptCtrl.dispose();
     _cleanup();
     _player.dispose();
@@ -2808,33 +2781,22 @@ class _AssistantScreenState extends State<AssistantScreen>
                       ],
                     ),
                     child: ClipOval(
-                      child: _logoVideoReady && _logoVideo != null
-                          ? SizedBox(
-                              width: 90,
-                              height: 90,
-                              child: FittedBox(
-                                fit: BoxFit.cover,
-                                child: SizedBox(
-                                  width: _logoVideo!.value.size.width,
-                                  height: _logoVideo!.value.size.height,
-                                  child: VideoPlayer(_logoVideo!),
-                                ),
-                              ),
-                            )
-                          : Container(
-                              width: 90,
-                              height: 90,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Image.asset(
-                                  Theme.of(context).brightness == Brightness.dark
-                                      ? 'assets/app_icon_dark.png'
-                                      : 'assets/app_icon_light.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
+                      child: Container(
+                        width: 90,
+                        height: 90,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.black
+                            : Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Image.asset(
+                            Theme.of(context).brightness == Brightness.dark
+                                ? 'assets/app_icon_dark.png'
+                                : 'assets/app_icon_light.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -2916,27 +2878,18 @@ class _AssistantScreenState extends State<AssistantScreen>
                   ],
                 ),
                 child: ClipOval(
-                  child: _logoVideoReady && _logoVideo != null
-                      ? FittedBox(
-                          fit: BoxFit.cover,
-                          child: SizedBox(
-                            width: _logoVideo!.value.size.width,
-                            height: _logoVideo!.value.size.height,
-                            child: VideoPlayer(_logoVideo!),
-                          ),
-                        )
-                      : Container(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.black
-                              : Colors.white,
-                          padding: const EdgeInsets.all(12),
-                          child: Image.asset(
-                            Theme.of(context).brightness == Brightness.dark
-                                ? 'assets/app_icon_dark.png'
-                                : 'assets/app_icon_light.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                  child: Container(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white,
+                    padding: const EdgeInsets.all(12),
+                    child: Image.asset(
+                      Theme.of(context).brightness == Brightness.dark
+                          ? 'assets/app_icon_dark.png'
+                          : 'assets/app_icon_light.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -3376,25 +3329,18 @@ class _AssistantScreenState extends State<AssistantScreen>
                           child: Padding(
                             padding: const EdgeInsets.all(2),
                             child: ClipOval(
-                              child: _logoVideoReady && _logoVideo != null
-                                  ? FittedBox(
-                                      fit: BoxFit.cover,
-                                      child: SizedBox(
-                                        width: _logoVideo!.value.size.width,
-                                        height: _logoVideo!.value.size.height,
-                                        child: VideoPlayer(_logoVideo!),
-                                      ),
-                                    )
-                                  : Container(
-                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white,
-                                      padding: const EdgeInsets.all(6),
-                                      child: Image.asset(
-                                        Theme.of(context).brightness == Brightness.dark
-                                            ? 'assets/app_icon_dark.png'
-                                            : 'assets/app_icon_light.png',
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
+                              child: Container(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black
+                                    : Colors.white,
+                                padding: const EdgeInsets.all(6),
+                                child: Image.asset(
+                                  Theme.of(context).brightness == Brightness.dark
+                                      ? 'assets/app_icon_dark.png'
+                                      : 'assets/app_icon_light.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
                           ),
                         ),
