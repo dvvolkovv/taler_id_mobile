@@ -2762,23 +2762,6 @@ class _AssistantScreenState extends State<AssistantScreen>
                         color: Colors.white.withValues(alpha: 0.25),
                         width: 2,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.primary.withValues(alpha: 0.4),
-                          blurRadius: 40,
-                          spreadRadius: 4,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFFA78BFA).withValues(alpha: 0.25),
-                          blurRadius: 60,
-                          spreadRadius: 8,
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
                     ),
                     child: ClipOval(
                       child: Container(
@@ -2864,18 +2847,6 @@ class _AssistantScreenState extends State<AssistantScreen>
                     color: Colors.white.withValues(alpha: 0.25),
                     width: 2,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.primary.withValues(alpha: 0.4),
-                      blurRadius: 40,
-                      spreadRadius: 4,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
                 child: ClipOval(
                   child: Container(

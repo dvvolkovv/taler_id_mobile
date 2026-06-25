@@ -140,25 +140,11 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ),
-                  // Logo container with multi-color glow
+                  // Logo container — chrome icon has its own warm glow,
+                  // no decorative BoxShadow needed
                   Container(
                     width: 80,
                     height: 80,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.primary.withOpacity(0.45),
-                          blurRadius: 30,
-                          spreadRadius: 4,
-                        ),
-                        BoxShadow(
-                          color: const Color(0xFFA855F7).withOpacity(0.25),
-                          blurRadius: 50,
-                          spreadRadius: 8,
-                        ),
-                      ],
-                    ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
