@@ -578,8 +578,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         await _audioChannel.invokeMethod('setAudioOutput', 'earpiece');
       } catch (_) {}
     }
-    // Play ringback tone for outgoing calls to user (not incoming, not AI assistant)
-    if (!widget.isIncoming && widget.roomName != null) {
+    // Play ringback tone for outgoing calls to user (not incoming, not AI assistant).
+    // For outgoing-created rooms (widget.outgoing && widget.roomName == null) start
+    // ringback immediately so the user hears tone while the room is being created.
+    if (!widget.isIncoming && (widget.roomName != null || widget.outgoing)) {
       if (mounted) setState(() => _ringing = true);
       _startRingback();
     }
@@ -3770,7 +3772,9 @@ Answer briefly — the user is in the middle of a conversation.''';
       final l10n = AppLocalizations.of(context)!;
       final statusText = widget.publicCode != null && _publicRoomCreatorName != null
           ? l10n.voiceRoomWithCreator(_publicRoomCreatorName!)
-          : l10n.voiceConnecting;
+          : (widget.outgoing && widget.roomName == null)
+              ? l10n.voiceCalling
+              : l10n.voiceConnecting;
       return _buildOutgoingCallCenter(statusText: statusText);
     }
     if (_error != null) {

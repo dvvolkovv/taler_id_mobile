@@ -195,10 +195,13 @@ void main() {
     debugPrint('[CALLER] Hangup tapped');
     await tester.pumpFor(const Duration(seconds: 5));
 
-    // Allow audioplayers & other animations to fully stop before teardown
+    // Allow audioplayers & other animations to fully stop before teardown.
+    // After ringback stop(), AudioPlayer FramePositionUpdater needs a few more
+    // pumped frames to fully cancel its frame callback.
     await tester.binding.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
     });
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Should be back on chat or dashboard
     debugPrint('[CALLER] ✓ Call test complete');
