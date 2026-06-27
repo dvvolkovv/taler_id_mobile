@@ -4870,6 +4870,30 @@ abstract class AppLocalizations {
   /// **'Accept'**
   String get incomingCallAccept;
 
+  /// Title of the dialog shown when the person we are calling out to dials us at the same time.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is also calling you'**
+  String callGlareTitle(String name);
+
+  /// No description provided for @callGlareBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You both dialled each other at the same moment. Pick up theirs or stay on yours?'**
+  String get callGlareBody;
+
+  /// No description provided for @callGlareSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick up theirs'**
+  String get callGlareSwitch;
+
+  /// No description provided for @callGlareKeepOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay on mine'**
+  String get callGlareKeepOwn;
+
   /// No description provided for @meshIncomingCallLabel.
   ///
   /// In en, this message translates to:

@@ -650,9 +650,28 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     final l10n = AppLocalizations.of(context)!;
     final fromName = data['fromUserName'] as String? ?? l10n.dashboardUser;
     final fromAvatar = data['fromUserAvatar'] as String?;
+    final fromUserId = data['fromUserId'] as String? ?? '';
     final roomName = data['roomName'] as String? ?? '';
     final convId = data['conversationId'] as String? ?? '';
     final e2eeKey = data['e2eeKey'] as String?;
+
+    // Glare: we're already dialling this same person while they're dialling us.
+    // Suppress the regular ringing UI (CallKit + dialog with ringtone would
+    // collide with our own outgoing call's ringback) and present a silent
+    // choice dialog: pick up theirs (drops ours), or stay on ours (drops theirs).
+    final outgoingPeer = CallStateService.instance.outgoingPeerId;
+    if (fromUserId.isNotEmpty && outgoingPeer == fromUserId) {
+      _handleCallGlare(
+        context,
+        fromName: fromName,
+        fromAvatar: fromAvatar,
+        incomingRoom: roomName,
+        incomingConv: convId,
+        incomingE2eeKey: e2eeKey,
+      );
+      if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
+      return;
+    }
 
     // If at max call lines, silently dismiss incoming call invite
     if (!CallStateService.instance.canAddLine) {
@@ -838,6 +857,127 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       ),
     ).whenComplete(() {
       if (_showingCallDialogRoom == roomName) _showingCallDialogRoom = null;
+    });
+  }
+
+  /// Glare handler: peer dialled us while we were dialling them. Silent dialog
+  /// (no CallKit, no ringtone) with two clear actions.
+  ///
+  /// NOTE on edge case: if BOTH sides press the same button, both calls drop —
+  /// each end-tears down the other side's room. Acceptable trade-off for v1
+  /// since it requires symmetric near-simultaneous choices; can be replaced
+  /// with deterministic resolution (e.g. lower userId wins) later if needed.
+  void _handleCallGlare(
+    BuildContext context, {
+    required String fromName,
+    String? fromAvatar,
+    required String incomingRoom,
+    required String incomingConv,
+    String? incomingE2eeKey,
+  }) {
+    if (_showingCallDialogRoom == incomingRoom) return;
+    _showingCallDialogRoom = incomingRoom;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    showModalBottomSheet<bool>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      useRootNavigator: true,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.swap_calls_rounded, size: 48, color: colors.primary),
+              const SizedBox(height: 12),
+              Text(
+                l10n.callGlareTitle(fromName),
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                l10n.callGlareBody,
+                style: TextStyle(color: colors.textSecondary, fontSize: 14),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(sheetCtx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(l10n.callGlareKeepOwn),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(sheetCtx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: Text(l10n.callGlareSwitch),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).then((switchToTheirs) async {
+      if (_showingCallDialogRoom == incomingRoom) _showingCallDialogRoom = null;
+      final ds = sl<MessengerRemoteDataSource>();
+      final cs = CallStateService.instance;
+      if (switchToTheirs == true) {
+        // Drop our outgoing on both ends, then accept theirs and navigate.
+        final outLine = cs.activeLine;
+        if (outLine != null && outLine.conversationId != null) {
+          try { ds.sendCallEnded(outLine.conversationId!, outLine.roomName); } catch (_) {}
+          try { await cs.endLine(outLine.roomName); } catch (_) {}
+        }
+        cs.clearOutgoing();
+        try { ds.sendCallAnswered(incomingConv, incomingRoom); } catch (_) {}
+        if (!mounted) return;
+        final e2eeParam = incomingE2eeKey != null
+            ? '&e2ee=${Uri.encodeComponent(incomingE2eeKey)}'
+            : '';
+        final calleeParam = fromName.isNotEmpty
+            ? '&callee=${Uri.encodeComponent(fromName)}'
+            : '';
+        final avatarParam = fromAvatar != null && fromAvatar.isNotEmpty
+            ? '&calleeAvatar=${Uri.encodeComponent(fromAvatar)}'
+            : '';
+        // context.go fully replaces the route stack — our outgoing voice
+        // screen is popped (its dispose clears the outgoing marker) and
+        // the incoming voice screen takes its place.
+        context.go(
+          '/dashboard/voice?room=$incomingRoom'
+          '${incomingConv.isNotEmpty ? '&convId=$incomingConv' : ''}'
+          '&incoming=1$e2eeParam$calleeParam$avatarParam',
+        );
+      } else {
+        // Decline theirs, keep our outgoing alive.
+        if (incomingConv.isNotEmpty && incomingRoom.isNotEmpty) {
+          try { ds.sendCallEnded(incomingConv, incomingRoom); } catch (_) {}
+        }
+      }
     });
   }
 

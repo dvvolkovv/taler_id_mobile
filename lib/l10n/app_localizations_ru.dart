@@ -2514,6 +2514,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get incomingCallAccept => 'Принять';
 
   @override
+  String callGlareTitle(String name) {
+    return '$name тоже звонит вам';
+  }
+
+  @override
+  String get callGlareBody =>
+      'Вы набрали друг друга одновременно. Принять его звонок или остаться на своём?';
+
+  @override
+  String get callGlareSwitch => 'Принять его';
+
+  @override
+  String get callGlareKeepOwn => 'Остаться на своём';
+
+  @override
   String get meshIncomingCallLabel => '📡 Входящий mesh-звонок';
 
   @override

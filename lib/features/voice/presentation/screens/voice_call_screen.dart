@@ -136,6 +136,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String? _publicRoomTitle; // room title
   final List<lk.RemoteParticipant> _participants = [];
   final Set<String> _speakingIdentities = {}; // identities currently speaking
+  // Peers we've already logged a "speaking but no audio" warning for, so we
+  // don't spam the log on every ActiveSpeakers tick while the failure persists.
+  final Set<String> _unhealthySpeakerWarned = {};
+  // Throttle for the auto-recovery triggered when we detect a peer is speaking
+  // but we have no playable audio track for them. Recovery is heavy (toggle
+  // mic + tear down and re-subscribe every remote audio track), so we cap it
+  // to at most once per ~10s and never within 8s of call setup.
+  DateTime? _lastAutoAudioRecovery;
   final Map<String, String> _participantAvatars = {}; // identity -> avatar URL
   String? _calleeAvatarLoaded; // loaded from API when widget.calleeAvatar is null
   lk.EventsListener<lk.RoomEvent>? _eventsListener;
@@ -352,6 +360,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _audioRouteSub = _audioRouteChannel
         .receiveBroadcastStream()
         .listen(_onAudioRouteEvent);
+    // Mark this as an outgoing call so Dashboard can detect glare (the same
+    // person calling us at the same moment) and offer the user a choice
+    // instead of a second ringing screen on top of the current outgoing one.
+    if (widget.outgoing && !widget.isIncoming && widget.calleeId != null) {
+      CallStateService.instance.markOutgoing(widget.calleeId!, widget.roomName);
+    }
     _initCall();
   }
 
@@ -433,6 +447,56 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     return null;
   }
 
+  /// Dumps the state of every remote audio track + audio session config so we
+  /// can diagnose "no audio but speaking indicator works" reports. The
+  /// speaking indicator is driven by SFU-reported audio levels (server-side),
+  /// so seeing it tick while hearing nothing means the failure is local:
+  /// either the track never got subscribed, the underlying MediaStreamTrack
+  /// is disabled, the renderer was torn down, or the AVAudioSession lost
+  /// its active state. The log groups everything an investigator needs.
+  void _logAudioDiagnostics(String tag) {
+    final room = _room;
+    if (room == null) {
+      debugPrint('[AudioDiag/$tag] no room');
+      return;
+    }
+    debugPrint('[AudioDiag/$tag] state=${room.connectionState} '
+        'output=$_audioOutputType muted=$_muted '
+        'translationActive=$_translationActive');
+    for (final p in room.remoteParticipants.values) {
+      for (final pub in p.audioTrackPublications) {
+        final track = pub.track;
+        debugPrint('[AudioDiag/$tag]   peer=${p.identity}'
+            ' name=${pub.name} sid=${pub.sid}'
+            ' subscribed=${pub.subscribed} muted=${pub.muted}'
+            ' trackPresent=${track != null}'
+            ' mstEnabled=${track?.mediaStreamTrack.enabled}'
+            ' isSpeaking=${p.isSpeaking}'
+            ' audioLevel=${p.audioLevel}');
+      }
+    }
+  }
+
+  /// Throttled wrapper around [_restoreAudioAfterInterruption] used when we
+  /// auto-detect a remote peer is speaking but no playable audio track exists
+  /// locally. Cooldown is 10s; we also skip during the first ~8s after init
+  /// because publications take a beat to subscribe right after connect.
+  void _maybeAutoRecoverAudio() {
+    if (_settingUp || _connecting) return;
+    if (_initTime != null &&
+        DateTime.now().difference(_initTime!).inSeconds < 8) {
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastAutoAudioRecovery != null &&
+        now.difference(_lastAutoAudioRecovery!).inSeconds < 10) {
+      return;
+    }
+    _lastAutoAudioRecovery = now;
+    debugPrint('[AudioDiag] auto-recovery triggered (peer speaking, no audio)');
+    unawaited(_restoreAudioAfterInterruption());
+  }
+
   /// Aggressively restore audio after an external phone call interruption.
   /// The key insight: simply calling setMicrophoneEnabled(true) does nothing
   /// if the track already thinks it's enabled. We must toggle off→on to force
@@ -440,6 +504,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   /// then resubscribe to force the audio pipeline to restart.
   Future<void> _restoreAudioAfterInterruption() async {
     debugPrint('[VoiceCall] _restoreAudioAfterInterruption: starting');
+    _logAudioDiagnostics('restoreAudio.before');
+    // Reset the once-per-peer log gate so any subsequent "speaker but no
+    // audio" event after this recovery is captured fresh.
+    _unhealthySpeakerWarned.clear();
     // Retry with increasing delays — iOS audio session timing is unpredictable
     for (final delay in [0, 500, 1200, 2500]) {
       if (delay > 0) {
@@ -995,6 +1063,35 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             _speakingIdentities.addAll(newSpeakers);
           });
         }
+        // Auto-recover the "speaking indicator works but no audio" failure
+        // mode: when the SFU reports a remote peer is speaking but we have no
+        // subscribed audio track for them (or the underlying MediaStreamTrack
+        // is disabled), the user hears nothing. Re-run the same recovery iOS
+        // uses for audio interruptions — toggle mic, re-subscribe remote
+        // tracks, reactivate the audio session. Throttled so a persistent
+        // bad state doesn't loop the recovery and so we don't fire during
+        // the initial connect window where pubs naturally take a beat to
+        // subscribe.
+        bool anyUnhealthy = false;
+        for (final p in event.speakers) {
+          if (!p.isSpeaking || p is! lk.RemoteParticipant) continue;
+          if (p.identity == 'voice-translator') continue;
+          final pubs = p.audioTrackPublications;
+          final healthy = pubs.any((pub) =>
+              pub.subscribed &&
+              pub.track != null &&
+              (pub.track?.mediaStreamTrack.enabled ?? false));
+          if (!healthy) {
+            anyUnhealthy = true;
+            if (_unhealthySpeakerWarned.add(p.identity)) {
+              debugPrint('[AudioDiag] peer ${p.identity} speaking but no '
+                  'playable audio track — pubs=${pubs.length} '
+                  'subscribed=${pubs.where((p) => p.subscribed).length}');
+              _logAudioDiagnostics('speaker-no-audio');
+            }
+          }
+        }
+        if (anyUnhealthy) _maybeAutoRecoverAudio();
       })
       ..on<lk.DataReceivedEvent>((event) {
         _handleDataReceived(event);
@@ -2937,8 +3034,18 @@ Answer briefly — the user is in the middle of a conversation.''';
     try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
     // Re-enable mic (LiveKit may have suspended the track while backgrounded)
     try { await _room?.localParticipant?.setMicrophoneEnabled(!_muted); } catch (_) {}
-    // Restore earpiece mode if applicable
-    if (_audioOutputType == 'earpiece') _forceEarpiece();
+    // Reapply user-selected audio output. requestAudioFocus above resets the
+    // hardware route — on Android it clears isSpeakerphoneOn=false, on iOS it
+    // calls setCategory(.voiceChat) which drops any prior overrideOutputAudioPort.
+    // Without this, switching to speaker and minimising the app silently sends
+    // audio back to earpiece on resume while the UI still shows the speaker icon.
+    if (_audioOutputType == 'earpiece') {
+      _forceEarpiece();
+    } else {
+      // _setAudioOutput has the same retry strategy as _forceEarpiece, needed
+      // because LiveKit/WebRTC may asynchronously override the route again.
+      unawaited(_setAudioOutput(_audioOutputType));
+    }
   }
 
   // ─── Translation ───────────────────────────────────────
@@ -3416,6 +3523,11 @@ Answer briefly — the user is in the middle of a conversation.''';
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
+    // Clear outgoing glare marker. Guard by peerId so a stale dispose from a
+    // previous outgoing screen doesn't wipe a newer one.
+    if (widget.outgoing && !widget.isIncoming && widget.calleeId != null) {
+      CallStateService.instance.clearOutgoing(peerId: widget.calleeId);
+    }
     _audioChannel.setMethodCallHandler(null);
     // Stop video effects on dispose
     try { sl<VideoEffectsService>().stopEffect(); } catch (_) {}
