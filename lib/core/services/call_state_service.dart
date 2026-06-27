@@ -50,6 +50,33 @@ class CallStateService {
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
+  /// Outgoing-call glare tracking.
+  ///
+  /// When the user opens an outgoing voice call screen, this is set to the
+  /// callee's userId (+roomName). If a call_invite arrives from that same
+  /// userId while it's set, both sides dialed each other simultaneously
+  /// (glare). The dashboard incoming-call handler uses [outgoingPeerId] to
+  /// suppress the regular ringing UI and show a choice dialog instead.
+  String? _outgoingPeerId;
+  String? _outgoingRoomName;
+  String? get outgoingPeerId => _outgoingPeerId;
+  String? get outgoingRoomName => _outgoingRoomName;
+
+  void markOutgoing(String peerId, String? roomName) {
+    _outgoingPeerId = peerId;
+    _outgoingRoomName = roomName;
+  }
+
+  /// Clears the outgoing marker iff it matches the given peer. Pass null to
+  /// force-clear. Matching prevents a stale dispose from a previous outgoing
+  /// screen wiping a newer one.
+  void clearOutgoing({String? peerId}) {
+    if (peerId == null || peerId == _outgoingPeerId) {
+      _outgoingPeerId = null;
+      _outgoingRoomName = null;
+    }
+  }
+
   /// Rooms where the AI voice twin has taken over. These calls must survive
   /// a stale `call_ended` broadcast from the original human callee (their
   /// CallKit/push banner expired, they dismissed it, etc.) — we don't want

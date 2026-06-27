@@ -1119,6 +1119,16 @@
   "incomingCallLabel": "Входящий звонок",
   "incomingCallDecline": "Отклонить",
   "incomingCallAccept": "Принять",
+  "callGlareTitle": "{name} тоже звонит вам",
+  "@callGlareTitle": {
+    "description": "Title of the dialog shown when the person we are calling out to dials us at the same time.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "callGlareBody": "Вы набрали друг друга одновременно. Принять его звонок или остаться на своём?",
+  "callGlareSwitch": "Принять его",
+  "callGlareKeepOwn": "Остаться на своём",
   "meshIncomingCallLabel": "📡 Входящий mesh-звонок",
   "meshDeviceFallback": "Mesh-устройство {hexPrefix}",
   "@meshDeviceFallback": {

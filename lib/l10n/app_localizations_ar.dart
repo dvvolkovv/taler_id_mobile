@@ -2497,6 +2497,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get incomingCallAccept => 'قبول';
 
   @override
+  String callGlareTitle(String name) {
+    return '$name is also calling you';
+  }
+
+  @override
+  String get callGlareBody =>
+      'You both dialled each other at the same moment. Pick up theirs or stay on yours?';
+
+  @override
+  String get callGlareSwitch => 'Pick up theirs';
+
+  @override
+  String get callGlareKeepOwn => 'Stay on mine';
+
+  @override
   String get meshIncomingCallLabel => '📡 مكالمة شبكة واردة';
 
   @override

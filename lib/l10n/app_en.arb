@@ -1119,6 +1119,16 @@
   "incomingCallLabel": "Incoming call",
   "incomingCallDecline": "Decline",
   "incomingCallAccept": "Accept",
+  "callGlareTitle": "{name} is also calling you",
+  "@callGlareTitle": {
+    "description": "Title of the dialog shown when the person we are calling out to dials us at the same time.",
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "callGlareBody": "You both dialled each other at the same moment. Pick up theirs or stay on yours?",
+  "callGlareSwitch": "Pick up theirs",
+  "callGlareKeepOwn": "Stay on mine",
   "meshIncomingCallLabel": "📡 Incoming mesh call",
   "meshDeviceFallback": "Mesh device {hexPrefix}",
   "@meshDeviceFallback": {
