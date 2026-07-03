@@ -155,7 +155,10 @@ class MainActivity : FlutterFragmentActivity() {
                         val on = call.arguments as? Boolean ?: false
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
                         am.mode = AudioManager.MODE_IN_COMMUNICATION
-                        if (on) requestAudioFocus(am)
+                        // Always re-request focus so second toggle doesn't leave the session
+                        // half-configured (previously we only did this on toggle-ON, and toggle-OFF
+                        // silently killed mic input on some devices).
+                        requestAudioFocus(am)
                         am.isSpeakerphoneOn = on  // Must be after requestAudioFocus (which resets to false)
                         result.success(null)
                     }
