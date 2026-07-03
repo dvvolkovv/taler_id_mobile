@@ -91,133 +91,11 @@ import flutter_callkit_incoming
       )
       audioChannel = channel
       channel.setMethodCallHandler { [weak self] call, result in
-        let session = AVAudioSession.sharedInstance()
-        switch call.method {
-        case "playRingback":
-          // Ensure the call session is configured + active (idempotent), then
-          // play the ringback asset natively. Deliberately NOT audioplayers —
-          // see ringbackPlayer comment above.
-          let volume = (call.arguments as? Double) ?? 0.6
-          do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
-          } catch {}
-          let key = FlutterDartProject.lookupKey(forAsset: "assets/audio/ringback.wav")
-          if let path = Bundle.main.path(forResource: key, ofType: nil) {
-            self?.ringbackPlayer?.stop()
-            self?.ringbackPlayer = try? AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
-            self?.ringbackPlayer?.volume = Float(volume)
-            self?.ringbackPlayer?.play()
-          }
-          result(nil)
-        case "stopRingback":
-          // Only stop the player — do NOT touch the AVAudioSession here, the
-          // WebRTC call audio keeps using it.
-          self?.ringbackPlayer?.stop()
-          self?.ringbackPlayer = nil
-          result(nil)
-        case "setSpeaker":
-          let on = call.arguments as? Bool ?? false
-          do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
-            try session.overrideOutputAudioPort(on ? .speaker : .none)
-            result(nil)
-          } catch {
-            result(FlutterError(code: "AUDIO_ERROR", message: error.localizedDescription, details: nil))
-          }
-        case "getAudioOutputs":
-          var outputs: [[String: String]] = []
-          let currentOutputs = session.currentRoute.outputs
-          let hasWired = currentOutputs.contains {
-            $0.portType == .headphones || $0.portType == .headsetMic
-          }
-          let btOutput = currentOutputs.first {
-            $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothLE
-          }
-          outputs.append(["id": "earpiece", "name": "Телефон", "type": "earpiece"])
-          outputs.append(["id": "speaker", "name": "Динамик", "type": "speaker"])
-          if hasWired {
-            outputs.append(["id": "headphones", "name": "Наушники", "type": "headphones"])
-          }
-          if let bt = btOutput {
-            outputs.append(["id": "bluetooth", "name": bt.portName, "type": "bluetooth"])
-          }
-          result(outputs)
-        case "setAudioOutput":
-          let type = call.arguments as? String ?? "earpiece"
-          do {
-            switch type {
-            case "speaker":
-              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-              try session.setActive(true)
-              try session.overrideOutputAudioPort(.speaker)
-            case "bluetooth":
-              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
-              try session.setActive(true)
-              try session.overrideOutputAudioPort(.none)
-            default: // earpiece, headphones
-              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-              try session.setActive(true)
-              try session.overrideOutputAudioPort(.none)
-            }
-            result(nil)
-          } catch {
-            result(FlutterError(code: "AUDIO_ERROR", message: error.localizedDescription, details: nil))
-          }
-        case "requestAudioFocus":
-          do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
-            result(nil)
-          } catch {
-            result(nil) // Non-fatal
-          }
-        case "setAudioSessionForVideo":
-          // Switch AVAudioSession to videoChat mode so camera capture works alongside audio
-          do {
-            try session.setCategory(.playAndRecord, mode: .videoChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
-            result(nil)
-          } catch {
-            result(nil) // Non-fatal
-          }
-        case "prepareForPlayback":
-          // Switch audio session to .default mode so AudioPlayer can produce
-          // sound at normal volume. The .voiceChat mode applies heavy AGC and
-          // may suppress AudioPlayer output on some iOS versions.
-          do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker])
-            try session.setActive(true)
-            result(nil)
-          } catch {
-            result(nil)
-          }
-        case "restoreVoiceChat":
-          // Restore .voiceChat mode after playback ends
-          do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
-            result(nil)
-          } catch {
-            result(nil)
-          }
-        case "deactivateAudioSession":
-          do {
-            try session.setActive(false, options: .notifyOthersOnDeactivation)
-            result(nil)
-          } catch {
-            result(nil) // Non-fatal
-          }
-        case "enableCallAudioMix":
-          self.enableCallAudioMix()
-          result(nil)
-        case "disableCallAudioMix":
-          self.disableCallAudioMix()
-          result(nil)
-        default:
+        guard let self else {
           result(FlutterMethodNotImplemented)
+          return
         }
+        self.handleAudioMethodCall(call, result: result)
       }
     }
 
@@ -332,6 +210,139 @@ import flutter_callkit_incoming
     voipRegistry = registry
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  // Extracted from the `taler_id/audio` MethodChannel closure: the giant
+  // switch made the Swift type-checker time out ("unable to type-check this
+  // expression in reasonable time") when compiled as one closure literal.
+  private func handleAudioMethodCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        let session = AVAudioSession.sharedInstance()
+        switch call.method {
+        case "playRingback":
+          // Ensure the call session is configured + active (idempotent), then
+          // play the ringback asset natively. Deliberately NOT audioplayers —
+          // see ringbackPlayer comment above.
+          let volume = (call.arguments as? Double) ?? 0.6
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+          } catch {}
+          let key = FlutterDartProject.lookupKey(forAsset: "assets/audio/ringback.wav")
+          if let path = Bundle.main.path(forResource: key, ofType: nil) {
+            self.ringbackPlayer?.stop()
+            self.ringbackPlayer = try? AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
+            self.ringbackPlayer?.volume = Float(volume)
+            self.ringbackPlayer?.play()
+          }
+          result(nil)
+        case "stopRingback":
+          // Only stop the player — do NOT touch the AVAudioSession here, the
+          // WebRTC call audio keeps using it.
+          self.ringbackPlayer?.stop()
+          self.ringbackPlayer = nil
+          result(nil)
+        case "setSpeaker":
+          let on = call.arguments as? Bool ?? false
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+            try session.overrideOutputAudioPort(on ? .speaker : .none)
+            result(nil)
+          } catch {
+            result(FlutterError(code: "AUDIO_ERROR", message: error.localizedDescription, details: nil))
+          }
+        case "getAudioOutputs":
+          var outputs: [[String: String]] = []
+          let currentOutputs = session.currentRoute.outputs
+          let hasWired = currentOutputs.contains {
+            $0.portType == .headphones || $0.portType == .headsetMic
+          }
+          let btOutput = currentOutputs.first {
+            $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothLE
+          }
+          outputs.append(["id": "earpiece", "name": "Телефон", "type": "earpiece"])
+          outputs.append(["id": "speaker", "name": "Динамик", "type": "speaker"])
+          if hasWired {
+            outputs.append(["id": "headphones", "name": "Наушники", "type": "headphones"])
+          }
+          if let bt = btOutput {
+            outputs.append(["id": "bluetooth", "name": bt.portName, "type": "bluetooth"])
+          }
+          result(outputs)
+        case "setAudioOutput":
+          let type = call.arguments as? String ?? "earpiece"
+          do {
+            switch type {
+            case "speaker":
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+              try session.setActive(true)
+              try session.overrideOutputAudioPort(.speaker)
+            case "bluetooth":
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
+              try session.setActive(true)
+              try session.overrideOutputAudioPort(.none)
+            default: // earpiece, headphones
+              try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+              try session.setActive(true)
+              try session.overrideOutputAudioPort(.none)
+            }
+            result(nil)
+          } catch {
+            result(FlutterError(code: "AUDIO_ERROR", message: error.localizedDescription, details: nil))
+          }
+        case "requestAudioFocus":
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            result(nil)
+          } catch {
+            result(nil) // Non-fatal
+          }
+        case "setAudioSessionForVideo":
+          // Switch AVAudioSession to videoChat mode so camera capture works alongside audio
+          do {
+            try session.setCategory(.playAndRecord, mode: .videoChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+            result(nil)
+          } catch {
+            result(nil) // Non-fatal
+          }
+        case "prepareForPlayback":
+          // Switch audio session to .default mode so AudioPlayer can produce
+          // sound at normal volume. The .voiceChat mode applies heavy AGC and
+          // may suppress AudioPlayer output on some iOS versions.
+          do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker])
+            try session.setActive(true)
+            result(nil)
+          } catch {
+            result(nil)
+          }
+        case "restoreVoiceChat":
+          // Restore .voiceChat mode after playback ends
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+            result(nil)
+          } catch {
+            result(nil)
+          }
+        case "deactivateAudioSession":
+          do {
+            try session.setActive(false, options: .notifyOthersOnDeactivation)
+            result(nil)
+          } catch {
+            result(nil) // Non-fatal
+          }
+        case "enableCallAudioMix":
+          self.enableCallAudioMix()
+          result(nil)
+        case "disableCallAudioMix":
+          self.disableCallAudioMix()
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
   }
 
   /// Tracks whether we are currently interrupted by an external call.
