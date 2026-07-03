@@ -237,6 +237,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _configureRingPlayerContext();
     // Dismiss any keyboard left over from the previous screen (e.g. chat input)
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
@@ -558,9 +559,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     for (int i = 0; i < 3; i++) {
       if (!mounted) return;
       try {
-        await _ringPlayer.play(AssetSource('audio/ringback.wav'), volume: 0.7);
+        await _playRingTone(0.7);
         await Future.delayed(const Duration(milliseconds: 180));
-        await _ringPlayer.stop();
+        await _stopRingTone();
         if (i < 2) await Future.delayed(const Duration(milliseconds: 350));
       } catch (_) {}
     }
@@ -1256,6 +1257,53 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  // Android: play ringback without grabbing audio focus. The audioplayers
+  // default is USAGE_MEDIA + AUDIOFOCUS_GAIN, which steals focus from the
+  // voice call on every ring cycle (every 6.2s) and fires our
+  // audioInterrupted handler. voiceCommunication routes it to the call
+  // stream; audioFocus none leaves the call's focus untouched.
+  void _configureRingPlayerContext() {
+    _ringPlayer.setReleaseMode(ReleaseMode.stop);
+    if (!kIsWeb && Platform.isAndroid) {
+      _ringPlayer.setAudioContext(AudioContext(
+        android: const AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.speech,
+          usageType: AndroidUsageType.voiceCommunication,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      )).catchError((_) {});
+    }
+  }
+
+  // Ring tone playback, platform-routed:
+  //  - iOS: native AVAudioPlayer via MethodChannel. audioplayers deactivates
+  //    the whole AVAudioSession (setActive(false)) whenever its last player
+  //    stops, killing WebRTC audio if the callee joins mid-ring — the
+  //    "can't hear the other party, works 1-in-5 calls" bug. The native
+  //    player never touches the session.
+  //  - Android/other: audioplayers, but _ringPlayer is configured with
+  //    audioFocus:none (see _configureRingPlayerContext) so ring cycles
+  //    don't steal audio focus from the voice call.
+  Future<void> _playRingTone(double volume) async {
+    if (!kIsWeb && Platform.isIOS) {
+      try { await _audioChannel.invokeMethod('playRingback', volume); } catch (_) {}
+    } else {
+      try {
+        await _ringPlayer.play(AssetSource('audio/ringback.wav'), volume: volume);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _stopRingTone() async {
+    if (!kIsWeb && Platform.isIOS) {
+      try { await _audioChannel.invokeMethod('stopRingback'); } catch (_) {}
+    } else {
+      try { await _ringPlayer.stop(); } catch (_) {}
+    }
+  }
+
   // Ringback with proper phone-like pattern: ~2s ring, ~4s silence, repeat
   void _startRingback() {
     _ringbackActive = true;
@@ -1264,8 +1312,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   void _scheduleNextRing() {
     if (!_ringbackActive || !mounted) return;
-    _ringPlayer.setReleaseMode(ReleaseMode.stop);
-    _ringPlayer.play(AssetSource('audio/ringback.wav'), volume: 0.6).catchError((_) {});
+    _playRingTone(0.6);
     // ringback.wav is ~2.1s; after it plays, wait ~4s silence, then ring again
     _ringbackTimer = Timer(const Duration(milliseconds: 6200), () {
       if (_ringbackActive && mounted) _scheduleNextRing();
@@ -1276,7 +1323,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _ringbackActive = false;
     _ringbackTimer?.cancel();
     _ringbackTimer = null;
-    _ringPlayer.stop().catchError((_) {});
+    _stopRingTone();
+    // Re-assert the call audio session — safety net in case anything (audio
+    // focus loss, session deactivation) raced with ring teardown while the
+    // callee was joining.
+    _audioChannel.invokeMethod('requestAudioFocus').catchError((_) {});
     if (mounted) setState(() => _ringing = false);
   }
 
@@ -1318,10 +1369,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _playReconnectBeep() async {
     try {
-      await _ringPlayer.stop();
-      await _ringPlayer.play(AssetSource('audio/ringback.wav'), volume: 0.5);
+      await _stopRingTone();
+      await _playRingTone(0.5);
       await Future.delayed(const Duration(milliseconds: 300));
-      await _ringPlayer.stop();
+      await _stopRingTone();
     } catch (_) {}
   }
 
@@ -1763,6 +1814,10 @@ Answer briefly — the user is in the middle of a conversation.''';
       await player.play(DeviceFileSource(wavFile.path));
       await player.onPlayerComplete.first;
       player.dispose();
+      // audioplayers deactivates the shared AVAudioSession when its last
+      // player stops — re-assert the call session so WebRTC audio keeps
+      // flowing after the assistant reply finishes.
+      try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
 
       // Resume recording after playback
       if (_assistantActive && _assistantWs != null) {
@@ -3523,6 +3578,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
     _ringbackActive = false;
+    _stopRingTone();
     // Clear outgoing glare marker. Guard by peerId so a stale dispose from a
     // previous outgoing screen doesn't wipe a newer one.
     if (widget.outgoing && !widget.isIncoming && widget.calleeId != null) {
