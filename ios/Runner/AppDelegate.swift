@@ -19,6 +19,12 @@ import flutter_callkit_incoming
   private var orientationChannel: FlutterMethodChannel?
   private var voipRegistry: PKPushRegistry?
   private var videoEffectsPlugin: VideoEffectsPlugin?
+  // Native ringback player for outgoing calls. audioplayers deactivates the
+  // whole AVAudioSession (setActive(false)) whenever its last player stops,
+  // which kills WebRTC audio if the callee joins mid-ring — the "can't hear
+  // the other party, works 1-in-5 calls" bug. AVAudioPlayer never touches
+  // the session on stop.
+  var ringbackPlayer: AVAudioPlayer?
 
   // Orientation lock toggle controlled from Flutter via the
   // `taler_id/orientation` MethodChannel. Defaults to portrait — only the
@@ -84,9 +90,32 @@ import flutter_callkit_incoming
         binaryMessenger: controller.binaryMessenger
       )
       audioChannel = channel
-      channel.setMethodCallHandler { call, result in
+      channel.setMethodCallHandler { [weak self] call, result in
         let session = AVAudioSession.sharedInstance()
         switch call.method {
+        case "playRingback":
+          // Ensure the call session is configured + active (idempotent), then
+          // play the ringback asset natively. Deliberately NOT audioplayers —
+          // see ringbackPlayer comment above.
+          let volume = (call.arguments as? Double) ?? 0.6
+          do {
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
+          } catch {}
+          let key = FlutterDartProject.lookupKey(forAsset: "assets/audio/ringback.wav")
+          if let path = Bundle.main.path(forResource: key, ofType: nil) {
+            self?.ringbackPlayer?.stop()
+            self?.ringbackPlayer = try? AVAudioPlayer(contentsOf: URL(fileURLWithPath: path))
+            self?.ringbackPlayer?.volume = Float(volume)
+            self?.ringbackPlayer?.play()
+          }
+          result(nil)
+        case "stopRingback":
+          // Only stop the player — do NOT touch the AVAudioSession here, the
+          // WebRTC call audio keeps using it.
+          self?.ringbackPlayer?.stop()
+          self?.ringbackPlayer = nil
+          result(nil)
         case "setSpeaker":
           let on = call.arguments as? Bool ?? false
           do {
