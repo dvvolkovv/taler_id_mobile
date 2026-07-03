@@ -90,7 +90,8 @@ import flutter_callkit_incoming
         case "setSpeaker":
           let on = call.arguments as? Bool ?? false
           do {
-            try session.setCategory(.playAndRecord, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setActive(true)
             try session.overrideOutputAudioPort(on ? .speaker : .none)
             result(nil)
           } catch {
