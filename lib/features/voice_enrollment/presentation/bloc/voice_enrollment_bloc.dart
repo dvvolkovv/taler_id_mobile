@@ -12,6 +12,7 @@ class VoiceEnrollmentBloc
     on<StartRecording>((_, emit) => emit(const Recording()));
     on<Submit>(_onSubmit);
     on<Reset>((_, emit) => emit(const Idle()));
+    on<Delete>(_onDelete);
   }
 
   Future<void> _onCheck(Check _, Emitter<VoiceEnrollmentState> emit) async {
@@ -23,6 +24,16 @@ class VoiceEnrollmentBloc
       } else {
         emit(const NotEnrolled());
       }
+    } catch (e) {
+      emit(Failed(e.toString()));
+    }
+  }
+
+  Future<void> _onDelete(Delete _, Emitter<VoiceEnrollmentState> emit) async {
+    emit(const Idle(busy: true));
+    try {
+      await repo.deleteOwner();
+      emit(const NotEnrolled());
     } catch (e) {
       emit(Failed(e.toString()));
     }
