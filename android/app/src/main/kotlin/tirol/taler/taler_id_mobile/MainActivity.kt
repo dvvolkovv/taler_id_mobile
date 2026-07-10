@@ -219,6 +219,23 @@ class MainActivity : FlutterFragmentActivity() {
                         requestAudioFocus(am)
                         result.success(null)
                     }
+                    "getCurrentAudioRoute" -> {
+                        // Actual hardware route right now — used on app resume to
+                        // avoid re-applying a stale UI selection over headphones/BT.
+                        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                        val route = when {
+                            am.isBluetoothScoOn -> "bluetooth"
+                            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                                am.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { d ->
+                                    d.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES ||
+                                    d.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+                                    d.type == AudioDeviceInfo.TYPE_USB_HEADSET
+                                } -> "headphones"
+                            am.isSpeakerphoneOn -> "speaker"
+                            else -> "earpiece"
+                        }
+                        result.success(route)
+                    }
                     "abandonAudioFocus" -> {
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
                         abandonAudioFocus(am)
