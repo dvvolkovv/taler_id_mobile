@@ -1980,9 +1980,23 @@ Answer briefly — the user is in the middle of a conversation.''';
       debugPrint('[VoiceCall] setCameraEnabled($newCameraOn) done, pubs=${_room?.localParticipant?.videoTrackPublications.length}');
       if (mounted) setState(() => _cameraOn = newCameraOn);
 
-      // Switch to speaker when video is enabled
+      // Switch to speaker when video is enabled — but only when audio is
+      // actually on the earpiece. _audioOutputType can be stale (wired
+      // headphones aren't tracked by route events), so ask the platform for
+      // the real route: yanking audio off headphones onto the loudspeaker
+      // when the user turns the camera on is never what they want.
       if (newCameraOn && mounted && _audioOutputType == 'earpiece') {
-        _setAudioOutput('speaker');
+        String? actual;
+        try {
+          actual =
+              await _audioChannel.invokeMethod<String>('getCurrentAudioRoute');
+        } catch (_) {}
+        if (actual == null || actual == 'earpiece') {
+          _setAudioOutput('speaker');
+        } else if (actual == 'headphones' || actual == 'bluetooth') {
+          // Sync state so the output selector shows the real device.
+          setState(() => _audioOutputType = actual!);
+        }
       }
 
       // Verify local video track appeared after enabling camera

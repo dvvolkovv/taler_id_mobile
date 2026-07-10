@@ -58,6 +58,8 @@ class _AssistantScreenState extends State<AssistantScreen>
     with TickerProviderStateMixin {
   _CallState _state = _CallState.idle;
   _AssistantMode _mode = _AssistantMode.normal;
+  String? _assistantName; // preferred form of address (Profile.assistantName / firstName)
+  bool _assistantNameFromProfile = false; // true when explicitly set (vs firstName fallback)
   String? _langA;  // ISO code of first detected language in translator mode
   String? _langB;  // ISO code of second detected language (≠ _langA)
   bool _switchingMode = false;  // true during WebSocket reconnect for mode switch
@@ -297,6 +299,24 @@ class _AssistantScreenState extends State<AssistantScreen>
       final token = await sl<SecureStorageService>().getAccessToken();
       if (token == null) throw Exception('Not authenticated');
 
+      // 1b. Load the preferred form of address for the system prompt:
+      // explicit Profile.assistantName wins, firstName is the fallback,
+      // empty means the assistant will ask and save via set_preferred_name.
+      try {
+        final prof = await sl<DioClient>().get<Map<String, dynamic>>(
+          '/profile',
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        final explicit = (prof['assistantName'] as String?)?.trim();
+        final first = (prof['firstName'] as String?)?.trim();
+        _assistantName = (explicit?.isNotEmpty ?? false)
+            ? explicit
+            : ((first?.isNotEmpty ?? false) ? first : null);
+        _assistantNameFromProfile = explicit?.isNotEmpty ?? false;
+      } catch (_) {
+        // Non-fatal: prompt degrades to "ask the user".
+      }
+
       // 1a. Open billing session. Pre-flight check for feature toggle +
       // minReserve balance happens server-side; 402 insufficient-funds
       // surfaces via the global Dio interceptor (InsufficientFundsSheet).
@@ -379,13 +399,37 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
-  static String _systemPrompt(String locale) {
+  static String _namePromptRu(String? name, bool explicit) {
+    if (name != null && name.isNotEmpty) {
+      return 'Обращайся к пользователю по имени: $name. '
+          '${explicit ? '' : 'Это имя из профиля; '}Если пользователь попросит называть его иначе '
+          '(«называй меня …», «обращайся ко мне …») — вызови tool set_preferred_name с новым именем и дальше используй его.\n\n';
+    }
+    return 'Имя пользователя неизвестно. В подходящий момент в начале разговора спроси, как к нему обращаться, '
+        'и вызови tool set_preferred_name с ответом. Не спрашивай повторно, если он уже ответил.\n\n';
+  }
+
+  static String _namePromptEn(String? name, bool explicit) {
+    if (name != null && name.isNotEmpty) {
+      return 'Address the user by name: $name. '
+          '${explicit ? '' : 'This name comes from the profile; '}If the user asks to be called something else '
+          '("call me …") — call tool set_preferred_name with the new name and use it from then on.\n\n';
+    }
+    return 'The user\'s name is unknown. Early in the conversation, at a natural moment, ask how to address them '
+        'and call tool set_preferred_name with the answer. Do not ask again once answered.\n\n';
+  }
+
+  String _systemPrompt(String locale) {
     final tz = DateTime.now().timeZoneOffset;
     final tzStr = 'UTC${tz.isNegative ? "" : "+"}${tz.inHours}';
     final nowStr = DateTime.now().toIso8601String();
+    final namePrompt = locale == 'ru'
+        ? _namePromptRu(_assistantName, _assistantNameFromProfile)
+        : _namePromptEn(_assistantName, _assistantNameFromProfile);
 
     if (locale == 'ru') {
-      return 'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
+      return namePrompt +
+          'ВСЕГДА отвечай ТОЛЬКО на русском языке, даже если тебе показалось, что пользователь сказал что-то на другом языке — это ошибка транскрипции, всё равно отвечай по-русски.\n\n'
           'Ты — голосовой ассистент Taler ID. Помогай пользователям с вопросами о цифровой идентификации, '
           'статусе KYC-верификации и данных профиля. Отвечай кратко и по делу. '
           'Не начинай разговор первым — жди когда пользователь заговорит. '
@@ -492,7 +536,8 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
 
     final langName = _languageDisplayName(locale);
-    return 'ALWAYS reply ONLY in $langName, even if you think the user said something in another language — that is a transcription error, reply in $langName anyway.\n\n'
+    return namePrompt +
+        'ALWAYS reply ONLY in $langName, even if you think the user said something in another language — that is a transcription error, reply in $langName anyway.\n\n'
         'You are a voice assistant for Taler ID. Help users with questions about digital identification, '
         'KYC verification status, and profile data. Be concise and to the point. '
         'Don\'t start the conversation — wait for the user to speak. '
@@ -783,6 +828,22 @@ class _AssistantScreenState extends State<AssistantScreen>
                   'description': 'ISO 639-1 code of the second language if the user named it (e.g. "zh")',
                 },
               },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'set_preferred_name',
+            'description':
+                'Remember how to address the user. Call when the user tells you their name or asks to be called differently ("называй меня Дима", "call me Alex").',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'name': {
+                  'type': 'string',
+                  'description': 'The preferred form of address, exactly as the user said it',
+                },
+              },
+              'required': ['name'],
             },
           },
           {
@@ -1853,6 +1914,25 @@ class _AssistantScreenState extends State<AssistantScreen>
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
         );
         output = jsonEncode(data);
+      } else if (name == 'set_preferred_name') {
+        final args = jsonDecode(argsJson) as Map<String, dynamic>;
+        final newName = (args['name'] as String? ?? '').trim();
+        if (newName.isEmpty) {
+          output = jsonEncode({'error': 'empty_name'});
+        } else {
+          await client.put(
+            '/profile',
+            data: {'assistantName': newName},
+            fromJson: (d) => d,
+          );
+          if (mounted) {
+            setState(() {
+              _assistantName = newName;
+              _assistantNameFromProfile = true;
+            });
+          }
+          output = jsonEncode({'ok': true, 'name': newName});
+        }
       } else if (name == 'get_profile') {
         final data = await client.get(
           '/profile',
