@@ -229,12 +229,26 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       fromAvatar: message.data['hostAvatarUrl'] as String?,
     );
   } else if (type == 'call_cancelled') {
-    // Caller hung up before answer — dismiss CallKit UI
-    await CallKitPlatform.instance.endAllCalls();
-    await _initLocalNotifications();
-    await _showMissedCallNotification(
-      fromName: message.data['fromName'] ?? (await _notifStrings()).unknown,
-    );
+    // Caller hung up before answer OR the call was answered on another
+    // device. Only dismiss RINGING calls — never an accepted one (the
+    // answered-elsewhere cancel push also reaches the answering device).
+    var hasAccepted = false;
+    try {
+      final active = await CallKitPlatform.instance.activeCalls();
+      hasAccepted = active.any((c) =>
+          c is Map && (c['isAccepted'] == true || c['accepted'] == true));
+    } catch (_) {}
+    if (!hasAccepted) {
+      await CallKitPlatform.instance.endAllCalls();
+    }
+    final answeredElsewhere =
+        message.data['fromName'] == 'answered_elsewhere';
+    if (!hasAccepted && !answeredElsewhere) {
+      await _initLocalNotifications();
+      await _showMissedCallNotification(
+        fromName: message.data['fromName'] ?? (await _notifStrings()).unknown,
+      );
+    }
   }
 }
 
