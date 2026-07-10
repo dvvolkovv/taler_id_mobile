@@ -521,11 +521,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       } catch (_) {}
       // 2. Toggle microphone off→on to force WebRTC audio unit restart.
       //    Just setMicrophoneEnabled(true) is a no-op if already enabled.
-      try {
-        await _room?.localParticipant?.setMicrophoneEnabled(false);
-        await Future.delayed(const Duration(milliseconds: 100));
-        await _room?.localParticipant?.setMicrophoneEnabled(!_muted);
-      } catch (_) {}
+      //    Only on the FIRST pass: every toggle is visible to all peers as a
+      //    mute/unmute flip, and 4 toggles in a row read as mic flapping.
+      if (delay == 0) {
+        try {
+          await _room?.localParticipant?.setMicrophoneEnabled(false);
+          await Future.delayed(const Duration(milliseconds: 100));
+          await _room?.localParticipant?.setMicrophoneEnabled(!_muted);
+        } catch (_) {}
+      }
       // 3. Force re-subscribe remote audio tracks by toggling subscription.
       //    This makes WebRTC recreate the audio renderer for each track.
       if (_room != null) {
@@ -1077,6 +1081,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         for (final p in event.speakers) {
           if (!p.isSpeaking || p is! lk.RemoteParticipant) continue;
           if (p.identity == 'voice-translator') continue;
+          // A participant who just disconnected can still be reported as an
+          // active speaker for a beat — their tracks are gone, which looks
+          // exactly like "speaking but no audio" and used to trigger the
+          // recovery storm (mic toggle + mass resubscribe) in group calls.
+          if (!(_room?.remoteParticipants.containsKey(p.identity) ?? false)) {
+            continue;
+          }
           final pubs = p.audioTrackPublications;
           final healthy = pubs.any((pub) =>
               pub.subscribed &&
@@ -2609,8 +2620,8 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   bool get _hasAnyVideo {
     if (_cameraOn) return true;
-    return _participants.any((p) =>
-        p.videoTrackPublications.any((pub) => pub.subscribed && pub.track != null));
+    return _participants.any((p) => p.videoTrackPublications
+        .any((pub) => pub.subscribed && !pub.muted && pub.track != null));
   }
 
   /// Find the first remote screen share track (if any).
@@ -5086,6 +5097,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       final track = p.videoTrackPublications
           .firstWhereOrNull((pub) =>
               pub.subscribed &&
+              !pub.muted && // camera off mutes the pub — show placeholder, not the frozen last frame
               pub.track != null &&
               pub.source != lk.TrackSource.screenShareVideo)
           ?.track as lk.VideoTrack?;
@@ -5136,7 +5148,17 @@ Answer briefly — the user is in the middle of a conversation.''';
                 fit: StackFit.expand,
                 children: [
                   if (tile.track != null)
-                    lk.VideoTrackRenderer(tile.track!, fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
+                    lk.VideoTrackRenderer(
+                      tile.track!,
+                      fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      // Deterministic mirroring: only the local FRONT camera
+                      // preview is mirrored. The default auto mode re-evaluates
+                      // on track restarts (flip, effects reattach, recovery)
+                      // and could flip remote/back-camera video mid-call.
+                      mirrorMode: tile.isLocal && _isFrontCamera
+                          ? lk.VideoViewMirrorMode.mirror
+                          : lk.VideoViewMirrorMode.off,
+                    )
                   else
                     Center(
                       child: PulsingAvatar(
@@ -5194,6 +5216,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       final track = p.videoTrackPublications
           .firstWhereOrNull((pub) =>
               pub.subscribed &&
+              !pub.muted && // camera off mutes the pub — show placeholder, not the frozen last frame
               pub.track != null &&
               pub.source != lk.TrackSource.screenShareVideo)
           ?.track as lk.VideoTrack?;
@@ -5288,7 +5311,17 @@ Answer briefly — the user is in the middle of a conversation.''';
                 children: [
                   // Video or avatar
                   if (tile.track != null)
-                    lk.VideoTrackRenderer(tile.track!, fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover)
+                    lk.VideoTrackRenderer(
+                      tile.track!,
+                      fit: rtc.RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      // Deterministic mirroring: only the local FRONT camera
+                      // preview is mirrored. The default auto mode re-evaluates
+                      // on track restarts (flip, effects reattach, recovery)
+                      // and could flip remote/back-camera video mid-call.
+                      mirrorMode: tile.isLocal && _isFrontCamera
+                          ? lk.VideoViewMirrorMode.mirror
+                          : lk.VideoViewMirrorMode.off,
+                    )
                   else
                     Center(
                       child: PulsingAvatar(
