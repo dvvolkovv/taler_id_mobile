@@ -770,8 +770,20 @@ class _AssistantScreenState extends State<AssistantScreen>
             'type': 'function',
             'name': 'enter_translator_mode',
             'description':
-                'Enter live translator mode between two people speaking different languages. Call when user says "включи переводчика", "translator mode", "переводи нам", etc.',
-            'parameters': {'type': 'object', 'properties': {}},
+                'Enter live translator mode between two people speaking different languages. Call when user says "включи переводчика", "translator mode", "переводи нам", etc. If the user NAMES the languages ("с русского на китайский", "between English and German"), pass them as ISO 639-1 codes in lang_a/lang_b.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'lang_a': {
+                  'type': 'string',
+                  'description': 'ISO 639-1 code of the first language if the user named it (e.g. "ru")',
+                },
+                'lang_b': {
+                  'type': 'string',
+                  'description': 'ISO 639-1 code of the second language if the user named it (e.g. "zh")',
+                },
+              },
+            },
           },
           {
             'type': 'function',
@@ -1444,18 +1456,24 @@ class _AssistantScreenState extends State<AssistantScreen>
     _sendEvent({'type': 'response.create'});
   }
 
-  Future<void> _switchMode(_AssistantMode target) async {
+  Future<void> _switchMode(
+    _AssistantMode target, {
+    String? langA,
+    String? langB,
+  }) async {
     if (!mounted) return;
     if (_switchingMode) return; // guard against double triggers
-    debugPrint('[Assistant] switchMode $_mode → $target');
+    debugPrint('[Assistant] switchMode $_mode → $target langA=$langA langB=$langB');
 
     setState(() {
       _switchingMode = true;
       _aiSpeaking = false;
       _mode = target;
       if (target == _AssistantMode.translator) {
-        _langA = null;
-        _langB = null;
+        // Explicit pair from the tool call wins; nulls fall back to
+        // per-utterance auto-detection.
+        _langA = langA;
+        _langB = langB;
       }
     });
 
@@ -1574,6 +1592,10 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _updateLanguagePair(String? lang) {
     if (lang == null || lang.isEmpty) return;
+    // 'en' from script detection is unreliable: any latin noise in a Whisper
+    // transcript maps to 'en' and used to lock RU+EN before the real second
+    // language was ever spoken. Only accept 'en' as _langB when _langA is
+    // already a non-latin-script language and the pair came from detection.
     if (_langA == null) {
       setState(() => _langA = lang);
       return;
@@ -1632,6 +1654,27 @@ class _AssistantScreenState extends State<AssistantScreen>
         debugPrint('[Assistant] ai.done item=$itemId text=$transcript');
         if (transcript.isNotEmpty) _replaceTranscript('assistant', transcript, 'ai:$itemId');
         if (itemId.isNotEmpty) _lastAssistantItemId = 'ai:$itemId';
+      } else if (type == 'conversation.item.created') {
+        // User voice items are created in true conversation order, while the
+        // input transcription completes only AFTER the assistant already
+        // started answering — appending on transcription made the user's
+        // message land below the answer. Insert a placeholder now; the
+        // transcription event replaces its text in place.
+        final item = event['item'] as Map<String, dynamic>?;
+        final role = item?['role'] as String? ?? '';
+        final createdId = item?['id'] as String? ?? '';
+        if (role == 'user' && createdId.isNotEmpty) {
+          final exists = _transcript.any((m) => m.itemId == 'user:$createdId');
+          if (!exists) _appendTranscript('user', '…', 'user:$createdId');
+        }
+      } else if (type == 'conversation.item.deleted') {
+        // Voice-gate retracts foreign turns (YouTube, other people) with
+        // conversation.item.delete — drop them from the visible transcript.
+        final deletedId = event['item_id'] as String? ?? '';
+        if (deletedId.isNotEmpty && mounted) {
+          setState(() =>
+              _transcript.removeWhere((m) => m.itemId == 'user:$deletedId'));
+        }
       } else if (type == 'conversation.item.input_audio_transcription.completed') {
         // User speech transcript (after whisper finishes)
         final transcript = event['transcript'] as String? ?? '';
@@ -1775,9 +1818,19 @@ class _AssistantScreenState extends State<AssistantScreen>
       // We do NOT send function_call_output because we're about to drop the WebSocket;
       // the call id becomes moot in the new session.
       if (name == 'enter_translator_mode') {
-        debugPrint('[Assistant] tool enter_translator_mode (callId=$callId)');
+        debugPrint('[Assistant] tool enter_translator_mode (callId=$callId) args=$argsJson');
+        // If the user named the languages, lock the pair from the tool args —
+        // script-based auto-detection kept locking RU+EN from the trigger
+        // phrase itself before the second language was ever spoken.
+        String? a;
+        String? b;
+        try {
+          final args = jsonDecode(argsJson) as Map<String, dynamic>;
+          a = (args['lang_a'] as String?)?.toLowerCase();
+          b = (args['lang_b'] as String?)?.toLowerCase();
+        } catch (_) {}
         // Fire-and-forget: schedule the switch without awaiting inside the handler.
-        Future.microtask(() => _switchMode(_AssistantMode.translator));
+        Future.microtask(() => _switchMode(_AssistantMode.translator, langA: a, langB: b));
         return;
       }
       if (name == 'exit_translator_mode') {
