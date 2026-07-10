@@ -334,6 +334,20 @@ import flutter_callkit_incoming
           } catch {
             result(nil) // Non-fatal
           }
+        case "getCurrentAudioRoute":
+          // Actual hardware route right now — used on app resume to avoid
+          // re-applying a stale UI selection over headphones/bluetooth.
+          let out = session.currentRoute.outputs.first
+          switch out?.portType {
+          case .headphones, .headsetMic, .usbAudio:
+            result("headphones")
+          case .bluetoothHFP, .bluetoothA2DP, .bluetoothLE:
+            result("bluetooth")
+          case .builtInSpeaker:
+            result("speaker")
+          default:
+            result("earpiece")
+          }
         case "enableCallAudioMix":
           self.enableCallAudioMix()
           result(nil)

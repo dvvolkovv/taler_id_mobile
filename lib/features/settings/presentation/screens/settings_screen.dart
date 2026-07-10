@@ -18,6 +18,7 @@ import '../../../../core/utils/constants.dart';
 import '../../../../core/services/wake_word_service.dart';
 import '../../../../main.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../voice_enrollment/presentation/widgets/owner_voice_tile.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
 import '../../../mesh/presentation/widgets/mesh_settings_section.dart';
@@ -492,6 +493,8 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                       onTap: () => _showWakePhrasePicker(context),
                     ),
                   ],
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  OwnerVoiceTile(lang: _currentLang),
                 ],
               ),
             ),

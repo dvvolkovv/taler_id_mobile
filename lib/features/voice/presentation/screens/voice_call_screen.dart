@@ -3089,6 +3089,21 @@ Answer briefly — the user is in the middle of a conversation.''';
     try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
     // Re-enable mic (LiveKit may have suspended the track while backgrounded)
     try { await _room?.localParticipant?.setMicrophoneEnabled(!_muted); } catch (_) {}
+    // Sync with the ACTUAL hardware route before re-applying anything.
+    // While backgrounded the user may have connected headphones/BT, or
+    // another app (WhatsApp) rerouted audio — _audioOutputType is stale in
+    // that case, and blindly re-applying it yanks audio off the headphones
+    // onto the speaker. External devices win over the remembered selection.
+    try {
+      final actual =
+          await _audioChannel.invokeMethod<String>('getCurrentAudioRoute');
+      if (actual == 'headphones' || actual == 'bluetooth') {
+        if (mounted && actual != _audioOutputType) {
+          setState(() => _audioOutputType = actual!);
+        }
+        return; // OS already routes to the external device — don't override.
+      }
+    } catch (_) {}
     // Reapply user-selected audio output. requestAudioFocus above resets the
     // hardware route — on Android it clears isSpeakerphoneOn=false, on iOS it
     // calls setCategory(.voiceChat) which drops any prior overrideOutputAudioPort.

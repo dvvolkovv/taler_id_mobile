@@ -73,4 +73,30 @@ void main() {
       isA<Failed>(),
     ],
   );
+
+  blocTest<VoiceEnrollmentBloc, VoiceEnrollmentState>(
+    'Delete → emits NotEnrolled on success',
+    build: () {
+      when(() => repo.deleteOwner()).thenAnswer((_) async {});
+      return VoiceEnrollmentBloc(repo: repo);
+    },
+    act: (b) => b.add(const Delete()),
+    expect: () => [
+      isA<Idle>().having((s) => s.busy, 'busy', true),
+      isA<NotEnrolled>(),
+    ],
+  );
+
+  blocTest<VoiceEnrollmentBloc, VoiceEnrollmentState>(
+    'Delete → emits Failed on error',
+    build: () {
+      when(() => repo.deleteOwner()).thenThrow(Exception('boom'));
+      return VoiceEnrollmentBloc(repo: repo);
+    },
+    act: (b) => b.add(const Delete()),
+    expect: () => [
+      isA<Idle>().having((s) => s.busy, 'busy', true),
+      isA<Failed>(),
+    ],
+  );
 }

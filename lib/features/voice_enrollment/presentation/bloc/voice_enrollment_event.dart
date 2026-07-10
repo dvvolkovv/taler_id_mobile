@@ -24,3 +24,7 @@ class Submit extends VoiceEnrollmentEvent {
 class Reset extends VoiceEnrollmentEvent {
   const Reset();
 }
+
+class Delete extends VoiceEnrollmentEvent {
+  const Delete();
+}
