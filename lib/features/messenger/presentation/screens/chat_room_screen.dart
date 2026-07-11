@@ -54,6 +54,7 @@ import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
+import '../widgets/message_info_sheet.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../../domain/entities/analyst_events.dart';
@@ -3528,6 +3529,18 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   widget.onReply!();
                 },
               ),
+            // Task 13: read-by + reactions info, only makes sense on the
+            // user's own (non-system) messages — mirrors "Seen by N"/ticks,
+            // which are also isMe-only.
+            if (widget.isMe && !widget.message.isSystem)
+              ListTile(
+                leading: Icon(Icons.info_outline_rounded, color: colors.textSecondary),
+                title: Text('Message info', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showMessageInfo(context);
+                },
+              ),
             if (widget.isMe && widget.message.fileUrl == null && widget.message.content.isNotEmpty && widget.onEdit != null)
               ListTile(
                 leading: Icon(Icons.edit_rounded, color: colors.primary),
@@ -3577,6 +3590,47 @@ class _MessageBubbleState extends State<_MessageBubble> {
             const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Task 13: opens the message-info sheet (read-by + reactions) for this
+  /// (own) message. `widget.readCursors` is the same live-kept cursor list
+  /// already used for the 1:1 ticks / "Seen by N" footer above (loaded via
+  /// `MessengerRemoteDataSource.fetchConversationReadState` in
+  /// `_ChatRoomScreenState._loadReadCursors` and reconciled from the
+  /// `conversation_read` socket stream) — reused as-is rather than
+  /// re-fetched, so the sheet always reflects the freshest known cursors
+  /// without an extra round-trip on every long-press.
+  void _showMessageInfo(BuildContext context) {
+    final colors = AppColors.of(context);
+    final myId = widget.currentUserId;
+    final cursors = myId == null
+        ? widget.readCursors
+        : widget.readCursors.where((c) => c.userId != myId).toList();
+
+    // Best-effort display names: every message carries its sender's name
+    // (MessageEntity.senderName, backend-populated), so union across the
+    // conversation's messages covers any participant who has sent at least
+    // one message. Participants who only read (never sent) fall back to
+    // their raw userId inside MessageInfoSheet — no full participant/name
+    // roster is available on this screen.
+    final nameById = <String, String>{};
+    for (final m in widget.allMessages) {
+      final n = m.senderName;
+      if (n != null && n.isNotEmpty) nameById[m.senderId] = n;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => MessageInfoSheet(
+        message: widget.message,
+        cursors: cursors,
+        nameById: nameById,
       ),
     );
   }
