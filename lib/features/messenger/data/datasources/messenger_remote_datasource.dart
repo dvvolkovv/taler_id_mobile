@@ -13,6 +13,7 @@ import '../../domain/entities/channel_summary.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../domain/entities/sync_result.dart';
+import '../../domain/entities/conversation_read_state.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -25,6 +26,7 @@ class MessengerRemoteDataSource {
   final _disconnectCtrl = StreamController<String>.broadcast();
   final _messageUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messagesReadCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _conversationReadCtrl = StreamController<Map<String, dynamic>>.broadcast();
   // Group events
   final _groupUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _groupMemberAddedCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -125,6 +127,11 @@ class MessengerRemoteDataSource {
     _socket!.on('messages_read', (d) {
       try {
         _messagesReadCtrl.add(Map<String, dynamic>.from(d as Map));
+      } catch (_) {}
+    });
+    _socket!.on('conversation_read', (d) {
+      try {
+        _conversationReadCtrl.add(Map<String, dynamic>.from(d as Map));
       } catch (_) {}
     });
     _socket!.on('call_answered', (d) {
@@ -295,6 +302,7 @@ class MessengerRemoteDataSource {
   Stream<String> get socketErrorStream => _socketErrorCtrl.stream;
   Stream<Map<String, dynamic>> get messageUpdatedStream => _messageUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get messagesReadStream => _messagesReadCtrl.stream;
+  Stream<Map<String, dynamic>> get conversationReadStream => _conversationReadCtrl.stream;
   // Group streams
   Stream<Map<String, dynamic>> get groupUpdatedStream => _groupUpdatedCtrl.stream;
   Stream<Map<String, dynamic>> get groupMemberAddedStream => _groupMemberAddedCtrl.stream;
@@ -429,6 +437,15 @@ class MessengerRemoteDataSource {
   void markRead(String conversationId) =>
       _socket?.emit('mark_read', {'conversationId': conversationId});
 
+  /// Read-state horizon variant of markRead: reports the last message the
+  /// user has actually scrolled past (sentAt + id), not just "read up to now".
+  void emitMarkRead(String conversationId, DateTime upToSentAt, String upToMessageId) =>
+      _socket?.emit('mark_read', {
+        'conversationId': conversationId,
+        'upToSentAt': upToSentAt.toUtc().toIso8601String(),
+        'upToMessageId': upToMessageId,
+      });
+
   void reactToMessage(String conversationId, String messageId, String emoji) =>
       _socket?.emit('react_message', {
         'conversationId': conversationId,
@@ -461,6 +478,23 @@ class MessengerRemoteDataSource {
     final qs = params.isNotEmpty ? '?${params.join('&')}' : '';
     final url = '/messenger/conversations/$conversationId/messages$qs';
     return _http.get(url, fromJson: (d) => Map<String, dynamic>.from(d as Map));
+  }
+
+  Future<List<ConversationReadState>> fetchReadState() async {
+    final data = await _http.get('/messenger/read-state', fromJson: (d) => Map<String, dynamic>.from(d as Map));
+    final list = data['conversations'] as List? ?? const [];
+    return list
+        .map((e) => ConversationReadState.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<List<Map<String, dynamic>>> fetchConversationReadState(String id) async {
+    final data = await _http.get(
+      '/messenger/conversations/$id/read-state',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    final list = data['participants'] as List? ?? const [];
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
   Future<List<UserSearchEntity>> searchUsers(String query) async {
@@ -706,6 +740,7 @@ class MessengerRemoteDataSource {
     _disconnectCtrl.close();
     _messageUpdatedCtrl.close();
     _messagesReadCtrl.close();
+    _conversationReadCtrl.close();
     _groupUpdatedCtrl.close();
     _groupMemberAddedCtrl.close();
     _groupMemberRemovedCtrl.close();
