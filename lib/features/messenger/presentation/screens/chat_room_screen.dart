@@ -27,6 +27,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:share_plus/share_plus.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../../../../core/utils/share_helper.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:camera/camera.dart';
@@ -120,6 +121,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
 
+  // Viewport-driven read-horizon reporting (Telegram-style): tracks the
+  // furthest incoming message actually scrolled into view, debounced.
+  DateTime? _maxSeenAt;
+  String? _maxSeenId;
+  Timer? _readDebounce;
+
+  void _onMessageSeen(MessageEntity m) {
+    if (_maxSeenAt == null || m.sentAt.isAfter(_maxSeenAt!)) {
+      _maxSeenAt = m.sentAt;
+      _maxSeenId = m.id;
+    }
+    _readDebounce?.cancel();
+    _readDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (_maxSeenAt != null && _maxSeenId != null) {
+        sl<MessengerRemoteDataSource>()
+            .emitMarkRead(widget.conversationId, _maxSeenAt!, _maxSeenId!);
+      }
+    });
+  }
+
   /// Synthetic ConversationEntity used when a CHANNEL is opened via a deep
   /// link / directory and the user is not yet a member — so the conversation
   /// isn't in MessengerBloc.state.conversations. Fetched once on open.
@@ -177,8 +198,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
     _messengerBloc.add(OpenConversation(widget.conversationId, topicId: widget.topicId));
-    // Mark messages as read when opening conversation
-    _messengerBloc.add(MarkConversationRead(widget.conversationId));
+    // NOTE: read-state is now reported per viewport visibility (see
+    // _onMessageSeen/VisibilityDetector in the message list below), not
+    // blanket-marked on open — matches Telegram-style read horizons.
     _loadBlockStatus();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
@@ -1482,6 +1504,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _messengerBloc.add(LoadConversations());
     _typingTimer?.cancel();
+    _readDebounce?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
     _searchCtrl.dispose();
@@ -2317,6 +2340,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 autoPlayVideoNote: _autoPlayVideoNote,
                               );
 
+                          // Report read-horizon as incoming (non-own) bubbles actually
+                          // scroll into view — Telegram-style, replaces blanket mark-on-open.
+                          final myId = state.currentUserId;
+                          final wrappedBubble = VisibilityDetector(
+                            key: ValueKey('vis-${msg.id}'),
+                            onVisibilityChanged: (info) {
+                              if (info.visibleFraction > 0.6 && msg.senderId != myId) {
+                                _onMessageSeen(msg);
+                              }
+                            },
+                            child: messageBubble,
+                          );
+
                           // AI_ANALYST bot messages: show seam widget above the bubble
                           if (analystChat && msg.isSystem) {
                             final liveSeam = state.analystSeams[msg.id];
@@ -2334,7 +2370,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 children: [
                                   if (showDate) _DateSeparator(date: msg.sentAt),
                                   AnalystSeamWidget(seam: seam),
-                                  messageBubble,
+                                  wrappedBubble,
                                 ],
                               );
                             }
@@ -2345,7 +2381,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
-                              messageBubble,
+                              wrappedBubble,
                             ],
                           );
                         },
