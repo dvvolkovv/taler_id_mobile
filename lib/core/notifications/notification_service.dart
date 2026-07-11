@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -101,6 +103,16 @@ Future<void> _showLocalNotification({
   required String conversationId,
 }) async {
   final s = await _notifStrings();
+  // Conversation-keyed id/tag so a later `cancelForConversation` (triggered by
+  // the server's silent `read_sync` push) can cancel this exact notification
+  // by the same tag the server set on the FCM `notification.tag`.
+  // `contact_request` reuses this helper with an empty conversationId — keep
+  // the legacy hashCode id and no tag for that non-conversation case.
+  final notifService = NotificationService();
+  final id = conversationId.isNotEmpty
+      ? notifService.notifIntIdFor(conversationId)
+      : conversationId.hashCode;
+  final tag = conversationId.isNotEmpty ? notifService.notifKeyFor(conversationId) : null;
   final androidDetails = AndroidNotificationDetails(
     'messages',
     s.channelMessages,
@@ -109,10 +121,11 @@ Future<void> _showLocalNotification({
     priority: Priority.high,
     playSound: true,
     icon: '@drawable/ic_notification',
+    tag: tag,
   );
   const iosDetails = DarwinNotificationDetails(sound: 'default');
   await _localNotifications.show(
-    conversationId.hashCode,
+    id,
     title,
     body,
     NotificationDetails(android: androidDetails, iOS: iosDetails),
@@ -436,6 +449,79 @@ class NotificationService {
       FirebaseMessaging.instance.getInitialMessage();
 
   static String? get token => _currentToken;
+
+  /// The stable per-conversation notification key.
+  ///
+  /// MUST equal the server's `fcm.service.notificationIdFor` scheme byte-for-byte:
+  /// `'conv-' + sha1(utf8(conversationId)).hex.substring(0, 16)`.
+  /// This string is what the server sets as the Android FCM `notification.tag`
+  /// and the iOS `apns-collapse-id`, so client and server MUST derive it
+  /// identically or cancellation silently fails.
+  String notifKeyFor(String conversationId) =>
+      'conv-' + sha1.convert(utf8.encode(conversationId)).toString().substring(0, 16);
+
+  /// Stable non-negative int id derived from [notifKeyFor], for use as the
+  /// flutter_local_notifications numeric id when the app renders a message
+  /// notification itself (foreground/Android data path).
+  int notifIntIdFor(String conversationId) => notifKeyFor(conversationId).hashCode & 0x7fffffff;
+
+  /// Cancel any OS-displayed notification for [conversationId] (e.g. after the
+  /// user reads the conversation, triggered by the server's silent
+  /// `read_sync` push) and recompute the app badge.
+  Future<void> cancelForConversation(String conversationId) async {
+    final key = notifKeyFor(conversationId);
+    // Android: cancel by (id, tag) — tag matches the FCM `notification.tag`
+    // the server set, so this also cancels a push the OS auto-displayed
+    // while the app was backgrounded/killed.
+    try {
+      await _localNotifications.cancel(notifIntIdFor(conversationId), tag: key);
+    } catch (e) {
+      debugPrint('cancelForConversation: Android cancel failed for $conversationId: $e');
+    }
+    // iOS: remove the delivered notification whose identifier == apns-collapse-id
+    // (iOS sets a delivered notification's identifier to its apns-collapse-id).
+    try {
+      final ios = _localNotifications
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      await ios?.removeDeliveredNotifications(<String>[key]);
+    } catch (e) {
+      debugPrint('cancelForConversation: iOS removeDeliveredNotifications failed for $conversationId: $e');
+    }
+  }
+
+  /// Internal id for the badge-only "ghost" notification used to refresh the
+  /// iOS app icon badge without showing a banner/sound. flutter_local_notifications
+  /// has no standalone "set badge count" API on iOS — updating the badge via a
+  /// silent (`presentAlert: false, presentSound: false`) notification is the
+  /// standard idiom for this plugin.
+  static const int _badgeGhostNotificationId = 0x7ffffffe;
+
+  /// Refresh the app icon badge to reflect [totalUnread] (clamped to >= 0).
+  Future<void> setBadgeFromUnread(int totalUnread) async {
+    final count = totalUnread < 0 ? 0 : totalUnread;
+    if (!kIsWeb && Platform.isIOS) {
+      try {
+        await _localNotifications.show(
+          _badgeGhostNotificationId,
+          null,
+          null,
+          NotificationDetails(
+            iOS: DarwinNotificationDetails(
+              presentAlert: false,
+              presentSound: false,
+              presentBadge: true,
+              badgeNumber: count,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('setBadgeFromUnread: iOS badge update failed: $e');
+      }
+    }
+    // Android: flutter_local_notifications has no dedicated launcher-badge
+    // API; most launchers derive the badge count from the number of active
+    // notifications, which cancelForConversation already keeps accurate.
+  }
 }
 
 /// Map notification data to deep link route
