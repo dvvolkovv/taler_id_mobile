@@ -488,21 +488,42 @@ class NotificationService {
   /// user reads the conversation, triggered by the server's silent
   /// `read_sync` push) and recompute the app badge.
   Future<void> cancelForConversation(String conversationId) async {
-    // Android: cancel by (id, tag) — tag matches the FCM `notification.tag`
-    // the server set, so this also cancels a push the OS auto-displayed
-    // while the app was backgrounded/killed.
-    //
-    // NOTE(ios-clear): flutter_local_notifications ^18 can't remove an iOS DELIVERED
-    // notification by its apns-collapse-id. cancel(id,tag) clears Android reliably;
-    // iOS FCM-shown banners need a native
-    // UNUserNotificationCenter.removeDeliveredNotifications(withIdentifiers:) platform
-    // channel (follow-up) — the foreground reconcile (read-state fetch) is the interim
-    // iOS safety net.
+    final tag = notifKeyFor(conversationId);
+    // Android background/killed: the FCM SDK auto-displays the message push
+    // ITSELF (we never render it), keyed by the `notification.tag` the server
+    // set (== [tag]) but with a notification id we do NOT control — the SDK
+    // picks its own, which is NOT [notifIntIdFor]. Android's NotificationManager
+    // cancels only when BOTH id and tag match, so a fixed-id cancel silently
+    // misses the OS-shown banner (the case that matters most for clear-on-read).
+    // Fix: enumerate the active notifications and cancel every one whose tag
+    // matches — robust regardless of the id the SDK assigned.
     try {
-      await _localNotifications.cancel(notifIntIdFor(conversationId), tag: notifKeyFor(conversationId));
+      try {
+        final active = await _localNotifications.getActiveNotifications();
+        for (final n in active) {
+          if (n.tag == tag && n.id != null) {
+            await _localNotifications.cancel(n.id!, tag: n.tag);
+          }
+        }
+      } catch (e) {
+        // getActiveNotifications is unsupported on some platforms/OS levels;
+        // fall through to the direct cancel below.
+        debugPrint('cancelForConversation: getActiveNotifications failed: $e');
+      }
+      // Belt-and-suspenders: also cancel our own foreground-rendered id directly,
+      // in case the active-notifications query is unsupported or raced the OS.
+      await _localNotifications.cancel(notifIntIdFor(conversationId), tag: tag);
     } catch (e) {
       debugPrint('cancelForConversation: cancel failed for $conversationId: $e');
     }
+    // NOTE(ios-clear): flutter_local_notifications ^18 can't remove an iOS
+    // DELIVERED notification whose identifier is the server's apns-collapse-id
+    // (a non-numeric string) — getActiveNotifications returns it with a null id
+    // and cancel(id) can't target it. Android now clears reliably (above); iOS
+    // FCM-shown banners still need a native
+    // UNUserNotificationCenter.removeDeliveredNotifications(withIdentifiers:)
+    // channel (follow-up). The foreground reconcile (read-state fetch) is the
+    // interim iOS safety net.
   }
 
   /// Internal id for the badge-only "ghost" notification used to refresh the
