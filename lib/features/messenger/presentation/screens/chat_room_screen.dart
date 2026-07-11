@@ -51,6 +51,7 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
+import '../../domain/entities/conversation_read_state.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
 import '../widgets/analyst_streaming_bubble.dart';
@@ -74,6 +75,14 @@ import '../../../presence/presentation/widgets/presence_label.dart';
 /// Drives the 30-minute sticky-LK heuristic in chatRoomAutoPickDecision.
 /// In-memory only: a cold restart resets the heuristic, which is acceptable.
 final Map<String, int> _recentLkCallMs = {};
+
+/// Read-receipt helpers (Task 12): whether/how many *other* participants have
+/// read up to message [m], based on their read cursors.
+int _seenByCount(MessageEntity m, List<ParticipantCursor> cursors, String myId) =>
+    cursors.where((c) => c.userId != myId && c.lastReadAt != null && !c.lastReadAt!.isBefore(m.sentAt)).length;
+
+bool _readIn1to1(MessageEntity m, List<ParticipantCursor> cursors, String myId) =>
+    cursors.any((c) => c.userId != myId && c.lastReadAt != null && !c.lastReadAt!.isBefore(m.sentAt));
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -102,6 +111,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   StreamSubscription? _disconnectSub;
   StreamSubscription? _reconnectSub;
   StreamSubscription? _outboundListenSub;
+  StreamSubscription? _conversationReadSub;
+  // Per-participant read cursors for this conversation (Task 12 receipts UI):
+  // loaded once via fetchConversationReadState, then kept live from the
+  // conversation_read socket stream.
+  List<ParticipantCursor> _cursors = [];
   Timer? _typingTimer;
   bool _isTypingSent = false;
   late final MessengerBloc _messengerBloc;
@@ -249,6 +263,41 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
       );
     });
+    // Read-receipt cursors: initial fetch + live updates (Task 12).
+    _loadReadCursors();
+    _conversationReadSub = ds.conversationReadStream.listen((data) {
+      if (!mounted) return;
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+      final userId = data['userId'] as String?;
+      if (userId == null) return;
+      final lastReadAtRaw = data['lastReadAt'] as String?;
+      final lastReadAt = lastReadAtRaw != null ? DateTime.tryParse(lastReadAtRaw) : null;
+      setState(() {
+        final updated = ParticipantCursor(userId: userId, lastReadAt: lastReadAt);
+        final idx = _cursors.indexWhere((c) => c.userId == userId);
+        if (idx >= 0) {
+          _cursors[idx] = updated;
+        } else {
+          _cursors = [..._cursors, updated];
+        }
+      });
+    });
+  }
+
+  /// Loads this conversation's participant read cursors (used for own-message
+  /// receipts: 1:1 colored ticks + group "Seen by N"). Non-fatal on failure —
+  /// footers just fall back to whatever the legacy per-message isRead signal
+  /// already provides until this succeeds.
+  Future<void> _loadReadCursors() async {
+    try {
+      final raw = await sl<MessengerRemoteDataSource>()
+          .fetchConversationReadState(widget.conversationId);
+      if (!mounted) return;
+      setState(() => _cursors = parseParticipantCursors(raw));
+    } catch (e) {
+      debugPrint('[ChatRoomScreen] fetchConversationReadState failed: $e');
+    }
   }
 
   @override
@@ -1513,6 +1562,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _disconnectSub?.cancel();
     _reconnectSub?.cancel();
     _outboundListenSub?.cancel();
+    _conversationReadSub?.cancel();
     super.dispose();
   }
 
@@ -2338,6 +2388,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
+                                readCursors: _cursors,
                               );
 
                           // Report read-horizon as incoming (non-own) bubbles actually
@@ -2922,6 +2973,9 @@ class _MessageBubble extends StatefulWidget {
   final List<MessageEntity> allMessages;
   final VoidCallback? onStartCall;
   final ValueNotifier<String?>? autoPlayVideoNote;
+  /// Other participants' read cursors for this conversation — drives the
+  /// own-message receipt footer (1:1 colored ticks / group "Seen by N").
+  final List<ParticipantCursor> readCursors;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -2939,6 +2993,7 @@ class _MessageBubble extends StatefulWidget {
     this.allMessages = const [],
     this.onStartCall,
     this.autoPlayVideoNote,
+    this.readCursors = const [],
   });
 
   @override
@@ -3355,15 +3410,34 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   const SizedBox(width: 4),
                   Builder(builder: (_) {
                     final isPending = widget.message.id.startsWith('temp_');
+                    final myId = widget.currentUserId ?? '';
+                    // Read horizon (Task 12): any other participant whose
+                    // cursor has advanced past this message's sentAt.
+                    final read = widget.message.isRead ||
+                        _readIn1to1(widget.message, widget.readCursors, myId);
+                    // Group conversations show an aggregate "Seen by N"
+                    // instead of a single tick icon, once at least one other
+                    // participant has read up to this message.
+                    if (!isPending && widget.isGroup) {
+                      final n = _seenByCount(widget.message, widget.readCursors, myId);
+                      if (n <= 0) return const SizedBox.shrink();
+                      return Text(
+                        'Seen by $n',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 11,
+                        ),
+                      );
+                    }
                     final IconData icon;
                     if (isPending) {
                       icon = Icons.access_time_rounded; // clock — not yet sent
-                    } else if (widget.message.isRead) {
+                    } else if (read) {
                       icon = Icons.done_all_rounded; // two ticks — read
                     } else {
                       icon = Icons.done_rounded; // one tick — delivered to server
                     }
-                    final color = widget.message.isRead
+                    final color = read
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.6);
                     return Icon(icon, size: 14, color: color);
