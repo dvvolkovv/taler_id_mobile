@@ -2,11 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
@@ -458,7 +456,7 @@ class NotificationService {
   /// and the iOS `apns-collapse-id`, so client and server MUST derive it
   /// identically or cancellation silently fails.
   String notifKeyFor(String conversationId) =>
-      'conv-' + sha1.convert(utf8.encode(conversationId)).toString().substring(0, 16);
+      'conv-${sha1.convert(utf8.encode(conversationId)).toString().substring(0, 16)}';
 
   /// Stable non-negative int id derived from [notifKeyFor], for use as the
   /// flutter_local_notifications numeric id when the app renders a message
@@ -469,23 +467,20 @@ class NotificationService {
   /// user reads the conversation, triggered by the server's silent
   /// `read_sync` push) and recompute the app badge.
   Future<void> cancelForConversation(String conversationId) async {
-    final key = notifKeyFor(conversationId);
     // Android: cancel by (id, tag) — tag matches the FCM `notification.tag`
     // the server set, so this also cancels a push the OS auto-displayed
     // while the app was backgrounded/killed.
+    //
+    // NOTE(ios-clear): flutter_local_notifications ^18 can't remove an iOS DELIVERED
+    // notification by its apns-collapse-id. cancel(id,tag) clears Android reliably;
+    // iOS FCM-shown banners need a native
+    // UNUserNotificationCenter.removeDeliveredNotifications(withIdentifiers:) platform
+    // channel (follow-up) — the foreground reconcile (read-state fetch) is the interim
+    // iOS safety net.
     try {
-      await _localNotifications.cancel(notifIntIdFor(conversationId), tag: key);
+      await _localNotifications.cancel(notifIntIdFor(conversationId), tag: notifKeyFor(conversationId));
     } catch (e) {
-      debugPrint('cancelForConversation: Android cancel failed for $conversationId: $e');
-    }
-    // iOS: remove the delivered notification whose identifier == apns-collapse-id
-    // (iOS sets a delivered notification's identifier to its apns-collapse-id).
-    try {
-      final ios = _localNotifications
-          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-      await ios?.removeDeliveredNotifications(<String>[key]);
-    } catch (e) {
-      debugPrint('cancelForConversation: iOS removeDeliveredNotifications failed for $conversationId: $e');
+      debugPrint('cancelForConversation: cancel failed for $conversationId: $e');
     }
   }
 
