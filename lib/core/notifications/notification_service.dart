@@ -12,6 +12,7 @@ import '../platform/call_kit.dart';
 import '../platform/fcm_messaging.dart';
 import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
+import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../firebase_options.dart';
 
 /// Notification strings resolved by locale (no BuildContext needed).
@@ -208,6 +209,16 @@ Future<void> showCallkitIncoming({
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final type = message.data['type'] as String?;
+  if (type == 'read_sync') {
+    // Silent server push: another device/tab read this conversation.
+    // Cancel this device's OS-displayed notification for it — never show
+    // a banner for a read_sync push.
+    final convId = message.data['conversationId'] as String?;
+    if (convId != null) {
+      await NotificationService().cancelForConversation(convId);
+    }
+    return;
+  }
   if (type == 'call_invite') {
     await showCallkitIncoming(
       roomName: message.data['roomName'] ?? '',
@@ -409,6 +420,16 @@ class NotificationService {
     // - new_message: show local notification (Android won't auto-show FCM when app is open).
     FirebaseMessaging.onMessage.listen((message) {
       final type = message.data['type'] as String?;
+      if (type == 'read_sync') {
+        // Silent server push: another device/tab read this conversation.
+        // Cancel this device's OS-displayed notification for it — never show
+        // a banner for a read_sync push.
+        final convId = message.data['conversationId'] as String?;
+        if (convId != null) {
+          NotificationService().cancelForConversation(convId);
+        }
+        return;
+      }
       if (type == 'new_message') {
         final convId = message.data['conversationId'] as String? ?? '';
         final title = message.notification?.title ?? '';
@@ -516,6 +537,32 @@ class NotificationService {
     // Android: flutter_local_notifications has no dedicated launcher-badge
     // API; most launchers derive the badge count from the number of active
     // notifications, which cancelForConversation already keeps accurate.
+  }
+
+  /// Foreground reconcile: fetch the authoritative read-state from the
+  /// backend, cancel any stale OS notification for conversations that are
+  /// now fully read (`unread == 0`), and refresh the app badge to the true
+  /// total unread count. This is the safety net for read_sync pushes that
+  /// never arrived (app was killed/backgrounded past FCM delivery limits)
+  /// and for iOS, where a delivered banner can't be pulled by
+  /// [cancelForConversation] alone (see NOTE(ios-clear) above).
+  ///
+  /// Call on app resume and on messenger socket (re)connect.
+  Future<void> reconcile() async {
+    try {
+      final datasource = sl<MessengerRemoteDataSource>();
+      final states = await datasource.fetchReadState();
+      var total = 0;
+      for (final s in states) {
+        if (s.unread == 0) {
+          await cancelForConversation(s.conversationId);
+        }
+        total += s.unread;
+      }
+      await setBadgeFromUnread(total);
+    } catch (e) {
+      debugPrint('NotificationService.reconcile failed: $e');
+    }
   }
 }
 

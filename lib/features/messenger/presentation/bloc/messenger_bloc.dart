@@ -22,6 +22,7 @@ import '../../../../core/storage/sync_cursor_storage.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
 import '../../../../core/notifications/desktop/desktop_notifications_service.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/platform/platform_utils.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
@@ -175,6 +176,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       _resendPending(currentUserId: event.userId);
       _refreshMeshContactKeys();
       add(const SyncMessagesRequested());
+      // Reads made on another device while we were disconnected only reach us
+      // as a read_sync push if we're online to receive it — reconcile on
+      // reconnect closes that gap (stale notifications/badge).
+      unawaited(NotificationService().reconcile().catchError((e) {
+        debugPrint('[mesh-reconnect] reconcile failed: $e');
+      }));
     });
     // Clear in-flight set on disconnect so the next reconnect re-emits any
     // pending messages. Without this, a message that was emitted into a
@@ -1627,6 +1634,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.resumed) {
       add(const SyncMessagesRequested());
+      // Clear any notifications for conversations read elsewhere while this
+      // device was backgrounded (silent read_sync push may have been missed)
+      // and refresh the app badge to the authoritative unread total.
+      unawaited(NotificationService().reconcile().catchError((e) {
+        debugPrint('[messenger-resume] reconcile failed: $e');
+      }));
     }
   }
 
