@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/conversation_read_state.dart';
 import '../../domain/entities/message_entity.dart';
 
@@ -33,6 +34,7 @@ class MessageInfoSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final readers = cursors
         .where((x) => x.lastReadAt != null && !x.lastReadAt!.isBefore(message.sentAt))
         .toList()
@@ -56,7 +58,7 @@ class MessageInfoSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Message info',
+              l10n.messageInfo,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: colors.textPrimary),
             ),
           ),
@@ -66,9 +68,9 @@ class MessageInfoSheet extends StatelessWidget {
               shrinkWrap: true,
               padding: const EdgeInsets.only(bottom: 12),
               children: [
-                _SectionHeader(label: 'Read by', colors: colors),
+                _SectionHeader(label: l10n.readBy, colors: colors),
                 if (readers.isEmpty)
-                  _EmptyRow(label: 'Not read yet', colors: colors)
+                  _EmptyRow(label: l10n.notReadYet, colors: colors)
                 else
                   ...readers.map((r) => ListTile(
                         dense: true,
@@ -89,9 +91,9 @@ class MessageInfoSheet extends StatelessWidget {
                         ),
                       )),
                 const Divider(height: 24),
-                _SectionHeader(label: 'Reactions', colors: colors),
+                _SectionHeader(label: l10n.reactionsLabel, colors: colors),
                 if (reactions.isEmpty)
-                  _EmptyRow(label: 'No reactions', colors: colors)
+                  _EmptyRow(label: l10n.noReactions, colors: colors)
                 else
                   ...reactions.map((r) {
                     final userId = r['userId'] as String? ?? '';

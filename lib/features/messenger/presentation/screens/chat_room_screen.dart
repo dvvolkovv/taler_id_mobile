@@ -3438,7 +3438,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                         );
                       }
                       return Text(
-                        'Seen by $n',
+                        AppLocalizations.of(context)!.seenByCount(n),
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                           fontSize: 11,
@@ -3550,7 +3550,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
             if (widget.isMe && !widget.message.isSystem)
               ListTile(
                 leading: Icon(Icons.info_outline_rounded, color: colors.textSecondary),
-                title: Text('Message info', style: TextStyle(color: colors.textPrimary)),
+                title: Text(l10n.messageInfo, style: TextStyle(color: colors.textPrimary)),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showMessageInfo(context);

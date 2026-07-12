@@ -512,17 +512,22 @@ class NotificationService {
     // Fix: enumerate the active notifications and cancel every one whose tag
     // matches — robust regardless of the id the SDK assigned.
     try {
-      try {
-        final active = await _localNotifications.getActiveNotifications();
-        for (final n in active) {
-          if (n.tag == tag && n.id != null) {
-            await _localNotifications.cancel(n.id!, tag: n.tag);
+      // getActiveNotifications() is only implemented on Android/iOS — and only
+      // there do FCM-auto-displayed banners exist. On desktop (Linux/Windows/
+      // macOS) it throws UnimplementedError, so skip it entirely to avoid log
+      // spam on every reconcile; the direct cancel below still runs.
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        try {
+          final active = await _localNotifications.getActiveNotifications();
+          for (final n in active) {
+            if (n.tag == tag && n.id != null) {
+              await _localNotifications.cancel(n.id!, tag: n.tag);
+            }
           }
+        } catch (e) {
+          // Unsupported on some OS levels — fall through to the direct cancel.
+          debugPrint('cancelForConversation: getActiveNotifications failed: $e');
         }
-      } catch (e) {
-        // getActiveNotifications is unsupported on some platforms/OS levels;
-        // fall through to the direct cancel below.
-        debugPrint('cancelForConversation: getActiveNotifications failed: $e');
       }
       // Belt-and-suspenders: also cancel our own foreground-rendered id directly,
       // in case the active-notifications query is unsupported or raced the OS.

@@ -1123,7 +1123,9 @@
   "@callGlareTitle": {
     "description": "Title of the dialog shown when the person we are calling out to dials us at the same time.",
     "placeholders": {
-      "name": { "type": "String" }
+      "name": {
+        "type": "String"
+      }
     }
   },
   "callGlareBody": "Вы набрали друг друга одновременно. Принять его звонок или остаться на своём?",
@@ -1749,7 +1751,17 @@
   "privacyNobody": "Никто",
   "voiceTurnOffTranslation": "Выключить переводчик",
   "informerBotTitle": "Informer",
-  "@informerBotTitle": {"description": "Title of the pinned Informer bot tile in messenger"},
+  "@informerBotTitle": {
+    "description": "Title of the pinned Informer bot tile in messenger"
+  },
   "informerBotSubtitle": "Мониторинг кошельков и балансов",
-  "@informerBotSubtitle": {"description": "Subtitle of the Informer bot tile"}
+  "@informerBotSubtitle": {
+    "description": "Subtitle of the Informer bot tile"
+  },
+  "seenByCount": "Прочитали: {count}",
+  "messageInfo": "Информация о сообщении",
+  "readBy": "Прочитали",
+  "notReadYet": "Ещё не прочитано",
+  "reactionsLabel": "Реакции",
+  "noReactions": "Нет реакций"
 }

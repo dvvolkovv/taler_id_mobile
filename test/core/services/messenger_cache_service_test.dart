@@ -135,16 +135,19 @@ void main() {
     test('getMeshMessagesFor sorts correctly when entries mix UTC Z and local offsets',
         () async {
       final svc = MessengerCacheService();
-      // 'later' is written as a Z-suffixed UTC string; 'earlier' as naive
-      // (no offset) ISO. Lexicographic compare would put Z after naive; the
-      // parsed-DateTime compare must put the actual earlier timestamp first.
+      // Both timestamps carry an explicit offset/Z, so parsing is
+      // timezone-independent (this test must pass regardless of the machine's
+      // local zone). Their lexicographic order is the REVERSE of chronological:
+      // 'earlier' (14:00Z) sorts lexicographically AFTER 'later'
+      // (10:00-05:00 == 15:00Z) because "T14" > "T10". A correct instant-based
+      // sort must still put 'earlier' first.
       await svc.appendMeshMessage({
         'id': 'mesh-later',
         'conversationId': 'conv-mix',
         'senderId': 'u-2',
         'content': 'later',
         'transport': 'mesh',
-        'sentAt': '2026-04-24T13:00:00.000Z',
+        'sentAt': '2026-04-24T10:00:00.000-05:00',
       });
       await svc.appendMeshMessage({
         'id': 'mesh-earlier',
@@ -152,7 +155,7 @@ void main() {
         'senderId': 'u-2',
         'content': 'earlier',
         'transport': 'mesh',
-        'sentAt': '2026-04-24T12:00:00.000',
+        'sentAt': '2026-04-24T14:00:00.000Z',
       });
       final list = svc.getMeshMessagesFor('conv-mix');
       expect(list.map((m) => m['id']).toList(),
