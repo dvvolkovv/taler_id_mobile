@@ -3674,4 +3674,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get informerBotSubtitle => 'Мониторинг кошельков и балансов';
+
+  @override
+  String seenByCount(int count) {
+    return 'Прочитали: $count';
+  }
+
+  @override
+  String get messageInfo => 'Информация о сообщении';
+
+  @override
+  String get readBy => 'Прочитали';
+
+  @override
+  String get notReadYet => 'Ещё не прочитано';
+
+  @override
+  String get reactionsLabel => 'Реакции';
+
+  @override
+  String get noReactions => 'Нет реакций';
 }

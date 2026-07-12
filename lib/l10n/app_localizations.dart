@@ -6903,6 +6903,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Wallet and balance monitoring'**
   String get informerBotSubtitle;
+
+  /// No description provided for @seenByCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen by {count}'**
+  String seenByCount(int count);
+
+  /// No description provided for @messageInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Message info'**
+  String get messageInfo;
+
+  /// No description provided for @readBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Read by'**
+  String get readBy;
+
+  /// No description provided for @notReadYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not read yet'**
+  String get notReadYet;
+
+  /// No description provided for @reactionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactions'**
+  String get reactionsLabel;
+
+  /// No description provided for @noReactions.
+  ///
+  /// In en, this message translates to:
+  /// **'No reactions'**
+  String get noReactions;
 }
 
 class _AppLocalizationsDelegate

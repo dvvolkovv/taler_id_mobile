@@ -3678,4 +3678,24 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get informerBotSubtitle => 'Wallet and balance monitoring';
+
+  @override
+  String seenByCount(int count) {
+    return 'Seen by $count';
+  }
+
+  @override
+  String get messageInfo => 'Message info';
+
+  @override
+  String get readBy => 'Read by';
+
+  @override
+  String get notReadYet => 'Not read yet';
+
+  @override
+  String get reactionsLabel => 'Reactions';
+
+  @override
+  String get noReactions => 'No reactions';
 }
