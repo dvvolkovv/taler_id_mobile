@@ -143,6 +143,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   Timer? _readDebounce;
 
   void _onMessageSeen(MessageEntity m) {
+    // VisibilityDetector can fire a late callback after this screen is disposed;
+    // without this guard it would schedule a fresh 400ms timer that dispose
+    // already ran past (dispose cancels the existing one), emitting one stale
+    // mark_read. Harmless (monotonic server-side) but untidy — bail if gone.
+    if (!mounted) return;
     if (_maxSeenAt == null || m.sentAt.isAfter(_maxSeenAt!)) {
       _maxSeenAt = m.sentAt;
       _maxSeenId = m.id;

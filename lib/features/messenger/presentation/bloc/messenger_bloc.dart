@@ -169,6 +169,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     // the very first connect of a session it is still null when we land here.
     _resendPending(currentUserId: event.userId);
     add(const SyncMessagesRequested());
+    // Reconcile on the very first connect of a session (cold start) too, not
+    // only on later reconnects: reads made on another device while this one
+    // was killed/offline reach us only as a read_sync push when we're online,
+    // so a fresh launch must reconcile to clear a stale banner/badge left over
+    // from before the app started.
+    unawaited(NotificationService().reconcile().catchError((e) {
+      debugPrint('[mesh-connect] initial reconcile failed: $e');
+    }));
     // Re-send on each reconnect too.
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
