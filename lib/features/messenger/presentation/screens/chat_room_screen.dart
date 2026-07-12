@@ -27,6 +27,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:video_player/video_player.dart' as vp;
 import 'package:share_plus/share_plus.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../../../../core/utils/share_helper.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:camera/camera.dart';
@@ -50,8 +51,10 @@ import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
+import '../../domain/entities/conversation_read_state.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
+import '../widgets/message_info_sheet.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../../domain/entities/analyst_events.dart';
@@ -73,6 +76,14 @@ import '../../../presence/presentation/widgets/presence_label.dart';
 /// Drives the 30-minute sticky-LK heuristic in chatRoomAutoPickDecision.
 /// In-memory only: a cold restart resets the heuristic, which is acceptable.
 final Map<String, int> _recentLkCallMs = {};
+
+/// Read-receipt helpers (Task 12): whether/how many *other* participants have
+/// read up to message [m], based on their read cursors.
+int _seenByCount(MessageEntity m, List<ParticipantCursor> cursors, String myId) =>
+    cursors.where((c) => c.userId != myId && c.lastReadAt != null && !c.lastReadAt!.isBefore(m.sentAt)).length;
+
+bool _readIn1to1(MessageEntity m, List<ParticipantCursor> cursors, String myId) =>
+    cursors.any((c) => c.userId != myId && c.lastReadAt != null && !c.lastReadAt!.isBefore(m.sentAt));
 
 class ChatRoomScreen extends StatefulWidget {
   final String conversationId;
@@ -101,6 +112,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   StreamSubscription? _disconnectSub;
   StreamSubscription? _reconnectSub;
   StreamSubscription? _outboundListenSub;
+  StreamSubscription? _conversationReadSub;
+  // Per-participant read cursors for this conversation (Task 12 receipts UI):
+  // loaded once via fetchConversationReadState, then kept live from the
+  // conversation_read socket stream.
+  List<ParticipantCursor> _cursors = [];
   Timer? _typingTimer;
   bool _isTypingSent = false;
   late final MessengerBloc _messengerBloc;
@@ -119,6 +135,31 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   final Map<String, GlobalKey> _messageKeys = {};
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
+
+  // Viewport-driven read-horizon reporting (Telegram-style): tracks the
+  // furthest incoming message actually scrolled into view, debounced.
+  DateTime? _maxSeenAt;
+  String? _maxSeenId;
+  Timer? _readDebounce;
+
+  void _onMessageSeen(MessageEntity m) {
+    // VisibilityDetector can fire a late callback after this screen is disposed;
+    // without this guard it would schedule a fresh 400ms timer that dispose
+    // already ran past (dispose cancels the existing one), emitting one stale
+    // mark_read. Harmless (monotonic server-side) but untidy — bail if gone.
+    if (!mounted) return;
+    if (_maxSeenAt == null || m.sentAt.isAfter(_maxSeenAt!)) {
+      _maxSeenAt = m.sentAt;
+      _maxSeenId = m.id;
+    }
+    _readDebounce?.cancel();
+    _readDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (_maxSeenAt != null && _maxSeenId != null) {
+        sl<MessengerRemoteDataSource>()
+            .emitMarkRead(widget.conversationId, _maxSeenAt!, _maxSeenId!);
+      }
+    });
+  }
 
   /// Synthetic ConversationEntity used when a CHANNEL is opened via a deep
   /// link / directory and the user is not yet a member — so the conversation
@@ -177,8 +218,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
     _messengerBloc.add(OpenConversation(widget.conversationId, topicId: widget.topicId));
-    // Mark messages as read when opening conversation
-    _messengerBloc.add(MarkConversationRead(widget.conversationId));
+    // NOTE: read-state is now reported per viewport visibility (see
+    // _onMessageSeen/VisibilityDetector in the message list below), not
+    // blanket-marked on open — matches Telegram-style read horizons.
     _loadBlockStatus();
     // Handle shared files from external apps
     if (widget.sharedFiles != null && widget.sharedFiles!.isNotEmpty) {
@@ -227,6 +269,41 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
       );
     });
+    // Read-receipt cursors: initial fetch + live updates (Task 12).
+    _loadReadCursors();
+    _conversationReadSub = ds.conversationReadStream.listen((data) {
+      if (!mounted) return;
+      final convId = data['conversationId'] as String?;
+      if (convId != widget.conversationId) return;
+      final userId = data['userId'] as String?;
+      if (userId == null) return;
+      final lastReadAtRaw = data['lastReadAt'] as String?;
+      final lastReadAt = lastReadAtRaw != null ? DateTime.tryParse(lastReadAtRaw) : null;
+      setState(() {
+        final updated = ParticipantCursor(userId: userId, lastReadAt: lastReadAt);
+        final idx = _cursors.indexWhere((c) => c.userId == userId);
+        if (idx >= 0) {
+          _cursors[idx] = updated;
+        } else {
+          _cursors = [..._cursors, updated];
+        }
+      });
+    });
+  }
+
+  /// Loads this conversation's participant read cursors (used for own-message
+  /// receipts: 1:1 colored ticks + group "Seen by N"). Non-fatal on failure —
+  /// footers just fall back to whatever the legacy per-message isRead signal
+  /// already provides until this succeeds.
+  Future<void> _loadReadCursors() async {
+    try {
+      final raw = await sl<MessengerRemoteDataSource>()
+          .fetchConversationReadState(widget.conversationId);
+      if (!mounted) return;
+      setState(() => _cursors = parseParticipantCursors(raw));
+    } catch (e) {
+      debugPrint('[ChatRoomScreen] fetchConversationReadState failed: $e');
+    }
   }
 
   @override
@@ -1482,6 +1559,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _messengerBloc.add(LoadConversations());
     _typingTimer?.cancel();
+    _readDebounce?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
     _searchCtrl.dispose();
@@ -1490,6 +1568,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _disconnectSub?.cancel();
     _reconnectSub?.cancel();
     _outboundListenSub?.cancel();
+    _conversationReadSub?.cancel();
     super.dispose();
   }
 
@@ -2315,7 +2394,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
+                                readCursors: _cursors,
                               );
+
+                          // Report read-horizon as incoming (non-own) bubbles actually
+                          // scroll into view — Telegram-style, replaces blanket mark-on-open.
+                          final myId = state.currentUserId;
+                          final wrappedBubble = VisibilityDetector(
+                            key: ValueKey('vis-${msg.id}'),
+                            onVisibilityChanged: (info) {
+                              if (info.visibleFraction > 0.6 && msg.senderId != myId) {
+                                _onMessageSeen(msg);
+                              }
+                            },
+                            child: messageBubble,
+                          );
 
                           // AI_ANALYST bot messages: show seam widget above the bubble
                           if (analystChat && msg.isSystem) {
@@ -2334,7 +2427,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 children: [
                                   if (showDate) _DateSeparator(date: msg.sentAt),
                                   AnalystSeamWidget(seam: seam),
-                                  messageBubble,
+                                  wrappedBubble,
                                 ],
                               );
                             }
@@ -2345,7 +2438,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
-                              messageBubble,
+                              wrappedBubble,
                             ],
                           );
                         },
@@ -2886,6 +2979,9 @@ class _MessageBubble extends StatefulWidget {
   final List<MessageEntity> allMessages;
   final VoidCallback? onStartCall;
   final ValueNotifier<String?>? autoPlayVideoNote;
+  /// Other participants' read cursors for this conversation — drives the
+  /// own-message receipt footer (1:1 colored ticks / group "Seen by N").
+  final List<ParticipantCursor> readCursors;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -2903,6 +2999,7 @@ class _MessageBubble extends StatefulWidget {
     this.allMessages = const [],
     this.onStartCall,
     this.autoPlayVideoNote,
+    this.readCursors = const [],
   });
 
   @override
@@ -3319,15 +3416,34 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   const SizedBox(width: 4),
                   Builder(builder: (_) {
                     final isPending = widget.message.id.startsWith('temp_');
+                    final myId = widget.currentUserId ?? '';
+                    // Read horizon (Task 12): any other participant whose
+                    // cursor has advanced past this message's sentAt.
+                    final read = widget.message.isRead ||
+                        _readIn1to1(widget.message, widget.readCursors, myId);
+                    // Group conversations show an aggregate "Seen by N"
+                    // instead of a single tick icon, once at least one other
+                    // participant has read up to this message.
+                    if (!isPending && widget.isGroup) {
+                      final n = _seenByCount(widget.message, widget.readCursors, myId);
+                      if (n <= 0) return const SizedBox.shrink();
+                      return Text(
+                        'Seen by $n',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 11,
+                        ),
+                      );
+                    }
                     final IconData icon;
                     if (isPending) {
                       icon = Icons.access_time_rounded; // clock — not yet sent
-                    } else if (widget.message.isRead) {
+                    } else if (read) {
                       icon = Icons.done_all_rounded; // two ticks — read
                     } else {
                       icon = Icons.done_rounded; // one tick — delivered to server
                     }
-                    final color = widget.message.isRead
+                    final color = read
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.6);
                     return Icon(icon, size: 14, color: color);
@@ -3418,6 +3534,18 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   widget.onReply!();
                 },
               ),
+            // Task 13: read-by + reactions info, only makes sense on the
+            // user's own (non-system) messages — mirrors "Seen by N"/ticks,
+            // which are also isMe-only.
+            if (widget.isMe && !widget.message.isSystem)
+              ListTile(
+                leading: Icon(Icons.info_outline_rounded, color: colors.textSecondary),
+                title: Text('Message info', style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showMessageInfo(context);
+                },
+              ),
             if (widget.isMe && widget.message.fileUrl == null && widget.message.content.isNotEmpty && widget.onEdit != null)
               ListTile(
                 leading: Icon(Icons.edit_rounded, color: colors.primary),
@@ -3467,6 +3595,47 @@ class _MessageBubbleState extends State<_MessageBubble> {
             const SizedBox(height: 8),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Task 13: opens the message-info sheet (read-by + reactions) for this
+  /// (own) message. `widget.readCursors` is the same live-kept cursor list
+  /// already used for the 1:1 ticks / "Seen by N" footer above (loaded via
+  /// `MessengerRemoteDataSource.fetchConversationReadState` in
+  /// `_ChatRoomScreenState._loadReadCursors` and reconciled from the
+  /// `conversation_read` socket stream) — reused as-is rather than
+  /// re-fetched, so the sheet always reflects the freshest known cursors
+  /// without an extra round-trip on every long-press.
+  void _showMessageInfo(BuildContext context) {
+    final colors = AppColors.of(context);
+    final myId = widget.currentUserId;
+    final cursors = myId == null
+        ? widget.readCursors
+        : widget.readCursors.where((c) => c.userId != myId).toList();
+
+    // Best-effort display names: every message carries its sender's name
+    // (MessageEntity.senderName, backend-populated), so union across the
+    // conversation's messages covers any participant who has sent at least
+    // one message. Participants who only read (never sent) fall back to
+    // their raw userId inside MessageInfoSheet — no full participant/name
+    // roster is available on this screen.
+    final nameById = <String, String>{};
+    for (final m in widget.allMessages) {
+      final n = m.senderName;
+      if (n != null && n.isNotEmpty) nameById[m.senderId] = n;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => MessageInfoSheet(
+        message: widget.message,
+        cursors: cursors,
+        nameById: nameById,
       ),
     );
   }
