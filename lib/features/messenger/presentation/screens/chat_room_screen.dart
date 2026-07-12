@@ -3426,7 +3426,17 @@ class _MessageBubbleState extends State<_MessageBubble> {
                     // participant has read up to this message.
                     if (!isPending && widget.isGroup) {
                       final n = _seenByCount(widget.message, widget.readCursors, myId);
-                      if (n <= 0) return const SizedBox.shrink();
+                      // Telegram-etalon: a group message that's been sent but not
+                      // yet read by anyone still shows a single "sent" tick (never
+                      // a blank status). It upgrades to "Seen by N" once other
+                      // participants' read cursors advance past this message.
+                      if (n <= 0) {
+                        return Icon(
+                          Icons.done_rounded,
+                          size: 14,
+                          color: Colors.white.withValues(alpha: 0.6),
+                        );
+                      }
                       return Text(
                         'Seen by $n',
                         style: TextStyle(
