@@ -154,6 +154,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription? _aiTwinJoinedSub;
   StreamSubscription? _aiTwinLeftSub;
   Timer? _emptyRoomTimer;
+  // Audio-flow watchdog: detects the "peer hears me but I hear silence"
+  // one-way failure where the subscriber path is dead while everything
+  // looks healthy (pub subscribed, track attached, mediaStreamTrack
+  // enabled). Only RTP byte counters reveal it.
+  Timer? _audioFlowTimer;
+  final Map<String, num> _audioFlowBytes = {};
+  final Map<String, int> _audioFlowStalls = {};
   bool _aiTwinActive = false; // true once AI twin accepted and joined
   bool _aiTwinOfferShown = false; // prevent duplicate dialogs
 
@@ -1109,6 +1116,64 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _handleDataReceived(event);
       })
       ..on<lk.RoomMetadataChangedEvent>((_) {});
+    _startAudioFlowWatchdog();
+  }
+
+  void _startAudioFlowWatchdog() {
+    _audioFlowTimer?.cancel();
+    _audioFlowTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+      if (!mounted || _navigatedAway || _room == null) return;
+      if (_initTime != null &&
+          DateTime.now().difference(_initTime!).inSeconds < 12) {
+        return; // let the join settle
+      }
+      for (final p in _room!.remoteParticipants.values) {
+        if (p.identity == 'voice-translator' || p.identity == 'hold-music') {
+          continue;
+        }
+        for (final pub in p.audioTrackPublications) {
+          final track = pub.track;
+          if (!pub.subscribed || pub.muted || track is! lk.RemoteAudioTrack) {
+            _audioFlowBytes.remove(pub.sid);
+            _audioFlowStalls.remove(pub.sid);
+            continue;
+          }
+          num bytes = -1;
+          try {
+            bytes = (await track.getReceiverStats())?.bytesReceived ?? -1;
+          } catch (_) {}
+          if (bytes < 0) continue;
+          final last = _audioFlowBytes[pub.sid];
+          _audioFlowBytes[pub.sid] = bytes;
+          if (last == null) continue;
+          if (bytes > last) {
+            _audioFlowStalls[pub.sid] = 0;
+            continue;
+          }
+          // Opus DTX still trickles comfort-noise bytes; a completely flat
+          // counter across 10+ seconds on an unmuted pub means the
+          // subscriber leg is dead.
+          final stalls = (_audioFlowStalls[pub.sid] ?? 0) + 1;
+          _audioFlowStalls[pub.sid] = stalls;
+          if (stalls == 2) {
+            debugPrint('[AudioFlow] ${p.identity} pub=${pub.sid} dead '
+                '(no bytes for ~10s) — resubscribing');
+            try {
+              pub.unsubscribe();
+              await Future.delayed(const Duration(milliseconds: 200));
+              pub.subscribe();
+            } catch (e) {
+              debugPrint('[AudioFlow] resubscribe failed: $e');
+            }
+          } else if (stalls >= 4) {
+            debugPrint('[AudioFlow] ${p.identity} still dead after '
+                'resubscribe — full audio recovery');
+            _audioFlowStalls[pub.sid] = 0;
+            _maybeAutoRecoverAudio();
+          }
+        }
+      }
+    });
   }
 
   void _onRoomChanged() {
@@ -2948,6 +3013,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       cs.unmarkAiTwinActive(_roomName!);
     }
     _emptyRoomTimer?.cancel();
+    _audioFlowTimer?.cancel();
     _stopRingback();
     // Stop in-call assistant if active
     if (_assistantActive) {
@@ -3617,6 +3683,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _aiTwinLeftSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
+    _audioFlowTimer?.cancel();
     _ringbackActive = false;
     _stopRingTone();
     // Clear outgoing glare marker. Guard by peerId so a stale dispose from a
