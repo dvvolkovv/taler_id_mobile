@@ -212,6 +212,16 @@ class AppLocalizationsIt extends AppLocalizations {
       'Completa la verifica per sbloccare l\'accesso completo alle funzionalità finanziarie dell\'ecosistema Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Inizia la verifica';
 
   @override

@@ -25,6 +25,7 @@ class KycBloc extends Bloc<KycEvent, KycState> {
         status: status,
         rejectionReason: data['rejectionReason'] as String?,
         verifiedAt: data['verifiedAt'] as String?,
+        inProgress: data['inProgress'] == true,
       ));
       // Auto-fetch applicant data when verified
       if (status == 'VERIFIED') {

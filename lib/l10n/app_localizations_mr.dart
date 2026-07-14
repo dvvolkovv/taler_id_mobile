@@ -212,6 +212,16 @@ class AppLocalizationsMr extends AppLocalizations {
       'Taler पर्यावरणातील आर्थिक वैशिष्ट्यांचा पूर्ण प्रवेश अनलॉक करण्यासाठी सत्यापन पूर्ण करा.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'सत्यापन प्रारंभ करा';
 
   @override

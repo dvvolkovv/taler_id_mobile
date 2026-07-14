@@ -212,6 +212,16 @@ class AppLocalizationsUr extends AppLocalizations {
       'Taler ایکوسسٹم کی مالی خصوصیات تک مکمل رسائی کے لئے تصدیق مکمل کریں۔';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'تصدیق شروع کریں';
 
   @override

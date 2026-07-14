@@ -212,6 +212,16 @@ class AppLocalizationsTe extends AppLocalizations {
       'Taler ఎకోసిస్టమ్ ఆర్థిక ఫీచర్లకు పూర్తి ప్రాప్యత పొందడానికి ధృవీకరణను పూర్తి చేయండి.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'ధృవీకరణ ప్రారంభించండి';
 
   @override

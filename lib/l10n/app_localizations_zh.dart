@@ -207,6 +207,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kycUnverifiedDesc => '完成验证以解锁 Taler 生态系统的全部金融功能。';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => '开始验证';
 
   @override

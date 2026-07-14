@@ -212,6 +212,16 @@ class AppLocalizationsAr extends AppLocalizations {
       'أكمل التحقق لفتح الوصول الكامل إلى الميزات المالية لنظام Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'ابدأ التحقق';
 
   @override

@@ -538,6 +538,24 @@ abstract class AppLocalizations {
   /// **'Complete verification to unlock full access to Taler ecosystem financial features.'**
   String get kycUnverifiedDesc;
 
+  /// No description provided for @continueVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Verification'**
+  String get continueVerification;
+
+  /// No description provided for @kycInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get kycInProgress;
+
+  /// No description provided for @kycInProgressDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'You started verification but didn\'t finish it. Pick up right where you left off.'**
+  String get kycInProgressDesc;
+
   /// No description provided for @startVerification.
   ///
   /// In en, this message translates to:

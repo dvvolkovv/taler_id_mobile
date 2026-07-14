@@ -212,6 +212,16 @@ class AppLocalizationsSk extends AppLocalizations {
       'Dokončite overenie, aby ste odomkli plný prístup k finančným funkciám ekosystému Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Začať overenie';
 
   @override

@@ -14,14 +14,21 @@ class KycStatusLoaded extends KycState {
   final String? rejectionReason;
   final String? verifiedAt;
   final SumsubApplicantEntity? applicantData;
+
+  /// True when the user started the wizard but never submitted it —
+  /// backend reports UNVERIFIED + inProgress so we offer "continue".
+  final bool inProgress;
+
   KycStatusLoaded({
     required this.status,
     this.rejectionReason,
     this.verifiedAt,
     this.applicantData,
+    this.inProgress = false,
   });
   @override
-  List<Object?> get props => [status, rejectionReason, verifiedAt, applicantData];
+  List<Object?> get props =>
+      [status, rejectionReason, verifiedAt, applicantData, inProgress];
 }
 
 class KycApplicantDataLoading extends KycState {

@@ -208,6 +208,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get kycUnverifiedDesc => 'Taler 생태계의 금융 기능에 완전한 접근을 위해 검증을 완료하세요.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => '검증 시작';
 
   @override
