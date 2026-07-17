@@ -3257,11 +3257,14 @@ Answer briefly — the user is in the middle of a conversation.''';
   /// Duck (lower) all peer audio tracks while the translator track is the
   /// foreground audio. Without this, the original speaker and the translator
   /// play at equal volume and listeners can't make out the translation.
-  /// Volume choice: 0.25 keeps the original voice perceptible (so you know
-  /// who is speaking and follow tone) but pushes it clearly behind the TTS.
+  /// Volume choice: 0.15 keeps the original voice barely perceptible (you
+  /// still know who is speaking) while the TTS clearly dominates — 0.25 was
+  /// reported as not enough separation (feedback 2026-07-17). The translator
+  /// is additionally boosted server-side (TRANSLATOR_GAIN in
+  /// livekit-agent/translator.js).
   /// Idempotent — safe to call from track-published / participant-connected
   /// events, and from the toggle itself.
-  static const double _duckedPeerVolume = 0.25;
+  static const double _duckedPeerVolume = 0.15;
   static const double _fullVolume = 1.0;
 
   void _applyTranslationDucking() {
