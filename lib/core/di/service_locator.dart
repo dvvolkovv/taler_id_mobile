@@ -769,7 +769,7 @@ Future<void> setupDependencies() async {
       ));
 
   // Update check
-  sl.registerLazySingleton(() => UpdateCheckService());
+  sl.registerLazySingleton(() => UpdateCheckService(sl<DioClient>()));
 
   // Video effects (background blur / virtual backgrounds)
   sl.registerLazySingleton(() => VideoEffectsService());
