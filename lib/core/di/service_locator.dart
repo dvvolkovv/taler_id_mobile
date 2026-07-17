@@ -160,6 +160,7 @@ import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 
 // Assistant Chat
 import '../../features/assistant/data/assistant_chat_api.dart';
+import '../../features/assistant/data/assistant_draft_storage.dart';
 
 // Presence (online/last-seen)
 import '../../features/presence/data/datasources/presence_remote_datasource.dart';
@@ -196,6 +197,9 @@ Future<void> setupDependencies() async {
   await Hive.openBox<String>(CalendarLocalDataSource.boxName);
   await Hive.openBox<String>(ContactsLocalDataSource.boxName);
 
+  // Assistant draft storage (Hive)
+  final assistantDraftBox = await Hive.openBox<String>('assistant_draft');
+
   // Favorites offline: cached SAVED-conversation id (Hive)
   await Hive.openBox<String>(SavedConversationIdCache.boxName);
   sl.registerLazySingleton<SavedConversationIdCache>(
@@ -216,6 +220,9 @@ Future<void> setupDependencies() async {
   final drafts = MessageDraftService();
   await drafts.init();
   sl.registerSingleton<MessageDraftService>(drafts);
+
+  // Assistant draft storage (Hive) — persisted assistant input
+  sl.registerLazySingleton(() => AssistantDraftStorage(assistantDraftBox));
 
   // Pending message queue (Hive) — messages sent offline
   final pending = PendingMessageService();
