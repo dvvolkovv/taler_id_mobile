@@ -498,7 +498,7 @@ class AssistantToolsExecutor {
         );
         final convId = convRes['conversationId'] as String;
         // 2. Send the question as a user message via Socket.io
-        sl<MessengerRemoteDataSource>().sendMessage(convId, question);
+        sl<MessengerRemoteDataSource>().sendMessage(convId, question, origin: 'assistant');
         output = jsonEncode({
           'ok': true,
           'conversationId': convId,
