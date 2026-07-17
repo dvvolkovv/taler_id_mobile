@@ -30,6 +30,9 @@ import '../../../billing/data/services/billing_event_bus.dart';
 import '../../../billing/data/services/voice_billing_bridge.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
+import '../../data/assistant_chat_api.dart';
+import '../../data/assistant_chat_logger.dart';
+import '../../domain/assistant_action.dart';
 import '../../tools/assistant_system_prompt.dart';
 import '../../tools/assistant_tools_executor.dart';
 import '../../tools/assistant_tools_schema.dart';
@@ -109,6 +112,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   // behaviors are wired back into this screen via AssistantSessionHooks.
   late final AssistantToolsExecutor _toolsExecutor;
 
+  // Best-effort replication of the voice transcript (+ action bubbles) into
+  // the persistent assistant chat thread on the backend.
+  late final AssistantChatLogger _chatLogger;
+
   // Incoming message listener
   StreamSubscription? _messageSub;
 
@@ -121,7 +128,16 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void initState() {
     super.initState();
+    _chatLogger = AssistantChatLogger(
+      flush: (entries) => sl<AssistantChatApi>().logEntries(entries),
+    );
     _toolsExecutor = AssistantToolsExecutor(
+      onAction: (a) => _chatLogger.addAction(
+        role: 'assistant',
+        source: 'voice',
+        text: a.title,
+        action: a.toJson(),
+      ),
       hooks: AssistantSessionHooks(
         endSession: () async {
           // Send output first so AI can say goodbye, then disconnect after 2s
@@ -255,6 +271,8 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   void dispose() {
+    unawaited(_chatLogger.flushNow());
+    _chatLogger.dispose();
     AssistantScreen.connectNotifier.removeListener(_onWakeWordTrigger);
     _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
@@ -777,7 +795,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         final transcript = event['transcript'] as String? ?? '';
         final itemId = event['item_id'] as String? ?? '';
         debugPrint('[Assistant] ai.done item=$itemId text=$transcript');
-        if (transcript.isNotEmpty) _replaceTranscript('assistant', transcript, 'ai:$itemId');
+        if (transcript.isNotEmpty) {
+          _replaceTranscript('assistant', transcript, 'ai:$itemId');
+          // Finalized assistant replica — replicate to the chat thread.
+          _chatLogger.addAssistant(transcript, source: 'voice');
+        }
         if (itemId.isNotEmpty) _lastAssistantItemId = 'ai:$itemId';
       } else if (type == 'conversation.item.created') {
         // User voice items are created in true conversation order, while the
@@ -812,6 +834,9 @@ class _AssistantScreenState extends State<AssistantScreen>
         if (transcript.isNotEmpty) {
           _replaceTranscript('user', transcript, 'user:$itemId', originalLang: lang);
           if (_mode == _AssistantMode.translator) _updateLanguagePair(lang);
+          // Whisper delivers the whole user turn at once — this is the final
+          // user replica for the item, replicate to the chat thread.
+          _chatLogger.addUser(transcript, source: 'voice');
         }
       } else if (type == 'response.audio.done') {
         _playBufferedAudio();
@@ -996,6 +1021,22 @@ class _AssistantScreenState extends State<AssistantScreen>
               final roomName = room?['roomName'] as String? ?? '';
               sl<MessengerRemoteDataSource>().sendCallInvite(convId, roomName);
 
+              // Call actually started — record the action bubble.
+              final callAction = AssistantAction(
+                type: AssistantActionType.callMade,
+                entityId: convId,
+                conversationId: convId,
+                title: calleeName.isNotEmpty ? 'Звонок: $calleeName' : 'Звонок',
+              );
+              _chatLogger.addAction(
+                role: 'assistant',
+                source: 'voice',
+                text: callAction.title,
+                action: callAction.toJson(),
+              );
+              // We're about to tear the session down for navigation — flush now.
+              unawaited(_chatLogger.flushNow());
+
               // Navigate FIRST, then cleanup — prevents mounted becoming false
               _navigatingToCall = true;
               final calleeEncoded = Uri.encodeComponent(calleeName);
@@ -1175,6 +1216,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   }
 
   Future<void> _endCall() async {
+    // Push any queued transcript replicas before the session tears down.
+    unawaited(_chatLogger.flushNow());
     // Stop audio immediately so user doesn't hear lingering speech
     await _player.stop();
     _audioBuffer.clear();

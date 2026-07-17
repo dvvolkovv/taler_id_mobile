@@ -181,6 +181,12 @@ class AssistantToolsExecutor {
         final convId = args['conversationId'] as String;
         final content = args['content'] as String;
         sl<MessengerRemoteDataSource>().sendMessage(convId, content);
+        onAction?.call(AssistantAction(
+          type: AssistantActionType.messageSent,
+          entityId: convId,
+          conversationId: convId,
+          title: 'Сообщение: ${content.length > 40 ? content.substring(0, 40) : content}',
+        ));
         output = jsonEncode({'ok': true, 'message': 'sent'});
       } else if (name == 'delete_last_own_message') {
         final convId = args['conversationId'] as String;
@@ -282,6 +288,16 @@ class AssistantToolsExecutor {
           'displayTime': displayTime,
           'createdBy': 'ASSISTANT',
         }, fromJson: (d) => d);
+        final createdEventId = (data is Map && data['id'] is String)
+            ? data['id'] as String
+            : null;
+        if (createdEventId != null) {
+          onAction?.call(AssistantAction(
+            type: AssistantActionType.eventCreated,
+            entityId: createdEventId,
+            title: args['title'] as String? ?? 'Событие',
+          ));
+        }
         output = jsonEncode(data);
       } else if (name == 'delete_event') {
         await client.delete('/calendar/${args['eventId']}');
@@ -308,6 +324,17 @@ class AssistantToolsExecutor {
           data: {'receiverId': args['userId']},
           fromJson: (d) => d,
         );
+        final receiverName = (data is Map)
+            ? (data['receiverName'] as String? ??
+                (data['receiver'] is Map
+                    ? (data['receiver'] as Map)['name'] as String?
+                    : null))
+            : null;
+        onAction?.call(AssistantAction(
+          type: AssistantActionType.contactAdded,
+          entityId: args['userId'] as String? ?? '',
+          title: receiverName ?? 'Контакт',
+        ));
         output = jsonEncode({'ok': true, 'data': data});
       } else if (name == 'get_contact_requests') {
         final data = await client.get<List<dynamic>>(
@@ -318,11 +345,27 @@ class AssistantToolsExecutor {
       } else if (name == 'respond_contact_request') {
         final requestId = args['requestId'] as String;
         final action = args['action'] as String;
-        await client.patch(
+        final res = await client.patch(
           '/messenger/contacts/requests/$requestId/$action',
           data: {},
           fromJson: (d) => d,
         );
+        if (action == 'accept') {
+          final requesterId = (res is Map)
+              ? (res['senderId'] as String? ?? res['requesterId'] as String?)
+              : null;
+          final requesterName = (res is Map)
+              ? (res['senderName'] as String? ??
+                  (res['sender'] is Map
+                      ? (res['sender'] as Map)['name'] as String?
+                      : null))
+              : null;
+          onAction?.call(AssistantAction(
+            type: AssistantActionType.contactAdded,
+            entityId: requesterId ?? requestId,
+            title: requesterName ?? 'Контакт',
+          ));
+        }
         output = jsonEncode({'ok': true, 'action': action});
       } else if (name == 'delete_contact') {
         await client.delete('/messenger/contacts/${args['userId']}');
