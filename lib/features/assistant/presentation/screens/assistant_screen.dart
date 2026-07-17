@@ -798,7 +798,11 @@ class _AssistantScreenState extends State<AssistantScreen>
         if (transcript.isNotEmpty) {
           _replaceTranscript('assistant', transcript, 'ai:$itemId');
           // Finalized assistant replica — replicate to the chat thread.
-          _chatLogger.addAssistant(transcript, source: 'voice');
+          // Translator mode is a pass-through of other people's speech —
+          // never persist it.
+          if (_mode != _AssistantMode.translator) {
+            _chatLogger.addAssistant(transcript, source: 'voice');
+          }
         }
         if (itemId.isNotEmpty) _lastAssistantItemId = 'ai:$itemId';
       } else if (type == 'conversation.item.created') {
@@ -818,9 +822,13 @@ class _AssistantScreenState extends State<AssistantScreen>
         // Voice-gate retracts foreign turns (YouTube, other people) with
         // conversation.item.delete — drop them from the visible transcript.
         final deletedId = event['item_id'] as String? ?? '';
-        if (deletedId.isNotEmpty && mounted) {
-          setState(() =>
-              _transcript.removeWhere((m) => m.itemId == 'user:$deletedId'));
+        if (deletedId.isNotEmpty) {
+          // Retracted foreign speech must not be persisted to the chat thread.
+          _chatLogger.dropByItemId(deletedId);
+          if (mounted) {
+            setState(() =>
+                _transcript.removeWhere((m) => m.itemId == 'user:$deletedId'));
+          }
         }
       } else if (type == 'conversation.item.input_audio_transcription.completed') {
         // User speech transcript (after whisper finishes)
@@ -835,8 +843,12 @@ class _AssistantScreenState extends State<AssistantScreen>
           _replaceTranscript('user', transcript, 'user:$itemId', originalLang: lang);
           if (_mode == _AssistantMode.translator) _updateLanguagePair(lang);
           // Whisper delivers the whole user turn at once — this is the final
-          // user replica for the item, replicate to the chat thread.
-          _chatLogger.addUser(transcript, source: 'voice');
+          // user replica for the item, replicate to the chat thread. Tag with
+          // the item id so a later voice-gate retraction can drop it before
+          // flush. Translator mode: never persist (foreign speech).
+          if (_mode != _AssistantMode.translator) {
+            _chatLogger.addUser(transcript, source: 'voice', itemId: itemId);
+          }
         }
       } else if (type == 'response.audio.done') {
         _playBufferedAudio();

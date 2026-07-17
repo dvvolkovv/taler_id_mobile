@@ -50,4 +50,18 @@ void main() {
     await logger.flushNow(); // success
     expect(calls, 2);
   });
+
+  test('dropByItemId removes queued entries and itemId is stripped from flush', () async {
+    final flushed = <List<Map<String, dynamic>>>[];
+    final logger = AssistantChatLogger(
+      flush: (entries) async => flushed.add(List.of(entries)),
+    );
+    logger.addUser('чужая речь', source: 'voice', itemId: 'item-1');
+    logger.addUser('своя речь', source: 'voice', itemId: 'item-2');
+    logger.dropByItemId('item-1');
+    await logger.flushNow();
+    expect(flushed.single, hasLength(1));
+    expect(flushed.single.single['text'], 'своя речь');
+    expect(flushed.single.single.containsKey('itemId'), isFalse);
+  });
 }

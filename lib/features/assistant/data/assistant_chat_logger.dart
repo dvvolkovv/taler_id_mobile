@@ -15,11 +15,25 @@ class AssistantChatLogger {
   Timer? _timer;
   bool _requeued = false;
 
-  void addUser(String text, {required String source}) =>
-      _add({'role': 'user', 'source': source, 'text': text});
+  void addUser(String text, {required String source, String? itemId}) => _add({
+        'role': 'user',
+        'source': source,
+        'text': text,
+        if (itemId != null) 'itemId': itemId,
+      });
 
-  void addAssistant(String text, {required String source}) =>
-      _add({'role': 'assistant', 'source': source, 'text': text});
+  void addAssistant(String text, {required String source, String? itemId}) =>
+      _add({
+        'role': 'assistant',
+        'source': source,
+        'text': text,
+        if (itemId != null) 'itemId': itemId,
+      });
+
+  /// Removes queued (not yet flushed) entries tagged with [itemId].
+  /// Used by the voice-gate: retracted foreign turns must not be persisted.
+  void dropByItemId(String itemId) =>
+      _queue.removeWhere((e) => e['itemId'] == itemId);
 
   void addAction({
     required String role,
@@ -38,7 +52,15 @@ class AssistantChatLogger {
   Future<void> flushNow() async {
     _timer?.cancel();
     if (_queue.isEmpty) return;
-    final batch = List<Map<String, dynamic>>.of(_queue);
+    // Strip the local-only itemId tag: the backend DTO whitelists fields and
+    // would reject unknown keys.
+    final batch = [
+      for (final e in _queue)
+        {
+          for (final entry in e.entries)
+            if (entry.key != 'itemId') entry.key: entry.value,
+        },
+    ];
     _queue.clear();
     try {
       await _flush(batch);
