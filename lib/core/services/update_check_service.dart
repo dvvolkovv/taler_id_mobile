@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:dio/dio.dart';
+import '../api/dio_client.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
 
@@ -59,18 +59,22 @@ class UpdateInfo {
 }
 
 class UpdateCheckService {
-  final _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  // Goes through the shared DioClient so the version check follows the same
+  // CIS failover (api.talerid.io → ru/ru2.talerid.io) as all other traffic.
+  // The previous raw Dio hit AppConfig.baseUrl directly: on DPI-blocked
+  // networks the whole app worked via the failover edge while this single
+  // request silently timed out — users never saw the update banner
+  // (reported 2026-07-17 on talerid 1.1.11).
+  final DioClient _client;
+
+  UpdateCheckService(this._client);
 
   Future<UpdateInfo?> checkForUpdate() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        '${AppConfig.baseUrl}/app/version',
+      final data = await _client.get<Map<String, dynamic>>(
+        '/app/version',
         queryParameters: {'flavor': AppConfig.flavor},
       );
-      final data = response.data!;
       final platform = Platform.isIOS ? 'ios' : 'android';
       final platformData = data[platform] as Map<String, dynamic>? ?? {};
       final urls = data['updateUrl'] as Map<String, dynamic>? ?? {};
