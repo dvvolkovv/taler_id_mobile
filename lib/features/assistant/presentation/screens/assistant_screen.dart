@@ -14,6 +14,7 @@ import '../../../voice_enrollment/presentation/bloc/voice_enrollment_event.dart'
 import '../../../voice_enrollment/presentation/bloc/voice_enrollment_state.dart';
 import '../../../voice_enrollment/presentation/widgets/owner_enrollment_sheet.dart';
 import 'package:audioplayers/audioplayers.dart';
+import '../../audio/pcm_gain.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -874,9 +875,13 @@ class _AssistantScreenState extends State<AssistantScreen>
     } catch (_) {}
   }
 
+  // OpenAI Realtime PCM is quiet on the in-call audio session; boost like
+  // the backend does for translator TTS (TRANSLATOR_GAIN).
+  static const double _playbackGain = 1.8;
+
   Future<void> _playBufferedAudio() async {
     if (_audioBuffer.isEmpty) return;
-    final pcm = Uint8List.fromList(_audioBuffer);
+    final pcm = amplifyPcm16(Uint8List.fromList(_audioBuffer), _playbackGain);
     _audioBuffer.clear();
     final wav = _buildWav(pcm, sampleRate: 24000, channels: 1);
     try {
