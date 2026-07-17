@@ -212,6 +212,16 @@ class AppLocalizationsRu extends AppLocalizations {
       'Пройдите верификацию для получения полного доступа к финансовым функциям экосистемы Taler.';
 
   @override
+  String get continueVerification => 'Продолжить верификацию';
+
+  @override
+  String get kycInProgress => 'Не завершена';
+
+  @override
+  String get kycInProgressDesc =>
+      'Вы начали верификацию, но не завершили её. Продолжите с того места, где остановились.';
+
+  @override
   String get startVerification => 'Пройти верификацию';
 
   @override
@@ -1617,6 +1627,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'Нет разрешения на сохранение. Проверьте настройки.';
+
+  @override
+  String get chatFileSaved => 'Файл сохранён';
 
   @override
   String get chatFileSaveError => 'Ошибка сохранения файла';

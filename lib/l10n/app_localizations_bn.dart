@@ -211,6 +211,16 @@ class AppLocalizationsBn extends AppLocalizations {
       'Taler ইকোসিস্টেমের আর্থিক বৈশিষ্ট্যগুলির সম্পূর্ণ অ্যাক্সেস আনলক করতে যাচাইকরণ সম্পূর্ণ করুন।';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'যাচাইকরণ শুরু করুন';
 
   @override
@@ -1616,6 +1626,9 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get chatNoSavePermission => 'সংরক্ষণের অনুমতি নেই। সেটিংস চেক করুন।';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'ফাইল সংরক্ষণের ত্রুটি';

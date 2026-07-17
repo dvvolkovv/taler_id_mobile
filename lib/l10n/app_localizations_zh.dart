@@ -207,6 +207,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get kycUnverifiedDesc => '完成验证以解锁 Taler 生态系统的全部金融功能。';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => '开始验证';
 
   @override
@@ -1586,6 +1596,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get chatNoSavePermission => '没有保存权限。请检查设置。';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => '文件保存错误';

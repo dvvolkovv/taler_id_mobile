@@ -212,6 +212,16 @@ class AppLocalizationsTa extends AppLocalizations {
       'Taler சூழல் நிதி அம்சங்களுக்கு முழு அணுகலை திறக்க சரிபார்ப்பை முடிக்கவும்.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'சரிபார்ப்பை தொடங்கவும்';
 
   @override
@@ -1626,6 +1636,9 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'சேமிக்க அனுமதி இல்லை. அமைப்புகளை சரிபார்க்கவும்.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'கோப்பு சேமிப்பு பிழை';

@@ -41,6 +41,9 @@ class NotesRepositoryImpl implements INotesRepository {
                   o.status == OutboxOpStatus.inflight))
           .map((o) => o.entityId)
           .toSet();
+      // Tombstones outlive the outbox op: after a DELETE drains, a stale
+      // server list (cache/replica lag) would otherwise resurrect the note.
+      final tombstoned = await _local.tombstonedIds();
 
       final remoteList = await _remote.getAll(limit: 200);
       final remoteIds = remoteList.map((m) => m['id'] as String).toSet();
@@ -48,6 +51,7 @@ class NotesRepositoryImpl implements INotesRepository {
       for (final r in remoteList) {
         final entity = _entityFromServerJson(r);
         if (inFlightIds.contains(entity.id)) continue;
+        if (tombstoned.contains(entity.id)) continue;
         final localNote = await _local.getById(entity.id);
         if (localNote != null && localNote.localPending) {
           // preserve local in-flight edits
@@ -154,7 +158,11 @@ class NotesRepositoryImpl implements INotesRepository {
     final pendingForThis = existingOps.where((o) => o.entityId == id).toList();
     OutboxOp? pendingCreate;
     for (final o in pendingForThis) {
-      if (o.op == OutboxOpKind.create) {
+      // Only a still-PENDING create is guaranteed not to have reached the
+      // server. An INFLIGHT create may already have landed — for that case we
+      // must fall through and enqueue a real DELETE, otherwise the note lives
+      // on the server forever and resurrects on refresh.
+      if (o.op == OutboxOpKind.create && o.status == OutboxOpStatus.pending) {
         pendingCreate = o;
         break;
       }
@@ -165,6 +173,7 @@ class NotesRepositoryImpl implements INotesRepository {
         await _outbox.remove(op.opId);
       }
       await _local.remove(id);
+      await _local.markTombstone(id);
       return;
     }
     // squash any pending update (now obsolete)
@@ -174,6 +183,7 @@ class NotesRepositoryImpl implements INotesRepository {
       }
     }
     await _local.remove(id);
+    await _local.markTombstone(id);
     await _outbox.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'notes',

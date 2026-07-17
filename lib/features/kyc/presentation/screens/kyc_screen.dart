@@ -65,7 +65,8 @@ class _KycScreenState extends State<KycScreen> {
     AppLocalizations l10n, {
     bool loading = false,
   }) {
-    final cfg = _getStatusConfig(status, l10n);
+    final inProgress = loaded?.inProgress ?? false;
+    final cfg = _getStatusConfig(status, l10n, inProgress: inProgress);
     final colors = AppColors.of(context);
 
     return RefreshIndicator(
@@ -172,11 +173,22 @@ class _KycScreenState extends State<KycScreen> {
                   const SizedBox(height: 16),
                 ],
 
-                // Action button
-                if (status == 'UNVERIFIED' || status == 'REJECTED')
+                // Action button. PENDING also gets a "continue" button — the
+                // wizard can always be reopened (it just shows the review
+                // status if the applicant is genuinely under review), so an
+                // abandoned session never dead-ends the user.
+                if (status == 'UNVERIFIED' || status == 'REJECTED' || status == 'PENDING')
                   _ActionButton(
-                    label: status == 'REJECTED' ? l10n.retryVerification : l10n.startVerification,
-                    icon: status == 'REJECTED' ? Icons.refresh_rounded : Icons.verified_user_outlined,
+                    label: status == 'REJECTED'
+                        ? l10n.retryVerification
+                        : (inProgress || status == 'PENDING')
+                            ? l10n.continueVerification
+                            : l10n.startVerification,
+                    icon: status == 'REJECTED'
+                        ? Icons.refresh_rounded
+                        : (inProgress || status == 'PENDING')
+                            ? Icons.play_arrow_rounded
+                            : Icons.verified_user_outlined,
                     color: cfg.color,
                     onTap: () => context.read<KycBloc>().add(KycStartRequested()),
                   ),
@@ -373,7 +385,7 @@ class _KycScreenState extends State<KycScreen> {
     );
   }
 
-  _StatusConfig _getStatusConfig(String status, AppLocalizations l10n) {
+  _StatusConfig _getStatusConfig(String status, AppLocalizations l10n, {bool inProgress = false}) {
     switch (status) {
       case 'VERIFIED':
         return _StatusConfig(icon: Icons.verified_rounded, color: const Color(0xFF22C55E), label: l10n.kycVerified, description: l10n.kycVerifiedDesc);
@@ -382,6 +394,9 @@ class _KycScreenState extends State<KycScreen> {
       case 'REJECTED':
         return _StatusConfig(icon: Icons.cancel_rounded, color: const Color(0xFFEF4444), label: l10n.kycRejected, description: l10n.kycRejectedDesc);
       default:
+        if (inProgress) {
+          return _StatusConfig(icon: Icons.edit_note_rounded, color: const Color(0xFFF59E0B), label: l10n.kycInProgress, description: l10n.kycInProgressDesc);
+        }
         return _StatusConfig(icon: Icons.person_outline_rounded, color: const Color(0xFF64748B), label: l10n.kycUnverified, description: l10n.kycUnverifiedDesc);
     }
   }

@@ -211,6 +211,16 @@ class AppLocalizationsPa extends AppLocalizations {
       'Taler ਪਰਿਵਾਰ ਦੇ ਵਿੱਤੀ ਫੀਚਰਾਂ ਤੱਕ ਪੂਰੀ ਪਹੁੰਚ ਖੋਲ੍ਹਣ ਲਈ ਤਸਦੀਕ ਪੂਰੀ ਕਰੋ।';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'ਤਸਦੀਕ ਸ਼ੁਰੂ ਕਰੋ';
 
   @override
@@ -1615,6 +1625,9 @@ class AppLocalizationsPa extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'ਸੰਭਾਲਣ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ। ਸੈਟਿੰਗਾਂ ਚੈੱਕ ਕਰੋ।';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'ਫਾਇਲ ਸੰਭਾਲਣ ਵਿੱਚ ਗਲਤੀ';

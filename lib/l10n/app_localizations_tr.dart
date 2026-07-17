@@ -211,6 +211,16 @@ class AppLocalizationsTr extends AppLocalizations {
       'Taler ekosisteminin finansal özelliklerine tam erişim sağlamak için doğrulamayı tamamlayın.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Doğrulamayı Başlat';
 
   @override
@@ -1617,6 +1627,9 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'Kaydetme izni yok. Ayarları kontrol edin.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'Dosya kaydetme hatası';

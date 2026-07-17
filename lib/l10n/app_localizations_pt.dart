@@ -212,6 +212,16 @@ class AppLocalizationsPt extends AppLocalizations {
       'Complete a verificação para desbloquear o acesso total aos recursos financeiros do ecossistema Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Iniciar Verificação';
 
   @override
@@ -1619,6 +1629,9 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'Sem permissão para salvar. Verifique as configurações.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'Erro ao salvar arquivo';

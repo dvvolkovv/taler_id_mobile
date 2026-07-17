@@ -63,7 +63,15 @@ class AudioIOSession {
     // setCategory must succeed — it tells iOS what we'll do (playAndRecord
     // + voiceChat enables AEC/AGC). Failure here means the audio subsystem
     // is in an unrecoverable state and we WANT to surface it.
-    try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker])
+    // .mixWithOthers from the very first acquire: without it there is a
+    // window between session start and Flutter's later enableCallAudioMix
+    // call where a rival VoIP ring (WhatsApp/Telegram) sees our session as
+    // exclusive and iOS tears it down (2026-07-17 parallel-call incident).
+    try session.setCategory(
+      .playAndRecord,
+      mode: .voiceChat,
+      options: [.mixWithOthers, .allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker]
+    )
     try? session.setPreferredSampleRate(sampleRate)
     try? session.setPreferredIOBufferDuration(0.02)
     // setActive(true) is best-effort: CallKit owns the audio session when

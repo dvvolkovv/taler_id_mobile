@@ -211,6 +211,16 @@ class AppLocalizationsVi extends AppLocalizations {
       'Hoàn thành xác minh để mở khóa quyền truy cập đầy đủ vào các tính năng tài chính của hệ sinh thái Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Bắt đầu xác minh';
 
   @override
@@ -1611,6 +1621,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get chatNoSavePermission => 'Không có quyền lưu. Kiểm tra cài đặt.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'Lỗi lưu tệp';

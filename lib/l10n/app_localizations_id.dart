@@ -212,6 +212,16 @@ class AppLocalizationsId extends AppLocalizations {
       'Selesaikan verifikasi untuk membuka akses penuh ke fitur keuangan ekosistem Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Mulai Verifikasi';
 
   @override
@@ -1615,6 +1625,9 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'Tidak ada izin untuk menyimpan. Periksa pengaturan.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'Kesalahan menyimpan file';

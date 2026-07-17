@@ -211,6 +211,16 @@ class AppLocalizationsFa extends AppLocalizations {
       'برای دسترسی کامل به ویژگی‌های مالی اکوسیستم Taler، تأیید را کامل کنید.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'شروع تأیید';
 
   @override
@@ -1612,6 +1622,9 @@ class AppLocalizationsFa extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'اجازه ذخیره وجود ندارد. تنظیمات را بررسی کنید.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'خطا در ذخیره فایل';

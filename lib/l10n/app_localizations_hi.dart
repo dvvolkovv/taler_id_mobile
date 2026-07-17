@@ -211,6 +211,16 @@ class AppLocalizationsHi extends AppLocalizations {
       'Taler पारिस्थितिकी तंत्र की वित्तीय विशेषताओं का पूर्ण उपयोग अनलॉक करने के लिए सत्यापन पूरा करें।';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'सत्यापन प्रारंभ करें';
 
   @override
@@ -1615,6 +1625,9 @@ class AppLocalizationsHi extends AppLocalizations {
   @override
   String get chatNoSavePermission =>
       'सहेजने की अनुमति नहीं है। सेटिंग्स जांचें।';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'फ़ाइल सहेजने में त्रुटि';

@@ -212,6 +212,16 @@ class AppLocalizationsHa extends AppLocalizations {
       'Kammala tabbatarwa don buɗe cikakken damar amfani da fasalolin kuɗi na tsarin Taler.';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => 'Fara Tabbatarwa';
 
   @override
@@ -1612,6 +1622,9 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String get chatNoSavePermission => 'Babu izinin ajiya. Duba saituna.';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'Kuskuren ajiye fayil';

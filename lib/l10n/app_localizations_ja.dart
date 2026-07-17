@@ -207,6 +207,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get kycUnverifiedDesc => 'Talerエコシステムの金融機能にフルアクセスするには、確認を完了してください。';
 
   @override
+  String get continueVerification => 'Continue Verification';
+
+  @override
+  String get kycInProgress => 'In progress';
+
+  @override
+  String get kycInProgressDesc =>
+      'You started verification but didn\'t finish it. Pick up right where you left off.';
+
+  @override
   String get startVerification => '確認を開始';
 
   @override
@@ -1589,6 +1599,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get chatNoSavePermission => '保存の権限がありません。設定を確認してください。';
+
+  @override
+  String get chatFileSaved => 'File saved';
 
   @override
   String get chatFileSaveError => 'ファイル保存エラー';
