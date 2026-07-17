@@ -198,7 +198,7 @@ Future<void> setupDependencies() async {
   await Hive.openBox<String>(ContactsLocalDataSource.boxName);
 
   // Assistant draft storage (Hive)
-  final assistantDraftBox = await Hive.openBox<String>('assistant_draft');
+  final assistantDraftBox = await Hive.openBox<String>(AssistantDraftStorage.boxName);
 
   // Favorites offline: cached SAVED-conversation id (Hive)
   await Hive.openBox<String>(SavedConversationIdCache.boxName);
