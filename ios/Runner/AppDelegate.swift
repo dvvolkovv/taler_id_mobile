@@ -3,6 +3,7 @@ import UIKit
 import AVFoundation
 import PushKit
 import Intents
+import CallKit
 import flutter_callkit_incoming
 
 // Phase 3 mesh voice: libopus is force-loaded into Runner via the local
@@ -19,6 +20,7 @@ import flutter_callkit_incoming
   private var orientationChannel: FlutterMethodChannel?
   private var voipRegistry: PKPushRegistry?
   private var videoEffectsPlugin: VideoEffectsPlugin?
+  private var callObserver: CXCallObserver?
   // Native ringback player for outgoing calls. audioplayers deactivates the
   // whole AVAudioSession (setActive(false)) whenever its last player stops,
   // which kills WebRTC audio if the callee joins mid-ring — the "can't hear
@@ -202,6 +204,15 @@ import flutter_callkit_incoming
       object: nil
     )
 
+    // Observe system-wide CallKit call state (WhatsApp/Telegram/phone). iOS
+    // sometimes never delivers interruption `.ended` after a rival VoIP call —
+    // the observer's hasEnded is the reliable signal to restore our audio
+    // session (2026-07-17: a parallel WhatsApp ring during a Taler ID call
+    // left the conversation broken until manual recovery).
+    let observer = CXCallObserver()
+    observer.setDelegate(self, queue: .main)
+    callObserver = observer
+
     // Register for VoIP push notifications via PushKit.
     // Store as instance property so the registry is not deallocated after this method returns.
     let registry = PKPushRegistry(queue: .main)
@@ -319,9 +330,11 @@ import flutter_callkit_incoming
             result(nil)
           }
         case "restoreVoiceChat":
-          // Restore .voiceChat mode after playback ends
+          // Restore .voiceChat mode after playback ends. Keep .mixWithOthers —
+          // this path runs mid-call, and dropping the mix flag re-opens the
+          // rival-VoIP preemption window (see enableCallAudioMix).
           do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.mixWithOthers, .allowBluetooth, .allowBluetoothA2DP])
             try session.setActive(true)
             result(nil)
           } catch {
@@ -539,5 +552,20 @@ extension AppDelegate: PKPushRegistryDelegate {
       // is now called before PushKit setup, but guard just in case.
       completion()
     }
+  }
+}
+
+extension AppDelegate: CXCallObserverDelegate {
+  /// Fires for every CallKit-visible call system-wide (ours and rival apps').
+  /// Scope: only act when a call ENDS while our session is marked interrupted
+  /// — that combination means a rival app's call (WhatsApp/Telegram/phone)
+  /// took the audio session and iOS may never send interruption `.ended`
+  /// (long-standing iOS bug). Our own calls never set audioInterrupted, so
+  /// this can't misfire on Taler ID call teardown.
+  func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
+    guard call.hasEnded, audioInterrupted else { return }
+    NSLog("[Audio] CXCallObserver: rival call ended — forcing session restore")
+    audioInterrupted = false
+    restoreAudioSessionAfterInterruption()
   }
 }
