@@ -15,28 +15,23 @@ import '../../../voice_enrollment/presentation/bloc/voice_enrollment_state.dart'
 import '../../../voice_enrollment/presentation/widgets/owner_enrollment_sheet.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
-import '../../../../core/agent/agent_client.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../notifications/notification_filter.dart';
-import '../../../notifications/notification_permission_service.dart';
-import '../../../notifications/notification_store.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
-import '../../../../core/services/update_check_service.dart';
 import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
 import '../../../billing/data/services/billing_event_bus.dart';
 import '../../../billing/data/services/voice_billing_bridge.dart';
-import '../../../billing/domain/repositories/billing_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 import '../../tools/assistant_system_prompt.dart';
+import '../../tools/assistant_tools_executor.dart';
 import '../../tools/assistant_tools_schema.dart';
 
 enum _CallState { idle, connecting, connected, error }
@@ -110,6 +105,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   // Reset on each new session via _connect().
   String? _agentConversationId;
 
+  // Tool execution (former _handleFunctionCall switch). Session-bound
+  // behaviors are wired back into this screen via AssistantSessionHooks.
+  late final AssistantToolsExecutor _toolsExecutor;
+
   // Incoming message listener
   StreamSubscription? _messageSub;
 
@@ -122,6 +121,44 @@ class _AssistantScreenState extends State<AssistantScreen>
   @override
   void initState() {
     super.initState();
+    _toolsExecutor = AssistantToolsExecutor(
+      hooks: AssistantSessionHooks(
+        endSession: () async {
+          // Send output first so AI can say goodbye, then disconnect after 2s
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) _endCall();
+          });
+          return jsonEncode({'status': 'ending'});
+        },
+        onPreferredNameChanged: (newName) {
+          if (mounted) {
+            setState(() {
+              _assistantName = newName;
+              _assistantNameFromProfile = true;
+            });
+          }
+        },
+        applyTheme: (theme) {
+          if (mounted) {
+            final mode = switch (theme) {
+              'dark' => ThemeMode.dark,
+              'system' => ThemeMode.system,
+              _ => ThemeMode.light,
+            };
+            TalerIdApp.setThemeMode(context, mode);
+          }
+        },
+        applyLanguage: (lang) {
+          if (mounted) {
+            TalerIdApp.setLocale(context, Locale(lang));
+          }
+        },
+        localeCode: () =>
+            mounted ? Localizations.localeOf(context).languageCode : 'ru',
+        getAgentConversationId: () => _agentConversationId,
+        setAgentConversationId: (id) => _agentConversationId = id,
+      ),
+    );
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -899,7 +936,6 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   Future<void> _handleFunctionCall(
       String callId, String name, String argsJson) async {
-    final client = sl<DioClient>();
     String output;
     try {
       // Translator mode switches — handled specially.
@@ -926,116 +962,8 @@ class _AssistantScreenState extends State<AssistantScreen>
         Future.microtask(() => _switchMode(_AssistantMode.normal));
         return;
       }
-      if (name == 'end_session') {
-        output = jsonEncode({'status': 'ending'});
-        // Send output first so AI can say goodbye, then disconnect after 2s
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) _endCall();
-        });
-      } else if (name == 'web_search') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final query = args['query'] as String? ?? '';
-        final data = await client.post<Map<String, dynamic>>(
-          '/assistant/web-search',
-          data: {'query': query},
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'set_preferred_name') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final newName = (args['name'] as String? ?? '').trim();
-        if (newName.isEmpty) {
-          output = jsonEncode({'error': 'empty_name'});
-        } else {
-          await client.put(
-            '/profile',
-            data: {'assistantName': newName},
-            fromJson: (d) => d,
-          );
-          if (mounted) {
-            setState(() {
-              _assistantName = newName;
-              _assistantNameFromProfile = true;
-            });
-          }
-          output = jsonEncode({'ok': true, 'name': newName});
-        }
-      } else if (name == 'get_profile') {
-        final data = await client.get(
-          '/profile',
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'update_profile') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final data = await client.put(
-          '/profile',
-          data: args,
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'get_sections') {
-        final data = await client.get<List<dynamic>>(
-          '/profile-sections',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'upsert_section') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final data = await client.put<Map<String, dynamic>>(
-          '/profile-sections',
-          data: {
-            'type': args['type'],
-            'content': {
-              'items': args['items'] ?? [],
-              if (args['freeText'] != null) 'freeText': args['freeText'],
-            },
-            if (args['visibility'] != null) 'visibility': args['visibility'],
-          },
-          fromJson: (d) => d as Map<String, dynamic>,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'delete_section') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await client.delete('/profile-sections/${args['type']}');
-        output = jsonEncode({'ok': true});
-      } else if (name == 'search_contacts') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final query = args['query'] as String? ?? '';
-        final data = await client.get<List<dynamic>>(
-          '/messenger/users/search?q=${Uri.encodeComponent(query)}',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'get_conversations') {
-        final data = await client.get<List<dynamic>>(
-          '/messenger/conversations',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        // Return essential fields including unread info
-        final slim = (data ?? []).map((c) {
-          final m = c as Map<String, dynamic>;
-          return {
-            'id': m['id'],
-            'otherUserName': m['otherUserName'],
-            'otherUserId': m['otherUserId'],
-            'type': m['type'],
-            'unreadCount': m['unreadCount'] ?? 0,
-            'lastMessageContent': m['lastMessageContent'],
-            'lastMessageSenderName': m['lastMessageSenderName'],
-          };
-        }).toList();
-        output = jsonEncode(slim);
-      } else if (name == 'get_messages') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final convId = args['conversationId'] as String;
-        final limit = args['limit'] as int? ?? 50;
-        final data = await client.get<Map<String, dynamic>>(
-          '/messenger/conversations/$convId/messages?limit=$limit',
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'start_call') {
+      if (name == 'start_call') {
+        final client = sl<DioClient>();
         final args = jsonDecode(argsJson) as Map<String, dynamic>;
         final convId = args['conversationId'] as String;
         final calleeName = args['calleeName'] as String? ?? '';
@@ -1098,532 +1026,11 @@ class _AssistantScreenState extends State<AssistantScreen>
           }
         }
         return; // Skip the default sendEvent below — already sent
-      } else if (name == 'send_message') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final convId = args['conversationId'] as String;
-        final content = args['content'] as String;
-        sl<MessengerRemoteDataSource>().sendMessage(convId, content);
-        output = jsonEncode({'ok': true, 'message': 'sent'});
-      } else if (name == 'delete_last_own_message') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final convId = args['conversationId'] as String;
-        final bloc = sl<MessengerBloc>();
-        final me = bloc.state.currentUserId;
-        final msgs = bloc.state.messages[convId] ?? const [];
-        final myMsgs = msgs.where((m) =>
-          m.senderId == me &&
-          !m.id.startsWith('temp_') &&
-          !m.id.startsWith('call_invite_') &&
-          !m.isSystem).toList();
-        if (me == null || myMsgs.isEmpty) {
-          output = jsonEncode({'ok': false, 'error': 'no own messages found in this conversation'});
-        } else {
-          final target = myMsgs.last;
-          bloc.add(DeleteMessage(
-            conversationId: convId,
-            messageId: target.id,
-            forEveryone: true,
-          ));
-          output = jsonEncode({
-            'ok': true,
-            'deletedMessageId': target.id,
-            'deletedContent': target.content.length > 60
-                ? '${target.content.substring(0, 60)}…'
-                : target.content,
-          });
-        }
-      } else if (name == 'get_notes') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final limit = args['limit'] as int? ?? 20;
-        final data = await client.get<dynamic>('/notes?limit=$limit');
-        output = jsonEncode(data);
-      } else if (name == 'create_note') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final data = await client.post('/notes', data: {
-          'title': args['title'] as String,
-          'content': args['content'] as String,
-          'source': 'ASSISTANT',
-        }, fromJson: (d) => d);
-        output = jsonEncode(data);
-      } else if (name == 'delete_note') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await client.delete('/notes/${args['noteId']}');
-        output = jsonEncode({'ok': true});
-      } else if (name == 'get_events') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final today = DateTime.now();
-        final startOfDay = DateTime(today.year, today.month, today.day);
-        // Convert from/to to UTC for backend query
-        String fromStr = args['from'] as String? ?? startOfDay.toUtc().toIso8601String();
-        String toStr = args['to'] as String? ?? today.add(const Duration(days: 30)).toUtc().toIso8601String();
-        if (!fromStr.endsWith('Z')) {
-          final f = DateTime.tryParse(fromStr);
-          if (f != null) fromStr = f.toUtc().toIso8601String();
-        }
-        if (!toStr.endsWith('Z')) {
-          final t = DateTime.tryParse(toStr);
-          if (t != null) toStr = t.toUtc().toIso8601String();
-        }
-        final data = await client.get<dynamic>('/calendar?from=$fromStr&to=$toStr');
-        // Convert UTC times to local for the AI to read correct times
-        if (data is List) {
-          for (final item in data) {
-            if (item is Map<String, dynamic>) {
-              final startUtc = DateTime.tryParse(item['startAt'] as String? ?? '');
-              if (startUtc != null) item['startAt'] = startUtc.toLocal().toIso8601String();
-              final endUtc = DateTime.tryParse(item['endAt'] as String? ?? '');
-              if (endUtc != null) item['endAt'] = endUtc.toLocal().toIso8601String();
-            }
-          }
-        }
-        output = jsonEncode(data);
-      } else if (name == 'create_event') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        // Convert local time to UTC for correct storage
-        String startAtUtc = args['startAt'] as String? ?? '';
-        String displayTime = startAtUtc; // keep original for push display
-        if (startAtUtc.isNotEmpty && !startAtUtc.endsWith('Z')) {
-          final local = DateTime.tryParse(startAtUtc);
-          if (local != null) {
-            displayTime = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-            startAtUtc = local.toUtc().toIso8601String();
-          }
-        }
-        String? reminderUtc;
-        if (args['reminderAt'] != null) {
-          final r = DateTime.tryParse(args['reminderAt'] as String);
-          if (r != null) reminderUtc = r.toUtc().toIso8601String();
-        }
-        String? endUtc;
-        if (args['endAt'] != null) {
-          final e = DateTime.tryParse(args['endAt'] as String);
-          if (e != null) endUtc = e.toUtc().toIso8601String();
-        }
-        final data = await client.post('/calendar', data: {
-          'title': args['title'],
-          'description': args['description'],
-          'type': args['type'],
-          'startAt': startAtUtc,
-          if (endUtc != null) 'endAt': endUtc,
-          if (reminderUtc != null) 'reminderAt': reminderUtc,
-          if (args['contactIds'] != null) 'contactIds': args['contactIds'],
-          'displayTime': displayTime,
-          'createdBy': 'ASSISTANT',
-        }, fromJson: (d) => d);
-        output = jsonEncode(data);
-      } else if (name == 'delete_event') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await client.delete('/calendar/${args['eventId']}');
-        output = jsonEncode({'ok': true});
-      } else if (name == 'get_contacts') {
-        final data = await client.get<List<dynamic>>(
-          '/messenger/conversations',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        final contacts = (data ?? [])
-            .where((c) => (c as Map<String, dynamic>)['type'] == 'DIRECT')
-            .map((c) {
-          final m = c as Map<String, dynamic>;
-          return {
-            'userId': m['otherUserId'],
-            'name': m['otherUserName'],
-            'conversationId': m['id'],
-          };
-        }).toList();
-        output = jsonEncode(contacts);
-      } else if (name == 'send_contact_request') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final data = await client.post(
-          '/messenger/contacts/request',
-          data: {'receiverId': args['userId']},
-          fromJson: (d) => d,
-        );
-        output = jsonEncode({'ok': true, 'data': data});
-      } else if (name == 'get_contact_requests') {
-        final data = await client.get<List<dynamic>>(
-          '/messenger/contacts/requests',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'respond_contact_request') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final requestId = args['requestId'] as String;
-        final action = args['action'] as String;
-        await client.patch(
-          '/messenger/contacts/requests/$requestId/$action',
-          data: {},
-          fromJson: (d) => d,
-        );
-        output = jsonEncode({'ok': true, 'action': action});
-      } else if (name == 'delete_contact') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await client.delete('/messenger/contacts/${args['userId']}');
-        output = jsonEncode({'ok': true});
-      } else if (name == 'block_contact') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final userId = args['userId'] as String;
-        final action = args['action'] as String;
-        if (action == 'block') {
-          await client.post('/messenger/contacts/$userId/block', data: {}, fromJson: (d) => d);
-        } else {
-          await client.delete('/messenger/contacts/$userId/block');
-        }
-        output = jsonEncode({'ok': true, 'action': action});
-      } else if (name == 'get_call_history') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final limit = args['limit'] as int? ?? 20;
-        final data = await client.get<dynamic>(
-          '/voice/call-history?limit=$limit',
-          fromJson: (d) => d,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'get_sessions') {
-        final data = await client.get<List<dynamic>>(
-          '/auth/sessions',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        output = jsonEncode(data);
-      } else if (name == 'terminate_session') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        await client.delete('/auth/sessions/${args['sessionId']}');
-        output = jsonEncode({'ok': true});
-      } else if (name == 'create_group') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final data = await client.post(
-          '/messenger/conversations/group',
-          data: {
-            'name': args['name'],
-            'memberIds': args['memberIds'],
-          },
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'manage_group_members') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final convId = args['conversationId'] as String;
-        final userId = args['userId'] as String;
-        final action = args['action'] as String;
-        if (action == 'add') {
-          await client.post(
-            '/messenger/conversations/$convId/members',
-            data: {'userId': userId},
-            fromJson: (d) => d,
-          );
-        } else {
-          await client.delete('/messenger/conversations/$convId/members/$userId');
-        }
-        output = jsonEncode({'ok': true, 'action': action});
-      } else if (name == 'get_tenants') {
-        final data = await client.get<List<dynamic>>(
-          '/tenant',
-          fromJson: (d) => d as List<dynamic>,
-        );
-        final slim = (data ?? []).map((t) {
-          final m = t as Map<String, dynamic>;
-          return {
-            'id': m['id'],
-            'name': m['name'],
-            'role': m['role'],
-            'membersCount': m['membersCount'],
-          };
-        }).toList();
-        output = jsonEncode(slim);
-      } else if (name == 'get_kyc_status') {
-        final data = await client.get(
-          '/kyc/status',
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        output = jsonEncode(data);
-      } else if (name == 'react_to_message') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        sl<MessengerRemoteDataSource>().reactToMessage(
-          args['conversationId'] as String,
-          args['messageId'] as String,
-          args['emoji'] as String,
-        );
-        output = jsonEncode({'ok': true});
-      } else if (name == 'forward_message') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        sl<MessengerRemoteDataSource>().sendMessage(
-          args['targetConversationId'] as String,
-          args['content'] as String,
-        );
-        output = jsonEncode({'ok': true, 'message': 'forwarded'});
-      } else if (name == 'get_settings') {
-        final storage = sl<SecureStorageService>();
-        final theme = await storage.getThemeMode() ?? 'light';
-        final lang = await storage.getLanguage() ?? 'ru';
-        final biometric = await storage.isBiometricEnabled;
-        final pin = await storage.isPinEnabled;
-        output = jsonEncode({
-          'theme': theme,
-          'language': lang,
-          'biometricEnabled': biometric,
-          'pinEnabled': pin,
-        });
-      } else if (name == 'set_theme') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final theme = args['theme'] as String;
-        final storage = sl<SecureStorageService>();
-        await storage.saveThemeMode(theme);
-        if (mounted) {
-          final mode = switch (theme) {
-            'dark' => ThemeMode.dark,
-            'system' => ThemeMode.system,
-            _ => ThemeMode.light,
-          };
-          TalerIdApp.setThemeMode(context, mode);
-        }
-        output = jsonEncode({'ok': true, 'theme': theme});
-      } else if (name == 'set_language') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final lang = args['language'] as String;
-        final storage = sl<SecureStorageService>();
-        await storage.saveLanguage(lang);
-        if (mounted) {
-          TalerIdApp.setLocale(context, Locale(lang));
-        }
-        output = jsonEncode({'ok': true, 'language': lang});
-      } else if (name == 'set_biometric') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final enabled = args['enabled'] as bool;
-        if (enabled) {
-          // Enabling requires device authentication — not safe to do from assistant
-          output = jsonEncode({'ok': false, 'error': 'Enabling biometrics requires user authentication. Please go to Settings to enable it.'});
-        } else {
-          await sl<SecureStorageService>().setBiometricEnabled(false);
-          output = jsonEncode({'ok': true, 'biometricEnabled': false});
-        }
-      } else if (name == 'disable_pin') {
-        await sl<SecureStorageService>().clearPin();
-        output = jsonEncode({'ok': true, 'pinEnabled': false});
-      } else if (name == 'ask_analyst') {
-        final args = jsonDecode(argsJson);
-        final question = args['question'] as String? ?? '';
-        // 1. Get or create the AI Analyst conversation
-        final convRes = await client.post<Map<String, dynamic>>(
-          '/messenger/ai-analyst',
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        final convId = convRes['conversationId'] as String;
-        // 2. Send the question as a user message via Socket.io
-        sl<MessengerRemoteDataSource>().sendMessage(convId, question);
-        output = jsonEncode({
-          'ok': true,
-          'conversationId': convId,
-          'message': 'Task sent to AI Analyst. The result will appear in the AI Analyst chat in Messages.',
-        });
-      } else if (name == 'get_analyst_result') {
-        final res = await client.get<Map<String, dynamic>>(
-          '/ai-analyst/latest',
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
-        );
-        final text = res['text'] as String?;
-        final createdAt = res['createdAt'] as String?;
-        if (text != null && text.isNotEmpty) {
-          output = jsonEncode({
-            'ok': true,
-            'result': text.length > 500 ? '${text.substring(0, 500)}...' : text,
-            'createdAt': createdAt,
-          });
-        } else {
-          output = jsonEncode({
-            'ok': true,
-            'result': null,
-            'message': 'No analyst response yet. The task may still be processing.',
-          });
-        }
-      } else if (name == 'get_balance') {
-        try {
-          final balance = await sl<BillingRepository>().getBalance();
-          output = jsonEncode({
-            'balanceMicroTal': balance.balanceMicroTal,
-            'balancePlanck': balance.balancePlanck,
-            'recentTxCount': balance.recentTx.length,
-          });
-        } catch (e) {
-          output = jsonEncode({
-            'error': 'failed_to_get_balance',
-            'details': e.toString(),
-          });
-        }
-      } else if (name == 'get_packages') {
-        try {
-          final packages = await sl<BillingRepository>().getPackages();
-          final list = packages.map((p) {
-            final highlights =
-                p.highlights['ru'] ?? p.highlights['en'] ?? const <String>[];
-            final label = p.label['ru'] ?? p.label['en'] ?? p.id;
-            return {
-              'id': p.id,
-              'label': label,
-              'priceEur': p.priceEurCents / 100.0,
-              'highlights': highlights,
-            };
-          }).toList();
-          output = jsonEncode(list);
-        } catch (e) {
-          output = jsonEncode({
-            'error': 'failed_to_get_packages',
-            'details': e.toString(),
-          });
-        }
-      } else if (name == 'list_recent_transactions') {
-        try {
-          final args = jsonDecode(argsJson) as Map<String, dynamic>;
-          var limit = (args['limit'] as int?) ?? 10;
-          if (limit < 1) limit = 1;
-          if (limit > 50) limit = 50;
-          final txs = await sl<BillingRepository>().getTransactions();
-          final sliced = txs.take(limit).map((t) => {
-                'type': t.type,
-                'amountPlanck': t.amountPlanck,
-                'featureKey': t.featureKey,
-                'createdAt': t.createdAt,
-              }).toList();
-          output = jsonEncode(sliced);
-        } catch (e) {
-          output = jsonEncode({
-            'error': 'failed_to_list_transactions',
-            'details': e.toString(),
-          });
-        }
-      } else if (name == 'toggle_feature') {
-        try {
-          final args = jsonDecode(argsJson) as Map<String, dynamic>;
-          final featureKey = args['featureKey'] as String?;
-          final enabled = args['enabled'] as bool?;
-          if (featureKey == null || enabled == null) {
-            output = jsonEncode({
-              'error': 'invalid_args',
-              'details': 'featureKey and enabled are required',
-            });
-          } else {
-            final toggle = await sl<BillingRepository>()
-                .setToggle(featureKey, enabled);
-            output = jsonEncode({
-              'ok': true,
-              'featureKey': toggle.featureKey,
-              'enabled': toggle.enabled,
-            });
-          }
-        } catch (e) {
-          output = jsonEncode({
-            'error': 'failed_to_toggle',
-            'details': e.toString(),
-          });
-        }
-      } else if (name == 'get_release_notes') {
-        try {
-          final args = jsonDecode(argsJson) as Map<String, dynamic>;
-          final requested = (args['version'] as String?)?.trim();
-          final info = await sl<UpdateCheckService>().checkForUpdate();
-          if (info == null) {
-            output = jsonEncode({'error': 'version_endpoint_unreachable'});
-          } else {
-            final localeCode = mounted
-                ? Localizations.localeOf(context).languageCode
-                : 'ru';
-            final pick = (requested == null || requested.isEmpty)
-                ? info.latestVersion
-                : requested;
-            ReleaseEntry? match;
-            for (final r in info.releases) {
-              if (r.version == pick) {
-                match = r;
-                break;
-              }
-            }
-            output = jsonEncode({
-              'currentVersion': info.currentVersion,
-              'latestVersion': info.latestVersion,
-              'updateAvailable': info.isAvailable,
-              'requestedVersion': pick,
-              'found': match != null,
-              if (match != null) ...{
-                'version': match.version,
-                'date': match.date,
-                'notes': match.notesFor(localeCode),
-              },
-              'recentVersions': info.releases
-                  .take(5)
-                  .map((r) => {
-                        'version': r.version,
-                        'date': r.date,
-                      })
-                  .toList(),
-            });
-          }
-        } catch (e) {
-          output = jsonEncode({
-            'error': 'failed_to_get_release_notes',
-            'details': e.toString(),
-          });
-        }
-      } else if (name == 'agent_task') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final goal = args['goal'] as String? ?? '';
-        if (goal.isEmpty) {
-          output = jsonEncode({'error': 'goal is required'});
-        } else {
-          try {
-            final agent = sl<AgentClient>();
-            final result = await agent.runAgent(
-              goal: goal,
-              conversationId: _agentConversationId,
-            );
-            _agentConversationId = result.conversationId ?? _agentConversationId;
-            output = jsonEncode({
-              'finalText': result.finalText,
-              'aborted': result.aborted,
-            });
-          } catch (e) {
-            debugPrint('[Assistant] agent_task error: $e');
-            output = jsonEncode({'error': e.toString()});
-          }
-        }
-      } else if (name == 'messenger_read_recent') {
-        final args = argsJson.isEmpty
-            ? <String, dynamic>{}
-            : jsonDecode(argsJson) as Map<String, dynamic>;
-        final filter = NotificationFilter(
-          app: args['app'] as String?,
-          sender: args['sender'] as String?,
-          sinceMinutes: (args['since_minutes'] as num?)?.toInt() ?? 120,
-          limit: (args['limit'] as num?)?.toInt() ?? 20,
-        );
-        final granted = await sl<NotificationPermissionService>().isGranted();
-        if (!granted) {
-          output = jsonEncode({
-            'error': 'notification_access_not_granted',
-            'hint': 'Скажи пользователю что нужно дать доступ к уведомлениям',
-          });
-        } else {
-          final items = await sl<NotificationStore>().recent(filter);
-          output = jsonEncode({
-            'items': items.map((n) => n.toToolJson()).toList(),
-          });
-        }
-      } else if (name == 'messenger_reply') {
-        final args = jsonDecode(argsJson) as Map<String, dynamic>;
-        final key = args['notification_key'] as String? ?? '';
-        final text = args['text'] as String? ?? '';
-        if (key.isEmpty || text.isEmpty) {
-          output = jsonEncode({
-            'ok': false,
-            'error': 'missing notification_key or text',
-          });
-        } else {
-          try {
-            await sl<NotificationStore>().replyOnKey(key, text);
-            output = jsonEncode({'ok': true});
-          } catch (e) {
-            output = jsonEncode({'ok': false, 'error': e.toString()});
-          }
-        }
-      } else {
-        output = jsonEncode({'error': 'unknown function $name'});
       }
+      final args = argsJson.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(argsJson) as Map<String, dynamic>;
+      output = await _toolsExecutor.execute(name, args);
     } catch (e) {
       output = jsonEncode({'error': e.toString()});
     }
