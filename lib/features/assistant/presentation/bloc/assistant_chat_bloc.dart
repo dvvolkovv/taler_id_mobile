@@ -127,6 +127,8 @@ class AssistantChatBloc extends Bloc<AssistantChatEvent, AssistantChatState> {
 
   Future<void> _onTextSent(
       AssistantChatTextSent e, Emitter<AssistantChatState> emit) async {
+    // Default bloc transformer is concurrent — drop sends while a turn runs.
+    if (state.status == AssistantChatStatus.sending) return;
     emit(state.copyWith(status: AssistantChatStatus.sending));
     try {
       var result = await _api.textTurn(
@@ -156,6 +158,13 @@ class AssistantChatBloc extends Bloc<AssistantChatEvent, AssistantChatState> {
           pendingAssistantMessage: result.assistantMessage,
           toolResults: toolResults,
         );
+      }
+      if (result.status == AssistantTurnStatus.toolCalls) {
+        // Loop cap hit — nothing was persisted server-side; surface it.
+        emit(state.copyWith(
+            status: AssistantChatStatus.error,
+            error: 'tool_loop_limit'));
+        return;
       }
       // Persisted messages arrive via socket new_message (deduped in _onSocket).
       emit(state.copyWith(status: AssistantChatStatus.ready));
