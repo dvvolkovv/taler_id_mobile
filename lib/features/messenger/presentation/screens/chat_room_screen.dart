@@ -3294,10 +3294,16 @@ class _MessageBubbleState extends State<_MessageBubble> {
               _PollWidget(message: widget.message, isMe: widget.isMe)
             else if (widget.message.content.startsWith('[CONTACT]'))
               _ContactCardWidget(content: widget.message.content)
-            else if (widget.isAiAnalyst)
+            else if (widget.isAiAnalyst ||
+                (widget.message.isSystem &&
+                    widget.message.content.contains('[ACTION:')))
               // AI bot responses are markdown — render with
               // flutter_markdown for headers, bold, code blocks, lists,
               // clickable links, and action buttons [ACTION:xxx].
+              // The isSystem+[ACTION:] fallback covers the case where the
+              // conversation entity isn't in bloc state yet (desktop opens a
+              // chat pane before the list loads → conv?.type == null and
+              // informer buttons degraded to raw text).
               AiBotContent(
                 content: widget.message.content,
                 conversationId: widget.message.conversationId,
@@ -3639,6 +3645,37 @@ class _MessageBubbleState extends State<_MessageBubble> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.chatSaving), duration: const Duration(seconds: 1)),
       );
+
+      if (PlatformUtils.instance.isDesktop) {
+        // Desktop: Gal (gallery) has no macOS/Windows/Linux implementation —
+        // use a native "Save as" dialog instead and write the bytes ourselves
+        // (file_picker's saveFile only returns the chosen path on desktop).
+        final ext = fileType == 'image'
+            ? '.jpg'
+            : fileType == 'video'
+                ? '.mp4'
+                : '';
+        final fileName = widget.message.fileName ??
+            'taler_${DateTime.now().millisecondsSinceEpoch}$ext';
+        final safeName = fileName.replaceAll(RegExp(r'[^\w\.\-]'), '_');
+        final res = await Dio().get<List<int>>(
+          url,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final bytes = Uint8List.fromList(res.data ?? const []);
+        final savePath = await FilePicker.platform.saveFile(
+          fileName: safeName,
+        );
+        if (savePath == null) return; // user cancelled — not an error
+        await File(savePath).writeAsBytes(bytes);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('${l10n.chatFileSaved}: $savePath'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
 
       if (fileType == 'image' || fileType == 'video') {
         // Download to temp, then save to gallery

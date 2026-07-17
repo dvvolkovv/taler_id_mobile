@@ -1632,6 +1632,9 @@ class AppLocalizationsTe extends AppLocalizations {
       'సేవ్ చేయడానికి అనుమతి లేదు. సెట్టింగ్స్ తనిఖీ చేయండి.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'ఫైల్ సేవ్ లోపం';
 
   @override

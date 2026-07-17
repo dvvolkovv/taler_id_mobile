@@ -1601,6 +1601,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatNoSavePermission => '保存の権限がありません。設定を確認してください。';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'ファイル保存エラー';
 
   @override

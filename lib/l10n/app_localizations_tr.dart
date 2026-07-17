@@ -1629,6 +1629,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Kaydetme izni yok. Ayarları kontrol edin.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Dosya kaydetme hatası';
 
   @override

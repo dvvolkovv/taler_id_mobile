@@ -1603,6 +1603,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatNoSavePermission => '저장 권한이 없습니다. 설정을 확인하세요.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => '파일 저장 오류';
 
   @override

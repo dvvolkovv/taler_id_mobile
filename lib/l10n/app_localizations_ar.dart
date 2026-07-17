@@ -1618,6 +1618,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatNoSavePermission => 'لا يوجد إذن للحفظ. تحقق من الإعدادات.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'خطأ في حفظ الملف';
 
   @override

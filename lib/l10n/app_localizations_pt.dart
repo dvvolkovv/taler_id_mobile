@@ -1631,6 +1631,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Sem permissão para salvar. Verifique as configurações.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Erro ao salvar arquivo';
 
   @override

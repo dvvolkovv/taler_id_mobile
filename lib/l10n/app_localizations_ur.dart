@@ -1629,6 +1629,9 @@ class AppLocalizationsUr extends AppLocalizations {
       'محفوظ کرنے کی اجازت نہیں ہے۔ سیٹنگز چیک کریں۔';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'فائل محفوظ کرنے میں خرابی';
 
   @override

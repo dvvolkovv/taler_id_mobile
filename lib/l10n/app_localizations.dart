@@ -3202,6 +3202,12 @@ abstract class AppLocalizations {
   /// **'No permission to save. Check settings.'**
   String get chatNoSavePermission;
 
+  /// No description provided for @chatFileSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'File saved'**
+  String get chatFileSaved;
+
   /// No description provided for @chatFileSaveError.
   ///
   /// In en, this message translates to:

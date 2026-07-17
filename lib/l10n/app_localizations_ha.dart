@@ -1624,6 +1624,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get chatNoSavePermission => 'Babu izinin ajiya. Duba saituna.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Kuskuren ajiye fayil';
 
   @override

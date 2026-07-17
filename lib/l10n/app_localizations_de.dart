@@ -1643,6 +1643,9 @@ class AppLocalizationsDe extends AppLocalizations {
       'Keine Berechtigung zum Speichern. Einstellungen prüfen.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Fehler beim Speichern der Datei';
 
   @override

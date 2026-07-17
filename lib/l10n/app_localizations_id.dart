@@ -1627,6 +1627,9 @@ class AppLocalizationsId extends AppLocalizations {
       'Tidak ada izin untuk menyimpan. Periksa pengaturan.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Kesalahan menyimpan file';
 
   @override

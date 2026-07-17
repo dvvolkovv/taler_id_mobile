@@ -1624,6 +1624,9 @@ class AppLocalizationsFa extends AppLocalizations {
       'اجازه ذخیره وجود ندارد. تنظیمات را بررسی کنید.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'خطا در ذخیره فایل';
 
   @override

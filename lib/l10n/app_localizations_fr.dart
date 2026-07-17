@@ -1640,6 +1640,9 @@ class AppLocalizationsFr extends AppLocalizations {
       'Pas d\'autorisation pour enregistrer. Vérifiez les paramètres.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Erreur d\'enregistrement du fichier';
 
   @override

@@ -1627,6 +1627,9 @@ class AppLocalizationsPa extends AppLocalizations {
       'ਸੰਭਾਲਣ ਦੀ ਇਜਾਜ਼ਤ ਨਹੀਂ। ਸੈਟਿੰਗਾਂ ਚੈੱਕ ਕਰੋ।';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'ਫਾਇਲ ਸੰਭਾਲਣ ਵਿੱਚ ਗਲਤੀ';
 
   @override

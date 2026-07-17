@@ -709,6 +709,7 @@
   "chatSaving": "Сохранение...",
   "chatSavedToGallery": "Сохранено в галерею",
   "chatNoSavePermission": "Нет разрешения на сохранение. Проверьте настройки.",
+  "chatFileSaved": "Файл сохранён",
   "chatFileSaveError": "Ошибка сохранения файла",
   "chatDeleteMessage": "Удалить сообщение",
   "chatDeleteForMe": "Удалить у меня",

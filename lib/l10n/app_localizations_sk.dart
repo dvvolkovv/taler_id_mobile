@@ -1628,6 +1628,9 @@ class AppLocalizationsSk extends AppLocalizations {
       'Nie je povolenie na uloženie. Skontrolujte nastavenia.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Chyba pri ukladaní súboru';
 
   @override

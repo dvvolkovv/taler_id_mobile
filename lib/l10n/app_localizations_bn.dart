@@ -1628,6 +1628,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get chatNoSavePermission => 'সংরক্ষণের অনুমতি নেই। সেটিংস চেক করুন।';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'ফাইল সংরক্ষণের ত্রুটি';
 
   @override

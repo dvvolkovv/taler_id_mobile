@@ -1623,6 +1623,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get chatNoSavePermission => 'Không có quyền lưu. Kiểm tra cài đặt.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'Lỗi lưu tệp';
 
   @override

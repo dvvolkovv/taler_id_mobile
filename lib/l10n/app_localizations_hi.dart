@@ -1627,6 +1627,9 @@ class AppLocalizationsHi extends AppLocalizations {
       'सहेजने की अनुमति नहीं है। सेटिंग्स जांचें।';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'फ़ाइल सहेजने में त्रुटि';
 
   @override

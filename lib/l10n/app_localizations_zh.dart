@@ -1598,6 +1598,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatNoSavePermission => '没有保存权限。请检查设置。';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => '文件保存错误';
 
   @override

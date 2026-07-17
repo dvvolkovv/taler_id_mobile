@@ -1629,6 +1629,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Нет разрешения на сохранение. Проверьте настройки.';
 
   @override
+  String get chatFileSaved => 'Файл сохранён';
+
+  @override
   String get chatFileSaveError => 'Ошибка сохранения файла';
 
   @override

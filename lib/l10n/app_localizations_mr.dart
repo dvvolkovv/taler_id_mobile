@@ -1626,6 +1626,9 @@ class AppLocalizationsMr extends AppLocalizations {
       'जतन करण्याची परवानगी नाही. सेटिंग्ज तपासा.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'फाइल जतन त्रुटी';
 
   @override

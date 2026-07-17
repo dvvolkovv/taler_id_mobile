@@ -1638,6 +1638,9 @@ class AppLocalizationsTa extends AppLocalizations {
       'சேமிக்க அனுமதி இல்லை. அமைப்புகளை சரிபார்க்கவும்.';
 
   @override
+  String get chatFileSaved => 'File saved';
+
+  @override
   String get chatFileSaveError => 'கோப்பு சேமிப்பு பிழை';
 
   @override

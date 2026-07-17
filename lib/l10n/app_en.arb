@@ -709,6 +709,7 @@
   "chatSaving": "Saving...",
   "chatSavedToGallery": "Saved to gallery",
   "chatNoSavePermission": "No permission to save. Check settings.",
+  "chatFileSaved": "File saved",
   "chatFileSaveError": "File save error",
   "chatDeleteMessage": "Delete message",
   "chatDeleteForMe": "Delete for me",
