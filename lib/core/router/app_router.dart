@@ -392,6 +392,7 @@ final appRouter = GoRouter(
                   sharedFiles: extra?['sharedFiles'] as List?,
                   topicId: extra?['topicId'] as String?,
                   topicTitle: extra?['topicTitle'] as String?,
+                  highlightMessageId: extra?['highlightMessageId'] as String?,
                 );
               },
               routes: [
