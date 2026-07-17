@@ -158,6 +158,9 @@ import '../../features/billing/presentation/bloc/packages_bloc.dart';
 import '../../features/billing/presentation/bloc/toggles_bloc.dart';
 import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 
+// Assistant Chat
+import '../../features/assistant/data/assistant_chat_api.dart';
+
 // Presence (online/last-seen)
 import '../../features/presence/data/datasources/presence_remote_datasource.dart';
 import '../../features/presence/data/repositories/presence_repository_impl.dart';
@@ -773,6 +776,9 @@ Future<void> setupDependencies() async {
 
   // Video effects (background blur / virtual backgrounds)
   sl.registerLazySingleton(() => VideoEffectsService());
+
+  // Assistant Chat API
+  sl.registerLazySingleton(() => AssistantChatApi(sl<DioClient>()));
 
   // BLoCs
   sl.registerFactory(() => AuthBloc(authRepository: sl<IAuthRepository>()));
