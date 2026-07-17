@@ -38,6 +38,7 @@ void main() {
     PathProviderPlatform.instance = _FakePathProvider(tempDir.path);
     Hive.init(tempDir.path);
     await Hive.openBox<String>(NotesLocalDataSource.boxName);
+    await Hive.openBox<String>(NotesLocalDataSource.tombstoneBoxName);
     await Hive.openBox<String>(OutboxQueue.boxName);
     local = NotesLocalDataSource();
     queue = OutboxQueue();

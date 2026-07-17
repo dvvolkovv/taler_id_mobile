@@ -5,8 +5,37 @@ import '../../domain/entities/note_entity.dart';
 
 class NotesLocalDataSource {
   static const String boxName = 'notes_local';
+  static const String tombstoneBoxName = 'notes_tombstones';
+  static const Duration tombstoneTtl = Duration(hours: 24);
 
   Box<String> get _box => Hive.box<String>(boxName);
+  Box<String> get _tombstones => Hive.box<String>(tombstoneBoxName);
+
+  /// Remember that [id] was deleted locally. `refresh()` must never upsert a
+  /// tombstoned id back, even after its DELETE outbox op has drained — the
+  /// server list can lag behind the delete (stale cache/replica) and would
+  /// otherwise resurrect the note (user report 2026-07-17: "не с первого
+  /// раза удаляются заметки").
+  Future<void> markTombstone(String id) async {
+    await _tombstones.put(id, DateTime.now().toUtc().toIso8601String());
+  }
+
+  /// Live tombstones; expired ones (older than [tombstoneTtl]) are GC'd on
+  /// read. After the TTL the server copy wins again — if the DELETE never
+  /// reached the server, the note legitimately comes back.
+  Future<Set<String>> tombstonedIds() async {
+    final now = DateTime.now().toUtc();
+    final out = <String>{};
+    for (final k in _tombstones.keys.cast<String>().toList()) {
+      final ts = DateTime.tryParse(_tombstones.get(k) ?? '');
+      if (ts == null || now.difference(ts) > tombstoneTtl) {
+        await _tombstones.delete(k);
+        continue;
+      }
+      out.add(k);
+    }
+    return out;
+  }
 
   Future<List<NoteEntity>> getAll() async {
     final list = _box.keys

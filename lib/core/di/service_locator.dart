@@ -189,6 +189,7 @@ Future<void> setupDependencies() async {
   // Notes offline: outbox queue + local note store (Hive)
   await Hive.openBox<String>(OutboxQueue.boxName);
   await Hive.openBox<String>(NotesLocalDataSource.boxName);
+  await Hive.openBox<String>(NotesLocalDataSource.tombstoneBoxName);
   await Hive.openBox<String>(CalendarLocalDataSource.boxName);
   await Hive.openBox<String>(ContactsLocalDataSource.boxName);
 
