@@ -547,10 +547,11 @@ void main() {
       await tester.pumpFor(const Duration(seconds: 2));
 
       {
-        // Tap "Найти канал" ListTile in the bottom sheet
-        final findChannelTile = find.textContaining('Найти канал');
+        // Tap the discover-channels ListTile by its icon — locale-agnostic
+        // (ru «Найти канал» / en "Find channel"); text match flaked 3×.
+        final findChannelTile = find.byIcon(Icons.explore_rounded);
         expect(findChannelTile, findsOneWidget,
-            reason: '"Найти канал" tile should be in the new-chat bottom sheet');
+            reason: 'discover-channels tile (explore icon) should be in the new-chat bottom sheet');
         if (findChannelTile.evaluate().isNotEmpty) {
           await tester.tap(findChannelTile.first, warnIfMissed: false);
           await tester.pumpFor(const Duration(seconds: 2));
