@@ -36,6 +36,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 import '../../data/assistant_chat_api.dart';
 import '../../data/assistant_chat_logger.dart';
+import '../../data/assistant_instructions_repository.dart';
 import '../../domain/assistant_action.dart';
 import '../../domain/pending_dedupe.dart';
 import '../../tools/assistant_system_prompt.dart';
@@ -222,6 +223,10 @@ class _AssistantScreenState extends State<AssistantScreen>
         await _startRecording();
       }
     });
+    // Warm up the server-side system prompt (fire-and-forget: fills
+    // _serverPromptBody so the first session can use the server body without
+    // ever delaying connect). Post-frame because Localizations needs context.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshServerPrompt());
     // Listen for wake word trigger while already on this screen
     AssistantScreen.connectNotifier.addListener(_onWakeWordTrigger);
     // Auto-connect if triggered by wake word
@@ -481,11 +486,45 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
-  String _systemPrompt(String locale) => assistantSystemPrompt(
+  /// Static prompt body fetched from the server (`/assistant/instructions`)
+  /// plus the locale it belongs to. Filled asynchronously by
+  /// [_refreshServerPrompt]; while null (or locale-mismatched) the baked-in
+  /// prompt is used as offline fallback.
+  String? _serverPromptBody;
+  String? _serverPromptLocale;
+
+  /// Kicks an async refresh of the server prompt body — never blocks the
+  /// caller, so session connect is not delayed waiting for network.
+  void _refreshServerPrompt() {
+    if (!mounted) return;
+    final locale = Localizations.localeOf(context).languageCode;
+    sl<AssistantInstructionsRepository>().get(locale).then((body) {
+      if (body != null && mounted) {
+        _serverPromptBody = body;
+        _serverPromptLocale = locale;
+      }
+    });
+  }
+
+  String _systemPrompt(String locale) {
+    // Kick an async refresh so the next session picks up server updates;
+    // this call itself stays synchronous.
+    _refreshServerPrompt();
+    final body = _serverPromptBody;
+    if (body != null && _serverPromptLocale == locale) {
+      return composeAssistantPrompt(
+        body: body,
         locale: locale,
         preferredName: _assistantName,
         nameFromProfile: _assistantNameFromProfile,
       );
+    }
+    return assistantSystemPrompt(
+      locale: locale,
+      preferredName: _assistantName,
+      nameFromProfile: _assistantNameFromProfile,
+    );
+  }
 
   static String _translatorPrompt() {
     return 'YOU ARE A LIVE TRANSLATION MACHINE. NOT AN ASSISTANT. NOT A CHATBOT.\n\n'

@@ -161,6 +161,7 @@ import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 // Assistant Chat
 import '../../features/assistant/data/assistant_chat_api.dart';
 import '../../features/assistant/data/assistant_draft_storage.dart';
+import '../../features/assistant/data/assistant_instructions_repository.dart';
 
 // Presence (online/last-seen)
 import '../../features/presence/data/datasources/presence_remote_datasource.dart';
@@ -199,6 +200,17 @@ Future<void> setupDependencies() async {
 
   // Assistant draft storage (Hive)
   final assistantDraftBox = await Hive.openBox<String>(AssistantDraftStorage.boxName);
+
+  // Assistant server-side instructions cache (Hive) — DioClient is registered
+  // later in this function; lazy singleton resolves it on first use.
+  final assistantInstructionsBox =
+      await Hive.openBox<String>(AssistantInstructionsRepository.boxName);
+  sl.registerLazySingleton(
+    () => AssistantInstructionsRepository(
+      sl<DioClient>(),
+      assistantInstructionsBox,
+    ),
+  );
 
   // Favorites offline: cached SAVED-conversation id (Hive)
   await Hive.openBox<String>(SavedConversationIdCache.boxName);
