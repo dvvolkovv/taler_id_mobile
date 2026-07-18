@@ -94,6 +94,15 @@ class AssistantToolsExecutor {
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
         );
         output = jsonEncode(data);
+        final citations = (data['citations'] as List?)?.cast<String>();
+        if (citations != null && citations.isNotEmpty) {
+          onAction?.call(AssistantAction(
+            type: AssistantActionType.webLink,
+            entityId: citations.first,
+            title:
+                'Найдено: ${query.length > 40 ? query.substring(0, 40) : query}',
+          ));
+        }
       } else if (name == 'set_preferred_name') {
         final newName = (args['name'] as String? ?? '').trim();
         if (newName.isEmpty) {

@@ -10,6 +10,7 @@ import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../messenger/domain/entities/message_entity.dart';
 import '../../domain/assistant_action.dart';
 import 'assistant_action_bubble.dart';
+import 'linkified_text.dart';
 
 /// Single message row of the assistant text chat: assistant messages are
 /// left-aligned on a surface-variant bubble, user messages right-aligned on
@@ -68,10 +69,27 @@ class AssistantChatMessageRow extends StatelessWidget {
               ),
               const SizedBox(height: 6),
             ],
-            SelectableText(
-              message.content,
-              style: TextStyle(color: textColor, fontSize: 15, height: 1.3),
-            ),
+            if (isAssistant)
+              // Assistant text may carry URLs — render them tappable.
+              SelectableText.rich(
+                TextSpan(
+                  children: linkifiedSpans(
+                    message.content,
+                    TextStyle(color: textColor, fontSize: 15, height: 1.3),
+                    TextStyle(
+                      color: scheme.primary,
+                      fontSize: 15,
+                      height: 1.3,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+              )
+            else
+              SelectableText(
+                message.content,
+                style: TextStyle(color: textColor, fontSize: 15, height: 1.3),
+              ),
             if (action != null) ...[
               const SizedBox(height: 8),
               AssistantActionBubble(action: action, onTap: onActionTap),
