@@ -4,7 +4,8 @@ enum AssistantActionType {
   analystReply('analyst_reply'),
   callMade('call_made'),
   contactAdded('contact_added'),
-  channelPost('channel_post');
+  channelPost('channel_post'),
+  webLink('web_link');
 
   const AssistantActionType(this.wire);
   final String wire;

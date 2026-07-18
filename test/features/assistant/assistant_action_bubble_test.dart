@@ -23,4 +23,21 @@ void main() {
     await tester.tap(find.byType(AssistantActionBubble));
     expect(tapped?.entityId, 'evt-1');
   });
+
+  testWidgets('renders web_link action with link icon', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: AssistantActionBubble(
+          action: const AssistantAction(
+            type: AssistantActionType.webLink,
+            entityId: 'https://example.com/t',
+            title: 'Билеты',
+          ),
+          onTap: (_) {},
+        ),
+      ),
+    ));
+    expect(find.text('Билеты'), findsOneWidget);
+    expect(find.byIcon(Icons.link), findsOneWidget);
+  });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/utils/constants.dart';
 import '../../domain/assistant_action.dart';
 
@@ -22,6 +23,7 @@ class AssistantActionBubble extends StatelessWidget {
     AssistantActionType.callMade: Icons.call,
     AssistantActionType.contactAdded: Icons.person_add_alt,
     AssistantActionType.channelPost: Icons.campaign_outlined,
+    AssistantActionType.webLink: Icons.link,
   };
 
   @override
@@ -91,5 +93,11 @@ Future<bool> navigateToAssistantAction(
     case AssistantActionType.channelPost:
       context.push('${RouteConstants.messenger}/${a.entityId}');
       return true;
+    case AssistantActionType.webLink:
+      final uri = Uri.tryParse(a.entityId);
+      if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
+        return false;
+      }
+      return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 }
