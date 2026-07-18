@@ -27,8 +27,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/core/theme/widgets.dart' show GlassCard;
-import 'package:taler_id_mobile/features/assistant/presentation/screens/assistant_screen.dart'
-    show AssistantScreen;
+import 'package:taler_id_mobile/features/assistant/presentation/widgets/assistant_chat_feed.dart'
+    show AssistantChatFeed;
+import 'package:taler_id_mobile/features/assistant/presentation/widgets/assistant_input_bar.dart'
+    show AssistantInputBar;
 import 'package:taler_id_mobile/features/call_history/presentation/screens/call_history_screen.dart'
     show ParticipantTile;
 import 'package:taler_id_mobile/main.dart' as app;
@@ -79,23 +81,14 @@ extension PumpHelper on WidgetTester {
     return false;
   }
 
-  /// Открывает таб через секционную навигацию. Иконки секций (те же IconData,
-  /// что у орбитальных кругов) теперь есть прямо на чат-хоуме (AssistantNavBar)
-  /// — сначала ищем их напрямую; fallback — voice-session экран
-  /// (/dashboard/assistant/session) с орбитальными кругами.
+  /// Открывает таб через орбитальную навигацию: иконки секций живут прямо
+  /// на орбитальном хоуме ассистента (нав-круги вокруг логотипа).
   Future<bool> openTab(IconData icon) async {
-    if (find.byIcon(icon).evaluate().isEmpty) {
-      // Fallback: с чат-хоума заходим на voice-session экран (кнопка-микрофон).
-      if (find.byIcon(Icons.mic_none).evaluate().isNotEmpty) {
-        await tap(find.byIcon(Icons.mic_none).first, warnIfMissed: false);
-        await pumpFor(const Duration(seconds: 2));
-      }
-      await waitFor(find.byIcon(icon), timeout: const Duration(seconds: 10));
-    }
+    await waitFor(find.byIcon(icon), timeout: const Duration(seconds: 10));
     return safeTap(find.byIcon(icon));
   }
 
-  /// Возвращает на ассистента (чат-хоум) через home FAB или back arrow.
+  /// Возвращает на ассистента (орбитальный хоум) через home FAB или back arrow.
   Future<void> goHome() async {
     // Try home FAB first (visible on all non-assistant routes)
     if (find.byIcon(Icons.home_rounded).evaluate().isNotEmpty) {
@@ -192,9 +185,9 @@ void main() {
           hasLogin = true;
           break;
         }
-        // Check if already on assistant chat screen (tab root)
-        if (find.byType(AssistantScreen).evaluate().isNotEmpty) {
-          debugPrint('[TEST] Already on dashboard (assistant chat)');
+        // Check if already on assistant screen (orbital nav)
+        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) {
+          debugPrint('[TEST] Already on dashboard (orbital nav)');
           break;
         }
       }
@@ -252,7 +245,7 @@ void main() {
       while (DateTime.now().isBefore(reachDeadline)) {
         await tester.pump(const Duration(milliseconds: 400));
 
-        if (find.byType(AssistantScreen).evaluate().isNotEmpty) {
+        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) {
           hasDashboard = true;
           break;
         }
@@ -301,88 +294,42 @@ void main() {
         if (tappedAny) continue;
       }
 
-      // ── 4. Wait for dashboard (assistant chat tab root) ─────────────
-      // The assistant tab root is now the text chat screen.
+      // ── 4. Wait for dashboard (orbital nav assistant screen) ────────
+      // The assistant tab root is the orbital home again — detect the
+      // Messages circle icon.
       if (!hasDashboard) {
         hasDashboard = await tester.waitFor(
-          find.byType(AssistantScreen),
+          find.byIcon(Icons.chat_bubble_outline_rounded),
           timeout: const Duration(seconds: 30),
         );
       }
-      expect(hasDashboard, isTrue, reason: 'Dashboard (assistant chat) should appear after login');
-      debugPrint('[TEST] Dashboard loaded with assistant chat as home');
+      expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
+      debugPrint('[TEST] Dashboard loaded with orbital navigation');
 
-      // ── 4b. Screen: Assistant chat (tab root) ──────────────────────
-      expect(find.byType(AssistantScreen), findsOneWidget,
-          reason: 'Assistant chat screen should be the tab root');
-
-      // Wait for history load: spinner → empty hint / messages / retry.
-      final feedDeadline = DateTime.now().add(const Duration(seconds: 30));
-      while (DateTime.now().isBefore(feedDeadline)) {
-        await tester.pump(const Duration(milliseconds: 300));
-        final spinner = find.descendant(
-          of: find.byType(AssistantScreen),
-          matching: find.byType(CircularProgressIndicator),
-        );
-        if (spinner.evaluate().isEmpty) break;
+      // ── 4b. Orbital home sanity: 7 nav circles + center logo ───────
+      for (final icon in const [
+        Icons.chat_bubble_outline_rounded,
+        Icons.call_outlined,
+        Icons.calendar_month_outlined,
+        Icons.sticky_note_2_outlined,
+        Icons.people_outline,
+        Icons.person_outline,
+        Icons.settings_outlined,
+      ]) {
+        expect(find.byIcon(icon), findsOneWidget,
+            reason: 'Orbital nav circle $icon missing on assistant home');
       }
-      expect(find.byType(ErrorWidget), findsNothing,
-          reason: 'Assistant chat screen crashed on load');
-      debugPrint('[TEST] ✓ Assistant chat feed loaded');
-
-      // Type into the chat input (no crash expected).
-      final chatInput = find.descendant(
-        of: find.byType(AssistantScreen),
-        matching: find.byType(TextField),
+      final centerLogo = find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage).assetName.contains('app_icon'),
       );
-      expect(chatInput, findsOneWidget,
-          reason: 'Assistant chat input TextField not found');
-      await tester.tap(chatInput.first, warnIfMissed: false);
-      await tester.pump();
-      await tester.enterText(chatInput.first, 'интеграционный тест');
-      await tester.pump();
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpFor(const Duration(seconds: 1));
-      expect(tester.takeException(), isNull,
-          reason: 'Typing into assistant chat input must not throw');
-      debugPrint('[TEST] ✓ Assistant chat input accepts text');
-
-      // Send the turn (real backend call, same style as login). Tolerant:
-      // we wait for the typing indicator to clear but do NOT require a
-      // reply bubble — only assert the screen did not crash.
-      if (await tester.safeTap(find.byIcon(Icons.send_rounded))) {
-        debugPrint('[TEST] Assistant turn sent — waiting (tolerant, ≤30s)');
-        final turnDeadline = DateTime.now().add(const Duration(seconds: 30));
-        while (DateTime.now().isBefore(turnDeadline)) {
-          await tester.pump(const Duration(milliseconds: 500));
-          final typing = find.descendant(
-            of: find.byType(AssistantScreen),
-            matching: find.byType(CircularProgressIndicator),
-          );
-          if (typing.evaluate().isEmpty) break;
-        }
-        expect(find.byType(ErrorWidget), findsNothing,
-            reason: 'Assistant chat crashed during/after text turn');
-        debugPrint('[TEST] ✓ Assistant text turn completed without crash');
-      }
-
-      // Mic button → old voice-session screen (orbital nav home). Idle on
-      // mobile — no session auto-connect, no OpenAI cost.
-      await tester.safeTap(find.byIcon(Icons.mic_none));
-      final hasVoiceScreen = await tester.waitFor(
-        find.byType(AssistantScreen),
-        timeout: const Duration(seconds: 10),
-      );
-      expect(hasVoiceScreen, isTrue,
-          reason: 'Mic button should open the voice-session AssistantScreen');
-      expect(find.byType(ErrorWidget), findsNothing,
-          reason: 'Voice-session screen crashed');
-      debugPrint('[TEST] ✓ Mic button opens voice-session screen');
+      expect(centerLogo, findsOneWidget,
+          reason: 'Center assistant logo missing on orbital home');
+      debugPrint('[TEST] ✓ Orbital home renders 7 nav circles + center logo');
 
       // ── 5. Screen: Messages ────────────────────────────────────────
-      // Orbital circles are visible right here on the session screen;
-      // openTab() finds them (and re-opens the session screen when we come
-      // back from a tab to the chat home).
       await tester.openTab(Icons.chat_bubble_outline_rounded);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed');
@@ -662,6 +609,89 @@ void main() {
       }
 
       await tester.goHome();
+
+      // ── 13b. Assistant voice window: center tap → session feed ─────
+      // On the orbital home, tapping the center logo starts the voice
+      // session (billing preflight → optional voice-owner enrollment sheet
+      // → WS proxy → mic). The connected view embeds the persistent chat
+      // feed (AssistantChatFeed) + text input (AssistantInputBar).
+      //
+      // This section runs LAST so a session stuck in error state cannot
+      // break tab navigation. It is tolerant to backend/OpenAI flakes:
+      // if the session doesn't reach the connected view within the
+      // timeout we log and skip (orbital home was already hard-asserted
+      // in 4b); if it connects we assert feed + input bar and end the
+      // session via the logo tap, verifying the orbital home returns.
+      debugPrint('[TEST] Starting assistant voice-window section');
+      final homeLogo = find.byWidgetPredicate(
+        (w) =>
+            w is Image &&
+            w.image is AssetImage &&
+            (w.image as AssetImage).assetName.contains('app_icon'),
+      );
+      expect(homeLogo, findsOneWidget,
+          reason: 'Orbital center logo not found before session tap');
+      await tester.tap(homeLogo.first, warnIfMissed: false);
+      await tester.pumpFor(const Duration(seconds: 2));
+
+      bool sessionConnected = false;
+      final vwDeadline = DateTime.now().add(const Duration(seconds: 40));
+      while (DateTime.now().isBefore(vwDeadline)) {
+        await tester.pump(const Duration(milliseconds: 400));
+        if (find.byType(AssistantChatFeed).evaluate().isNotEmpty) {
+          sessionConnected = true;
+          break;
+        }
+        // Voice-owner enrollment sheet (first-time accounts) — «Отмена» is
+        // non-fatal: the backend gating fails open and the session proceeds.
+        final cancelBtn = find.text('Отмена');
+        if (cancelBtn.evaluate().isNotEmpty) {
+          debugPrint('[TEST] Owner-enrollment sheet detected — cancelling');
+          await tester.tap(cancelBtn.first, warnIfMissed: false);
+          await tester.pumpFor(const Duration(seconds: 1));
+          continue;
+        }
+        // Session error state — no point waiting further.
+        if (find.byIcon(Icons.error_outline).evaluate().isNotEmpty) {
+          debugPrint('[TEST] Voice session entered error state');
+          break;
+        }
+      }
+
+      if (sessionConnected) {
+        expect(find.byType(AssistantChatFeed), findsOneWidget,
+            reason: 'Chat feed should render inside the voice window');
+        expect(find.byType(AssistantInputBar), findsOneWidget,
+            reason: 'Input bar should render inside the voice window');
+        expect(find.byType(ErrorWidget), findsNothing,
+            reason: 'Voice window crashed after connect');
+        debugPrint('[TEST] ✓ Voice window connected — feed + input bar visible');
+
+        // Let the session settle a moment, then end it: the animated logo
+        // in the bottom control row taps through to _endCall.
+        await tester.pumpFor(const Duration(seconds: 2));
+        final endLogo = find.byWidgetPredicate(
+          (w) =>
+              w is Image &&
+              w.image is AssetImage &&
+              (w.image as AssetImage).assetName.contains('app_icon'),
+        );
+        if (endLogo.evaluate().isNotEmpty) {
+          await tester.tap(endLogo.first, warnIfMissed: false);
+          await tester.pumpFor(const Duration(seconds: 3));
+        }
+        final backHome = await tester.waitFor(
+          find.byIcon(Icons.chat_bubble_outline_rounded),
+          timeout: const Duration(seconds: 15),
+        );
+        expect(backHome, isTrue,
+            reason: 'Orbital home should return after ending the session');
+        debugPrint('[TEST] ✓ Session ended — orbital home restored');
+      } else {
+        debugPrint(
+            '[TEST] Voice session did not reach connected view (billing/OpenAI '
+            'in CI) — tolerated; orbital home was verified in 4b');
+      }
 
       // ── 14. Final check ────────────────────────────────────────────
       expect(find.byType(ErrorWidget), findsNothing, reason: 'App has ErrorWidget at the end');
