@@ -733,7 +733,12 @@ class _AssistantScreenState extends State<AssistantScreen>
       if (idx >= 0) {
         _transcript[idx] = _transcript[idx].copyWith(text: _transcript[idx].text + delta);
       } else {
-        _transcript.add(_TranscriptMessage(role: role, text: delta, itemId: itemId));
+        _transcript.add(_TranscriptMessage(
+          role: role,
+          text: delta,
+          itemId: itemId,
+          fromTranslator: _mode == _AssistantMode.translator,
+        ));
       }
     });
     _scrollTranscriptToBottom();
@@ -752,6 +757,7 @@ class _AssistantScreenState extends State<AssistantScreen>
           text: text,
           itemId: itemId,
           originalLang: originalLang,
+          fromTranslator: _mode == _AssistantMode.translator,
         ));
       }
     });
@@ -1312,8 +1318,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   List<PendingReplica> _pendingReplicas(List<MessageEntity> messages) =>
       _transcript
           .where((m) =>
+              !m.fromTranslator &&
               (m.role == 'user' || m.role == 'assistant') &&
               m.text.trim().isNotEmpty &&
+              m.text != '…' &&
               !replicaAlreadyPersisted(m.text, messages))
           .map((m) => PendingReplica(role: m.role, text: m.text, itemId: m.itemId))
           .toList();
@@ -2541,12 +2549,16 @@ class _TranscriptMessage {
   final String? itemId;
   final String? originalLang; // ISO code, set for user items in translator mode
   final String? pairedItemId; // itemId of assistant translation that pairs with this user item
+  // Translator replicas are never persisted to the thread (logger skips them),
+  // so they must not surface as "pending" bubbles in the normal-mode feed.
+  final bool fromTranslator;
   const _TranscriptMessage({
     required this.role,
     required this.text,
     this.itemId,
     this.originalLang,
     this.pairedItemId,
+    this.fromTranslator = false,
   });
   _TranscriptMessage copyWith({
     String? text,
@@ -2559,5 +2571,6 @@ class _TranscriptMessage {
         itemId: itemId,
         originalLang: originalLang ?? this.originalLang,
         pairedItemId: pairedItemId ?? this.pairedItemId,
+        fromTranslator: fromTranslator,
       );
 }
