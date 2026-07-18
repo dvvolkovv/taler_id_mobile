@@ -1564,6 +1564,42 @@ abstract class AppLocalizations {
   /// **'Assistant'**
   String get tabAssistant;
 
+  /// No description provided for @assistantChatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message the assistant'**
+  String get assistantChatHint;
+
+  /// No description provided for @assistantActionUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Item is no longer available'**
+  String get assistantActionUnavailable;
+
+  /// No description provided for @assistantTyping.
+  ///
+  /// In en, this message translates to:
+  /// **'Assistant is thinking…'**
+  String get assistantTyping;
+
+  /// No description provided for @assistantEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask anything — by voice or text'**
+  String get assistantEmptyHint;
+
+  /// No description provided for @assistantToolLoopError.
+  ///
+  /// In en, this message translates to:
+  /// **'The assistant couldn\'t complete the request'**
+  String get assistantToolLoopError;
+
+  /// No description provided for @assistantError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again'**
+  String get assistantError;
+
   /// No description provided for @assistantConnecting.
   ///
   /// In en, this message translates to:

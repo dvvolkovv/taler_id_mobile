@@ -758,6 +758,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get tabAssistant => 'Ассистент';
 
   @override
+  String get assistantChatHint => 'Напишите ассистенту';
+
+  @override
+  String get assistantActionUnavailable => 'Элемент недоступен';
+
+  @override
+  String get assistantTyping => 'Ассистент думает…';
+
+  @override
+  String get assistantEmptyHint => 'Спросите что угодно — голосом или текстом';
+
+  @override
+  String get assistantToolLoopError => 'Ассистент не смог завершить запрос';
+
+  @override
+  String get assistantError => 'Что-то пошло не так. Попробуйте ещё раз';
+
+  @override
   String get assistantConnecting => 'Подключение…';
 
   @override

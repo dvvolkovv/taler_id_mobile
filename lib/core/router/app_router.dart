@@ -17,6 +17,7 @@ import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/profile/presentation/screens/edit_profile_screen.dart';
 import '../../features/profile/presentation/screens/ai_twin_screen.dart';
+import '../../features/assistant/presentation/screens/assistant_chat_screen.dart';
 import '../../features/assistant/presentation/screens/assistant_screen.dart';
 import '../../features/contacts/presentation/screens/contacts_screen.dart';
 import '../../features/notes/presentation/screens/notes_screen.dart';
@@ -281,7 +282,13 @@ final appRouter = GoRouter(
       routes: [
         GoRoute(
           path: RouteConstants.assistant,
-          builder: (_, __) => const AssistantScreen(),
+          builder: (_, __) => const AssistantChatScreen(),
+          routes: [
+            GoRoute(
+              path: 'session',
+              builder: (_, __) => const AssistantScreen(),
+            ),
+          ],
         ),
         GoRoute(
           path: RouteConstants.contacts,
