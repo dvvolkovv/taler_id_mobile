@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -14,14 +12,14 @@ import '../../../../main.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/message_entity.dart';
 import '../../data/assistant_chat_api.dart';
-import '../../data/assistant_draft_storage.dart';
 import '../../domain/assistant_action.dart';
 import '../../tools/assistant_system_prompt.dart';
 import '../../tools/assistant_tools_executor.dart';
 import '../../tools/assistant_tools_schema.dart';
 import '../bloc/assistant_chat_bloc.dart';
 import '../widgets/assistant_action_bubble.dart';
-import '../widgets/assistant_chat_message_row.dart';
+import '../widgets/assistant_chat_feed.dart';
+import '../widgets/assistant_input_bar.dart';
 import '../widgets/assistant_nav_bar.dart';
 
 /// Text chat with the assistant: persisted history, text turns with tool
@@ -36,8 +34,6 @@ class AssistantChatScreen extends StatefulWidget {
 
 class _AssistantChatScreenState extends State<AssistantChatScreen> {
   late final AssistantChatBloc _bloc;
-  late final TextEditingController _ctrl;
-  Timer? _draftTimer;
   bool _uploading = false;
 
   /// agent_task conversation continuity while this screen is alive
@@ -47,7 +43,6 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   @override
   void initState() {
     super.initState();
-    _ctrl = TextEditingController(text: sl<AssistantDraftStorage>().read() ?? '');
     _bloc = AssistantChatBloc(
       api: sl<AssistantChatApi>(),
       executor: AssistantToolsExecutor(
@@ -102,27 +97,8 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
 
   @override
   void dispose() {
-    _draftTimer?.cancel();
-    _ctrl.dispose();
     _bloc.close();
     super.dispose();
-  }
-
-  void _onChanged(String text) {
-    _draftTimer?.cancel();
-    _draftTimer = Timer(const Duration(milliseconds: 500),
-        () => sl<AssistantDraftStorage>().save(text));
-  }
-
-  void _send() {
-    final text = _ctrl.text.trim();
-    if (text.isEmpty || _bloc.state.status == AssistantChatStatus.sending) {
-      return;
-    }
-    _bloc.add(AssistantChatTextSent(text));
-    _ctrl.clear();
-    _draftTimer?.cancel();
-    sl<AssistantDraftStorage>().clear();
   }
 
   Future<void> _attachFile() async {
@@ -225,189 +201,30 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
                     ScaffoldMessenger.of(context)
                         .showSnackBar(SnackBar(content: Text(msg)));
                   },
-                  builder: (context, state) {
-                    if (state.status == AssistantChatStatus.initial ||
-                        state.status == AssistantChatStatus.loading) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (state.messages.isEmpty &&
-                        state.status == AssistantChatStatus.error) {
-                      // History never loaded — offer retry instead of a blank list.
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(l10n.assistantError,
-                                textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            OutlinedButton(
-                              onPressed: () => context
-                                  .read<AssistantChatBloc>()
-                                  .add(const AssistantChatStarted()),
-                              child: const Icon(Icons.refresh),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    if (state.messages.isEmpty &&
-                        state.status == AssistantChatStatus.ready) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Text(
-                            l10n.assistantEmptyHint,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.6),
-                              fontSize: 15,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    final sending =
-                        state.status == AssistantChatStatus.sending;
-                    final messages = state.messages;
-                    return ListView.builder(
-                      reverse: true,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: messages.length + (sending ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        if (sending && index == 0) {
-                          return _TypingRow(text: l10n.assistantTyping);
-                        }
-                        final i = index - (sending ? 1 : 0);
-                        final message = messages[messages.length - 1 - i];
-                        return AssistantChatMessageRow(
-                          message: message,
-                          onActionTap: _onActionTap,
-                        );
-                      },
-                    );
-                  },
+                  builder: (context, state) => AssistantChatFeed(
+                    messages: state.messages,
+                    status: state.status,
+                    error: state.error,
+                    onActionTap: _onActionTap,
+                    onRetry: () =>
+                        _bloc.add(const AssistantChatStarted()),
+                  ),
                 ),
               ),
-              _buildInputBar(l10n),
+              BlocBuilder<AssistantChatBloc, AssistantChatState>(
+                bloc: _bloc,
+                buildWhen: (prev, curr) => prev.status != curr.status,
+                builder: (context, state) => AssistantInputBar(
+                  enabled: state.status != AssistantChatStatus.sending,
+                  onSend: (text) => _bloc.add(AssistantChatTextSent(text)),
+                  onAttach: _attachFile,
+                  attaching: _uploading,
+                  showMic: true,
+                  onMic: () => context.push(RouteConstants.assistantSession),
+                ),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInputBar(AppLocalizations l10n) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(4, 6, 4, 6),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(
-          top: BorderSide(color: scheme.outline.withValues(alpha: 0.2)),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          _uploading
-              ? const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : IconButton(
-                  onPressed: _attachFile,
-                  icon: const Icon(Icons.attach_file),
-                  tooltip: l10n.assistantAttachFile,
-                ),
-          Expanded(
-            child: TextField(
-              controller: _ctrl,
-              onChanged: _onChanged,
-              minLines: 1,
-              maxLines: 5,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: l10n.assistantChatHint,
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.push(RouteConstants.assistantSession),
-            icon: const Icon(Icons.mic_none),
-          ),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _ctrl,
-            builder: (context, value, _) =>
-                BlocBuilder<AssistantChatBloc, AssistantChatState>(
-              bloc: _bloc,
-              builder: (context, state) {
-                final enabled = value.text.trim().isNotEmpty &&
-                    state.status != AssistantChatStatus.sending;
-                return IconButton(
-                  onPressed: enabled ? _send : null,
-                  icon: Icon(
-                    Icons.send_rounded,
-                    color: enabled
-                        ? scheme.primary
-                        : scheme.onSurface.withValues(alpha: 0.3),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TypingRow extends StatelessWidget {
-  const _TypingRow({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: scheme.onSurface.withValues(alpha: 0.5),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              text,
-              style: TextStyle(
-                color: scheme.onSurface.withValues(alpha: 0.7),
-                fontSize: 14,
-              ),
-            ),
-          ],
         ),
       ),
     );
