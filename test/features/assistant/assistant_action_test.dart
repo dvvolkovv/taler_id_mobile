@@ -35,6 +35,18 @@ void main() {
       );
     });
 
+    test('parses web_link', () {
+      final a = AssistantAction.fromMetadata({
+        'action': {
+          'type': 'web_link',
+          'entityId': 'https://example.com/t',
+          'title': 'Билеты',
+        },
+      });
+      expect(a!.type, AssistantActionType.webLink);
+      expect(a.entityId, 'https://example.com/t');
+    });
+
     test('toJson roundtrip', () {
       const a = AssistantAction(
         type: AssistantActionType.eventCreated,
