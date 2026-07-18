@@ -22,6 +22,7 @@ import '../../tools/assistant_tools_schema.dart';
 import '../bloc/assistant_chat_bloc.dart';
 import '../widgets/assistant_action_bubble.dart';
 import '../widgets/assistant_chat_message_row.dart';
+import '../widgets/assistant_nav_bar.dart';
 
 /// Text chat with the assistant: persisted history, text turns with tool
 /// calls, draft persistence, file attach and a mic shortcut into the voice
@@ -196,6 +197,22 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
         body: SafeArea(
           child: Column(
             children: [
+              // Compact section navigation (orbital nav port) — pinned above
+              // the feed, does not scroll away with messages.
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .outline
+                          .withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+                child: const AssistantNavBar(),
+              ),
               Expanded(
                 child: BlocConsumer<AssistantChatBloc, AssistantChatState>(
                   listenWhen: (prev, curr) =>
