@@ -27,6 +27,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/core/theme/widgets.dart' show GlassCard;
+import 'package:taler_id_mobile/features/assistant/presentation/screens/assistant_chat_screen.dart'
+    show AssistantChatScreen;
+import 'package:taler_id_mobile/features/assistant/presentation/screens/assistant_screen.dart'
+    show AssistantScreen;
 import 'package:taler_id_mobile/features/call_history/presentation/screens/call_history_screen.dart'
     show ParticipantTile;
 import 'package:taler_id_mobile/main.dart' as app;
@@ -77,7 +81,23 @@ extension PumpHelper on WidgetTester {
     return false;
   }
 
-  /// Возвращает на ассистента через home FAB или back arrow.
+  /// Открывает таб через секционную навигацию. Иконки секций (те же IconData,
+  /// что у орбитальных кругов) теперь есть прямо на чат-хоуме (AssistantNavBar)
+  /// — сначала ищем их напрямую; fallback — voice-session экран
+  /// (/dashboard/assistant/session) с орбитальными кругами.
+  Future<bool> openTab(IconData icon) async {
+    if (find.byIcon(icon).evaluate().isEmpty) {
+      // Fallback: с чат-хоума заходим на voice-session экран (кнопка-микрофон).
+      if (find.byIcon(Icons.mic_none).evaluate().isNotEmpty) {
+        await tap(find.byIcon(Icons.mic_none).first, warnIfMissed: false);
+        await pumpFor(const Duration(seconds: 2));
+      }
+      await waitFor(find.byIcon(icon), timeout: const Duration(seconds: 10));
+    }
+    return safeTap(find.byIcon(icon));
+  }
+
+  /// Возвращает на ассистента (чат-хоум) через home FAB или back arrow.
   Future<void> goHome() async {
     // Try home FAB first (visible on all non-assistant routes)
     if (find.byIcon(Icons.home_rounded).evaluate().isNotEmpty) {
@@ -174,9 +194,9 @@ void main() {
           hasLogin = true;
           break;
         }
-        // Check if already on assistant screen (orbital nav)
-        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) {
-          debugPrint('[TEST] Already on dashboard (orbital nav)');
+        // Check if already on assistant chat screen (tab root)
+        if (find.byType(AssistantChatScreen).evaluate().isNotEmpty) {
+          debugPrint('[TEST] Already on dashboard (assistant chat)');
           break;
         }
       }
@@ -234,7 +254,7 @@ void main() {
       while (DateTime.now().isBefore(reachDeadline)) {
         await tester.pump(const Duration(milliseconds: 400));
 
-        if (find.byIcon(Icons.chat_bubble_outline_rounded).evaluate().isNotEmpty) {
+        if (find.byType(AssistantChatScreen).evaluate().isNotEmpty) {
           hasDashboard = true;
           break;
         }
@@ -283,26 +303,96 @@ void main() {
         if (tappedAny) continue;
       }
 
-      // ── 4. Wait for dashboard (orbital nav assistant screen) ────────
-      // The new design has orbital circles — detect Messages circle icon
+      // ── 4. Wait for dashboard (assistant chat tab root) ─────────────
+      // The assistant tab root is now the text chat screen.
       if (!hasDashboard) {
         hasDashboard = await tester.waitFor(
-          find.byIcon(Icons.chat_bubble_outline_rounded),
+          find.byType(AssistantChatScreen),
           timeout: const Duration(seconds: 30),
         );
       }
-      expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
-      debugPrint('[TEST] Dashboard loaded with orbital navigation');
+      expect(hasDashboard, isTrue, reason: 'Dashboard (assistant chat) should appear after login');
+      debugPrint('[TEST] Dashboard loaded with assistant chat as home');
+
+      // ── 4b. Screen: Assistant chat (tab root) ──────────────────────
+      expect(find.byType(AssistantChatScreen), findsOneWidget,
+          reason: 'Assistant chat screen should be the tab root');
+
+      // Wait for history load: spinner → empty hint / messages / retry.
+      final feedDeadline = DateTime.now().add(const Duration(seconds: 30));
+      while (DateTime.now().isBefore(feedDeadline)) {
+        await tester.pump(const Duration(milliseconds: 300));
+        final spinner = find.descendant(
+          of: find.byType(AssistantChatScreen),
+          matching: find.byType(CircularProgressIndicator),
+        );
+        if (spinner.evaluate().isEmpty) break;
+      }
+      expect(find.byType(ErrorWidget), findsNothing,
+          reason: 'Assistant chat screen crashed on load');
+      debugPrint('[TEST] ✓ Assistant chat feed loaded');
+
+      // Type into the chat input (no crash expected).
+      final chatInput = find.descendant(
+        of: find.byType(AssistantChatScreen),
+        matching: find.byType(TextField),
+      );
+      expect(chatInput, findsOneWidget,
+          reason: 'Assistant chat input TextField not found');
+      await tester.tap(chatInput.first, warnIfMissed: false);
+      await tester.pump();
+      await tester.enterText(chatInput.first, 'интеграционный тест');
+      await tester.pump();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpFor(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull,
+          reason: 'Typing into assistant chat input must not throw');
+      debugPrint('[TEST] ✓ Assistant chat input accepts text');
+
+      // Send the turn (real backend call, same style as login). Tolerant:
+      // we wait for the typing indicator to clear but do NOT require a
+      // reply bubble — only assert the screen did not crash.
+      if (await tester.safeTap(find.byIcon(Icons.send_rounded))) {
+        debugPrint('[TEST] Assistant turn sent — waiting (tolerant, ≤30s)');
+        final turnDeadline = DateTime.now().add(const Duration(seconds: 30));
+        while (DateTime.now().isBefore(turnDeadline)) {
+          await tester.pump(const Duration(milliseconds: 500));
+          final typing = find.descendant(
+            of: find.byType(AssistantChatScreen),
+            matching: find.byType(CircularProgressIndicator),
+          );
+          if (typing.evaluate().isEmpty) break;
+        }
+        expect(find.byType(ErrorWidget), findsNothing,
+            reason: 'Assistant chat crashed during/after text turn');
+        debugPrint('[TEST] ✓ Assistant text turn completed without crash');
+      }
+
+      // Mic button → old voice-session screen (orbital nav home). Idle on
+      // mobile — no session auto-connect, no OpenAI cost.
+      await tester.safeTap(find.byIcon(Icons.mic_none));
+      final hasVoiceScreen = await tester.waitFor(
+        find.byType(AssistantScreen),
+        timeout: const Duration(seconds: 10),
+      );
+      expect(hasVoiceScreen, isTrue,
+          reason: 'Mic button should open the voice-session AssistantScreen');
+      expect(find.byType(ErrorWidget), findsNothing,
+          reason: 'Voice-session screen crashed');
+      debugPrint('[TEST] ✓ Mic button opens voice-session screen');
 
       // ── 5. Screen: Messages ────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
+      // Orbital circles are visible right here on the session screen;
+      // openTab() finds them (and re-opens the session screen when we come
+      // back from a tab to the chat home).
+      await tester.openTab(Icons.chat_bubble_outline_rounded);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed');
       debugPrint('[TEST] ✓ Messenger screen OK');
       await tester.goHome();
 
       // ── 6. Screen: Calls ───────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.call_outlined));
+      await tester.openTab(Icons.call_outlined);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Calls screen crashed');
       debugPrint('[TEST] ✓ Calls screen OK');
@@ -394,14 +484,14 @@ void main() {
       await tester.goHome();
 
       // ── 7. Screen: Calendar ────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.calendar_month_outlined));
+      await tester.openTab(Icons.calendar_month_outlined);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Calendar screen crashed');
       debugPrint('[TEST] ✓ Calendar screen OK');
       await tester.goHome();
 
       // ── 8. Screen: Profile ─────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.person_outline));
+      await tester.openTab(Icons.person_outline);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Profile screen crashed');
       debugPrint('[TEST] ✓ Profile screen OK');
@@ -453,7 +543,7 @@ void main() {
       await tester.goHome();
 
       // ── 9. Screen: Settings ────────────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.settings_outlined));
+      await tester.openTab(Icons.settings_outlined);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Settings screen crashed');
       debugPrint('[TEST] ✓ Settings screen OK');
@@ -469,7 +559,7 @@ void main() {
       await tester.goHome();
 
       // ── 11. Messages → open conversation ───────────────────────────
-      await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
+      await tester.openTab(Icons.chat_bubble_outline_rounded);
       await tester.pumpFor(const Duration(seconds: 3));
 
       final listTiles = find.byType(ListTile);
@@ -483,7 +573,7 @@ void main() {
       await tester.goHome();
 
       // ── 12. Calendar → Create event ────────────────────────────────
-      await tester.safeTap(find.byIcon(Icons.calendar_month_outlined));
+      await tester.openTab(Icons.calendar_month_outlined);
       await tester.pumpFor(const Duration(seconds: 2));
 
       if (await tester.safeTap(find.byType(FloatingActionButton))) {
@@ -501,7 +591,7 @@ void main() {
       debugPrint('[TEST] Starting channels E2E section');
 
       // Open Messenger
-      await tester.safeTap(find.byIcon(Icons.chat_bubble_outline_rounded));
+      await tester.openTab(Icons.chat_bubble_outline_rounded);
       await tester.pumpFor(const Duration(seconds: 2));
       expect(find.byType(ErrorWidget), findsNothing, reason: 'Messenger screen crashed before channels');
 

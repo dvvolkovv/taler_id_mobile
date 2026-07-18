@@ -88,7 +88,10 @@ class ChatRoomScreen extends StatefulWidget {
   final List? sharedFiles;
   final String? topicId;
   final String? topicTitle;
-  const ChatRoomScreen({super.key, required this.conversationId, this.sharedFiles, this.topicId, this.topicTitle});
+  /// Deep-link target: message to scroll to and highlight after load
+  /// (assistant action bubbles, Task 9).
+  final String? highlightMessageId;
+  const ChatRoomScreen({super.key, required this.conversationId, this.sharedFiles, this.topicId, this.topicTitle, this.highlightMessageId});
 
   @override
   State<ChatRoomScreen> createState() => _ChatRoomScreenState();
@@ -131,6 +134,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   int _searchCurrentMatchIdx = -1;
   final TextEditingController _searchCtrl = TextEditingController();
   final Map<String, GlobalKey> _messageKeys = {};
+  // Deep-link highlight (assistant action bubble → jump to message)
+  bool _deepLinkHighlightDone = false;
+  int _deepLinkLoadAttempts = 0;
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
 
@@ -1657,6 +1663,42 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (indices.isNotEmpty) _scrollToChronIndex(indices.last);
   }
 
+  /// Deep-link jump: after messages load, scroll to and highlight
+  /// [ChatRoomScreen.highlightMessageId] reusing the search-match mechanics
+  /// (`_searchMatchChronIndices` + `_searchCurrentMatchIdx` +
+  /// `_scrollToChronIndex`). If the message isn't in the loaded page,
+  /// paginate older pages up to 5 times, then give up silently.
+  ///
+  /// Returns true when it acted this pass (highlighted the target or
+  /// dispatched another page load) — caller then skips auto-scroll-to-bottom.
+  bool _maybeHighlightDeepLinkedMessage(MessengerState state) {
+    final targetId = widget.highlightMessageId;
+    if (targetId == null || _deepLinkHighlightDone || _searchMode) return false;
+    final messages = state.messages[widget.conversationId] ?? [];
+    if (messages.isEmpty) return false;
+    final idx = messages.indexWhere((m) => m.id == targetId);
+    if (idx >= 0) {
+      _deepLinkHighlightDone = true;
+      setState(() {
+        _searchMatchChronIndices = [idx];
+        _searchCurrentMatchIdx = 0;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _scrollToChronIndex(idx);
+      });
+      return true;
+    }
+    final cursor = state.nextCursors[widget.conversationId];
+    if (cursor != null && _deepLinkLoadAttempts < 5) {
+      _deepLinkLoadAttempts++;
+      _messengerBloc.add(LoadMoreMessages(widget.conversationId));
+      return true;
+    }
+    // Message not reachable — give up silently.
+    _deepLinkHighlightDone = true;
+    return false;
+  }
+
   void _scrollToChronIndex(int chronIdx) {
     final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
     if (chronIdx < 0 || chronIdx >= messages.length) return;
@@ -2227,6 +2269,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           }
           // Mark new incoming messages as read immediately since chat is open
           context.read<MessengerBloc>().add(MarkConversationRead(widget.conversationId));
+          // Deep-link: jump to a specific message once it is loaded.
+          // While paginating towards it (or right after highlighting it),
+          // skip the auto-scroll-to-bottom below.
+          if (_maybeHighlightDeepLinkedMessage(state)) return;
           // With reverse:true the list starts at bottom — only scroll if user scrolled up
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted || !_scrollCtrl.hasClients) return;
