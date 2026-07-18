@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:dio/dio.dart' show FormData, MultipartFile;
+import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,6 +25,7 @@ import '../../../../core/api/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../../messenger/domain/entities/message_entity.dart';
 import '../../../../core/services/wake_word_service.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
@@ -34,9 +37,14 @@ import '../../../../main.dart';
 import '../../data/assistant_chat_api.dart';
 import '../../data/assistant_chat_logger.dart';
 import '../../domain/assistant_action.dart';
+import '../../domain/pending_dedupe.dart';
 import '../../tools/assistant_system_prompt.dart';
 import '../../tools/assistant_tools_executor.dart';
 import '../../tools/assistant_tools_schema.dart';
+import '../bloc/assistant_chat_bloc.dart';
+import '../widgets/assistant_action_bubble.dart';
+import '../widgets/assistant_chat_feed.dart';
+import '../widgets/assistant_input_bar.dart';
 
 enum _CallState { idle, connecting, connected, error }
 enum _AssistantMode { normal, translator }
@@ -117,6 +125,12 @@ class _AssistantScreenState extends State<AssistantScreen>
   // the persistent assistant chat thread on the backend.
   late final AssistantChatLogger _chatLogger;
 
+  // Persistent assistant chat (history + text turns + attachments) embedded
+  // in the connected session view. Shares the session's tools executor so
+  // session-bound tools (set_theme etc.) keep working from text turns.
+  late final AssistantChatBloc _chatBloc;
+  bool _uploading = false;
+
   // Incoming message listener
   StreamSubscription? _messageSub;
 
@@ -176,6 +190,15 @@ class _AssistantScreenState extends State<AssistantScreen>
         setAgentConversationId: (id) => _agentConversationId = id,
       ),
     );
+    _chatBloc = AssistantChatBloc(
+      api: sl<AssistantChatApi>(),
+      executor: _toolsExecutor,
+      messageStream: sl<MessengerRemoteDataSource>().messageStream,
+      loadHistory: _loadChatHistory,
+      instructions: () => _systemPrompt(
+          mounted ? Localizations.localeOf(context).languageCode : 'ru'),
+      toolSchemas: assistantToolSchemasForCompletions,
+    )..add(const AssistantChatStarted());
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
@@ -274,6 +297,7 @@ class _AssistantScreenState extends State<AssistantScreen>
   void dispose() {
     unawaited(_chatLogger.flushNow());
     _chatLogger.dispose();
+    _chatBloc.close();
     AssistantScreen.connectNotifier.removeListener(_onWakeWordTrigger);
     _orbitCtrl.removeListener(_tickOrbit);
     _pulseCtrl.dispose();
@@ -1268,6 +1292,95 @@ class _AssistantScreenState extends State<AssistantScreen>
     _endCall();
   }
 
+  /// Same response shape + mapping as MessengerBloc._onLoadMessages:
+  /// `messages` list (newest first) → MessageEntity.fromJson → reversed
+  /// to chronological (oldest first).
+  Future<List<MessageEntity>> _loadChatHistory(String conversationId) async {
+    final result =
+        await sl<MessengerRemoteDataSource>().getMessages(conversationId);
+    final raw = result['messages'] as List? ?? [];
+    return raw
+        .map((e) => MessageEntity.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList()
+        .reversed
+        .toList();
+  }
+
+  /// Live transcript replicas not yet persisted in the assistant thread
+  /// (the chat logger flushes them to the backend; until the socket echoes
+  /// them back they render as semi-transparent pending bubbles).
+  List<PendingReplica> _pendingReplicas(List<MessageEntity> messages) =>
+      _transcript
+          .where((m) =>
+              (m.role == 'user' || m.role == 'assistant') &&
+              m.text.trim().isNotEmpty &&
+              !replicaAlreadyPersisted(m.text, messages))
+          .map((m) => PendingReplica(role: m.role, text: m.text, itemId: m.itemId))
+          .toList();
+
+  Future<void> _attachFile() async {
+    final convId = _chatBloc.state.conversationId;
+    if (convId == null || _uploading) return;
+    FilePickerResult? result;
+    try {
+      result = await FilePicker.platform.pickFiles(type: FileType.any);
+    } catch (_) {
+      // ignore picker errors (same as messenger)
+    }
+    final picked = result?.files.firstOrNull;
+    if (picked == null || picked.path == null || !mounted) return;
+    setState(() => _uploading = true);
+    try {
+      final formData = FormData.fromMap({
+        'file':
+            await MultipartFile.fromFile(picked.path!, filename: picked.name),
+      });
+      final res = await sl<DioClient>().uploadFile<Map<String, dynamic>>(
+        '/messenger/files',
+        formData: formData,
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+      final fileName = res['fileName'] as String? ?? picked.name;
+      // Persisted message appears in the thread via the socket new_message.
+      sl<MessengerRemoteDataSource>().sendMessage(
+        convId,
+        fileName,
+        fileUrl: res['fileUrl'] as String?,
+        fileName: fileName,
+        fileSize: res['fileSize'] as int?,
+        fileType: res['fileType'] as String?,
+        s3Key: res['s3Key'] as String?,
+        thumbnailSmallUrl: res['thumbnailSmallUrl'] as String?,
+        thumbnailMediumUrl: res['thumbnailMediumUrl'] as String?,
+        thumbnailLargeUrl: res['thumbnailLargeUrl'] as String?,
+        fileRecordId: res['fileRecordId'] as String?,
+      );
+      _chatBloc.add(AssistantChatTextSent(
+          'Я прикрепил файл «$fileName». Учти его в контексте диалога; '
+          'если нужен анализ — передай аналитику.'));
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.assistantError)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  Future<void> _onChatActionTap(AssistantAction action) async {
+    final ok = await navigateToAssistantAction(context, action);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              AppLocalizations.of(context)!.assistantActionUnavailable),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -1722,12 +1835,39 @@ class _AssistantScreenState extends State<AssistantScreen>
   Widget _buildConnected(AppLocalizations l10n) {
     final speaking = _aiSpeaking;
     final colors = AppColors.of(context);
+    final isTranslator = _mode == _AssistantMode.translator;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Full-screen transcript
+        // Feed area. Translator mode keeps the live paired transcript;
+        // normal mode embeds the persistent assistant chat feed, with live
+        // voice replicas rendered as pending bubbles until they are echoed
+        // back as persisted messages.
         Expanded(
-          child: _transcript.isEmpty
+          child: !isTranslator
+              ? BlocConsumer<AssistantChatBloc, AssistantChatState>(
+                  bloc: _chatBloc,
+                  listenWhen: (prev, curr) =>
+                      curr.status == AssistantChatStatus.error &&
+                      prev.status != AssistantChatStatus.error,
+                  listener: (context, state) {
+                    final msg = state.error == 'tool_loop_limit'
+                        ? l10n.assistantToolLoopError
+                        : l10n.assistantError;
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(msg)));
+                  },
+                  builder: (context, state) => AssistantChatFeed(
+                    messages: state.messages,
+                    status: state.status,
+                    error: state.error,
+                    pending: _pendingReplicas(state.messages),
+                    onActionTap: _onChatActionTap,
+                    onRetry: () =>
+                        _chatBloc.add(const AssistantChatStarted()),
+                  ),
+                )
+              : _transcript.isEmpty
               ? Center(
                   child: Text(
                     speaking ? l10n.assistantAiSpeaking : l10n.assistantAiListening,
@@ -1881,6 +2021,18 @@ class _AssistantScreenState extends State<AssistantScreen>
             child: Align(
               alignment: Alignment.center,
               child: _buildTranslatorBadge(context),
+            ),
+          ),
+        if (!isTranslator)
+          BlocBuilder<AssistantChatBloc, AssistantChatState>(
+            bloc: _chatBloc,
+            buildWhen: (prev, curr) => prev.status != curr.status,
+            builder: (context, state) => AssistantInputBar(
+              enabled: state.status != AssistantChatStatus.sending,
+              onSend: (text) => _chatBloc.add(AssistantChatTextSent(text)),
+              onAttach: _attachFile,
+              attaching: _uploading,
+              showMic: false,
             ),
           ),
         Padding(

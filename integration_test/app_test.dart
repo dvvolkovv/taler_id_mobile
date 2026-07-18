@@ -27,8 +27,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/core/theme/widgets.dart' show GlassCard;
-import 'package:taler_id_mobile/features/assistant/presentation/screens/assistant_chat_screen.dart'
-    show AssistantChatScreen;
 import 'package:taler_id_mobile/features/assistant/presentation/screens/assistant_screen.dart'
     show AssistantScreen;
 import 'package:taler_id_mobile/features/call_history/presentation/screens/call_history_screen.dart'
@@ -195,7 +193,7 @@ void main() {
           break;
         }
         // Check if already on assistant chat screen (tab root)
-        if (find.byType(AssistantChatScreen).evaluate().isNotEmpty) {
+        if (find.byType(AssistantScreen).evaluate().isNotEmpty) {
           debugPrint('[TEST] Already on dashboard (assistant chat)');
           break;
         }
@@ -254,7 +252,7 @@ void main() {
       while (DateTime.now().isBefore(reachDeadline)) {
         await tester.pump(const Duration(milliseconds: 400));
 
-        if (find.byType(AssistantChatScreen).evaluate().isNotEmpty) {
+        if (find.byType(AssistantScreen).evaluate().isNotEmpty) {
           hasDashboard = true;
           break;
         }
@@ -307,7 +305,7 @@ void main() {
       // The assistant tab root is now the text chat screen.
       if (!hasDashboard) {
         hasDashboard = await tester.waitFor(
-          find.byType(AssistantChatScreen),
+          find.byType(AssistantScreen),
           timeout: const Duration(seconds: 30),
         );
       }
@@ -315,7 +313,7 @@ void main() {
       debugPrint('[TEST] Dashboard loaded with assistant chat as home');
 
       // ── 4b. Screen: Assistant chat (tab root) ──────────────────────
-      expect(find.byType(AssistantChatScreen), findsOneWidget,
+      expect(find.byType(AssistantScreen), findsOneWidget,
           reason: 'Assistant chat screen should be the tab root');
 
       // Wait for history load: spinner → empty hint / messages / retry.
@@ -323,7 +321,7 @@ void main() {
       while (DateTime.now().isBefore(feedDeadline)) {
         await tester.pump(const Duration(milliseconds: 300));
         final spinner = find.descendant(
-          of: find.byType(AssistantChatScreen),
+          of: find.byType(AssistantScreen),
           matching: find.byType(CircularProgressIndicator),
         );
         if (spinner.evaluate().isEmpty) break;
@@ -334,7 +332,7 @@ void main() {
 
       // Type into the chat input (no crash expected).
       final chatInput = find.descendant(
-        of: find.byType(AssistantChatScreen),
+        of: find.byType(AssistantScreen),
         matching: find.byType(TextField),
       );
       expect(chatInput, findsOneWidget,
@@ -358,7 +356,7 @@ void main() {
         while (DateTime.now().isBefore(turnDeadline)) {
           await tester.pump(const Duration(milliseconds: 500));
           final typing = find.descendant(
-            of: find.byType(AssistantChatScreen),
+            of: find.byType(AssistantScreen),
             matching: find.byType(CircularProgressIndicator),
           );
           if (typing.evaluate().isEmpty) break;
