@@ -764,6 +764,28 @@ class AppLocalizationsDe extends AppLocalizations {
   String get tabAssistant => 'Assistent';
 
   @override
+  String get assistantChatHint => 'Message the assistant';
+
+  @override
+  String get assistantActionUnavailable => 'Item is no longer available';
+
+  @override
+  String get assistantAttachFile => 'Attach file';
+
+  @override
+  String get assistantTyping => 'Assistant is thinking…';
+
+  @override
+  String get assistantEmptyHint => 'Ask anything — by voice or text';
+
+  @override
+  String get assistantToolLoopError =>
+      'The assistant couldn\'t complete the request';
+
+  @override
+  String get assistantError => 'Something went wrong. Try again';
+
+  @override
   String get assistantConnecting => 'Verbinden…';
 
   @override

@@ -583,13 +583,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         // Don't trigger during a call
         if (loc.startsWith('/dashboard/voice')) return;
         debugPrint('[WakeWord] Navigating to assistant from $loc');
-        if (loc.startsWith('/dashboard/assistant')) {
-          // Already on assistant — trigger connect directly
+        if (loc.startsWith(RouteConstants.assistantSession)) {
+          // Already on the voice session screen — trigger connect directly
           AssistantScreen.triggerConnect();
         } else {
-          // Navigate to assistant tab — it auto-connects via the flag
+          // Navigate to the voice session screen — it auto-connects via
+          // the flag (the assistant tab root is now the text chat).
           AssistantScreen.autoConnect = true;
-          context.go(RouteConstants.assistant);
+          context.go(RouteConstants.assistantSession);
         }
       },
     );
