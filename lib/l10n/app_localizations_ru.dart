@@ -764,6 +764,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get assistantActionUnavailable => 'Элемент недоступен';
 
   @override
+  String get assistantAttachFile => 'Прикрепить файл';
+
+  @override
   String get assistantTyping => 'Ассистент думает…';
 
   @override

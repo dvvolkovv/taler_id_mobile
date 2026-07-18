@@ -41,12 +41,13 @@ void main() {
 
   tearDown(() => socket.close());
 
-  AssistantChatBloc build({Future<List<MessageEntity>> Function()? history}) =>
+  AssistantChatBloc build(
+          {Future<List<MessageEntity>> Function(String)? history}) =>
       AssistantChatBloc(
         api: api,
         executor: executor,
         messageStream: socket.stream,
-        loadHistory: history ?? () async => [msg('m1', 'старое')],
+        loadHistory: history ?? (_) async => [msg('m1', 'старое')],
         instructions: () => 'sys',
         toolSchemas: () => const [],
       );

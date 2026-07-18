@@ -88,9 +88,9 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
   /// Same response shape + mapping as MessengerBloc._onLoadMessages:
   /// `messages` list (newest first) → MessageEntity.fromJson → reversed
   /// to chronological (oldest first).
-  Future<List<MessageEntity>> _loadHistory() async {
-    final id = await sl<AssistantChatApi>().getThread();
-    final result = await sl<MessengerRemoteDataSource>().getMessages(id);
+  Future<List<MessageEntity>> _loadHistory(String conversationId) async {
+    final result =
+        await sl<MessengerRemoteDataSource>().getMessages(conversationId);
     final raw = result['messages'] as List? ?? [];
     return raw
         .map((e) => MessageEntity.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -214,6 +214,26 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (state.messages.isEmpty &&
+                        state.status == AssistantChatStatus.error) {
+                      // History never loaded — offer retry instead of a blank list.
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(l10n.assistantError,
+                                textAlign: TextAlign.center),
+                            const SizedBox(height: 12),
+                            OutlinedButton(
+                              onPressed: () => context
+                                  .read<AssistantChatBloc>()
+                                  .add(const AssistantChatStarted()),
+                              child: const Icon(Icons.refresh),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    if (state.messages.isEmpty &&
                         state.status == AssistantChatStatus.ready) {
                       return Center(
                         child: Padding(
@@ -287,7 +307,7 @@ class _AssistantChatScreenState extends State<AssistantChatScreen> {
               : IconButton(
                   onPressed: _attachFile,
                   icon: const Icon(Icons.attach_file),
-                  tooltip: l10n.assistantChatHint,
+                  tooltip: l10n.assistantAttachFile,
                 ),
           Expanded(
             child: TextField(

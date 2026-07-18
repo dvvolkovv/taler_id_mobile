@@ -78,7 +78,8 @@ class AssistantChatBloc extends Bloc<AssistantChatEvent, AssistantChatState> {
     required AssistantChatApi api,
     required AssistantToolsExecutor executor,
     required Stream<MessageEntity> messageStream,
-    required Future<List<MessageEntity>> Function() loadHistory,
+    required Future<List<MessageEntity>> Function(String conversationId)
+        loadHistory,
     required String Function() instructions,
     required List<Map<String, dynamic>> Function() toolSchemas,
   })  : _api = api,
@@ -97,7 +98,8 @@ class AssistantChatBloc extends Bloc<AssistantChatEvent, AssistantChatState> {
 
   final AssistantChatApi _api;
   final AssistantToolsExecutor _executor;
-  final Future<List<MessageEntity>> Function() _loadHistory;
+  final Future<List<MessageEntity>> Function(String conversationId)
+      _loadHistory;
   final String Function() _instructions;
   final List<Map<String, dynamic>> Function() _toolSchemas;
   late final StreamSubscription<MessageEntity> _sub;
@@ -107,7 +109,7 @@ class AssistantChatBloc extends Bloc<AssistantChatEvent, AssistantChatState> {
     emit(state.copyWith(status: AssistantChatStatus.loading));
     try {
       final convId = await _api.getThread();
-      final history = await _loadHistory();
+      final history = await _loadHistory(convId);
       emit(state.copyWith(
         status: AssistantChatStatus.ready,
         conversationId: convId,

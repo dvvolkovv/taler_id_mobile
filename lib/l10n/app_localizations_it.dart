@@ -766,6 +766,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get assistantActionUnavailable => 'Item is no longer available';
 
   @override
+  String get assistantAttachFile => 'Attach file';
+
+  @override
   String get assistantTyping => 'Assistant is thinking…';
 
   @override

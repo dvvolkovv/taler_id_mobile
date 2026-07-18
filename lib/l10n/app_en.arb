@@ -302,6 +302,7 @@
   "tabAssistant": "Assistant",
   "assistantChatHint": "Message the assistant",
   "assistantActionUnavailable": "Item is no longer available",
+  "assistantAttachFile": "Attach file",
   "assistantTyping": "Assistant is thinking…",
   "assistantEmptyHint": "Ask anything — by voice or text",
   "assistantToolLoopError": "The assistant couldn't complete the request",

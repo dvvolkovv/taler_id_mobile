@@ -1576,6 +1576,12 @@ abstract class AppLocalizations {
   /// **'Item is no longer available'**
   String get assistantActionUnavailable;
 
+  /// No description provided for @assistantAttachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file'**
+  String get assistantAttachFile;
+
   /// No description provided for @assistantTyping.
   ///
   /// In en, this message translates to:

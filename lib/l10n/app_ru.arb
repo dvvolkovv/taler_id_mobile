@@ -302,6 +302,7 @@
   "tabAssistant": "Ассистент",
   "assistantChatHint": "Напишите ассистенту",
   "assistantActionUnavailable": "Элемент недоступен",
+  "assistantAttachFile": "Прикрепить файл",
   "assistantTyping": "Ассистент думает…",
   "assistantEmptyHint": "Спросите что угодно — голосом или текстом",
   "assistantToolLoopError": "Ассистент не смог завершить запрос",
