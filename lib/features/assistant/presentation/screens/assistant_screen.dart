@@ -958,6 +958,16 @@ class _AssistantScreenState extends State<AssistantScreen>
     final conversationId = msg.conversationId;
     if (content == null || content.isEmpty) return;
 
+    // Echoes of the assistant's own thread (chat-history log coming back via
+    // socket) are NOT incoming messages — narrating them makes the assistant
+    // comment on the user's own words ("Дмитрий сказал…"). Skip them.
+    final meta = msg.metadata;
+    if (meta is Map && meta['assistantRole'] != null) return;
+    if (conversationId != null &&
+        conversationId == _chatBloc.state.conversationId) {
+      return;
+    }
+
     // AI Analyst bot responses: proactively tell the user what the
     // analyst said, instead of waiting for them to ask.
     if (msg.isSystem && senderName == 'AI Аналитик') {
@@ -973,7 +983,9 @@ class _AssistantScreenState extends State<AssistantScreen>
             {
               'type': 'input_text',
               'text': '[СИСТЕМНОЕ УВЕДОМЛЕНИЕ] AI Аналитик завершил анализ и прислал ответ:\n\n$summary\n\n'
-                  'Кратко сообщи пользователю, что аналитик ответил, и перескажи суть ответа в 2-3 предложениях.',
+                  'Кратко сообщи пользователю, что аналитик ответил, и перескажи суть ответа в 2-3 предложениях. '
+                  'Если это УТОЧНЯЮЩИЕ ВОПРОСЫ — задай их пользователю и, получив ответы, ОБЯЗАТЕЛЬНО вызови '
+                  'ask_analyst повторно с исходной задачей и всеми уточнениями.',
             },
           ],
         },
