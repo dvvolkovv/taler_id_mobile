@@ -432,9 +432,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (widget.isIncoming) {
         await _restoreAudioAfterCallKit();
       }
-      // Notify other devices this device answered (dismiss their CallKit)
+      // Notify other devices this device answered (dismiss their CallKit).
+      // Redundant safety net — the primary path (main.dart CallKit accept /
+      // dashboard in-app accept) emits this earlier. Mark selfAnswered so the
+      // server echo is not misinterpreted as a sibling device answering.
       if (widget.isIncoming && widget.conversationId != null && _roomName != null) {
         try {
+          CallStateService.instance.markSelfAnswered(_roomName!);
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);
         } catch (_) {}
       }
@@ -629,23 +633,40 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _connect() async {
     debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}, calleeName=${widget.calleeName}, calleeAvatar=${widget.calleeAvatar}, calleeId=${widget.calleeId}');
+    // Multi-device race guard: if a sibling device already answered THIS
+    // incoming call, don't join the LiveKit room — otherwise both devices
+    // become participants and the caller sees a 3-way conference.
+    final incomingRoom = widget.roomName;
+    if (widget.isIncoming &&
+        incomingRoom != null &&
+        CallStateService.instance.isAnsweredElsewhere(incomingRoom)) {
+      debugPrint('[VoiceCall] _connect ABORTED: $incomingRoom already answered on another device');
+      _settingUp = false;
+      if (mounted) {
+        setState(() => _connecting = false);
+        _navigateBack();
+      }
+      return;
+    }
     // Load avatars: callee (if not passed or empty) and own avatar
     if (widget.calleeAvatar == null || widget.calleeAvatar!.isEmpty) {
       _loadCalleeAvatar();
     }
     _loadMyAvatar();
     if (widget.isIncoming) {
+      debugPrint('[AudDbg] incoming setup START room=${widget.roomName}');
       // Release the CallKit-owned audio session before LiveKit connects.
       // When accepting from locked screen, CallKit activates the audio session
       // but continues to "own" it — this blocks LiveKit's WebRTC audio stack.
       try {
         await CallKitPlatform.instance.endAllCalls();
-        debugPrint('[VoiceCall] endAllCalls() done');
+        debugPrint('[AudDbg] incoming: endAllCalls done');
       } catch (e) {
-        debugPrint('[VoiceCall] endAllCalls() error: $e');
+        debugPrint('[AudDbg] incoming: endAllCalls error: $e');
       }
       // Wait for CallKit to fully release the audio session
       await Future.delayed(const Duration(milliseconds: 1000));
+      debugPrint('[AudDbg] incoming: 1000ms delay done, requesting audio focus');
       // Re-activate audio session independently for LiveKit
       try {
         await _audioChannel.invokeMethod('requestAudioFocus');
@@ -657,6 +678,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       try {
         await _audioChannel.invokeMethod('setAudioOutput', 'earpiece');
       } catch (_) {}
+      debugPrint('[AudDbg] incoming setup DONE, entering LiveKit connect');
     }
     // Play ringback tone for outgoing calls to user (not incoming, not AI assistant).
     // For outgoing-created rooms (widget.outgoing && widget.roomName == null) start
@@ -779,8 +801,21 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             : const lk.ConnectOptions(autoSubscribe: false),
       );
       debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}, relayOnly=$_onEdge');
+      // Snapshot post-connect room state to correlate with audio symptoms.
+      // If remote audio tracks are already known here, subscription MUST cover
+      // them below. If missing, we depend on TrackPublishedEvent firing later.
+      final _rpMap = _room!.remoteParticipants;
+      debugPrint('[AudDbg] post-connect: remoteParticipants=${_rpMap.length} '
+          'identities=${_rpMap.values.map((p) => p.identity).toList()}');
+      for (final p in _rpMap.values) {
+        final audioPubs = p.audioTrackPublications;
+        debugPrint('[AudDbg]   ${p.identity}: audioPubs=${audioPubs.length} '
+            'subscribed=${audioPubs.map((pub) => pub.subscribed).toList()} '
+            'muted=${audioPubs.map((pub) => pub.muted).toList()}');
+      }
       try {
         await _audioChannel.invokeMethod('enableCallAudioMix');
+        debugPrint('[AudDbg] enableCallAudioMix done');
       } catch (e) {
         debugPrint('[CallAudio] enableCallAudioMix failed: $e');
       }
@@ -794,9 +829,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         calleeName: widget.calleeName,
       );
 
-      // Notify other devices: this device answered the call (dismiss CallKit on others)
+      // Notify other devices: this device answered the call (dismiss CallKit on others).
+      // Redundant safety net — see comment on the sibling call in _initCall.
       if (widget.isIncoming && widget.conversationId != null) {
         try {
+          CallStateService.instance.markSelfAnswered(_roomName!);
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);
         } catch (_) {}
       }
@@ -812,6 +849,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
 
       // With autoSubscribe:false, manually subscribe to existing tracks
+      debugPrint('[AudDbg] manual subscribe loop START (autoSubscribe=false)');
       for (final p in _room!.remoteParticipants.values) {
         if (p.identity == 'voice-translator') {
           // Subscribe to translation track only if user enabled translation
@@ -825,9 +863,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           continue;
         }
         for (final pub in [...p.audioTrackPublications, ...p.videoTrackPublications]) {
-          try { pub.subscribe(); } catch (_) {}
+          try {
+            pub.subscribe();
+            debugPrint('[AudDbg]   subscribed: ${p.identity} kind=${pub.kind} sid=${pub.sid}');
+          } catch (e) {
+            debugPrint('[AudDbg]   subscribe FAILED: ${p.identity} kind=${pub.kind}: $e');
+          }
         }
       }
+      debugPrint('[AudDbg] manual subscribe loop DONE');
 
       // If meeting-recorder is already in the room, mark recording as active
       // and claim ownership so user can stop/restart it
@@ -853,13 +897,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       try {
         await _audioChannel.invokeMethod('requestAudioFocus')
             .timeout(const Duration(seconds: 8));
+        debugPrint('[AudDbg] second requestAudioFocus (before mic-enable) done');
       } catch (_) {}
 
       // Enable microphone; may fail on iOS simulator — don't treat as fatal
       try {
         await _room!.localParticipant?.setMicrophoneEnabled(true)
             .timeout(const Duration(seconds: 8));
-      } catch (_) {}
+        debugPrint('[AudDbg] setMicrophoneEnabled(true) done');
+      } catch (e) {
+        debugPrint('[AudDbg] setMicrophoneEnabled FAILED: $e');
+      }
 
       _settingUp = false;
       setState(() => _connecting = false);
@@ -1031,6 +1079,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (_translationActive) _applyTranslationDucking();
       })
       ..on<lk.TrackPublishedEvent>((event) {
+        debugPrint('[AudDbg] TrackPublishedEvent: ${event.participant.identity} '
+            'kind=${event.publication.kind} sid=${event.publication.sid} muted=${event.publication.muted}');
         if (event.participant.identity == 'voice-translator') {
           final wantedName = 'translation-$_preferredLang';
           if (_translationEnabled && event.publication.name == wantedName) {
@@ -1039,12 +1089,19 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           if (_translationActive) _applyTranslationDucking();
           return;
         }
-        try { event.publication.subscribe(); } catch (_) {}
+        try {
+          event.publication.subscribe();
+          debugPrint('[AudDbg]   subscribe requested for ${event.participant.identity} ${event.publication.kind}');
+        } catch (e) {
+          debugPrint('[AudDbg]   subscribe request FAILED: $e');
+        }
         // A peer just published a new audio track — duck it immediately if
         // the translator is active, otherwise it would land at full volume.
         if (_translationActive) _applyTranslationDucking();
       })
       ..on<lk.TrackSubscribedEvent>((event) {
+        debugPrint('[AudDbg] TrackSubscribedEvent: ${event.participant.identity} '
+            'kind=${event.publication.kind} sid=${event.publication.sid} muted=${event.publication.muted}');
         // Volume can only be set on a subscribed RemoteAudioTrack; re-apply
         // ducking the moment a track becomes subscribable.
         if (_translationActive) _applyTranslationDucking();
