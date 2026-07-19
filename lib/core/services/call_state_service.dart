@@ -87,6 +87,27 @@ class CallStateService {
   void unmarkAiTwinActive(String roomName) => _aiTwinActiveRooms.remove(roomName);
   bool isAiTwinRoom(String roomName) => _aiTwinActiveRooms.contains(roomName);
 
+  /// Rooms where a sibling device (same account) has already answered the
+  /// incoming call. Used to bail out early from LiveKit join so both devices
+  /// don't end up in the same room (which turns a 1-on-1 into a 3-way).
+  final Set<String> _answeredElsewhereRooms = {};
+  void markAnsweredElsewhere(String roomName) => _answeredElsewhereRooms.add(roomName);
+  bool isAnsweredElsewhere(String roomName) => _answeredElsewhereRooms.contains(roomName);
+
+  /// Rooms where THIS device sent `call_answered`. The server echoes the
+  /// event back to us; without this we'd incorrectly mark our own accepted
+  /// call as "answered elsewhere". Set right before emitting call_answered.
+  final Set<String> _selfAnsweredRooms = {};
+  void markSelfAnswered(String roomName) => _selfAnsweredRooms.add(roomName);
+  bool didSelfAnswer(String roomName) => _selfAnsweredRooms.contains(roomName);
+
+  /// Clear both answered flags for a room. Call when a room ends so a
+  /// subsequent call with the same id (rare, but possible) isn't blocked.
+  void clearAnsweredState(String roomName) {
+    _answeredElsewhereRooms.remove(roomName);
+    _selfAnsweredRooms.remove(roomName);
+  }
+
   final _stateCtrl = StreamController<bool>.broadcast();
   // Re-emit the current state to every new subscriber so the dashboard's
   // "active call" banner reappears correctly after the voice screen is
@@ -190,6 +211,7 @@ class CallStateService {
   /// End a specific call line.
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
+    clearAnsweredState(name);
     if (line != null) {
       try { await line.room.disconnect(); } catch (_) {}
     }
@@ -216,6 +238,8 @@ class CallStateService {
     _lines.clear();
     _activeRoomName = null;
     _bgConnecting = false;
+    _answeredElsewhereRooms.clear();
+    _selfAnsweredRooms.clear();
     _stateCtrl.add(false);
     _activeRoomCtrl.add(null);
     for (final line in lines) {

@@ -193,6 +193,7 @@ class MainActivity : FlutterFragmentActivity() {
                     "setAudioOutput" -> {
                         val type = call.arguments as? String ?: "earpiece"
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                        Log.i("AudDbg", "setAudioOutput: type=$type modeBefore=${am.mode} speakerBefore=${am.isSpeakerphoneOn}")
                         am.mode = AudioManager.MODE_IN_COMMUNICATION
                         when (type) {
                             "speaker" -> {
@@ -211,6 +212,7 @@ class MainActivity : FlutterFragmentActivity() {
                                 am.isSpeakerphoneOn = false
                             }
                         }
+                        Log.i("AudDbg", "setAudioOutput: after switch mode=${am.mode} speaker=${am.isSpeakerphoneOn}")
                         requestAudioFocus(am)
                         result.success(null)
                     }
@@ -376,6 +378,8 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun requestAudioFocus(am: AudioManager) {
+        val modeBefore = am.mode
+        Log.i("AudDbg", "requestAudioFocus: enter granted=$audioFocusGranted modeBefore=$modeBefore speakerBefore=${am.isSpeakerphoneOn}")
         // Set earpiece mode immediately — LiveKit may default to speakerphone
         am.mode = AudioManager.MODE_IN_COMMUNICATION
         am.isSpeakerphoneOn = false
@@ -383,9 +387,13 @@ class MainActivity : FlutterFragmentActivity() {
         // If we already hold audio focus, just enforce the mode — don't re-request.
         // Re-requesting would cause the previous listener to receive AUDIOFOCUS_LOSS_TRANSIENT
         // which triggers spurious beeps in Flutter.
-        if (audioFocusGranted) return
+        if (audioFocusGranted) {
+            Log.i("AudDbg", "requestAudioFocus: SKIP (already granted), modeAfter=${am.mode}")
+            return
+        }
 
         val listener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+            Log.i("AudDbg", "focusChange: $focusChange (granted=$audioFocusGranted mode=${am.mode})")
             when (focusChange) {
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
                 AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
@@ -421,11 +429,13 @@ class MainActivity : FlutterFragmentActivity() {
             audioFocusRequest = req
             val result = am.requestAudioFocus(req)
             audioFocusGranted = (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+            Log.i("AudDbg", "requestAudioFocus: NEW request result=$result granted=$audioFocusGranted modeAfter=${am.mode} speakerAfter=${am.isSpeakerphoneOn}")
         } else {
             @Suppress("DEPRECATION")
             val result = am.requestAudioFocus(listener, AudioManager.STREAM_VOICE_CALL,
                 AudioManager.AUDIOFOCUS_GAIN)
             audioFocusGranted = (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
+            Log.i("AudDbg", "requestAudioFocus: NEW request (legacy) result=$result granted=$audioFocusGranted modeAfter=${am.mode}")
         }
     }
 
@@ -502,6 +512,7 @@ class MainActivity : FlutterFragmentActivity() {
     /// (WhatsApp/Telegram) can ring without preempting our LiveKit audio.
     private fun enableCallAudioMix() {
         val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        Log.i("AudDbg", "enableCallAudioMix: enter primaryGranted=$audioFocusGranted mode=${audioManager.mode} listenerAttached=${focusListener != null}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val attrs = AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
@@ -514,6 +525,7 @@ class MainActivity : FlutterFragmentActivity() {
                 .also { b -> focusListener?.let { b.setOnAudioFocusChangeListener(it) } }
                 .build()
             val outcome = audioManager.requestAudioFocus(request)
+            Log.i("AudDbg", "enableCallAudioMix: outcome=$outcome primaryGrantedAfter=$audioFocusGranted mode=${audioManager.mode}")
             if (outcome == AudioManager.AUDIOFOCUS_REQUEST_GRANTED ||
                 outcome == AudioManager.AUDIOFOCUS_REQUEST_DELAYED) {
                 callAudioFocusRequest = request
