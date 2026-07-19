@@ -34,6 +34,7 @@ import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call
 import 'core/platform/call_kit.dart';
 import 'core/platform/platform_utils.dart';
 import 'features/dashboard/desktop/window/window_setup.dart';
+import 'features/messenger/data/datasources/messenger_remote_datasource.dart';
 import 'core/desktop_tray/desktop_tray_service.dart';
 import 'core/notifications/desktop/desktop_notifications_service.dart';
 import 'core/notifications/desktop/notification_routing.dart';
@@ -91,6 +92,29 @@ void _setupCallkitListener() {
       NotificationService.setPendingCallRoute(route);
       _navigateWhenResumed(route, 0);
       return;
+    }
+    // If a sibling device already answered this call, bail out — otherwise
+    // both devices join the LiveKit room and the caller sees a 3-way call.
+    // The `call_answered` echo from the server populates this flag via
+    // DashboardScreen's _listenForCallAnswered listener.
+    if (CallStateService.instance.isAnsweredElsewhere(roomName)) {
+      debugPrint('[CallKit] accept SKIPPED: $roomName already answered on another device');
+      try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+      return;
+    }
+    // Announce accept to the server IMMEDIATELY so sibling devices dismiss
+    // their CallKit UI before the user can tap Accept on both. Previously
+    // this was sent only after LiveKit connect completed (~1-3 s), which
+    // left a race window wide enough to produce a 3-way join. Marking
+    // selfAnswered first so the server echo doesn't fire our own listener.
+    if (convId != null && convId.isNotEmpty) {
+      try {
+        CallStateService.instance.markSelfAnswered(roomName);
+        sl<MessengerRemoteDataSource>().sendCallAnswered(convId, roomName);
+        debugPrint('[CallKit] early sendCallAnswered emitted: room=$roomName');
+      } catch (e) {
+        debugPrint('[CallKit] early sendCallAnswered failed (socket not ready?): $e');
+      }
     }
     final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
     final calleeParam = callerName.isNotEmpty ? '&callee=${Uri.encodeComponent(callerName)}' : '';
@@ -259,6 +283,12 @@ void _setupMeshGroupCallIncoming() {
 /// DI may not be ready during killed-app cold start — silently skip in that case.
 void _connectCallInBackground(String roomName, String? convId, {String? e2eeKey}) {
   try {
+    // Sibling device already answered — do NOT join the room, or we end up
+    // with both devices in the same LiveKit session (3-way symptom).
+    if (CallStateService.instance.isAnsweredElsewhere(roomName)) {
+      debugPrint('[CallKit] background connect SKIPPED: $roomName answered elsewhere');
+      return;
+    }
     if (!sl.isRegistered<DioClient>()) {
       debugPrint('[CallKit] DI not ready, skipping background connect');
       return;

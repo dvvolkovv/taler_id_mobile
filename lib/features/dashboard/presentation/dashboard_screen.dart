@@ -342,12 +342,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAnsweredSub = sl<MessengerRemoteDataSource>()
         .callAnsweredStream
         .listen((roomName) async {
-      // Ignore own broadcast — sendCallAnswered echoes back to the sender via
-      // the server room broadcast. If we are already in this call, skip.
-      if (CallStateService.instance.roomName == roomName) return;
-      // Track so late VoIP pushes for this room are also suppressed
+      // Ignore server echo of our own accept — call_answered is now emitted
+      // the moment the user taps Accept (before LiveKit connect completes),
+      // so CallStateService.roomName is unreliable as a self-check. Track a
+      // dedicated selfAnswered flag instead.
+      if (CallStateService.instance.didSelfAnswer(roomName)) return;
+      // Another device of the same user answered — mark room and dismiss UI.
       _answeredOnOtherDevice.add(roomName);
-      // Another device of the same user answered — dismiss this device's CallKit UI
+      CallStateService.instance.markAnsweredElsewhere(roomName);
       await _endCallKitCallForRoom(roomName, fallbackEndAll: true);
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
     });
@@ -809,6 +811,21 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                   GestureDetector(
                     onTap: () async {
                       Navigator.of(context, rootNavigator: true).pop();
+                      // Sibling device already answered — don't join or we
+                      // end up in the same room as a second participant.
+                      if (CallStateService.instance.isAnsweredElsewhere(roomName)) {
+                        debugPrint('[Dashboard] in-app accept SKIPPED: $roomName answered elsewhere');
+                        try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+                        return;
+                      }
+                      // Announce accept to server IMMEDIATELY so sibling devices
+                      // dismiss their CallKit before the user can double-accept.
+                      if (convId.isNotEmpty && roomName.isNotEmpty) {
+                        try {
+                          CallStateService.instance.markSelfAnswered(roomName);
+                          sl<MessengerRemoteDataSource>().sendCallAnswered(convId, roomName);
+                        } catch (_) {}
+                      }
                       _acceptingInApp = true;
                       try {
                         await CallKitPlatform.instance.endCall(toCallkitId(roomName));
