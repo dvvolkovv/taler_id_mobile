@@ -28,3 +28,32 @@ class MailDeleteRequested extends MailEvent {
   @override
   List<Object?> get props => [uid];
 }
+
+class MailFolderSelected extends MailEvent {
+  final String path;
+  const MailFolderSelected(this.path);
+  @override
+  List<Object?> get props => [path];
+}
+
+class MailMessageMoved extends MailEvent {
+  final int uid;
+  final String toFolder;
+  const MailMessageMoved({required this.uid, required this.toFolder});
+  @override
+  List<Object?> get props => [uid, toFolder];
+}
+
+class MailFolderCreated extends MailEvent {
+  final String name;
+  const MailFolderCreated(this.name);
+  @override
+  List<Object?> get props => [name];
+}
+
+class MailFolderDeleted extends MailEvent {
+  final String path;
+  const MailFolderDeleted(this.path);
+  @override
+  List<Object?> get props => [path];
+}

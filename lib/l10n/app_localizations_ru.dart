@@ -3840,4 +3840,40 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mailQuotaTitle => 'Почтовый ящик';
+
+  @override
+  String get mailFolders => 'Папки';
+
+  @override
+  String get mailFolderInbox => 'Входящие';
+
+  @override
+  String get mailFolderSent => 'Отправленные';
+
+  @override
+  String get mailFolderDrafts => 'Черновики';
+
+  @override
+  String get mailFolderJunk => 'Спам';
+
+  @override
+  String get mailFolderTrash => 'Корзина';
+
+  @override
+  String get mailNewFolder => 'Новая папка';
+
+  @override
+  String get mailDeleteFolder => 'Удалить папку?';
+
+  @override
+  String get mailMoveTo => 'Переместить в';
+
+  @override
+  String get mailMoved => 'Перемещено';
+
+  @override
+  String get mailSaveDraft => 'Сохранить черновик?';
+
+  @override
+  String get mailDraftSaved => 'Черновик сохранён';
 }

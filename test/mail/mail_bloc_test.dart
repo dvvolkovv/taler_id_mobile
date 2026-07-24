@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/api/api_exception.dart';
 import 'package:taler_id_mobile/features/mail/domain/entities/mail_entities.dart';
+import 'package:taler_id_mobile/features/mail/domain/entities/mail_folder_entity.dart';
 import 'package:taler_id_mobile/features/mail/domain/repositories/i_mail_repository.dart';
 import 'package:taler_id_mobile/features/mail/presentation/bloc/mail_bloc.dart';
 import 'package:taler_id_mobile/features/mail/presentation/bloc/mail_event.dart';
@@ -21,6 +22,11 @@ MailListItemEntity item(int uid, {bool seen = false}) => MailListItemEntity(
       hasAttachments: false,
     );
 
+MailFolderEntity folderEntity(String path,
+        {String role = 'custom', int unseen = 0}) =>
+    MailFolderEntity(
+        path: path, role: role, name: path, total: 10, unseen: unseen);
+
 void main() {
   late MockMailRepository repo;
 
@@ -37,8 +43,12 @@ void main() {
             localpart: 'me',
             domain: 'talerid.io',
             status: 'ACTIVE'));
-        when(() => repo.getMessages(beforeUid: null))
+        when(() => repo.getMessages(beforeUid: null, folder: 'INBOX'))
             .thenAnswer((_) async => (items: [item(5), item(4)], nextCursor: 4));
+        when(() => repo.getFolders()).thenAnswer((_) async => [
+              folderEntity('INBOX', role: 'inbox', unseen: 3),
+              folderEntity('Sent', role: 'sent'),
+            ]);
         return build();
       },
       act: (b) => b.add(const MailInboxRequested()),
@@ -48,6 +58,35 @@ void main() {
             .having((s) => s.items.length, 'items', 2)
             .having((s) => s.nextCursor, 'cursor', 4)
             .having((s) => s.account?.address, 'address', 'me@talerid.io')
+            .having((s) => s.folders.length, 'folders', 2)
+            .having((s) => s.unread, 'unread', 3)
+            .having((s) => s.isLoading, 'loading', false),
+      ],
+      verify: (_) =>
+          verify(() => repo.getMessages(beforeUid: null, folder: 'INBOX'))
+              .called(1),
+    );
+
+    blocTest<MailBloc, MailState>(
+      'getFolders error is non-fatal — inbox still loads',
+      build: () {
+        when(() => repo.getAccount()).thenAnswer((_) async => MailAccountEntity(
+            address: 'me@talerid.io',
+            localpart: 'me',
+            domain: 'talerid.io',
+            status: 'ACTIVE'));
+        when(() => repo.getMessages(beforeUid: null, folder: 'INBOX'))
+            .thenAnswer((_) async => (items: [item(5)], nextCursor: null));
+        when(() => repo.getFolders()).thenThrow(Exception('folders down'));
+        return build();
+      },
+      act: (b) => b.add(const MailInboxRequested()),
+      expect: () => [
+        isA<MailState>().having((s) => s.isLoading, 'loading', true),
+        isA<MailState>()
+            .having((s) => s.items.length, 'items', 1)
+            .having((s) => s.folders, 'folders', isEmpty)
+            .having((s) => s.error, 'error', isNull)
             .having((s) => s.isLoading, 'loading', false),
       ],
     );
@@ -94,7 +133,7 @@ void main() {
             localpart: 'me',
             domain: 'talerid.io',
             status: 'ACTIVE'));
-        when(() => repo.getMessages(beforeUid: null))
+        when(() => repo.getMessages(beforeUid: null, folder: 'INBOX'))
             .thenThrow(Exception('network'));
         return build();
       },
@@ -112,7 +151,7 @@ void main() {
     blocTest<MailBloc, MailState>(
       'appends next page using nextCursor',
       build: () {
-        when(() => repo.getMessages(beforeUid: 4))
+        when(() => repo.getMessages(beforeUid: 4, folder: 'INBOX'))
             .thenAnswer((_) async => (items: [item(3)], nextCursor: null));
         return build();
       },
@@ -124,6 +163,9 @@ void main() {
             .having((s) => s.items.length, 'items', 3)
             .having((s) => s.nextCursor, 'cursor', null),
       ],
+      verify: (_) =>
+          verify(() => repo.getMessages(beforeUid: 4, folder: 'INBOX'))
+              .called(1),
     );
 
     blocTest<MailBloc, MailState>(
@@ -157,7 +199,8 @@ void main() {
     blocTest<MailBloc, MailState>(
       'optimistically flips seen flag',
       build: () {
-        when(() => repo.setSeen(5, true)).thenAnswer((_) async {});
+        when(() => repo.setSeen(5, true, folder: 'INBOX'))
+            .thenAnswer((_) async {});
         return build();
       },
       seed: () => MailState(items: [item(5)]),
@@ -165,6 +208,8 @@ void main() {
       expect: () => [
         isA<MailState>().having((s) => s.items.first.seen, 'seen', true),
       ],
+      verify: (_) =>
+          verify(() => repo.setSeen(5, true, folder: 'INBOX')).called(1),
     );
   });
 
@@ -172,7 +217,8 @@ void main() {
     blocTest<MailBloc, MailState>(
       'removes item from list',
       build: () {
-        when(() => repo.deleteMessage(5)).thenAnswer((_) async {});
+        when(() => repo.deleteMessage(5, folder: 'INBOX'))
+            .thenAnswer((_) async {});
         return build();
       },
       seed: () => MailState(items: [item(5), item(4)]),
@@ -180,12 +226,14 @@ void main() {
       expect: () => [
         isA<MailState>().having((s) => s.items.length, 'items', 1),
       ],
+      verify: (_) =>
+          verify(() => repo.deleteMessage(5, folder: 'INBOX')).called(1),
     );
 
     blocTest<MailBloc, MailState>(
       'repo.deleteMessage throws → item restored at original index, error set',
       build: () {
-        when(() => repo.deleteMessage(4))
+        when(() => repo.deleteMessage(4, folder: 'INBOX'))
             .thenThrow(Exception('delete failed'));
         return build();
       },
@@ -203,6 +251,133 @@ void main() {
             .having((s) => s.items[1].uid, 'restored uid', 4)
             .having((s) => s.error, 'error', isNotNull),
       ],
+    );
+  });
+
+  group('MailFolderSelected', () {
+    blocTest<MailBloc, MailState>(
+      'switches currentFolder and reloads items with folder arg',
+      build: () {
+        when(() => repo.getMessages(beforeUid: null, folder: 'Sent'))
+            .thenAnswer((_) async => (items: [item(7)], nextCursor: null));
+        return build();
+      },
+      seed: () => MailState(items: [item(5), item(4)], nextCursor: 4),
+      act: (b) => b.add(const MailFolderSelected('Sent')),
+      expect: () => [
+        isA<MailState>()
+            .having((s) => s.currentFolder, 'currentFolder', 'Sent')
+            .having((s) => s.items, 'items', isEmpty)
+            .having((s) => s.nextCursor, 'cursor', null)
+            .having((s) => s.isLoading, 'loading', true),
+        isA<MailState>()
+            .having((s) => s.currentFolder, 'currentFolder', 'Sent')
+            .having((s) => s.items.length, 'items', 1)
+            .having((s) => s.items.first.uid, 'uid', 7)
+            .having((s) => s.isLoading, 'loading', false),
+      ],
+      verify: (_) =>
+          verify(() => repo.getMessages(beforeUid: null, folder: 'Sent'))
+              .called(1),
+    );
+
+    blocTest<MailBloc, MailState>(
+      'load error in selected folder → error set',
+      build: () {
+        when(() => repo.getMessages(beforeUid: null, folder: 'Junk'))
+            .thenThrow(Exception('network'));
+        return build();
+      },
+      act: (b) => b.add(const MailFolderSelected('Junk')),
+      expect: () => [
+        isA<MailState>().having((s) => s.isLoading, 'loading', true),
+        isA<MailState>()
+            .having((s) => s.error, 'error', isNotNull)
+            .having((s) => s.isLoading, 'loading', false),
+      ],
+    );
+  });
+
+  group('MailMessageMoved', () {
+    blocTest<MailBloc, MailState>(
+      'removes moved message from items',
+      build: () {
+        when(() => repo.moveMessage(5,
+            fromFolder: 'INBOX', toFolder: 'Archive')).thenAnswer((_) async {});
+        return build();
+      },
+      seed: () => MailState(items: [item(5), item(4)]),
+      act: (b) => b.add(const MailMessageMoved(uid: 5, toFolder: 'Archive')),
+      expect: () => [
+        isA<MailState>()
+            .having((s) => s.items.length, 'items', 1)
+            .having((s) => s.items.first.uid, 'uid', 4),
+      ],
+      verify: (_) => verify(() =>
+              repo.moveMessage(5, fromFolder: 'INBOX', toFolder: 'Archive'))
+          .called(1),
+    );
+
+    blocTest<MailBloc, MailState>(
+      'move fails → item restored, error set',
+      build: () {
+        when(() => repo.moveMessage(4,
+                fromFolder: 'INBOX', toFolder: 'Archive'))
+            .thenThrow(Exception('move failed'));
+        return build();
+      },
+      seed: () => MailState(items: [item(5), item(4), item(3)]),
+      act: (b) => b.add(const MailMessageMoved(uid: 4, toFolder: 'Archive')),
+      expect: () => [
+        isA<MailState>().having((s) => s.items.length, 'items', 2),
+        isA<MailState>()
+            .having((s) => s.items.length, 'items', 3)
+            .having((s) => s.items[1].uid, 'restored uid', 4)
+            .having((s) => s.error, 'error', isNotNull),
+      ],
+    );
+  });
+
+  group('MailFolderCreated / MailFolderDeleted', () {
+    blocTest<MailBloc, MailState>(
+      'create folder → refreshes folders list',
+      build: () {
+        when(() => repo.createFolder('Archive')).thenAnswer((_) async {});
+        when(() => repo.getFolders()).thenAnswer((_) async => [
+              folderEntity('INBOX', role: 'inbox', unseen: 1),
+              folderEntity('Archive'),
+            ]);
+        return build();
+      },
+      act: (b) => b.add(const MailFolderCreated('Archive')),
+      expect: () => [
+        isA<MailState>()
+            .having((s) => s.folders.length, 'folders', 2)
+            .having((s) => s.unread, 'unread', 1),
+      ],
+      verify: (_) => verify(() => repo.createFolder('Archive')).called(1),
+    );
+
+    blocTest<MailBloc, MailState>(
+      'delete folder → refreshes folders list',
+      build: () {
+        when(() => repo.deleteFolder('Archive')).thenAnswer((_) async {});
+        when(() => repo.getFolders()).thenAnswer(
+            (_) async => [folderEntity('INBOX', role: 'inbox', unseen: 2)]);
+        return build();
+      },
+      seed: () => MailState(
+          folders: [
+            folderEntity('INBOX', role: 'inbox', unseen: 2),
+            folderEntity('Archive'),
+          ]),
+      act: (b) => b.add(const MailFolderDeleted('Archive')),
+      expect: () => [
+        isA<MailState>()
+            .having((s) => s.folders.length, 'folders', 1)
+            .having((s) => s.unread, 'unread', 2),
+      ],
+      verify: (_) => verify(() => repo.deleteFolder('Archive')).called(1),
     );
   });
 }

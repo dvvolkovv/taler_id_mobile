@@ -5,9 +5,11 @@ import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/utils/constants.dart';
+import '../../domain/entities/mail_folder_entity.dart';
 import '../bloc/mail_bloc.dart';
 import '../bloc/mail_event.dart';
 import '../bloc/mail_state.dart';
+import '../widgets/mail_folder_utils.dart';
 import '../widgets/mail_tile.dart';
 
 class MailInboxScreen extends StatelessWidget {
@@ -56,14 +58,111 @@ class _MailInboxView extends StatelessWidget {
                       context.push('${RouteConstants.mail}/compose'),
                   child: const Icon(Icons.edit_outlined),
                 ),
-          body: _body(context, state, l10n),
+          body: Column(
+            children: [
+              if (state.folders.isNotEmpty) _folderBar(context, state, l10n),
+              Expanded(child: _body(context, state, l10n)),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _body(
+  Widget _folderBar(
       BuildContext context, MailState state, AppLocalizations l10n) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          for (final folder in state.folders)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onLongPress: folder.role == 'custom'
+                    ? () => _confirmDeleteFolder(context, folder, l10n)
+                    : null,
+                child: ChoiceChip(
+                  label: Text(_chipLabel(folder, l10n)),
+                  selected: folder.path == state.currentFolder,
+                  onSelected: (_) => context
+                      .read<MailBloc>()
+                      .add(MailFolderSelected(folder.path)),
+                ),
+              ),
+            ),
+          ActionChip(
+            avatar: const Icon(Icons.add, size: 18),
+            label: Text(l10n.mailNewFolder),
+            onPressed: () => _promptNewFolder(context, l10n),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _chipLabel(MailFolderEntity folder, AppLocalizations l10n) {
+    final name = mailFolderDisplayName(folder, l10n);
+    return folder.unseen > 0 ? '$name (${folder.unseen})' : name;
+  }
+
+  Future<void> _promptNewFolder(
+      BuildContext context, AppLocalizations l10n) async {
+    final bloc = context.read<MailBloc>();
+    final ctrl = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.mailNewFolder),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: l10n.mailFolders),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (name != null && name.isNotEmpty) {
+      bloc.add(MailFolderCreated(name));
+    }
+  }
+
+  Future<void> _confirmDeleteFolder(BuildContext context,
+      MailFolderEntity folder, AppLocalizations l10n) async {
+    final bloc = context.read<MailBloc>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.mailDeleteFolder),
+        content: Text(folder.name),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      bloc.add(MailFolderDeleted(folder.path));
+    }
+  }
+
+  Widget _body(BuildContext context, MailState state, AppLocalizations l10n) {
     if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -136,9 +235,21 @@ class _MailInboxView extends StatelessWidget {
               child: MailTile(
                 item: item,
                 onTap: () {
-                  context.read<MailBloc>().add(
-                      MailMarkSeenRequested(uid: item.uid, seen: true));
-                  context.push('${RouteConstants.mail}/${item.uid}');
+                  final isDrafts = state.folders.any((f) =>
+                      f.role == 'drafts' && f.path == state.currentFolder);
+                  if (isDrafts) {
+                    // Черновик: открываем Compose с prefill вместо просмотра
+                    context.push('${RouteConstants.mail}/compose', extra: {
+                      'draftUid': item.uid,
+                      'draftFolder': state.currentFolder,
+                    });
+                    return;
+                  }
+                  context
+                      .read<MailBloc>()
+                      .add(MailMarkSeenRequested(uid: item.uid, seen: true));
+                  context.push(
+                      '${RouteConstants.mail}/${item.uid}?folder=${Uri.encodeQueryComponent(state.currentFolder)}');
                 },
               ),
             );

@@ -1817,5 +1817,17 @@
   "mailSendLimitReached": "Daily send limit reached",
   "mailSendFailed": "Failed to send email",
   "mailAttachmentsTooLarge": "Attachments must be under 10 MB total",
-  "mailQuotaTitle": "Mailbox"
+  "mailQuotaTitle": "Mailbox",
+  "mailFolders": "Folders",
+  "mailFolderInbox": "Inbox",
+  "mailFolderSent": "Sent",
+  "mailFolderDrafts": "Drafts",
+  "mailFolderJunk": "Spam",
+  "mailFolderTrash": "Trash",
+  "mailNewFolder": "New folder",
+  "mailDeleteFolder": "Delete folder?",
+  "mailMoveTo": "Move to",
+  "mailMoved": "Moved",
+  "mailSaveDraft": "Save draft?",
+  "mailDraftSaved": "Draft saved"
 }

@@ -313,7 +313,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
     final colors = AppColors.of(context);
     final isPinned = _pinnedIds.contains(conv.id);
     final isArchived = _archivedIds.contains(conv.id);
-    final isGroup = conv.type == 'GROUP';
+    final isGroup = conv.type == 'GROUP' || conv.type == 'CHANNEL';
     final l10n = AppLocalizations.of(context)!;
     final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
     showModalBottomSheet(
@@ -374,7 +374,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
 
   void _confirmDeleteChat(BuildContext context, ConversationEntity conv) {
     final colors = AppColors.of(context);
-    final isGroup = conv.type == 'GROUP';
+    final isGroup = conv.type == 'GROUP' || conv.type == 'CHANNEL';
     final l10n = AppLocalizations.of(context)!;
     final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
     showDialog(
@@ -1297,7 +1297,7 @@ class _ConversationTile extends StatelessWidget {
     final isAiAnalyst = conversation.type == 'AI_ANALYST';
     final displayName = isAiAnalyst
         ? l10n.aiAnalystTitle
-        : isGroup
+        : (isGroup || isChannel)
             ? (conversation.name ?? l10n.chatGroup)
             : (conversation.otherUserName ?? l10n.convDefaultUser);
     final lastMsg = conversation.lastMessageContent;
@@ -1328,7 +1328,8 @@ class _ConversationTile extends StatelessWidget {
         if (conversation.lastMessageSenderId != null &&
             conversation.lastMessageSenderId == currentUserId) {
           subtitleText = AppLocalizations.of(context)!.messengerYouPrefix(displayMsg);
-        } else if (isGroup && conversation.lastMessageSenderName != null) {
+        } else if ((isGroup || isChannel) &&
+            conversation.lastMessageSenderName != null) {
           subtitleText = '${conversation.lastMessageSenderName}: $displayMsg';
         } else {
           subtitleText = displayMsg;

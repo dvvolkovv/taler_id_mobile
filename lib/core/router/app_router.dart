@@ -436,6 +436,8 @@ final appRouter = GoRouter(
                   replyTo: extra?['replyTo'] as String?,
                   replySubject: extra?['replySubject'] as String?,
                   replyMessageId: extra?['replyMessageId'] as String?,
+                  draftUid: extra?['draftUid'] as int?,
+                  draftFolder: extra?['draftFolder'] as String?,
                 );
               },
             ),
@@ -450,7 +452,8 @@ final appRouter = GoRouter(
                 // Нечисловой uid (кривой deep link и т.п.) → inbox вместо
                 // серого экрана в release.
                 if (uid == null) return const MailInboxScreen();
-                return MailDetailScreen(uid: uid);
+                final folder = state.uri.queryParameters['folder'] ?? 'INBOX';
+                return MailDetailScreen(uid: uid, folder: folder);
               },
             ),
           ],
