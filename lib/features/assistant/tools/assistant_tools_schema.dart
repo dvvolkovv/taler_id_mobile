@@ -679,6 +679,62 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
               },
             },
           },
+          {
+            'type': 'function',
+            'name': 'check_mail',
+            'description':
+                'Check the user\'s @talerid.io mailbox: returns the latest inbox emails (from, subject, date, seen, uid). Call when user asks "проверь почту", "есть новые письма?", "check my mail".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'limit': {
+                  'type': 'integer',
+                  'description': 'How many latest emails to return (default 5, max 20)',
+                },
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'read_mail',
+            'description':
+                'Read one email by uid (from check_mail). Returns full text body. Call when user asks to read/open a specific email.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'uid': {'type': 'integer', 'description': 'Email uid from check_mail'},
+              },
+              'required': ['uid'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'send_mail',
+            'description':
+                'Send an email from the user\'s @talerid.io address. ALWAYS confirm recipient, subject and text with the user out loud BEFORE calling this tool.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'to': {'type': 'string', 'description': 'Recipient email address'},
+                'subject': {'type': 'string', 'description': 'Email subject'},
+                'text': {'type': 'string', 'description': 'Email body (plain text)'},
+              },
+              'required': ['to', 'subject', 'text'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'create_mail_app_password',
+            'description':
+                'Create an app password for connecting external mail clients (Apple Mail, Gmail app). The password value is NOT returned to you — tell the user to check the App Passwords screen in Settings. Just pass a label like "iPhone Apple Mail".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'label': {'type': 'string', 'description': 'Device/client label'},
+              },
+              'required': ['label'],
+            },
+          },
   ];
 }
 
