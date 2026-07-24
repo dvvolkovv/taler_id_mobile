@@ -57,4 +57,10 @@ class RouteConstants {
   static const newGroupCall = '/new-group-call';
   static const groupCallLobby = '/group-call/:id/lobby';
   static const groupCallActive = '/group-call/:id';
+
+  // Mail (Phase 2)
+  static const String mail = '/mail';
+  // NB: NOT '/mail/setup' — тот путь перехватывался бы route'ом '/mail/:uid'
+  // (uid="setup" → int.parse crash → серый экран в release).
+  static const String mailAddressSetup = '/mail-setup';
 }

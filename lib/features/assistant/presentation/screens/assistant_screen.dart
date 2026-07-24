@@ -1504,6 +1504,13 @@ class _AssistantScreenState extends State<AssistantScreen>
             color: const Color(0xFFFB7185), // rose
           ),
           _NavCircle(
+            icon: Icons.mail_outline,
+            label: l10n.mailTitle,
+            route: RouteConstants.mail,
+            badge: 0,
+            color: const Color(0xFF2DD4BF), // teal
+          ),
+          _NavCircle(
             icon: Icons.people_outline,
             label: l10n.contacts,
             route: RouteConstants.contacts,

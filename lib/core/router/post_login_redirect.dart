@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/mail/domain/repositories/i_mail_repository.dart';
 import '../../features/oauth/data/oauth_pending_request.dart';
 import '../di/service_locator.dart';
 import '../platform/platform_utils.dart';
@@ -25,5 +26,33 @@ Future<void> postLoginNavigate(BuildContext context) async {
   final defaultRoute = PlatformUtils.instance.isDesktop
       ? RouteConstants.messenger
       : RouteConstants.assistant;
-  context.go(seen ? defaultRoute : RouteConstants.onboarding);
+
+  if (!seen) {
+    context.go(RouteConstants.onboarding);
+    return;
+  }
+
+  // Mail address gate: show once after onboarding until user creates a
+  // mailbox or explicitly taps "Later".
+  final dismissed = await storage.isMailSetupDismissed;
+  final confirmed = await storage.isMailSetupConfirmed;
+  if (!dismissed && !confirmed) {
+    bool hasMailbox = false;
+    try {
+      await sl<IMailRepository>().getAccount();
+      hasMailbox = true;
+      // Cache positive result so we skip this network call on future logins.
+      await storage.setMailSetupConfirmed();
+    } catch (_) {
+      hasMailbox = false; // 404 or network — show setup screen with "Later"
+    }
+    if (!context.mounted) return;
+    if (!hasMailbox) {
+      context.go(RouteConstants.mailAddressSetup);
+      return;
+    }
+  }
+
+  if (!context.mounted) return;
+  context.go(defaultRoute);
 }

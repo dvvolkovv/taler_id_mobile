@@ -7005,6 +7005,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No reactions'**
   String get noReactions;
+
+  /// No description provided for @mailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mail'**
+  String get mailTitle;
+
+  /// No description provided for @mailSectionHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Mail'**
+  String get mailSectionHeader;
+
+  /// No description provided for @mailInboxEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No emails yet'**
+  String get mailInboxEmpty;
+
+  /// No description provided for @mailNoAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your @talerid.io address'**
+  String get mailNoAccountTitle;
+
+  /// No description provided for @mailNoAccountBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your personal email address to send and receive mail.'**
+  String get mailNoAccountBody;
+
+  /// No description provided for @mailChooseAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose address'**
+  String get mailChooseAddress;
+
+  /// No description provided for @mailAddressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'username'**
+  String get mailAddressHint;
+
+  /// No description provided for @mailAddressTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'This address is already taken'**
+  String get mailAddressTaken;
+
+  /// No description provided for @mailAddressInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Only latin letters, digits, dot, dash, underscore (3–64 chars)'**
+  String get mailAddressInvalid;
+
+  /// No description provided for @mailAddressReserved.
+  ///
+  /// In en, this message translates to:
+  /// **'This name is reserved'**
+  String get mailAddressReserved;
+
+  /// No description provided for @mailAddressAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Address is available'**
+  String get mailAddressAvailable;
+
+  /// No description provided for @mailCreateAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Create address'**
+  String get mailCreateAddress;
+
+  /// No description provided for @mailSetupLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get mailSetupLater;
+
+  /// No description provided for @mailCompose.
+  ///
+  /// In en, this message translates to:
+  /// **'New email'**
+  String get mailCompose;
+
+  /// No description provided for @mailTo.
+  ///
+  /// In en, this message translates to:
+  /// **'To'**
+  String get mailTo;
+
+  /// No description provided for @mailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get mailSubject;
+
+  /// No description provided for @mailBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get mailBody;
+
+  /// No description provided for @mailSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get mailSend;
+
+  /// No description provided for @mailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Email sent'**
+  String get mailSent;
+
+  /// No description provided for @mailReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get mailReply;
+
+  /// No description provided for @mailDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get mailDelete;
+
+  /// No description provided for @mailMarkUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unread'**
+  String get mailMarkUnread;
+
+  /// No description provided for @mailAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments'**
+  String get mailAttachments;
+
+  /// No description provided for @mailAttachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file'**
+  String get mailAttachFile;
+
+  /// No description provided for @mailAppPasswords.
+  ///
+  /// In en, this message translates to:
+  /// **'App passwords'**
+  String get mailAppPasswords;
+
+  /// No description provided for @mailAppPasswordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use app passwords to connect Apple Mail, Gmail or other IMAP clients.'**
+  String get mailAppPasswordsHint;
+
+  /// No description provided for @mailAppPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (e.g. iPhone Apple Mail)'**
+  String get mailAppPasswordLabel;
+
+  /// No description provided for @mailAppPasswordCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create password'**
+  String get mailAppPasswordCreate;
+
+  /// No description provided for @mailAppPasswordShownOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Save this password now — it is shown only once.'**
+  String get mailAppPasswordShownOnce;
+
+  /// No description provided for @mailAppPasswordCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Password copied'**
+  String get mailAppPasswordCopied;
+
+  /// No description provided for @mailAppPasswordRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get mailAppPasswordRevoke;
+
+  /// No description provided for @mailClientSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Client settings'**
+  String get mailClientSettingsTitle;
+
+  /// No description provided for @mailSendLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily send limit reached'**
+  String get mailSendLimitReached;
+
+  /// No description provided for @mailSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send email'**
+  String get mailSendFailed;
+
+  /// No description provided for @mailAttachmentsTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments must be under 10 MB total'**
+  String get mailAttachmentsTooLarge;
+
+  /// No description provided for @mailQuotaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mailbox'**
+  String get mailQuotaTitle;
 }
 
 class _AppLocalizationsDelegate

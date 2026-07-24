@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../../core/agent/agent_client.dart';
+import '../../../core/api/api_exception.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/di/service_locator.dart';
 import '../../../core/services/update_check_service.dart';
@@ -714,6 +715,101 @@ class AssistantToolsExecutor {
           } catch (e) {
             output = jsonEncode({'ok': false, 'error': e.toString()});
           }
+        }
+      } else if (name == 'check_mail') {
+        final limit = ((args['limit'] as num?)?.toInt() ?? 5).clamp(1, 20);
+        try {
+          final data = await client.get<Map<String, dynamic>>(
+            '/mail/messages',
+            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+          );
+          final items = (data['items'] as List? ?? [])
+              .take(limit)
+              .map((m) => {
+                    'uid': m['uid'],
+                    'from': m['from'],
+                    'subject': m['subject'],
+                    'date': m['date'],
+                    'seen': m['seen'],
+                    'snippet': m['snippet'],
+                  })
+              .toList();
+          output = jsonEncode({'emails': items, 'total_loaded': items.length});
+        } catch (e) {
+          output = jsonEncode({
+            'error': (e is ApiException && e.statusCode == 404)
+                ? 'no_mailbox_yet — suggest creating an address in Settings → Mail'
+                : 'mail_unavailable',
+          });
+        }
+      } else if (name == 'read_mail') {
+        final uid = (args['uid'] as num?)?.toInt();
+        if (uid == null) {
+          output = jsonEncode({'error': 'uid_required'});
+        } else {
+          try {
+            final data = await client.get<Map<String, dynamic>>(
+              '/mail/messages/$uid',
+              fromJson: (d) => Map<String, dynamic>.from(d as Map),
+            );
+            output = jsonEncode({
+              'from': data['from'],
+              'to': data['to'],
+              'subject': data['subject'],
+              'date': data['date'],
+              'text': (data['text'] as String? ?? '').length > 4000
+                  ? (data['text'] as String).substring(0, 4000)
+                  : data['text'],
+              'attachments':
+                  (data['attachments'] as List? ?? []).map((a) => a['filename']).toList(),
+            });
+          } catch (e) {
+            output = jsonEncode({
+              'error': (e is ApiException && e.statusCode == 404)
+                  ? 'message_not_found'
+                  : 'mail_unavailable',
+            });
+          }
+        }
+      } else if (name == 'send_mail') {
+        final to = (args['to'] as String? ?? '').trim();
+        final subject = args['subject'] as String? ?? '';
+        final text = args['text'] as String? ?? '';
+        if (to.isEmpty || text.isEmpty) {
+          output = jsonEncode({'error': 'to_and_text_required'});
+        } else {
+          try {
+            await client.post(
+              '/mail/messages',
+              data: {'to': to, 'subject': subject, 'text': text},
+              fromJson: (d) => d,
+            );
+            output = jsonEncode({'ok': true, 'sent_to': to});
+          } catch (e) {
+            output = jsonEncode({
+              'error': (e is ApiException && e.statusCode == 429)
+                  ? 'daily_send_limit_reached'
+                  : 'mail_send_failed',
+            });
+          }
+        }
+      } else if (name == 'create_mail_app_password') {
+        final label = (args['label'] as String? ?? 'Mail client').trim();
+        try {
+          final data = await client.post<Map<String, dynamic>>(
+            '/mail/app-passwords',
+            data: {'label': label},
+            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+          );
+          // Пароль НЕ отдаём в LLM (не должен проговариваться вслух).
+          output = jsonEncode({
+            'ok': true,
+            'label': data['label'],
+            'note':
+                'Password created. Tell the user to open Settings → Mail → App passwords to view it (it is NOT shown here for security).',
+          });
+        } catch (e) {
+          output = jsonEncode({'error': 'mail_unavailable'});
         }
       } else {
         return 'Unknown tool: $name';

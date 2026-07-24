@@ -241,6 +241,44 @@ class SecureStorageService {
     }
   }
 
+  static const _mailSetupDismissedKey = 'mail_setup_dismissed';
+
+  Future<bool> get isMailSetupDismissed async {
+    if (kIsWeb) {
+      return _webBox?.get(_mailSetupDismissedKey) == 'true';
+    }
+    final val = await _ss.read(_mailSetupDismissedKey);
+    return val == 'true';
+  }
+
+  Future<void> setMailSetupDismissed() async {
+    if (kIsWeb) {
+      await _webBox?.put(_mailSetupDismissedKey, 'true');
+    } else {
+      await _ss.write(_mailSetupDismissedKey, 'true');
+    }
+  }
+
+  static const _mailSetupConfirmedKey = 'mail_setup_confirmed';
+
+  /// Returns true if the user has already successfully created a mailbox on
+  /// this device. Used to skip the `getAccount()` network call on every login.
+  Future<bool> get isMailSetupConfirmed async {
+    if (kIsWeb) {
+      return _webBox?.get(_mailSetupConfirmedKey) == 'true';
+    }
+    final val = await _ss.read(_mailSetupConfirmedKey);
+    return val == 'true';
+  }
+
+  Future<void> setMailSetupConfirmed() async {
+    if (kIsWeb) {
+      await _webBox?.put(_mailSetupConfirmedKey, 'true');
+    } else {
+      await _ss.write(_mailSetupConfirmedKey, 'true');
+    }
+  }
+
   /// Generic key-value read. Returns null if not set.
   Future<String?> read(String key) async {
     if (kIsWeb) {

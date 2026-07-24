@@ -306,12 +306,13 @@ void main() {
       expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
       debugPrint('[TEST] Dashboard loaded with orbital navigation');
 
-      // ── 4b. Orbital home sanity: 7 nav circles + center logo ───────
+      // ── 4b. Orbital home sanity: 8 nav circles + center logo ───────
       for (final icon in const [
         Icons.chat_bubble_outline_rounded,
         Icons.call_outlined,
         Icons.calendar_month_outlined,
         Icons.sticky_note_2_outlined,
+        Icons.mail_outline,
         Icons.people_outline,
         Icons.person_outline,
         Icons.settings_outlined,
@@ -327,7 +328,7 @@ void main() {
       );
       expect(centerLogo, findsOneWidget,
           reason: 'Center assistant logo missing on orbital home');
-      debugPrint('[TEST] ✓ Orbital home renders 7 nav circles + center logo');
+      debugPrint('[TEST] ✓ Orbital home renders 8 nav circles + center logo');
 
       // ── 5. Screen: Messages ────────────────────────────────────────
       await tester.openTab(Icons.chat_bubble_outline_rounded);
@@ -500,6 +501,27 @@ void main() {
         debugPrint('[TEST] ✓ Sessions screen OK');
         await tester.safeTap(find.byIcon(Icons.arrow_back));
         await tester.pumpFor(const Duration(seconds: 1));
+      }
+      // ── 10b. Settings → Mail (inbox) ───────────────────────────────
+      await tester.openTab(Icons.settings_outlined);
+      await tester.pumpFor(const Duration(seconds: 2));
+      // Секция Mail может быть ниже фолда — подскроллим список настроек.
+      final settingsList = find.byType(ListView);
+      if (settingsList.evaluate().isNotEmpty) {
+        await tester.drag(settingsList.first, const Offset(0, -200));
+        await tester.pumpFor(const Duration(seconds: 1));
+      }
+      if (await tester.safeTap(find.text('Mail').hitTestable())) {
+        await tester.pumpFor(const Duration(seconds: 3));
+        expect(find.byType(ErrorWidget), findsNothing,
+            reason: 'Mail inbox crashed');
+        debugPrint('[TEST] ✓ Mail inbox OK');
+        if (find.byIcon(Icons.arrow_back).evaluate().isNotEmpty) {
+          await tester.safeTap(find.byIcon(Icons.arrow_back));
+          await tester.pumpFor(const Duration(seconds: 1));
+        }
+      } else {
+        debugPrint('[TEST] ⚠ Mail tile not found in Settings — skipped');
       }
       await tester.goHome();
 
