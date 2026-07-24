@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/api/api_exception.dart';
@@ -30,17 +31,26 @@ class MailBloc extends Bloc<MailEvent, MailState> {
   Future<void> _onInboxRequested(
       MailInboxRequested event, Emitter<MailState> emit) async {
     emit(state.copyWith(isLoading: true, clearError: true, noAccount: false));
+    final requestedFolder = state.currentFolder;
     try {
       final account = await _repo.getAccount();
       final page =
-          await _repo.getMessages(beforeUid: null, folder: state.currentFolder);
+          await _repo.getMessages(beforeUid: null, folder: requestedFolder);
       // Папки — не критично: при ошибке остаёмся со старым списком
       var folders = state.folders;
       var unread = state.unread;
       try {
         folders = await _repo.getFolders();
         unread = _inboxUnseen(folders);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[MailBloc] getFolders failed: $e');
+      }
+      if (state.currentFolder != requestedFolder) {
+        // Пока грузили, юзер переключил папку: items уже не актуальны.
+        // folders/unread — folder-independent, их эмитим всегда.
+        emit(state.copyWith(account: account, folders: folders, unread: unread));
+        return;
+      }
       emit(state.copyWith(
         account: account,
         items: page.items,
@@ -134,6 +144,8 @@ class MailBloc extends Bloc<MailEvent, MailState> {
     ));
     try {
       final page = await _repo.getMessages(beforeUid: null, folder: event.path);
+      // Пока грузили, юзер выбрал другую папку — не перетираем её items
+      if (state.currentFolder != event.path) return;
       emit(state.copyWith(
         items: page.items,
         nextCursor: page.nextCursor,
@@ -141,6 +153,7 @@ class MailBloc extends Bloc<MailEvent, MailState> {
         isLoading: false,
       ));
     } catch (e) {
+      if (state.currentFolder != event.path) return;
       emit(state.copyWith(error: e.toString(), isLoading: false));
     }
   }

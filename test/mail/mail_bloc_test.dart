@@ -62,6 +62,9 @@ void main() {
             .having((s) => s.unread, 'unread', 3)
             .having((s) => s.isLoading, 'loading', false),
       ],
+      verify: (_) =>
+          verify(() => repo.getMessages(beforeUid: null, folder: 'INBOX'))
+              .called(1),
     );
 
     blocTest<MailBloc, MailState>(
@@ -160,6 +163,9 @@ void main() {
             .having((s) => s.items.length, 'items', 3)
             .having((s) => s.nextCursor, 'cursor', null),
       ],
+      verify: (_) =>
+          verify(() => repo.getMessages(beforeUid: 4, folder: 'INBOX'))
+              .called(1),
     );
 
     blocTest<MailBloc, MailState>(
@@ -202,6 +208,8 @@ void main() {
       expect: () => [
         isA<MailState>().having((s) => s.items.first.seen, 'seen', true),
       ],
+      verify: (_) =>
+          verify(() => repo.setSeen(5, true, folder: 'INBOX')).called(1),
     );
   });
 
@@ -218,6 +226,8 @@ void main() {
       expect: () => [
         isA<MailState>().having((s) => s.items.length, 'items', 1),
       ],
+      verify: (_) =>
+          verify(() => repo.deleteMessage(5, folder: 'INBOX')).called(1),
     );
 
     blocTest<MailBloc, MailState>(
