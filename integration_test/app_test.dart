@@ -328,7 +328,7 @@ void main() {
       );
       expect(centerLogo, findsOneWidget,
           reason: 'Center assistant logo missing on orbital home');
-      debugPrint('[TEST] ✓ Orbital home renders 7 nav circles + center logo');
+      debugPrint('[TEST] ✓ Orbital home renders 8 nav circles + center logo');
 
       // ── 5. Screen: Messages ────────────────────────────────────────
       await tester.openTab(Icons.chat_bubble_outline_rounded);
