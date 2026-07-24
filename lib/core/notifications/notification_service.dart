@@ -120,6 +120,7 @@ Future<void> _showLocalNotification({
     priority: Priority.high,
     playSound: true,
     icon: '@drawable/ic_notification',
+    largeIcon: const DrawableResourceAndroidBitmap('@drawable/ic_notification_large'),
     tag: tag,
   );
   const iosDetails = DarwinNotificationDetails(sound: 'default');
@@ -142,6 +143,7 @@ Future<void> _showMissedCallNotification({required String fromName}) async {
     priority: Priority.high,
     playSound: true,
     icon: '@drawable/ic_notification',
+    largeIcon: const DrawableResourceAndroidBitmap('@drawable/ic_notification_large'),
   );
   const iosDetails = DarwinNotificationDetails(sound: 'default');
   await _localNotifications.show(
