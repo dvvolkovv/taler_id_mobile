@@ -432,7 +432,7 @@ class NotificationService {
     // Foreground FCM messages.
     // - call_invite: handled by WebSocket (in-app dialog) — skip to avoid double ringing.
     // - new_message: show local notification (Android won't auto-show FCM when app is open).
-    FirebaseMessaging.onMessage.listen((message) {
+    FirebaseMessaging.onMessage.listen((message) async {
       final type = message.data['type'] as String?;
       if (type == 'read_sync') {
         // Silent server push: another device/tab read this conversation.
@@ -465,11 +465,28 @@ class NotificationService {
       }
       // call_invite is intentionally ignored here — socket handles it.
       if (type == 'call_cancelled') {
-        CallKitPlatform.instance.endAllCalls();
-        _notifStrings().then((s) => _showMissedCallNotification(
-          fromName: message.data['fromName'] ?? s.unknown,
-        ));
-        _onMissedCall?.call();
+        // Mirror the background handler's guards: the answered-elsewhere
+        // cancel push fans out to EVERY device of the answerer — including
+        // the one that just picked up. Without these guards the answering
+        // device killed its own accepted call via endAllCalls() and showed
+        // a bogus "missed call from answered_elsewhere" notification.
+        var hasAccepted = false;
+        try {
+          final active = await CallKitPlatform.instance.activeCalls();
+          hasAccepted = active.any((c) =>
+              c is Map && (c['isAccepted'] == true || c['accepted'] == true));
+        } catch (_) {}
+        if (!hasAccepted) {
+          await CallKitPlatform.instance.endAllCalls();
+        }
+        final answeredElsewhere =
+            message.data['fromName'] == 'answered_elsewhere';
+        if (!hasAccepted && !answeredElsewhere) {
+          _notifStrings().then((s) => _showMissedCallNotification(
+            fromName: message.data['fromName'] ?? s.unknown,
+          ));
+          _onMissedCall?.call();
+        }
       }
     });
 
