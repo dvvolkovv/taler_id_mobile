@@ -501,6 +501,27 @@ void main() {
         await tester.safeTap(find.byIcon(Icons.arrow_back));
         await tester.pumpFor(const Duration(seconds: 1));
       }
+      // ── 10b. Settings → Mail (inbox) ───────────────────────────────
+      await tester.openTab(Icons.settings_outlined);
+      await tester.pumpFor(const Duration(seconds: 2));
+      // Секция Mail может быть ниже фолда — подскроллим список настроек.
+      final settingsList = find.byType(ListView);
+      if (settingsList.evaluate().isNotEmpty) {
+        await tester.drag(settingsList.first, const Offset(0, -200));
+        await tester.pumpFor(const Duration(seconds: 1));
+      }
+      if (await tester.safeTap(find.text('Mail').hitTestable())) {
+        await tester.pumpFor(const Duration(seconds: 3));
+        expect(find.byType(ErrorWidget), findsNothing,
+            reason: 'Mail inbox crashed');
+        debugPrint('[TEST] ✓ Mail inbox OK');
+        if (find.byIcon(Icons.arrow_back).evaluate().isNotEmpty) {
+          await tester.safeTap(find.byIcon(Icons.arrow_back));
+          await tester.pumpFor(const Duration(seconds: 1));
+        }
+      } else {
+        debugPrint('[TEST] ⚠ Mail tile not found in Settings — skipped');
+      }
       await tester.goHome();
 
       // ── 11. Messages → open conversation ───────────────────────────
