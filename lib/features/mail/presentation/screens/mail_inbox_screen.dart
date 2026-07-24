@@ -111,10 +111,9 @@ class _MailInboxView extends StatelessWidget {
           }
           return false;
         },
-        child: ListView.separated(
+        child: ListView.builder(
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-          separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, i) {
             if (i >= state.items.length) {
               return const Padding(
