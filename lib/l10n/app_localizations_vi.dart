@@ -3818,4 +3818,40 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get mailQuotaTitle => 'Mailbox';
+
+  @override
+  String get mailFolders => 'Folders';
+
+  @override
+  String get mailFolderInbox => 'Inbox';
+
+  @override
+  String get mailFolderSent => 'Sent';
+
+  @override
+  String get mailFolderDrafts => 'Drafts';
+
+  @override
+  String get mailFolderJunk => 'Spam';
+
+  @override
+  String get mailFolderTrash => 'Trash';
+
+  @override
+  String get mailNewFolder => 'New folder';
+
+  @override
+  String get mailDeleteFolder => 'Delete folder?';
+
+  @override
+  String get mailMoveTo => 'Move to';
+
+  @override
+  String get mailMoved => 'Moved';
+
+  @override
+  String get mailSaveDraft => 'Save draft?';
+
+  @override
+  String get mailDraftSaved => 'Draft saved';
 }

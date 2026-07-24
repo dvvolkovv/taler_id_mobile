@@ -7221,6 +7221,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mailbox'**
   String get mailQuotaTitle;
+
+  /// No description provided for @mailFolders.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders'**
+  String get mailFolders;
+
+  /// No description provided for @mailFolderInbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get mailFolderInbox;
+
+  /// No description provided for @mailFolderSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get mailFolderSent;
+
+  /// No description provided for @mailFolderDrafts.
+  ///
+  /// In en, this message translates to:
+  /// **'Drafts'**
+  String get mailFolderDrafts;
+
+  /// No description provided for @mailFolderJunk.
+  ///
+  /// In en, this message translates to:
+  /// **'Spam'**
+  String get mailFolderJunk;
+
+  /// No description provided for @mailFolderTrash.
+  ///
+  /// In en, this message translates to:
+  /// **'Trash'**
+  String get mailFolderTrash;
+
+  /// No description provided for @mailNewFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'New folder'**
+  String get mailNewFolder;
+
+  /// No description provided for @mailDeleteFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete folder?'**
+  String get mailDeleteFolder;
+
+  /// No description provided for @mailMoveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to'**
+  String get mailMoveTo;
+
+  /// No description provided for @mailMoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved'**
+  String get mailMoved;
+
+  /// No description provided for @mailSaveDraft.
+  ///
+  /// In en, this message translates to:
+  /// **'Save draft?'**
+  String get mailSaveDraft;
+
+  /// No description provided for @mailDraftSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft saved'**
+  String get mailDraftSaved;
 }
 
 class _AppLocalizationsDelegate

@@ -27,6 +27,7 @@ import '../../../../core/utils/constants.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/message_entity.dart';
 import '../../../../core/services/wake_word_service.dart';
+import '../../../mail/domain/repositories/i_mail_repository.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
@@ -141,6 +142,10 @@ class _AssistantScreenState extends State<AssistantScreen>
   StreamSubscription<AiSessionTerminatedEvent>? _terminatedSub;
   DateTime? _sessionStartedAt;
 
+  // Бейдж непрочитанной почты на «планете» Mail (poll раз в 60с)
+  int _mailUnread = 0;
+  Timer? _mailUnreadTimer;
+
   @override
   void initState() {
     super.initState();
@@ -246,6 +251,19 @@ class _AssistantScreenState extends State<AssistantScreen>
         if (mounted && _state == _CallState.idle) _connect();
       });
     }
+    _refreshMailUnread();
+    _mailUnreadTimer = Timer.periodic(
+        const Duration(seconds: 60), (_) => _refreshMailUnread());
+  }
+
+  void _refreshMailUnread() {
+    sl<IMailRepository>()
+        .getUnreadCount()
+        .then((v) {
+          if (mounted && v != _mailUnread) setState(() => _mailUnread = v);
+        })
+        // Ящик может отсутствовать / сеть недоступна — бейдж просто молчит
+        .catchError((_) {});
   }
 
   void _tickOrbit() {
@@ -300,6 +318,7 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   @override
   void dispose() {
+    _mailUnreadTimer?.cancel();
     unawaited(_chatLogger.flushNow());
     _chatLogger.dispose();
     _chatBloc.close();
@@ -1507,7 +1526,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             icon: Icons.mail_outline,
             label: l10n.mailTitle,
             route: RouteConstants.mail,
-            badge: 0,
+            badge: _mailUnread,
             color: const Color(0xFF2DD4BF), // teal
           ),
           _NavCircle(

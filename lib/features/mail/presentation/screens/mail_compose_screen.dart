@@ -12,9 +12,16 @@ class MailComposeScreen extends StatefulWidget {
   final String? replyTo;
   final String? replySubject;
   final String? replyMessageId;
+  final int? draftUid;
+  final String? draftFolder;
 
   const MailComposeScreen(
-      {super.key, this.replyTo, this.replySubject, this.replyMessageId});
+      {super.key,
+      this.replyTo,
+      this.replySubject,
+      this.replyMessageId,
+      this.draftUid,
+      this.draftFolder});
 
   @override
   State<MailComposeScreen> createState() => _MailComposeScreenState();
@@ -22,13 +29,74 @@ class MailComposeScreen extends StatefulWidget {
 
 class _MailComposeScreenState extends State<MailComposeScreen> {
   late final _to = TextEditingController(text: widget.replyTo ?? '');
-  late final _subject =
-      TextEditingController(text: widget.replySubject ?? '');
+  late final _subject = TextEditingController(text: widget.replySubject ?? '');
   final _body = TextEditingController();
   final List<({String filename, List<int> bytes})> _attachments = [];
   bool _sending = false;
+  bool _sent = false;
 
   static const _maxTotalBytes = 10 * 1024 * 1024;
+
+  @override
+  void initState() {
+    super.initState();
+    final draftUid = widget.draftUid;
+    if (draftUid != null) {
+      // Открыт существующий черновик: подгружаем его содержимое
+      sl<IMailRepository>()
+          .getMessage(draftUid, folder: widget.draftFolder ?? 'INBOX')
+          .then((msg) {
+        if (!mounted) return;
+        setState(() {
+          _to.text = msg.to;
+          _subject.text = msg.subject;
+          _body.text = msg.text;
+        });
+      }).catchError((_) {});
+    }
+  }
+
+  bool get _hasDraftContent =>
+      !_sent &&
+      (_body.text.trim().isNotEmpty || _subject.text.trim().isNotEmpty);
+
+  Future<void> _handleClose() async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_hasDraftContent) {
+      context.pop();
+      return;
+    }
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.mailSaveDraft),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(l10n.delete),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (save == null || !mounted) return; // dialog dismissed → остаёмся
+    if (save) {
+      try {
+        await sl<IMailRepository>().saveDraft(
+          to: _to.text.trim(),
+          subject: _subject.text.trim(),
+          text: _body.text,
+          replaceUid: widget.draftUid,
+        );
+        messenger.showSnackBar(SnackBar(content: Text(l10n.mailDraftSaved)));
+      } catch (_) {}
+    }
+    if (mounted) context.pop();
+  }
 
   int get _totalBytes => _attachments.fold(0, (s, a) => s + a.bytes.length);
 
@@ -44,8 +112,7 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
       }
       return;
     }
-    setState(
-        () => _attachments.add((filename: file.name, bytes: file.bytes!)));
+    setState(() => _attachments.add((filename: file.name, bytes: file.bytes!)));
   }
 
   Future<void> _send() async {
@@ -67,6 +134,7 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
             .toList(),
       );
       if (!mounted) return;
+      _sent = true;
       messenger.showSnackBar(SnackBar(content: Text(l10n.mailSent)));
       context.pop();
     } catch (e) {
@@ -83,70 +151,76 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.mailCompose),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.attach_file), onPressed: _pickFile),
-          IconButton(
-            icon: _sending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.send_outlined),
-            onPressed: _send,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: _to,
-              keyboardType: TextInputType.emailAddress,
-              autocorrect: false,
-              decoration: InputDecoration(labelText: l10n.mailTo),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleClose();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.mailCompose),
+          actions: [
+            IconButton(
+                icon: const Icon(Icons.attach_file), onPressed: _pickFile),
+            IconButton(
+              icon: _sending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.send_outlined),
+              onPressed: _send,
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: _subject,
-              decoration: InputDecoration(labelText: l10n.mailSubject),
-            ),
-          ),
-          if (_attachments.isNotEmpty)
+          ],
+        ),
+        body: Column(
+          children: [
             Padding(
-              padding: const EdgeInsets.all(8),
-              child: Wrap(
-                spacing: 8,
-                children: [
-                  for (var i = 0; i < _attachments.length; i++)
-                    Chip(
-                      label: Text(_attachments[i].filename,
-                          overflow: TextOverflow.ellipsis),
-                      onDeleted: () =>
-                          setState(() => _attachments.removeAt(i)),
-                    ),
-                ],
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                controller: _to,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+                decoration: InputDecoration(labelText: l10n.mailTo),
               ),
             ),
-          Expanded(
-            child: TextField(
-              controller: _body,
-              maxLines: null,
-              expands: true,
-              textAlignVertical: TextAlignVertical.top,
-              decoration: InputDecoration(
-                  hintText: l10n.mailBody,
-                  contentPadding: const EdgeInsets.all(16),
-                  border: InputBorder.none),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                controller: _subject,
+                decoration: InputDecoration(labelText: l10n.mailSubject),
+              ),
             ),
-          ),
-        ],
+            if (_attachments.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    for (var i = 0; i < _attachments.length; i++)
+                      Chip(
+                        label: Text(_attachments[i].filename,
+                            overflow: TextOverflow.ellipsis),
+                        onDeleted: () =>
+                            setState(() => _attachments.removeAt(i)),
+                      ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: TextField(
+                controller: _body,
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
+                decoration: InputDecoration(
+                    hintText: l10n.mailBody,
+                    contentPadding: const EdgeInsets.all(16),
+                    border: InputBorder.none),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

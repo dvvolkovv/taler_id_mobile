@@ -1810,5 +1810,17 @@
   "mailSendLimitReached": "Дневной лимит отправки исчерпан",
   "mailSendFailed": "Не удалось отправить письмо",
   "mailAttachmentsTooLarge": "Вложения — не более 10 МБ суммарно",
-  "mailQuotaTitle": "Почтовый ящик"
+  "mailQuotaTitle": "Почтовый ящик",
+  "mailFolders": "Папки",
+  "mailFolderInbox": "Входящие",
+  "mailFolderSent": "Отправленные",
+  "mailFolderDrafts": "Черновики",
+  "mailFolderJunk": "Спам",
+  "mailFolderTrash": "Корзина",
+  "mailNewFolder": "Новая папка",
+  "mailDeleteFolder": "Удалить папку?",
+  "mailMoveTo": "Переместить в",
+  "mailMoved": "Перемещено",
+  "mailSaveDraft": "Сохранить черновик?",
+  "mailDraftSaved": "Черновик сохранён"
 }
