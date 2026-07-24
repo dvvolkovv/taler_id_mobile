@@ -1,10 +1,14 @@
 import 'package:equatable/equatable.dart';
 
 import '../../domain/entities/mail_entities.dart';
+import '../../domain/entities/mail_folder_entity.dart';
 
 class MailState extends Equatable {
   final MailAccountEntity? account;
   final List<MailListItemEntity> items;
+  final List<MailFolderEntity> folders;
+  final String currentFolder;
+  final int unread;
   final int? nextCursor;
   final bool isLoading;
   final bool isLoadingMore;
@@ -14,6 +18,9 @@ class MailState extends Equatable {
   const MailState({
     this.account,
     this.items = const [],
+    this.folders = const [],
+    this.currentFolder = 'INBOX',
+    this.unread = 0,
     this.nextCursor,
     this.isLoading = false,
     this.isLoadingMore = false,
@@ -24,6 +31,9 @@ class MailState extends Equatable {
   MailState copyWith({
     MailAccountEntity? account,
     List<MailListItemEntity>? items,
+    List<MailFolderEntity>? folders,
+    String? currentFolder,
+    int? unread,
     int? nextCursor,
     bool clearCursor = false,
     bool? isLoading,
@@ -35,6 +45,9 @@ class MailState extends Equatable {
       MailState(
         account: account ?? this.account,
         items: items ?? this.items,
+        folders: folders ?? this.folders,
+        currentFolder: currentFolder ?? this.currentFolder,
+        unread: unread ?? this.unread,
         nextCursor: clearCursor ? null : (nextCursor ?? this.nextCursor),
         isLoading: isLoading ?? this.isLoading,
         isLoadingMore: isLoadingMore ?? this.isLoadingMore,
@@ -43,6 +56,16 @@ class MailState extends Equatable {
       );
 
   @override
-  List<Object?> get props =>
-      [account, items, nextCursor, isLoading, isLoadingMore, noAccount, error];
+  List<Object?> get props => [
+        account,
+        items,
+        folders,
+        currentFolder,
+        unread,
+        nextCursor,
+        isLoading,
+        isLoadingMore,
+        noAccount,
+        error,
+      ];
 }
