@@ -676,6 +676,76 @@ void main() {
       },
     );
 
+    // 2026-07-24 — offline send stuck with clock icon forever.
+    // Sending while the socket is already disconnected: the repository drops
+    // the emit (isSocketConnected gate) but the tempId stays in the in-flight
+    // set. The network then returns and the socket goes straight to 'connect'
+    // WITHOUT an intervening 'disconnect' event — so the in-flight set was
+    // never cleared and _resendPending skipped the message on every reconnect
+    // (and even across app restarts). Regression locks down: a fresh connect
+    // must reset in-flight tracking and re-emit pending messages.
+    blocTest<MessengerBloc, MessengerState>(
+      're-emits pending on reconnect even when no disconnect event preceded it',
+      build: () {
+        final pending = _PopulatedPendingMessageService();
+        sl.unregister<PendingMessageService>();
+        sl.registerSingleton<PendingMessageService>(pending);
+
+        when(() => repo.joinConversation(any())).thenReturn(null);
+        when(() => repo.sendMessage(
+              any(),
+              any(),
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).thenReturn(null);
+        return buildBloc();
+      },
+      act: (b) async {
+        b.add(const ConnectMessenger('token', userId: 'user-1'));
+        await Future.delayed(const Duration(milliseconds: 30));
+        // Send while "offline": repo mock records the call, but in production
+        // the repository drops it when the socket is disconnected. The tempId
+        // is now marked in-flight either way.
+        b.add(const SendMessage('conv-1', 'offline draft'));
+        await Future.delayed(const Duration(milliseconds: 30));
+
+        // Network returns: socket connects with NO disconnect event first
+        // (it was already down before the send).
+        final ds = sl<MessengerRemoteDataSource>()
+            as _FakeMessengerRemoteDataSource;
+        ds.emitReconnect();
+        await Future.delayed(const Duration(milliseconds: 30));
+      },
+      verify: (b) {
+        // Initial emit + reconnect re-emit = 2 calls. Pre-fix the second one
+        // was skipped ("already in flight") and the message hung forever.
+        verify(() => repo.sendMessage(
+              'conv-1',
+              'offline draft',
+              fileUrl: any(named: 'fileUrl'),
+              fileName: any(named: 'fileName'),
+              fileSize: any(named: 'fileSize'),
+              fileType: any(named: 'fileType'),
+              s3Key: any(named: 's3Key'),
+              thumbnailSmallUrl: any(named: 'thumbnailSmallUrl'),
+              thumbnailMediumUrl: any(named: 'thumbnailMediumUrl'),
+              thumbnailLargeUrl: any(named: 'thumbnailLargeUrl'),
+              fileRecordId: any(named: 'fileRecordId'),
+              topicId: any(named: 'topicId'),
+              clientTempId: any(named: 'clientTempId'),
+            )).called(2);
+      },
+    );
+
     // 2026-06-15 — phantom resend on cross-session pending leak.
     // Pending Hive box persisted through logout; on the next account's first
     // connect, _resendPending flushed the previous user's drafts under the

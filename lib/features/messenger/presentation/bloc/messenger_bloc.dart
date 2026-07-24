@@ -181,6 +181,14 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     _reconnectSub?.cancel();
     _reconnectSub = sl<MessengerRemoteDataSource>().reconnectStream.listen((_) {
       debugPrint('[mesh-reconnect] socket reconnected — resending pending + refreshing contact keys');
+      // In-flight markers are only meaningful within one socket session: an
+      // emit into a disconnected/connecting socket is silently dropped by the
+      // repository (isSocketConnected gate), yet the tempId stayed marked
+      // in-flight and blocked every later resend — the "message stuck with
+      // clock icon forever" bug. On a fresh connect anything unacked either
+      // reached the server (echo clears pending) or died with the old socket;
+      // server-side dedup by clientTempId (Redis, 1h TTL) absorbs duplicates.
+      _inFlightTempIds.clear();
       _resendPending(currentUserId: event.userId);
       _refreshMeshContactKeys();
       add(const SyncMessagesRequested());
@@ -198,6 +206,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     _disconnectSub?.cancel();
     _disconnectSub =
         sl<MessengerRemoteDataSource>().disconnectStream.listen((_) {
+      debugPrint('[MessengerBloc] disconnect — clearing ${_inFlightTempIds.length} in-flight tempIds');
       _inFlightTempIds.clear();
     });
     _msgSub?.cancel();
