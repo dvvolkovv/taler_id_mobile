@@ -3728,4 +3728,110 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get noReactions => 'Нет реакций';
+
+  @override
+  String get mailTitle => 'Почта';
+
+  @override
+  String get mailSectionHeader => 'Почта';
+
+  @override
+  String get mailInboxEmpty => 'Писем пока нет';
+
+  @override
+  String get mailNoAccountTitle => 'Выберите ваш адрес @talerid.io';
+
+  @override
+  String get mailNoAccountBody =>
+      'Создайте личный email-адрес для отправки и получения почты.';
+
+  @override
+  String get mailChooseAddress => 'Выбрать адрес';
+
+  @override
+  String get mailAddressHint => 'имя';
+
+  @override
+  String get mailAddressTaken => 'Адрес уже занят';
+
+  @override
+  String get mailAddressInvalid =>
+      'Только латиница, цифры, точка, дефис, подчёркивание (3–64)';
+
+  @override
+  String get mailAddressReserved => 'Это имя зарезервировано';
+
+  @override
+  String get mailAddressAvailable => 'Адрес свободен';
+
+  @override
+  String get mailCreateAddress => 'Создать адрес';
+
+  @override
+  String get mailSetupLater => 'Позже';
+
+  @override
+  String get mailCompose => 'Новое письмо';
+
+  @override
+  String get mailTo => 'Кому';
+
+  @override
+  String get mailSubject => 'Тема';
+
+  @override
+  String get mailBody => 'Сообщение';
+
+  @override
+  String get mailSend => 'Отправить';
+
+  @override
+  String get mailSent => 'Письмо отправлено';
+
+  @override
+  String get mailReply => 'Ответить';
+
+  @override
+  String get mailDelete => 'Удалить';
+
+  @override
+  String get mailMarkUnread => 'Отметить непрочитанным';
+
+  @override
+  String get mailAttachments => 'Вложения';
+
+  @override
+  String get mailAttachFile => 'Прикрепить файл';
+
+  @override
+  String get mailAppPasswords => 'Пароли приложений';
+
+  @override
+  String get mailAppPasswordsHint =>
+      'Используйте пароли приложений для подключения Apple Mail, Gmail и других IMAP-клиентов.';
+
+  @override
+  String get mailAppPasswordLabel => 'Название (напр. iPhone Apple Mail)';
+
+  @override
+  String get mailAppPasswordCreate => 'Создать пароль';
+
+  @override
+  String get mailAppPasswordShownOnce =>
+      'Сохраните пароль сейчас — он показывается только один раз.';
+
+  @override
+  String get mailAppPasswordCopied => 'Пароль скопирован';
+
+  @override
+  String get mailAppPasswordRevoke => 'Отозвать';
+
+  @override
+  String get mailClientSettingsTitle => 'Настройки клиента';
+
+  @override
+  String get mailSendLimitReached => 'Дневной лимит отправки исчерпан';
+
+  @override
+  String get mailQuotaTitle => 'Почтовый ящик';
 }

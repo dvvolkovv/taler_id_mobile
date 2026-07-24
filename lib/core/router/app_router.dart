@@ -51,6 +51,11 @@ import '../../features/billing/presentation/screens/transactions_screen.dart';
 import '../../features/billing/presentation/screens/pricebook_screen.dart';
 import '../../features/billing/presentation/screens/ai_toggles_screen.dart';
 import '../../features/agent_shell/presentation/screens/agent_shell_home_screen.dart';
+import '../../features/mail/presentation/screens/mail_inbox_screen.dart';
+import '../../features/mail/presentation/screens/mail_detail_screen.dart';
+import '../../features/mail/presentation/screens/mail_compose_screen.dart';
+import '../../features/mail/presentation/screens/mail_app_passwords_screen.dart';
+import '../../features/mail/presentation/screens/mail_address_setup_screen.dart';
 import '../../features/billing/presentation/bloc/balance_bloc.dart';
 import '../../features/oauth/data/oauth_pending_request.dart';
 import '../../features/oauth/domain/entities/oauth_authorize_params.dart';
@@ -418,7 +423,39 @@ final appRouter = GoRouter(
             ),
           ],
         ),
+        // Mail
+        GoRoute(
+          path: RouteConstants.mail,
+          builder: (_, __) => const MailInboxScreen(),
+          routes: [
+            GoRoute(
+              path: 'compose',
+              builder: (_, state) {
+                final extra = state.extra as Map<String, dynamic>?;
+                return MailComposeScreen(
+                  replyTo: extra?['replyTo'] as String?,
+                  replySubject: extra?['replySubject'] as String?,
+                  replyMessageId: extra?['replyMessageId'] as String?,
+                );
+              },
+            ),
+            GoRoute(
+              path: 'app-passwords',
+              builder: (_, __) => const MailAppPasswordsScreen(),
+            ),
+            GoRoute(
+              path: ':uid',
+              builder: (_, state) =>
+                  MailDetailScreen(uid: int.parse(state.pathParameters['uid']!)),
+            ),
+          ],
+        ),
       ],
+    ),
+    // Mail address setup (fullscreen, outside ShellRoute — no bottom nav)
+    GoRoute(
+      path: RouteConstants.mailAddressSetup,
+      builder: (_, __) => const MailAddressSetupScreen(),
     ),
   ],
 );

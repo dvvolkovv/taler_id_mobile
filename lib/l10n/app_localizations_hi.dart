@@ -3713,4 +3713,110 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get noReactions => 'No reactions';
+
+  @override
+  String get mailTitle => 'Mail';
+
+  @override
+  String get mailSectionHeader => 'Mail';
+
+  @override
+  String get mailInboxEmpty => 'No emails yet';
+
+  @override
+  String get mailNoAccountTitle => 'Choose your @talerid.io address';
+
+  @override
+  String get mailNoAccountBody =>
+      'Create your personal email address to send and receive mail.';
+
+  @override
+  String get mailChooseAddress => 'Choose address';
+
+  @override
+  String get mailAddressHint => 'username';
+
+  @override
+  String get mailAddressTaken => 'This address is already taken';
+
+  @override
+  String get mailAddressInvalid =>
+      'Only latin letters, digits, dot, dash, underscore (3–64 chars)';
+
+  @override
+  String get mailAddressReserved => 'This name is reserved';
+
+  @override
+  String get mailAddressAvailable => 'Address is available';
+
+  @override
+  String get mailCreateAddress => 'Create address';
+
+  @override
+  String get mailSetupLater => 'Later';
+
+  @override
+  String get mailCompose => 'New email';
+
+  @override
+  String get mailTo => 'To';
+
+  @override
+  String get mailSubject => 'Subject';
+
+  @override
+  String get mailBody => 'Message';
+
+  @override
+  String get mailSend => 'Send';
+
+  @override
+  String get mailSent => 'Email sent';
+
+  @override
+  String get mailReply => 'Reply';
+
+  @override
+  String get mailDelete => 'Delete';
+
+  @override
+  String get mailMarkUnread => 'Mark as unread';
+
+  @override
+  String get mailAttachments => 'Attachments';
+
+  @override
+  String get mailAttachFile => 'Attach file';
+
+  @override
+  String get mailAppPasswords => 'App passwords';
+
+  @override
+  String get mailAppPasswordsHint =>
+      'Use app passwords to connect Apple Mail, Gmail or other IMAP clients.';
+
+  @override
+  String get mailAppPasswordLabel => 'Name (e.g. iPhone Apple Mail)';
+
+  @override
+  String get mailAppPasswordCreate => 'Create password';
+
+  @override
+  String get mailAppPasswordShownOnce =>
+      'Save this password now — it is shown only once.';
+
+  @override
+  String get mailAppPasswordCopied => 'Password copied';
+
+  @override
+  String get mailAppPasswordRevoke => 'Revoke';
+
+  @override
+  String get mailClientSettingsTitle => 'Client settings';
+
+  @override
+  String get mailSendLimitReached => 'Daily send limit reached';
+
+  @override
+  String get mailQuotaTitle => 'Mailbox';
 }

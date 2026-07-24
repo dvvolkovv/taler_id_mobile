@@ -169,6 +169,12 @@ import '../../features/presence/data/repositories/presence_repository_impl.dart'
 import '../../features/presence/domain/repositories/i_presence_repository.dart';
 import '../../features/presence/presentation/services/presence_heartbeat_service.dart';
 
+// Mail
+import '../../features/mail/data/datasources/mail_remote_datasource.dart';
+import '../../features/mail/data/repositories/mail_repository_impl.dart';
+import '../../features/mail/domain/repositories/i_mail_repository.dart';
+import '../../features/mail/presentation/bloc/mail_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> setupDependencies() async {
@@ -808,6 +814,15 @@ Future<void> setupDependencies() async {
   sl.registerFactory(() => SessionsBloc(repo: sl<ISessionRepository>()));
   sl.registerFactory(() => OAuthAuthorizeBloc(sl<OAuthRepository>()));
   sl.registerLazySingleton(() => MessengerBloc(repo: sl<IMessengerRepository>()));
+
+  // Mail
+  sl.registerLazySingleton<MailRemoteDataSource>(
+    () => MailRemoteDataSource(sl<DioClient>()),
+  );
+  sl.registerLazySingleton<IMailRepository>(
+    () => MailRepositoryImpl(sl<MailRemoteDataSource>()),
+  );
+  sl.registerFactory<MailBloc>(() => MailBloc(repo: sl<IMailRepository>()));
 
   // Billing BLoCs (factory: new instance per screen).
   sl.registerFactory(() => BalanceBloc(

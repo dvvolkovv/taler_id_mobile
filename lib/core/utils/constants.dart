@@ -57,4 +57,8 @@ class RouteConstants {
   static const newGroupCall = '/new-group-call';
   static const groupCallLobby = '/group-call/:id/lobby';
   static const groupCallActive = '/group-call/:id';
+
+  // Mail (Phase 2)
+  static const String mail = '/mail';
+  static const String mailAddressSetup = '/mail/setup';
 }
