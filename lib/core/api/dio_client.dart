@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../utils/constants.dart';
 import 'auth_interceptor.dart';
@@ -177,6 +179,18 @@ class DioClient {
   Future<void> delete(String path) async {
     try {
       await _dio.delete(path);
+    } on DioException catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
+  }
+
+  Future<Uint8List> getBytes(String path) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Uint8List.fromList(response.data ?? []);
     } on DioException catch (e) {
       throw ApiErrorHandler.handle(e);
     }
