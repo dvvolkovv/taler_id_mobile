@@ -445,8 +445,13 @@ final appRouter = GoRouter(
             ),
             GoRoute(
               path: ':uid',
-              builder: (_, state) =>
-                  MailDetailScreen(uid: int.parse(state.pathParameters['uid']!)),
+              builder: (_, state) {
+                final uid = int.tryParse(state.pathParameters['uid'] ?? '');
+                // Нечисловой uid (кривой deep link и т.п.) → inbox вместо
+                // серого экрана в release.
+                if (uid == null) return const MailInboxScreen();
+                return MailDetailScreen(uid: uid);
+              },
             ),
           ],
         ),

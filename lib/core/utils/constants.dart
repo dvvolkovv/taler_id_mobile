@@ -60,5 +60,7 @@ class RouteConstants {
 
   // Mail (Phase 2)
   static const String mail = '/mail';
-  static const String mailAddressSetup = '/mail/setup';
+  // NB: NOT '/mail/setup' — тот путь перехватывался бы route'ом '/mail/:uid'
+  // (uid="setup" → int.parse crash → серый экран в release).
+  static const String mailAddressSetup = '/mail-setup';
 }
