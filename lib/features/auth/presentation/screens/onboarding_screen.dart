@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/notifications/notification_service.dart';
@@ -23,8 +22,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   final _pageController = PageController();
   int _currentPage = 0;
-  bool _notificationsRequested = false;
-  bool _microphoneRequested = false;
+  bool _requestInFlight = false;
 
   static const _totalPages = 2;
 
@@ -62,20 +60,36 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     context.go(hasToken ? RouteConstants.assistant : RouteConstants.login);
   }
 
+  // After the system dialog resolves (granted or denied) we advance
+  // automatically — no extra "Next" tap between permissions.
   Future<void> _requestNotifications() async {
-    if (!kIsWeb) {
-      await NotificationService.requestPermission();
+    if (_requestInFlight) return;
+    _requestInFlight = true;
+    try {
+      if (!kIsWeb) {
+        await NotificationService.requestPermission();
+      }
+    } finally {
+      _requestInFlight = false;
     }
-    setState(() => _notificationsRequested = true);
+    if (!mounted) return;
+    _nextPage();
   }
 
   Future<void> _requestMicrophone() async {
-    if (!kIsWeb) {
-      // Use macOS-native AVCaptureDevice.requestAccess on desktop because
-      // permission_handler does not support macOS.
-      await DesktopAvPermission.requestMicrophone();
+    if (_requestInFlight) return;
+    _requestInFlight = true;
+    try {
+      if (!kIsWeb) {
+        // Use macOS-native AVCaptureDevice.requestAccess on desktop because
+        // permission_handler does not support macOS.
+        await DesktopAvPermission.requestMicrophone();
+      }
+    } finally {
+      _requestInFlight = false;
     }
-    setState(() => _microphoneRequested = true);
+    if (!mounted) return;
+    await _finish();
   }
 
   void _nextPage() {
@@ -203,7 +217,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     // Page 0: Notifications
     if (_currentPage == 0) {
       return _buildPermissionPage(
-        requested: _notificationsRequested,
         onRequest: _requestNotifications,
         icon: Icons.notifications_active,
         enableLabel: l10n.onboardingEnableNotifications,
@@ -216,7 +229,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
     // Page 1: Microphone (last page)
     return _buildPermissionPage(
-      requested: _microphoneRequested,
       onRequest: _requestMicrophone,
       icon: Icons.mic_rounded,
       enableLabel: l10n.onboardingEnableMicrophone,
@@ -228,7 +240,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildPermissionPage({
-    required bool requested,
     required VoidCallback onRequest,
     required IconData icon,
     required String enableLabel,
@@ -237,32 +248,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     required AppColorsExtension colors,
     required List<Color> gradient,
   }) {
-    if (!requested) {
-      return Column(
-        children: [
-          _GradientButton(
-            onTap: onRequest,
-            icon: icon,
-            label: enableLabel,
-            gradient: gradient,
+    return Column(
+      children: [
+        _GradientButton(
+          onTap: onRequest,
+          icon: icon,
+          label: enableLabel,
+          gradient: gradient,
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: OutlinedButton(
+            onPressed: onAfter,
+            child: Text(afterLabel),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: OutlinedButton(
-              onPressed: onAfter,
-              child: Text(afterLabel),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return _GradientButton(
-      onTap: onAfter,
-      label: afterLabel,
-      gradient: gradient,
+        ),
+      ],
     );
   }
 }
