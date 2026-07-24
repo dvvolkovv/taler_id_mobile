@@ -306,12 +306,13 @@ void main() {
       expect(hasDashboard, isTrue, reason: 'Dashboard (orbital nav) should appear after login');
       debugPrint('[TEST] Dashboard loaded with orbital navigation');
 
-      // ── 4b. Orbital home sanity: 7 nav circles + center logo ───────
+      // ── 4b. Orbital home sanity: 8 nav circles + center logo ───────
       for (final icon in const [
         Icons.chat_bubble_outline_rounded,
         Icons.call_outlined,
         Icons.calendar_month_outlined,
         Icons.sticky_note_2_outlined,
+        Icons.mail_outline,
         Icons.people_outline,
         Icons.person_outline,
         Icons.settings_outlined,
