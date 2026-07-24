@@ -1293,6 +1293,7 @@ class _ConversationTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isGroup = conversation.type == 'GROUP';
+    final isChannel = conversation.type == 'CHANNEL';
     final isAiAnalyst = conversation.type == 'AI_ANALYST';
     final displayName = isAiAnalyst
         ? l10n.aiAnalystTitle
@@ -1335,7 +1336,13 @@ class _ConversationTile extends StatelessWidget {
       }
     }
 
-    final avatar = isAiAnalyst ? null : (isGroup ? conversation.avatarUrl : conversation.otherUserAvatar);
+    // Каналы (в т.ч. системный «Taler ID — Новости») показывают свой avatarUrl,
+    // как и группы; для direct-чатов — аватар собеседника.
+    final avatar = isAiAnalyst
+        ? null
+        : ((isGroup || isChannel)
+            ? conversation.avatarUrl
+            : conversation.otherUserAvatar);
 
     final rainbowColor = isAiAnalyst
         ? AppColors.of(context).primary
