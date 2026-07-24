@@ -52,6 +52,7 @@ class _MailAddressSetupScreenState extends State<MailAddressSetupScreen> {
     setState(() => _creating = true);
     try {
       await sl<IMailRepository>().createAccount(_checkedLocalpart);
+      await sl<SecureStorageService>().setMailSetupConfirmed();
       if (!mounted) return;
       _goNext();
     } catch (e) {

@@ -3833,5 +3833,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get mailSendLimitReached => 'Дневной лимит отправки исчерпан';
 
   @override
+  String get mailSendFailed => 'Не удалось отправить письмо';
+
+  @override
+  String get mailAttachmentsTooLarge => 'Вложения — не более 10 МБ суммарно';
+
+  @override
   String get mailQuotaTitle => 'Почтовый ящик';
 }

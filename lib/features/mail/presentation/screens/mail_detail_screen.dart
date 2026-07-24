@@ -30,7 +30,15 @@ class _MailDetailScreenState extends State<MailDetailScreen> {
     final bytes =
         await sl<IMailRepository>().downloadAttachment(widget.uid, att.index);
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/${att.filename}');
+    // C1: sanitize attacker-controlled filename — strip path separators and
+    // replace ".." components with "_" to prevent path traversal.
+    final rawName = att.filename.split('/').last.split('\\').last;
+    final safeName = rawName.split('.').map((p) => p == '..' ? '_' : p).join('.');
+    final safeNameFinal = safeName.isEmpty ? '_attachment' : safeName;
+    final attachDir =
+        Directory('${dir.path}/mail/${widget.uid}');
+    await attachDir.create(recursive: true);
+    final file = File('${attachDir.path}/$safeNameFinal');
     await file.writeAsBytes(bytes);
     await OpenFilex.open(file.path);
   }
@@ -169,9 +177,15 @@ class _MailBodyState extends State<_MailBody> {
     if (!PlatformUtils.instance.isDesktop && html != null && html.isNotEmpty) {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.disabled)
+        ..setNavigationDelegate(NavigationDelegate(
+          onNavigationRequest: (req) => req.url.startsWith('about:')
+              ? NavigationDecision.navigate
+              : NavigationDecision.prevent,
+        ))
         ..loadHtmlString('''
 <!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
 <style>body{background:#121212;color:#e6e6e6;font-family:-apple-system,Roboto,sans-serif;margin:16px;word-break:break-word}a{color:#8ab4f8}</style>
 </head><body>$html</body></html>''');
     }

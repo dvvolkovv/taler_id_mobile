@@ -7204,6 +7204,18 @@ abstract class AppLocalizations {
   /// **'Daily send limit reached'**
   String get mailSendLimitReached;
 
+  /// No description provided for @mailSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send email'**
+  String get mailSendFailed;
+
+  /// No description provided for @mailAttachmentsTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachments must be under 10 MB total'**
+  String get mailAttachmentsTooLarge;
+
   /// No description provided for @mailQuotaTitle.
   ///
   /// In en, this message translates to:

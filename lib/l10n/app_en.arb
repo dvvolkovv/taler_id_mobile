@@ -1815,5 +1815,7 @@
   "mailAppPasswordRevoke": "Revoke",
   "mailClientSettingsTitle": "Client settings",
   "mailSendLimitReached": "Daily send limit reached",
+  "mailSendFailed": "Failed to send email",
+  "mailAttachmentsTooLarge": "Attachments must be under 10 MB total",
   "mailQuotaTitle": "Mailbox"
 }

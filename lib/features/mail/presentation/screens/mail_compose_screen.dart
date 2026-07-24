@@ -38,8 +38,9 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
     if (file?.bytes == null) return;
     if (_totalBytes + file!.bytes!.length > _maxTotalBytes) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('≤ 10 MB')));
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.mailAttachmentsTooLarge)));
       }
       return;
     }
@@ -48,6 +49,9 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
   }
 
   Future<void> _send() async {
+    // I2: capture context-derived objects before any await to avoid
+    // using a potentially unmounted context after async gaps.
+    final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context)!;
     if (_to.text.trim().isEmpty || _sending) return;
     setState(() => _sending = true);
@@ -63,16 +67,16 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
             .toList(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.mailSent)));
+      messenger.showSnackBar(SnackBar(content: Text(l10n.mailSent)));
       context.pop();
     } catch (e) {
       if (!mounted) return;
       setState(() => _sending = false);
       final limit = e.toString().contains('mail_send_daily_limit') ||
           e.toString().contains('429');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(limit ? l10n.mailSendLimitReached : e.toString())));
+      messenger.showSnackBar(SnackBar(
+          content:
+              Text(limit ? l10n.mailSendLimitReached : l10n.mailSendFailed)));
     }
   }
 

@@ -1808,5 +1808,7 @@
   "mailAppPasswordRevoke": "Отозвать",
   "mailClientSettingsTitle": "Настройки клиента",
   "mailSendLimitReached": "Дневной лимит отправки исчерпан",
+  "mailSendFailed": "Не удалось отправить письмо",
+  "mailAttachmentsTooLarge": "Вложения — не более 10 МБ суммарно",
   "mailQuotaTitle": "Почтовый ящик"
 }

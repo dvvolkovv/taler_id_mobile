@@ -3772,5 +3772,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mailSendLimitReached => 'Daily send limit reached';
 
   @override
+  String get mailSendFailed => 'Failed to send email';
+
+  @override
+  String get mailAttachmentsTooLarge => 'Attachments must be under 10 MB total';
+
+  @override
   String get mailQuotaTitle => 'Mailbox';
 }

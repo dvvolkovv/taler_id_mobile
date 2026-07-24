@@ -35,11 +35,14 @@ Future<void> postLoginNavigate(BuildContext context) async {
   // Mail address gate: show once after onboarding until user creates a
   // mailbox or explicitly taps "Later".
   final dismissed = await storage.isMailSetupDismissed;
-  if (!dismissed) {
+  final confirmed = await storage.isMailSetupConfirmed;
+  if (!dismissed && !confirmed) {
     bool hasMailbox = false;
     try {
       await sl<IMailRepository>().getAccount();
       hasMailbox = true;
+      // Cache positive result so we skip this network call on future logins.
+      await storage.setMailSetupConfirmed();
     } catch (_) {
       hasMailbox = false; // 404 or network — show setup screen with "Later"
     }
