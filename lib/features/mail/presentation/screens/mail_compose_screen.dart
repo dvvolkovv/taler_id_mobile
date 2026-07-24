@@ -102,24 +102,22 @@ class _MailComposeScreenState extends State<MailComposeScreen> {
       ),
       body: Column(
         children: [
-          TextField(
-            controller: _to,
-            keyboardType: TextInputType.emailAddress,
-            autocorrect: false,
-            decoration: InputDecoration(
-                labelText: l10n.mailTo,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              controller: _to,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              decoration: InputDecoration(labelText: l10n.mailTo),
+            ),
           ),
-          const Divider(height: 1),
-          TextField(
-            controller: _subject,
-            decoration: InputDecoration(
-                labelText: l10n.mailSubject,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              controller: _subject,
+              decoration: InputDecoration(labelText: l10n.mailSubject),
+            ),
           ),
-          const Divider(height: 1),
           if (_attachments.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(8),

@@ -177,6 +177,7 @@ class _MailBodyState extends State<_MailBody> {
     if (!PlatformUtils.instance.isDesktop && html != null && html.isNotEmpty) {
       _controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.disabled)
+        ..setBackgroundColor(Colors.white)
         ..setNavigationDelegate(NavigationDelegate(
           onNavigationRequest: (req) => req.url.startsWith('about:')
               ? NavigationDecision.navigate
@@ -186,7 +187,7 @@ class _MailBodyState extends State<_MailBody> {
 <!DOCTYPE html><html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
-<style>body{background:#121212;color:#e6e6e6;font-family:-apple-system,Roboto,sans-serif;margin:16px;word-break:break-word}a{color:#8ab4f8}</style>
+<style>body{background:#ffffff;color:#1a1a1a;font-family:-apple-system,Roboto,sans-serif;margin:16px;word-break:break-word}a{color:#1a73e8}</style>
 </head><body>$html</body></html>''');
     }
   }

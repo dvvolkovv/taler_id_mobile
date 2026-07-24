@@ -83,6 +83,7 @@ class MessengerRemoteDataSource {
 
   Future<void> connect(String accessToken) async {
     _accessToken = accessToken;
+    debugPrint('[Socket] connect(): rebuilding socket (old connected=${_socket?.connected})');
     _socket?.dispose();
     _socket = io.io(
       '${_endpoints.baseUrl}/messenger',
@@ -272,6 +273,7 @@ class MessengerRemoteDataSource {
       }
     });
     _socket!.on('disconnect', (reason) {
+      debugPrint('[Socket] disconnect event, reason=$reason');
       _disconnectCtrl.add(reason?.toString() ?? 'disconnected');
     });
 
@@ -381,6 +383,7 @@ class MessengerRemoteDataSource {
       if (thumbnailLargeUrl != null) payload['thumbnailLargeUrl'] = thumbnailLargeUrl;
       if (fileRecordId != null) payload['fileRecordId'] = fileRecordId;
     }
+    debugPrint('[Socket] sendMessage tempId=$clientTempId connected=${_socket?.connected}');
     _socket?.emit('message', payload);
   }
 
