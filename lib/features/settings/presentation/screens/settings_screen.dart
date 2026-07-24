@@ -383,6 +383,30 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
             ),
             const SizedBox(height: 16),
 
+            // Mail section
+            _sectionHeader(l10n.mailSectionHeader),
+            AppCard(
+              child: Column(
+                children: [
+                  _navTile(
+                    icon: Icons.mail_outline,
+                    iconColor: AppColors.of(context).primary,
+                    title: l10n.mailTitle,
+                    onTap: () => context.push(RouteConstants.mail),
+                  ),
+                  Divider(color: AppColors.of(context).border, height: 1),
+                  _navTile(
+                    icon: Icons.key_outlined,
+                    iconColor: AppColors.of(context).primary,
+                    title: l10n.mailAppPasswords,
+                    onTap: () => context
+                        .push('${RouteConstants.mail}/app-passwords'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
             // Billing & AI section
             _sectionHeader(l10n.billingSectionHeader),
             AppCard(
