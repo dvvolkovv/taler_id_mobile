@@ -711,15 +711,24 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
             'type': 'function',
             'name': 'send_mail',
             'description':
-                'Send an email from the user\'s @talerid.io address. ALWAYS confirm recipient, subject and text with the user out loud BEFORE calling this tool.',
+                'Send an email from the user\'s @talerid.io address. ALWAYS confirm recipient, subject and text with the user out loud BEFORE calling this tool. When REPLYING to an email, pass reply_to_uid (the uid from check_mail/read_mail) — the recipient, subject and threading are then derived from the original message automatically; NEVER send a reply to the user\'s own address.',
             'parameters': {
               'type': 'object',
               'properties': {
-                'to': {'type': 'string', 'description': 'Recipient email address'},
+                'to': {
+                  'type': 'string',
+                  'description':
+                      'Recipient email address. Omit when reply_to_uid is set.'
+                },
                 'subject': {'type': 'string', 'description': 'Email subject'},
                 'text': {'type': 'string', 'description': 'Email body (plain text)'},
+                'reply_to_uid': {
+                  'type': 'integer',
+                  'description':
+                      'uid of the email being replied to; sets recipient/subject/threading from the original.'
+                },
               },
-              'required': ['to', 'subject', 'text'],
+              'required': ['text'],
             },
           },
           {
