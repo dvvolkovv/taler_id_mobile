@@ -728,6 +728,7 @@ class AssistantToolsExecutor {
               .map((m) => {
                     'uid': m['uid'],
                     'from': m['from'],
+                    'fromAddress': m['fromAddress'],
                     'subject': m['subject'],
                     'date': m['date'],
                     'seen': m['seen'],
@@ -752,8 +753,12 @@ class AssistantToolsExecutor {
               '/mail/messages/$uid',
               fromJson: (d) => Map<String, dynamic>.from(d as Map),
             );
+            final fromText = data['from'] as String? ?? '';
+            final addrMatch = RegExp(r'<([^>]+)>').firstMatch(fromText);
             output = jsonEncode({
               'from': data['from'],
+              'fromAddress':
+                  data['fromAddress'] ?? addrMatch?.group(1) ?? fromText,
               'to': data['to'],
               'subject': data['subject'],
               'date': data['date'],
@@ -772,16 +777,45 @@ class AssistantToolsExecutor {
           }
         }
       } else if (name == 'send_mail') {
-        final to = (args['to'] as String? ?? '').trim();
-        final subject = args['subject'] as String? ?? '';
+        var to = (args['to'] as String? ?? '').trim();
+        var subject = args['subject'] as String? ?? '';
         final text = args['text'] as String? ?? '';
+        String? inReplyTo;
+        final replyToUid = (args['reply_to_uid'] as num?)?.toInt();
+        if (replyToUid != null) {
+          // Ответ на письмо: адресат/тема/threading берутся из оригинала,
+          // а не из LLM — защита от «ответил сам себе».
+          try {
+            final orig = await client.get<Map<String, dynamic>>(
+              '/mail/messages/$replyToUid',
+              fromJson: (d) => Map<String, dynamic>.from(d as Map),
+            );
+            final fromText = orig['from'] as String? ?? '';
+            final addr = orig['fromAddress'] as String? ??
+                RegExp(r'<([^>]+)>').firstMatch(fromText)?.group(1) ??
+                fromText;
+            if (addr.trim().isNotEmpty) to = addr.trim();
+            final origSubject = orig['subject'] as String? ?? '';
+            if (subject.isEmpty) {
+              subject = origSubject.startsWith('Re:')
+                  ? origSubject
+                  : 'Re: ' + origSubject;
+            }
+            inReplyTo = orig['messageId'] as String?;
+          } catch (_) {}
+        }
         if (to.isEmpty || text.isEmpty) {
           output = jsonEncode({'error': 'to_and_text_required'});
         } else {
           try {
             await client.post(
               '/mail/messages',
-              data: {'to': to, 'subject': subject, 'text': text},
+              data: {
+                'to': to,
+                'subject': subject,
+                'text': text,
+                if (inReplyTo != null) 'inReplyTo': inReplyTo,
+              },
               fromJson: (d) => d,
             );
             output = jsonEncode({'ok': true, 'sent_to': to});
