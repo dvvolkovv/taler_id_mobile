@@ -817,7 +817,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 452A2A6C153A77A22406E26E /* Debug-talerid.xcconfig */;
 			buildSettings = {
-				APP_DISPLAY_NAME = "Taler ID Dev";
+				APP_DISPLAY_NAME = "Taler ID";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -921,7 +921,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C2A493C5FF0EA7A676E3F1E4 /* Release-talerid.xcconfig */;
 			buildSettings = {
-				APP_DISPLAY_NAME = "Taler ID Dev";
+				APP_DISPLAY_NAME = "Taler ID";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
@@ -1040,7 +1040,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = C2A493C5FF0EA7A676E3F1E4 /* Release-talerid.xcconfig */;
 			buildSettings = {
-				APP_DISPLAY_NAME = "Taler ID Dev";
+				APP_DISPLAY_NAME = "Taler ID";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
