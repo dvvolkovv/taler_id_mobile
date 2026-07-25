@@ -28,10 +28,9 @@ class AppConfig {
   // relay to the same backend. Only the public `talerid` build (api.talerid.io)
   // has edges; dev/aeza builds get none (failover is then inert). See
   // EndpointService + infra/do/provision/selectel-ru-edge.sh.
-  static const List<String> fallbackBaseUrls =
-      baseUrl == 'https://api.talerid.io'
-          ? ['https://ru.talerid.io', 'https://ru2.talerid.io']
-          : <String>[];
+  // 2026-07-25: CIS edges (ru.talerid.io / ru2.talerid.io) отключены —
+  // все клиенты ходят напрямую в api.talerid.io. CIS-пользователям — VPN.
+  static const List<String> fallbackBaseUrls = <String>[];
 
   static bool get isDev => flavor == 'dev';
   static bool get isProd => flavor == 'prod';
