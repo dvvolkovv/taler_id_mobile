@@ -1,9 +1,8 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/desktop/desktop_adaptive_scaffold.dart';
+import '../../../../core/utils/pin_hasher.dart';
 import '../../../../core/desktop/desktop_breakpoints.dart';
 import '../../../../core/platform/biometric_auth.dart';
 import '../../../../core/router/post_login_redirect.dart';
@@ -79,11 +78,20 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
   Future<void> _verifyPin() async {
     if (!mounted) return;
-    final hash = sha256.convert(utf8.encode(_pin)).toString();
-    final storedHash = await _storage.getPinHash();
+    final storedHash = await _storage.getPinHash() ?? '';
 
-    if (hash == storedHash) {
+    if (await PinHasher.verify(_pin, storedHash)) {
       await _storage.resetPinAttempts();
+      // Installs from before salted hashing keep a bare SHA-256 of four digits,
+      // which is recoverable from the hash alone. Upgrade it now that the PIN
+      // is in hand — this is the only moment we have the plaintext.
+      if (PinHasher.needsRehash(storedHash)) {
+        try {
+          await _storage.savePinHash(await PinHasher.hash(_pin));
+        } catch (_) {
+          // A failed upgrade must not block a correct PIN.
+        }
+      }
       if (mounted) await postLoginNavigate(context);
       return;
     }
