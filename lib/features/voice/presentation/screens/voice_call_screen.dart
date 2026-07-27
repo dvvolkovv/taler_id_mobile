@@ -48,6 +48,11 @@ String? mapAudioRouteEvent(Object? event) {
   }
 }
 
+/// Longest an assistant reply is waited on before microphone capture is
+/// restored anyway. Playback runs with capture stopped, so a reply that never
+/// reports completion must not hold the mic hostage.
+const Duration _kAssistantPlaybackTimeout = Duration(seconds: 30);
+
 class VoiceCallScreen extends StatefulWidget {
   final String? roomName; // null = create new room with AI
   final String? conversationId; // for sending call_ended when hanging up
@@ -109,6 +114,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String? _error;
   bool _ringing = false; // outgoing: ringback playing, waiting for callee to answer
   bool _navigatedAway = false;
+  /// Set when a hangup ended one line but another was held, so the screen stays
+  /// on that line. Distinct from [_navigatedAway], which means "this screen is
+  /// going away" and gates every event handler — reusing it here both told the
+  /// outer hangup not to navigate AND silenced the handlers for the line we
+  /// had just switched to.
+  bool _switchedToHeldLine = false;
   bool _settingUp = true; // true during _initCall/_connect, prevents spurious actionCallEnded
   DateTime? _initTime; // used to ignore early call_ended events
   // ── Recording consent state ──
@@ -1944,21 +1955,41 @@ Answer briefly — the user is in the middle of a conversation.''';
       try { await _assistantRecorder.stop(); } catch (_) {}
 
       final player = AudioPlayer();
-      await player.play(DeviceFileSource(wavFile.path));
-      await player.onPlayerComplete.first;
-      player.dispose();
+      try {
+        await player.play(DeviceFileSource(wavFile.path));
+        // Bounded wait: audioplayers competes with the call's shared
+        // AVAudioSession (see below), and a completion event that never
+        // arrives used to hang here forever — with capture already stopped.
+        await player.onPlayerComplete.first.timeout(
+          _kAssistantPlaybackTimeout,
+          onTimeout: () => debugPrint(
+            '[InCallAssistant] playback did not report completion in time',
+          ),
+        );
+      } finally {
+        try {
+          player.dispose();
+        } catch (_) {}
+      }
       // audioplayers deactivates the shared AVAudioSession when its last
       // player stops — re-assert the call session so WebRTC audio keeps
       // flowing after the assistant reply finishes.
       try { await _audioChannel.invokeMethod('requestAudioFocus'); } catch (_) {}
-
-      // Resume recording after playback
-      if (_assistantActive && _assistantWs != null) {
-        await _startAssistantRecording();
-      }
     } catch (e) {
       debugPrint('[InCallAssistant] Audio playback error: $e');
     } finally {
+      // Capture was stopped before playback started, so it has to come back on
+      // every path out of here. It used to be resumed inside the try, after the
+      // awaits above — so a failed or never-completing playback left the
+      // assistant deaf and the LiveKit mic off for the rest of the call, with
+      // the UI still showing the assistant as active.
+      if (_assistantActive && _assistantWs != null) {
+        try {
+          await _startAssistantRecording();
+        } catch (e) {
+          debugPrint('[InCallAssistant] failed to resume recording: $e');
+        }
+      }
       if (mounted) setState(() => _assistantSpeaking = false);
     }
   }
@@ -3073,6 +3104,17 @@ Answer briefly — the user is in the middle of a conversation.''';
     // reconnect loop, where _navigatedAway was set but navigation never landed)
     // leaves the red button a no-op and traps the user on the call screen.
     if (!mounted) return;
+    // One line ended but another was held: the screen stays put on that line.
+    // This has to be checked before the userInitiated override below, which
+    // exists so a stuck teardown can never make the red button a no-op — with
+    // both entry points being user-initiated ("End this call" and the red
+    // button), that override used to tear down the surviving line too:
+    // abandonAudioFocus, deactivateAudioSession, endAllCalls() and pop().
+    if (_switchedToHeldLine) {
+      _switchedToHeldLine = false;
+      _hangingUp = false; // allow hanging up the line we switched to
+      return;
+    }
     if (_navigatedAway && !userInitiated) return;
     _navigatedAway = true;
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
@@ -3196,7 +3238,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     if (cs.isInCall && cs.activeLine != null) {
       debugPrint('[VoiceCall] other lines remain (${cs.lineCount}), switching to ${cs.activeLine!.roomName}');
       _switchToLine(cs.activeLine!);
-      _navigatedAway = true; // prevent double-navigation in outer method
+      _switchedToHeldLine = true; // outer method must not navigate away
       return;
     }
   }
