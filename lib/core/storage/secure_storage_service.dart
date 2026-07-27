@@ -130,7 +130,28 @@ class SecureStorageService {
     await Future.wait([
       _ss.delete(ApiConstants.pinHashKey),
       _ss.delete(ApiConstants.pinEnabledKey),
+      _ss.delete(ApiConstants.pinAttemptsKey),
     ]);
+  }
+
+  /// Failed PIN attempts, persisted so that killing and reopening the app does
+  /// not hand the next 5 guesses back. A 4-digit PIN is only 10 000 values.
+  Future<int> getPinAttempts() async {
+    if (kIsWeb) return 0;
+    final val = await _ss.read(ApiConstants.pinAttemptsKey);
+    return int.tryParse(val ?? '') ?? 0;
+  }
+
+  Future<int> incrementPinAttempts() async {
+    if (kIsWeb) return 0;
+    final next = (await getPinAttempts()) + 1;
+    await _ss.write(ApiConstants.pinAttemptsKey, next.toString());
+    return next;
+  }
+
+  Future<void> resetPinAttempts() async {
+    if (kIsWeb) return;
+    await _ss.delete(ApiConstants.pinAttemptsKey);
   }
 
   Future<String?> getLanguage() async {

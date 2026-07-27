@@ -8,6 +8,8 @@ class ApiConstants {
   static const userIdKey = 'user_id';
   static const pinHashKey = 'pin_hash';
   static const pinEnabledKey = 'pin_enabled';
+  // Survives app restarts — an in-memory counter is reset by killing the app.
+  static const pinAttemptsKey = 'pin_failed_attempts';
   static const languageKey = 'app_language';
   static const themeKey = 'app_theme';
   static const wallpaperKey = 'app_wallpaper';

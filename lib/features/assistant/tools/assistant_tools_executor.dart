@@ -497,8 +497,17 @@ class AssistantToolsExecutor {
           output = jsonEncode({'ok': true, 'biometricEnabled': false});
         }
       } else if (name == 'disable_pin') {
-        await sl<SecureStorageService>().clearPin();
-        output = jsonEncode({'ok': true, 'pinEnabled': false});
+        // Same rule as enabling biometrics above, for the stronger reason:
+        // removing the PIN takes away the last barrier on an unlocked device.
+        // This model also reads third-party content (messenger_read_recent,
+        // get_messages, check_mail), so a message crafted by someone else can
+        // steer it into calling this — turning "read my messages" into
+        // "disable my lock screen".
+        output = jsonEncode({
+          'ok': false,
+          'error':
+              'Disabling the PIN requires user authentication. Please go to Settings to turn it off.',
+        });
       } else if (name == 'ask_analyst') {
         final question = args['question'] as String? ?? '';
         // 1. Get or create the AI Analyst conversation

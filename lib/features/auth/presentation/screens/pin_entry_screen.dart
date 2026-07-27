@@ -20,10 +20,13 @@ class PinEntryScreen extends StatefulWidget {
   State<PinEntryScreen> createState() => _PinEntryScreenState();
 }
 
+/// Wrong PINs tolerated before the session is dropped and the password is
+/// required again.
+const int _kMaxPinAttempts = 5;
+
 class _PinEntryScreenState extends State<PinEntryScreen> {
   String _pin = '';
   String? _error;
-  int _attempts = 0;
   bool _biometricAvailable = false;
   final _storage = sl<SecureStorageService>();
 
@@ -80,19 +83,32 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     final storedHash = await _storage.getPinHash();
 
     if (hash == storedHash) {
+      await _storage.resetPinAttempts();
       if (mounted) await postLoginNavigate(context);
-    } else {
-      _attempts++;
-      if (!mounted) return;
-      if (_attempts >= 5) {
-        context.go(RouteConstants.login);
-      } else {
-        setState(() {
-          _pin = '';
-          _error = AppLocalizations.of(context)!.pinIncorrect;
-        });
-      }
+      return;
     }
+
+    // The counter lives in secure storage, not in State: it used to reset when
+    // the app was killed, so a stolen phone gave an attacker five fresh guesses
+    // per relaunch against a 4-digit PIN.
+    final attempts = await _storage.incrementPinAttempts();
+    if (!mounted) return;
+
+    if (attempts >= _kMaxPinAttempts) {
+      // Sending them to the login screen was not enough on its own: the tokens
+      // stayed, so the next cold start landed back here with a clean slate.
+      // Dropping them makes the password the next barrier, not the PIN.
+      await _storage.clearTokens();
+      await _storage.clearPin();
+      if (!mounted) return;
+      context.go(RouteConstants.login);
+      return;
+    }
+
+    setState(() {
+      _pin = '';
+      _error = AppLocalizations.of(context)!.pinIncorrect;
+    });
   }
 
   @override
