@@ -2047,6 +2047,41 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
   }
 
+  /// Releases everything `_startAssistant()` grabbed, without touching widget
+  /// state — safe to call from dispose(), where `mounted` is already false.
+  ///
+  /// `_stopAssistant()` restores the room mic behind a `mounted` check, so
+  /// leaving the screen with the assistant running (the minimise arrow, or a
+  /// system back — the call deliberately continues in the background) left the
+  /// room mic disabled, the device mic streaming and the proxy socket open:
+  /// the other side heard silence for the rest of the call while we kept
+  /// spending OpenAI credits. Re-entering did not heal it either — the resume
+  /// path never re-enables the mic, and fresh state starts at `_muted = false`,
+  /// so the UI claimed the mic was live while the track stayed off.
+  void _releaseAssistantResources() {
+    final wasActive = _assistantActive;
+    _assistantSessionConfigured = false;
+    _assistantActive = false;
+
+    _assistantRecordSub?.cancel();
+    _assistantRecordSub = null;
+    unawaited(_assistantRecorder.stop().catchError((_) => null));
+    try {
+      _assistantWs?.close();
+    } catch (_) {}
+    _assistantWs = null;
+
+    // Hand the microphone back to the call we are leaving running.
+    if (wasActive) {
+      final participant = _room?.localParticipant;
+      if (participant != null) {
+        unawaited(
+          participant.setMicrophoneEnabled(true).catchError((_) => null),
+        );
+      }
+    }
+  }
+
   Future<void> _stopAssistant() async {
     _assistantSessionConfigured = false;
     await _assistantRecordSub?.cancel();
@@ -3772,6 +3807,10 @@ Answer briefly — the user is in the middle of a conversation.''';
       );
     }
     // Translation cleanup — server-side, nothing local to stop
+    // The assistant is NOT server-side: it holds the device mic, a proxy socket
+    // and the room's mic in a muted state, none of which the call can carry on
+    // without. Must run even though the room itself stays connected.
+    _releaseAssistantResources();
     // Do NOT disconnect room — call continues in background via CallStateService
     super.dispose();
   }
