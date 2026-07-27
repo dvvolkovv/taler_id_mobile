@@ -50,6 +50,15 @@ class CallStateService {
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
+  /// Bumped by [endCall] and [notifyEnded], and once per [connectInBackground].
+  ///
+  /// connectInBackground awaits an HTTP join and a LiveKit connect, either of
+  /// which can outlive the call: the user hangs up, or `call_ended` arrives,
+  /// while we are still dialling. Checking `_bgConnecting` alone is not enough
+  /// — a *new* background connect sets it back to true, and the stale attempt
+  /// would take that as "still mine". Comparing generations tells the two apart.
+  int _bgGeneration = 0;
+
   /// Outgoing-call glare tracking.
   ///
   /// When the user opens an outgoing voice call screen, this is set to the
@@ -238,6 +247,7 @@ class CallStateService {
     _lines.clear();
     _activeRoomName = null;
     _bgConnecting = false;
+    _bgGeneration++;
     _answeredElsewhereRooms.clear();
     _selfAnsweredRooms.clear();
     _stateCtrl.add(false);
@@ -262,6 +272,7 @@ class CallStateService {
       _lines.clear();
     }
     _bgConnecting = false;
+    _bgGeneration++;
     _stateCtrl.add(_lines.isNotEmpty);
   }
 
@@ -271,7 +282,18 @@ class CallStateService {
     if (_lines.length >= maxLines) return false;
     if (_bgConnecting) return _bgCompleter?.future ?? Future.value(false);
     _bgConnecting = true;
-    _bgCompleter = Completer<bool>();
+    final completer = Completer<bool>();
+    _bgCompleter = completer;
+    final gen = ++_bgGeneration;
+
+    // Only settle our own completer: by the time a cancelled attempt unwinds,
+    // a newer connect may already own _bgCompleter. Never clears _bgConnecting
+    // either — whoever cancelled us has set it, or a newer attempt owns it now.
+    void settleOwn(bool value) {
+      if (!completer.isCompleted) completer.complete(value);
+      if (identical(_bgCompleter, completer)) _bgCompleter = null;
+    }
+
     try {
       // Hold current active line, preserving mic state
       final current = activeLine;
@@ -290,6 +312,13 @@ class CallStateService {
         data: {},
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
+      // The call may have ended while the join request was in flight.
+      if (gen != _bgGeneration) {
+        debugPrint('[CallState] connectInBackground cancelled after join, room=$rName');
+        settleOwn(false);
+        return false;
+      }
+
       final token = res['token'] as String;
       final r = lk.Room();
 
@@ -308,6 +337,18 @@ class CallStateService {
           defaultAudioPublishOptions: const lk.AudioPublishOptions(audioBitrate: 32000),
         ),
       );
+      // Same check after the LiveKit connect: without it setRoom() would put
+      // the line back into _lines and emit "in call" for a call the user has
+      // already hung up, leaving a live room and a hot mic behind.
+      if (gen != _bgGeneration) {
+        debugPrint('[CallState] connectInBackground cancelled after connect, room=$rName');
+        try {
+          await r.disconnect();
+        } catch (_) {}
+        settleOwn(false);
+        return false;
+      }
+
       setRoom(r, rName, convId, e2eeKeyValue: e2eeKey);
       try {
         await r.localParticipant?.setMicrophoneEnabled(true);
@@ -320,14 +361,12 @@ class CallStateService {
       } catch (_) {}
       debugPrint('[CallState] connectInBackground OK, room=$rName, e2ee=${e2eeKey != null}, lines=${_lines.length}');
       _bgConnecting = false;
-      _bgCompleter?.complete(true);
-      _bgCompleter = null;
+      settleOwn(true);
       return true;
     } catch (e) {
       debugPrint('[CallState] connectInBackground failed: $e');
-      _bgConnecting = false;
-      _bgCompleter?.complete(false);
-      _bgCompleter = null;
+      if (gen == _bgGeneration) _bgConnecting = false;
+      settleOwn(false);
       return false;
     }
   }
