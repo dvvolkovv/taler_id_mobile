@@ -1143,6 +1143,39 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     super.dispose();
   }
 
+  Future<void> _confirmDelete() async {
+    final id = widget.event?['id'] as String?;
+    if (id == null) return;
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        content: Text(_titleCtrl.text.trim().isEmpty ? '—' : _titleCtrl.text.trim()),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete, style: TextStyle(color: colors.error, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    setState(() => _saving = true);
+    try {
+      await sl<ICalendarRepository>().delete(id);
+      if (mounted) Navigator.pop(context, true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.calendarDeleteError(e.toString())), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _save() async {
     if (_titleCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
@@ -1277,6 +1310,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         centerTitle: true,
         title: Text(widget.event == null ? l10n.calendarNewEvent : l10n.calendarEditEvent),
         actions: [
+          // Explicit delete for existing events — the list has a swipe-to-delete
+          // (Dismissible), but that's not discoverable/usable with a mouse on
+          // desktop, so organizers get a button here too.
+          if (widget.event != null && isOrganizer) IconButton(
+            tooltip: l10n.delete,
+            icon: Icon(Icons.delete_outline, color: colors.error),
+            onPressed: _saving ? null : _confirmDelete,
+          ),
           if (isOrganizer) TextButton(
             onPressed: _saving ? null : _save,
             child: _saving
