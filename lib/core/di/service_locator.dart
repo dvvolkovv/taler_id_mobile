@@ -768,6 +768,7 @@ Future<void> setupDependencies() async {
       ));
   sl.registerLazySingleton<NotesOutboxReplayHandler>(() => NotesOutboxReplayHandler(
         remote: sl<NotesRemoteDataSource>(),
+        local: sl<NotesLocalDataSource>(),
       ));
 
   // Calendar feature
