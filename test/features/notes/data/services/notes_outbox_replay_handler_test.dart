@@ -2,10 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:taler_id_mobile/core/services/outbox_replay_handler.dart';
 import 'package:taler_id_mobile/core/storage/outbox_op.dart';
+import 'package:taler_id_mobile/features/notes/data/datasources/notes_local_datasource.dart';
 import 'package:taler_id_mobile/features/notes/data/datasources/notes_remote_datasource.dart';
 import 'package:taler_id_mobile/features/notes/data/services/notes_outbox_replay_handler.dart';
 
 class _MockRemote extends Mock implements NotesRemoteDataSource {}
+
+class _MockLocal extends Mock implements NotesLocalDataSource {}
 
 OutboxOp _op({
   OutboxOpKind op = OutboxOpKind.create,
@@ -24,11 +27,16 @@ OutboxOp _op({
 
 void main() {
   late _MockRemote remote;
+  late _MockLocal local;
   late NotesOutboxReplayHandler handler;
 
   setUp(() {
     remote = _MockRemote();
-    handler = NotesOutboxReplayHandler(remote: remote);
+    local = _MockLocal();
+    // The handler clears the localPending flag after a successful replay;
+    // these cases assert the replay outcome, so the note simply is not found.
+    when(() => local.getById(any())).thenAnswer((_) async => null);
+    handler = NotesOutboxReplayHandler(remote: remote, local: local);
   });
 
   test('create success → OutboxReplaySuccess', () async {
