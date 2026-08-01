@@ -447,7 +447,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Redundant safety net — the primary path (main.dart CallKit accept /
       // dashboard in-app accept) emits this earlier. Mark selfAnswered so the
       // server echo is not misinterpreted as a sibling device answering.
-      if (widget.isIncoming && widget.conversationId != null && _roomName != null) {
+      // Only if the primary path did not already announce it: a second
+      // call_answered is broadcast to the caller as well, and their handler
+      // reads any such event as "answered on another device".
+      if (widget.isIncoming &&
+          widget.conversationId != null &&
+          _roomName != null &&
+          !CallStateService.instance.didSelfAnswer(_roomName!)) {
         try {
           CallStateService.instance.markSelfAnswered(_roomName!);
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);
@@ -842,7 +848,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
       // Notify other devices: this device answered the call (dismiss CallKit on others).
       // Redundant safety net — see comment on the sibling call in _initCall.
-      if (widget.isIncoming && widget.conversationId != null) {
+      if (widget.isIncoming &&
+          widget.conversationId != null &&
+          !CallStateService.instance.didSelfAnswer(_roomName!)) {
         try {
           CallStateService.instance.markSelfAnswered(_roomName!);
           sl<MessengerRemoteDataSource>().sendCallAnswered(widget.conversationId!, _roomName!);

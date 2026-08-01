@@ -342,14 +342,28 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAnsweredSub = sl<MessengerRemoteDataSource>()
         .callAnsweredStream
         .listen((roomName) async {
+      final cs = CallStateService.instance;
       // Ignore server echo of our own accept — call_answered is now emitted
       // the moment the user taps Accept (before LiveKit connect completes),
       // so CallStateService.roomName is unreliable as a self-check. Track a
       // dedicated selfAnswered flag instead.
-      if (CallStateService.instance.didSelfAnswer(roomName)) return;
+      if (cs.didSelfAnswer(roomName)) return;
+
+      // The server broadcasts call_answered to every participant except the
+      // answerer — which includes the CALLER. For the caller didSelfAnswer is
+      // always false (they never answered, they dialled), so without the two
+      // checks below they read "your callee picked up" as "answered on another
+      // device": the room got flagged answeredElsewhere — which then blocks
+      // joining it (main.dart:100, :288) — and endCallKitCall ran with
+      // fallbackEndAll, tearing down their own audio. Observed 2026-07-29:
+      // caller heard nothing, callee was fine, calling back worked because the
+      // roles swapped.
+      if (cs.outgoingRoomName == roomName) return;
+      if (cs.allLines.any((l) => l.roomName == roomName)) return;
+
       // Another device of the same user answered — mark room and dismiss UI.
       _answeredOnOtherDevice.add(roomName);
-      CallStateService.instance.markAnsweredElsewhere(roomName);
+      cs.markAnsweredElsewhere(roomName);
       await _endCallKitCallForRoom(roomName, fallbackEndAll: true);
       if (mounted) context.read<MessengerBloc>().add(DismissCallInvite());
     });
