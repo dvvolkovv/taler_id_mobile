@@ -1,11 +1,10 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/desktop/desktop_adaptive_scaffold.dart';
 import '../../../../core/desktop/desktop_breakpoints.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/pin_hasher.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/di/service_locator.dart';
 import '../widgets/pin_keyboard.dart';
@@ -52,7 +51,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       });
     } else {
       if (_pin == _firstPin) {
-        final hash = sha256.convert(utf8.encode(_pin)).toString();
+        final hash = await PinHasher.hash(_pin);
         final storage = sl<SecureStorageService>();
         await storage.savePinHash(hash);
         await storage.setPinEnabled(true);

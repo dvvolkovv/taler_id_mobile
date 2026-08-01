@@ -128,6 +128,11 @@ class AuthRepositoryImpl implements IAuthRepository {
       // Server call may fail/hang (expired token, network error, slow server) — ignore
     }
     await storage.clearTokens();
+    // The PIN and the biometric flag belong to the account that just left. Kept
+    // across logout, the previous user's PIN would guard the next user's
+    // session — and that user has no way to know or change it.
+    await storage.clearPin();
+    await storage.setBiometricEnabled(false);
     // Reset onboarding flag so the next user sees permission prompts
     await storage.clearOnboardingSeen();
     // Clear cached profile so the next login gets fresh data

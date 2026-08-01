@@ -566,12 +566,10 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
               'required': ['enabled'],
             },
           },
-          {
-            'type': 'function',
-            'name': 'disable_pin',
-            'description': 'Disable PIN code lock. To enable PIN a setup flow is required — tell the user to go to Settings.',
-            'parameters': {'type': 'object', 'properties': {}},
-          },
+          // disable_pin was removed: it dropped the device lock with no
+          // re-authentication, and this model also reads third-party content
+          // (messages, mail), so the call was reachable by prompt injection.
+          // Turning the PIN off now happens in Settings, like turning it on.
           {
             'type': 'function',
             'name': 'ask_analyst',
