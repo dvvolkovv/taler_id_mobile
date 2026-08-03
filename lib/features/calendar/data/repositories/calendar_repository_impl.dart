@@ -36,10 +36,22 @@ class CalendarRepositoryImpl implements ICalendarRepository {
         from: fromDate.toIso8601String(),
         to: toDate.toIso8601String(),
       );
-      final remoteIds = remoteList.map((m) => m['id'] as String).toSet();
+      // Deletions still in the outbox (not yet replayed): the server still
+      // returns these events, so upserting them would resurrect a just-deleted
+      // event on the next refresh (the reappear-after-tab-switch bug). Skip
+      // them until the delete op replays and the server stops returning them.
+      final pendingDeleteIds = (await _outbox.pending())
+          .where((o) => o.feature == 'calendar' && o.op == OutboxOpKind.delete)
+          .map((o) => o.entityId)
+          .toSet();
+      final remoteIds = remoteList
+          .map((m) => m['id'] as String)
+          .where((id) => !pendingDeleteIds.contains(id))
+          .toSet();
       final localAll = await _local.getAll();
       for (final r in remoteList) {
         final entity = _entityFromServerJson(r);
+        if (pendingDeleteIds.contains(entity.id)) continue; // deletion in flight
         final existing = await _local.getById(entity.id);
         if (existing != null && existing.localPending) continue;
         await _local.upsert(entity);

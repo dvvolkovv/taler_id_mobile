@@ -244,44 +244,74 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  // Tapping the task tile body also offers the same actions in a sheet.
+  // Tapping a task tile opens a detail view (title, due, repeat, full
+  // description) plus complete/delete actions.
   Future<void> _openTaskSheet(CalendarEventEntity event) async {
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
     if (_parseTaskId(event.id) == null) return;
+    final due = event.startAt.toLocal();
+    final dueStr = DateFormat('dd.MM.yyyy HH:mm').format(due);
+    final desc = event.description?.trim() ?? '';
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: colors.card,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(children: [
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
                 Icon(Icons.checklist_rounded, color: colors.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(event.title,
-                      style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                      style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w700)),
                 ),
               ]),
-            ),
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
-              title: Text(l10n.calendarTaskMarkDone, style: TextStyle(color: colors.textPrimary)),
-              onTap: () => Navigator.pop(ctx, 'done'),
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline_rounded, color: colors.error),
-              title: Text(l10n.calendarTaskDelete, style: TextStyle(color: colors.textPrimary)),
-              onTap: () => Navigator.pop(ctx, 'delete'),
-            ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 12),
+              Row(children: [
+                Icon(Icons.schedule_rounded, size: 16, color: colors.textSecondary),
+                const SizedBox(width: 8),
+                Text(dueStr, style: TextStyle(color: colors.textSecondary, fontSize: 14)),
+                if (event.recurrence != null) ...[
+                  const SizedBox(width: 14),
+                  Icon(Icons.repeat_rounded, size: 16, color: colors.textSecondary),
+                  const SizedBox(width: 4),
+                  Text(l10n.calendarRepeatLabel, style: TextStyle(color: colors.textSecondary, fontSize: 14)),
+                ],
+              ]),
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 260),
+                  child: SingleChildScrollView(
+                    child: Text(desc, style: TextStyle(color: colors.textPrimary, fontSize: 15, height: 1.4)),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
+                title: Text(l10n.calendarTaskMarkDone, style: TextStyle(color: colors.textPrimary)),
+                onTap: () => Navigator.pop(ctx, 'done'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.delete_outline_rounded, color: colors.error),
+                title: Text(l10n.calendarTaskDelete, style: TextStyle(color: colors.textPrimary)),
+                onTap: () => Navigator.pop(ctx, 'delete'),
+              ),
+            ],
+          ),
         ),
       ),
     );
