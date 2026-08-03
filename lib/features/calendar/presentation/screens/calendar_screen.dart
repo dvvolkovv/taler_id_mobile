@@ -209,6 +209,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  // On desktop, swipe-to-delete is awkward with a mouse, so event tiles get a
+  // visible delete button. Mobile keeps swipe (no per-row clutter).
+  bool get _showDesktopDelete =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.windows ||
+          defaultTargetPlatform == TargetPlatform.macOS);
+
+  Future<void> _deleteEvent(CalendarEventEntity event) async {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text(l10n.delete, style: TextStyle(color: colors.textPrimary)),
+        content: Text(event.title, style: TextStyle(color: colors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete, style: TextStyle(color: colors.error))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await _repo.delete(event.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.calendarDeleteError(e.toString())), backgroundColor: Colors.red));
+      }
+    }
+  }
+
   // Tapping the task tile body also offers the same actions in a sheet.
   Future<void> _openTaskSheet(CalendarEventEntity event) async {
     final l10n = AppLocalizations.of(context)!;
@@ -1079,6 +1113,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                               icon: Icon(Icons.delete_outline_rounded, size: 20, color: colors.error),
                               onPressed: () => _deleteTask(event),
+                            ),
+                          ] else if (_showDesktopDelete) ...[
+                            // Real events: swipe-to-delete is awkward with a
+                            // mouse, so give desktop a visible delete button too.
+                            const SizedBox(width: 4),
+                            IconButton(
+                              tooltip: AppLocalizations.of(context)!.delete,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              icon: Icon(Icons.delete_outline_rounded, size: 20, color: colors.error),
+                              onPressed: () => _deleteEvent(event),
                             ),
                           ],
                         ],
