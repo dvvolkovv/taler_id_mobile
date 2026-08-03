@@ -157,14 +157,63 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return (rest.substring(0, i), rest.substring(i + 1));
   }
 
-  Future<void> _openTaskSheet(CalendarEventEntity event) async {
+  Future<void> _completeTask(CalendarEventEntity event) async {
+    final l10n = AppLocalizations.of(context)!;
+    final parsed = _parseTaskId(event.id);
+    if (parsed == null) return;
+    // Routine → mark just this day; one-off → mark the whole task.
+    final occurrenceDate = event.recurrence != null ? parsed.$2 : null;
+    try {
+      await sl<TaskRemoteDataSource>().setStatus(parsed.$1, 'done', occurrenceDate: occurrenceDate);
+      _repo.refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDoneMsg)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _deleteTask(CalendarEventEntity event) async {
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
     final parsed = _parseTaskId(event.id);
-    if (parsed == null) return; // not a task id we understand
-    final taskId = parsed.$1;
-    // Routine → mark just this day; one-off → mark the whole task.
-    final occurrenceDate = event.recurrence != null ? parsed.$2 : null;
+    if (parsed == null) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.card,
+        title: Text(l10n.calendarTaskDelete, style: TextStyle(color: colors.textPrimary)),
+        content: Text(event.title, style: TextStyle(color: colors.textSecondary)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.delete, style: TextStyle(color: colors.error))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await sl<TaskRemoteDataSource>().delete(parsed.$1);
+      _repo.refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDeletedMsg)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  // Tapping the task tile body also offers the same actions in a sheet.
+  Future<void> _openTaskSheet(CalendarEventEntity event) async {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    if (_parseTaskId(event.id) == null) return;
     final action = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: colors.card,
@@ -187,12 +236,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ]),
             ),
             ListTile(
-              leading: const Icon(Icons.done_rounded, color: Colors.green),
+              leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
               title: Text(l10n.calendarTaskMarkDone, style: TextStyle(color: colors.textPrimary)),
               onTap: () => Navigator.pop(ctx, 'done'),
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline, color: colors.error),
+              leading: Icon(Icons.delete_outline_rounded, color: colors.error),
               title: Text(l10n.calendarTaskDelete, style: TextStyle(color: colors.textPrimary)),
               onTap: () => Navigator.pop(ctx, 'delete'),
             ),
@@ -201,25 +250,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
     );
-    if (action == null || !mounted) return;
-    try {
-      final ds = sl<TaskRemoteDataSource>();
-      if (action == 'done') {
-        await ds.setStatus(taskId, 'done', occurrenceDate: occurrenceDate);
-      } else {
-        await ds.delete(taskId);
-      }
-      _repo.refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(action == 'done' ? l10n.calendarTaskDoneMsg : l10n.calendarTaskDeletedMsg),
-        ));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
-      }
+    if (action == 'done') {
+      await _completeTask(event);
+    } else if (action == 'delete') {
+      await _deleteTask(event);
     }
   }
 
@@ -905,6 +939,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         icon = Icons.notifications_active_rounded;
         typeGradient = const [Color(0xFFF59E0B), Color(0xFFEF4444)]; // amber → red
         break;
+      case 'TASK':
+        icon = Icons.checklist_rounded;
+        typeGradient = const [Color(0xFF14B8A6), Color(0xFF6366F1)]; // teal → indigo
+        break;
       default:
         icon = Icons.event_rounded;
         typeGradient = const [Color(0xFF10B981), Color(0xFF22D3EE)]; // emerald → cyan
@@ -1020,6 +1058,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           if (event.recurrence != null) ...[
                             const SizedBox(width: 4),
                             Icon(Icons.repeat_rounded, size: 14, color: colors.textSecondary),
+                          ],
+                          // Visible complete / delete for task items (Linkeon
+                          // routines & app-created tasks). Tapping the tile body
+                          // still opens the same actions in a sheet.
+                          if (_isTaskItem(event)) ...[
+                            const SizedBox(width: 4),
+                            IconButton(
+                              tooltip: AppLocalizations.of(context)!.calendarTaskMarkDone,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              icon: const Icon(Icons.check_circle_outline_rounded, size: 22, color: Color(0xFF22C55E)),
+                              onPressed: () => _completeTask(event),
+                            ),
+                            IconButton(
+                              tooltip: AppLocalizations.of(context)!.calendarTaskDelete,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              icon: Icon(Icons.delete_outline_rounded, size: 20, color: colors.error),
+                              onPressed: () => _deleteTask(event),
+                            ),
                           ],
                         ],
                       ),
