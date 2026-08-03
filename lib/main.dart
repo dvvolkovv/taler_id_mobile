@@ -21,6 +21,7 @@ import 'core/platform/secure_storage.dart';
 import 'core/storage/secure_storage_service.dart';
 import 'features/messenger/services/hive_favorites_migration_service.dart';
 import 'core/router/app_router.dart';
+import 'core/router/deep_link_handler.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/wallpaper_service.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
@@ -471,6 +472,12 @@ Future<void> main() async {
   if (!kIsWeb && PlatformUtils.instance.isMobile) {
     ShareIntentService.instance.init();
   }
+
+  // Subscribe to incoming links. Without this nothing in Dart listens to
+  // app_links at all: the plugin logs "Handled intent" and the URL goes
+  // nowhere, which is why no deep link had ever opened the screen it addresses
+  // — room invites and partner sign-in alike (2026-08-03).
+  DeepLinkHandler.init(appRouter);
 
   // Prime presence heartbeat for already-logged-in users. BlocListener inside
   // TalerIdApp only fires on state transitions; a persisted-token startup
