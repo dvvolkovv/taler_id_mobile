@@ -18,6 +18,13 @@ const _oauthHosts = {
 class DeepLinkHandler {
   static final _appLinks = AppLinks();
 
+  // A cold start delivers the launching link twice — once from getInitialLink()
+  // and again on the stream — which stacked two consent screens, so cancelling
+  // one just revealed another.
+  static Uri? _lastHandled;
+  static DateTime? _lastHandledAt;
+  static const _duplicateWindow = Duration(seconds: 3);
+
   static Future<void> init(GoRouter router) async {
     // Handle initial deep link (app opened via link)
     try {
@@ -39,6 +46,11 @@ class DeepLinkHandler {
   static void _handleUri(GoRouter router, Uri uri) {
     debugPrint('Deep link received: $uri');
 
+    if (isDuplicate(uri, DateTime.now())) {
+      debugPrint('Deep link ignored: same link again within the startup window');
+      return;
+    }
+
     final target = resolve(uri);
     if (target == null) return;
     // OAuth is pushed so the flow can be backed out of, returning the user to
@@ -48,6 +60,28 @@ class DeepLinkHandler {
     } else {
       router.go(target.location);
     }
+  }
+
+  /// Whether this link was already acted on moments ago.
+  ///
+  /// Only collapses the cold-start double delivery: the same link opened again
+  /// later is a deliberate act and must still work.
+  @visibleForTesting
+  static bool isDuplicate(Uri uri, DateTime now) {
+    final last = _lastHandled;
+    final at = _lastHandledAt;
+    if (last == uri && at != null && now.difference(at) < _duplicateWindow) {
+      return true;
+    }
+    _lastHandled = uri;
+    _lastHandledAt = now;
+    return false;
+  }
+
+  @visibleForTesting
+  static void resetDuplicateGuard() {
+    _lastHandled = null;
+    _lastHandledAt = null;
   }
 
   /// Maps an incoming link to the in-app location it should open, or null when
