@@ -137,6 +137,7 @@ import '../../features/notes/data/services/notes_outbox_replay_handler.dart';
 import '../../features/notes/domain/repositories/i_notes_repository.dart';
 import '../../features/calendar/data/datasources/calendar_local_datasource.dart';
 import '../../features/calendar/data/datasources/calendar_remote_datasource.dart';
+import '../../features/calendar/data/datasources/task_remote_datasource.dart';
 import '../../features/calendar/data/repositories/calendar_repository_impl.dart';
 import '../../features/calendar/data/services/calendar_outbox_replay_handler.dart';
 import '../../features/calendar/domain/repositories/i_calendar_repository.dart';
@@ -784,6 +785,11 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<CalendarOutboxReplayHandler>(() => CalendarOutboxReplayHandler(
         remote: sl<CalendarRemoteDataSource>(),
       ));
+  // Real Task entity (create/complete/delete) — displayed in calendar via the
+  // server-side /calendar merge; this hits the /tasks REST API.
+  if (!sl.isRegistered<TaskRemoteDataSource>()) {
+    sl.registerLazySingleton<TaskRemoteDataSource>(() => TaskRemoteDataSource(sl<DioClient>()));
+  }
 
   // Contacts feature
   sl.registerLazySingleton<ContactsLocalDataSource>(() => ContactsLocalDataSource());

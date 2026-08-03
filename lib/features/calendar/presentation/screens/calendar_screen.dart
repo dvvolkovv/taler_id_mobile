@@ -20,6 +20,7 @@ import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../../core/notifications/notification_service.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
+import '../../data/datasources/task_remote_datasource.dart';
 import '../../domain/entities/calendar_event_entity.dart';
 import '../../domain/repositories/i_calendar_repository.dart';
 import '../../../notes/domain/entities/note_entity.dart' show NoteEntity;
@@ -141,6 +142,85 @@ class _CalendarScreenState extends State<CalendarScreen> {
       MaterialPageRoute(builder: (_) => _EventEditScreen(event: eventMap, selectedDate: date)),
     );
     if (result == true) _repo.refresh();
+  }
+
+  // ── Real Task items (surfaced in the calendar via the server-side merge as
+  // type=TASK with synthetic id "task:{taskId}:{YYYY-MM-DD}") ──
+  bool _isTaskItem(CalendarEventEntity e) =>
+      e.type == CalendarEventType.task && e.id.startsWith('task:');
+
+  (String, String)? _parseTaskId(String id) {
+    if (!id.startsWith('task:')) return null;
+    final rest = id.substring(5);
+    final i = rest.lastIndexOf(':');
+    if (i <= 0 || i >= rest.length - 1) return null;
+    return (rest.substring(0, i), rest.substring(i + 1));
+  }
+
+  Future<void> _openTaskSheet(CalendarEventEntity event) async {
+    final l10n = AppLocalizations.of(context)!;
+    final colors = AppColors.of(context);
+    final parsed = _parseTaskId(event.id);
+    if (parsed == null) return; // not a task id we understand
+    final taskId = parsed.$1;
+    // Routine → mark just this day; one-off → mark the whole task.
+    final occurrenceDate = event.recurrence != null ? parsed.$2 : null;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(children: [
+                Icon(Icons.checklist_rounded, color: colors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(event.title,
+                      style: TextStyle(color: colors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ]),
+            ),
+            ListTile(
+              leading: const Icon(Icons.done_rounded, color: Colors.green),
+              title: Text(l10n.calendarTaskMarkDone, style: TextStyle(color: colors.textPrimary)),
+              onTap: () => Navigator.pop(ctx, 'done'),
+            ),
+            ListTile(
+              leading: Icon(Icons.delete_outline, color: colors.error),
+              title: Text(l10n.calendarTaskDelete, style: TextStyle(color: colors.textPrimary)),
+              onTap: () => Navigator.pop(ctx, 'delete'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    try {
+      final ds = sl<TaskRemoteDataSource>();
+      if (action == 'done') {
+        await ds.setStatus(taskId, 'done', occurrenceDate: occurrenceDate);
+      } else {
+        await ds.delete(taskId);
+      }
+      _repo.refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(action == 'done' ? l10n.calendarTaskDoneMsg : l10n.calendarTaskDeletedMsg),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
+      }
+    }
   }
 
   Map<String, dynamic> _entityToMap(CalendarEventEntity e) {
@@ -850,7 +930,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
       confirmDismiss: (_) async {
         try {
-          await _repo.delete(eventId);
+          if (_isTaskItem(event)) {
+            final p = _parseTaskId(event.id);
+            if (p != null) {
+              await sl<TaskRemoteDataSource>().delete(p.$1);
+              _repo.refresh();
+            }
+          } else {
+            await _repo.delete(eventId);
+          }
           return true;
         } catch (e) {
           if (mounted) {
@@ -871,7 +959,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _openEditor(event: event),
+          onTap: () => _isTaskItem(event) ? _openTaskSheet(event) : _openEditor(event: event),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -986,6 +1074,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   String _type = 'CALL';
   int _reminderMinutes = -1; // -1 = off, 15, 30, 60
   String _recurrenceFrequency = 'none';
+  String _kind = 'event'; // 'event' | 'task' — chooser (create mode only)
   bool _saving = false;
   List<Map<String, dynamic>> _contacts = [];
   List<String> _selectedContactIds = [];
@@ -1180,6 +1269,23 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     if (_titleCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
+      // Task path: create a real Task (due/recurrence/completion) via /tasks.
+      // It then appears in the calendar via the server-side task→/calendar merge.
+      if (_kind == 'task') {
+        final due = DateTime(_startDate.year, _startDate.month, _startDate.day, _startTime.hour, _startTime.minute);
+        final note = _descCtrl.text.trim();
+        final recurrence = _recurrenceFrequency != 'none'
+            ? {'frequency': _recurrenceFrequency, 'interval': 1}
+            : null;
+        await sl<TaskRemoteDataSource>().create({
+          'title': _titleCtrl.text.trim(),
+          'due': due.toUtc().toIso8601String(),
+          if (note.isNotEmpty) 'note': note,
+          if (recurrence != null) 'recurrence': recurrence,
+        });
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
       final startAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _startTime.hour, _startTime.minute);
       // Build description with location/link
       String description = _descCtrl.text.trim();
@@ -1329,6 +1435,29 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Event / Task chooser — only when creating (tasks aren't edited here).
+          if (widget.event == null) ...[
+            Row(children: [
+              Expanded(
+                child: ChoiceChip(
+                  selected: _kind == 'event',
+                  onSelected: (s) { if (s) setState(() => _kind = 'event'); },
+                  showCheckmark: false,
+                  label: Text(l10n.calendarKindEvent),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ChoiceChip(
+                  selected: _kind == 'task',
+                  onSelected: (s) { if (s) setState(() => _kind = 'task'); },
+                  showCheckmark: false,
+                  label: Text(l10n.calendarKindTask),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+          ],
           TextField(
             controller: _titleCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
@@ -1341,7 +1470,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             decoration: InputDecoration(hintText: l10n.calendarDescriptionHint, hintStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
           ),
           const Divider(),
-          DropdownButtonFormField<String>(
+          if (_kind == 'event') DropdownButtonFormField<String>(
             value: _type,
             dropdownColor: colors.card,
             style: TextStyle(color: colors.textPrimary),
@@ -1359,7 +1488,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             decoration: InputDecoration(labelText: l10n.calendarTypeLabel, labelStyle: TextStyle(color: colors.textSecondary), border: InputBorder.none),
           ),
           // Location / Meeting link
-          TextField(
+          if (_kind == 'event') TextField(
             controller: _locationCtrl,
             style: TextStyle(color: colors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
@@ -1369,7 +1498,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               border: InputBorder.none,
             ),
           ),
-          if (_type == 'CALL' && _hasMeetingLink()) ...[
+          if (_kind == 'event' && _type == 'CALL' && _hasMeetingLink()) ...[
             const SizedBox(height: 8),
             Row(
               children: [
@@ -1433,7 +1562,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               }
             },
           ),
-          ListTile(
+          if (_kind == 'event') ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(l10n.calendarEndTime, style: TextStyle(color: colors.textSecondary)),
             trailing: Text(
@@ -1446,7 +1575,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             },
           ),
           // Reminder selector
-          ListTile(
+          if (_kind == 'event') ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(l10n.calendarReminderLabel, style: TextStyle(color: colors.textPrimary)),
             trailing: DropdownButton<int>(
@@ -1486,8 +1615,9 @@ class _EventEditScreenState extends State<_EventEditScreen> {
               ),
             ),
           ),
+          // Participants — events only (tasks have no invitees)
+          if (_kind == 'event') ...[
           const Divider(),
-          // Participants
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(l10n.calendarParticipants, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
@@ -1583,6 +1713,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                 ),
               );
             }),
+          ], // end participants (event-only)
         ],
       ),
     );
