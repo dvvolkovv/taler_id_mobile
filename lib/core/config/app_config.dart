@@ -28,9 +28,32 @@ class AppConfig {
   // relay to the same backend. Only the public `talerid` build (api.talerid.io)
   // has edges; dev/aeza builds get none (failover is then inert). See
   // EndpointService + infra/do/provision/selectel-ru-edge.sh.
-  // 2026-07-25: CIS edges (ru.talerid.io / ru2.talerid.io) отключены —
-  // все клиенты ходят напрямую в api.talerid.io. CIS-пользователям — VPN.
-  static const List<String> fallbackBaseUrls = <String>[];
+  //
+  // Emptied on 2026-07-25 because calls broke: the wss URL is derived from the
+  // active endpoint, and the edge's /livekit/ had no live upstream. That took
+  // the whole API down with it for anyone behind CIS DPI — measured on such a
+  // network 2026-08-03, api.talerid.io accepted the TCP connection and TLS
+  // handshake and then never delivered a body (40s, no response), while both
+  // edges answered in ~2s. Requests died on timeout inside a silent catch, so
+  // the app looked healthy and simply did nothing.
+  //
+  // Restored, with media split out into [mediaCapableBaseUrls] so a media-dead
+  // edge can no longer take the API with it.
+  static const List<String> fallbackBaseUrls =
+      baseUrl == 'https://api.talerid.io'
+          ? ['https://ru.talerid.io', 'https://ru2.talerid.io']
+          : <String>[];
+
+  /// Endpoints whose `/livekit/` route actually reaches a live SFU, and so may
+  /// carry a call.
+  ///
+  /// Deliberately not the same list as [fallbackBaseUrls]: ru2 relays the REST
+  /// API fine but still answers 502 on /livekit/ (checked 2026-08-03), and
+  /// routing a call there is what broke calls in the first place.
+  static const List<String> mediaCapableBaseUrls =
+      baseUrl == 'https://api.talerid.io'
+          ? ['https://api.talerid.io', 'https://ru.talerid.io']
+          : <String>[baseUrl];
 
   static bool get isDev => flavor == 'dev';
   static bool get isProd => flavor == 'prod';
