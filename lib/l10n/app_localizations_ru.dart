@@ -2125,6 +2125,24 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarTypeReminder => 'Напоминание';
 
   @override
+  String get calendarKindEvent => 'Событие';
+
+  @override
+  String get calendarKindTask => 'Задача';
+
+  @override
+  String get calendarTaskMarkDone => 'Отметить выполненной';
+
+  @override
+  String get calendarTaskDelete => 'Удалить';
+
+  @override
+  String get calendarTaskDoneMsg => 'Задача выполнена';
+
+  @override
+  String get calendarTaskDeletedMsg => 'Задача удалена';
+
+  @override
   String get calendarTypeLabel => 'Тип';
 
   @override
