@@ -86,12 +86,25 @@ def main() -> int:
         print(f"{notes_path} is empty — refusing to publish a build with no notes")
         return 2
 
+    # filter[bundleId] matches by prefix, so asking for tirol.taler.talerIdMobile
+    # hands back tirol.taler.talerIdMobile.dev — which is how the TEST release
+    # notes once landed on the DEV app while TEST got none (2026-08-03). Take the
+    # exact match or nothing.
     apps = call("GET", "/apps?" + urllib.parse.urlencode({"filter[bundleId]": bundle_id}))
-    if not apps or not apps.get("data"):
-        print(f"no app for bundleId={bundle_id}")
+    app = next(
+        (
+            a
+            for a in (apps or {}).get("data", [])
+            if a["attributes"]["bundleId"] == bundle_id
+        ),
+        None,
+    )
+    if not app:
+        returned = [a["attributes"]["bundleId"] for a in (apps or {}).get("data", [])]
+        print(f"no app with bundleId exactly {bundle_id}; API returned {returned}")
         return 1
-    app_id = apps["data"][0]["id"]
-    print(f"app: {apps['data'][0]['attributes']['name']} ({app_id})")
+    app_id = app["id"]
+    print(f"app: {app['attributes']['name']} ({app_id}) {app['attributes']['bundleId']}")
 
     build_id = None
     for attempt in range(POLL_ATTEMPTS):
