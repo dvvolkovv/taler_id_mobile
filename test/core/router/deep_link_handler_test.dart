@@ -79,4 +79,34 @@ void main() {
       expect(resolve('https://id.taler.tirol/download/taler-id.apk'), isNull);
     });
   });
+
+  group('duplicate delivery', () {
+    setUp(DeepLinkHandler.resetDuplicateGuard);
+
+    final uri = Uri.parse('https://api.talerid.io/oauth/auth?client_id=x');
+    final t0 = DateTime(2026, 8, 3, 23, 9, 13);
+
+    test('the cold-start double delivery is collapsed', () {
+      // getInitialLink() and the stream both hand over the launching link,
+      // which stacked two consent screens — cancelling one revealed another.
+      expect(DeepLinkHandler.isDuplicate(uri, t0), isFalse);
+      expect(DeepLinkHandler.isDuplicate(uri, t0.add(const Duration(milliseconds: 1))), isTrue);
+    });
+
+    test('opening the same link again later still works', () {
+      expect(DeepLinkHandler.isDuplicate(uri, t0), isFalse);
+      expect(DeepLinkHandler.isDuplicate(uri, t0.add(const Duration(seconds: 10))), isFalse);
+    });
+
+    test('a different link is never suppressed', () {
+      expect(DeepLinkHandler.isDuplicate(uri, t0), isFalse);
+      expect(
+        DeepLinkHandler.isDuplicate(
+          Uri.parse('https://talerid.io/room/abc'),
+          t0.add(const Duration(milliseconds: 1)),
+        ),
+        isFalse,
+      );
+    });
+  });
 }
