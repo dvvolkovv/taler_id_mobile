@@ -2,6 +2,19 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import '../utils/constants.dart';
+
+/// Hosts whose OAuth links this app may act on. Mirrors the associated-domains
+/// entitlement and the Android intent-filters; the OS will only ever deliver a
+/// link from a host that vouches for this build in its assetlinks.json / AASA,
+/// so this is a second line rather than the gate itself.
+const _oauthHosts = {
+  'id.taler.tirol',
+  'staging.id.taler.tirol',
+  'api.talerid.io',
+  'talerid.io',
+};
+
 class DeepLinkHandler {
   static final _appLinks = AppLinks();
 
@@ -26,14 +39,34 @@ class DeepLinkHandler {
   static void _handleUri(GoRouter router, Uri uri) {
     debugPrint('Deep link received: $uri');
 
+    final target = resolve(uri);
+    if (target == null) return;
+    // OAuth is pushed so the flow can be backed out of, returning the user to
+    // wherever they were; the rest replace the location.
+    if (target.push) {
+      router.push(target.location);
+    } else {
+      router.go(target.location);
+    }
+  }
+
+  /// Maps an incoming link to the in-app location it should open, or null when
+  /// the app has nothing to do with it.
+  static DeepLinkTarget? resolve(Uri uri) {
     // OAuth native login (Universal Links / App Links):
-    // https://id.taler.tirol/oauth/authorize?...
-    // https://staging.id.taler.tirol/oauth/authorize?...
-    if (uri.path == '/oauth/authorize' &&
-        (uri.host == 'id.taler.tirol' || uri.host == 'staging.id.taler.tirol' || uri.host == 'talerid.io')) {
+    // https://<host>/oauth/auth?...
+    //
+    // The path is the OIDC authorization endpoint, and it is matched exactly:
+    // /oauth/auth/{uid} is where the browser consent page continues, so treating
+    // this as a prefix would pull the user out of a flow they started in the
+    // browser. This used to look for /oauth/authorize, which no environment has
+    // ever served — so native login never once triggered.
+    if (uri.path == '/oauth/auth' && _oauthHosts.contains(uri.host)) {
       final query = uri.query.isEmpty ? '' : '?${uri.query}';
-      router.push('/oauth/authorize$query');
-      return;
+      return DeepLinkTarget(
+        '${RouteConstants.oauthAuthorize}$query',
+        push: true,
+      );
     }
 
     // Handle invite links:
@@ -42,8 +75,7 @@ class DeepLinkHandler {
     if (uri.path.contains('invite') || uri.host == 'invite') {
       final token = uri.queryParameters['token'];
       if (token != null && token.isNotEmpty) {
-        router.go('/invite?token=$token');
-        return;
+        return DeepLinkTarget('/invite?token=$token');
       }
     }
 
@@ -52,19 +84,31 @@ class DeepLinkHandler {
     if (uri.path.startsWith('/room/')) {
       final code = uri.pathSegments.last;
       if (code.isNotEmpty) {
-        router.go('/dashboard/voice?publicCode=$code');
-        return;
+        return DeepLinkTarget('/dashboard/voice?publicCode=$code');
       }
     }
 
     // Handle user profile links:
     // talerid://user/{userId}
-    if (uri.scheme == 'talerid' && uri.host == 'user' && uri.pathSegments.isNotEmpty) {
+    if (uri.scheme == 'talerid' &&
+        uri.host == 'user' &&
+        uri.pathSegments.isNotEmpty) {
       final userId = uri.pathSegments.first;
       if (userId.isNotEmpty) {
-        router.go('/dashboard/user/$userId');
-        return;
+        return DeepLinkTarget('/dashboard/user/$userId');
       }
     }
+
+    return null;
   }
+}
+
+class DeepLinkTarget {
+  const DeepLinkTarget(this.location, {this.push = false});
+
+  final String location;
+  final bool push;
+
+  @override
+  String toString() => 'DeepLinkTarget($location, push: $push)';
 }

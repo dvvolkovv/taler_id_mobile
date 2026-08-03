@@ -8,6 +8,8 @@
 	<array>
 		<string>applinks:id.taler.tirol</string>
 		<string>applinks:staging.id.taler.tirol</string>
+		<string>applinks:api.talerid.io</string>
+		<string>applinks:talerid.io</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
