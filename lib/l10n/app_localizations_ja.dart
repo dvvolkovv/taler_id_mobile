@@ -2092,6 +2092,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get calendarTypeReminder => 'リマインダー';
 
   @override
+  String get calendarKindEvent => 'Event';
+
+  @override
+  String get calendarKindTask => 'Task';
+
+  @override
+  String get calendarTaskMarkDone => 'Mark done';
+
+  @override
+  String get calendarTaskDelete => 'Delete';
+
+  @override
+  String get calendarTaskDoneMsg => 'Task completed';
+
+  @override
+  String get calendarTaskDeletedMsg => 'Task deleted';
+
+  @override
   String get calendarTypeLabel => 'タイプ';
 
   @override

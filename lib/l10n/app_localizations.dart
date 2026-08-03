@@ -4132,6 +4132,42 @@ abstract class AppLocalizations {
   /// **'Reminder'**
   String get calendarTypeReminder;
 
+  /// No description provided for @calendarKindEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Event'**
+  String get calendarKindEvent;
+
+  /// No description provided for @calendarKindTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Task'**
+  String get calendarKindTask;
+
+  /// No description provided for @calendarTaskMarkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark done'**
+  String get calendarTaskMarkDone;
+
+  /// No description provided for @calendarTaskDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get calendarTaskDelete;
+
+  /// No description provided for @calendarTaskDoneMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Task completed'**
+  String get calendarTaskDoneMsg;
+
+  /// No description provided for @calendarTaskDeletedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Task deleted'**
+  String get calendarTaskDeletedMsg;
+
   /// No description provided for @calendarTypeLabel.
   ///
   /// In en, this message translates to:
