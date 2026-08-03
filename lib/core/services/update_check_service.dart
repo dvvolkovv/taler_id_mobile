@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../api/dio_client.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../config/app_config.dart';
@@ -93,6 +94,17 @@ class UpdateCheckService {
           .map(ReleaseEntry.fromJson)
           .toList(growable: false);
 
+      // Logged because every failure here is invisible otherwise: the banner
+      // simply never appears, and the endpoint, the parsed build numbers and
+      // the comparison are all indistinguishable from the outside. Chasing a
+      // device that never showed the banner cost a full session for want of
+      // this one line (2026-08-03).
+      debugPrint(
+        '[UpdateCheck] remote=$remoteVersion+$remoteBuild '
+        'local=${info.version}+${info.buildNumber} '
+        'available=${remoteBuild > localBuild}',
+      );
+
       return UpdateInfo(
         isAvailable: remoteBuild > localBuild,
         isRequired: required,
@@ -101,7 +113,8 @@ class UpdateCheckService {
         currentVersion: info.version,
         releases: releases,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[UpdateCheck] failed: $e');
       return null;
     }
   }
