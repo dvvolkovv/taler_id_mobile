@@ -16,8 +16,9 @@ import '../config/app_config.dart';
 /// For non-`talerid` flavors (dev / aeza-prod) there are no fallbacks, so this
 /// is inert — behaves exactly as before.
 class EndpointService {
-  EndpointService({List<String>? candidates})
-      : _candidates = candidates ?? _defaultCandidates() {
+  EndpointService({List<String>? candidates, List<String>? mediaCapable})
+      : _candidates = candidates ?? _defaultCandidates(),
+        _mediaCapable = mediaCapable ?? AppConfig.mediaCapableBaseUrls {
     if (_candidates.isNotEmpty && activeUrl.value != _candidates.first) {
       activeUrl.value = _candidates.first;
     }
@@ -27,6 +28,7 @@ class EndpointService {
   static const _key = 'active_base_url';
 
   final List<String> _candidates;
+  final List<String> _mediaCapable;
   int _idx = 0;
   Box<dynamic>? _box;
 
@@ -52,6 +54,24 @@ class EndpointService {
   String get baseUrl => activeUrl.value;
   List<String> get candidates => List.unmodifiable(_candidates);
   bool get hasFallback => _candidates.length > 1;
+
+  /// Base URL for LiveKit media — the host a `wss://…/livekit/` call goes to.
+  ///
+  /// Not simply [baseUrl]: an edge can relay the REST API perfectly while its
+  /// /livekit/ route reaches no SFU. Deriving the call URL from whichever
+  /// endpoint the API happened to select is what made calls 502 for CIS users,
+  /// and the response then was to delete the failover outright — taking the API
+  /// down with it for everyone behind DPI. Media now picks only from endpoints
+  /// declared able to carry it, preferring the one already in use.
+  String get mediaBaseUrl {
+    if (_mediaCapable.contains(activeUrl.value)) return activeUrl.value;
+    for (final url in _candidates) {
+      if (_mediaCapable.contains(url)) return url;
+    }
+    // Nothing declared media-capable is in play — fall back to the primary
+    // rather than silently routing a call at an edge known to 502.
+    return _candidates.isNotEmpty ? _candidates.first : AppConfig.baseUrl;
+  }
 
   static List<String> _defaultCandidates() {
     final seen = <String>{};

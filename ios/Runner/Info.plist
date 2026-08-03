@@ -14,6 +14,12 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>taler_id_mobile</string>
+	<!-- Deep links are routed by app_links → DeepLinkHandler. Stated explicitly
+	     so a change in Flutter's default cannot start handing GoRouter whole
+	     URLs as routes, which on Android showed as "no routes for location:
+	     https://api.talerid.io/oauth/auth?..." (2026-08-03). -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

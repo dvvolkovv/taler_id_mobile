@@ -61,6 +61,18 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Deep links are routed by app_links → DeepLinkHandler, which maps
+                 an incoming URL to an in-app location. Flutter's own handling
+                 must stay off or the engine hands GoRouter the whole URL as a
+                 route and it dies with "no routes for location:
+                 https://api.talerid.io/oauth/auth?...". Harmless while nothing
+                 could claim these links; the moment assetlinks started vouching
+                 for this app, every deep link opened on that error instead of
+                 the browser (2026-08-03). -->
+            <meta-data
+              android:name="flutter_deeplinking_enabled"
+              android:value="false"
+              />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

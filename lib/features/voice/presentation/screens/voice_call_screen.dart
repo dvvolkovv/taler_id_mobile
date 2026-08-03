@@ -804,9 +804,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // (turns:turn.talerid.io:443, advertised by the SFU + verified DPI-reachable)
       // from the start. Non-CIS (primary endpoint) keep direct UDP (lower latency).
       final _ep = sl<EndpointService>();
-      final _onEdge = _ep.hasFallback && _ep.baseUrl != _ep.candidates.first;
+      // Media follows mediaBaseUrl — an edge can relay the API while its
+      // /livekit/ reaches no SFU.
+      final _media = _ep.mediaBaseUrl;
+      final _onEdge = _ep.hasFallback && _media != _ep.candidates.first;
       await _room!.connect(
-        '${_ep.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        '${_media.replaceFirst('https://', 'wss://')}/livekit/',
         token,
         connectOptions: _onEdge
             ? const lk.ConnectOptions(
@@ -1364,9 +1367,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _subscribeRoomEvents();
 
         final rcEp = sl<EndpointService>();
-        final rcOnEdge = rcEp.hasFallback && rcEp.baseUrl != rcEp.candidates.first;
+        final rcMedia = rcEp.mediaBaseUrl;
+        final rcOnEdge = rcEp.hasFallback && rcMedia != rcEp.candidates.first;
         await newRoom.connect(
-          '${rcEp.baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+          '${rcMedia.replaceFirst('https://', 'wss://')}/livekit/',
           token,
           connectOptions: rcOnEdge
               ? const lk.ConnectOptions(

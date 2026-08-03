@@ -330,7 +330,9 @@ class CallStateService {
       }
 
       await r.connect(
-        '${sl<EndpointService>().baseUrl.replaceFirst('https://', 'wss://')}/livekit/',
+        // mediaBaseUrl, not baseUrl: an edge may relay the API while its
+        // /livekit/ reaches no SFU, and calls 502 there.
+        '${sl<EndpointService>().mediaBaseUrl.replaceFirst('https://', 'wss://')}/livekit/',
         token,
         roomOptions: lk.RoomOptions(
           e2eeOptions: e2eeOptions,

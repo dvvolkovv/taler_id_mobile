@@ -101,4 +101,53 @@ void main() {
       expect(ep.baseUrl, 'https://a');
     });
   });
+
+  group('EndpointService media routing', () {
+    // The API and the call do not have to travel the same path. An edge can
+    // relay REST perfectly while its /livekit/ reaches no SFU — ru2 answers 502
+    // there — and deriving the call URL from whichever endpoint the API picked
+    // is what made calls fail for CIS users. The fix then was to delete the
+    // failover outright, which took the API down with it for everyone behind
+    // DPI (2026-08-03).
+    EndpointService svc() => EndpointService(
+          candidates: const ['https://primary', 'https://edge', 'https://edge2'],
+          mediaCapable: const ['https://primary', 'https://edge'],
+        );
+
+    test('uses the active endpoint when it can carry media', () async {
+      final ep = svc();
+      expect(ep.mediaBaseUrl, 'https://primary');
+
+      await ep.reportFailureAndFallback();
+      expect(ep.baseUrl, 'https://edge');
+      expect(ep.mediaBaseUrl, 'https://edge');
+    });
+
+    test('never routes a call at a media-dead endpoint', () async {
+      final ep = svc();
+      await ep.reportFailureAndFallback();
+      await ep.reportFailureAndFallback();
+      expect(ep.baseUrl, 'https://edge2');
+
+      // API stays on edge2; the call must not follow it there.
+      expect(ep.mediaBaseUrl, 'https://primary');
+    });
+
+    test('falls back to the primary when nothing is media-capable', () {
+      final ep = EndpointService(
+        candidates: const ['https://a', 'https://b'],
+        mediaCapable: const [],
+      );
+      expect(ep.mediaBaseUrl, 'https://a');
+    });
+
+    test('a single-endpoint build routes media at that endpoint', () {
+      final ep = EndpointService(
+        candidates: const ['https://only'],
+        mediaCapable: const ['https://only'],
+      );
+      expect(ep.hasFallback, isFalse);
+      expect(ep.mediaBaseUrl, 'https://only');
+    });
+  });
 }
