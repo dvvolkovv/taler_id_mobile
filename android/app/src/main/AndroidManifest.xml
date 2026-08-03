@@ -65,47 +65,43 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Deep links: https://id.taler.tirol/room/{code} -->
+            <!-- Deep links. All four hosts are declared for every build; which
+                 app actually gets the link is decided by the assetlinks.json
+                 each host serves, and those name one track only. Declaring a
+                 host the app is not vouched for simply never verifies. -->
+            <!-- https://<host>/room/{code} -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="id.taler.tirol" android:pathPrefix="/room/"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/room/"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:pathPrefix="/room/"/>
+                <data android:scheme="https" android:host="talerid.io" android:pathPrefix="/room/"/>
             </intent-filter>
-            <!-- Deep links: https://id.taler.tirol/oauth/authorize -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="id.taler.tirol" android:pathPrefix="/oauth/authorize"/>
-            </intent-filter>
-            <!-- Deep links: https://staging.id.taler.tirol/oauth/authorize -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/oauth/authorize"/>
-            </intent-filter>
-            <!-- Deep links: https://id.taler.tirol/ui/invite.html -->
+            <!-- https://<host>/ui/invite.html -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="id.taler.tirol" android:pathPrefix="/ui/invite"/>
-            </intent-filter>
-            <!-- Deep links: https://staging.id.taler.tirol/room/{code} -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/room/"/>
-            </intent-filter>
-            <!-- Deep links: https://staging.id.taler.tirol/ui/invite.html -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/ui/invite"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:pathPrefix="/ui/invite"/>
+                <data android:scheme="https" android:host="talerid.io" android:pathPrefix="/ui/invite"/>
+            </intent-filter>
+            <!-- https://<host>/oauth/auth — the OIDC authorization endpoint, so
+                 a partner's "sign in with Taler ID" opens the app instead of the
+                 browser. android:path, not pathPrefix: /oauth/auth/{uid} is where
+                 the browser consent page continues, and intercepting that would
+                 drag the user out of a flow they started in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="id.taler.tirol" android:path="/oauth/auth"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:path="/oauth/auth"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:path="/oauth/auth"/>
+                <data android:scheme="https" android:host="talerid.io" android:path="/oauth/auth"/>
             </intent-filter>
             <!-- Custom scheme: talerid:// -->
             <intent-filter>

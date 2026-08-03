@@ -34,6 +34,8 @@ class RouteConstants {
   static const settings = '/dashboard/settings';
   static const wallpaper = '/dashboard/settings/wallpaper';
   static const invite = '/invite';
+  // In-app route only. The incoming link is /oauth/auth (the OIDC authorization
+  // endpoint); DeepLinkHandler maps one to the other.
   static const oauthAuthorize = '/oauth/authorize';
   static const pinSetup = '/auth/pin-setup';
   static const pinEntry = '/auth/pin-entry';
