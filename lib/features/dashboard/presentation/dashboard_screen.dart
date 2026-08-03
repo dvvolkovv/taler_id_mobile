@@ -181,6 +181,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
     });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Runs first and unconditionally: the call-routing branches below return
+      // early, and everything after them used to be skipped whenever the app
+      // cold-started into a call — no messenger connection, no listeners, and
+      // no version check, which is how a launch could miss a new release
+      // entirely (2026-08-03).
+      _startSessionServices();
+
       // Handle CallKit accept that happened while app was cold-starting.
       // If lifecycle is not resumed yet (app still waking), defer navigation
       // to didChangeAppLifecycleState so the router is ready.
@@ -204,28 +211,35 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           context.go(route);
         }
       }
-      // Re-register FCM token now that the user is authenticated.
-      // NotificationService.init() runs before login so the initial save fails with 401.
-      // force:true unconditionally re-uploads even if the device-local token
-      // hasn't rotated — backend may have auto-purged a stale row, in which
-      // case we must re-register or push silently stops working.
-      NotificationService.refreshToken(force: true);
-      NotificationService.setMissedCallCallback(() {
-        if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
-      });
-      NotificationService.setCalendarInviteCallback(() {
-        if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
-      });
-      _connectMessenger();
-      _listenForDisconnect();
-      _listenForCallEnded();
-      _listenForCallAnswered();
-      _listenForGroupCallEnded();
-      _listenForGroupCallInvite();
-      _listenForShareIntent();
-      _checkForUpdate();
+      // Deliberately not part of the block above: starting the wake-word
+      // listener while the app is heading into a call would fight the call for
+      // the microphone.
       _startWakeWord();
     });
+  }
+
+  /// Startup work every launch needs, regardless of what the app was opened for.
+  void _startSessionServices() {
+    // Re-register FCM token now that the user is authenticated.
+    // NotificationService.init() runs before login so the initial save fails with 401.
+    // force:true unconditionally re-uploads even if the device-local token
+    // hasn't rotated — backend may have auto-purged a stale row, in which
+    // case we must re-register or push silently stops working.
+    NotificationService.refreshToken(force: true);
+    NotificationService.setMissedCallCallback(() {
+      if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
+    });
+    NotificationService.setCalendarInviteCallback(() {
+      if (mounted) context.read<MessengerBloc>().add(LoadBadgeCounts());
+    });
+    _connectMessenger();
+    _listenForDisconnect();
+    _listenForCallEnded();
+    _listenForCallAnswered();
+    _listenForGroupCallEnded();
+    _listenForGroupCallInvite();
+    _listenForShareIntent();
+    _checkForUpdate();
   }
 
   void _listenForCallEnded() {
@@ -427,6 +441,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
+      // A release can ship while the app sits in the background for days, and
+      // the news push announcing it arrives there. Without this the banner
+      // offering the download only appeared after a full restart, so the push
+      // and the banner disagreed.
+      _checkForUpdate();
+
       // _pendingCallRoute is set only from the cold-start initState postFrameCallback
       // (when lifecycle was not yet resumed at that point). Navigation for the
       // backgrounded-app accept path is handled by _navigateWhenResumed in main.dart.
@@ -619,11 +639,26 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     WakeWordService.instance.resume();
   }
 
-  Future<void> _checkForUpdate() async {
+  static const _updateCheckInterval = Duration(minutes: 15);
+  DateTime? _lastUpdateCheck;
+
+  Future<void> _checkForUpdate({bool force = false}) async {
+    // Called on every resume as well as at startup; without this the endpoint
+    // would be hit on each app switch.
+    final last = _lastUpdateCheck;
+    if (!force &&
+        last != null &&
+        DateTime.now().difference(last) < _updateCheckInterval) {
+      return;
+    }
+    _lastUpdateCheck = DateTime.now();
+
     final info = await sl<UpdateCheckService>().checkForUpdate();
     if (info != null && info.isAvailable && mounted) {
       setState(() {
         _updateInfo = info;
+        // A newly discovered version un-dismisses the banner: dismissing 1.1.21
+        // should not hide 1.1.22.
         _updateDismissed = false;
       });
     }
