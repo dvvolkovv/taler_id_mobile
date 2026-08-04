@@ -39,7 +39,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthSuccess(tokens.accessToken));
       unawaited(_bootstrapMeshAfterLogin());
     } on TwoFARequiredException catch (e) {
-      emit(AuthRequires2FA(email: e.email, tempToken: e.tempToken));
+      emit(AuthRequires2FA(email: e.email, challengeToken: e.challengeToken));
+    } on DeviceApprovalRequiredException catch (e) {
+      emit(AuthRequiresDeviceApproval(
+        approvalToken: e.approvalToken,
+        approverCount: e.approverCount,
+        emailAvailable: e.emailAvailable,
+        expiresIn: e.expiresIn,
+      ));
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {
@@ -70,12 +77,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
     try {
       final tokens = await authRepository.verify2FA(
-        email: event.email,
         code: event.code,
-        tempToken: event.tempToken,
+        challengeToken: event.challengeToken,
       );
       emit(AuthSuccess(tokens.accessToken));
       unawaited(_bootstrapMeshAfterLogin());
+    } on DeviceApprovalRequiredException catch (e) {
+      emit(AuthRequiresDeviceApproval(
+        approvalToken: e.approvalToken,
+        approverCount: e.approverCount,
+        emailAvailable: e.emailAvailable,
+        expiresIn: e.expiresIn,
+      ));
     } on ApiException catch (e) {
       emit(AuthFailure(e.message));
     } catch (e) {

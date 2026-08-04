@@ -17,10 +17,30 @@ class AuthSuccess extends AuthState {
 
 class AuthRequires2FA extends AuthState {
   final String email;
-  final String tempToken;
-  AuthRequires2FA({required this.email, required this.tempToken});
+  final String challengeToken;
+  AuthRequires2FA({required this.email, required this.challengeToken});
   @override
-  List<Object?> get props => [email, tempToken];
+  List<Object?> get props => [email, challengeToken];
+}
+
+/// Пароль верный, но устройство незнакомое. Токенов ещё нет — вход ждёт
+/// подтверждения с доверенного устройства либо кода с почты.
+class AuthRequiresDeviceApproval extends AuthState {
+  final String approvalToken;
+  final int approverCount;
+  final bool emailAvailable;
+  final int expiresIn;
+
+  AuthRequiresDeviceApproval({
+    required this.approvalToken,
+    required this.approverCount,
+    required this.emailAvailable,
+    required this.expiresIn,
+  });
+
+  @override
+  List<Object?> get props =>
+      [approvalToken, approverCount, emailAvailable, expiresIn];
 }
 
 class AuthFailure extends AuthState {

@@ -8,6 +8,8 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/two_fa_screen.dart';
+import '../../features/auth/presentation/screens/device_approval_waiting_screen.dart';
+import '../../features/auth/presentation/screens/device_approval_request_screen.dart';
 import '../../features/auth/presentation/screens/pin_setup_screen.dart';
 import '../../features/auth/presentation/screens/pin_entry_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
@@ -30,6 +32,7 @@ import '../../features/sessions/presentation/screens/sessions_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/mesh_debug/presentation/screens/mesh_debug_screen.dart';
 import '../../features/settings/presentation/screens/wallpaper_picker_screen.dart';
+import '../../features/settings/presentation/screens/trusted_devices_screen.dart';
 import '../../features/messenger/presentation/screens/conversations_screen.dart';
 import '../../features/messenger/presentation/screens/chat_room_screen.dart';
 import '../../features/messenger/presentation/screens/user_search_screen.dart';
@@ -119,7 +122,37 @@ final appRouter = GoRouter(
         final extra = state.extra as Map<String, dynamic>?;
         return TwoFAScreen(
           email: extra?['email'] as String? ?? '',
-          tempToken: extra?['tempToken'] as String? ?? '',
+          challengeToken: extra?['challengeToken'] as String? ?? '',
+        );
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.deviceApproval,
+      builder: (_, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return DeviceApprovalWaitingScreen(
+          approvalToken: extra?['approvalToken'] as String? ?? '',
+          approverCount: extra?['approverCount'] as int? ?? 0,
+          emailAvailable: extra?['emailAvailable'] as bool? ?? false,
+          expiresIn: extra?['expiresIn'] as int? ?? 600,
+        );
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.trustedDevices,
+      builder: (_, __) => const TrustedDevicesScreen(),
+    ),
+    GoRoute(
+      path: RouteConstants.deviceApprovalRequest,
+      builder: (_, state) {
+        // Приходит тапом по уведомлению, в том числе на холодном старте,
+        // поэтому параметры берём из query, а не из extra.
+        final q = state.uri.queryParameters;
+        return DeviceApprovalRequestScreen(
+          approvalId: q['approvalId'] ?? '',
+          deviceInfo: q['deviceInfo'] ?? '',
+          ip: q['ip'] ?? '',
+          location: q['location'] ?? '',
         );
       },
     ),

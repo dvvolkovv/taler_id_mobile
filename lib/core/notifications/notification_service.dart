@@ -14,6 +14,7 @@ import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../firebase_options.dart';
+import '../router/app_router.dart';
 
 /// Notification strings resolved by locale (no BuildContext needed).
 class _NotifStrings {
@@ -459,6 +460,13 @@ class NotificationService {
         final body = message.notification?.body ?? 'Новый запрос на добавление в контакты';
         _showLocalNotification(title: title, body: body, conversationId: '');
       }
+      if (type == 'device_approval') {
+        // Локальные уведомления в этом приложении по тапу никуда не ведут, а
+        // вопрос «это вы входите?» ждать не должен — при открытом приложении
+        // уводим на экран подтверждения сразу.
+        final route = notificationToRoute(message);
+        if (route != null) appRouter.push(route);
+      }
       if (type == 'calendar_updated' || type == 'calendar_invite' || type == 'calendar_reminder') {
         _onCalendarUpdated?.call();
       }
@@ -667,6 +675,20 @@ String? notificationToRoute(RemoteMessage message) {
           : '/dashboard/messenger';
     case 'contact_request':
       return '/dashboard/messenger/contacts?tab=incoming';
+    case 'device_approval':
+      final approvalId = data['approvalId'] as String?;
+      if (approvalId == null || approvalId.isEmpty) return null;
+      final q = {
+        'approvalId': approvalId,
+        'deviceInfo': data['deviceInfo'] as String? ?? '',
+        'ip': data['ip'] as String? ?? '',
+        'location': data['location'] as String? ?? '',
+      };
+      final query = q.entries
+          .where((e) => e.value.isNotEmpty)
+          .map((e) => '${e.key}=${Uri.encodeComponent(e.value)}')
+          .join('&');
+      return '/auth/device-approval-request?$query';
     case 'calendar_invite':
       final inviteEventId = data['eventId'] as String?;
       return inviteEventId != null

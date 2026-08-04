@@ -1828,5 +1828,43 @@
   "mailMoveTo": "Переместить в",
   "mailMoved": "Перемещено",
   "mailSaveDraft": "Сохранить черновик?",
-  "mailDraftSaved": "Черновик сохранён"
+  "mailDraftSaved": "Черновик сохранён",
+  "deviceApprovalTitle": "Подтвердите вход",
+  "deviceApprovalWaiting": "Мы отправили запрос на ваши доверенные устройства. Откройте уведомление и подтвердите вход.",
+  "deviceApprovalNoApprovers": "Не нашлось устройства, на которое можно отправить запрос. Получите код на почту.",
+  "deviceApprovalExpiresIn": "Осталось {time}",
+  "@deviceApprovalExpiresIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceApprovalRejected": "Вход отклонён с другого устройства.",
+  "deviceApprovalExpired": "Время подтверждения истекло.",
+  "deviceApprovalBackToLogin": "Вернуться ко входу",
+  "deviceApprovalSendEmail": "Отправить код на почту",
+  "deviceApprovalEmailSent": "Код отправлен на вашу почту",
+  "deviceApprovalEnterCode": "Введите код из письма",
+  "deviceApprovalSheetTitle": "Вход в аккаунт",
+  "deviceApprovalSheetBody": "Кто-то входит в ваш аккаунт с этого устройства. Это вы?",
+  "deviceApprovalAllow": "Это я, разрешить",
+  "deviceApprovalDeny": "Это не я",
+  "deviceApprovalApproved": "Вход разрешён",
+  "deviceApprovalDenied": "Вход отклонён",
+  "trustedDevicesTitle": "Устройства",
+  "trustedDevicesToggle": "Подтверждать вход с новых устройств",
+  "trustedDevicesToggleHint": "Вход с незнакомого устройства потребует подтверждения с этого или кода на почту",
+  "trustedDevicesEmpty": "Пока нет доверенных устройств",
+  "trustedDevicesThisDevice": "Это устройство",
+  "trustedDevicesLastSeen": "Последний вход: {when}",
+  "@trustedDevicesLastSeen": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "trustedDevicesRevoke": "Отозвать",
+  "trustedDevicesRevokeConfirm": "Отозвать доверие к этому устройству? Оно будет разлогинено."
 }

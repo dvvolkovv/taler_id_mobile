@@ -50,7 +50,7 @@ void main() {
         when(() => repo.login(email: 'user@test.com', password: 'pass123'))
             .thenThrow(TwoFARequiredException(
           email: 'user@test.com',
-          tempToken: 'temp-token-123',
+          challengeToken: 'chal-token-123',
         ));
         return bloc;
       },
@@ -59,7 +59,7 @@ void main() {
         isA<AuthLoading>(),
         isA<AuthRequires2FA>()
             .having((s) => s.email, 'email', 'user@test.com')
-            .having((s) => s.tempToken, 'tempToken', 'temp-token-123'),
+            .having((s) => s.challengeToken, 'challengeToken', 'chal-token-123'),
       ],
     );
 
@@ -147,16 +147,14 @@ void main() {
       'emits [Loading, Success] on correct 2FA code',
       build: () {
         when(() => repo.verify2FA(
-              email: 'user@test.com',
               code: '123456',
-              tempToken: 'temp-token',
+              challengeToken: 'chal-token',
             )).thenAnswer((_) async => _tokens);
         return bloc;
       },
       act: (b) => b.add(TwoFASubmitted(
-        email: 'user@test.com',
         code: '123456',
-        tempToken: 'temp-token',
+        challengeToken: 'chal-token',
       )),
       expect: () => [isA<AuthLoading>(), isA<AuthSuccess>()],
     );
@@ -165,18 +163,43 @@ void main() {
       'emits [Loading, Failure] on wrong 2FA code',
       build: () {
         when(() => repo.verify2FA(
-              email: any(named: 'email'),
               code: any(named: 'code'),
-              tempToken: any(named: 'tempToken'),
+              challengeToken: any(named: 'challengeToken'),
             )).thenThrow(const ApiException(statusCode: 400, message: 'Invalid code'));
         return bloc;
       },
       act: (b) => b.add(TwoFASubmitted(
-        email: 'user@test.com',
         code: '000000',
-        tempToken: 'temp-token',
+        challengeToken: 'chal-token',
       )),
       expect: () => [isA<AuthLoading>(), isA<AuthFailure>()],
+    );
+
+    // Пройденный TOTP не отменяет проверку устройства.
+    blocTest<AuthBloc, AuthState>(
+      'emits [Loading, RequiresDeviceApproval] when the device is unknown',
+      build: () {
+        when(() => repo.verify2FA(
+              code: any(named: 'code'),
+              challengeToken: any(named: 'challengeToken'),
+            )).thenThrow(const DeviceApprovalRequiredException(
+          approvalToken: 'appr-1',
+          approverCount: 2,
+          emailAvailable: true,
+          expiresIn: 600,
+        ));
+        return bloc;
+      },
+      act: (b) => b.add(TwoFASubmitted(
+        code: '123456',
+        challengeToken: 'chal-token',
+      )),
+      expect: () => [
+        isA<AuthLoading>(),
+        isA<AuthRequiresDeviceApproval>()
+            .having((s) => s.approvalToken, 'approvalToken', 'appr-1')
+            .having((s) => s.approverCount, 'approverCount', 2),
+      ],
     );
   });
 

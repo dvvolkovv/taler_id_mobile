@@ -34,13 +34,32 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<AuthTokens> login({required String email, required String password}) async {
     final data = await remote.login(email, password);
-    if (data['requires2FA'] == true) {
-      // Signal 2FA needed by throwing with special data
-      throw TwoFARequiredException(
-        tempToken: data['tempToken'] as String,
-        email: email,
-      );
+
+    // Пароль верный, но вход ещё не закончен. Имена полей здесь обязаны
+    // совпадать с бэкендом дословно: клиент читал `requires2FA`/`tempToken`,
+    // которых бэкенд никогда не отдавал, поэтому вход с включённым TOTP
+    // проваливался мимо этой ветки и падал на приведении null к String.
+    switch (data['next'] as String?) {
+      case '2fa':
+        throw TwoFARequiredException(
+          challengeToken: data['challengeToken'] as String,
+          email: email,
+        );
+      case 'device_approval':
+        throw DeviceApprovalRequiredException(
+          approvalToken: data['approvalToken'] as String,
+          approverCount: (data['approverCount'] as num?)?.toInt() ?? 0,
+          emailAvailable: data['emailAvailable'] as bool? ?? false,
+          expiresIn: (data['expiresIn'] as num?)?.toInt() ?? 600,
+        );
+      case null:
+        break;
+      default:
+        // Бэкенд знает шаг, которого не знает эта версия приложения.
+        // Лучше внятная ошибка, чем падение на null ниже.
+        throw UnsupportedLoginStepException(data['next'] as String);
     }
+
     final tokens = AuthTokens(
       accessToken: data['accessToken'] as String,
       refreshToken: data['refreshToken'] as String,
@@ -82,15 +101,25 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Future<AuthTokens> verify2FA({
-    required String email,
     required String code,
-    required String tempToken,
+    required String challengeToken,
   }) async {
     final data = await remote.verify2FA(
-      email: email,
       code: code,
-      tempToken: tempToken,
+      challengeToken: challengeToken,
     );
+
+    // Пройденный TOTP не отменяет проверку устройства: с незнакомого
+    // устройства бэкенд и здесь отправит ждать подтверждения.
+    if (data['next'] == 'device_approval') {
+      throw DeviceApprovalRequiredException(
+        approvalToken: data['approvalToken'] as String,
+        approverCount: (data['approverCount'] as num?)?.toInt() ?? 0,
+        emailAvailable: data['emailAvailable'] as bool? ?? false,
+        expiresIn: (data['expiresIn'] as num?)?.toInt() ?? 600,
+      );
+    }
+
     final tokens = AuthTokens(
       accessToken: data['accessToken'] as String,
       refreshToken: data['refreshToken'] as String,
@@ -199,7 +228,39 @@ class AuthRepositoryImpl implements IAuthRepository {
 }
 
 class TwoFARequiredException implements Exception {
-  final String tempToken;
+  /// Имя поля совпадает с тем, что отдаёт бэкенд (`challengeToken`).
+  /// Раньше здесь было `tempToken` — и расхождение с проводом никто не
+  /// замечал, потому что TOTP включён у единиц.
+  final String challengeToken;
   final String email;
-  TwoFARequiredException({required this.tempToken, required this.email});
+  TwoFARequiredException({required this.challengeToken, required this.email});
+}
+
+/// Пароль верный, но устройство незнакомое: токены выдадут после подтверждения
+/// с другого устройства пользователя либо по коду с почты.
+class DeviceApprovalRequiredException implements Exception {
+  final String approvalToken;
+
+  /// Сколько доверенных устройств получили пуш. Ноль означает, что ждать
+  /// подтверждения не от кого и надо сразу предлагать код на почту.
+  final int approverCount;
+  final bool emailAvailable;
+  final int expiresIn;
+
+  const DeviceApprovalRequiredException({
+    required this.approvalToken,
+    required this.approverCount,
+    required this.emailAvailable,
+    required this.expiresIn,
+  });
+}
+
+class UnsupportedLoginStepException implements Exception {
+  final String step;
+  const UnsupportedLoginStepException(this.step);
+
+  @override
+  String toString() =>
+      'This version of the app does not know the sign-in step "$step". '
+      'Update the app to continue.';
 }

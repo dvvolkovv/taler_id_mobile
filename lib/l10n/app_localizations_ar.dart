@@ -3864,4 +3864,86 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get mailDraftSaved => 'Draft saved';
+
+  @override
+  String get deviceApprovalTitle => 'Confirm sign-in';
+
+  @override
+  String get deviceApprovalWaiting =>
+      'We sent a request to your trusted devices. Open the notification and confirm.';
+
+  @override
+  String get deviceApprovalNoApprovers =>
+      'No device was available to ask. Get a code by email instead.';
+
+  @override
+  String deviceApprovalExpiresIn(String time) {
+    return '$time left';
+  }
+
+  @override
+  String get deviceApprovalRejected =>
+      'The sign-in was rejected from another device.';
+
+  @override
+  String get deviceApprovalExpired => 'The confirmation window has expired.';
+
+  @override
+  String get deviceApprovalBackToLogin => 'Back to sign-in';
+
+  @override
+  String get deviceApprovalSendEmail => 'Email me a code';
+
+  @override
+  String get deviceApprovalEmailSent => 'Code sent to your email';
+
+  @override
+  String get deviceApprovalEnterCode => 'Enter the code from the email';
+
+  @override
+  String get deviceApprovalSheetTitle => 'Account sign-in';
+
+  @override
+  String get deviceApprovalSheetBody =>
+      'Someone is signing in to your account from this device. Is this you?';
+
+  @override
+  String get deviceApprovalAllow => 'Yes, allow';
+
+  @override
+  String get deviceApprovalDeny => 'This wasn\'t me';
+
+  @override
+  String get deviceApprovalApproved => 'Sign-in allowed';
+
+  @override
+  String get deviceApprovalDenied => 'Sign-in rejected';
+
+  @override
+  String get trustedDevicesTitle => 'Devices';
+
+  @override
+  String get trustedDevicesToggle => 'Confirm sign-ins from new devices';
+
+  @override
+  String get trustedDevicesToggleHint =>
+      'Signing in on an unfamiliar device will need confirmation here, or a code by email';
+
+  @override
+  String get trustedDevicesEmpty => 'No trusted devices yet';
+
+  @override
+  String get trustedDevicesThisDevice => 'This device';
+
+  @override
+  String trustedDevicesLastSeen(String when) {
+    return 'Last sign-in: $when';
+  }
+
+  @override
+  String get trustedDevicesRevoke => 'Revoke';
+
+  @override
+  String get trustedDevicesRevokeConfirm =>
+      'Revoke trust for this device? It will be signed out.';
 }

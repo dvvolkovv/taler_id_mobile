@@ -3894,4 +3894,85 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get mailDraftSaved => 'Черновик сохранён';
+
+  @override
+  String get deviceApprovalTitle => 'Подтвердите вход';
+
+  @override
+  String get deviceApprovalWaiting =>
+      'Мы отправили запрос на ваши доверенные устройства. Откройте уведомление и подтвердите вход.';
+
+  @override
+  String get deviceApprovalNoApprovers =>
+      'Не нашлось устройства, на которое можно отправить запрос. Получите код на почту.';
+
+  @override
+  String deviceApprovalExpiresIn(String time) {
+    return 'Осталось $time';
+  }
+
+  @override
+  String get deviceApprovalRejected => 'Вход отклонён с другого устройства.';
+
+  @override
+  String get deviceApprovalExpired => 'Время подтверждения истекло.';
+
+  @override
+  String get deviceApprovalBackToLogin => 'Вернуться ко входу';
+
+  @override
+  String get deviceApprovalSendEmail => 'Отправить код на почту';
+
+  @override
+  String get deviceApprovalEmailSent => 'Код отправлен на вашу почту';
+
+  @override
+  String get deviceApprovalEnterCode => 'Введите код из письма';
+
+  @override
+  String get deviceApprovalSheetTitle => 'Вход в аккаунт';
+
+  @override
+  String get deviceApprovalSheetBody =>
+      'Кто-то входит в ваш аккаунт с этого устройства. Это вы?';
+
+  @override
+  String get deviceApprovalAllow => 'Это я, разрешить';
+
+  @override
+  String get deviceApprovalDeny => 'Это не я';
+
+  @override
+  String get deviceApprovalApproved => 'Вход разрешён';
+
+  @override
+  String get deviceApprovalDenied => 'Вход отклонён';
+
+  @override
+  String get trustedDevicesTitle => 'Устройства';
+
+  @override
+  String get trustedDevicesToggle => 'Подтверждать вход с новых устройств';
+
+  @override
+  String get trustedDevicesToggleHint =>
+      'Вход с незнакомого устройства потребует подтверждения с этого или кода на почту';
+
+  @override
+  String get trustedDevicesEmpty => 'Пока нет доверенных устройств';
+
+  @override
+  String get trustedDevicesThisDevice => 'Это устройство';
+
+  @override
+  String trustedDevicesLastSeen(String when) {
+    return 'Последний вход: $when';
+  }
+
+  @override
+  String get trustedDevicesRevoke => 'Отозвать';
+
+  @override
+  String get trustedDevicesRevokeConfirm =>
+      'Отозвать доверие к этому устройству? Оно будет разлогинено.';
 }
