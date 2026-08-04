@@ -160,4 +160,39 @@ void main() {
       expect(ex.isServerError, isFalse);
     });
   });
+
+  group('error_description', () {
+    DioException err(Map<String, dynamic> body) => DioException(
+          requestOptions: RequestOptions(path: '/oauth/mobile/grant-info'),
+          response: Response(
+            requestOptions: RequestOptions(path: '/oauth/mobile/grant-info'),
+            statusCode: 400,
+            data: body,
+          ),
+          type: DioExceptionType.badResponse,
+        );
+
+    test('surfaces the reason the backend actually sent', () {
+      // Our backend leaves `message` as the framework's generic phrase and puts
+      // the reason in error_description, so preferring `message` showed every
+      // failure as "Internal server error" and hid what went wrong.
+      final e = ApiErrorHandler.handle(err({
+        'error_description': 'Scope not allowed: openid+email',
+        'message': 'Internal server error',
+        'error': 'invalid_scope',
+      }));
+      expect(e.message, 'Scope not allowed: openid+email');
+      expect(e.statusCode, 400);
+    });
+
+    test('falls back to message when there is no description', () {
+      final e = ApiErrorHandler.handle(err({'message': 'Forbidden'}));
+      expect(e.message, 'Forbidden');
+    });
+
+    test('falls back to error when there is neither', () {
+      final e = ApiErrorHandler.handle(err({'error': 'invalid_grant'}));
+      expect(e.message, 'invalid_grant');
+    });
+  });
 }
