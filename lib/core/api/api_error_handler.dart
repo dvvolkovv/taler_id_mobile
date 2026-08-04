@@ -34,13 +34,23 @@ class ApiErrorHandler {
     String message = ErrorKeys.generalError;
 
     if (responseData is Map<String, dynamic>) {
-      // error_description first: our backend puts the actual reason there and
-      // leaves `message` as the framework's generic "Internal server error",
-      // so preferring `message` hid every real error behind that phrase.
-      message = responseData['error_description'] as String? ??
-          responseData['message'] as String? ??
-          responseData['error'] as String? ??
-          message;
+      // Which field holds the reason depends on who raised the error, so take
+      // the first one that says something. `message` is often the framework's
+      // fixed "Internal server error" with the real reason left in `error`
+      // (that shape is what /oauth/mobile/grant-info returns on a rejected
+      // redirect_uri), while Nest's default filter does the reverse and puts
+      // the bare HTTP status phrase in `error`. Preferring either field
+      // outright buries the reason in one of the two cases.
+      final candidates = [
+        responseData['error_description'],
+        responseData['message'],
+        responseData['error'],
+      ].whereType<String>().where((s) => s.isNotEmpty).toList();
+
+      message = candidates.firstWhere(
+        (s) => !_isGenericStatusPhrase(s),
+        orElse: () => candidates.isEmpty ? message : candidates.first,
+      );
     }
 
     return ApiException(
@@ -49,4 +59,19 @@ class ApiErrorHandler {
       data: responseData is Map<String, dynamic> ? responseData : null,
     );
   }
+
+  /// Boilerplate an HTTP layer produces on its own, carrying no reason.
+  static bool _isGenericStatusPhrase(String s) =>
+      const {
+        'internal server error',
+        'bad request',
+        'unauthorized',
+        'forbidden',
+        'not found',
+        'conflict',
+        'unprocessable entity',
+        'too many requests',
+        'service unavailable',
+        'bad gateway',
+      }.contains(s.trim().toLowerCase());
 }
