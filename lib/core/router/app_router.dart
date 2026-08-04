@@ -119,7 +119,7 @@ final appRouter = GoRouter(
         final extra = state.extra as Map<String, dynamic>?;
         return TwoFAScreen(
           email: extra?['email'] as String? ?? '',
-          tempToken: extra?['tempToken'] as String? ?? '',
+          challengeToken: extra?['challengeToken'] as String? ?? '',
         );
       },
     ),

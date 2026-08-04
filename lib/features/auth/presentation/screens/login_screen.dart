@@ -58,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
         } else if (state is AuthRequires2FA) {
           context.push(RouteConstants.twoFA, extra: {
             'email': state.email,
-            'tempToken': state.tempToken,
+            'challengeToken': state.challengeToken,
           });
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(

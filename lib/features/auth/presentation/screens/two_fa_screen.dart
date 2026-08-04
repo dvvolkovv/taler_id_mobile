@@ -15,8 +15,8 @@ import '../bloc/auth_state.dart';
 
 class TwoFAScreen extends StatefulWidget {
   final String email;
-  final String tempToken;
-  const TwoFAScreen({super.key, required this.email, required this.tempToken});
+  final String challengeToken;
+  const TwoFAScreen({super.key, required this.email, required this.challengeToken});
 
   @override
   State<TwoFAScreen> createState() => _TwoFAScreenState();
@@ -34,9 +34,8 @@ class _TwoFAScreenState extends State<TwoFAScreen> {
   void _submit(BuildContext context) {
     if (_codeController.text.length == 6) {
       context.read<AuthBloc>().add(TwoFASubmitted(
-        email: widget.email,
         code: _codeController.text,
-        tempToken: widget.tempToken,
+        challengeToken: widget.challengeToken,
       ));
     }
   }

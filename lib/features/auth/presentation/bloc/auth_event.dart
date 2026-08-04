@@ -25,12 +25,11 @@ class RegisterSubmitted extends AuthEvent {
 }
 
 class TwoFASubmitted extends AuthEvent {
-  final String email;
   final String code;
-  final String tempToken;
-  TwoFASubmitted({required this.email, required this.code, required this.tempToken});
+  final String challengeToken;
+  TwoFASubmitted({required this.code, required this.challengeToken});
   @override
-  List<Object?> get props => [email, code, tempToken];
+  List<Object?> get props => [code, challengeToken];
 }
 
 class LogoutRequested extends AuthEvent {}
