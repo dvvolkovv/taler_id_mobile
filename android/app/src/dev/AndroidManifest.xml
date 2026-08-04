@@ -7,7 +7,11 @@
     filter — we don't want to offer Taler ID as a home launcher to real
     users.
 
-    The Android manifest merger will combine this <intent-filter> with the
+    Also claims the deep-link host this build talks to, and only that one:
+    staging.id.taler.tirol. See src/main/AndroidManifest.xml for why the
+    hosts are split per flavor.
+
+    The Android manifest merger will combine these <intent-filter>s with the
     filters already declared on MainActivity in src/main/AndroidManifest.xml.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -19,6 +23,32 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- https://staging.id.taler.tirol/room/{code} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/room/"/>
+            </intent-filter>
+            <!-- https://staging.id.taler.tirol/ui/invite.html -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:pathPrefix="/ui/invite"/>
+            </intent-filter>
+            <!-- https://staging.id.taler.tirol/oauth/auth — the OIDC
+                 authorization endpoint, so a partner's "sign in with Taler ID"
+                 opens the app instead of the browser. android:path, not
+                 pathPrefix: /oauth/auth/{uid} is where the browser consent page
+                 continues, and intercepting that would drag the user out of a
+                 flow they started in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="staging.id.taler.tirol" android:path="/oauth/auth"/>
             </intent-filter>
         </activity>
     </application>

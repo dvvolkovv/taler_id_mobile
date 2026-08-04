@@ -1,0 +1,47 @@
+<!--
+    PROD-flavor (DigitalOcean, io.talerid.app) manifest overlay.
+
+    Claims the two deep-link hosts this build talks to, and only those:
+    api.talerid.io (API + OIDC) and talerid.io (landing, invite links). See
+    src/main/AndroidManifest.xml for why the hosts are split per flavor rather
+    than declared once for all three.
+
+    The Android manifest merger will combine these <intent-filter>s with the
+    filters already declared on MainActivity in src/main/AndroidManifest.xml.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <!-- https://<host>/room/{code} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:pathPrefix="/room/"/>
+                <data android:scheme="https" android:host="talerid.io" android:pathPrefix="/room/"/>
+            </intent-filter>
+            <!-- https://<host>/ui/invite.html -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:pathPrefix="/ui/invite"/>
+                <data android:scheme="https" android:host="talerid.io" android:pathPrefix="/ui/invite"/>
+            </intent-filter>
+            <!-- https://<host>/oauth/auth — the OIDC authorization endpoint, so
+                 a partner's "sign in with Taler ID" opens the app instead of the
+                 browser. android:path, not pathPrefix: /oauth/auth/{uid} is where
+                 the browser consent page continues, and intercepting that would
+                 drag the user out of a flow they started in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="api.talerid.io" android:path="/oauth/auth"/>
+                <data android:scheme="https" android:host="talerid.io" android:path="/oauth/auth"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
