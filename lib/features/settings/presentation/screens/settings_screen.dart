@@ -314,6 +314,12 @@ class _SettingsScreenState extends State<SettingsScreen> with WidgetsBindingObse
                     title: l10n.sessions,
                     onTap: () => context.push(RouteConstants.sessions),
                   ),
+                  _navTile(
+                    icon: Icons.phonelink_lock_outlined,
+                    iconColor: AppColors.of(context).secondary,
+                    title: l10n.trustedDevicesTitle,
+                    onTap: () => context.push(RouteConstants.trustedDevices),
+                  ),
                 ],
               ),
             ),

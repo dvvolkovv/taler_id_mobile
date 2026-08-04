@@ -32,6 +32,7 @@ import '../../features/sessions/presentation/screens/sessions_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/mesh_debug/presentation/screens/mesh_debug_screen.dart';
 import '../../features/settings/presentation/screens/wallpaper_picker_screen.dart';
+import '../../features/settings/presentation/screens/trusted_devices_screen.dart';
 import '../../features/messenger/presentation/screens/conversations_screen.dart';
 import '../../features/messenger/presentation/screens/chat_room_screen.dart';
 import '../../features/messenger/presentation/screens/user_search_screen.dart';
@@ -136,6 +137,10 @@ final appRouter = GoRouter(
           expiresIn: extra?['expiresIn'] as int? ?? 600,
         );
       },
+    ),
+    GoRoute(
+      path: RouteConstants.trustedDevices,
+      builder: (_, __) => const TrustedDevicesScreen(),
     ),
     GoRoute(
       path: RouteConstants.deviceApprovalRequest,
