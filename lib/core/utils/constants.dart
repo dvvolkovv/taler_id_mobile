@@ -40,6 +40,7 @@ class RouteConstants {
   static const pinSetup = '/auth/pin-setup';
   static const pinEntry = '/auth/pin-entry';
   static const deviceApproval = '/auth/device-approval';
+  static const deviceApprovalRequest = '/auth/device-approval-request';
   static const trustedDevices = '/dashboard/settings/devices';
   static const assistant = '/dashboard/assistant';
   static const messenger = '/dashboard/messenger';

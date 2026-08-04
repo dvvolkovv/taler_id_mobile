@@ -9,6 +9,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/two_fa_screen.dart';
 import '../../features/auth/presentation/screens/device_approval_waiting_screen.dart';
+import '../../features/auth/presentation/screens/device_approval_request_screen.dart';
 import '../../features/auth/presentation/screens/pin_setup_screen.dart';
 import '../../features/auth/presentation/screens/pin_entry_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
@@ -133,6 +134,20 @@ final appRouter = GoRouter(
           approverCount: extra?['approverCount'] as int? ?? 0,
           emailAvailable: extra?['emailAvailable'] as bool? ?? false,
           expiresIn: extra?['expiresIn'] as int? ?? 600,
+        );
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.deviceApprovalRequest,
+      builder: (_, state) {
+        // Приходит тапом по уведомлению, в том числе на холодном старте,
+        // поэтому параметры берём из query, а не из extra.
+        final q = state.uri.queryParameters;
+        return DeviceApprovalRequestScreen(
+          approvalId: q['approvalId'] ?? '',
+          deviceInfo: q['deviceInfo'] ?? '',
+          ip: q['ip'] ?? '',
+          location: q['location'] ?? '',
         );
       },
     ),
