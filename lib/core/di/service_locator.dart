@@ -18,6 +18,7 @@ import '../platform/platform_utils.dart';
 import '../platform/mesh_transport_desktop_stub.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
+import '../services/device_id_service.dart';
 import '../services/update_check_service.dart';
 import '../services/call_history_cache_service.dart';
 import '../services/contacts_cache_service.dart';
@@ -287,10 +288,17 @@ Future<void> setupDependencies() async {
   );
   endpoint.activeUrl.addListener(() => rawDio.options.baseUrl = endpoint.baseUrl);
 
+  // Опознание установки приложения — читается до создания клиента, чтобы
+  // заголовок стоял уже на первом запросе, включая логин.
+  final deviceIdService = DeviceIdService(SecureDeviceIdStore(storage));
+  await deviceIdService.init();
+  sl.registerSingleton<DeviceIdService>(deviceIdService);
+
   final authInterceptor = AuthInterceptor(dio: rawDio, storage: storage);
   final dioClient = DioClient.create(
     authInterceptor: authInterceptor,
     endpoint: endpoint,
+    deviceId: deviceIdService,
   );
   sl.registerSingleton<DioClient>(dioClient);
 

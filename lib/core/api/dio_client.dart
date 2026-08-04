@@ -6,6 +6,7 @@ import 'auth_interceptor.dart';
 import 'api_error_handler.dart';
 import 'billing_paywall_interceptor.dart';
 import 'endpoint_service.dart';
+import '../services/device_id_service.dart';
 
 class _RetryInterceptor extends Interceptor {
   final Dio dio;
@@ -74,6 +75,7 @@ class DioClient {
   static DioClient create({
     required AuthInterceptor authInterceptor,
     EndpointService? endpoint,
+    DeviceIdService? deviceId,
   }) {
     final dio = Dio(
       BaseOptions(
@@ -111,6 +113,19 @@ class DioClient {
       ));
     }
     dio.interceptors.add(authInterceptor);
+    // Опознание установки приложения. Уходит на КАЖДОМ запросе, а не только на
+    // логине: по нему же помечается сессия и определяется «это устройство» в
+    // списке доверенных. Пустое значение (недоступное хранилище) заголовка не
+    // ставит — бэкенд тогда ведёт себя как со старым клиентом.
+    if (deviceId != null) {
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final id = deviceId.deviceId;
+          if (id.isNotEmpty) options.headers['X-Device-Id'] = id;
+          handler.next(options);
+        },
+      ));
+    }
     dio.interceptors.add(BillingPaywallInterceptor());
     dio.interceptors.add(LogInterceptor(
       requestBody: false,
