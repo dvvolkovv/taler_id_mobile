@@ -8,6 +8,7 @@ import '../../../../core/desktop/hover_lift.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../../core/router/post_login_redirect.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../core/utils/error_keys.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -47,6 +48,14 @@ class _TwoFAScreenState extends State<TwoFAScreen> {
       listener: (context, state) {
         if (state is AuthSuccess) {
           postLoginNavigate(context);
+        } else if (state is AuthRequiresDeviceApproval) {
+          // Верный TOTP не отменяет проверку устройства.
+          context.push(RouteConstants.deviceApproval, extra: {
+            'approvalToken': state.approvalToken,
+            'approverCount': state.approverCount,
+            'emailAvailable': state.emailAvailable,
+            'expiresIn': state.expiresIn,
+          });
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

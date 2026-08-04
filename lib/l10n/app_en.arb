@@ -1835,5 +1835,43 @@
   "mailMoveTo": "Move to",
   "mailMoved": "Moved",
   "mailSaveDraft": "Save draft?",
-  "mailDraftSaved": "Draft saved"
+  "mailDraftSaved": "Draft saved",
+  "deviceApprovalTitle": "Confirm sign-in",
+  "deviceApprovalWaiting": "We sent a request to your trusted devices. Open the notification and confirm.",
+  "deviceApprovalNoApprovers": "No device was available to ask. Get a code by email instead.",
+  "deviceApprovalExpiresIn": "{time} left",
+  "@deviceApprovalExpiresIn": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "deviceApprovalRejected": "The sign-in was rejected from another device.",
+  "deviceApprovalExpired": "The confirmation window has expired.",
+  "deviceApprovalBackToLogin": "Back to sign-in",
+  "deviceApprovalSendEmail": "Email me a code",
+  "deviceApprovalEmailSent": "Code sent to your email",
+  "deviceApprovalEnterCode": "Enter the code from the email",
+  "deviceApprovalSheetTitle": "Account sign-in",
+  "deviceApprovalSheetBody": "Someone is signing in to your account from this device. Is this you?",
+  "deviceApprovalAllow": "Yes, allow",
+  "deviceApprovalDeny": "This wasn't me",
+  "deviceApprovalApproved": "Sign-in allowed",
+  "deviceApprovalDenied": "Sign-in rejected",
+  "trustedDevicesTitle": "Devices",
+  "trustedDevicesToggle": "Confirm sign-ins from new devices",
+  "trustedDevicesToggleHint": "Signing in on an unfamiliar device will need confirmation here, or a code by email",
+  "trustedDevicesEmpty": "No trusted devices yet",
+  "trustedDevicesThisDevice": "This device",
+  "trustedDevicesLastSeen": "Last sign-in: {when}",
+  "@trustedDevicesLastSeen": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "trustedDevicesRevoke": "Revoke",
+  "trustedDevicesRevokeConfirm": "Revoke trust for this device? It will be signed out."
 }

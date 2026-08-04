@@ -8,6 +8,7 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/two_fa_screen.dart';
+import '../../features/auth/presentation/screens/device_approval_waiting_screen.dart';
 import '../../features/auth/presentation/screens/pin_setup_screen.dart';
 import '../../features/auth/presentation/screens/pin_entry_screen.dart';
 import '../../features/auth/presentation/screens/onboarding_screen.dart';
@@ -120,6 +121,18 @@ final appRouter = GoRouter(
         return TwoFAScreen(
           email: extra?['email'] as String? ?? '',
           challengeToken: extra?['challengeToken'] as String? ?? '',
+        );
+      },
+    ),
+    GoRoute(
+      path: RouteConstants.deviceApproval,
+      builder: (_, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        return DeviceApprovalWaitingScreen(
+          approvalToken: extra?['approvalToken'] as String? ?? '',
+          approverCount: extra?['approverCount'] as int? ?? 0,
+          emailAvailable: extra?['emailAvailable'] as bool? ?? false,
+          expiresIn: extra?['expiresIn'] as int? ?? 600,
         );
       },
     ),

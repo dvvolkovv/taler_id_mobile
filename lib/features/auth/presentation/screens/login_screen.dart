@@ -60,6 +60,13 @@ class _LoginScreenState extends State<LoginScreen> {
             'email': state.email,
             'challengeToken': state.challengeToken,
           });
+        } else if (state is AuthRequiresDeviceApproval) {
+          context.push(RouteConstants.deviceApproval, extra: {
+            'approvalToken': state.approvalToken,
+            'approverCount': state.approverCount,
+            'emailAvailable': state.emailAvailable,
+            'expiresIn': state.expiresIn,
+          });
         } else if (state is AuthFailure) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

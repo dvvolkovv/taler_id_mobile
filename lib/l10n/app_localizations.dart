@@ -7329,6 +7329,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Draft saved'**
   String get mailDraftSaved;
+
+  /// No description provided for @deviceApprovalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm sign-in'**
+  String get deviceApprovalTitle;
+
+  /// No description provided for @deviceApprovalWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'We sent a request to your trusted devices. Open the notification and confirm.'**
+  String get deviceApprovalWaiting;
+
+  /// No description provided for @deviceApprovalNoApprovers.
+  ///
+  /// In en, this message translates to:
+  /// **'No device was available to ask. Get a code by email instead.'**
+  String get deviceApprovalNoApprovers;
+
+  /// No description provided for @deviceApprovalExpiresIn.
+  ///
+  /// In en, this message translates to:
+  /// **'{time} left'**
+  String deviceApprovalExpiresIn(String time);
+
+  /// No description provided for @deviceApprovalRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The sign-in was rejected from another device.'**
+  String get deviceApprovalRejected;
+
+  /// No description provided for @deviceApprovalExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The confirmation window has expired.'**
+  String get deviceApprovalExpired;
+
+  /// No description provided for @deviceApprovalBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to sign-in'**
+  String get deviceApprovalBackToLogin;
+
+  /// No description provided for @deviceApprovalSendEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email me a code'**
+  String get deviceApprovalSendEmail;
+
+  /// No description provided for @deviceApprovalEmailSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Code sent to your email'**
+  String get deviceApprovalEmailSent;
+
+  /// No description provided for @deviceApprovalEnterCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the code from the email'**
+  String get deviceApprovalEnterCode;
+
+  /// No description provided for @deviceApprovalSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account sign-in'**
+  String get deviceApprovalSheetTitle;
+
+  /// No description provided for @deviceApprovalSheetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Someone is signing in to your account from this device. Is this you?'**
+  String get deviceApprovalSheetBody;
+
+  /// No description provided for @deviceApprovalAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, allow'**
+  String get deviceApprovalAllow;
+
+  /// No description provided for @deviceApprovalDeny.
+  ///
+  /// In en, this message translates to:
+  /// **'This wasn\'t me'**
+  String get deviceApprovalDeny;
+
+  /// No description provided for @deviceApprovalApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in allowed'**
+  String get deviceApprovalApproved;
+
+  /// No description provided for @deviceApprovalDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in rejected'**
+  String get deviceApprovalDenied;
+
+  /// No description provided for @trustedDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices'**
+  String get trustedDevicesTitle;
+
+  /// No description provided for @trustedDevicesToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm sign-ins from new devices'**
+  String get trustedDevicesToggle;
+
+  /// No description provided for @trustedDevicesToggleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in on an unfamiliar device will need confirmation here, or a code by email'**
+  String get trustedDevicesToggleHint;
+
+  /// No description provided for @trustedDevicesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No trusted devices yet'**
+  String get trustedDevicesEmpty;
+
+  /// No description provided for @trustedDevicesThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get trustedDevicesThisDevice;
+
+  /// No description provided for @trustedDevicesLastSeen.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sign-in: {when}'**
+  String trustedDevicesLastSeen(String when);
+
+  /// No description provided for @trustedDevicesRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get trustedDevicesRevoke;
+
+  /// No description provided for @trustedDevicesRevokeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke trust for this device? It will be signed out.'**
+  String get trustedDevicesRevokeConfirm;
 }
 
 class _AppLocalizationsDelegate
