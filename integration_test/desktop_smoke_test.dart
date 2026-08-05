@@ -14,10 +14,113 @@ import 'package:taler_id_mobile/core/desktop_tray/desktop_tray_service.dart';
 import 'package:taler_id_mobile/core/notifications/desktop/desktop_notifications_service.dart';
 import 'package:taler_id_mobile/core/url_scheme/url_scheme_handler.dart';
 
+const _testEmail = String.fromEnvironment(
+  'TEST_EMAIL',
+  defaultValue: 'integration_test@taler-test.com',
+);
+const _testPass = String.fromEnvironment(
+  'TEST_PASSWORD',
+  defaultValue: 'IntegrationTest123!',
+);
+
+extension _DesktopSmokePump on WidgetTester {
+  Future<void> pumpFor(Duration duration) async {
+    final steps = (duration.inMilliseconds / 300).ceil().clamp(1, 1000);
+    for (var i = 0; i < steps; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await pump();
+    }
+  }
+
+  Future<bool> waitFor(
+    Finder finder, {
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    final steps = (timeout.inMilliseconds / 300).ceil().clamp(1, 1000);
+    for (var i = 0; i < steps; i++) {
+      await pump(const Duration(milliseconds: 300));
+      if (finder.evaluate().isNotEmpty) return true;
+    }
+    return false;
+  }
+
+  Future<void> tapActivity(String tooltip) async {
+    final finder = find.byTooltip(tooltip);
+    debugPrint('[desktop-smoke] opening $tooltip');
+    for (var i = 0; i < 8 && finder.hitTestable().evaluate().isEmpty; i++) {
+      final scrollable = find.byType(Scrollable);
+      if (scrollable.evaluate().isEmpty) break;
+      await drag(scrollable.first, const Offset(0, -80));
+      await pump(const Duration(milliseconds: 200));
+    }
+    final tappable = finder.hitTestable();
+    expect(tappable, findsOneWidget,
+        reason: '$tooltip missing from ActivityBar');
+    await tap(tappable, warnIfMissed: false);
+    await pumpFor(const Duration(seconds: 2));
+    expect(find.byType(ErrorWidget), findsNothing, reason: '$tooltip crashed');
+  }
+
+  Future<bool> advanceFirstRunGates() async {
+    for (final text in ['Пропустить', 'Skip', 'Позже', 'Later']) {
+      final finder = find.text(text);
+      if (finder.evaluate().isNotEmpty) {
+        debugPrint('[desktop-smoke] advancing gate via "$text"');
+        await tap(finder.first, warnIfMissed: false);
+        await pumpFor(const Duration(seconds: 2));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> leavePinGateForPasswordLogin() async {
+    final isPinGate = find.text('Enter PIN').evaluate().isNotEmpty ||
+        find.text('Введите PIN-код').evaluate().isNotEmpty;
+    if (!isPinGate) return false;
+    for (final text in ['Sign In', 'Войти']) {
+      final finder = find.text(text);
+      if (finder.evaluate().isNotEmpty) {
+        debugPrint('[desktop-smoke] leaving PIN gate via "$text"');
+        await tap(finder.first, warnIfMissed: false);
+        await pumpFor(const Duration(seconds: 2));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> waitForDesktopShell() async {
+    for (var i = 0; i < 170; i++) {
+      await pump(const Duration(milliseconds: 300));
+      if (find.byType(ActivityBar).evaluate().isNotEmpty) {
+        debugPrint('[desktop-smoke] desktop shell ready');
+        return true;
+      }
+      await advanceFirstRunGates();
+    }
+    return false;
+  }
+
+  void dumpVisibleTexts() {
+    final texts = find
+        .byType(Text)
+        .evaluate()
+        .map((e) => e.widget)
+        .whereType<Text>()
+        .map((w) => w.data)
+        .whereType<String>()
+        .where((s) => s.trim().isNotEmpty)
+        .take(30)
+        .join(' | ');
+    debugPrint('[desktop-smoke] visible texts: $texts');
+  }
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('app launches to login screen on desktop without crash',
+  testWidgets('desktop launches, signs in, and opens primary routes',
       (tester) async {
     // Suppress transient background errors from background async tasks
     // (e.g. file-lock EAGAIN from speech_to_text, non-blocking socket errors
@@ -55,16 +158,41 @@ void main() {
     // Loose assertion — MaterialApp was mounted (login or main screen).
     expect(find.byType(MaterialApp), findsOneWidget);
 
-    // Phase 2A: verify desktop shell ActivityBar is rendered if the app
-    // reached the authenticated shell. On first launch without pre-seeded
-    // credentials the test stops at the login screen and ActivityBar is
-    // absent. anyOf(findsNothing, findsWidgets) keeps the assertion non-fatal
-    // in that case while still confirming the widget tree is sane and the
-    // import resolves correctly at build time.
-    expect(
-      find.byType(ActivityBar),
-      anyOf(findsNothing, findsWidgets),
-    );
+    if (find.byType(ActivityBar).evaluate().isEmpty) {
+      final reachedShellFromSession = await tester.waitForDesktopShell();
+      if (!reachedShellFromSession) {
+        await tester.leavePinGateForPasswordLogin();
+        final hasLogin = await tester.waitFor(
+          find.byType(TextFormField),
+          timeout: const Duration(seconds: 15),
+        );
+        if (!hasLogin) tester.dumpVisibleTexts();
+        expect(hasLogin, isTrue,
+            reason: 'Expected login form or desktop shell');
+
+        final fields = find.byType(TextFormField);
+        expect(fields, findsAtLeast(2), reason: 'Expected email + password');
+        await tester.enterText(fields.first, _testEmail);
+        await tester.enterText(fields.at(1), _testPass);
+        FocusManager.instance.primaryFocus?.unfocus();
+        await tester.pumpFor(const Duration(seconds: 1));
+        await tester.tap(find.byType(ElevatedButton).first,
+            warnIfMissed: false);
+      }
+    }
+
+    final hasActivityBar = await tester.waitForDesktopShell();
+    if (!hasActivityBar) tester.dumpVisibleTexts();
+    expect(hasActivityBar, isTrue, reason: 'Desktop shell did not open');
+    expect(find.byType(ErrorWidget), findsNothing);
+
+    await tester.tapActivity('Messenger');
+    await tester.tapActivity('Calls');
+    await tester.tapActivity('Assistant');
+    await tester.tapActivity('Calendar');
+    await tester.tapActivity('Wallet');
+    await tester.tapActivity('AI settings');
+    await tester.tapActivity('Settings');
 
     // Phase 2 smoke: verify singleton instances are accessible (constructed at
     // class-load time via static final). The services themselves are initialized

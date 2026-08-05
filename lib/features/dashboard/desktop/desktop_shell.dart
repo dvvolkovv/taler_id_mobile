@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -28,12 +30,37 @@ class DesktopShell extends StatefulWidget {
 }
 
 class _DesktopShellState extends State<DesktopShell> {
+  StreamSubscription? _disconnectSub;
   String? _showingCallDialogRoom;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _connectMessenger());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectMessenger();
+      _listenForDisconnect();
+    });
+  }
+
+  @override
+  void dispose() {
+    _disconnectSub?.cancel();
+    super.dispose();
+  }
+
+  void _listenForDisconnect() {
+    _disconnectSub?.cancel();
+    _disconnectSub = sl<MessengerRemoteDataSource>()
+        .disconnectStream
+        .listen((_) => _reconnectMessenger());
+  }
+
+  Future<void> _reconnectMessenger() async {
+    if (!mounted) return;
+    await Future.delayed(const Duration(seconds: 5));
+    if (!mounted) return;
+    if (sl<MessengerRemoteDataSource>().isSocketConnected) return;
+    await _connectMessenger();
   }
 
   Future<void> _connectMessenger() async {
@@ -246,6 +273,8 @@ class _DesktopShellState extends State<DesktopShell> {
     if (route.startsWith(RouteConstants.callHistory)) return 'Calls';
     if (route.startsWith(RouteConstants.assistant)) return 'Assistant';
     if (route.startsWith(RouteConstants.calendar)) return 'Calendar';
+    if (route.startsWith('/dashboard/billing')) return 'Billing';
+    if (route.startsWith(RouteConstants.aiToggles)) return 'AI settings';
     if (route.startsWith(RouteConstants.settings)) return 'Settings';
     return 'Taler ID';
   }

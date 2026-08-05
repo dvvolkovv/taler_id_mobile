@@ -33,6 +33,10 @@ class RouteConstants {
   static const sessions = '/dashboard/sessions';
   static const settings = '/dashboard/settings';
   static const wallpaper = '/dashboard/settings/wallpaper';
+  static const wallet = '/dashboard/billing/wallet';
+  static const transactions = '/dashboard/billing/transactions';
+  static const pricebook = '/dashboard/billing/pricebook';
+  static const aiToggles = '/dashboard/settings/ai-toggles';
   static const invite = '/invite';
   // In-app route only. The incoming link is /oauth/auth (the OIDC authorization
   // endpoint); DeepLinkHandler maps one to the other.

@@ -1,11 +1,11 @@
 // ignore_for_file: avoid_print
-import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store.dart';
+import 'package:taler_id_mobile/core/mesh/services/envelope.dart';
 import 'package:taler_id_mobile/core/mesh/services/mesh_messaging_service.dart';
 import 'package:taler_id_mobile/core/mesh/transport/bonjour_transport.dart';
 import 'package:taler_id_mobile/core/mesh/transport/peer_id.dart';
@@ -54,7 +54,7 @@ void main() {
       await bob.start(serviceName: 'BobTest-${bobPeer.shortPrefix()}');
 
       final bobInbox = <String>[];
-      final sub = bob.inbound.listen((m) => bobInbox.add(m.text));
+      final sub = bob.inbound.listen((m) => bobInbox.add(m.envelope.text));
 
       // Give mDNS a chance to propagate organically (3 s).
       // On real devices this is usually <1 s. On emulators mDNS multicast
@@ -84,7 +84,17 @@ void main() {
       await Future.delayed(const Duration(seconds: 1));
 
       print('[mesh_test] Alice sending text to Bob...');
-      await alice.sendText(toUserPk: bobPeer, text: 'hello bob from mesh');
+      await alice.sendEnvelope(
+        toUserPk: bobPeer,
+        envelope: Envelope(
+          version: 1,
+          type: 'text',
+          convId: 'mesh-integration-loopback',
+          clientId: 'mesh-test-${DateTime.now().microsecondsSinceEpoch}',
+          text: 'hello bob from mesh',
+          sentAt: DateTime.now().toUtc(),
+        ),
+      );
 
       // Wait for handshake round-trip + encrypted data delivery.
       await Future.delayed(const Duration(seconds: 3));

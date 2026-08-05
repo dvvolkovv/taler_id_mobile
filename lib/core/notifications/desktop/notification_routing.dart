@@ -1,10 +1,10 @@
 /// Maps notification payload strings to GoRouter paths.
 ///
 /// Payload format: `<type>:<id>` where type is one of:
-///   - `chat`          → `/dashboard/messenger/chat/<id>`
+///   - `chat`          → `/dashboard/messenger/<id>`
 ///   - `call`          → `/dashboard/call-history`
 ///   - `oauth-consent` → `/oauth/consent/<id>`
-///   - `profile`       → `/dashboard/profile/<id>`
+///   - `profile`       → `/dashboard/user/<id>`
 class NotificationRouting {
   NotificationRouting._();
 
@@ -15,13 +15,13 @@ class NotificationRouting {
     final id = payload.substring(colon + 1);
     switch (type) {
       case 'chat':
-        return '/dashboard/messenger/chat/$id';
+        return '/dashboard/messenger/$id';
       case 'call':
         return '/dashboard/call-history';
       case 'oauth-consent':
         return '/oauth/consent/$id';
       case 'profile':
-        return '/dashboard/profile/$id';
+        return '/dashboard/user/$id';
       default:
         return null;
     }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/utils/constants.dart';
 import '../bloc/balance_bloc.dart';
 import '../bloc/balance_state.dart';
 
 /// AppBar chip showing the user's wallet balance in μTAL.
 ///
 /// Subscribes to [BalanceBloc] and rebuilds on state changes.
-/// Tapping the chip navigates to `/billing/wallet` (registered in Task 9).
+/// Tapping the chip navigates to the in-dashboard wallet screen.
 ///
 /// States:
 ///  - [BalanceLoaded]   → `"X.XX μTAL"`
@@ -33,7 +34,7 @@ class BalanceChip extends StatelessWidget {
         }
 
         return InkWell(
-          onTap: () => context.push('/billing/wallet'),
+          onTap: () => context.push(RouteConstants.wallet),
           borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

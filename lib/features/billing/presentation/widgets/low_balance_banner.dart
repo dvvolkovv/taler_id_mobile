@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Non-dismissible warning banner shown during an active AI session when
@@ -8,7 +9,7 @@ import '../../../../l10n/app_localizations.dart';
 /// (e.g. in response to a `billing_low_balance_warning` socket event) and
 /// passes the current micro-TAL amount.
 ///
-/// Provide [onTopUp] to override the default navigation to `/billing/wallet`.
+/// Provide [onTopUp] to override the default wallet navigation.
 class LowBalanceBanner extends StatelessWidget {
   final String balanceMicroTal;
   final VoidCallback? onTopUp;
@@ -49,7 +50,7 @@ class LowBalanceBanner extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: onTopUp ?? () => context.push('/billing/wallet'),
+                onPressed: onTopUp ?? () => context.push(RouteConstants.wallet),
                 style: TextButton.styleFrom(
                   foregroundColor: fg,
                   padding: const EdgeInsets.symmetric(horizontal: 12),

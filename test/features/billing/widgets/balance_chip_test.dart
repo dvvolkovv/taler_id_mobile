@@ -8,6 +8,7 @@ import 'package:taler_id_mobile/features/billing/presentation/bloc/balance_bloc.
 import 'package:taler_id_mobile/features/billing/presentation/bloc/balance_event.dart';
 import 'package:taler_id_mobile/features/billing/presentation/bloc/balance_state.dart';
 import 'package:taler_id_mobile/features/billing/presentation/widgets/balance_chip.dart';
+import 'package:taler_id_mobile/core/utils/constants.dart';
 
 class MockBalanceBloc extends MockBloc<BalanceEvent, BalanceState>
     implements BalanceBloc {}
@@ -27,16 +28,18 @@ Widget _pumpChipWith(BalanceBloc bloc) {
         builder: (_, __) => Scaffold(
           appBar: AppBar(
             title: const Text('home'),
-            actions: const [Padding(
-              padding: EdgeInsets.only(right: 12),
-              child: BalanceChip(),
-            )],
+            actions: const [
+              Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: BalanceChip(),
+              )
+            ],
           ),
           body: const SizedBox.shrink(),
         ),
       ),
       GoRoute(
-        path: '/billing/wallet',
+        path: RouteConstants.wallet,
         builder: (_, __) => const Scaffold(body: Text('wallet screen')),
       ),
     ],
@@ -94,8 +97,7 @@ void main() {
     expect(find.text('—'), findsOneWidget);
   });
 
-  testWidgets('Tap on BalanceChip navigates to /billing/wallet',
-      (tester) async {
+  testWidgets('Tap on BalanceChip navigates to wallet', (tester) async {
     whenListen(
       bloc,
       Stream<BalanceState>.empty(),
