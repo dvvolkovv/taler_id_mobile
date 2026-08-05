@@ -7,7 +7,7 @@ class UrlSchemePaths {
   UrlSchemePaths._();
 
   /// Translates a parsed [Uri] (e.g., `talerid://chat/abc-123`) into an
-  /// in-app go_router path (e.g., `/dashboard/messenger/chat/abc-123`).
+  /// in-app go_router path (e.g., `/dashboard/messenger/abc-123`).
   /// Returns null if the URI is unrecognised.
   static String? translate(Uri uri) {
     if (uri.scheme != 'talerid') return null;
@@ -20,11 +20,11 @@ class UrlSchemePaths {
     }
     // talerid://chat/<id>
     if (host == 'chat' && segments.length == 1) {
-      return '/dashboard/messenger/chat/${segments[0]}';
+      return '/dashboard/messenger/${segments[0]}';
     }
     // talerid://profile/<id>
     if (host == 'profile' && segments.length == 1) {
-      return '/dashboard/profile/${segments[0]}';
+      return '/dashboard/user/${segments[0]}';
     }
     // talerid://calendar
     if (host == 'calendar') {

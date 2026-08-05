@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:taler_id_mobile/core/utils/constants.dart';
 import 'package:taler_id_mobile/features/billing/presentation/widgets/insufficient_funds_sheet.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 
-/// Builds a MaterialApp.router with a fake /billing/wallet route
+/// Builds a MaterialApp.router with a fake wallet route
 /// so the "Пополнить" button has a destination to go to in tests.
 ///
 /// Forces locale to `ru` so the sheet renders Russian strings we can
@@ -34,7 +35,7 @@ GoRouter _buildRouter({required VoidCallback onHome}) {
         ),
       ),
       GoRoute(
-        path: '/billing/wallet',
+        path: RouteConstants.wallet,
         builder: (_, state) {
           final pref = state.uri.queryParameters['preferred'] ?? '';
           return Scaffold(body: Text('wallet screen pref=$pref'));
@@ -94,9 +95,8 @@ void main() {
   });
 
   testWidgets(
-      'Tapping Пополнить pops sheet and navigates to /billing/wallet '
-      'with preferred query param',
-      (tester) async {
+      'Tapping Пополнить pops sheet and navigates to wallet '
+      'with preferred query param', (tester) async {
     final router = _buildRouter(onHome: () {});
     await tester.pumpWidget(_wrap(router));
 

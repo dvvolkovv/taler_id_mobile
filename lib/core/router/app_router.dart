@@ -274,22 +274,20 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/billing/wallet',
-      builder: (_, state) {
-        final preferred = state.uri.queryParameters['preferred'];
-        return WalletScreen(preferred: preferred);
-      },
+      redirect: (_, state) => _withQuery(RouteConstants.wallet, state.uri),
     ),
     GoRoute(
       path: '/billing/transactions',
-      builder: (_, __) => const TransactionsScreen(),
+      redirect: (_, state) =>
+          _withQuery(RouteConstants.transactions, state.uri),
     ),
     GoRoute(
       path: '/billing/pricebook',
-      builder: (_, __) => const PricebookScreen(),
+      redirect: (_, state) => _withQuery(RouteConstants.pricebook, state.uri),
     ),
     GoRoute(
       path: '/settings/ai-toggles',
-      builder: (_, __) => const AiTogglesScreen(),
+      redirect: (_, state) => _withQuery(RouteConstants.aiToggles, state.uri),
     ),
     // Top-level alias so screens outside the dashboard ShellRoute (e.g.
     // /settings/ai-toggles) can push AI Twin config without remounting the
@@ -374,6 +372,25 @@ final appRouter = GoRouter(
         GoRoute(
           path: RouteConstants.sessions,
           builder: (_, __) => const SessionsScreen(),
+        ),
+        GoRoute(
+          path: RouteConstants.wallet,
+          builder: (_, state) {
+            final preferred = state.uri.queryParameters['preferred'];
+            return WalletScreen(preferred: preferred);
+          },
+        ),
+        GoRoute(
+          path: RouteConstants.transactions,
+          builder: (_, __) => const TransactionsScreen(),
+        ),
+        GoRoute(
+          path: RouteConstants.pricebook,
+          builder: (_, __) => const PricebookScreen(),
+        ),
+        GoRoute(
+          path: RouteConstants.aiToggles,
+          builder: (_, __) => const AiTogglesScreen(),
         ),
         GoRoute(
           path: RouteConstants.settings,
@@ -500,6 +517,11 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+String _withQuery(String path, Uri uri) {
+  final query = uri.query;
+  return query.isEmpty ? path : '$path?$query';
+}
 
 Future<String?> _globalRedirect(BuildContext context, GoRouterState state) async {
   // Allow all auth routes and splash without token check

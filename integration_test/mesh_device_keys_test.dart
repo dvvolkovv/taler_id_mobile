@@ -16,6 +16,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store_hive.dart';
+import 'package:taler_id_mobile/core/mesh/crypto/keys/contact_key_store.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/mesh_static_key.dart';
 import 'package:taler_id_mobile/core/mesh/crypto/keys/user_identity_key.dart';
 import 'package:taler_id_mobile/core/mesh/services/device_key_sync_service.dart';
@@ -74,10 +75,13 @@ void main() {
       final devicePk = PeerId(mesh1.publicKey);
 
       final stamp = DateTime.now().millisecondsSinceEpoch;
-      final store1 = await HiveContactKeyStore.open(boxName: 'integ-u1-c-$stamp');
+      final store1 =
+          await HiveContactKeyStore.open(boxName: 'integ-u1-c-$stamp');
+      final memStore1 = ContactKeyStore();
       final svc1 = DeviceKeySyncService(
         api: DeviceKeysApiClient(dio1),
         store: store1,
+        inMemoryStore: memStore1,
         userIdentityKey: identity1,
         meshStaticKey: mesh1,
         myUserId: u1.userId,
@@ -85,10 +89,13 @@ void main() {
 
       await svc1.registerOwnDevice();
 
-      final store2 = await HiveContactKeyStore.open(boxName: 'integ-u2-c-$stamp');
+      final store2 =
+          await HiveContactKeyStore.open(boxName: 'integ-u2-c-$stamp');
+      final memStore2 = ContactKeyStore();
       final svc2 = DeviceKeySyncService(
         api: DeviceKeysApiClient(dio2),
         store: store2,
+        inMemoryStore: memStore2,
         userIdentityKey: await UserIdentityKey.generate(),
         meshStaticKey: await MeshStaticKey.generate(),
         myUserId: u2.userId,
@@ -102,7 +109,8 @@ void main() {
       // The stored cert must map to user1's real userPk (not a UUID-derived placeholder).
       final looked = store2.lookupUserByDevice(devicePk);
       expect(looked?.bytes, equals(identity1.publicKey),
-          reason: 'stored userPk must be user1 UserIdentityKey, not placeholder');
+          reason:
+              'stored userPk must be user1 UserIdentityKey, not placeholder');
 
       await store1.close();
       await store2.close();

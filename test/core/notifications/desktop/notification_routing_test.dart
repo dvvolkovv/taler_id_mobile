@@ -5,7 +5,7 @@ void main() {
   test('chat payload maps to messenger chat route', () {
     expect(
       NotificationRouting.routeFor('chat:abc123'),
-      '/dashboard/messenger/chat/abc123',
+      '/dashboard/messenger/abc123',
     );
   });
 
@@ -19,7 +19,7 @@ void main() {
   test('profile payload maps to profile route', () {
     expect(
       NotificationRouting.routeFor('profile:u-7'),
-      '/dashboard/profile/u-7',
+      '/dashboard/user/u-7',
     );
   });
 

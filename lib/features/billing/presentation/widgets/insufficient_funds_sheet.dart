@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Modal bottom sheet shown when the server returns HTTP 402 for a metered
@@ -133,7 +134,8 @@ class InsufficientFundsSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(width: 1, height: 14, color: colorScheme.outlineVariant),
+                Container(
+                    width: 1, height: 14, color: colorScheme.outlineVariant),
                 const SizedBox(width: 12),
                 Text(
                   l10n.billingAvailableLine(availableMicroTal),
@@ -149,7 +151,7 @@ class InsufficientFundsSheet extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).pop();
               final pref = suggestedPackage ?? 'starter';
-              context.push('/billing/wallet?preferred=$pref');
+              context.push('${RouteConstants.wallet}?preferred=$pref');
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),

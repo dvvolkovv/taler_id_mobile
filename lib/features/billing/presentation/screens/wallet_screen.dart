@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/widgets.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../core/utils/error_keys.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/billing_package_entity.dart';
@@ -78,7 +79,8 @@ class _WalletView extends StatelessWidget {
             messenger.showSnackBar(
               SnackBar(
                 content: Text(
-                  l10n.billingPackagePurchased(state.newBalance.balanceMicroTal),
+                  l10n.billingPackagePurchased(
+                      state.newBalance.balanceMicroTal),
                 ),
                 backgroundColor: colors.primary,
               ),
@@ -350,8 +352,9 @@ class _PackageRow extends StatelessWidget {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     final title = package.label['ru'] ?? package.label['en'] ?? package.id;
-    final highlights =
-        package.highlights['ru'] ?? package.highlights['en'] ?? const <String>[];
+    final highlights = package.highlights['ru'] ??
+        package.highlights['en'] ??
+        const <String>[];
     final priceEur = (package.priceEurCents / 100).toStringAsFixed(2);
 
     return Padding(
@@ -453,8 +456,9 @@ class _PackageRow extends StatelessWidget {
             loading: busy,
             onPressed: disabled
                 ? null
-                : () =>
-                    context.read<PackagesBloc>().add(PurchasePackage(package.id)),
+                : () => context
+                    .read<PackagesBloc>()
+                    .add(PurchasePackage(package.id)),
           ),
         ],
       ),
@@ -486,7 +490,7 @@ class _RecentTransactionsSection extends StatelessWidget {
             _SectionHeader(
               label: l10n.billingRecentOperations,
               trailing: TextButton(
-                onPressed: () => context.push('/billing/transactions'),
+                onPressed: () => context.push(RouteConstants.transactions),
                 style: TextButton.styleFrom(
                   foregroundColor: colors.primary,
                   padding: const EdgeInsets.symmetric(horizontal: 8),

@@ -12,15 +12,61 @@ class ActivityBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final items = <_ActivityBarItem>[
-      _ActivityBarItem(icon: Icons.chat_bubble_outline, route: RouteConstants.messenger, tooltip: 'Messenger'),
-      _ActivityBarItem(icon: Icons.call_outlined, route: RouteConstants.callHistory, tooltip: 'Calls'),
-      _ActivityBarItem(icon: Icons.smart_toy_outlined, route: RouteConstants.assistant, tooltip: 'Assistant'),
-      _ActivityBarItem(icon: Icons.calendar_today_outlined, route: RouteConstants.calendar, tooltip: 'Calendar'),
-      _ActivityBarItem(icon: Icons.sticky_note_2_outlined, route: RouteConstants.notes, tooltip: 'Notes'),
-      _ActivityBarItem(icon: Icons.mail_outline, route: RouteConstants.mail, tooltip: 'Mail'),
-      _ActivityBarItem(icon: Icons.people_outline, route: RouteConstants.contacts, tooltip: 'Contacts'),
-      _ActivityBarItem(icon: Icons.person_outline, route: RouteConstants.profile, tooltip: 'Profile'),
-      _ActivityBarItem(icon: Icons.settings_outlined, route: RouteConstants.settings, tooltip: 'Settings'),
+      _ActivityBarItem(
+        icon: Icons.chat_bubble_outline,
+        route: RouteConstants.messenger,
+        tooltip: 'Messenger',
+      ),
+      _ActivityBarItem(
+        icon: Icons.call_outlined,
+        route: RouteConstants.callHistory,
+        tooltip: 'Calls',
+      ),
+      _ActivityBarItem(
+        icon: Icons.smart_toy_outlined,
+        route: RouteConstants.assistant,
+        tooltip: 'Assistant',
+      ),
+      _ActivityBarItem(
+        icon: Icons.calendar_today_outlined,
+        route: RouteConstants.calendar,
+        tooltip: 'Calendar',
+      ),
+      _ActivityBarItem(
+        icon: Icons.account_balance_wallet_outlined,
+        route: RouteConstants.wallet,
+        tooltip: 'Wallet',
+      ),
+      _ActivityBarItem(
+        icon: Icons.sticky_note_2_outlined,
+        route: RouteConstants.notes,
+        tooltip: 'Notes',
+      ),
+      _ActivityBarItem(
+        icon: Icons.mail_outline,
+        route: RouteConstants.mail,
+        tooltip: 'Mail',
+      ),
+      _ActivityBarItem(
+        icon: Icons.people_outline,
+        route: RouteConstants.contacts,
+        tooltip: 'Contacts',
+      ),
+      _ActivityBarItem(
+        icon: Icons.person_outline,
+        route: RouteConstants.profile,
+        tooltip: 'Profile',
+      ),
+      _ActivityBarItem(
+        icon: Icons.tune_outlined,
+        route: RouteConstants.aiToggles,
+        tooltip: 'AI settings',
+      ),
+      _ActivityBarItem(
+        icon: Icons.settings_outlined,
+        route: RouteConstants.settings,
+        tooltip: 'Settings',
+      ),
     ];
 
     return Container(
@@ -29,19 +75,32 @@ class ActivityBar extends StatelessWidget {
         color: theme.colorScheme.surface,
         border: Border(right: BorderSide(color: theme.dividerColor, width: 1)),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          for (final item in items)
-            ActivityBarIcon(
-              icon: item.icon,
-              tooltip: item.tooltip,
-              isActive: currentRoute.startsWith(item.route),
-              onTap: () => context.go(item.route),
-            ),
-        ],
+      child: Scrollbar(
+        child: SingleChildScrollView(
+          primary: false,
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              for (final item in items)
+                ActivityBarIcon(
+                  icon: item.icon,
+                  tooltip: item.tooltip,
+                  isActive: _isActive(item.route),
+                  onTap: () => context.go(item.route),
+                ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  bool _isActive(String route) {
+    if (route == RouteConstants.settings) {
+      return currentRoute.startsWith(RouteConstants.settings) &&
+          !currentRoute.startsWith(RouteConstants.aiToggles);
+    }
+    return currentRoute.startsWith(route);
   }
 }
 
@@ -49,5 +108,9 @@ class _ActivityBarItem {
   final IconData icon;
   final String route;
   final String tooltip;
-  const _ActivityBarItem({required this.icon, required this.route, required this.tooltip});
+  const _ActivityBarItem({
+    required this.icon,
+    required this.route,
+    required this.tooltip,
+  });
 }
