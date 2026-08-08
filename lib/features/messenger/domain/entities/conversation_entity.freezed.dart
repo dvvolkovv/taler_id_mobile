@@ -47,6 +47,9 @@ mixin _$ConversationEntity {
   bool get slowMode => throw _privateConstructorUsedError;
   bool get topicsEnabled => throw _privateConstructorUsedError;
   int? get autoDeleteDays => throw _privateConstructorUsedError;
+  int get pinnedCount => throw _privateConstructorUsedError;
+  PinnedPreviewEntity? get topPinned => throw _privateConstructorUsedError;
+  DateTime? get pinsDismissedAt => throw _privateConstructorUsedError;
 
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
@@ -87,7 +90,12 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? activeCallRoomName,
       bool slowMode,
       bool topicsEnabled,
-      int? autoDeleteDays});
+      int? autoDeleteDays,
+      int pinnedCount,
+      PinnedPreviewEntity? topPinned,
+      DateTime? pinsDismissedAt});
+
+  $PinnedPreviewEntityCopyWith<$Res>? get topPinned;
 }
 
 /// @nodoc
@@ -130,6 +138,9 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? slowMode = null,
     Object? topicsEnabled = null,
     Object? autoDeleteDays = freezed,
+    Object? pinnedCount = null,
+    Object? topPinned = freezed,
+    Object? pinsDismissedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -240,7 +251,31 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.autoDeleteDays
           : autoDeleteDays // ignore: cast_nullable_to_non_nullable
               as int?,
+      pinnedCount: null == pinnedCount
+          ? _value.pinnedCount
+          : pinnedCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      topPinned: freezed == topPinned
+          ? _value.topPinned
+          : topPinned // ignore: cast_nullable_to_non_nullable
+              as PinnedPreviewEntity?,
+      pinsDismissedAt: freezed == pinsDismissedAt
+          ? _value.pinsDismissedAt
+          : pinsDismissedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ) as $Val);
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $PinnedPreviewEntityCopyWith<$Res>? get topPinned {
+    if (_value.topPinned == null) {
+      return null;
+    }
+
+    return $PinnedPreviewEntityCopyWith<$Res>(_value.topPinned!, (value) {
+      return _then(_value.copyWith(topPinned: value) as $Val);
+    });
   }
 }
 
@@ -279,7 +314,13 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? activeCallRoomName,
       bool slowMode,
       bool topicsEnabled,
-      int? autoDeleteDays});
+      int? autoDeleteDays,
+      int pinnedCount,
+      PinnedPreviewEntity? topPinned,
+      DateTime? pinsDismissedAt});
+
+  @override
+  $PinnedPreviewEntityCopyWith<$Res>? get topPinned;
 }
 
 /// @nodoc
@@ -320,6 +361,9 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? slowMode = null,
     Object? topicsEnabled = null,
     Object? autoDeleteDays = freezed,
+    Object? pinnedCount = null,
+    Object? topPinned = freezed,
+    Object? pinsDismissedAt = freezed,
   }) {
     return _then(_$ConversationEntityImpl(
       id: null == id
@@ -430,12 +474,25 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.autoDeleteDays
           : autoDeleteDays // ignore: cast_nullable_to_non_nullable
               as int?,
+      pinnedCount: null == pinnedCount
+          ? _value.pinnedCount
+          : pinnedCount // ignore: cast_nullable_to_non_nullable
+              as int,
+      topPinned: freezed == topPinned
+          ? _value.topPinned
+          : topPinned // ignore: cast_nullable_to_non_nullable
+              as PinnedPreviewEntity?,
+      pinsDismissedAt: freezed == pinsDismissedAt
+          ? _value.pinsDismissedAt
+          : pinsDismissedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ConversationEntityImpl implements _ConversationEntity {
   const _$ConversationEntityImpl(
       {required this.id,
@@ -464,7 +521,10 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.activeCallRoomName,
       this.slowMode = false,
       this.topicsEnabled = false,
-      this.autoDeleteDays})
+      this.autoDeleteDays,
+      this.pinnedCount = 0,
+      this.topPinned,
+      this.pinsDismissedAt})
       : _participantIds = participantIds;
 
   factory _$ConversationEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -537,10 +597,17 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   final bool topicsEnabled;
   @override
   final int? autoDeleteDays;
+  @override
+  @JsonKey()
+  final int pinnedCount;
+  @override
+  final PinnedPreviewEntity? topPinned;
+  @override
+  final DateTime? pinsDismissedAt;
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays, pinnedCount: $pinnedCount, topPinned: $topPinned, pinsDismissedAt: $pinsDismissedAt)';
   }
 
   @override
@@ -596,7 +663,13 @@ class _$ConversationEntityImpl implements _ConversationEntity {
             (identical(other.topicsEnabled, topicsEnabled) ||
                 other.topicsEnabled == topicsEnabled) &&
             (identical(other.autoDeleteDays, autoDeleteDays) ||
-                other.autoDeleteDays == autoDeleteDays));
+                other.autoDeleteDays == autoDeleteDays) &&
+            (identical(other.pinnedCount, pinnedCount) ||
+                other.pinnedCount == pinnedCount) &&
+            (identical(other.topPinned, topPinned) ||
+                other.topPinned == topPinned) &&
+            (identical(other.pinsDismissedAt, pinsDismissedAt) ||
+                other.pinsDismissedAt == pinsDismissedAt));
   }
 
   @JsonKey(ignore: true)
@@ -629,7 +702,10 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         activeCallRoomName,
         slowMode,
         topicsEnabled,
-        autoDeleteDays
+        autoDeleteDays,
+        pinnedCount,
+        topPinned,
+        pinsDismissedAt
       ]);
 
   @JsonKey(ignore: true)
@@ -675,7 +751,10 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? activeCallRoomName,
       final bool slowMode,
       final bool topicsEnabled,
-      final int? autoDeleteDays}) = _$ConversationEntityImpl;
+      final int? autoDeleteDays,
+      final int pinnedCount,
+      final PinnedPreviewEntity? topPinned,
+      final DateTime? pinsDismissedAt}) = _$ConversationEntityImpl;
 
   factory _ConversationEntity.fromJson(Map<String, dynamic> json) =
       _$ConversationEntityImpl.fromJson;
@@ -734,6 +813,12 @@ abstract class _ConversationEntity implements ConversationEntity {
   bool get topicsEnabled;
   @override
   int? get autoDeleteDays;
+  @override
+  int get pinnedCount;
+  @override
+  PinnedPreviewEntity? get topPinned;
+  @override
+  DateTime? get pinsDismissedAt;
   @override
   @JsonKey(ignore: true)
   _$$ConversationEntityImplCopyWith<_$ConversationEntityImpl> get copyWith =>

@@ -1,10 +1,14 @@
+// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'pinned_preview_entity.dart';
 
 part 'conversation_entity.freezed.dart';
 part 'conversation_entity.g.dart';
 
 @freezed
 class ConversationEntity with _$ConversationEntity {
+  @JsonSerializable(explicitToJson: true)
   const factory ConversationEntity({
     required String id,
     required List<String> participantIds,
@@ -33,6 +37,9 @@ class ConversationEntity with _$ConversationEntity {
     @Default(false) bool slowMode,
     @Default(false) bool topicsEnabled,
     int? autoDeleteDays,
+    @Default(0) int pinnedCount,
+    PinnedPreviewEntity? topPinned,
+    DateTime? pinsDismissedAt,
   }) = _ConversationEntity;
 
   factory ConversationEntity.fromJson(Map<String, dynamic> json) =>
