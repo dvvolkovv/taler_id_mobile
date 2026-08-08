@@ -526,6 +526,47 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'pin_message',
+            'description':
+                'Pin a message in a conversation so it stays highlighted at the top for everyone in the chat (Telegram-style). Use when the user asks to pin a message, mark it important, or keep something easy to find later (an address, a time, a link) — e.g. "закрепи это сообщение", "pin that message", "закрепи адрес встречи".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'messageId': {'type': 'string'},
+              },
+              'required': ['conversationId', 'messageId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'unpin_message',
+            'description':
+                'Unpin a previously pinned message in a conversation. Use when the user asks to unpin a message or stop keeping it highlighted at the top of the chat — e.g. "открепи это сообщение", "unpin that message".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'messageId': {'type': 'string'},
+              },
+              'required': ['conversationId', 'messageId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'list_pinned',
+            'description':
+                'Get the messages currently pinned in a conversation. Use when the user asks what is pinned, wants to see the pinned messages, or refers back to something that was pinned earlier — e.g. "что закреплено в этом чате", "what\'s pinned here", "покажи закреплённые сообщения".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+              },
+              'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'get_settings',
             'description': 'Get current app settings: theme (light/dark/system), language (ru/en), biometric enabled, PIN enabled.',
             'parameters': {'type': 'object', 'properties': {}},

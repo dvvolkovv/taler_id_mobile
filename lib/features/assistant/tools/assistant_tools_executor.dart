@@ -10,6 +10,8 @@ import '../../../core/services/update_check_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../billing/domain/repositories/billing_repository.dart';
 import '../../messenger/data/datasources/messenger_remote_datasource.dart';
+import '../../messenger/domain/entities/message_entity.dart';
+import '../../messenger/domain/repositories/i_messenger_repository.dart';
 import '../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../messenger/presentation/bloc/messenger_event.dart';
 import '../../notifications/notification_filter.dart';
@@ -463,6 +465,49 @@ class AssistantToolsExecutor {
           args['content'] as String,
         );
         output = jsonEncode({'ok': true, 'message': 'forwarded'});
+      } else if (name == 'pin_message' || name == 'unpin_message') {
+        final convId = args['conversationId'] as String;
+        final msgId = args['messageId'] as String;
+        final pinning = name == 'pin_message';
+        // Route the mutation through the bloc — not the repository — so the
+        // chat UI reacts the same way it does when the user taps Pin/Unpin
+        // (see PinMessage/UnpinMessage in messenger_bloc.dart). Bloc.add()
+        // returns before its own HTTP call lands (the same caveat
+        // PinnedMessagesScreen._reconcile documents), so confirm the outcome
+        // by polling the authoritative pinned list with that screen's short
+        // backoff instead of guessing at it.
+        sl<MessengerBloc>().add(pinning
+            ? PinMessage(conversationId: convId, messageId: msgId)
+            : UnpinMessage(conversationId: convId, messageId: msgId));
+        var pins = <MessageEntity>[];
+        var confirmed = false;
+        const maxAttempts = 3;
+        for (var attempt = 0; attempt < maxAttempts; attempt++) {
+          await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
+          try {
+            pins = await sl<IMessengerRepository>().getPinnedMessages(convId);
+            confirmed = true;
+          } catch (_) {
+            break;
+          }
+          final isPinned = pins.any((p) => p.id == msgId);
+          if (isPinned == pinning || attempt == maxAttempts - 1) break;
+        }
+        output = jsonEncode({
+          'ok': confirmed,
+          'pinned': pins.any((p) => p.id == msgId),
+          'pinnedCount': pins.length,
+        });
+      } else if (name == 'list_pinned') {
+        final convId = args['conversationId'] as String;
+        final pins = await sl<IMessengerRepository>().getPinnedMessages(convId);
+        output = jsonEncode(pins
+            .map((m) => {
+                  'messageId': m.id,
+                  'text': m.content,
+                  'senderName': m.senderName,
+                })
+            .toList());
       } else if (name == 'get_settings') {
         final storage = sl<SecureStorageService>();
         final theme = await storage.getThemeMode() ?? 'light';
