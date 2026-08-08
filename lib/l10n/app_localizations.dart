@@ -7473,6 +7473,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Revoke trust for this device? It will be signed out.'**
   String get trustedDevicesRevokeConfirm;
+
+  /// No description provided for @pinnedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned message'**
+  String get pinnedMessage;
+
+  /// No description provided for @pinnedMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get pinnedMessagesTitle;
+
+  /// No description provided for @pinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get pinAction;
+
+  /// No description provided for @unpinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get unpinAction;
+
+  /// No description provided for @unpinAllAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin all'**
+  String get unpinAllAction;
+
+  /// No description provided for @noPinnedMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned messages'**
+  String get noPinnedMessages;
+
+  /// No description provided for @pinnedCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String pinnedCounter(int current, int total);
+
+  /// No description provided for @messagePinnedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'{actor} pinned a message'**
+  String messagePinnedBy(String actor);
+
+  /// No description provided for @unpinAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin all messages in this chat?'**
+  String get unpinAllConfirm;
 }
 
 class _AppLocalizationsDelegate

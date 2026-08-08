@@ -1866,5 +1866,31 @@
     }
   },
   "trustedDevicesRevoke": "Отозвать",
-  "trustedDevicesRevokeConfirm": "Отозвать доверие к этому устройству? Оно будет разлогинено."
+  "trustedDevicesRevokeConfirm": "Отозвать доверие к этому устройству? Оно будет разлогинено.",
+  "pinnedMessage": "Закреплённое сообщение",
+  "pinnedMessagesTitle": "Закреплённые",
+  "pinAction": "Закрепить",
+  "unpinAction": "Открепить",
+  "unpinAllAction": "Открепить всё",
+  "noPinnedMessages": "Нет закреплённых сообщений",
+  "pinnedCounter": "{current} из {total}",
+  "@pinnedCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "messagePinnedBy": "{actor} закрепил сообщение",
+  "@messagePinnedBy": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "unpinAllConfirm": "Открепить все сообщения в этом чате?"
 }

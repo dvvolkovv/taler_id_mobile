@@ -3969,4 +3969,35 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get trustedDevicesRevokeConfirm =>
       'Revoke trust for this device? It will be signed out.';
+
+  @override
+  String get pinnedMessage => 'Pinned message';
+
+  @override
+  String get pinnedMessagesTitle => 'Pinned';
+
+  @override
+  String get pinAction => 'Pin';
+
+  @override
+  String get unpinAction => 'Unpin';
+
+  @override
+  String get unpinAllAction => 'Unpin all';
+
+  @override
+  String get noPinnedMessages => 'No pinned messages';
+
+  @override
+  String pinnedCounter(int current, int total) {
+    return '$current of $total';
+  }
+
+  @override
+  String messagePinnedBy(String actor) {
+    return '$actor pinned a message';
+  }
+
+  @override
+  String get unpinAllConfirm => 'Unpin all messages in this chat?';
 }

@@ -3975,4 +3975,35 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get trustedDevicesRevokeConfirm =>
       'Отозвать доверие к этому устройству? Оно будет разлогинено.';
+
+  @override
+  String get pinnedMessage => 'Закреплённое сообщение';
+
+  @override
+  String get pinnedMessagesTitle => 'Закреплённые';
+
+  @override
+  String get pinAction => 'Закрепить';
+
+  @override
+  String get unpinAction => 'Открепить';
+
+  @override
+  String get unpinAllAction => 'Открепить всё';
+
+  @override
+  String get noPinnedMessages => 'Нет закреплённых сообщений';
+
+  @override
+  String pinnedCounter(int current, int total) {
+    return '$current из $total';
+  }
+
+  @override
+  String messagePinnedBy(String actor) {
+    return '$actor закрепил сообщение';
+  }
+
+  @override
+  String get unpinAllConfirm => 'Открепить все сообщения в этом чате?';
 }
