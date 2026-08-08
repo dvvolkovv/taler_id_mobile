@@ -4006,4 +4006,8 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get unpinAllConfirm => 'Открепить все сообщения в этом чате?';
+
+  @override
+  String get pinnedMessageNotLoaded =>
+      'Сообщение не загружено — прокрутите вверх, чтобы найти его';
 }

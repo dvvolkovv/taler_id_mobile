@@ -7527,6 +7527,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unpin all messages in this chat?'**
   String get unpinAllConfirm;
+
+  /// No description provided for @pinnedMessageNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Message not loaded — scroll up to find it'**
+  String get pinnedMessageNotLoaded;
 }
 
 class _AppLocalizationsDelegate

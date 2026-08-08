@@ -1899,5 +1899,6 @@
       }
     }
   },
-  "unpinAllConfirm": "Unpin all messages in this chat?"
+  "unpinAllConfirm": "Unpin all messages in this chat?",
+  "pinnedMessageNotLoaded": "Message not loaded — scroll up to find it"
 }

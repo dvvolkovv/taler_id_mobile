@@ -72,6 +72,7 @@ import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
 import '../../../voice/presentation/widgets/ios_mesh_onboarding_tooltip.dart';
 import '../../../voice/presentation/widgets/mesh_eligibility_dot.dart';
 import 'chat_room_auto_pick.dart';
+import 'pinned_messages_screen.dart';
 import '../../../presence/presentation/widgets/presence_label.dart';
 
 /// Per-process cache of "user explicitly used LiveKit with this peer at time T".
@@ -1720,8 +1721,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   /// Pinned-bar "jump" callback (Task 12) — reuses the same search-match
   /// highlight + scroll mechanics as `_maybeHighlightDeepLinkedMessage`
-  /// above. If the pin isn't in the currently loaded page, do nothing: no
-  /// pagination here, the pinned-list screen (next task) handles deep jumps.
+  /// above. If the pin isn't in the currently loaded page, tell the user
+  /// instead of silently doing nothing (Task 13 review): pins live
+  /// indefinitely while the message list is only paginated to recent
+  /// history, so tapping an older pinned row — reachable from the full
+  /// PinnedMessagesScreen list, not just the banner — is a routine case,
+  /// not an edge case.
+  /// TODO(follow-up): paginate backwards to the target message instead of
+  /// just notifying — bigger change than this task should carry.
   void _onPinJump(String messageId) {
     // Search owns _searchMatchChronIndices/_searchCurrentMatchIdx while it is
     // open; jumping from the banner would repurpose its counter and arrows
@@ -1729,7 +1736,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     if (_searchMode) return;
     final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
     final idx = messages.indexWhere((m) => m.id == messageId);
-    if (idx < 0) return;
+    if (idx < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.pinnedMessageNotLoaded)),
+      );
+      return;
+    }
     setState(() {
       _searchMatchChronIndices = [idx];
       _searchCurrentMatchIdx = 0;
@@ -1795,9 +1807,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(DismissPins(widget.conversationId, upTo: upTo));
   }
 
-  /// TODO(Task 13): navigate to the full pinned-messages list screen. That
-  /// screen doesn't exist yet — until it lands this is intentionally a no-op.
-  void _onOpenPinnedList() {}
+  /// Opens the full pinned-messages list (Task 13). See [canUnpinIn]
+  /// (`pinned_messages_screen.dart`) for the permission rule this mirrors.
+  /// A returned message id (row tap) reuses the banner's own jump mechanics
+  /// via `_onPinJump`; a plain back-press pops null and is a no-op.
+  Future<void> _onOpenPinnedList() async {
+    final conv = _resolveConv(_messengerBloc.state.conversations);
+    final canUnpin = canUnpinIn(conv);
+    final messageId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => PinnedMessagesScreen(
+          conversationId: widget.conversationId,
+          canUnpin: canUnpin,
+        ),
+      ),
+    );
+    // The chat screen can be torn down while the pinned list is open (the
+    // user navigates elsewhere via some other path) — _onPinJump's
+    // setState would throw setState() after dispose() otherwise. Same
+    // rationale as PinnedMessagesScreen._load()'s own `mounted` guard.
+    if (!mounted || messageId == null) return;
+    _onPinJump(messageId);
+  }
 
   void _goToOlderMatch() {
     if (_searchMatchChronIndices.isEmpty || _searchCurrentMatchIdx <= 0) return;

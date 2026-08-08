@@ -3985,4 +3985,8 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get unpinAllConfirm => 'Unpin all messages in this chat?';
+
+  @override
+  String get pinnedMessageNotLoaded =>
+      'Message not loaded — scroll up to find it';
 }
