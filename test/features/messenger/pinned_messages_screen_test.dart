@@ -51,7 +51,7 @@ MessageEntity _pin(String id, String senderName, String content) => MessageEntit
       pinnedById: 'user-1',
     );
 
-/// Minimal ConversationEntity fixture for the canUnpinIn (type, myRole)
+/// Minimal ConversationEntity fixture for the canPinIn (type, myRole)
 /// matrix below.
 ConversationEntity _conv(String type, {String? myRole}) => ConversationEntity(
       id: 'conv-1',
@@ -72,48 +72,51 @@ Widget _wrap(MessengerBloc bloc, Widget child) => MaterialApp(
     );
 
 void main() {
-  // canUnpinIn is the client-side mirror of the backend's `_assertCanPin`
+  // canPinIn is the client-side mirror of the backend's `_assertCanPin`
   // (messenger.service.ts) — the thing that must not silently regress, so
   // it gets its own pure-function coverage independent of the widget below.
-  group('canUnpinIn', () {
+  // Renamed from canUnpinIn (Task 14): the same rule now also gates the
+  // "Pin" entry in chat_room_screen.dart's message long-press menu, not
+  // just the "Unpin" controls below and on this screen.
+  group('canPinIn', () {
     test('CHANNEL + SUBSCRIBER is false', () {
-      expect(canUnpinIn(_conv('CHANNEL', myRole: 'SUBSCRIBER')), isFalse);
+      expect(canPinIn(_conv('CHANNEL', myRole: 'SUBSCRIBER')), isFalse);
     });
 
     test('CHANNEL + ADMIN is true', () {
-      expect(canUnpinIn(_conv('CHANNEL', myRole: 'ADMIN')), isTrue);
+      expect(canPinIn(_conv('CHANNEL', myRole: 'ADMIN')), isTrue);
     });
 
     test('CHANNEL + OWNER is true', () {
-      expect(canUnpinIn(_conv('CHANNEL', myRole: 'OWNER')), isTrue);
+      expect(canPinIn(_conv('CHANNEL', myRole: 'OWNER')), isTrue);
     });
 
     test('GROUP + MEMBER is false', () {
-      expect(canUnpinIn(_conv('GROUP', myRole: 'MEMBER')), isFalse);
+      expect(canPinIn(_conv('GROUP', myRole: 'MEMBER')), isFalse);
     });
 
     test('GROUP + ADMIN is true', () {
-      expect(canUnpinIn(_conv('GROUP', myRole: 'ADMIN')), isTrue);
+      expect(canPinIn(_conv('GROUP', myRole: 'ADMIN')), isTrue);
     });
 
     test('DIRECT is true regardless of role', () {
-      expect(canUnpinIn(_conv('DIRECT')), isTrue);
+      expect(canPinIn(_conv('DIRECT')), isTrue);
       // Role must not gate a DIRECT conversation — even a role string that
       // would read as low-privilege for GROUP/CHANNEL must not leak through
       // and flip this to false.
-      expect(canUnpinIn(_conv('DIRECT', myRole: 'SUBSCRIBER')), isTrue);
+      expect(canPinIn(_conv('DIRECT', myRole: 'SUBSCRIBER')), isTrue);
     });
 
     test('SAVED is true', () {
-      expect(canUnpinIn(_conv('SAVED')), isTrue);
+      expect(canPinIn(_conv('SAVED')), isTrue);
     });
 
     test('an AI_* type is true', () {
-      expect(canUnpinIn(_conv('AI_ANALYST')), isTrue);
+      expect(canPinIn(_conv('AI_ANALYST')), isTrue);
     });
 
     test('null conversation is false', () {
-      expect(canUnpinIn(null), isFalse);
+      expect(canPinIn(null), isFalse);
     });
   });
 

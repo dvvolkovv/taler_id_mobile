@@ -1424,11 +1424,69 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     return state.copyWith(conversations: updated);
   }
 
+  /// Returns [state] with [messageId] inside [conversationId]'s loaded
+  /// message list replaced by `update(currentMessage)`. Companion to
+  /// [_withPinnedCount], added because the message long-press menu (Task
+  /// 14) is the first consumer that reads a message's own `pinnedAt`
+  /// rather than just the conversation's `pinnedCount` — without this, a
+  /// freshly (un)pinned `MessageEntity` already sitting in `state.messages`
+  /// kept a stale `pinnedAt`/`pinnedById` until the next full reload, so
+  /// the long-press menu kept offering "Pin" after a pin had already
+  /// succeeded (the server then answers `alreadyPinned` and nothing
+  /// visibly happens).
+  ///
+  /// [update] receives the current [MessageEntity] and returns its
+  /// replacement — callers reach into `MessageEntity.copyWith` themselves
+  /// so each decides independently which of `pinnedAt`/`pinnedById` to
+  /// touch (ordinary freezed `copyWith` semantics: an omitted named arg
+  /// leaves that field as is, an explicit `null` clears it). Returns
+  /// [state] unchanged if the conversation has no loaded messages, or
+  /// [messageId] isn't among them (e.g. not yet paginated into view) —
+  /// same fail-quiet shape as [_withPinnedCount].
+  MessengerState _withMessagePin(
+    String conversationId,
+    String messageId,
+    MessageEntity Function(MessageEntity current) update,
+  ) {
+    final list = state.messages[conversationId];
+    if (list == null) return state;
+    final idx = list.indexWhere((m) => m.id == messageId);
+    if (idx == -1) return state;
+    final updatedList = List<MessageEntity>.from(list);
+    updatedList[idx] = update(updatedList[idx]);
+    final messages = Map<String, List<MessageEntity>>.from(state.messages);
+    messages[conversationId] = updatedList;
+    return state.copyWith(messages: messages);
+  }
+
+  /// Defensive `pinnedAt` parse shared by the REST response and socket
+  /// payload paths: anything that isn't a parseable ISO string (missing,
+  /// wrong type, malformed) becomes `null` rather than throwing, so a
+  /// malformed value degrades to "leave the message's pin state
+  /// untouched" instead of crashing the handler.
+  static DateTime? _parsePinnedAt(dynamic value) =>
+      value is String ? DateTime.tryParse(value) : null;
+
   Future<void> _onPinMessage(PinMessage event, Emitter<MessengerState> emit) async {
     try {
       final result = await _repo.pinMessage(event.conversationId, event.messageId);
       final pinnedCount = result['pinnedCount'] as int? ?? 0;
       emit(_withPinnedCount(event.conversationId, pinnedCount));
+      final pinnedAt = _parsePinnedAt(result['pinnedAt']);
+      if (pinnedAt != null) {
+        // The REST response doesn't echo back who pinned it (it's always
+        // the caller) — fall back to state.currentUserId. If that isn't
+        // known yet, leave pinnedById untouched rather than guess: omit it
+        // from copyWith entirely instead of writing an explicit null.
+        final myId = state.currentUserId;
+        emit(_withMessagePin(
+          event.conversationId,
+          event.messageId,
+          (m) => myId != null
+              ? m.copyWith(pinnedAt: pinnedAt, pinnedById: myId)
+              : m.copyWith(pinnedAt: pinnedAt),
+        ));
+      }
     } catch (_) {}
   }
 
@@ -1437,6 +1495,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       final result = await _repo.unpinMessage(event.conversationId, event.messageId);
       final pinnedCount = result['pinnedCount'] as int? ?? 0;
       emit(_withPinnedCount(event.conversationId, pinnedCount));
+      emit(_withMessagePin(
+        event.conversationId,
+        event.messageId,
+        (m) => m.copyWith(pinnedAt: null, pinnedById: null),
+      ));
     } catch (_) {}
   }
 
@@ -1466,13 +1529,46 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     if (convId == null) return;
     switch (event.type) {
       case 'message_pinned':
+        final pinnedCount = event.data['pinnedCount'] as int?;
+        if (pinnedCount == null) return;
+        emit(_withPinnedCount(convId, pinnedCount));
+        final messageId = event.data['messageId'] as String?;
+        final pinnedAt = _parsePinnedAt(event.data['pinnedAt']);
+        if (messageId != null && pinnedAt != null) {
+          final pinnedById = event.data['pinnedById'] as String?;
+          emit(_withMessagePin(
+            convId,
+            messageId,
+            (m) => m.copyWith(pinnedAt: pinnedAt, pinnedById: pinnedById),
+          ));
+        }
+        break;
       case 'message_unpinned':
         final pinnedCount = event.data['pinnedCount'] as int?;
         if (pinnedCount == null) return;
         emit(_withPinnedCount(convId, pinnedCount));
+        final messageId = event.data['messageId'] as String?;
+        if (messageId != null) {
+          emit(_withMessagePin(
+            convId,
+            messageId,
+            (m) => m.copyWith(pinnedAt: null, pinnedById: null),
+          ));
+        }
         break;
       case 'pins_cleared':
         emit(_withPinnedCount(convId, 0));
+        // No single messageId to target — defensively clear every loaded
+        // message of this conversation rather than track which ones were
+        // actually pinned (already-unpinned messages are a harmless no-op).
+        final list = state.messages[convId];
+        if (list != null) {
+          final cleared =
+              list.map((m) => m.copyWith(pinnedAt: null, pinnedById: null)).toList();
+          final messages = Map<String, List<MessageEntity>>.from(state.messages);
+          messages[convId] = cleared;
+          emit(state.copyWith(messages: messages));
+        }
         break;
     }
   }

@@ -1807,13 +1807,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(DismissPins(widget.conversationId, upTo: upTo));
   }
 
-  /// Opens the full pinned-messages list (Task 13). See [canUnpinIn]
+  /// Opens the full pinned-messages list (Task 13). See [canPinIn]
   /// (`pinned_messages_screen.dart`) for the permission rule this mirrors.
   /// A returned message id (row tap) reuses the banner's own jump mechanics
   /// via `_onPinJump`; a plain back-press pops null and is a no-op.
   Future<void> _onOpenPinnedList() async {
     final conv = _resolveConv(_messengerBloc.state.conversations);
-    final canUnpin = canUnpinIn(conv);
+    final canUnpin = canPinIn(conv);
     final messageId = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => PinnedMessagesScreen(
@@ -2572,6 +2572,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                     emoji: emoji,
                                   ));
                                 },
+                                // Task 14: same gate as the backend's `_assertCanPin` (via
+                                // canPinIn), plus a client-side-only system-message exclusion —
+                                // the backend rejects pinning a system message with a 400, so
+                                // offering it here would be a guaranteed error.
+                                onTogglePin: (msg.isSystem || !canPinIn(conv))
+                                    ? null
+                                    : () {
+                                        context.read<MessengerBloc>().add(
+                                              msg.pinnedAt == null
+                                                  ? PinMessage(
+                                                      conversationId: msg.conversationId,
+                                                      messageId: msg.id,
+                                                    )
+                                                  : UnpinMessage(
+                                                      conversationId: msg.conversationId,
+                                                      messageId: msg.id,
+                                                    ),
+                                            );
+                                      },
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
@@ -3163,6 +3182,13 @@ class _MessageBubble extends StatefulWidget {
   /// Other participants' read cursors for this conversation — drives the
   /// own-message receipt footer (1:1 colored ticks / group "Seen by N").
   final List<ParticipantCursor> readCursors;
+  /// Task 14: pins or unpins [message], whichever `message.pinnedAt` says is
+  /// next. Null hides the menu entry entirely — same convention as [onEdit]
+  /// — which the call site uses both for system messages (the backend
+  /// rejects pinning those with a 400) and for conversations where
+  /// `canPinIn` (`pinned_messages_screen.dart`) says the current user isn't
+  /// allowed to pin/unpin here.
+  final VoidCallback? onTogglePin;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -3181,6 +3207,7 @@ class _MessageBubble extends StatefulWidget {
     this.onStartCall,
     this.autoPlayVideoNote,
     this.readCursors = const [],
+    this.onTogglePin,
   });
 
   @override
@@ -3711,6 +3738,25 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   widget.onReply!();
                 },
               ),
+            // Task 14: pin/unpin — widget.onTogglePin is already null for
+            // system messages and for conversations the current user can't
+            // pin in (see the call site's canPinIn gate), so no extra
+            // condition is needed here.
+            if (widget.onTogglePin != null)
+              ListTile(
+                leading: Icon(
+                  widget.message.pinnedAt == null ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+                  color: colors.primary,
+                ),
+                title: Text(
+                  widget.message.pinnedAt == null ? l10n.pinAction : l10n.unpinAction,
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onTogglePin!();
+                },
+              ),
             // Task 13: read-by + reactions info, only makes sense on the
             // user's own (non-system) messages — mirrors "Seen by N"/ticks,
             // which are also isMe-only.
@@ -4093,6 +4139,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
         case 'member_left': text = l10n.memberLeftGroup(actor); break;
         case 'member_removed': text = l10n.memberWasRemoved(target); break;
         case 'role_changed': text = l10n.roleChangedTo(target, role); break;
+        case 'message_pinned': text = l10n.messagePinnedBy(actor); break;
         case 'call_invite':
           return _buildCallInviteCard(context, data);
         default: text = widget.message.content;

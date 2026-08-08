@@ -11,16 +11,21 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 
 /// Client-side mirror of the backend's `_assertCanPin` permission check
-/// (`messenger.service.ts`): any participant may unpin in DIRECT/SAVED/AI_*
-/// conversations, but only OWNER/ADMIN in GROUP/CHANNEL. An unresolved
+/// (`messenger.service.ts`): any participant may pin/unpin in DIRECT/SAVED/
+/// AI_* conversations, but only OWNER/ADMIN in GROUP/CHANNEL. An unresolved
 /// conversation ([conv] null) fails closed rather than let the user attempt
 /// an action the server would reject anyway.
 ///
-/// Extracted as a top-level pure function (rather than inlined at the call
-/// site in `chat_room_screen.dart`) so this permission rule — a client-side
-/// duplicate of a server-side check — is independently unit-testable; see
-/// the `canUnpinIn` group in `pinned_messages_screen_test.dart`.
-bool canUnpinIn(ConversationEntity? conv) {
+/// Governs both directions of the same action — offering "Pin" in the
+/// message long-press menu (`chat_room_screen.dart`) and offering "Unpin"
+/// there and in this screen's per-row control — since the backend applies
+/// one `_assertCanPin` check to both.
+///
+/// Extracted as a top-level pure function (rather than inlined at each call
+/// site) so this permission rule — a client-side duplicate of a server-side
+/// check — is independently unit-testable; see the `canPinIn` group in
+/// `pinned_messages_screen_test.dart`.
+bool canPinIn(ConversationEntity? conv) {
   if (conv == null) return false;
   if (conv.type != 'CHANNEL' && conv.type != 'GROUP') return true;
   return conv.myRole == 'OWNER' || conv.myRole == 'ADMIN';
@@ -33,7 +38,7 @@ bool canUnpinIn(ConversationEntity? conv) {
 /// Tapping a row pops this screen with that message's id so the caller
 /// (`ChatRoomScreen`) can jump to/highlight it, reusing `_onPinJump`.
 ///
-/// [canUnpin] (see [canUnpinIn]) controls whether each row gets an unpin
+/// [canUnpin] (see [canPinIn]) controls whether each row gets an unpin
 /// control and the AppBar gets an "Unpin all" action. Both go through
 /// MessengerBloc events (`UnpinMessage`/`UnpinAllMessages`) rather than the
 /// repository directly, so the chat's banner and the conversation's
