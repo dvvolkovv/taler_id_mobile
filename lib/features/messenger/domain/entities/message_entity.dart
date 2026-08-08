@@ -34,6 +34,9 @@ class MessageEntity with _$MessageEntity {
     /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
     /// Null (or absent in server JSON) means the normal socket/REST path.
     String? transport,
+    /// Pin state: null means the message is not pinned.
+    DateTime? pinnedAt,
+    String? pinnedById,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>

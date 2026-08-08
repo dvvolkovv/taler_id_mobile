@@ -470,3 +470,47 @@ class MeshMessageSent extends MessengerEvent {
 class SyncMessagesRequested extends MessengerEvent {
   const SyncMessagesRequested();
 }
+
+// ─── Pin events ───
+
+class PinMessage extends MessengerEvent {
+  final String conversationId;
+  final String messageId;
+  const PinMessage({required this.conversationId, required this.messageId});
+  @override
+  List<Object?> get props => [conversationId, messageId];
+}
+
+class UnpinMessage extends MessengerEvent {
+  final String conversationId;
+  final String messageId;
+  const UnpinMessage({required this.conversationId, required this.messageId});
+  @override
+  List<Object?> get props => [conversationId, messageId];
+}
+
+class UnpinAllMessages extends MessengerEvent {
+  final String conversationId;
+  const UnpinAllMessages(this.conversationId);
+  @override
+  List<Object?> get props => [conversationId];
+}
+
+class DismissPins extends MessengerEvent {
+  final String conversationId;
+  final DateTime? upTo;
+  const DismissPins(this.conversationId, {this.upTo});
+  @override
+  List<Object?> get props => [conversationId, upTo];
+}
+
+/// Dispatched by the bloc's own socket subscriptions for all three pin
+/// streams. [type] is one of 'message_pinned' | 'message_unpinned' |
+/// 'pins_cleared'; [data] is the raw payload for that event.
+class PinEventReceived extends MessengerEvent {
+  final String type;
+  final Map<String, dynamic> data;
+  const PinEventReceived(this.type, this.data);
+  @override
+  List<Object?> get props => [type, data];
+}

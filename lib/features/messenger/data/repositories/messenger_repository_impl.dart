@@ -400,6 +400,36 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   Future<void> unmuteConversation(String conversationId) =>
       _remote.unmuteConversation(conversationId);
 
+  // Pin methods
+  @override
+  Future<Map<String, dynamic>> pinMessage(String conversationId, String messageId) =>
+      _remote.pinMessage(conversationId, messageId);
+
+  @override
+  Future<Map<String, dynamic>> unpinMessage(String conversationId, String messageId) =>
+      _remote.unpinMessage(conversationId, messageId);
+
+  @override
+  Future<List<MessageEntity>> getPinnedMessages(String conversationId) =>
+      _remote.getPinnedMessages(conversationId);
+
+  @override
+  Future<Map<String, dynamic>> unpinAll(String conversationId) =>
+      _remote.unpinAll(conversationId);
+
+  @override
+  Future<Map<String, dynamic>> dismissPins(String conversationId, {DateTime? upTo}) =>
+      _remote.dismissPins(conversationId, upTo: upTo);
+
+  @override
+  Stream<Map<String, dynamic>> get messagePinnedStream => _remote.messagePinnedStream;
+
+  @override
+  Stream<Map<String, dynamic>> get messageUnpinnedStream => _remote.messageUnpinnedStream;
+
+  @override
+  Stream<Map<String, dynamic>> get pinsClearedStream => _remote.pinsClearedStream;
+
   @override
   Stream<AnalystChunk> get analystChunkStream => _remote.analystChunkStream;
 

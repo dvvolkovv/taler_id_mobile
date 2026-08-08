@@ -52,11 +52,13 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
+import '../../domain/repositories/i_messenger_repository.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
 import '../widgets/message_info_sheet.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
+import '../widgets/pinned_banner.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../utils/recipient_filters.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
@@ -70,6 +72,7 @@ import '../../../../core/voice/mesh_voice_ui_coordinator.dart';
 import '../../../voice/presentation/widgets/ios_mesh_onboarding_tooltip.dart';
 import '../../../voice/presentation/widgets/mesh_eligibility_dot.dart';
 import 'chat_room_auto_pick.dart';
+import 'pinned_messages_screen.dart';
 import '../../../presence/presentation/widgets/presence_label.dart';
 
 /// Per-process cache of "user explicitly used LiveKit with this peer at time T".
@@ -139,6 +142,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   int _deepLinkLoadAttempts = 0;
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
+
+  // Pinned messages bar (Task 12). Loaded lazily whenever the resolved
+  // conversation's `pinnedCount` no longer matches `_pinsLoadedForCount` —
+  // see `_loadPins` for why the count itself is never rendered.
+  List<MessageEntity> _pins = [];
+  int _pinsLoadedForCount = 0;
 
   // Viewport-driven read-horizon reporting (Telegram-style): tracks the
   // furthest incoming message actually scrolled into view, debounced.
@@ -1710,6 +1719,117 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  /// Pinned-bar "jump" callback (Task 12) — reuses the same search-match
+  /// highlight + scroll mechanics as `_maybeHighlightDeepLinkedMessage`
+  /// above. If the pin isn't in the currently loaded page, tell the user
+  /// instead of silently doing nothing (Task 13 review): pins live
+  /// indefinitely while the message list is only paginated to recent
+  /// history, so tapping an older pinned row — reachable from the full
+  /// PinnedMessagesScreen list, not just the banner — is a routine case,
+  /// not an edge case.
+  /// TODO(follow-up): paginate backwards to the target message instead of
+  /// just notifying — bigger change than this task should carry.
+  void _onPinJump(String messageId) {
+    // Search owns _searchMatchChronIndices/_searchCurrentMatchIdx while it is
+    // open; jumping from the banner would repurpose its counter and arrows
+    // mid-search. Same guard as _maybeHighlightDeepLinkedMessage.
+    if (_searchMode) return;
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    final idx = messages.indexWhere((m) => m.id == messageId);
+    if (idx < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.pinnedMessageNotLoaded)),
+      );
+      return;
+    }
+    setState(() {
+      _searchMatchChronIndices = [idx];
+      _searchCurrentMatchIdx = 0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToChronIndex(idx);
+    });
+  }
+
+  /// Loads (or refreshes) the pinned list once [pinnedCount] no longer
+  /// matches what's already loaded (or was last attempted).
+  ///
+  /// `pinnedCount` has two writers — the REST response and the device's own
+  /// socket echo — with no ordering guarantee between them, so it can be
+  /// briefly wrong. It is therefore used ONLY as a trigger to refetch the
+  /// list; the bar always renders `pins.length`, never `pinnedCount` itself.
+  /// A stale count then costs one redundant request instead of a wrong UI.
+  ///
+  /// [pinnedCount] doubles as a generation token: if a newer call overtakes
+  /// this one while the request is in flight, the newer call's response is
+  /// authoritative and this one's result is dropped instead of racing it.
+  /// On failure the key is released (`-1`, never a real count) so the next
+  /// rebuild can retry — otherwise one failed fetch would leave the bar
+  /// stale until the count happened to change again.
+  Future<void> _loadPins(int pinnedCount) async {
+    if (_pinsLoadedForCount == pinnedCount) return;
+    _pinsLoadedForCount = pinnedCount;
+    if (pinnedCount == 0) {
+      // Known-empty — no need to round-trip the server to learn that.
+      if (mounted) setState(() => _pins = const []);
+      return;
+    }
+    try {
+      final pins =
+          await sl<IMessengerRepository>().getPinnedMessages(widget.conversationId);
+      if (!mounted || _pinsLoadedForCount != pinnedCount) return;
+      setState(() => _pins = pins);
+    } catch (_) {
+      // The bar is decoration on top of a working chat — no error surfaced,
+      // just release the key (if a newer generation hasn't already moved it)
+      // so a future rebuild retries instead of staying stuck.
+      if (_pinsLoadedForCount == pinnedCount) _pinsLoadedForCount = -1;
+    }
+  }
+
+  /// Dismiss the pinned bar for this user. Sends the `pinnedAt` of the
+  /// newest loaded pin that actually carries one (pins are newest-first) as
+  /// `upTo`. Without it the server falls back to ITS newest pin's
+  /// timestamp, which could silently swallow a pin that arrived while the
+  /// request was in flight and that this client never showed.
+  void _onPinDismiss() {
+    if (_pins.isEmpty) return;
+    // `pinnedAt` is nullable on MessageEntity in general (unpinned messages
+    // carry null); every entry in `_pins` came from getPinnedMessages, so it
+    // should always be set here. Guard anyway instead of trusting that
+    // invariant blindly: skip forward to the newest pin that does carry a
+    // timestamp rather than send `upTo: null`, which would silently reopen
+    // the exact swallow-a-pin race this parameter exists to close.
+    final upTo = _pins.map((p) => p.pinnedAt).firstWhere(
+          (at) => at != null,
+          orElse: () => null,
+        );
+    _messengerBloc.add(DismissPins(widget.conversationId, upTo: upTo));
+  }
+
+  /// Opens the full pinned-messages list (Task 13). See [canPinIn]
+  /// (`pinned_messages_screen.dart`) for the permission rule this mirrors.
+  /// A returned message id (row tap) reuses the banner's own jump mechanics
+  /// via `_onPinJump`; a plain back-press pops null and is a no-op.
+  Future<void> _onOpenPinnedList() async {
+    final conv = _resolveConv(_messengerBloc.state.conversations);
+    final canUnpin = canPinIn(conv);
+    final messageId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => PinnedMessagesScreen(
+          conversationId: widget.conversationId,
+          canUnpin: canUnpin,
+        ),
+      ),
+    );
+    // The chat screen can be torn down while the pinned list is open (the
+    // user navigates elsewhere via some other path) — _onPinJump's
+    // setState would throw setState() after dispose() otherwise. Same
+    // rationale as PinnedMessagesScreen._load()'s own `mounted` guard.
+    if (!mounted || messageId == null) return;
+    _onPinJump(messageId);
+  }
+
   void _goToOlderMatch() {
     if (_searchMatchChronIndices.isEmpty || _searchCurrentMatchIdx <= 0) return;
     final newIdx = _searchCurrentMatchIdx - 1;
@@ -2302,11 +2422,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           final isGroup = conv?.type == 'GROUP';
           final otherUserName = conv?.otherUserName;
           final activeRoomName = state.activeGroupCalls[widget.conversationId];
+          // Pinned messages bar (Task 12): kick off a (re)load whenever the
+          // conversation's pinnedCount moves, and work out visibility from
+          // the loaded list — never from pinnedCount (see _loadPins).
+          if (conv != null) unawaited(_loadPins(conv.pinnedCount));
+          final pinsDismissedAt = conv?.pinsDismissedAt;
+          final newestPinAt = _pins.isNotEmpty ? _pins.first.pinnedAt : null;
+          final pinsBarHidden = pinsDismissedAt != null &&
+              (newestPinAt == null || !newestPinAt.isAfter(pinsDismissedAt));
+          final showPinsBar = _pins.isNotEmpty && !pinsBarHidden;
           return Column(
             children: [
               // Connectivity warning banner — shown at TOP when socket disconnected
               if (_socketDisconnected)
                 _ConnectivityBanner(),
+              // Pinned messages bar (Task 12)
+              if (showPinsBar)
+                PinnedBanner(
+                  pins: _pins,
+                  onJump: _onPinJump,
+                  onDismiss: _onPinDismiss,
+                  onOpenList: _onOpenPinnedList,
+                ),
               // Active call banner for group conversations
               if (isGroup && activeRoomName != null)
                 _ActiveCallBanner(
@@ -2435,6 +2572,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                     emoji: emoji,
                                   ));
                                 },
+                                // Task 14: same gate as the backend's `_assertCanPin` (via
+                                // canPinIn), plus a client-side-only system-message exclusion —
+                                // the backend rejects pinning a system message with a 400, so
+                                // offering it here would be a guaranteed error.
+                                onTogglePin: (msg.isSystem || !canPinIn(conv))
+                                    ? null
+                                    : () {
+                                        context.read<MessengerBloc>().add(
+                                              msg.pinnedAt == null
+                                                  ? PinMessage(
+                                                      conversationId: msg.conversationId,
+                                                      messageId: msg.id,
+                                                    )
+                                                  : UnpinMessage(
+                                                      conversationId: msg.conversationId,
+                                                      messageId: msg.id,
+                                                    ),
+                                            );
+                                      },
                                 currentUserId: state.currentUserId,
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
@@ -3026,6 +3182,13 @@ class _MessageBubble extends StatefulWidget {
   /// Other participants' read cursors for this conversation — drives the
   /// own-message receipt footer (1:1 colored ticks / group "Seen by N").
   final List<ParticipantCursor> readCursors;
+  /// Task 14: pins or unpins [message], whichever `message.pinnedAt` says is
+  /// next. Null hides the menu entry entirely — same convention as [onEdit]
+  /// — which the call site uses both for system messages (the backend
+  /// rejects pinning those with a 400) and for conversations where
+  /// `canPinIn` (`pinned_messages_screen.dart`) says the current user isn't
+  /// allowed to pin/unpin here.
+  final VoidCallback? onTogglePin;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -3044,6 +3207,7 @@ class _MessageBubble extends StatefulWidget {
     this.onStartCall,
     this.autoPlayVideoNote,
     this.readCursors = const [],
+    this.onTogglePin,
   });
 
   @override
@@ -3574,6 +3738,25 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   widget.onReply!();
                 },
               ),
+            // Task 14: pin/unpin — widget.onTogglePin is already null for
+            // system messages and for conversations the current user can't
+            // pin in (see the call site's canPinIn gate), so no extra
+            // condition is needed here.
+            if (widget.onTogglePin != null)
+              ListTile(
+                leading: Icon(
+                  widget.message.pinnedAt == null ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+                  color: colors.primary,
+                ),
+                title: Text(
+                  widget.message.pinnedAt == null ? l10n.pinAction : l10n.unpinAction,
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onTogglePin!();
+                },
+              ),
             // Task 13: read-by + reactions info, only makes sense on the
             // user's own (non-system) messages — mirrors "Seen by N"/ticks,
             // which are also isMe-only.
@@ -3956,6 +4139,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
         case 'member_left': text = l10n.memberLeftGroup(actor); break;
         case 'member_removed': text = l10n.memberWasRemoved(target); break;
         case 'role_changed': text = l10n.roleChangedTo(target, role); break;
+        case 'message_pinned': text = l10n.messagePinnedBy(actor); break;
         case 'call_invite':
           return _buildCallInviteCard(context, data);
         default: text = widget.message.content;

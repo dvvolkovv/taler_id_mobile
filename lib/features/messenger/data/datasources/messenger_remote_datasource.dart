@@ -48,6 +48,10 @@ class MessengerRemoteDataSource {
   final _gcMuteRequestCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _gcHostChangedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _gcEndedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  // Pin events
+  final _messagePinnedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _messageUnpinnedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  final _pinsClearedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageDeletedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageAckedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _typingCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -215,6 +219,16 @@ class MessengerRemoteDataSource {
     _socket!.on('group_call_host_changed', (d) {
       try { _gcHostChangedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    // Pin events
+    _socket!.on('message_pinned', (d) {
+      try { _messagePinnedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('message_unpinned', (d) {
+      try { _messageUnpinnedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
+    _socket!.on('pins_cleared', (d) {
+      try { _pinsClearedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
     _socket!.on('message_deleted', (d) {
       try { _messageDeletedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
@@ -324,6 +338,10 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get gcMuteRequestStream => _gcMuteRequestCtrl.stream;
   Stream<Map<String, dynamic>> get gcHostChangedStream => _gcHostChangedCtrl.stream;
   Stream<Map<String, dynamic>> get gcEndedStream => _gcEndedCtrl.stream;
+  // Pin streams
+  Stream<Map<String, dynamic>> get messagePinnedStream => _messagePinnedCtrl.stream;
+  Stream<Map<String, dynamic>> get messageUnpinnedStream => _messageUnpinnedCtrl.stream;
+  Stream<Map<String, dynamic>> get pinsClearedStream => _pinsClearedCtrl.stream;
   Stream<Map<String, dynamic>> get messageDeletedStream => _messageDeletedCtrl.stream;
   Stream<Map<String, dynamic>> get messageAckedStream => _messageAckedCtrl.stream;
   Stream<Map<String, dynamic>> get typingStream => _typingCtrl.stream;
@@ -638,6 +656,52 @@ class MessengerRemoteDataSource {
     );
   }
 
+  // ─── REST: Pins ───
+
+  Future<Map<String, dynamic>> pinMessage(String conversationId, String messageId) async {
+    return _http.post(
+      '/messenger/conversations/$conversationId/messages/$messageId/pin',
+      data: {},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<Map<String, dynamic>> unpinMessage(String conversationId, String messageId) async {
+    return _http.deleteWithResponse(
+      '/messenger/conversations/$conversationId/messages/$messageId/pin',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  Future<List<MessageEntity>> getPinnedMessages(String conversationId) async {
+    final data = await _http.get(
+      '/messenger/conversations/$conversationId/pinned',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    final list = (data['messages'] as List?) ?? const [];
+    return list
+        .map((e) => MessageEntity.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> unpinAll(String conversationId) async {
+    return _http.deleteWithResponse(
+      '/messenger/conversations/$conversationId/pinned',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
+  /// [upTo] is the pinnedAt of the top pin the user actually saw. Without it
+  /// the backend falls back to the conversation's newest pinnedAt, silently
+  /// hiding a pin that arrived while the request was in flight.
+  Future<Map<String, dynamic>> dismissPins(String conversationId, {DateTime? upTo}) async {
+    return _http.post(
+      '/messenger/conversations/$conversationId/pinned/dismiss',
+      data: {if (upTo != null) 'upTo': upTo.toUtc().toIso8601String()},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
   // ─── Channels ───────────────────────────────────────────────
 
   Future<List<ChannelSummary>> listChannels({String? q, int limit = 20, int offset = 0}) async {
@@ -770,5 +834,8 @@ class MessengerRemoteDataSource {
     _topicUpdatedCtrl.close();
     _analystChunkCtrl.close();
     _analystSeamCtrl.close();
+    _messagePinnedCtrl.close();
+    _messageUnpinnedCtrl.close();
+    _pinsClearedCtrl.close();
   }
 }
