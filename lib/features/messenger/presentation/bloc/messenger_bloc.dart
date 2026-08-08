@@ -47,6 +47,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   StreamSubscription? _groupDeletedSub;
   StreamSubscription? _groupCallStartedSub;
   StreamSubscription? _groupCallEndedSub;
+  StreamSubscription? _messagePinnedSub;
+  StreamSubscription? _messageUnpinnedSub;
+  StreamSubscription? _pinsClearedSub;
   StreamSubscription? _msgDeletedSub;
   StreamSubscription? _msgAckedSub;
   StreamSubscription? _typingSub;
@@ -144,6 +147,12 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     on<LoadSentContactRequests>(_onLoadSentContactRequests);
     on<ReactToMessage>(_onReactToMessage);
     on<ReactionUpdated>(_onReactionUpdated);
+    // Pin handlers
+    on<PinMessage>(_onPinMessage);
+    on<UnpinMessage>(_onUnpinMessage);
+    on<UnpinAllMessages>(_onUnpinAllMessages);
+    on<DismissPins>(_onDismissPins);
+    on<PinEventReceived>(_onPinEventReceived);
     on<LoadBadgeCounts>(_onLoadBadgeCounts);
     on<UpdateBadgeCounts>(_onUpdateBadgeCounts);
     on<SocketErrorReceived>((event, emit) => emit(state.copyWith(socketError: event.message)));
@@ -290,6 +299,19 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       if (convId != null) {
         add(GroupCallEnded(convId));
       }
+    });
+    // Pin socket listeners
+    _messagePinnedSub?.cancel();
+    _messagePinnedSub = _repo.messagePinnedStream.listen((data) {
+      add(PinEventReceived('message_pinned', data));
+    });
+    _messageUnpinnedSub?.cancel();
+    _messageUnpinnedSub = _repo.messageUnpinnedStream.listen((data) {
+      add(PinEventReceived('message_unpinned', data));
+    });
+    _pinsClearedSub?.cancel();
+    _pinsClearedSub = _repo.pinsClearedStream.listen((data) {
+      add(PinEventReceived('pins_cleared', data));
     });
     _msgDeletedSub?.cancel();
     _msgDeletedSub = _repo.messageDeletedStream.listen((data) {
@@ -1336,6 +1358,9 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     _groupDeletedSub?.cancel();
     _groupCallStartedSub?.cancel();
     _groupCallEndedSub?.cancel();
+    _messagePinnedSub?.cancel();
+    _messageUnpinnedSub?.cancel();
+    _pinsClearedSub?.cancel();
     _msgDeletedSub?.cancel();
     _msgAckedSub?.cancel();
     _typingSub?.cancel();
@@ -1380,6 +1405,76 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       }).toList();
       emit(state.copyWith(conversations: updated));
     } catch (_) {}
+  }
+
+  // ─── Pin handlers ───
+
+  /// Returns [state] with [conversationId]'s `pinnedCount` replaced by
+  /// [pinnedCount]. Every pin/unpin path (optimistic REST response AND
+  /// socket echo) funnels through this helper so they cannot drift out of
+  /// sync with each other. Returns [state] unchanged if the conversation
+  /// isn't present (e.g. a stale/unknown id from a socket event) — the
+  /// pinned bar itself re-fetches the pin list on a count change, so this
+  /// handler only needs to keep the count current, never the list.
+  MessengerState _withPinnedCount(String conversationId, int pinnedCount) {
+    final idx = state.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx == -1) return state;
+    final updated = List<ConversationEntity>.from(state.conversations);
+    updated[idx] = updated[idx].copyWith(pinnedCount: pinnedCount);
+    return state.copyWith(conversations: updated);
+  }
+
+  Future<void> _onPinMessage(PinMessage event, Emitter<MessengerState> emit) async {
+    try {
+      final result = await _repo.pinMessage(event.conversationId, event.messageId);
+      final pinnedCount = result['pinnedCount'] as int? ?? 0;
+      emit(_withPinnedCount(event.conversationId, pinnedCount));
+    } catch (_) {}
+  }
+
+  Future<void> _onUnpinMessage(UnpinMessage event, Emitter<MessengerState> emit) async {
+    try {
+      final result = await _repo.unpinMessage(event.conversationId, event.messageId);
+      final pinnedCount = result['pinnedCount'] as int? ?? 0;
+      emit(_withPinnedCount(event.conversationId, pinnedCount));
+    } catch (_) {}
+  }
+
+  Future<void> _onUnpinAllMessages(UnpinAllMessages event, Emitter<MessengerState> emit) async {
+    try {
+      await _repo.unpinAll(event.conversationId);
+      emit(_withPinnedCount(event.conversationId, 0));
+    } catch (_) {}
+  }
+
+  Future<void> _onDismissPins(DismissPins event, Emitter<MessengerState> emit) async {
+    try {
+      final result = await _repo.dismissPins(event.conversationId, upTo: event.upTo);
+      final pinsDismissedAt = result['pinsDismissedAt'] != null
+          ? DateTime.parse(result['pinsDismissedAt'] as String)
+          : null;
+      final idx = state.conversations.indexWhere((c) => c.id == event.conversationId);
+      if (idx == -1) return;
+      final updated = List<ConversationEntity>.from(state.conversations);
+      updated[idx] = updated[idx].copyWith(pinsDismissedAt: pinsDismissedAt);
+      emit(state.copyWith(conversations: updated));
+    } catch (_) {}
+  }
+
+  void _onPinEventReceived(PinEventReceived event, Emitter<MessengerState> emit) {
+    final convId = event.data['conversationId'] as String?;
+    if (convId == null) return;
+    switch (event.type) {
+      case 'message_pinned':
+      case 'message_unpinned':
+        final pinnedCount = event.data['pinnedCount'] as int?;
+        if (pinnedCount == null) return;
+        emit(_withPinnedCount(convId, pinnedCount));
+        break;
+      case 'pins_cleared':
+        emit(_withPinnedCount(convId, 0));
+        break;
+    }
   }
 
   // ─── Group call handlers ───
