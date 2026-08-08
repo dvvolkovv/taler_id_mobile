@@ -52,11 +52,13 @@ import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
+import '../../domain/repositories/i_messenger_repository.dart';
 import '../../data/datasources/messenger_remote_datasource.dart';
 import '../widgets/typing_dots.dart';
 import '../widgets/message_info_sheet.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
+import '../widgets/pinned_banner.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../utils/recipient_filters.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
@@ -139,6 +141,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   int _deepLinkLoadAttempts = 0;
   // Scroll-to-bottom button
   bool _showScrollToBottom = false;
+
+  // Pinned messages bar (Task 12). Loaded lazily whenever the resolved
+  // conversation's `pinnedCount` no longer matches `_pinsLoadedForCount` —
+  // see `_loadPins` for why the count itself is never rendered.
+  List<MessageEntity> _pins = [];
+  int _pinsLoadedForCount = 0;
 
   // Viewport-driven read-horizon reporting (Telegram-style): tracks the
   // furthest incoming message actually scrolled into view, debounced.
@@ -1710,6 +1718,87 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  /// Pinned-bar "jump" callback (Task 12) — reuses the same search-match
+  /// highlight + scroll mechanics as `_maybeHighlightDeepLinkedMessage`
+  /// above. If the pin isn't in the currently loaded page, do nothing: no
+  /// pagination here, the pinned-list screen (next task) handles deep jumps.
+  void _onPinJump(String messageId) {
+    // Search owns _searchMatchChronIndices/_searchCurrentMatchIdx while it is
+    // open; jumping from the banner would repurpose its counter and arrows
+    // mid-search. Same guard as _maybeHighlightDeepLinkedMessage.
+    if (_searchMode) return;
+    final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    final idx = messages.indexWhere((m) => m.id == messageId);
+    if (idx < 0) return;
+    setState(() {
+      _searchMatchChronIndices = [idx];
+      _searchCurrentMatchIdx = 0;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToChronIndex(idx);
+    });
+  }
+
+  /// Loads (or refreshes) the pinned list once [pinnedCount] no longer
+  /// matches what's already loaded (or was last attempted).
+  ///
+  /// `pinnedCount` has two writers — the REST response and the device's own
+  /// socket echo — with no ordering guarantee between them, so it can be
+  /// briefly wrong. It is therefore used ONLY as a trigger to refetch the
+  /// list; the bar always renders `pins.length`, never `pinnedCount` itself.
+  /// A stale count then costs one redundant request instead of a wrong UI.
+  ///
+  /// [pinnedCount] doubles as a generation token: if a newer call overtakes
+  /// this one while the request is in flight, the newer call's response is
+  /// authoritative and this one's result is dropped instead of racing it.
+  /// On failure the key is released (`-1`, never a real count) so the next
+  /// rebuild can retry — otherwise one failed fetch would leave the bar
+  /// stale until the count happened to change again.
+  Future<void> _loadPins(int pinnedCount) async {
+    if (_pinsLoadedForCount == pinnedCount) return;
+    _pinsLoadedForCount = pinnedCount;
+    if (pinnedCount == 0) {
+      // Known-empty — no need to round-trip the server to learn that.
+      if (mounted) setState(() => _pins = const []);
+      return;
+    }
+    try {
+      final pins =
+          await sl<IMessengerRepository>().getPinnedMessages(widget.conversationId);
+      if (!mounted || _pinsLoadedForCount != pinnedCount) return;
+      setState(() => _pins = pins);
+    } catch (_) {
+      // The bar is decoration on top of a working chat — no error surfaced,
+      // just release the key (if a newer generation hasn't already moved it)
+      // so a future rebuild retries instead of staying stuck.
+      if (_pinsLoadedForCount == pinnedCount) _pinsLoadedForCount = -1;
+    }
+  }
+
+  /// Dismiss the pinned bar for this user. Sends the `pinnedAt` of the
+  /// newest loaded pin that actually carries one (pins are newest-first) as
+  /// `upTo`. Without it the server falls back to ITS newest pin's
+  /// timestamp, which could silently swallow a pin that arrived while the
+  /// request was in flight and that this client never showed.
+  void _onPinDismiss() {
+    if (_pins.isEmpty) return;
+    // `pinnedAt` is nullable on MessageEntity in general (unpinned messages
+    // carry null); every entry in `_pins` came from getPinnedMessages, so it
+    // should always be set here. Guard anyway instead of trusting that
+    // invariant blindly: skip forward to the newest pin that does carry a
+    // timestamp rather than send `upTo: null`, which would silently reopen
+    // the exact swallow-a-pin race this parameter exists to close.
+    final upTo = _pins.map((p) => p.pinnedAt).firstWhere(
+          (at) => at != null,
+          orElse: () => null,
+        );
+    _messengerBloc.add(DismissPins(widget.conversationId, upTo: upTo));
+  }
+
+  /// TODO(Task 13): navigate to the full pinned-messages list screen. That
+  /// screen doesn't exist yet — until it lands this is intentionally a no-op.
+  void _onOpenPinnedList() {}
+
   void _goToOlderMatch() {
     if (_searchMatchChronIndices.isEmpty || _searchCurrentMatchIdx <= 0) return;
     final newIdx = _searchCurrentMatchIdx - 1;
@@ -2302,11 +2391,28 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           final isGroup = conv?.type == 'GROUP';
           final otherUserName = conv?.otherUserName;
           final activeRoomName = state.activeGroupCalls[widget.conversationId];
+          // Pinned messages bar (Task 12): kick off a (re)load whenever the
+          // conversation's pinnedCount moves, and work out visibility from
+          // the loaded list — never from pinnedCount (see _loadPins).
+          if (conv != null) unawaited(_loadPins(conv.pinnedCount));
+          final pinsDismissedAt = conv?.pinsDismissedAt;
+          final newestPinAt = _pins.isNotEmpty ? _pins.first.pinnedAt : null;
+          final pinsBarHidden = pinsDismissedAt != null &&
+              (newestPinAt == null || !newestPinAt.isAfter(pinsDismissedAt));
+          final showPinsBar = _pins.isNotEmpty && !pinsBarHidden;
           return Column(
             children: [
               // Connectivity warning banner — shown at TOP when socket disconnected
               if (_socketDisconnected)
                 _ConnectivityBanner(),
+              // Pinned messages bar (Task 12)
+              if (showPinsBar)
+                PinnedBanner(
+                  pins: _pins,
+                  onJump: _onPinJump,
+                  onDismiss: _onPinDismiss,
+                  onOpenList: _onOpenPinnedList,
+                ),
               // Active call banner for group conversations
               if (isGroup && activeRoomName != null)
                 _ActiveCallBanner(
