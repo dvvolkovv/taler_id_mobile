@@ -212,6 +212,11 @@ void main() {
     when(() => repo.groupDeletedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.groupCallStartedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.groupCallEndedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    // Pin streams — stub required after messagePinnedStream/messageUnpinnedStream/
+    // pinsClearedStream were added to IMessengerRepository.
+    when(() => repo.messagePinnedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.messageUnpinnedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.pinsClearedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.typingStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.contactRequestStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.contactAcceptedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());

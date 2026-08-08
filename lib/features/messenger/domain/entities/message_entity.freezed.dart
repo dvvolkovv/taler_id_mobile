@@ -52,6 +52,10 @@ mixin _$MessageEntity {
   /// Null (or absent in server JSON) means the normal socket/REST path.
   String? get transport => throw _privateConstructorUsedError;
 
+  /// Pin state: null means the message is not pinned.
+  DateTime? get pinnedAt => throw _privateConstructorUsedError;
+  String? get pinnedById => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $MessageEntityCopyWith<MessageEntity> get copyWith =>
@@ -90,7 +94,9 @@ abstract class $MessageEntityCopyWith<$Res> {
       List<String>? threadLastReplierAvatars,
       String? topicId,
       Map<String, dynamic>? metadata,
-      String? transport});
+      String? transport,
+      DateTime? pinnedAt,
+      String? pinnedById});
 }
 
 /// @nodoc
@@ -132,6 +138,8 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? topicId = freezed,
     Object? metadata = freezed,
     Object? transport = freezed,
+    Object? pinnedAt = freezed,
+    Object? pinnedById = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -238,6 +246,14 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.transport
           : transport // ignore: cast_nullable_to_non_nullable
               as String?,
+      pinnedAt: freezed == pinnedAt
+          ? _value.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      pinnedById: freezed == pinnedById
+          ? _value.pinnedById
+          : pinnedById // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -276,7 +292,9 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       List<String>? threadLastReplierAvatars,
       String? topicId,
       Map<String, dynamic>? metadata,
-      String? transport});
+      String? transport,
+      DateTime? pinnedAt,
+      String? pinnedById});
 }
 
 /// @nodoc
@@ -316,6 +334,8 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? topicId = freezed,
     Object? metadata = freezed,
     Object? transport = freezed,
+    Object? pinnedAt = freezed,
+    Object? pinnedById = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -422,6 +442,14 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value.transport
           : transport // ignore: cast_nullable_to_non_nullable
               as String?,
+      pinnedAt: freezed == pinnedAt
+          ? _value.pinnedAt
+          : pinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      pinnedById: freezed == pinnedById
+          ? _value.pinnedById
+          : pinnedById // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -455,7 +483,9 @@ class _$MessageEntityImpl implements _MessageEntity {
       final List<String>? threadLastReplierAvatars,
       this.topicId,
       final Map<String, dynamic>? metadata,
-      this.transport})
+      this.transport,
+      this.pinnedAt,
+      this.pinnedById})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars,
         _metadata = metadata;
@@ -547,9 +577,15 @@ class _$MessageEntityImpl implements _MessageEntity {
   @override
   final String? transport;
 
+  /// Pin state: null means the message is not pinned.
+  @override
+  final DateTime? pinnedAt;
+  @override
+  final String? pinnedById;
+
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById)';
   }
 
   @override
@@ -600,7 +636,11 @@ class _$MessageEntityImpl implements _MessageEntity {
             (identical(other.topicId, topicId) || other.topicId == topicId) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata) &&
             (identical(other.transport, transport) ||
-                other.transport == transport));
+                other.transport == transport) &&
+            (identical(other.pinnedAt, pinnedAt) ||
+                other.pinnedAt == pinnedAt) &&
+            (identical(other.pinnedById, pinnedById) ||
+                other.pinnedById == pinnedById));
   }
 
   @JsonKey(ignore: true)
@@ -632,7 +672,9 @@ class _$MessageEntityImpl implements _MessageEntity {
         const DeepCollectionEquality().hash(_threadLastReplierAvatars),
         topicId,
         const DeepCollectionEquality().hash(_metadata),
-        transport
+        transport,
+        pinnedAt,
+        pinnedById
       ]);
 
   @JsonKey(ignore: true)
@@ -676,7 +718,9 @@ abstract class _MessageEntity implements MessageEntity {
       final List<String>? threadLastReplierAvatars,
       final String? topicId,
       final Map<String, dynamic>? metadata,
-      final String? transport}) = _$MessageEntityImpl;
+      final String? transport,
+      final DateTime? pinnedAt,
+      final String? pinnedById}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -736,6 +780,12 @@ abstract class _MessageEntity implements MessageEntity {
   /// Phase 1f — "mesh" for messages delivered via MeshMessagingService.
   /// Null (or absent in server JSON) means the normal socket/REST path.
   String? get transport;
+  @override
+
+  /// Pin state: null means the message is not pinned.
+  DateTime? get pinnedAt;
+  @override
+  String? get pinnedById;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

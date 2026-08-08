@@ -1873,5 +1873,32 @@
     }
   },
   "trustedDevicesRevoke": "Revoke",
-  "trustedDevicesRevokeConfirm": "Revoke trust for this device? It will be signed out."
+  "trustedDevicesRevokeConfirm": "Revoke trust for this device? It will be signed out.",
+  "pinnedMessage": "Pinned message",
+  "pinnedMessagesTitle": "Pinned",
+  "pinAction": "Pin",
+  "unpinAction": "Unpin",
+  "unpinAllAction": "Unpin all",
+  "noPinnedMessages": "No pinned messages",
+  "pinnedCounter": "{current} of {total}",
+  "@pinnedCounter": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "messagePinnedBy": "{actor} pinned a message",
+  "@messagePinnedBy": {
+    "placeholders": {
+      "actor": {
+        "type": "String"
+      }
+    }
+  },
+  "unpinAllConfirm": "Unpin all messages in this chat?",
+  "pinnedMessageNotLoaded": "Message not loaded — scroll up to find it"
 }

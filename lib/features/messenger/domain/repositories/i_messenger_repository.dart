@@ -63,6 +63,15 @@ abstract class IMessengerRepository {
   // Mute methods
   Future<Map<String, dynamic>> muteConversation(String conversationId, {int? durationMinutes});
   Future<void> unmuteConversation(String conversationId);
+  // Pin methods
+  Future<Map<String, dynamic>> pinMessage(String conversationId, String messageId);
+  Future<Map<String, dynamic>> unpinMessage(String conversationId, String messageId);
+  Future<List<MessageEntity>> getPinnedMessages(String conversationId);
+  Future<Map<String, dynamic>> unpinAll(String conversationId);
+  Future<Map<String, dynamic>> dismissPins(String conversationId, {DateTime? upTo});
+  Stream<Map<String, dynamic>> get messagePinnedStream;
+  Stream<Map<String, dynamic>> get messageUnpinnedStream;
+  Stream<Map<String, dynamic>> get pinsClearedStream;
   // Analyst streams
   Stream<AnalystChunk> get analystChunkStream;
   Stream<AnalystSeam>  get analystSeamStream;

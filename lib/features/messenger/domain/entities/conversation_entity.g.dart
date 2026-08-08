@@ -44,6 +44,14 @@ _$ConversationEntityImpl _$$ConversationEntityImplFromJson(
       slowMode: json['slowMode'] as bool? ?? false,
       topicsEnabled: json['topicsEnabled'] as bool? ?? false,
       autoDeleteDays: (json['autoDeleteDays'] as num?)?.toInt(),
+      pinnedCount: (json['pinnedCount'] as num?)?.toInt() ?? 0,
+      topPinned: json['topPinned'] == null
+          ? null
+          : PinnedPreviewEntity.fromJson(
+              json['topPinned'] as Map<String, dynamic>),
+      pinsDismissedAt: json['pinsDismissedAt'] == null
+          ? null
+          : DateTime.parse(json['pinsDismissedAt'] as String),
     );
 
 Map<String, dynamic> _$$ConversationEntityImplToJson(
@@ -76,4 +84,7 @@ Map<String, dynamic> _$$ConversationEntityImplToJson(
       'slowMode': instance.slowMode,
       'topicsEnabled': instance.topicsEnabled,
       'autoDeleteDays': instance.autoDeleteDays,
+      'pinnedCount': instance.pinnedCount,
+      'topPinned': instance.topPinned?.toJson(),
+      'pinsDismissedAt': instance.pinsDismissedAt?.toIso8601String(),
     };

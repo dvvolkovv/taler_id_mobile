@@ -40,6 +40,10 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
       topicId: json['topicId'] as String?,
       metadata: json['metadata'] as Map<String, dynamic>?,
       transport: json['transport'] as String?,
+      pinnedAt: json['pinnedAt'] == null
+          ? null
+          : DateTime.parse(json['pinnedAt'] as String),
+      pinnedById: json['pinnedById'] as String?,
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -70,4 +74,6 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'topicId': instance.topicId,
       'metadata': instance.metadata,
       'transport': instance.transport,
+      'pinnedAt': instance.pinnedAt?.toIso8601String(),
+      'pinnedById': instance.pinnedById,
     };

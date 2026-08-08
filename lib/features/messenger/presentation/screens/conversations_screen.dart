@@ -1566,6 +1566,7 @@ class _ConversationTile extends StatelessWidget {
         case 'member_left': return l10n.memberLeftGroup(actor);
         case 'member_removed': return l10n.memberWasRemoved(target);
         case 'role_changed': return l10n.roleChangedTo(target, role);
+        case 'message_pinned': return l10n.messagePinnedBy(actor);
         default: return content;
       }
     } catch (_) {
