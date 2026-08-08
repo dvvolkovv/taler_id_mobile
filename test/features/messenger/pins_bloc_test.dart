@@ -107,6 +107,9 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
 
     expect(bloc.state.conversations.firstWhere((c) => c.id == 'conv-1').pinnedCount, 0);
+    // Without this the handler could drop the repository call entirely and
+    // still pass, since the emitted count is hardcoded to 0.
+    verify(() => repo.unpinAll('conv-1')).called(1);
     await bloc.close();
   });
 
