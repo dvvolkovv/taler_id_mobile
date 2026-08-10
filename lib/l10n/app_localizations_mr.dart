@@ -4027,4 +4027,16 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get chatMentionNotFound => 'User not found';
+
+  @override
+  String get chatTranscribeVoice => 'Transcribe';
+
+  @override
+  String get chatTranscribing => 'Transcribing…';
+
+  @override
+  String get chatTranscribeEmpty => 'Nothing audible in this recording';
+
+  @override
+  String get chatTranscribeFailed => 'Could not transcribe';
 }

@@ -7587,6 +7587,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'User not found'**
   String get chatMentionNotFound;
+
+  /// No description provided for @chatTranscribeVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe'**
+  String get chatTranscribeVoice;
+
+  /// No description provided for @chatTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
+  String get chatTranscribing;
+
+  /// No description provided for @chatTranscribeEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing audible in this recording'**
+  String get chatTranscribeEmpty;
+
+  /// No description provided for @chatTranscribeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not transcribe'**
+  String get chatTranscribeFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -4044,4 +4044,16 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatMentionNotFound => 'Пользователь не найден';
+
+  @override
+  String get chatTranscribeVoice => 'Расшифровать';
+
+  @override
+  String get chatTranscribing => 'Расшифровываю…';
+
+  @override
+  String get chatTranscribeEmpty => 'В записи ничего не разобрать';
+
+  @override
+  String get chatTranscribeFailed => 'Не удалось расшифровать';
 }

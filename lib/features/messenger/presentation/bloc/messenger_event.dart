@@ -51,6 +51,9 @@ class SendMessage extends MessengerEvent {
   final String? topicId;
   /// id сообщения, на которое отвечают; null у обычной отправки.
   final String? replyToId;
+  /// Дорожка и длительность голосового; у остальных сообщений null.
+  final List<double>? waveform;
+  final int? durationMs;
   const SendMessage(
     this.conversationId,
     this.content, {
@@ -65,6 +68,8 @@ class SendMessage extends MessengerEvent {
     this.fileRecordId,
     this.topicId,
     this.replyToId,
+    this.waveform,
+    this.durationMs,
   });
   @override
   List<Object?> get props => [conversationId, content, fileUrl, fileName, replyToId];

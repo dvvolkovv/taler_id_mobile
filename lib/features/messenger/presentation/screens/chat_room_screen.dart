@@ -54,6 +54,7 @@ import '../../domain/entities/reply_preview_entity.dart';
 import '../../domain/entities/user_search_entity.dart';
 import 'user_profile_screen.dart';
 import '../../utils/unread_anchor.dart';
+import '../../utils/voice_meta.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -65,6 +66,7 @@ import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../widgets/pinned_banner.dart';
 import '../widgets/link_preview_card.dart';
+import '../widgets/voice_transcript.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../utils/recipient_filters.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
@@ -116,6 +118,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   String? _recordingPath;
   double _prevKeyboardHeight = 0;
   Timer? _draftSyncTimer;
+  Timer? _amplitudeTimer;
+  /// Снятые во время записи громкости, до сжатия в дорожку.
+  final List<double> _recordedPeaks = [];
+  DateTime? _recordStartedAt;
   /// Незавершённый @логин под курсором; null — подсказки не показываем.
   String? _mentionQuery;
   bool _membersRequested = false;
@@ -1446,11 +1452,58 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final dir = await getTemporaryDirectory();
     final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
     await _recorder.start(const RecordConfig(encoder: AudioEncoder.aacLc), path: path);
+    _recordedPeaks.clear();
+    _recordStartedAt = DateTime.now();
+    // Дорожку снимаем во время записи: восстановить её из готового файла на
+    // клиенте нечем, а раньше вместо неё рисовался узор из хеша ссылки —
+    // красиво, но к звуку отношения не имеющий.
+    _amplitudeTimer?.cancel();
+    _amplitudeTimer = Timer.periodic(const Duration(milliseconds: 120), (_) async {
+      try {
+        final amp = await _recorder.getAmplitude();
+        // current приходит в дБ (отрицательные, 0 — максимум). Переводим в
+        // 0..1 по шкале в 45 дБ: ниже этого — фоновая тишина.
+        final db = amp.current;
+        final norm = ((db + 45) / 45).clamp(0.0, 1.0);
+        _recordedPeaks.add(norm);
+      } catch (_) {
+        // Платформа может не отдавать амплитуду — тогда просто останемся без
+        // дорожки, сообщение от этого не пострадает.
+      }
+    });
     setState(() { _isRecording = true; _recordingPath = path; });
   }
 
+  /// Сжимает снятые пики до [WAVEFORM_BARS] столбиков.
+  ///
+  /// Записывали каждые 120 мс, а нарисовать надо фиксированное число полосок:
+  /// берём максимум по каждому окну — пик слышен, а среднее сглаживает речь в
+  /// ровную линию.
+  List<double> _buildRecordedWaveform() {
+    if (_recordedPeaks.isEmpty) return const [];
+    if (_recordedPeaks.length <= WAVEFORM_BARS) return List.of(_recordedPeaks);
+    final out = <double>[];
+    final window = _recordedPeaks.length / WAVEFORM_BARS;
+    for (var i = 0; i < WAVEFORM_BARS; i++) {
+      final from = (i * window).floor();
+      final to = (((i + 1) * window).ceil()).clamp(from + 1, _recordedPeaks.length);
+      var peak = 0.0;
+      for (var j = from; j < to; j++) {
+        if (_recordedPeaks[j] > peak) peak = _recordedPeaks[j];
+      }
+      out.add(peak);
+    }
+    return out;
+  }
+
   Future<void> _stopRecordingAndSend() async {
+    _amplitudeTimer?.cancel();
+    _amplitudeTimer = null;
     final path = await _recorder.stop();
+    final waveform = _buildRecordedWaveform();
+    final durationMs = _recordStartedAt == null
+        ? null
+        : DateTime.now().difference(_recordStartedAt!).inMilliseconds;
     setState(() { _isRecording = false; });
     if (path == null || !mounted) return;
     try {
@@ -1473,7 +1526,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         fileName: res['fileName'] as String,
         fileSize: res['fileSize'] as int?,
         fileType: 'audio',
+        // s3Key раньше не передавался, и голосовые оставались без ссылки на
+        // сам объект в хранилище — расшифровать их было нечем.
+        s3Key: res['s3Key'] as String?,
         topicId: widget.topicId,
+        waveform: waveform.isEmpty ? null : waveform,
+        durationMs: durationMs,
       ));
       file.deleteSync();
     } catch (e) {
@@ -1697,6 +1755,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       }
     }
     _draftSyncTimer?.cancel();
+    _amplitudeTimer?.cancel();
     _readDebounce?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();
@@ -4085,7 +4144,18 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 ),
               )
             else if (widget.message.fileUrl != null && _effectiveFileType(widget.message) == 'audio')
-              _AudioMessagePlayer(fileUrl: widget.message.fileUrl!, isMe: widget.isMe)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _AudioMessagePlayer(
+                    fileUrl: widget.message.fileUrl!,
+                    isMe: widget.isMe,
+                    waveform: waveformOf(widget.message),
+                  ),
+                  VoiceTranscript(message: widget.message, isMe: widget.isMe),
+                ],
+              )
             else if (widget.message.fileUrl != null)
               _DocumentBubble(
                 fileUrl: widget.message.fileUrl!,
@@ -5810,10 +5880,21 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
   }
 }
 
+/// Сколько столбиков в дорожке. Одно число и для снятия при записи, и для
+/// отрисовки — иначе записанное и показанное разъедутся по плотности.
+const int WAVEFORM_BARS = 28;
+
 class _AudioMessagePlayer extends StatefulWidget {
   final String fileUrl;
   final bool isMe;
-  const _AudioMessagePlayer({required this.fileUrl, required this.isMe});
+  /// Настоящая дорожка, снятая при записи. Пусто у сообщений, записанных до
+  /// появления этой возможности, и у присланных со стороны.
+  final List<double> waveform;
+  const _AudioMessagePlayer({
+    required this.fileUrl,
+    required this.isMe,
+    this.waveform = const [],
+  });
 
   @override
   State<_AudioMessagePlayer> createState() => _AudioMessagePlayerState();
@@ -5830,7 +5911,12 @@ class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
   @override
   void initState() {
     super.initState();
-    _waveform = _buildWaveform(widget.fileUrl);
+    // Настоящая дорожка, если она есть; иначе — прежний узор из хеша ссылки.
+    // Он ничего не говорит о звуке, но пустое место на его месте выглядело бы
+    // поломкой, а старых голосовых в переписке много.
+    _waveform = widget.waveform.isNotEmpty
+        ? widget.waveform
+        : _buildWaveform(widget.fileUrl);
     _player.onPositionChanged.listen((p) {
       if (mounted) setState(() => _position = p);
     });
@@ -5848,10 +5934,11 @@ class _AudioMessagePlayerState extends State<_AudioMessagePlayer> {
     super.dispose();
   }
 
-  /// Deterministic pseudo-random waveform from URL hash.
+  /// Запасной узор из хеша ссылки — для голосовых без снятой дорожки.
+  /// К содержимому записи отношения не имеет, только заполняет место.
   static List<double> _buildWaveform(String url) {
     var h = url.hashCode;
-    return List.generate(28, (_) {
+    return List.generate(WAVEFORM_BARS, (_) {
       h = ((h * 1664525 + 1013904223) & 0x7FFFFFFF);
       return 0.15 + (h & 0xFF) / 255.0 * 0.85;
     });

@@ -393,12 +393,16 @@ class MessengerRemoteDataSource {
     String? clientTempId,
     String? origin,
     String? replyToId,
+    List<double>? waveform,
+    int? durationMs,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
     if (clientTempId != null) payload['clientTempId'] = clientTempId;
     if (topicId != null) payload['topicId'] = topicId;
     if (origin != null) payload['origin'] = origin;
     if (replyToId != null) payload['replyToId'] = replyToId;
+    if (waveform != null && waveform.isNotEmpty) payload['waveform'] = waveform;
+    if (durationMs != null) payload['durationMs'] = durationMs;
     if (fileUrl != null) {
       payload['fileUrl'] = fileUrl;
       payload['fileName'] = fileName;
@@ -683,6 +687,17 @@ class MessengerRemoteDataSource {
       fromJson: (d) => Map<String, dynamic>.from(d as Map),
     );
     return data['url'] == null ? null : data;
+  }
+
+  /// Расшифровка голосового сообщения. Второй вызов возвращает готовый текст
+  /// и повторно не тарифицируется.
+  Future<String> transcribeVoice(String messageId) async {
+    final data = await _http.post(
+      '/messenger/messages/$messageId/transcribe',
+      data: {},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return (data['transcript'] as String?) ?? '';
   }
 
   /// Черновик беседы. Пустая строка стирает его.

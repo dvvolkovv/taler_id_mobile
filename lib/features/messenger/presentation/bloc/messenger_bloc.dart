@@ -925,6 +925,8 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       topicId: event.topicId,
       clientTempId: tempId,
       replyToId: event.replyToId,
+      waveform: event.waveform,
+      durationMs: event.durationMs,
     );
 
     // Donate to iOS share sheet suggestions

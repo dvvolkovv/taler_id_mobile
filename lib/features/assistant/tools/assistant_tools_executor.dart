@@ -482,6 +482,16 @@ class AssistantToolsExecutor {
           ));
           output = jsonEncode({'ok': true, 'forwarded': sent.length});
         }
+      } else if (name == 'transcribe_voice_message') {
+        final text = await sl<MessengerRemoteDataSource>()
+            .transcribeVoice(args['messageId'] as String);
+        output = jsonEncode({
+          'ok': true,
+          // Пустая строка — это тишина в записи, а не сбой: пусть ассистент
+          // так и скажет, вместо того чтобы предлагать повторить.
+          'transcript': text,
+          'empty': text.trim().isEmpty,
+        });
       } else if (name == 'archive_conversation') {
         final convId = args['conversationId'] as String;
         final archived = args['archived'] == true;

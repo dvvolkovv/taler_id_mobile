@@ -91,6 +91,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
     String? topicId,
     String? clientTempId,
     String? replyToId,
+    List<double>? waveform,
+    int? durationMs,
   }) {
     // Always-on server path when socket is connected. Server fans out to all
     // members of the conversation (1:1 echo or group fanout).
@@ -110,6 +112,8 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         topicId: topicId,
         clientTempId: clientTempId,
         replyToId: replyToId,
+        waveform: waveform,
+        durationMs: durationMs,
       );
     }
     // (When socket is offline, MessengerBloc's _resendPending will retry on
@@ -127,6 +131,10 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       clientTempId: clientTempId,
     );
   }
+
+  @override
+  Future<String> transcribeVoice(String messageId) =>
+      _remote.transcribeVoice(messageId);
 
   @override
   Future<void> saveDraft(String conversationId, String text) =>

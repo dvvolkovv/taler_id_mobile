@@ -1923,5 +1923,9 @@
   },
   "chatSelect": "Выделить",
   "convDraftLabel": "Черновик",
-  "chatMentionNotFound": "Пользователь не найден"
+  "chatMentionNotFound": "Пользователь не найден",
+  "chatTranscribeVoice": "Расшифровать",
+  "chatTranscribing": "Расшифровываю…",
+  "chatTranscribeEmpty": "В записи ничего не разобрать",
+  "chatTranscribeFailed": "Не удалось расшифровать"
 }

@@ -537,6 +537,19 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'transcribe_voice_message',
+            'description':
+                'Turn a voice message into text. Use when the user asks what a voice message says, or cannot listen right now — "что там в голосовом", "расшифруй голосовое", "прочитай мне это сообщение". Costs balance the first time; repeated calls return the stored text for free.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'messageId': {'type': 'string', 'description': 'Id of the voice message'},
+              },
+              'required': ['messageId'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'archive_conversation',
             'description':
                 'Archive or unarchive a chat — it moves out of the main list into Archived (and back). Personal: the other side sees nothing. Use for "убери этот чат", "заархивируй переписку", "верни чат из архива".',

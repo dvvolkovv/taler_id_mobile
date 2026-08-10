@@ -1930,5 +1930,9 @@
   },
   "chatSelect": "Select",
   "convDraftLabel": "Draft",
-  "chatMentionNotFound": "User not found"
+  "chatMentionNotFound": "User not found",
+  "chatTranscribeVoice": "Transcribe",
+  "chatTranscribing": "Transcribing…",
+  "chatTranscribeEmpty": "Nothing audible in this recording",
+  "chatTranscribeFailed": "Could not transcribe"
 }
