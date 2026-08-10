@@ -90,6 +90,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
     String? fileRecordId,
     String? topicId,
     String? clientTempId,
+    String? replyToId,
   }) {
     // Always-on server path when socket is connected. Server fans out to all
     // members of the conversation (1:1 echo or group fanout).
@@ -108,6 +109,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         fileRecordId: fileRecordId,
         topicId: topicId,
         clientTempId: clientTempId,
+        replyToId: replyToId,
       );
     }
     // (When socket is offline, MessengerBloc's _resendPending will retry on
@@ -115,6 +117,9 @@ class MessengerRepositoryImpl implements IMessengerRepository {
 
     // Phase 2 mesh fanout — text-only (attachments stay server-side).
     if (fileUrl != null || s3Key != null) return;
+    // Ответы через mesh не уходят: у пира нет оригинала, на который ссылается
+    // replyToId, и цитата отрисовалась бы пустой. Серверный путь их доставит.
+    if (replyToId != null) return;
     // ignore: unawaited_futures
     _meshFanout(
       conversationId: conversationId,
@@ -122,6 +127,13 @@ class MessengerRepositoryImpl implements IMessengerRepository {
       clientTempId: clientTempId,
     );
   }
+
+  @override
+  Future<List<MessageEntity>> forwardMessages(
+    String targetConversationId,
+    List<String> messageIds,
+  ) =>
+      _remote.forwardMessages(targetConversationId, messageIds);
 
   Future<void> _meshFanout({
     required String conversationId,

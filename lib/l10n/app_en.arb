@@ -1900,5 +1900,32 @@
     }
   },
   "unpinAllConfirm": "Unpin all messages in this chat?",
-  "pinnedMessageNotLoaded": "Message not loaded — scroll up to find it"
+  "pinnedMessageNotLoaded": "Message not loaded — scroll up to find it",
+  "chatReplyOriginalNotLoaded": "Original not loaded — scroll up to find it",
+  "chatOriginalDeleted": "Message deleted",
+  "chatForwardedFrom": "Forwarded from {name}",
+  "chatUnreadDivider": "Unread messages",
+  "chatSelectedCount": "Selected: {count}",
+  "chatSelectionLimit": "You can select at most {limit} messages",
+  "@chatForwardedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@chatSelectionLimit": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  }
 }

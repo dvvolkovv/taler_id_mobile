@@ -44,6 +44,15 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['pinnedAt'] as String),
       pinnedById: json['pinnedById'] as String?,
+      replyToId: json['replyToId'] as String?,
+      replyTo: json['replyTo'] == null
+          ? null
+          : ReplyPreviewEntity.fromJson(
+              json['replyTo'] as Map<String, dynamic>),
+      forwardedFrom: json['forwardedFrom'] == null
+          ? null
+          : ForwardedFromEntity.fromJson(
+              json['forwardedFrom'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -76,4 +85,7 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'transport': instance.transport,
       'pinnedAt': instance.pinnedAt?.toIso8601String(),
       'pinnedById': instance.pinnedById,
+      'replyToId': instance.replyToId,
+      'replyTo': instance.replyTo?.toJson(),
+      'forwardedFrom': instance.forwardedFrom?.toJson(),
     };

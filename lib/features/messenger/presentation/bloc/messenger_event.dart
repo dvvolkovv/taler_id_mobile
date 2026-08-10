@@ -49,6 +49,8 @@ class SendMessage extends MessengerEvent {
   final String? thumbnailLargeUrl;
   final String? fileRecordId;
   final String? topicId;
+  /// id сообщения, на которое отвечают; null у обычной отправки.
+  final String? replyToId;
   const SendMessage(
     this.conversationId,
     this.content, {
@@ -62,9 +64,10 @@ class SendMessage extends MessengerEvent {
     this.thumbnailLargeUrl,
     this.fileRecordId,
     this.topicId,
+    this.replyToId,
   });
   @override
-  List<Object?> get props => [conversationId, content, fileUrl, fileName];
+  List<Object?> get props => [conversationId, content, fileUrl, fileName, replyToId];
 }
 
 class MessageReceived extends MessengerEvent {
@@ -237,12 +240,19 @@ class UpdateGroupSettings extends MessengerEvent {
   List<Object?> get props => [conversationId, slowMode, topicsEnabled, autoDeleteDays];
 }
 
-class ForwardMessage extends MessengerEvent {
-  final MessageEntity message;
+/// Пересылка одного или нескольких сообщений.
+///
+/// Передаются только id: тело копирует сервер из оригиналов, поэтому клиенту
+/// незачем таскать содержимое, а подделать чужую подпись он не может.
+class ForwardMessages extends MessengerEvent {
+  final List<String> messageIds;
   final String targetConversationId;
-  const ForwardMessage({required this.message, required this.targetConversationId});
+  const ForwardMessages({
+    required this.messageIds,
+    required this.targetConversationId,
+  });
   @override
-  List<Object?> get props => [message.id, targetConversationId];
+  List<Object?> get props => [messageIds, targetConversationId];
 }
 
 // ─── Mute events ───

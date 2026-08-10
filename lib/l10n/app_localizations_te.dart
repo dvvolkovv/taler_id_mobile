@@ -4004,4 +4004,29 @@ class AppLocalizationsTe extends AppLocalizations {
   @override
   String get pinnedMessageNotLoaded =>
       'Message not loaded — scroll up to find it';
+
+  @override
+  String get chatReplyOriginalNotLoaded =>
+      'Original not loaded — scroll up to find it';
+
+  @override
+  String get chatOriginalDeleted => 'Message deleted';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return 'Forwarded from $name';
+  }
+
+  @override
+  String get chatUnreadDivider => 'Unread messages';
+
+  @override
+  String chatSelectedCount(int count) {
+    return 'Selected: $count';
+  }
+
+  @override
+  String chatSelectionLimit(int limit) {
+    return 'You can select at most $limit messages';
+  }
 }

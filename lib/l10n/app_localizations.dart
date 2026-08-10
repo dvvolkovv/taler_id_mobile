@@ -7533,6 +7533,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Message not loaded — scroll up to find it'**
   String get pinnedMessageNotLoaded;
+
+  /// No description provided for @chatReplyOriginalNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Original not loaded — scroll up to find it'**
+  String get chatReplyOriginalNotLoaded;
+
+  /// No description provided for @chatOriginalDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted'**
+  String get chatOriginalDeleted;
+
+  /// No description provided for @chatForwardedFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarded from {name}'**
+  String chatForwardedFrom(String name);
+
+  /// No description provided for @chatUnreadDivider.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread messages'**
+  String get chatUnreadDivider;
+
+  /// No description provided for @chatSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected: {count}'**
+  String chatSelectedCount(int count);
+
+  /// No description provided for @chatSelectionLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You can select at most {limit} messages'**
+  String chatSelectionLimit(int limit);
 }
 
 class _AppLocalizationsDelegate

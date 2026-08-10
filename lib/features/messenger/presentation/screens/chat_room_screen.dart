@@ -49,6 +49,7 @@ import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/reply_preview_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -1316,20 +1317,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         final baseUri = Uri.parse(baseUrl);
         fileUrl = fileUrl.replaceFirst('${uri.scheme}://${uri.host}', '${baseUri.scheme}://${baseUri.host}');
       }
-      final l10n = AppLocalizations.of(context)!;
       final isMedia = fileType == 'image' || fileType == 'video' || fileType == 'audio';
-      String msgContent = caption ?? (isMedia ? '' : fileName);
-      if (_replyTo != null) {
-        final quoted = _replyTo!.fileUrl != null
-            ? (_replyTo!.fileName ?? l10n.chatFileAttachment)
-            : _replyTo!.content;
-        final q = quoted.length > 60 ? '${quoted.substring(0, 60)}...' : quoted;
-        final who = _replyToSenderName != null ? '$_replyToSenderName: ' : '';
-        msgContent = '↩ $who«$q»\n$msgContent';
-      }
+      final String msgContent = caption ?? (isMedia ? '' : fileName);
       context.read<MessengerBloc>().add(SendMessage(
         widget.conversationId,
         msgContent,
+        replyToId: _replyTo?.id,
         fileUrl: fileUrl,
         fileName: fileName,
         fileSize: result.fileSize,
@@ -1370,17 +1363,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _cancelEditing();
       return;
     }
-    final l10n = AppLocalizations.of(context)!;
-    String content = text;
-    if (_replyTo != null) {
-      final quoted = _replyTo!.fileUrl != null
-          ? (_replyTo!.fileName ?? l10n.chatFileAttachment)
-          : _replyTo!.content;
-      final q = quoted.length > 60 ? '${quoted.substring(0, 60)}...' : quoted;
-      final who = _replyToSenderName != null ? '$_replyToSenderName: ' : '';
-      content = '↩ $who«$q»\n$text';
-    }
-    context.read<MessengerBloc>().add(SendMessage(widget.conversationId, content, topicId: widget.topicId));
+    // Цитата больше не вклеивается в текст: ответ — это связь между строками,
+    // а не префикс. Сервер вернёт превью оригинала в самом сообщении.
+    context.read<MessengerBloc>().add(SendMessage(
+          widget.conversationId,
+          text,
+          topicId: widget.topicId,
+          replyToId: _replyTo?.id,
+        ));
     // Stop typing indicator on send
     if (_isTypingSent) {
       _isTypingSent = false;
@@ -1729,16 +1719,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   /// not an edge case.
   /// TODO(follow-up): paginate backwards to the target message instead of
   /// just notifying — bigger change than this task should carry.
-  void _onPinJump(String messageId) {
-    // Search owns _searchMatchChronIndices/_searchCurrentMatchIdx while it is
-    // open; jumping from the banner would repurpose its counter and arrows
-    // mid-search. Same guard as _maybeHighlightDeepLinkedMessage.
+  void _onPinJump(String messageId) => _jumpToMessage(
+        messageId,
+        notLoadedText: AppLocalizations.of(context)!.pinnedMessageNotLoaded,
+      );
+
+  /// Переход к цитируемому оригиналу по тапу на блок цитаты.
+  void _onQuoteJump(String messageId) => _jumpToMessage(
+        messageId,
+        notLoadedText:
+            AppLocalizations.of(context)!.chatReplyOriginalNotLoaded,
+      );
+
+  /// Прокрутка к сообщению с подсветкой.
+  ///
+  /// Подсветка переиспользует машинерию поиска — отсюда и оговорка ниже: пока
+  /// поиск открыт, он владеет счётчиком совпадений, и прыжок со стороны
+  /// перебил бы его стрелки. Та же защита стоит в _maybeHighlightDeepLinkedMessage.
+  void _jumpToMessage(String messageId, {required String notLoadedText}) {
     if (_searchMode) return;
     final messages = _messengerBloc.state.messages[widget.conversationId] ?? [];
     final idx = messages.indexWhere((m) => m.id == messageId);
     if (idx < 0) {
+      // Оригинал вне загруженного окна истории — честно об этом говорим,
+      // вместо того чтобы молча ничего не сделать.
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.pinnedMessageNotLoaded)),
+        SnackBar(content: Text(notLoadedText)),
       );
       return;
     }
@@ -2595,6 +2601,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 onStartCall: (msg.isSystem && !isMe && (msg.content.contains('Пропущенный звонок') || msg.content.contains('Missed call') || msg.content.contains(AppLocalizations.of(context)!.messengerMissedCall))) ? _startLkCall : null,
                                 autoPlayVideoNote: _autoPlayVideoNote,
                                 readCursors: _cursors,
+                                onQuoteTap: _onQuoteJump,
                               );
 
                           // Report read-horizon as incoming (non-own) bubbles actually
@@ -3162,6 +3169,113 @@ class _DateSeparator extends StatelessWidget {
   }
 }
 
+/// Шапка «Переслано от X» над телом пересланного сообщения.
+class _ForwardedHeader extends StatelessWidget {
+  final String name;
+  const _ForwardedHeader({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.shortcut_rounded, size: 13, color: colors.textSecondary),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              AppLocalizations.of(context)!.chatForwardedFrom(name),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Блок цитаты внутри пузыря: полоска, имя автора оригинала и его начало.
+///
+/// Тап уводит к оригиналу. Если оригинал уже удалили, показываем это прямо в
+/// цитате, а не пустую строку — иначе ответ выглядит как ответ в никуда.
+class _ReplyQuote extends StatelessWidget {
+  final ReplyPreviewEntity reply;
+  final bool isMe;
+  final VoidCallback? onTap;
+  const _ReplyQuote({required this.reply, required this.isMe, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final accent = isMe ? colors.textPrimary : colors.primary;
+
+    String body;
+    if (reply.isDeleted) {
+      body = l10n.chatOriginalDeleted;
+    } else if (reply.content.trim().isNotEmpty) {
+      body = reply.content.trim();
+    } else if (reply.fileType == 'image') {
+      body = '🖼 ${reply.fileName ?? ''}'.trim();
+    } else if (reply.fileType == 'audio') {
+      body = '🎤';
+    } else if (reply.fileName != null) {
+      body = '📎 ${reply.fileName}';
+    } else {
+      body = l10n.chatFileAttachment;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.only(left: 8, top: 2, bottom: 2),
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(color: accent, width: 3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (reply.senderName != null && reply.senderName!.isNotEmpty)
+              Text(
+                reply.senderName!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            Text(
+              body,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12.5,
+                height: 1.25,
+                fontStyle:
+                    reply.isDeleted ? FontStyle.italic : FontStyle.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MessageBubble extends StatefulWidget {
   final MessageEntity message;
   final bool isMe;
@@ -3189,6 +3303,8 @@ class _MessageBubble extends StatefulWidget {
   /// `canPinIn` (`pinned_messages_screen.dart`) says the current user isn't
   /// allowed to pin/unpin here.
   final VoidCallback? onTogglePin;
+  /// Переход к цитируемому оригиналу. Null — цитата не кликабельна.
+  final void Function(String messageId)? onQuoteTap;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -3208,6 +3324,7 @@ class _MessageBubble extends StatefulWidget {
     this.autoPlayVideoNote,
     this.readCursors = const [],
     this.onTogglePin,
+    this.onQuoteTap,
   });
 
   @override
@@ -3369,6 +3486,17 @@ class _MessageBubbleState extends State<_MessageBubble> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
+            if (widget.message.forwardedFrom?.name != null &&
+                widget.message.forwardedFrom!.name!.isNotEmpty)
+              _ForwardedHeader(name: widget.message.forwardedFrom!.name!),
+            if (widget.message.replyTo != null)
+              _ReplyQuote(
+                reply: widget.message.replyTo!,
+                isMe: widget.isMe,
+                onTap: widget.onQuoteTap == null
+                    ? null
+                    : () => widget.onQuoteTap!(widget.message.replyTo!.id),
               ),
             if (widget.message.fileUrl != null && widget.message.fileType == 'video_note')
               GestureDetector(
@@ -4028,8 +4156,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
         onSelected: (targetConversationId) {
           // Forward the message, then open the destination chat so the user
           // lands right on it and can add a caption or follow-up.
-          bloc.add(ForwardMessage(
-            message: widget.message,
+          bloc.add(ForwardMessages(
+            messageIds: [widget.message.id],
             targetConversationId: targetConversationId,
           ));
           if (rootContext.mounted) {
@@ -4044,8 +4172,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
             );
             final convId = res['conversationId'] as String?;
             if (convId == null) return;
-            bloc.add(ForwardMessage(
-              message: widget.message,
+            bloc.add(ForwardMessages(
+              messageIds: [widget.message.id],
               targetConversationId: convId,
             ));
             if (rootContext.mounted) {

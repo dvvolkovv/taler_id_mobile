@@ -56,6 +56,15 @@ mixin _$MessageEntity {
   DateTime? get pinnedAt => throw _privateConstructorUsedError;
   String? get pinnedById => throw _privateConstructorUsedError;
 
+  /// Ответ. [replyToId] есть всегда, когда сообщение — ответ; [replyTo]
+  /// может быть null у старых клиентов и на путях, которые превью не
+  /// собирают, поэтому UI опирается на наличие самого превью.
+  String? get replyToId => throw _privateConstructorUsedError;
+  ReplyPreviewEntity? get replyTo => throw _privateConstructorUsedError;
+
+  /// Атрибуция пересылки; null у обычного сообщения.
+  ForwardedFromEntity? get forwardedFrom => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $MessageEntityCopyWith<MessageEntity> get copyWith =>
@@ -96,7 +105,13 @@ abstract class $MessageEntityCopyWith<$Res> {
       Map<String, dynamic>? metadata,
       String? transport,
       DateTime? pinnedAt,
-      String? pinnedById});
+      String? pinnedById,
+      String? replyToId,
+      ReplyPreviewEntity? replyTo,
+      ForwardedFromEntity? forwardedFrom});
+
+  $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
+  $ForwardedFromEntityCopyWith<$Res>? get forwardedFrom;
 }
 
 /// @nodoc
@@ -140,6 +155,9 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? transport = freezed,
     Object? pinnedAt = freezed,
     Object? pinnedById = freezed,
+    Object? replyToId = freezed,
+    Object? replyTo = freezed,
+    Object? forwardedFrom = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -254,7 +272,43 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.pinnedById
           : pinnedById // ignore: cast_nullable_to_non_nullable
               as String?,
+      replyToId: freezed == replyToId
+          ? _value.replyToId
+          : replyToId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      replyTo: freezed == replyTo
+          ? _value.replyTo
+          : replyTo // ignore: cast_nullable_to_non_nullable
+              as ReplyPreviewEntity?,
+      forwardedFrom: freezed == forwardedFrom
+          ? _value.forwardedFrom
+          : forwardedFrom // ignore: cast_nullable_to_non_nullable
+              as ForwardedFromEntity?,
     ) as $Val);
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $ReplyPreviewEntityCopyWith<$Res>? get replyTo {
+    if (_value.replyTo == null) {
+      return null;
+    }
+
+    return $ReplyPreviewEntityCopyWith<$Res>(_value.replyTo!, (value) {
+      return _then(_value.copyWith(replyTo: value) as $Val);
+    });
+  }
+
+  @override
+  @pragma('vm:prefer-inline')
+  $ForwardedFromEntityCopyWith<$Res>? get forwardedFrom {
+    if (_value.forwardedFrom == null) {
+      return null;
+    }
+
+    return $ForwardedFromEntityCopyWith<$Res>(_value.forwardedFrom!, (value) {
+      return _then(_value.copyWith(forwardedFrom: value) as $Val);
+    });
   }
 }
 
@@ -294,7 +348,15 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       Map<String, dynamic>? metadata,
       String? transport,
       DateTime? pinnedAt,
-      String? pinnedById});
+      String? pinnedById,
+      String? replyToId,
+      ReplyPreviewEntity? replyTo,
+      ForwardedFromEntity? forwardedFrom});
+
+  @override
+  $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
+  @override
+  $ForwardedFromEntityCopyWith<$Res>? get forwardedFrom;
 }
 
 /// @nodoc
@@ -336,6 +398,9 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? transport = freezed,
     Object? pinnedAt = freezed,
     Object? pinnedById = freezed,
+    Object? replyToId = freezed,
+    Object? replyTo = freezed,
+    Object? forwardedFrom = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -450,12 +515,25 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value.pinnedById
           : pinnedById // ignore: cast_nullable_to_non_nullable
               as String?,
+      replyToId: freezed == replyToId
+          ? _value.replyToId
+          : replyToId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      replyTo: freezed == replyTo
+          ? _value.replyTo
+          : replyTo // ignore: cast_nullable_to_non_nullable
+              as ReplyPreviewEntity?,
+      forwardedFrom: freezed == forwardedFrom
+          ? _value.forwardedFrom
+          : forwardedFrom // ignore: cast_nullable_to_non_nullable
+              as ForwardedFromEntity?,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$MessageEntityImpl implements _MessageEntity {
   const _$MessageEntityImpl(
       {required this.id,
@@ -485,7 +563,10 @@ class _$MessageEntityImpl implements _MessageEntity {
       final Map<String, dynamic>? metadata,
       this.transport,
       this.pinnedAt,
-      this.pinnedById})
+      this.pinnedById,
+      this.replyToId,
+      this.replyTo,
+      this.forwardedFrom})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars,
         _metadata = metadata;
@@ -583,9 +664,21 @@ class _$MessageEntityImpl implements _MessageEntity {
   @override
   final String? pinnedById;
 
+  /// Ответ. [replyToId] есть всегда, когда сообщение — ответ; [replyTo]
+  /// может быть null у старых клиентов и на путях, которые превью не
+  /// собирают, поэтому UI опирается на наличие самого превью.
+  @override
+  final String? replyToId;
+  @override
+  final ReplyPreviewEntity? replyTo;
+
+  /// Атрибуция пересылки; null у обычного сообщения.
+  @override
+  final ForwardedFromEntity? forwardedFrom;
+
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById, replyToId: $replyToId, replyTo: $replyTo, forwardedFrom: $forwardedFrom)';
   }
 
   @override
@@ -640,7 +733,12 @@ class _$MessageEntityImpl implements _MessageEntity {
             (identical(other.pinnedAt, pinnedAt) ||
                 other.pinnedAt == pinnedAt) &&
             (identical(other.pinnedById, pinnedById) ||
-                other.pinnedById == pinnedById));
+                other.pinnedById == pinnedById) &&
+            (identical(other.replyToId, replyToId) ||
+                other.replyToId == replyToId) &&
+            (identical(other.replyTo, replyTo) || other.replyTo == replyTo) &&
+            (identical(other.forwardedFrom, forwardedFrom) ||
+                other.forwardedFrom == forwardedFrom));
   }
 
   @JsonKey(ignore: true)
@@ -674,7 +772,10 @@ class _$MessageEntityImpl implements _MessageEntity {
         const DeepCollectionEquality().hash(_metadata),
         transport,
         pinnedAt,
-        pinnedById
+        pinnedById,
+        replyToId,
+        replyTo,
+        forwardedFrom
       ]);
 
   @JsonKey(ignore: true)
@@ -720,7 +821,10 @@ abstract class _MessageEntity implements MessageEntity {
       final Map<String, dynamic>? metadata,
       final String? transport,
       final DateTime? pinnedAt,
-      final String? pinnedById}) = _$MessageEntityImpl;
+      final String? pinnedById,
+      final String? replyToId,
+      final ReplyPreviewEntity? replyTo,
+      final ForwardedFromEntity? forwardedFrom}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -786,6 +890,18 @@ abstract class _MessageEntity implements MessageEntity {
   DateTime? get pinnedAt;
   @override
   String? get pinnedById;
+  @override
+
+  /// Ответ. [replyToId] есть всегда, когда сообщение — ответ; [replyTo]
+  /// может быть null у старых клиентов и на путях, которые превью не
+  /// собирают, поэтому UI опирается на наличие самого превью.
+  String? get replyToId;
+  @override
+  ReplyPreviewEntity? get replyTo;
+  @override
+
+  /// Атрибуция пересылки; null у обычного сообщения.
+  ForwardedFromEntity? get forwardedFrom;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

@@ -385,11 +385,13 @@ class MessengerRemoteDataSource {
     String? topicId,
     String? clientTempId,
     String? origin,
+    String? replyToId,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
     if (clientTempId != null) payload['clientTempId'] = clientTempId;
     if (topicId != null) payload['topicId'] = topicId;
     if (origin != null) payload['origin'] = origin;
+    if (replyToId != null) payload['replyToId'] = replyToId;
     if (fileUrl != null) {
       payload['fileUrl'] = fileUrl;
       payload['fileName'] = fileName;
@@ -664,6 +666,27 @@ class MessengerRemoteDataSource {
       data: {},
       fromJson: (d) => Map<String, dynamic>.from(d as Map),
     );
+  }
+
+  /// Пересылка пачки сообщений в беседу [targetConversationId].
+  ///
+  /// Тело копирует сервер из оригиналов — клиент передаёт только id, поэтому
+  /// подделать «Переслано от X» с произвольным текстом нельзя. Сервер же
+  /// рассылает новые сообщения по сокету, так что отдельно вставлять их в ленту
+  /// не нужно.
+  Future<List<MessageEntity>> forwardMessages(
+    String targetConversationId,
+    List<String> messageIds,
+  ) async {
+    final data = await _http.post(
+      '/messenger/conversations/$targetConversationId/forward',
+      data: {'messageIds': messageIds},
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    final list = (data['messages'] as List?) ?? const [];
+    return list
+        .map((e) => MessageEntity.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
   }
 
   Future<Map<String, dynamic>> unpinMessage(String conversationId, String messageId) async {

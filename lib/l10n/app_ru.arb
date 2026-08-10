@@ -1893,5 +1893,32 @@
     }
   },
   "unpinAllConfirm": "Открепить все сообщения в этом чате?",
-  "pinnedMessageNotLoaded": "Сообщение не загружено — прокрутите вверх, чтобы найти его"
+  "pinnedMessageNotLoaded": "Сообщение не загружено — прокрутите вверх, чтобы найти его",
+  "chatReplyOriginalNotLoaded": "Оригинал не загружен — прокрутите вверх, чтобы найти его",
+  "chatOriginalDeleted": "Сообщение удалено",
+  "chatForwardedFrom": "Переслано от {name}",
+  "chatUnreadDivider": "Непрочитанные сообщения",
+  "chatSelectedCount": "Выбрано: {count}",
+  "chatSelectionLimit": "Можно выбрать не больше {limit} сообщений",
+  "@chatForwardedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@chatSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@chatSelectionLimit": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  }
 }

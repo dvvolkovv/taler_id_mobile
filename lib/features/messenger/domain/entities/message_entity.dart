@@ -1,10 +1,17 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'forwarded_from_entity.dart';
+import 'reply_preview_entity.dart';
+
 part 'message_entity.freezed.dart';
 part 'message_entity.g.dart';
 
 @freezed
 class MessageEntity with _$MessageEntity {
+  /// explicitToJson нужен из-за вложенных replyTo/forwardedFrom: без него
+  /// toJson кладёт в карту живые объекты вместо их Map, и обратный fromJson
+  /// падает. Ставится именно на фабрику, а не на класс.
+  @JsonSerializable(explicitToJson: true)
   const factory MessageEntity({
     required String id,
     required String conversationId,
@@ -37,6 +44,15 @@ class MessageEntity with _$MessageEntity {
     /// Pin state: null means the message is not pinned.
     DateTime? pinnedAt,
     String? pinnedById,
+
+    /// Ответ. [replyToId] есть всегда, когда сообщение — ответ; [replyTo]
+    /// может быть null у старых клиентов и на путях, которые превью не
+    /// собирают, поэтому UI опирается на наличие самого превью.
+    String? replyToId,
+    ReplyPreviewEntity? replyTo,
+
+    /// Атрибуция пересылки; null у обычного сообщения.
+    ForwardedFromEntity? forwardedFrom,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>

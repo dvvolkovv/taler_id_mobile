@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 import 'package:window_manager/window_manager.dart';
 import '../../domain/entities/message_entity.dart';
+import '../../domain/entities/reply_preview_entity.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/sync_result.dart';
 import '../../domain/entities/group_member_entity.dart';
@@ -132,7 +133,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     on<UnmuteConversation>(_onUnmuteConversation);
     on<GroupCallStarted>(_onGroupCallStarted);
     on<GroupCallEnded>(_onGroupCallEnded);
-    on<ForwardMessage>(_onForwardMessage);
+    on<ForwardMessages>(_onForwardMessages);
     on<EditMessage>(_onEditMessage);
     on<DeleteMessage>(_onDeleteMessage);
     on<MessageDeleted>(_onMessageDeleted);
@@ -729,8 +730,36 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
         fileRecordId: m['fileRecordId'] as String?,
         topicId: m['topicId'] as String?,
         clientTempId: tempId,
+        replyToId: m['replyToId'] as String?,
       );
     }
+  }
+
+  /// Превью цитаты из уже загруженной ленты — для оптимистичного пузыря.
+  ///
+  /// Оригинала может не оказаться в памяти (например, ответ пришёл из шаринга в
+  /// чат, который ещё не открывали) — тогда возвращаем null, и пузырь просто
+  /// дождётся серверного превью в new_message.
+  ReplyPreviewEntity? _localReplyPreview(String convId, String? replyToId) {
+    if (replyToId == null) return null;
+    final list = state.messages[convId];
+    if (list == null) return null;
+    MessageEntity? original;
+    for (final m in list) {
+      if (m.id == replyToId) {
+        original = m;
+        break;
+      }
+    }
+    if (original == null) return null;
+    return ReplyPreviewEntity(
+      id: original.id,
+      senderId: original.senderId,
+      senderName: original.senderName,
+      content: original.content,
+      fileType: original.fileType,
+      fileName: original.fileName,
+    );
   }
 
   /// Phase 1i — after socket reconnect, re-fetch each DIRECT contact's
@@ -824,6 +853,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       thumbnailLargeUrl: event.thumbnailLargeUrl,
       fileRecordId: event.fileRecordId,
       topicId: event.topicId,
+      replyToId: event.replyToId,
+      // Превью цитаты для оптимистичного пузыря собираем сами из уже
+      // загруженной ленты: сервер пришлёт своё в new_message, но до тех пор
+      // ответ не должен выглядеть как обычное сообщение.
+      replyTo: _localReplyPreview(event.conversationId, event.replyToId),
     );
     final existing =
         List<MessageEntity>.from(state.messages[event.conversationId] ?? []);
@@ -854,6 +888,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       'thumbnailLargeUrl': event.thumbnailLargeUrl,
       'fileRecordId': event.fileRecordId,
       'topicId': event.topicId,
+      'replyToId': event.replyToId,
       'sentAt': tempMsg.sentAt.toIso8601String(),
       'senderId': tempMsg.senderId,
     });
@@ -875,6 +910,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       fileRecordId: event.fileRecordId,
       topicId: event.topicId,
       clientTempId: tempId,
+      replyToId: event.replyToId,
     );
 
     // Donate to iOS share sheet suggestions
@@ -1587,23 +1623,20 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     emit(state.copyWith(activeGroupCalls: updated));
   }
 
-  Future<void> _onForwardMessage(ForwardMessage event, Emitter<MessengerState> emit) async {
+  /// Пересылка идёт отдельным REST-вызовом, а не повторной отправкой текста:
+  /// сервер копирует тело из оригинала и проставляет «Переслано от X».
+  /// Вставлять результат в ленту не нужно — он вернётся обычным new_message.
+  Future<void> _onForwardMessages(
+      ForwardMessages event, Emitter<MessengerState> emit) async {
+    if (event.messageIds.isEmpty) return;
     try {
-      final msg = event.message;
-      _repo.sendMessage(
-        event.targetConversationId,
-        msg.content,
-        fileUrl: msg.fileUrl,
-        fileName: msg.fileName,
-        fileSize: msg.fileSize,
-        fileType: msg.fileType,
-        s3Key: msg.s3Key,
-        thumbnailSmallUrl: msg.thumbnailSmallUrl,
-        thumbnailMediumUrl: msg.thumbnailMediumUrl,
-        thumbnailLargeUrl: msg.thumbnailLargeUrl,
-        fileRecordId: msg.fileRecordId,
-      );
-    } catch (_) {}
+      await _repo.forwardMessages(event.targetConversationId, event.messageIds);
+    } catch (e) {
+      // Молчаливый провал здесь особенно неприятен: пользователь уверен, что
+      // переслал, а в чате пусто.
+      debugPrint('[MessengerBloc] forward failed: $e');
+      emit(state.copyWith(socketError: 'Не удалось переслать сообщение'));
+    }
   }
 
   void _onEditMessage(EditMessage event, Emitter<MessengerState> emit) {

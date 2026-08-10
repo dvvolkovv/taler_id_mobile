@@ -26,7 +26,7 @@ class _FakeRemote implements MessengerRemoteDataSource {
       {String? fileUrl, String? fileName, int? fileSize, String? fileType,
       String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl,
       String? thumbnailLargeUrl, String? fileRecordId, String? topicId,
-      String? clientTempId, String? origin}) {
+      String? clientTempId, String? origin, String? replyToId}) {
     sentCalls.add((convId: convId, content: content, clientTempId: clientTempId));
   }
 

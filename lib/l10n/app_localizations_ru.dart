@@ -4010,4 +4010,29 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get pinnedMessageNotLoaded =>
       'Сообщение не загружено — прокрутите вверх, чтобы найти его';
+
+  @override
+  String get chatReplyOriginalNotLoaded =>
+      'Оригинал не загружен — прокрутите вверх, чтобы найти его';
+
+  @override
+  String get chatOriginalDeleted => 'Сообщение удалено';
+
+  @override
+  String chatForwardedFrom(String name) {
+    return 'Переслано от $name';
+  }
+
+  @override
+  String get chatUnreadDivider => 'Непрочитанные сообщения';
+
+  @override
+  String chatSelectedCount(int count) {
+    return 'Выбрано: $count';
+  }
+
+  @override
+  String chatSelectionLimit(int limit) {
+    return 'Можно выбрать не больше $limit сообщений';
+  }
 }
