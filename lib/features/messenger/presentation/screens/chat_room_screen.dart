@@ -48,8 +48,11 @@ import '../../../../l10n/app_localizations.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
+import '../../domain/entities/group_member_entity.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/reply_preview_entity.dart';
+import '../../domain/entities/user_search_entity.dart';
+import 'user_profile_screen.dart';
 import '../../utils/unread_anchor.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
@@ -112,6 +115,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   String? _recordingPath;
   double _prevKeyboardHeight = 0;
   Timer? _draftSyncTimer;
+  /// Незавершённый @логин под курсором; null — подсказки не показываем.
+  String? _mentionQuery;
+  bool _membersRequested = false;
   MessageEntity? _replyTo;
   String? _replyToSenderName;
   MessageEntity? _editingMessage;
@@ -1597,7 +1603,59 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
+  /// Ловит незавершённый `@логин` слева от курсора.
+  ///
+  /// Смотрим именно на позицию курсора, а не на весь текст: иначе подсказки
+  /// вылезали бы при правке начала сообщения, где упоминание давно дописано.
+  void _updateMentionQuery() {
+    final sel = _ctrl.selection;
+    if (!sel.isValid || !sel.isCollapsed) {
+      if (_mentionQuery != null) setState(() => _mentionQuery = null);
+      return;
+    }
+    final upToCursor = _ctrl.text.substring(0, sel.baseOffset);
+    final match = RegExp(r'(?<![\w@])@([A-Za-z0-9_]{0,32})$').firstMatch(upToCursor);
+    final next = match?.group(1);
+    if (next != _mentionQuery) setState(() => _mentionQuery = next);
+  }
+
+  /// Кандидаты на подстановку: участники этой беседы, у которых есть логин.
+  List<GroupMemberEntity> _mentionCandidates(MessengerState state) {
+    final q = _mentionQuery;
+    if (q == null) return const [];
+    final members = state.groupMembers[widget.conversationId] ?? const [];
+    final lower = q.toLowerCase();
+    final me = state.currentUserId;
+    return members
+        .where((m) => (m.username ?? '').isNotEmpty && m.userId != me)
+        .where((m) {
+          if (lower.isEmpty) return true;
+          final u = m.username!.toLowerCase();
+          final name = [m.firstName, m.lastName].whereType<String>().join(' ').toLowerCase();
+          return u.startsWith(lower) || name.contains(lower);
+        })
+        .take(6)
+        .toList();
+  }
+
+  /// Подставляет выбранный логин вместо набранного куска.
+  void _insertMention(String username) {
+    final sel = _ctrl.selection;
+    final upToCursor = _ctrl.text.substring(0, sel.baseOffset);
+    final match = RegExp(r'(?<![\w@])@([A-Za-z0-9_]{0,32})$').firstMatch(upToCursor);
+    if (match == null) return;
+    final before = _ctrl.text.substring(0, match.start);
+    final after = _ctrl.text.substring(sel.baseOffset);
+    final inserted = '@$username ';
+    _ctrl.value = TextEditingValue(
+      text: '$before$inserted$after',
+      selection: TextSelection.collapsed(offset: before.length + inserted.length),
+    );
+    setState(() => _mentionQuery = null);
+  }
+
   void _onTextChanged() {
+    _updateMentionQuery();
     // Локально — сразу: это дешёво и переживает убийство приложения.
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
     _scheduleDraftSync();
@@ -1945,6 +2003,38 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       ));
     }
     _clearSelection();
+  }
+
+  /// Открывает профиль по @логину из упоминания.
+  ///
+  /// Логин приходится разрешать в id запросом: в самом сообщении лежат только
+  /// id упомянутых, без привязки к тому, какой логин какому соответствует.
+  Future<void> _openProfileByHandle(String handle) async {
+    try {
+      final found = await sl<MessengerRemoteDataSource>().searchUsers(handle);
+      final lower = handle.toLowerCase();
+      UserSearchEntity? exact;
+      for (final u in found) {
+        if ((u.username ?? '').toLowerCase() == lower) {
+          exact = u;
+          break;
+        }
+      }
+      if (!mounted) return;
+      if (exact == null) {
+        // Логин мог смениться или человек удалился — молчать здесь хуже, чем
+        // сказать, что открывать нечего.
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.chatMentionNotFound)),
+        );
+        return;
+      }
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => UserProfileScreen(userId: exact!.id),
+      ));
+    } catch (e) {
+      debugPrint('[chat] open profile by handle failed: $e');
+    }
   }
 
   void _onPinJump(String messageId) => _jumpToMessage(
@@ -2669,6 +2759,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           // conversation's pinnedCount moves, and work out visibility from
           // the loaded list — never from pinnedCount (see _loadPins).
           if (conv != null) unawaited(_loadPins(conv.pinnedCount));
+          // Список участников нужен подсказкам упоминаний. Только для групп:
+          // у канала подписчиков могут быть тысячи, а постить туда всё равно
+          // могут единицы, и подсказывать там некому.
+          if (conv?.type == 'GROUP' && !_membersRequested) {
+            _membersRequested = true;
+            context.read<MessengerBloc>().add(LoadGroupMembers(widget.conversationId));
+          }
           final pinsDismissedAt = conv?.pinsDismissedAt;
           final newestPinAt = _pins.isNotEmpty ? _pins.first.pinnedAt : null;
           final pinsBarHidden = pinsDismissedAt != null &&
@@ -2843,6 +2940,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 autoPlayVideoNote: _autoPlayVideoNote,
                                 readCursors: _cursors,
                                 onQuoteTap: _onQuoteJump,
+                                onMentionTap: _openProfileByHandle,
                                 isSelected: _selectedIds.contains(msg.id),
                                 selectionMode: _selectionMode,
                                 // Системные строки выделять нечего — их нельзя
@@ -2939,6 +3037,59 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       ),
                   ],
                 ),
+              ),
+              // Подсказки упоминаний — прямо над полем ввода, чтобы палец
+              // дотягивался, а список сообщений не съезжал.
+              BlocBuilder<MessengerBloc, MessengerState>(
+                builder: (context, state) {
+                  final candidates = _mentionCandidates(state);
+                  if (candidates.isEmpty) return const SizedBox.shrink();
+                  final colors = AppColors.of(context);
+                  return Container(
+                    constraints: const BoxConstraints(maxHeight: 220),
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      border: Border(top: BorderSide(color: colors.background)),
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: candidates.length,
+                      itemBuilder: (context, i) {
+                        final m = candidates[i];
+                        final name = [m.firstName, m.lastName]
+                            .whereType<String>()
+                            .join(' ')
+                            .trim();
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: colors.primary.withValues(alpha: 0.2),
+                            backgroundImage: (m.avatarUrl ?? '').isNotEmpty
+                                ? NetworkImage(m.avatarUrl!)
+                                : null,
+                            child: (m.avatarUrl ?? '').isEmpty
+                                ? Text(
+                                    (name.isNotEmpty ? name : m.username!)
+                                        .characters
+                                        .first
+                                        .toUpperCase(),
+                                    style: TextStyle(color: colors.primary, fontSize: 13))
+                                : null,
+                          ),
+                          title: Text(name.isEmpty ? '@${m.username}' : name,
+                              style: TextStyle(color: colors.textPrimary, fontSize: 14)),
+                          subtitle: name.isEmpty
+                              ? null
+                              : Text('@${m.username}',
+                                  style: TextStyle(
+                                      color: colors.textSecondary, fontSize: 12)),
+                          onTap: () => _insertMention(m.username!),
+                        );
+                      },
+                    ),
+                  );
+                },
               ),
               if (_editingMessage != null)
                 _EditPreviewBar(
@@ -3599,6 +3750,8 @@ class _MessageBubble extends StatefulWidget {
   final VoidCallback? onTogglePin;
   /// Переход к цитируемому оригиналу. Null — цитата не кликабельна.
   final void Function(String messageId)? onQuoteTap;
+  /// Тап по @упоминанию — открыть профиль этого человека.
+  final void Function(String handle)? onMentionTap;
   /// Мультивыбор. [onToggleSelect] null — выделять в этой беседе нельзя
   /// (системные строки и AI-ветки), пункт меню тогда не показывается.
   final bool isSelected;
@@ -3624,6 +3777,7 @@ class _MessageBubble extends StatefulWidget {
     this.readCursors = const [],
     this.onTogglePin,
     this.onQuoteTap,
+    this.onMentionTap,
     this.isSelected = false,
     this.selectionMode = false,
     this.onToggleSelect,
@@ -4008,6 +4162,20 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   fontSize: 14,
                   decoration: TextDecoration.underline,
                 ),
+                // Своё упоминание выделяем жирным: в длинной группе взгляд
+                // должен цепляться именно за него, а не за любое обращение.
+                mentionStyle: TextStyle(
+                  color: widget.isMe
+                      ? Colors.white
+                      : AppColors.of(context).primary,
+                  fontSize: 14,
+                  fontWeight: (widget.currentUserId != null &&
+                          widget.message.mentionedUserIds
+                              .contains(widget.currentUserId))
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                ),
+                onMentionTap: widget.onMentionTap,
               ),
             // Show caption under image/video if content differs from fileName
             if (widget.message.fileUrl != null &&

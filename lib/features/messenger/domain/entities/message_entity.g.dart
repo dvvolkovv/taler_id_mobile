@@ -53,6 +53,10 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
           ? null
           : ForwardedFromEntity.fromJson(
               json['forwardedFrom'] as Map<String, dynamic>),
+      mentionedUserIds: (json['mentionedUserIds'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -88,4 +92,5 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'replyToId': instance.replyToId,
       'replyTo': instance.replyTo?.toJson(),
       'forwardedFrom': instance.forwardedFrom?.toJson(),
+      'mentionedUserIds': instance.mentionedUserIds,
     };

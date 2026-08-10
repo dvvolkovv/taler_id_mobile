@@ -1475,7 +1475,7 @@ class _ConversationTile extends StatelessWidget {
             (lastMsg.contains(AppLocalizations.of(context)!.messengerMissedCall) || lastMsg.contains('Missed call') || lastMsg.contains('Пропущенный звонок')) &&
             conversation.lastMessageSenderId != currentUserId &&
             conversation.unreadCount > 0;
-        if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && !conversation.isMuted && !isMissedCall) {
+        if (!timeStr.isNotEmpty && conversation.unreadCount == 0 && conversation.mentionCount == 0 && !conversation.isMuted && !isMissedCall) {
           // Keep a same-height spacer so rows without a trailing time/badge
           // align vertically with the ones that do.
           return const SizedBox(width: 1, height: 44);
@@ -1527,6 +1527,27 @@ class _ConversationTile extends StatelessWidget {
               ),
             ] else if (conversation.unreadCount > 0) ...[
               const SizedBox(height: 2),
+              // Значок «@» рядом со счётчиком: в приглушённой группе счётчик
+              // серый и незаметный, а обращение по имени пропускать нельзя —
+              // на сервере такой пуш тоже проходит сквозь «без звука».
+              if (conversation.mentionCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 2),
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: AppColors.of(context).primary,
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('@',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700)),
+                  ),
+                ),
               PulsingBadge(
                 glowColor: conversation.isMuted
                     ? AppColors.of(context).textSecondary

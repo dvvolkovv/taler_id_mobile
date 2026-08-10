@@ -1922,5 +1922,6 @@
     }
   },
   "chatSelect": "Выделить",
-  "convDraftLabel": "Черновик"
+  "convDraftLabel": "Черновик",
+  "chatMentionNotFound": "Пользователь не найден"
 }

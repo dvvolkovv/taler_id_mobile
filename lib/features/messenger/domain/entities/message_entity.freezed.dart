@@ -65,6 +65,10 @@ mixin _$MessageEntity {
   /// Атрибуция пересылки; null у обычного сообщения.
   ForwardedFromEntity? get forwardedFrom => throw _privateConstructorUsedError;
 
+  /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
+  /// нужны только чтобы подсветить своё упоминание.
+  List<String> get mentionedUserIds => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $MessageEntityCopyWith<MessageEntity> get copyWith =>
@@ -108,7 +112,8 @@ abstract class $MessageEntityCopyWith<$Res> {
       String? pinnedById,
       String? replyToId,
       ReplyPreviewEntity? replyTo,
-      ForwardedFromEntity? forwardedFrom});
+      ForwardedFromEntity? forwardedFrom,
+      List<String> mentionedUserIds});
 
   $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
   $ForwardedFromEntityCopyWith<$Res>? get forwardedFrom;
@@ -158,6 +163,7 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? replyToId = freezed,
     Object? replyTo = freezed,
     Object? forwardedFrom = freezed,
+    Object? mentionedUserIds = null,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -284,6 +290,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.forwardedFrom
           : forwardedFrom // ignore: cast_nullable_to_non_nullable
               as ForwardedFromEntity?,
+      mentionedUserIds: null == mentionedUserIds
+          ? _value.mentionedUserIds
+          : mentionedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 
@@ -351,7 +361,8 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       String? pinnedById,
       String? replyToId,
       ReplyPreviewEntity? replyTo,
-      ForwardedFromEntity? forwardedFrom});
+      ForwardedFromEntity? forwardedFrom,
+      List<String> mentionedUserIds});
 
   @override
   $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
@@ -401,6 +412,7 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? replyToId = freezed,
     Object? replyTo = freezed,
     Object? forwardedFrom = freezed,
+    Object? mentionedUserIds = null,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -527,6 +539,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value.forwardedFrom
           : forwardedFrom // ignore: cast_nullable_to_non_nullable
               as ForwardedFromEntity?,
+      mentionedUserIds: null == mentionedUserIds
+          ? _value._mentionedUserIds
+          : mentionedUserIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -566,10 +582,12 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.pinnedById,
       this.replyToId,
       this.replyTo,
-      this.forwardedFrom})
+      this.forwardedFrom,
+      final List<String> mentionedUserIds = const []})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars,
-        _metadata = metadata;
+        _metadata = metadata,
+        _mentionedUserIds = mentionedUserIds;
 
   factory _$MessageEntityImpl.fromJson(Map<String, dynamic> json) =>
       _$$MessageEntityImplFromJson(json);
@@ -676,9 +694,24 @@ class _$MessageEntityImpl implements _MessageEntity {
   @override
   final ForwardedFromEntity? forwardedFrom;
 
+  /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
+  /// нужны только чтобы подсветить своё упоминание.
+  final List<String> _mentionedUserIds;
+
+  /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
+  /// нужны только чтобы подсветить своё упоминание.
+  @override
+  @JsonKey()
+  List<String> get mentionedUserIds {
+    if (_mentionedUserIds is EqualUnmodifiableListView)
+      return _mentionedUserIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_mentionedUserIds);
+  }
+
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById, replyToId: $replyToId, replyTo: $replyTo, forwardedFrom: $forwardedFrom)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById, replyToId: $replyToId, replyTo: $replyTo, forwardedFrom: $forwardedFrom, mentionedUserIds: $mentionedUserIds)';
   }
 
   @override
@@ -738,7 +771,9 @@ class _$MessageEntityImpl implements _MessageEntity {
                 other.replyToId == replyToId) &&
             (identical(other.replyTo, replyTo) || other.replyTo == replyTo) &&
             (identical(other.forwardedFrom, forwardedFrom) ||
-                other.forwardedFrom == forwardedFrom));
+                other.forwardedFrom == forwardedFrom) &&
+            const DeepCollectionEquality()
+                .equals(other._mentionedUserIds, _mentionedUserIds));
   }
 
   @JsonKey(ignore: true)
@@ -775,7 +810,8 @@ class _$MessageEntityImpl implements _MessageEntity {
         pinnedById,
         replyToId,
         replyTo,
-        forwardedFrom
+        forwardedFrom,
+        const DeepCollectionEquality().hash(_mentionedUserIds)
       ]);
 
   @JsonKey(ignore: true)
@@ -824,7 +860,8 @@ abstract class _MessageEntity implements MessageEntity {
       final String? pinnedById,
       final String? replyToId,
       final ReplyPreviewEntity? replyTo,
-      final ForwardedFromEntity? forwardedFrom}) = _$MessageEntityImpl;
+      final ForwardedFromEntity? forwardedFrom,
+      final List<String> mentionedUserIds}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -902,6 +939,11 @@ abstract class _MessageEntity implements MessageEntity {
 
   /// Атрибуция пересылки; null у обычного сообщения.
   ForwardedFromEntity? get forwardedFrom;
+  @override
+
+  /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
+  /// нужны только чтобы подсветить своё упоминание.
+  List<String> get mentionedUserIds;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

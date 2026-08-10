@@ -14,6 +14,12 @@ final _urlRegex = RegExp(
   caseSensitive: false,
 );
 
+/// Упоминание вида `@логин`. Lookbehind отсекает адреса почты: в
+/// `anna@taler.test` перед собакой стоит буква, и подсвечивать там нечего.
+/// Та же форма, что у серверного разбора (`mention.util.ts`) — если правила
+/// разойдутся, подсветится не то, что уведомит.
+final _mentionRegex = RegExp(r'(?<![\w@])@([A-Za-z0-9_]{2,32})');
+
 /// Renders [text] with auto-detected URLs as tappable links.
 ///
 /// - Taler-internal room/user links navigate in-app via GoRouter.
@@ -29,6 +35,14 @@ class LinkifiedText extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
 
+  /// Стиль упоминаний. Null — упоминания не выделяются вовсе; так ведут себя
+  /// поверхности вне чата (транскрипт ассистента, история звонков), где
+  /// «@что-то» упоминанием не является.
+  final TextStyle? mentionStyle;
+
+  /// Тап по упоминанию. Null — упоминание просто подсвечено.
+  final void Function(String handle)? onMentionTap;
+
   const LinkifiedText({
     super.key,
     required this.text,
@@ -36,11 +50,21 @@ class LinkifiedText extends StatelessWidget {
     this.linkStyle,
     this.maxLines,
     this.overflow,
+    this.mentionStyle,
+    this.onMentionTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final matches = _urlRegex.allMatches(text).toList();
+    // Ссылки и упоминания склеиваем в один упорядоченный список: они не
+    // пересекаются, но идут вперемешку, а спаны надо выдавать по порядку.
+    final matches = <_Span>[
+      for (final m in _urlRegex.allMatches(text))
+        _Span(m.start, m.end, m.group(0)!, isLink: true),
+      if (mentionStyle != null)
+        for (final m in _mentionRegex.allMatches(text))
+          _Span(m.start, m.end, m.group(0)!, isLink: false),
+    ]..sort((a, b) => a.start.compareTo(b.start));
     if (matches.isEmpty) {
       return SelectionArea(
         child: Text(
@@ -62,19 +86,32 @@ class LinkifiedText extends StatelessWidget {
     final spans = <InlineSpan>[];
     var lastEnd = 0;
     for (final m in matches) {
+      // Перекрытия быть не должно, но если ссылка съела кусок с собакой —
+      // пропускаем, иначе текст задвоится.
+      if (m.start < lastEnd) continue;
       if (m.start > lastEnd) {
         spans.add(TextSpan(
           text: text.substring(lastEnd, m.start),
           style: style,
         ));
       }
-      final url = m.group(0)!;
-      spans.add(TextSpan(
-        text: url,
-        style: effectiveLinkStyle,
-        recognizer: TapGestureRecognizer()
-          ..onTap = () => _handleTap(context, url),
-      ));
+      if (m.isLink) {
+        spans.add(TextSpan(
+          text: m.text,
+          style: effectiveLinkStyle,
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => _handleTap(context, m.text),
+        ));
+      } else {
+        spans.add(TextSpan(
+          text: m.text,
+          style: mentionStyle,
+          recognizer: onMentionTap == null
+              ? null
+              : (TapGestureRecognizer()
+                ..onTap = () => onMentionTap!(m.text.substring(1))),
+        ));
+      }
       lastEnd = m.end;
     }
     if (lastEnd < text.length) {
@@ -121,4 +158,13 @@ class LinkifiedText extends StatelessWidget {
     // Everything else → in-app browser (SFSafariViewController / Chrome Custom Tabs)
     launchUrl(uri, mode: LaunchMode.inAppBrowserView);
   }
+}
+
+/// Найденный участок текста: ссылка или упоминание.
+class _Span {
+  final int start;
+  final int end;
+  final String text;
+  final bool isLink;
+  const _Span(this.start, this.end, this.text, {required this.isLink});
 }

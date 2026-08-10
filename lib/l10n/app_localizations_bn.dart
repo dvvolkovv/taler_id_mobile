@@ -4027,4 +4027,7 @@ class AppLocalizationsBn extends AppLocalizations {
 
   @override
   String get convDraftLabel => 'Draft';
+
+  @override
+  String get chatMentionNotFound => 'User not found';
 }

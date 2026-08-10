@@ -53,6 +53,10 @@ class MessageEntity with _$MessageEntity {
 
     /// Атрибуция пересылки; null у обычного сообщения.
     ForwardedFromEntity? forwardedFrom,
+
+    /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
+    /// нужны только чтобы подсветить своё упоминание.
+    @Default([]) List<String> mentionedUserIds,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>

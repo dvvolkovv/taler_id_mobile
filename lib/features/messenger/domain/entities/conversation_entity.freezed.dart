@@ -41,6 +41,10 @@ mixin _$ConversationEntity {
   String? get otherUserStatus => throw _privateConstructorUsedError;
   DateTime? get otherUserLastSeen => throw _privateConstructorUsedError;
   int get unreadCount => throw _privateConstructorUsedError;
+
+  /// Непрочитанные упоминания. Отдельно от [unreadCount]: в шумной группе
+  /// «есть непрочитанное» не значит ничего, а «тебя позвали» значит.
+  int get mentionCount => throw _privateConstructorUsedError;
   bool get isMuted => throw _privateConstructorUsedError;
   DateTime? get mutedUntil => throw _privateConstructorUsedError;
   String? get activeCallRoomName => throw _privateConstructorUsedError;
@@ -95,6 +99,7 @@ abstract class $ConversationEntityCopyWith<$Res> {
       String? otherUserStatus,
       DateTime? otherUserLastSeen,
       int unreadCount,
+      int mentionCount,
       bool isMuted,
       DateTime? mutedUntil,
       String? activeCallRoomName,
@@ -146,6 +151,7 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? otherUserStatus = freezed,
     Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
+    Object? mentionCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
     Object? activeCallRoomName = freezed,
@@ -245,6 +251,10 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
               as int,
+      mentionCount: null == mentionCount
+          ? _value.mentionCount
+          : mentionCount // ignore: cast_nullable_to_non_nullable
+              as int,
       isMuted: null == isMuted
           ? _value.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
@@ -343,6 +353,7 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       String? otherUserStatus,
       DateTime? otherUserLastSeen,
       int unreadCount,
+      int mentionCount,
       bool isMuted,
       DateTime? mutedUntil,
       String? activeCallRoomName,
@@ -393,6 +404,7 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? otherUserStatus = freezed,
     Object? otherUserLastSeen = freezed,
     Object? unreadCount = null,
+    Object? mentionCount = null,
     Object? isMuted = null,
     Object? mutedUntil = freezed,
     Object? activeCallRoomName = freezed,
@@ -492,6 +504,10 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.unreadCount
           : unreadCount // ignore: cast_nullable_to_non_nullable
               as int,
+      mentionCount: null == mentionCount
+          ? _value.mentionCount
+          : mentionCount // ignore: cast_nullable_to_non_nullable
+              as int,
       isMuted: null == isMuted
           ? _value.isMuted
           : isMuted // ignore: cast_nullable_to_non_nullable
@@ -574,6 +590,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.otherUserStatus,
       this.otherUserLastSeen,
       this.unreadCount = 0,
+      this.mentionCount = 0,
       this.isMuted = false,
       this.mutedUntil,
       this.activeCallRoomName,
@@ -644,6 +661,12 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   @JsonKey()
   final int unreadCount;
+
+  /// Непрочитанные упоминания. Отдельно от [unreadCount]: в шумной группе
+  /// «есть непрочитанное» не значит ничего, а «тебя позвали» значит.
+  @override
+  @JsonKey()
+  final int mentionCount;
   @override
   @JsonKey()
   final bool isMuted;
@@ -683,7 +706,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
 
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays, pinnedCount: $pinnedCount, topPinned: $topPinned, pinsDismissedAt: $pinsDismissedAt, draft: $draft, draftAt: $draftAt, archivedAt: $archivedAt, chatPinnedAt: $chatPinnedAt)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, mentionCount: $mentionCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays, pinnedCount: $pinnedCount, topPinned: $topPinned, pinsDismissedAt: $pinsDismissedAt, draft: $draft, draftAt: $draftAt, archivedAt: $archivedAt, chatPinnedAt: $chatPinnedAt)';
   }
 
   @override
@@ -729,6 +752,8 @@ class _$ConversationEntityImpl implements _ConversationEntity {
                 other.otherUserLastSeen == otherUserLastSeen) &&
             (identical(other.unreadCount, unreadCount) ||
                 other.unreadCount == unreadCount) &&
+            (identical(other.mentionCount, mentionCount) ||
+                other.mentionCount == mentionCount) &&
             (identical(other.isMuted, isMuted) || other.isMuted == isMuted) &&
             (identical(other.mutedUntil, mutedUntil) ||
                 other.mutedUntil == mutedUntil) &&
@@ -779,6 +804,7 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         otherUserStatus,
         otherUserLastSeen,
         unreadCount,
+        mentionCount,
         isMuted,
         mutedUntil,
         activeCallRoomName,
@@ -832,6 +858,7 @@ abstract class _ConversationEntity implements ConversationEntity {
       final String? otherUserStatus,
       final DateTime? otherUserLastSeen,
       final int unreadCount,
+      final int mentionCount,
       final bool isMuted,
       final DateTime? mutedUntil,
       final String? activeCallRoomName,
@@ -891,6 +918,11 @@ abstract class _ConversationEntity implements ConversationEntity {
   DateTime? get otherUserLastSeen;
   @override
   int get unreadCount;
+  @override
+
+  /// Непрочитанные упоминания. Отдельно от [unreadCount]: в шумной группе
+  /// «есть непрочитанное» не значит ничего, а «тебя позвали» значит.
+  int get mentionCount;
   @override
   bool get isMuted;
   @override

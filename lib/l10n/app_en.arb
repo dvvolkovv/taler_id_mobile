@@ -1929,5 +1929,6 @@
     }
   },
   "chatSelect": "Select",
-  "convDraftLabel": "Draft"
+  "convDraftLabel": "Draft",
+  "chatMentionNotFound": "User not found"
 }

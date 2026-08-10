@@ -7581,6 +7581,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Draft'**
   String get convDraftLabel;
+
+  /// No description provided for @chatMentionNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'User not found'**
+  String get chatMentionNotFound;
 }
 
 class _AppLocalizationsDelegate

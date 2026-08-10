@@ -31,6 +31,9 @@ class ConversationEntity with _$ConversationEntity {
     String? otherUserStatus,
     DateTime? otherUserLastSeen,
     @Default(0) int unreadCount,
+    /// Непрочитанные упоминания. Отдельно от [unreadCount]: в шумной группе
+    /// «есть непрочитанное» не значит ничего, а «тебя позвали» значит.
+    @Default(0) int mentionCount,
     @Default(false) bool isMuted,
     DateTime? mutedUntil,
     String? activeCallRoomName,

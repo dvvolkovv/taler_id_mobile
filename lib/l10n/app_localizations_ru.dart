@@ -4041,4 +4041,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get convDraftLabel => 'Черновик';
+
+  @override
+  String get chatMentionNotFound => 'Пользователь не найден';
 }
