@@ -192,7 +192,11 @@ class AssistantToolsExecutor {
       } else if (name == 'send_message') {
         final convId = args['conversationId'] as String;
         final content = args['content'] as String;
-        sl<MessengerRemoteDataSource>().sendMessage(convId, content);
+        sl<MessengerRemoteDataSource>().sendMessage(
+          convId,
+          content,
+          replyToId: args['replyToId'] as String?,
+        );
         onAction?.call(AssistantAction(
           type: AssistantActionType.messageSent,
           entityId: convId,
@@ -460,11 +464,24 @@ class AssistantToolsExecutor {
         );
         output = jsonEncode({'ok': true});
       } else if (name == 'forward_message') {
-        sl<MessengerRemoteDataSource>().sendMessage(
-          args['targetConversationId'] as String,
-          args['content'] as String,
-        );
-        output = jsonEncode({'ok': true, 'message': 'forwarded'});
+        // Настоящая пересылка: сервер копирует тело из оригиналов и ставит
+        // «Переслано от X». Раньше здесь была повторная отправка текста, то
+        // есть копия без следов происхождения.
+        final target = args['targetConversationId'] as String;
+        final ids = (args['messageIds'] as List?)?.cast<String>() ?? const [];
+        if (ids.isEmpty) {
+          output = jsonEncode({'ok': false, 'error': 'messageIds is empty'});
+        } else {
+          final sent = await sl<MessengerRemoteDataSource>()
+              .forwardMessages(target, ids);
+          onAction?.call(AssistantAction(
+            type: AssistantActionType.messageSent,
+            entityId: target,
+            conversationId: target,
+            title: 'Переслано: ${sent.length}',
+          ));
+          output = jsonEncode({'ok': true, 'forwarded': sent.length});
+        }
       } else if (name == 'pin_message' || name == 'unpin_message') {
         final convId = args['conversationId'] as String;
         final msgId = args['messageId'] as String;

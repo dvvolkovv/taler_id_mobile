@@ -264,12 +264,18 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           {
             'type': 'function',
             'name': 'send_message',
-            'description': 'Send a text message to a conversation. Use to reply to messages.',
+            'description':
+                'Send a text message to a conversation. Pass replyToId to answer a specific message — that draws a real quote block in the chat, which plain text cannot do.',
             'parameters': {
               'type': 'object',
               'properties': {
                 'conversationId': {'type': 'string'},
                 'content': {'type': 'string', 'description': 'Message text to send'},
+                'replyToId': {
+                  'type': 'string',
+                  'description':
+                      'Optional id of the message being answered. Use when the user says "ответь на это сообщение", "reply to that", or answers a specific question in a busy chat.',
+                },
               },
               'required': ['conversationId', 'content'],
             },
@@ -514,14 +520,19 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           {
             'type': 'function',
             'name': 'forward_message',
-            'description': 'Forward a message content to another conversation.',
+            'description':
+                'Forward one or more existing messages to another conversation, keeping the "Forwarded from X" attribution. Pass the ids of the original messages — the server copies their bodies itself. Use for "перешли это Ане", "forward those two messages to the group".',
             'parameters': {
               'type': 'object',
               'properties': {
                 'targetConversationId': {'type': 'string', 'description': 'Destination conversation ID'},
-                'content': {'type': 'string', 'description': 'Message text to forward'},
+                'messageIds': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'description': 'Ids of the messages to forward, in the order they should appear',
+                },
               },
-              'required': ['targetConversationId', 'content'],
+              'required': ['targetConversationId', 'messageIds'],
             },
           },
           {

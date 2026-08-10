@@ -7569,6 +7569,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You can select at most {limit} messages'**
   String chatSelectionLimit(int limit);
+
+  /// No description provided for @chatSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get chatSelect;
 }
 
 class _AppLocalizationsDelegate

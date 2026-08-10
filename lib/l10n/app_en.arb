@@ -1927,5 +1927,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "chatSelect": "Select"
 }

@@ -4045,4 +4045,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String chatSelectionLimit(int limit) {
     return 'You can select at most $limit messages';
   }
+
+  @override
+  String get chatSelect => 'Select';
 }

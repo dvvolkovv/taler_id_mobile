@@ -50,6 +50,7 @@ import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/entities/reply_preview_entity.dart';
+import '../../utils/unread_anchor.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -113,6 +114,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   MessageEntity? _replyTo;
   String? _replyToSenderName;
   MessageEntity? _editingMessage;
+
+  /// Мультивыбор. Пустое множество означает, что режим выключен — отдельного
+  /// флага нет намеренно, чтобы эти два состояния не могли разъехаться.
+  final Set<String> _selectedIds = <String>{};
+  bool get _selectionMode => _selectedIds.isNotEmpty;
+
+  /// Потолок выделения совпадает с лимитом пачки на сервере: лучше не дать
+  /// выделить лишнее, чем получить отказ уже после нажатия «Переслать».
+  static const _selectionLimit = 50;
+
+  /// id первого непрочитанного сообщения — перед ним рисуется линия
+  /// «Непрочитанные сообщения».
+  ///
+  /// Вычисляется один раз за открытие чата и дальше не двигается: иначе линия
+  /// уползала бы вниз от каждого входящего, и вернуться к месту, где человек
+  /// остановился, стало бы невозможно. [_unreadAnchorResolved] отличает
+  /// «ещё не считали» от «посчитали и непрочитанных не было».
+  String? _unreadAnchorId;
+  bool _unreadAnchorResolved = false;
   bool _socketDisconnected = false;
   StreamSubscription? _disconnectSub;
   StreamSubscription? _reconnectSub;
@@ -1719,6 +1739,158 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   /// not an edge case.
   /// TODO(follow-up): paginate backwards to the target message instead of
   /// just notifying — bigger change than this task should carry.
+  /// Шапка режима мультивыбора: счётчик и действия над пачкой.
+  PreferredSizeWidget _buildSelectionAppBar() {
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: _clearSelection,
+      ),
+      title: Text(
+        l10n.chatSelectedCount(_selectedIds.length),
+        style: TextStyle(color: colors.textPrimary, fontSize: 17),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.copy_rounded),
+          tooltip: l10n.chatCopy,
+          onPressed: _copySelection,
+        ),
+        IconButton(
+          icon: const Icon(Icons.shortcut_rounded),
+          tooltip: l10n.chatForward,
+          onPressed: _forwardSelection,
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete_outline_rounded),
+          tooltip: l10n.delete,
+          color: Colors.red.shade400,
+          onPressed: _deleteSelection,
+        ),
+      ],
+    );
+  }
+
+
+  /// Находит первое непрочитанное входящее и запоминает его как якорь линии.
+  ///
+  /// Считается по собственному курсору чтения из read-state, а не по
+  /// `unreadCount` беседы: счётчик обновляется двумя писателями без порядка
+  /// между ними и может быть временно неверным, а курсор — это факт.
+  ///
+  /// Свои сообщения пропускаем: линия «непрочитанные» перед собственной
+  /// репликой бессмысленна.
+  void _resolveUnreadAnchor(List<MessageEntity> messages, String? myId) {
+    if (_unreadAnchorResolved || messages.isEmpty || myId == null) return;
+    final mine = _cursors.where((c) => c.userId == myId).toList();
+    if (mine.isEmpty) return; // read-state ещё не приехал — попробуем позже
+    final anchor = findFirstUnreadMessageId(
+      messages: messages,
+      myUserId: myId,
+      lastReadAt: mine.first.lastReadAt,
+    );
+    _unreadAnchorResolved = true;
+    if (anchor == null) return;
+    _unreadAnchorId = anchor;
+
+    // Открываем чат на линии, а не в самом низу: смысл разделителя в том,
+    // чтобы человек начал читать оттуда, где остановился.
+    final idx = messages.indexWhere((m) => m.id == anchor);
+    if (idx < 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToChronIndex(idx);
+    });
+  }
+
+  void _toggleSelect(String messageId) {
+    setState(() {
+      if (_selectedIds.contains(messageId)) {
+        _selectedIds.remove(messageId);
+        return;
+      }
+      if (_selectedIds.length >= _selectionLimit) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.chatSelectionLimit(_selectionLimit),
+            ),
+          ),
+        );
+        return;
+      }
+      _selectedIds.add(messageId);
+    });
+  }
+
+  void _clearSelection() => setState(_selectedIds.clear);
+
+  /// Сообщения выделенной пачки в том порядке, в каком они лежат в ленте:
+  /// пересылать вперемешку нельзя, иначе разговор в чате-получателе
+  /// перестраивается.
+  List<MessageEntity> _selectedMessagesInOrder() {
+    final all = _messengerBloc.state.messages[widget.conversationId] ?? [];
+    return all.where((m) => _selectedIds.contains(m.id)).toList();
+  }
+
+  void _forwardSelection() {
+    final ids = _selectedMessagesInOrder().map((m) => m.id).toList();
+    if (ids.isEmpty) return;
+    showForwardPicker(context, ids);
+    _clearSelection();
+  }
+
+  void _copySelection() {
+    final text = _selectedMessagesInOrder()
+        .map((m) => m.content)
+        .where((c) => c.trim().isNotEmpty)
+        .join('\n');
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    _clearSelection();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.chatCopied)),
+    );
+  }
+
+  Future<void> _deleteSelection() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ids = _selectedMessagesInOrder().map((m) => m.id).toList();
+    if (ids.isEmpty) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.of(context).card,
+        title: Text(l10n.chatDeleteMessage,
+            style: TextStyle(color: AppColors.of(context).textPrimary)),
+        content: Text(
+          l10n.chatSelectedCount(ids.length),
+          style: TextStyle(color: AppColors.of(context).textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    for (final id in ids) {
+      _messengerBloc.add(DeleteMessage(
+        conversationId: widget.conversationId,
+        messageId: id,
+        forEveryone: false,
+      ));
+    }
+    _clearSelection();
+  }
+
   void _onPinJump(String messageId) => _jumpToMessage(
         messageId,
         notLoadedText: AppLocalizations.of(context)!.pinnedMessageNotLoaded,
@@ -1955,7 +2127,14 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return PopScope(
+      // В режиме выделения «назад» снимает выделение, а не выкидывает из чата:
+      // иначе случайный свайп теряет отмеченную пачку.
+      canPop: !_selectionMode,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _selectionMode) _clearSelection();
+      },
+      child: Stack(
       children: [
         // Per-chat wallpaper (app-wide selection from Settings)
         Positioned.fill(
@@ -2004,7 +2183,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
         Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
+      appBar: _selectionMode
+          ? _buildSelectionAppBar()
+          : AppBar(
         leading: _searchMode
             ? IconButton(
                 icon: const Icon(Icons.close),
@@ -2474,6 +2655,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       child: Builder(builder: (context) {
                         final pendingText = state.pendingAnalystText[widget.conversationId] ?? '';
                         final hasStreaming = conv?.type == 'AI_ANALYST' && pendingText.isNotEmpty;
+                        // Один раз за открытие чата, до построения строк: линия
+                        // должна быть готова к моменту, когда до неё дойдёт
+                        // отрисовка.
+                        _resolveUnreadAnchor(messages, state.currentUserId);
                         return ListView.builder(
                         key: const PageStorageKey('chat_messages'),
                         controller: _scrollCtrl,
@@ -2602,6 +2787,13 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 autoPlayVideoNote: _autoPlayVideoNote,
                                 readCursors: _cursors,
                                 onQuoteTap: _onQuoteJump,
+                                isSelected: _selectedIds.contains(msg.id),
+                                selectionMode: _selectionMode,
+                                // Системные строки выделять нечего — их нельзя
+                                // ни переслать, ни осмысленно скопировать.
+                                onToggleSelect: msg.isSystem
+                                    ? null
+                                    : () => _toggleSelect(msg.id),
                               );
 
                           // Report read-horizon as incoming (non-own) bubbles actually
@@ -2614,7 +2806,17 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 _onMessageSeen(msg);
                               }
                             },
-                            child: messageBubble,
+                            // Подсветка выделения кладётся на всю ширину строки,
+                            // а не на сам пузырь: так видно, что отмечено
+                            // сообщение целиком, включая пустое поле рядом.
+                            child: _selectedIds.contains(msg.id)
+                                ? ColoredBox(
+                                    color: AppColors.of(context)
+                                        .primary
+                                        .withValues(alpha: 0.16),
+                                    child: messageBubble,
+                                  )
+                                : messageBubble,
                           );
 
                           // AI_ANALYST bot messages: show seam widget above the bubble
@@ -2633,6 +2835,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   if (showDate) _DateSeparator(date: msg.sentAt),
+                                  if (msg.id == _unreadAnchorId) const _UnreadSeparator(),
                                   AnalystSeamWidget(seam: seam),
                                   wrappedBubble,
                                 ],
@@ -2645,6 +2848,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               if (showDate) _DateSeparator(date: msg.sentAt),
+                              if (msg.id == _unreadAnchorId) const _UnreadSeparator(),
                               wrappedBubble,
                             ],
                           );
@@ -3052,6 +3256,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             ),
           ),
       ],
+      ),
     );
   }
 
@@ -3118,6 +3323,39 @@ class _ActiveCallBanner extends StatelessWidget {
             ),
             child: Text(AppLocalizations.of(context)!.joinCall, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Линия «Непрочитанные сообщения» перед первым непрочитанным.
+///
+/// В отличие от разделителя дат тянется на всю ширину: это граница чтения, а не
+/// метка, и её должно быть видно боковым зрением при прокрутке.
+class _UnreadSeparator extends StatelessWidget {
+  const _UnreadSeparator();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: colors.primary.withValues(alpha: 0.5))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              AppLocalizations.of(context)!.chatUnreadDivider,
+              style: TextStyle(
+                color: colors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: colors.primary.withValues(alpha: 0.5))),
         ],
       ),
     );
@@ -3305,6 +3543,11 @@ class _MessageBubble extends StatefulWidget {
   final VoidCallback? onTogglePin;
   /// Переход к цитируемому оригиналу. Null — цитата не кликабельна.
   final void Function(String messageId)? onQuoteTap;
+  /// Мультивыбор. [onToggleSelect] null — выделять в этой беседе нельзя
+  /// (системные строки и AI-ветки), пункт меню тогда не показывается.
+  final bool isSelected;
+  final bool selectionMode;
+  final VoidCallback? onToggleSelect;
   const _MessageBubble({
     required this.message,
     required this.isMe,
@@ -3325,6 +3568,9 @@ class _MessageBubble extends StatefulWidget {
     this.readCursors = const [],
     this.onTogglePin,
     this.onQuoteTap,
+    this.isSelected = false,
+    this.selectionMode = false,
+    this.onToggleSelect,
   });
 
   @override
@@ -3365,6 +3611,13 @@ class _MessageBubbleState extends State<_MessageBubble> {
     }
 
     return GestureDetector(
+      // В режиме выделения обычный тап переключает отметку, а не открывает
+      // вложение: иначе выделять пачку картинок было бы невозможно.
+      onTap: widget.selectionMode && widget.onToggleSelect != null
+          ? widget.onToggleSelect
+          : null,
+      // Долгое нажатие по-прежнему открывает меню действий — выделение
+      // добавлено туда пунктом, а не вместо него.
       onLongPress: () => _showMessageActions(context),
       onSecondaryTap: () => _showMessageActions(context),
       onHorizontalDragUpdate: (details) {
@@ -3866,6 +4119,15 @@ class _MessageBubbleState extends State<_MessageBubble> {
                   widget.onReply!();
                 },
               ),
+            if (widget.onToggleSelect != null)
+              ListTile(
+                leading: Icon(Icons.checklist_rounded, color: colors.textSecondary),
+                title: Text(l10n.chatSelect, style: TextStyle(color: colors.textPrimary)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onToggleSelect!();
+                },
+              ),
             // Task 14: pin/unpin — widget.onTogglePin is already null for
             // system messages and for conversations the current user can't
             // pin in (see the call site's canPinIn gate), so no extra
@@ -4140,50 +4402,8 @@ class _MessageBubbleState extends State<_MessageBubble> {
     );
   }
 
-  void _showForwardPicker(BuildContext context) {
-    final bloc = context.read<MessengerBloc>();
-    final conversations = filterRecipients(bloc.state.conversations);
-    final rootContext = context;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.of(context).card,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => _ForwardPickerSheet(
-        conversations: conversations,
-        onSelected: (targetConversationId) {
-          // Forward the message, then open the destination chat so the user
-          // lands right on it and can add a caption or follow-up.
-          bloc.add(ForwardMessages(
-            messageIds: [widget.message.id],
-            targetConversationId: targetConversationId,
-          ));
-          if (rootContext.mounted) {
-            rootContext.push('/dashboard/messenger/$targetConversationId');
-          }
-        },
-        onSelectSaved: () async {
-          try {
-            final res = await sl<DioClient>().post(
-              '/messenger/saved',
-              fromJson: (d) => Map<String, dynamic>.from(d as Map),
-            );
-            final convId = res['conversationId'] as String?;
-            if (convId == null) return;
-            bloc.add(ForwardMessages(
-              messageIds: [widget.message.id],
-              targetConversationId: convId,
-            ));
-            if (rootContext.mounted) {
-              rootContext.push('/dashboard/messenger/$convId');
-            }
-          } catch (_) {}
-        },
-      ),
-    );
-  }
+  void _showForwardPicker(BuildContext context) =>
+      showForwardPicker(context, [widget.message.id]);
 
   Widget _buildVideoNoteMessage(BuildContext context) {
     final colors = AppColors.of(context);
@@ -4599,6 +4819,54 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
       ),
     );
   }
+}
+
+/// Показывает выбор беседы и пересылает туда [messageIds].
+///
+/// Одна на два вызова — из меню одного сообщения и из мультивыбора: логика
+/// «переслать и сразу открыть чат-получатель» должна быть одинаковой, иначе
+/// пачка и одиночка ведут себя по-разному без всякой причины.
+void showForwardPicker(BuildContext context, List<String> messageIds) {
+  if (messageIds.isEmpty) return;
+  final bloc = context.read<MessengerBloc>();
+  final conversations = filterRecipients(bloc.state.conversations);
+  final rootContext = context;
+
+  void forwardTo(String convId) {
+    bloc.add(ForwardMessages(
+      messageIds: messageIds,
+      targetConversationId: convId,
+    ));
+    // Открываем чат-получатель, чтобы пользователь оказался прямо на
+    // пересланном и мог дописать сопровождение.
+    if (rootContext.mounted) {
+      rootContext.push('/dashboard/messenger/$convId');
+    }
+  }
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: AppColors.of(context).card,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    ),
+    builder: (_) => _ForwardPickerSheet(
+      conversations: conversations,
+      onSelected: forwardTo,
+      onSelectSaved: () async {
+        try {
+          final res = await sl<DioClient>().post(
+            '/messenger/saved',
+            fromJson: (d) => Map<String, dynamic>.from(d as Map),
+          );
+          final convId = res['conversationId'] as String?;
+          if (convId == null) return;
+          forwardTo(convId);
+        } catch (_) {}
+      },
+    ),
+  );
 }
 
 class _ForwardPickerSheet extends StatefulWidget {

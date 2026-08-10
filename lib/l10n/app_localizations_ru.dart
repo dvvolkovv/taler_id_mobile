@@ -4035,4 +4035,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String chatSelectionLimit(int limit) {
     return 'Можно выбрать не больше $limit сообщений';
   }
+
+  @override
+  String get chatSelect => 'Выделить';
 }
