@@ -675,6 +675,16 @@ class MessengerRemoteDataSource {
     );
   }
 
+  /// Карточка ссылки. Пустой результат (сервер вернул `url: null`) означает
+  /// «показывать нечего» — это нормальный ответ, а не ошибка.
+  Future<Map<String, dynamic>?> getLinkPreview(String url) async {
+    final data = await _http.get(
+      '/messenger/link-preview?url=${Uri.encodeQueryComponent(url)}',
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return data['url'] == null ? null : data;
+  }
+
   /// Черновик беседы. Пустая строка стирает его.
   Future<void> saveDraft(String conversationId, String text) async {
     await _http.put(

@@ -64,6 +64,7 @@ import '../widgets/message_info_sheet.dart';
 import '../widgets/analyst_streaming_bubble.dart';
 import '../widgets/analyst_seam_widget.dart';
 import '../widgets/pinned_banner.dart';
+import '../widgets/link_preview_card.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../utils/recipient_filters.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
@@ -4176,6 +4177,15 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       : FontWeight.w500,
                 ),
                 onMentionTap: widget.onMentionTap,
+              ),
+            // Карточка ссылки — только у обычных текстовых сообщений: под
+            // файлом или опросом ей взяться неоткуда.
+            if (widget.message.fileUrl == null &&
+                !widget.message.isSystem &&
+                firstUrlIn(widget.message.content) != null)
+              LinkPreviewCard(
+                url: firstUrlIn(widget.message.content)!,
+                isMe: widget.isMe,
               ),
             // Show caption under image/video if content differs from fileName
             if (widget.message.fileUrl != null &&
