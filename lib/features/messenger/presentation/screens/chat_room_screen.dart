@@ -111,6 +111,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   bool _isRecording = false;
   String? _recordingPath;
   double _prevKeyboardHeight = 0;
+  Timer? _draftSyncTimer;
   MessageEntity? _replyTo;
   String? _replyToSenderName;
   MessageEntity? _editingMessage;
@@ -245,9 +246,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   void initState() {
     super.initState();
     _messengerBloc = context.read<MessengerBloc>();
-    // Restore unsent draft for this conversation/topic
-    final draft = sl<MessageDraftService>().getDraft(_draftKey);
-    _ctrl = TextEditingController(text: draft ?? '');
+    // Черновик: сервер — источник правды (он же виден со второго устройства),
+    // локальный Hive остаётся запасным на случай, когда список бесед ещё не
+    // загружен или сети не было.
+    //
+    // Серверный черновик хранится на беседе целиком, поэтому у топиков он
+    // по-прежнему только локальный — иначе черновики разных топиков затирали
+    // бы друг друга.
+    final localDraft = sl<MessageDraftService>().getDraft(_draftKey);
+    String? serverDraft;
+    if (widget.topicId == null) {
+      for (final c in _messengerBloc.state.conversations) {
+        if (c.id == widget.conversationId) {
+          serverDraft = c.draft;
+          break;
+        }
+      }
+    }
+    _ctrl = TextEditingController(text: serverDraft ?? localDraft ?? '');
     _ctrl.addListener(_onTextChanged);
     _scrollCtrl = ScrollController();
     _scrollCtrl.addListener(_onScrollChanged);
@@ -1398,6 +1414,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       context.read<MessengerBloc>().add(SendTyping(conversationId: widget.conversationId, isTyping: false));
     }
     _ctrl.clear();
+    // Сообщение ушло — черновика больше нет. Без этого на другом устройстве
+    // висел бы текст, который здесь уже отправлен.
+    _draftSyncTimer?.cancel();
+    if (widget.topicId == null) {
+      _messengerBloc.add(SaveDraft(conversationId: widget.conversationId, text: ''));
+    }
     _cancelReply();
     // With reverse:true, new messages appear at offset 0
     Future.delayed(const Duration(milliseconds: 50), () {
@@ -1555,9 +1577,30 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return (badgeState, null, null);
   }
 
+  /// Отправка черновика на сервер с задержкой.
+  ///
+  /// Без неё каждое нажатие клавиши превращалось бы в запрос. Полторы секунды
+  /// тишины — компромисс: на другом устройстве черновик появляется почти
+  /// сразу, а сеть не захлёбывается.
+  ///
+  /// У топиков серверного черновика нет (см. initState), поэтому и синхронизировать
+  /// нечего.
+  void _scheduleDraftSync() {
+    if (widget.topicId != null) return;
+    _draftSyncTimer?.cancel();
+    _draftSyncTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      _messengerBloc.add(SaveDraft(
+        conversationId: widget.conversationId,
+        text: _ctrl.text,
+      ));
+    });
+  }
+
   void _onTextChanged() {
-    // Persist draft so the user can resume typing later or on another session
+    // Локально — сразу: это дешёво и переживает убийство приложения.
     sl<MessageDraftService>().saveDraft(_draftKey, _ctrl.text);
+    _scheduleDraftSync();
     final bloc = context.read<MessengerBloc>();
     if (_ctrl.text.isNotEmpty && !_isTypingSent) {
       _isTypingSent = true;
@@ -1582,6 +1625,19 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     _messengerBloc.add(MarkConversationRead(widget.conversationId));
     _messengerBloc.add(LoadConversations());
     _typingTimer?.cancel();
+    // Незавершённый debounce отправляем немедленно: иначе выход из чата в
+    // первые полторы секунды после набора терял бы черновик для других
+    // устройств.
+    if (_draftSyncTimer?.isActive ?? false) {
+      _draftSyncTimer!.cancel();
+      if (widget.topicId == null) {
+        _messengerBloc.add(SaveDraft(
+          conversationId: widget.conversationId,
+          text: _ctrl.text,
+        ));
+      }
+    }
+    _draftSyncTimer?.cancel();
     _readDebounce?.cancel();
     _ctrl.removeListener(_onTextChanged);
     _ctrl.dispose();

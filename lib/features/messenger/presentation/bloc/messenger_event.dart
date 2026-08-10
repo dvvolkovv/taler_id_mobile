@@ -524,3 +524,39 @@ class PinEventReceived extends MessengerEvent {
   @override
   List<Object?> get props => [type, data];
 }
+
+/// Черновик беседы. Пустой текст стирает его.
+class SaveDraft extends MessengerEvent {
+  final String conversationId;
+  final String text;
+  const SaveDraft({required this.conversationId, required this.text});
+  @override
+  List<Object?> get props => [conversationId, text];
+}
+
+/// Архив беседы — персональный, у собеседника чат остаётся на месте.
+class SetConversationArchived extends MessengerEvent {
+  final String conversationId;
+  final bool archived;
+  const SetConversationArchived({required this.conversationId, required this.archived});
+  @override
+  List<Object?> get props => [conversationId, archived];
+}
+
+/// Закрепление беседы в СПИСКЕ чатов. Не путать с [PinMessage] — там
+/// закрепляется сообщение ВНУТРИ беседы.
+class SetConversationPinned extends MessengerEvent {
+  final String conversationId;
+  final bool pinned;
+  const SetConversationPinned({required this.conversationId, required this.pinned});
+  @override
+  List<Object?> get props => [conversationId, pinned];
+}
+
+/// Состояние беседы, изменённое на другом устройстве этого же пользователя.
+class ConversationStateReceived extends MessengerEvent {
+  final Map<String, dynamic> payload;
+  const ConversationStateReceived(this.payload);
+  @override
+  List<Object?> get props => [payload];
+}

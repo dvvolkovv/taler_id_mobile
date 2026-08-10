@@ -4038,4 +4038,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatSelect => 'Выделить';
+
+  @override
+  String get convDraftLabel => 'Черновик';
 }

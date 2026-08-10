@@ -50,6 +50,9 @@ class MessengerRemoteDataSource {
   final _gcEndedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   // Pin events
   final _messagePinnedCtrl = StreamController<Map<String, dynamic>>.broadcast();
+  /// Персональное состояние беседы (черновик/архив/закреп), пришедшее с
+  /// другого устройства этого же пользователя.
+  final _conversationStateCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageUnpinnedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _pinsClearedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messageDeletedCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -223,6 +226,9 @@ class MessengerRemoteDataSource {
     _socket!.on('message_pinned', (d) {
       try { _messagePinnedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
+    _socket!.on('conversation_state', (d) {
+      try { _conversationStateCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
+    });
     _socket!.on('message_unpinned', (d) {
       try { _messageUnpinnedCtrl.add(Map<String, dynamic>.from(d as Map)); } catch (_) {}
     });
@@ -340,6 +346,7 @@ class MessengerRemoteDataSource {
   Stream<Map<String, dynamic>> get gcEndedStream => _gcEndedCtrl.stream;
   // Pin streams
   Stream<Map<String, dynamic>> get messagePinnedStream => _messagePinnedCtrl.stream;
+  Stream<Map<String, dynamic>> get conversationStateStream => _conversationStateCtrl.stream;
   Stream<Map<String, dynamic>> get messageUnpinnedStream => _messageUnpinnedCtrl.stream;
   Stream<Map<String, dynamic>> get pinsClearedStream => _pinsClearedCtrl.stream;
   Stream<Map<String, dynamic>> get messageDeletedStream => _messageDeletedCtrl.stream;
@@ -668,6 +675,35 @@ class MessengerRemoteDataSource {
     );
   }
 
+  /// Черновик беседы. Пустая строка стирает его.
+  Future<void> saveDraft(String conversationId, String text) async {
+    await _http.put(
+      '/messenger/conversations/$conversationId/draft',
+      data: {'text': text},
+      fromJson: (d) => d,
+    );
+  }
+
+  Future<void> setArchived(String conversationId, bool archived) async {
+    final path = '/messenger/conversations/$conversationId/archive';
+    if (archived) {
+      await _http.post(path, data: {}, fromJson: (d) => d);
+    } else {
+      await _http.deleteWithResponse(path, fromJson: (d) => d);
+    }
+  }
+
+  /// Закрепление беседы в списке чатов — не путать с закреплением сообщения
+  /// внутри беседы (`pinMessage`), путь тоже другой.
+  Future<void> setChatPinned(String conversationId, bool pinned) async {
+    final path = '/messenger/conversations/$conversationId/chat-pin';
+    if (pinned) {
+      await _http.post(path, data: {}, fromJson: (d) => d);
+    } else {
+      await _http.deleteWithResponse(path, fromJson: (d) => d);
+    }
+  }
+
   /// Пересылка пачки сообщений в беседу [targetConversationId].
   ///
   /// Тело копирует сервер из оригиналов — клиент передаёт только id, поэтому
@@ -858,6 +894,7 @@ class MessengerRemoteDataSource {
     _analystChunkCtrl.close();
     _analystSeamCtrl.close();
     _messagePinnedCtrl.close();
+    _conversationStateCtrl.close();
     _messageUnpinnedCtrl.close();
     _pinsClearedCtrl.close();
   }

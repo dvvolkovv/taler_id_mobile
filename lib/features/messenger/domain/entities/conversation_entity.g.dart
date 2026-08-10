@@ -52,6 +52,16 @@ _$ConversationEntityImpl _$$ConversationEntityImplFromJson(
       pinsDismissedAt: json['pinsDismissedAt'] == null
           ? null
           : DateTime.parse(json['pinsDismissedAt'] as String),
+      draft: json['draft'] as String?,
+      draftAt: json['draftAt'] == null
+          ? null
+          : DateTime.parse(json['draftAt'] as String),
+      archivedAt: json['archivedAt'] == null
+          ? null
+          : DateTime.parse(json['archivedAt'] as String),
+      chatPinnedAt: json['chatPinnedAt'] == null
+          ? null
+          : DateTime.parse(json['chatPinnedAt'] as String),
     );
 
 Map<String, dynamic> _$$ConversationEntityImplToJson(
@@ -87,4 +97,8 @@ Map<String, dynamic> _$$ConversationEntityImplToJson(
       'pinnedCount': instance.pinnedCount,
       'topPinned': instance.topPinned?.toJson(),
       'pinsDismissedAt': instance.pinsDismissedAt?.toIso8601String(),
+      'draft': instance.draft,
+      'draftAt': instance.draftAt?.toIso8601String(),
+      'archivedAt': instance.archivedAt?.toIso8601String(),
+      'chatPinnedAt': instance.chatPinnedAt?.toIso8601String(),
     };

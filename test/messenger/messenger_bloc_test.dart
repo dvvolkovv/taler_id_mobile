@@ -215,6 +215,7 @@ void main() {
     // Pin streams — stub required after messagePinnedStream/messageUnpinnedStream/
     // pinsClearedStream were added to IMessengerRepository.
     when(() => repo.messagePinnedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
+    when(() => repo.conversationStateStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.messageUnpinnedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.pinsClearedStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());
     when(() => repo.typingStream).thenAnswer((_) => emptyStream<Map<String, dynamic>>());

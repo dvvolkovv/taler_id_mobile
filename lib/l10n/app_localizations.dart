@@ -7575,6 +7575,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Select'**
   String get chatSelect;
+
+  /// No description provided for @convDraftLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get convDraftLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -4044,4 +4044,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get chatSelect => 'Select';
+
+  @override
+  String get convDraftLabel => 'Draft';
 }

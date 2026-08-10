@@ -40,6 +40,16 @@ class ConversationEntity with _$ConversationEntity {
     @Default(0) int pinnedCount,
     PinnedPreviewEntity? topPinned,
     DateTime? pinsDismissedAt,
+
+    /// Персональное состояние беседы в списке чатов. Раньше жило в локальном
+    /// Hive и на втором устройстве не существовало.
+    ///
+    /// [chatPinnedAt] — закрепление беседы в списке; не путать с [pinnedCount]
+    /// и [topPinned], это закреплённые сообщения ВНУТРИ беседы.
+    String? draft,
+    DateTime? draftAt,
+    DateTime? archivedAt,
+    DateTime? chatPinnedAt,
   }) = _ConversationEntity;
 
   factory ConversationEntity.fromJson(Map<String, dynamic> json) =>

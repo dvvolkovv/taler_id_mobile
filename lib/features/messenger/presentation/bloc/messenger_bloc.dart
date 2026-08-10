@@ -28,6 +28,10 @@ import '../../../../core/platform/platform_utils.dart';
 import 'messenger_event.dart';
 import 'messenger_state.dart';
 
+/// Отличает «поле не передано» от «поле сброшено в null»: copyWith у freezed
+/// такой разницы не видит, а сбрасывать черновик в null надо уметь.
+const Object _unset = Object();
+
 class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     with WidgetsBindingObserver {
   final IMessengerRepository _repo;
@@ -49,6 +53,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   StreamSubscription? _groupCallStartedSub;
   StreamSubscription? _groupCallEndedSub;
   StreamSubscription? _messagePinnedSub;
+  StreamSubscription? _conversationStateSub;
   StreamSubscription? _messageUnpinnedSub;
   StreamSubscription? _pinsClearedSub;
   StreamSubscription? _msgDeletedSub;
@@ -130,6 +135,10 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     on<UpdateGroupSettings>(_onUpdateGroupSettings);
     on<GroupEventReceived>(_onGroupEventReceived);
     on<MuteConversation>(_onMuteConversation);
+    on<SaveDraft>(_onSaveDraft);
+    on<SetConversationArchived>(_onSetConversationArchived);
+    on<SetConversationPinned>(_onSetConversationPinned);
+    on<ConversationStateReceived>(_onConversationStateReceived);
     on<UnmuteConversation>(_onUnmuteConversation);
     on<GroupCallStarted>(_onGroupCallStarted);
     on<GroupCallEnded>(_onGroupCallEnded);
@@ -300,6 +309,11 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
       if (convId != null) {
         add(GroupCallEnded(convId));
       }
+    });
+    // Состояние списка чатов, изменённое на другом устройстве.
+    _conversationStateSub?.cancel();
+    _conversationStateSub = _repo.conversationStateStream.listen((data) {
+      add(ConversationStateReceived(data));
     });
     // Pin socket listeners
     _messagePinnedSub?.cancel();
@@ -1395,6 +1409,7 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
     _groupCallStartedSub?.cancel();
     _groupCallEndedSub?.cancel();
     _messagePinnedSub?.cancel();
+    _conversationStateSub?.cancel();
     _messageUnpinnedSub?.cancel();
     _pinsClearedSub?.cancel();
     _msgDeletedSub?.cancel();
@@ -1415,6 +1430,94 @@ class MessengerBloc extends Bloc<MessengerEvent, MessengerState>
   }
 
   // ─── Mute handlers ───
+
+
+  // ─── Состояние беседы в списке чатов ───
+
+  /// Заменяет персональное состояние беседы одним местом на все пути:
+  /// оптимистичное обновление и эхо с другого устройства идут сюда же, чтобы
+  /// не разъехаться.
+  MessengerState _withListState(
+    String conversationId, {
+    Object? draft = _unset,
+    Object? archivedAt = _unset,
+    Object? chatPinnedAt = _unset,
+  }) {
+    final updated = state.conversations.map((c) {
+      if (c.id != conversationId) return c;
+      return c.copyWith(
+        draft: draft == _unset ? c.draft : draft as String?,
+        archivedAt:
+            archivedAt == _unset ? c.archivedAt : archivedAt as DateTime?,
+        chatPinnedAt:
+            chatPinnedAt == _unset ? c.chatPinnedAt : chatPinnedAt as DateTime?,
+      );
+    }).toList();
+    return state.copyWith(conversations: updated);
+  }
+
+  Future<void> _onSaveDraft(SaveDraft event, Emitter<MessengerState> emit) async {
+    final trimmed = event.text.trim();
+    emit(_withListState(event.conversationId,
+        draft: trimmed.isEmpty ? null : trimmed));
+    try {
+      await _repo.saveDraft(event.conversationId, event.text);
+    } catch (e) {
+      // Черновик не стоит того, чтобы ругаться на пользователя: он лежит в
+      // поле ввода и никуда не денется до конца сессии.
+      debugPrint('[MessengerBloc] saveDraft failed: $e');
+    }
+  }
+
+  Future<void> _onSetConversationArchived(
+      SetConversationArchived event, Emitter<MessengerState> emit) async {
+    final before = state.conversations
+        .firstWhere((c) => c.id == event.conversationId,
+            orElse: () => state.conversations.first)
+        .archivedAt;
+    emit(_withListState(event.conversationId,
+        archivedAt: event.archived ? DateTime.now() : null));
+    try {
+      await _repo.setArchived(event.conversationId, event.archived);
+    } catch (e) {
+      debugPrint('[MessengerBloc] setArchived failed: $e');
+      // Откат: иначе чат «уехал в архив» только на этом экране и вернётся при
+      // следующей загрузке списка — выглядит как потерянный чат.
+      emit(_withListState(event.conversationId, archivedAt: before));
+    }
+  }
+
+  Future<void> _onSetConversationPinned(
+      SetConversationPinned event, Emitter<MessengerState> emit) async {
+    final before = state.conversations
+        .firstWhere((c) => c.id == event.conversationId,
+            orElse: () => state.conversations.first)
+        .chatPinnedAt;
+    emit(_withListState(event.conversationId,
+        chatPinnedAt: event.pinned ? DateTime.now() : null));
+    try {
+      await _repo.setChatPinned(event.conversationId, event.pinned);
+    } catch (e) {
+      debugPrint('[MessengerBloc] setChatPinned failed: $e');
+      emit(_withListState(event.conversationId, chatPinnedAt: before));
+    }
+  }
+
+  /// Эхо с другого устройства этого же пользователя — ради него состояние и
+  /// переносилось на сервер.
+  void _onConversationStateReceived(
+      ConversationStateReceived event, Emitter<MessengerState> emit) {
+    final convId = event.payload['conversationId'] as String?;
+    if (convId == null) return;
+    DateTime? parse(Object? v) =>
+        v is String ? DateTime.tryParse(v) : null;
+    emit(_withListState(
+      convId,
+      draft: event.payload['draft'] as String?,
+      archivedAt: parse(event.payload['archivedAt']),
+      chatPinnedAt: parse(event.payload['chatPinnedAt']),
+    ));
+  }
 
   Future<void> _onMuteConversation(MuteConversation event, Emitter<MessengerState> emit) async {
     try {

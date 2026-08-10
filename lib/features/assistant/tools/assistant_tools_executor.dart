@@ -482,6 +482,22 @@ class AssistantToolsExecutor {
           ));
           output = jsonEncode({'ok': true, 'forwarded': sent.length});
         }
+      } else if (name == 'archive_conversation') {
+        final convId = args['conversationId'] as String;
+        final archived = args['archived'] == true;
+        sl<MessengerBloc>().add(
+          SetConversationArchived(conversationId: convId, archived: archived),
+        );
+        output = jsonEncode({'ok': true, 'archived': archived});
+      } else if (name == 'pin_conversation') {
+        // Закрепление ЧАТА в списке; закрепление сообщения внутри чата — это
+        // соседний pin_message.
+        final convId = args['conversationId'] as String;
+        final pinned = args['pinned'] == true;
+        sl<MessengerBloc>().add(
+          SetConversationPinned(conversationId: convId, pinned: pinned),
+        );
+        output = jsonEncode({'ok': true, 'pinned': pinned});
       } else if (name == 'pin_message' || name == 'unpin_message') {
         final convId = args['conversationId'] as String;
         final msgId = args['messageId'] as String;

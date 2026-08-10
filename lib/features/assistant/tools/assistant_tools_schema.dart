@@ -537,6 +537,34 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'archive_conversation',
+            'description':
+                'Archive or unarchive a chat — it moves out of the main list into Archived (and back). Personal: the other side sees nothing. Use for "убери этот чат", "заархивируй переписку", "верни чат из архива".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'archived': {'type': 'boolean', 'description': 'true to archive, false to bring it back'},
+              },
+              'required': ['conversationId', 'archived'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'pin_conversation',
+            'description':
+                'Pin or unpin a CHAT at the top of the chat list. Not to be confused with pin_message, which pins a MESSAGE inside a chat. Use for "закрепи этот чат наверху", "открепи диалог из списка".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'conversationId': {'type': 'string'},
+                'pinned': {'type': 'boolean'},
+              },
+              'required': ['conversationId', 'pinned'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'pin_message',
             'description':
                 'Pin a message in a conversation so it stays highlighted at the top for everyone in the chat (Telegram-style). Use when the user asks to pin a message, mark it important, or keep something easy to find later (an address, a time, a link) — e.g. "закрепи это сообщение", "pin that message", "закрепи адрес встречи".',

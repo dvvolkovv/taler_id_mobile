@@ -129,6 +129,22 @@ class MessengerRepositoryImpl implements IMessengerRepository {
   }
 
   @override
+  Future<void> saveDraft(String conversationId, String text) =>
+      _remote.saveDraft(conversationId, text);
+
+  @override
+  Future<void> setArchived(String conversationId, bool archived) =>
+      _remote.setArchived(conversationId, archived);
+
+  @override
+  Future<void> setChatPinned(String conversationId, bool pinned) =>
+      _remote.setChatPinned(conversationId, pinned);
+
+  @override
+  Stream<Map<String, dynamic>> get conversationStateStream =>
+      _remote.conversationStateStream;
+
+  @override
   Future<List<MessageEntity>> forwardMessages(
     String targetConversationId,
     List<String> messageIds,

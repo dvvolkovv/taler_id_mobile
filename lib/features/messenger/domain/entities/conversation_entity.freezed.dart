@@ -51,6 +51,16 @@ mixin _$ConversationEntity {
   PinnedPreviewEntity? get topPinned => throw _privateConstructorUsedError;
   DateTime? get pinsDismissedAt => throw _privateConstructorUsedError;
 
+  /// Персональное состояние беседы в списке чатов. Раньше жило в локальном
+  /// Hive и на втором устройстве не существовало.
+  ///
+  /// [chatPinnedAt] — закрепление беседы в списке; не путать с [pinnedCount]
+  /// и [topPinned], это закреплённые сообщения ВНУТРИ беседы.
+  String? get draft => throw _privateConstructorUsedError;
+  DateTime? get draftAt => throw _privateConstructorUsedError;
+  DateTime? get archivedAt => throw _privateConstructorUsedError;
+  DateTime? get chatPinnedAt => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $ConversationEntityCopyWith<ConversationEntity> get copyWith =>
@@ -93,7 +103,11 @@ abstract class $ConversationEntityCopyWith<$Res> {
       int? autoDeleteDays,
       int pinnedCount,
       PinnedPreviewEntity? topPinned,
-      DateTime? pinsDismissedAt});
+      DateTime? pinsDismissedAt,
+      String? draft,
+      DateTime? draftAt,
+      DateTime? archivedAt,
+      DateTime? chatPinnedAt});
 
   $PinnedPreviewEntityCopyWith<$Res>? get topPinned;
 }
@@ -141,6 +155,10 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
     Object? pinnedCount = null,
     Object? topPinned = freezed,
     Object? pinsDismissedAt = freezed,
+    Object? draft = freezed,
+    Object? draftAt = freezed,
+    Object? archivedAt = freezed,
+    Object? chatPinnedAt = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -263,6 +281,22 @@ class _$ConversationEntityCopyWithImpl<$Res, $Val extends ConversationEntity>
           ? _value.pinsDismissedAt
           : pinsDismissedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      draft: freezed == draft
+          ? _value.draft
+          : draft // ignore: cast_nullable_to_non_nullable
+              as String?,
+      draftAt: freezed == draftAt
+          ? _value.draftAt
+          : draftAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      archivedAt: freezed == archivedAt
+          ? _value.archivedAt
+          : archivedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      chatPinnedAt: freezed == chatPinnedAt
+          ? _value.chatPinnedAt
+          : chatPinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ) as $Val);
   }
 
@@ -317,7 +351,11 @@ abstract class _$$ConversationEntityImplCopyWith<$Res>
       int? autoDeleteDays,
       int pinnedCount,
       PinnedPreviewEntity? topPinned,
-      DateTime? pinsDismissedAt});
+      DateTime? pinsDismissedAt,
+      String? draft,
+      DateTime? draftAt,
+      DateTime? archivedAt,
+      DateTime? chatPinnedAt});
 
   @override
   $PinnedPreviewEntityCopyWith<$Res>? get topPinned;
@@ -364,6 +402,10 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
     Object? pinnedCount = null,
     Object? topPinned = freezed,
     Object? pinsDismissedAt = freezed,
+    Object? draft = freezed,
+    Object? draftAt = freezed,
+    Object? archivedAt = freezed,
+    Object? chatPinnedAt = freezed,
   }) {
     return _then(_$ConversationEntityImpl(
       id: null == id
@@ -486,6 +528,22 @@ class __$$ConversationEntityImplCopyWithImpl<$Res>
           ? _value.pinsDismissedAt
           : pinsDismissedAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
+      draft: freezed == draft
+          ? _value.draft
+          : draft // ignore: cast_nullable_to_non_nullable
+              as String?,
+      draftAt: freezed == draftAt
+          ? _value.draftAt
+          : draftAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      archivedAt: freezed == archivedAt
+          ? _value.archivedAt
+          : archivedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      chatPinnedAt: freezed == chatPinnedAt
+          ? _value.chatPinnedAt
+          : chatPinnedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
     ));
   }
 }
@@ -524,7 +582,11 @@ class _$ConversationEntityImpl implements _ConversationEntity {
       this.autoDeleteDays,
       this.pinnedCount = 0,
       this.topPinned,
-      this.pinsDismissedAt})
+      this.pinsDismissedAt,
+      this.draft,
+      this.draftAt,
+      this.archivedAt,
+      this.chatPinnedAt})
       : _participantIds = participantIds;
 
   factory _$ConversationEntityImpl.fromJson(Map<String, dynamic> json) =>
@@ -605,9 +667,23 @@ class _$ConversationEntityImpl implements _ConversationEntity {
   @override
   final DateTime? pinsDismissedAt;
 
+  /// Персональное состояние беседы в списке чатов. Раньше жило в локальном
+  /// Hive и на втором устройстве не существовало.
+  ///
+  /// [chatPinnedAt] — закрепление беседы в списке; не путать с [pinnedCount]
+  /// и [topPinned], это закреплённые сообщения ВНУТРИ беседы.
+  @override
+  final String? draft;
+  @override
+  final DateTime? draftAt;
+  @override
+  final DateTime? archivedAt;
+  @override
+  final DateTime? chatPinnedAt;
+
   @override
   String toString() {
-    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays, pinnedCount: $pinnedCount, topPinned: $topPinned, pinsDismissedAt: $pinsDismissedAt)';
+    return 'ConversationEntity(id: $id, participantIds: $participantIds, type: $type, name: $name, avatarUrl: $avatarUrl, description: $description, participantCount: $participantCount, myRole: $myRole, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, lastMessageContent: $lastMessageContent, lastMessageAt: $lastMessageAt, lastMessageSenderId: $lastMessageSenderId, lastMessageSenderName: $lastMessageSenderName, lastMessageIsSystem: $lastMessageIsSystem, otherUserName: $otherUserName, otherUserId: $otherUserId, otherUserAvatar: $otherUserAvatar, otherUserStatus: $otherUserStatus, otherUserLastSeen: $otherUserLastSeen, unreadCount: $unreadCount, isMuted: $isMuted, mutedUntil: $mutedUntil, activeCallRoomName: $activeCallRoomName, slowMode: $slowMode, topicsEnabled: $topicsEnabled, autoDeleteDays: $autoDeleteDays, pinnedCount: $pinnedCount, topPinned: $topPinned, pinsDismissedAt: $pinsDismissedAt, draft: $draft, draftAt: $draftAt, archivedAt: $archivedAt, chatPinnedAt: $chatPinnedAt)';
   }
 
   @override
@@ -669,7 +745,13 @@ class _$ConversationEntityImpl implements _ConversationEntity {
             (identical(other.topPinned, topPinned) ||
                 other.topPinned == topPinned) &&
             (identical(other.pinsDismissedAt, pinsDismissedAt) ||
-                other.pinsDismissedAt == pinsDismissedAt));
+                other.pinsDismissedAt == pinsDismissedAt) &&
+            (identical(other.draft, draft) || other.draft == draft) &&
+            (identical(other.draftAt, draftAt) || other.draftAt == draftAt) &&
+            (identical(other.archivedAt, archivedAt) ||
+                other.archivedAt == archivedAt) &&
+            (identical(other.chatPinnedAt, chatPinnedAt) ||
+                other.chatPinnedAt == chatPinnedAt));
   }
 
   @JsonKey(ignore: true)
@@ -705,7 +787,11 @@ class _$ConversationEntityImpl implements _ConversationEntity {
         autoDeleteDays,
         pinnedCount,
         topPinned,
-        pinsDismissedAt
+        pinsDismissedAt,
+        draft,
+        draftAt,
+        archivedAt,
+        chatPinnedAt
       ]);
 
   @JsonKey(ignore: true)
@@ -754,7 +840,11 @@ abstract class _ConversationEntity implements ConversationEntity {
       final int? autoDeleteDays,
       final int pinnedCount,
       final PinnedPreviewEntity? topPinned,
-      final DateTime? pinsDismissedAt}) = _$ConversationEntityImpl;
+      final DateTime? pinsDismissedAt,
+      final String? draft,
+      final DateTime? draftAt,
+      final DateTime? archivedAt,
+      final DateTime? chatPinnedAt}) = _$ConversationEntityImpl;
 
   factory _ConversationEntity.fromJson(Map<String, dynamic> json) =
       _$ConversationEntityImpl.fromJson;
@@ -819,6 +909,20 @@ abstract class _ConversationEntity implements ConversationEntity {
   PinnedPreviewEntity? get topPinned;
   @override
   DateTime? get pinsDismissedAt;
+  @override
+
+  /// Персональное состояние беседы в списке чатов. Раньше жило в локальном
+  /// Hive и на втором устройстве не существовало.
+  ///
+  /// [chatPinnedAt] — закрепление беседы в списке; не путать с [pinnedCount]
+  /// и [topPinned], это закреплённые сообщения ВНУТРИ беседы.
+  String? get draft;
+  @override
+  DateTime? get draftAt;
+  @override
+  DateTime? get archivedAt;
+  @override
+  DateTime? get chatPinnedAt;
   @override
   @JsonKey(ignore: true)
   _$$ConversationEntityImplCopyWith<_$ConversationEntityImpl> get copyWith =>

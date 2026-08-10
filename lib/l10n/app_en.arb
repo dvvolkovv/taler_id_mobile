@@ -1928,5 +1928,6 @@
       }
     }
   },
-  "chatSelect": "Select"
+  "chatSelect": "Select",
+  "convDraftLabel": "Draft"
 }

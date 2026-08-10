@@ -248,71 +248,81 @@ class _ConversationsViewState extends State<_ConversationsView> {
   bool _messageSearching = false;
 
   _FilterTab _activeFilter = _FilterTab.all;
-  Set<String> _pinnedIds = {};
-  Set<String> _archivedIds = {};
   bool _showArchived = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPrefs();
+    _migrateLocalPrefsOnce();
   }
 
-  Future<void> _loadPrefs() async {
-    Box box;
+  /// Одноразовый перенос архива и закреплённых чатов из локального Hive на
+  /// сервер.
+  ///
+  /// До этого релиза состояние жило только на устройстве. Просто выбросить
+  /// коробку нельзя — у людей там разобранный список чатов, который иначе
+  /// молча «развалится» после обновления. Переносим и удаляем коробку, чтобы
+  /// перенос не повторялся; при ошибке коробку оставляем и пробуем в
+  /// следующий раз.
+  Future<void> _migrateLocalPrefsOnce() async {
     try {
-      box = Hive.isBoxOpen(_prefsBox)
+      if (!await Hive.boxExists(_prefsBox)) return;
+      final box = Hive.isBoxOpen(_prefsBox)
           ? Hive.box(_prefsBox)
           : await Hive.openBox(_prefsBox);
-    } catch (_) {
-      await Hive.deleteBoxFromDisk(_prefsBox);
-      box = await Hive.openBox(_prefsBox);
+      final pinned = (box.get('pinned') as List?)?.cast<String>() ?? const [];
+      final archived = (box.get('archived') as List?)?.cast<String>() ?? const [];
+      if (pinned.isEmpty && archived.isEmpty) {
+        await box.deleteFromDisk();
+        return;
+      }
+      if (!mounted) return;
+      final bloc = context.read<MessengerBloc>();
+      for (final id in archived) {
+        bloc.add(SetConversationArchived(conversationId: id, archived: true));
+      }
+      for (final id in pinned) {
+        bloc.add(SetConversationPinned(conversationId: id, pinned: true));
+      }
+      await box.deleteFromDisk();
+      debugPrint('[conversations] migrated ${pinned.length} pins / '
+          '${archived.length} archived to the server');
+    } catch (e) {
+      debugPrint('[conversations] local prefs migration deferred: $e');
     }
-    final pinned = box.get('pinned');
-    final archived = box.get('archived');
-    if (mounted) {
-      setState(() {
-        if (pinned != null) _pinnedIds = Set<String>.from(pinned as List);
-        if (archived != null) _archivedIds = Set<String>.from(archived as List);
-      });
-    }
-  }
-
-  Future<void> _savePrefs() async {
-    final box = Hive.isBoxOpen(_prefsBox)
-        ? Hive.box(_prefsBox)
-        : await Hive.openBox(_prefsBox);
-    await box.put('pinned', _pinnedIds.toList());
-    await box.put('archived', _archivedIds.toList());
   }
 
   void _togglePin(String id) {
-    setState(() {
-      if (_pinnedIds.contains(id)) {
-        _pinnedIds = {..._pinnedIds}..remove(id);
-      } else {
-        _pinnedIds = {..._pinnedIds, id};
-      }
-    });
-    _savePrefs();
+    final conv = _findConv(id);
+    context.read<MessengerBloc>().add(SetConversationPinned(
+          conversationId: id,
+          pinned: conv?.chatPinnedAt == null,
+        ));
   }
 
   void _toggleArchive(String id) {
-    setState(() {
-      if (_archivedIds.contains(id)) {
-        _archivedIds = {..._archivedIds}..remove(id);
-      } else {
-        _archivedIds = {..._archivedIds, id};
-        _pinnedIds = {..._pinnedIds}..remove(id);
-      }
-    });
-    _savePrefs();
+    final conv = _findConv(id);
+    final archiving = conv?.archivedAt == null;
+    final bloc = context.read<MessengerBloc>();
+    bloc.add(SetConversationArchived(conversationId: id, archived: archiving));
+    // Закреплённый чат, уезжая в архив, закреплённым быть перестаёт — иначе он
+    // держался бы наверху списка, из которого его только что убрали.
+    if (archiving && conv?.chatPinnedAt != null) {
+      bloc.add(SetConversationPinned(conversationId: id, pinned: false));
+    }
+  }
+
+  ConversationEntity? _findConv(String id) {
+    for (final c in context.read<MessengerBloc>().state.conversations) {
+      if (c.id == id) return c;
+    }
+    return null;
   }
 
   void _showConversationActions(BuildContext context, ConversationEntity conv) {
     final colors = AppColors.of(context);
-    final isPinned = _pinnedIds.contains(conv.id);
-    final isArchived = _archivedIds.contains(conv.id);
+    final isPinned = conv.chatPinnedAt != null;
+    final isArchived = conv.archivedAt != null;
     final isGroup = conv.type == 'GROUP' || conv.type == 'CHANNEL';
     final l10n = AppLocalizations.of(context)!;
     final name = isGroup ? (conv.name ?? l10n.messengerGroupDefault) : (conv.otherUserName ?? l10n.messengerUserDefault);
@@ -655,7 +665,7 @@ class _ConversationsViewState extends State<_ConversationsView> {
           c.type == 'AI_ANALYST' ||
           c.type == 'AI_OUTBOUND' ||
           c.type == 'AI_INFORMER') return false;
-      return archivedOnly ? _archivedIds.contains(c.id) : !_archivedIds.contains(c.id);
+      return archivedOnly ? c.archivedAt != null : c.archivedAt == null;
     }).toList();
 
     if (_searchQuery.isNotEmpty) {
@@ -687,9 +697,14 @@ class _ConversationsViewState extends State<_ConversationsView> {
 
     if (!archivedOnly) {
       result.sort((a, b) {
-        final aPinned = _pinnedIds.contains(a.id) ? 0 : 1;
-        final bPinned = _pinnedIds.contains(b.id) ? 0 : 1;
+        final aPinned = a.chatPinnedAt == null ? 1 : 0;
+        final bPinned = b.chatPinnedAt == null ? 1 : 0;
         if (aPinned != bPinned) return aPinned.compareTo(bPinned);
+        // Между закреплёнными — порядок по времени закрепления, для чего на
+        // сервере и лежит отметка времени, а не флаг.
+        if (aPinned == 0 && bPinned == 0) {
+          return b.chatPinnedAt!.compareTo(a.chatPinnedAt!);
+        }
         final aTime = a.lastMessageAt ?? DateTime(0);
         final bTime = b.lastMessageAt ?? DateTime(0);
         return bTime.compareTo(aTime);
@@ -710,12 +725,12 @@ class _ConversationsViewState extends State<_ConversationsView> {
           final filtered = _filterConversations(state.conversations);
           final archived = _filterConversations(state.conversations, archivedOnly: true);
           final totalUnread = state.conversations
-              .where((c) => !_archivedIds.contains(c.id))
+              .where((c) => c.archivedAt == null)
               .fold(0, (sum, c) => sum + c.unreadCount);
 
           Widget buildTile(ConversationEntity conv) {
-            final isPinned = _pinnedIds.contains(conv.id);
-            final isArchived = _archivedIds.contains(conv.id);
+            final isPinned = conv.chatPinnedAt != null;
+            final isArchived = conv.archivedAt != null;
             return Dismissible(
               key: ValueKey('dismiss_${conv.id}'),
               confirmDismiss: (direction) async {
@@ -981,7 +996,6 @@ class _ConversationsViewState extends State<_ConversationsView> {
                         MaterialPageRoute(builder: (_) => BlocProvider.value(
                           value: context.read<MessengerBloc>(),
                           child: _ArchivedChatsScreen(
-                            archivedIds: _archivedIds,
                             onUnarchive: _toggleArchive,
                           ),
                         )),
@@ -1420,7 +1434,28 @@ class _ConversationTile extends StatelessWidget {
           ),
         ],
       ),
-      subtitle: subtitleText != null
+      // Черновик вытесняет последнее сообщение: он важнее — это то, что
+      // человек не дописал, и увидеть его надо с любого устройства.
+      subtitle: (conversation.draft?.trim().isNotEmpty ?? false)
+          ? Text.rich(
+              TextSpan(children: [
+                TextSpan(
+                  text: '${AppLocalizations.of(context)!.convDraftLabel}: ',
+                  style: TextStyle(
+                      color: Colors.redAccent.shade200,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500),
+                ),
+                TextSpan(
+                  text: conversation.draft!.trim(),
+                  style: TextStyle(
+                      color: AppColors.of(context).textSecondary, fontSize: 13),
+                ),
+              ]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : subtitleText != null
           ? Text(
               subtitleText,
               maxLines: 1,
@@ -1683,31 +1718,26 @@ class _ContactRequestTile extends StatelessWidget {
   }
 }
 
+/// Экран архива. Список берётся из состояния бесед, а не из переданного
+/// снимка id: архив теперь живёт на сервере и может измениться с другого
+/// устройства, пока этот экран открыт.
 class _ArchivedChatsScreen extends StatefulWidget {
-  final Set<String> archivedIds;
   final void Function(String) onUnarchive;
-  const _ArchivedChatsScreen({required this.archivedIds, required this.onUnarchive});
+  const _ArchivedChatsScreen({required this.onUnarchive});
 
   @override
   State<_ArchivedChatsScreen> createState() => _ArchivedChatsScreenState();
 }
 
 class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
-  late Set<String> _localArchivedIds;
+  void _unarchive(String id) => widget.onUnarchive(id);
 
-  @override
-  void initState() {
-    super.initState();
-    _localArchivedIds = Set<String>.from(widget.archivedIds);
-  }
-
-  void _unarchive(String id) {
-    widget.onUnarchive(id);
-    setState(() => _localArchivedIds = {..._localArchivedIds}..remove(id));
-    if (_localArchivedIds.isEmpty) {
-      Navigator.of(context).pop();
-    }
-  }
+  int _archivedCount(BuildContext context) => context
+      .watch<MessengerBloc>()
+      .state
+      .conversations
+      .where((c) => c.archivedAt != null)
+      .length;
 
   @override
   Widget build(BuildContext context) {
@@ -1715,14 +1745,13 @@ class _ArchivedChatsScreenState extends State<_ArchivedChatsScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.messengerArchiveTitle(_localArchivedIds.length)),
+        title: Text(AppLocalizations.of(context)!.messengerArchiveTitle(_archivedCount(context))),
         backgroundColor: colors.background,
       ),
       body: BlocBuilder<MessengerBloc, MessengerState>(
         builder: (context, state) {
-          final archived = state.conversations
-              .where((c) => _localArchivedIds.contains(c.id))
-              .toList();
+          final archived =
+              state.conversations.where((c) => c.archivedAt != null).toList();
           if (archived.isEmpty) {
             return Center(
               child: Column(

@@ -14,6 +14,14 @@ abstract class IMessengerRepository {
   Future<List<UserSearchEntity>> searchUsers(String query);
   void joinConversation(String id);
   void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId, String? replyToId});
+  /// Черновик беседы; пустая строка стирает его.
+  Future<void> saveDraft(String conversationId, String text);
+  /// Архив беседы — персональный, у собеседника чат остаётся на месте.
+  Future<void> setArchived(String conversationId, bool archived);
+  /// Закрепление беседы в списке чатов (не сообщения внутри неё).
+  Future<void> setChatPinned(String conversationId, bool pinned);
+  /// Состояние беседы, изменённое на другом устройстве этого пользователя.
+  Stream<Map<String, dynamic>> get conversationStateStream;
   /// Пересылает сообщения в другую беседу. Тело копирует сервер из оригиналов.
   Future<List<MessageEntity>> forwardMessages(String targetConversationId, List<String> messageIds);
   void editMessage(String conversationId, String messageId, String newContent);

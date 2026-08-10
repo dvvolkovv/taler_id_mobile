@@ -1921,5 +1921,6 @@
       }
     }
   },
-  "chatSelect": "Выделить"
+  "chatSelect": "Выделить",
+  "convDraftLabel": "Черновик"
 }
