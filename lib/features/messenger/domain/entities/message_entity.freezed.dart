@@ -69,6 +69,10 @@ mixin _$MessageEntity {
   /// нужны только чтобы подсветить своё упоминание.
   List<String> get mentionedUserIds => throw _privateConstructorUsedError;
 
+  /// Просмотры поста канала. null у остальных бесед: там то же число
+  /// показывается галочками.
+  int? get viewCount => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $MessageEntityCopyWith<MessageEntity> get copyWith =>
@@ -113,7 +117,8 @@ abstract class $MessageEntityCopyWith<$Res> {
       String? replyToId,
       ReplyPreviewEntity? replyTo,
       ForwardedFromEntity? forwardedFrom,
-      List<String> mentionedUserIds});
+      List<String> mentionedUserIds,
+      int? viewCount});
 
   $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
   $ForwardedFromEntityCopyWith<$Res>? get forwardedFrom;
@@ -164,6 +169,7 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
     Object? replyTo = freezed,
     Object? forwardedFrom = freezed,
     Object? mentionedUserIds = null,
+    Object? viewCount = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -294,6 +300,10 @@ class _$MessageEntityCopyWithImpl<$Res, $Val extends MessageEntity>
           ? _value.mentionedUserIds
           : mentionedUserIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      viewCount: freezed == viewCount
+          ? _value.viewCount
+          : viewCount // ignore: cast_nullable_to_non_nullable
+              as int?,
     ) as $Val);
   }
 
@@ -362,7 +372,8 @@ abstract class _$$MessageEntityImplCopyWith<$Res>
       String? replyToId,
       ReplyPreviewEntity? replyTo,
       ForwardedFromEntity? forwardedFrom,
-      List<String> mentionedUserIds});
+      List<String> mentionedUserIds,
+      int? viewCount});
 
   @override
   $ReplyPreviewEntityCopyWith<$Res>? get replyTo;
@@ -413,6 +424,7 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
     Object? replyTo = freezed,
     Object? forwardedFrom = freezed,
     Object? mentionedUserIds = null,
+    Object? viewCount = freezed,
   }) {
     return _then(_$MessageEntityImpl(
       id: null == id
@@ -543,6 +555,10 @@ class __$$MessageEntityImplCopyWithImpl<$Res>
           ? _value._mentionedUserIds
           : mentionedUserIds // ignore: cast_nullable_to_non_nullable
               as List<String>,
+      viewCount: freezed == viewCount
+          ? _value.viewCount
+          : viewCount // ignore: cast_nullable_to_non_nullable
+              as int?,
     ));
   }
 }
@@ -583,7 +599,8 @@ class _$MessageEntityImpl implements _MessageEntity {
       this.replyToId,
       this.replyTo,
       this.forwardedFrom,
-      final List<String> mentionedUserIds = const []})
+      final List<String> mentionedUserIds = const [],
+      this.viewCount})
       : _reactions = reactions,
         _threadLastReplierAvatars = threadLastReplierAvatars,
         _metadata = metadata,
@@ -709,9 +726,14 @@ class _$MessageEntityImpl implements _MessageEntity {
     return EqualUnmodifiableListView(_mentionedUserIds);
   }
 
+  /// Просмотры поста канала. null у остальных бесед: там то же число
+  /// показывается галочками.
+  @override
+  final int? viewCount;
+
   @override
   String toString() {
-    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById, replyToId: $replyToId, replyTo: $replyTo, forwardedFrom: $forwardedFrom, mentionedUserIds: $mentionedUserIds)';
+    return 'MessageEntity(id: $id, conversationId: $conversationId, senderId: $senderId, senderName: $senderName, content: $content, sentAt: $sentAt, fileUrl: $fileUrl, fileName: $fileName, fileSize: $fileSize, fileType: $fileType, s3Key: $s3Key, thumbnailSmallUrl: $thumbnailSmallUrl, thumbnailMediumUrl: $thumbnailMediumUrl, thumbnailLargeUrl: $thumbnailLargeUrl, fileRecordId: $fileRecordId, isDelivered: $isDelivered, isRead: $isRead, isSystem: $isSystem, isEdited: $isEdited, reactions: $reactions, threadParentId: $threadParentId, threadReplyCount: $threadReplyCount, threadLastReplierAvatars: $threadLastReplierAvatars, topicId: $topicId, metadata: $metadata, transport: $transport, pinnedAt: $pinnedAt, pinnedById: $pinnedById, replyToId: $replyToId, replyTo: $replyTo, forwardedFrom: $forwardedFrom, mentionedUserIds: $mentionedUserIds, viewCount: $viewCount)';
   }
 
   @override
@@ -773,7 +795,9 @@ class _$MessageEntityImpl implements _MessageEntity {
             (identical(other.forwardedFrom, forwardedFrom) ||
                 other.forwardedFrom == forwardedFrom) &&
             const DeepCollectionEquality()
-                .equals(other._mentionedUserIds, _mentionedUserIds));
+                .equals(other._mentionedUserIds, _mentionedUserIds) &&
+            (identical(other.viewCount, viewCount) ||
+                other.viewCount == viewCount));
   }
 
   @JsonKey(ignore: true)
@@ -811,7 +835,8 @@ class _$MessageEntityImpl implements _MessageEntity {
         replyToId,
         replyTo,
         forwardedFrom,
-        const DeepCollectionEquality().hash(_mentionedUserIds)
+        const DeepCollectionEquality().hash(_mentionedUserIds),
+        viewCount
       ]);
 
   @JsonKey(ignore: true)
@@ -861,7 +886,8 @@ abstract class _MessageEntity implements MessageEntity {
       final String? replyToId,
       final ReplyPreviewEntity? replyTo,
       final ForwardedFromEntity? forwardedFrom,
-      final List<String> mentionedUserIds}) = _$MessageEntityImpl;
+      final List<String> mentionedUserIds,
+      final int? viewCount}) = _$MessageEntityImpl;
 
   factory _MessageEntity.fromJson(Map<String, dynamic> json) =
       _$MessageEntityImpl.fromJson;
@@ -944,6 +970,11 @@ abstract class _MessageEntity implements MessageEntity {
   /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
   /// нужны только чтобы подсветить своё упоминание.
   List<String> get mentionedUserIds;
+  @override
+
+  /// Просмотры поста канала. null у остальных бесед: там то же число
+  /// показывается галочками.
+  int? get viewCount;
   @override
   @JsonKey(ignore: true)
   _$$MessageEntityImplCopyWith<_$MessageEntityImpl> get copyWith =>

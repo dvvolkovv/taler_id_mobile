@@ -57,6 +57,7 @@ _$MessageEntityImpl _$$MessageEntityImplFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      viewCount: (json['viewCount'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
@@ -93,4 +94,5 @@ Map<String, dynamic> _$$MessageEntityImplToJson(_$MessageEntityImpl instance) =>
       'replyTo': instance.replyTo?.toJson(),
       'forwardedFrom': instance.forwardedFrom?.toJson(),
       'mentionedUserIds': instance.mentionedUserIds,
+      'viewCount': instance.viewCount,
     };

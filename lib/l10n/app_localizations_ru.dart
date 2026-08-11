@@ -4113,4 +4113,20 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get invitePublicNameBad =>
       'От 5 до 32 символов, начиная с буквы: a-z, 0-9 и _';
+
+  @override
+  String chatViews(int count) {
+    return '$count просмотров';
+  }
+
+  @override
+  String get chatReadBy => 'Прочитали';
+
+  @override
+  String chatReadByMore(int count) {
+    return 'и ещё $count';
+  }
+
+  @override
+  String get chatReadByNobody => 'Пока никто';
 }

@@ -7719,6 +7719,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'5-32 characters, starting with a letter: a-z, 0-9 and _'**
   String get invitePublicNameBad;
+
+  /// No description provided for @chatViews.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} views'**
+  String chatViews(int count);
+
+  /// No description provided for @chatReadBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Read by'**
+  String get chatReadBy;
+
+  /// No description provided for @chatReadByMore.
+  ///
+  /// In en, this message translates to:
+  /// **'and {count} more'**
+  String chatReadByMore(int count);
+
+  /// No description provided for @chatReadByNobody.
+  ///
+  /// In en, this message translates to:
+  /// **'Nobody yet'**
+  String get chatReadByNobody;
 }
 
 class _AppLocalizationsDelegate

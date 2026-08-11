@@ -4276,6 +4276,26 @@ class _MessageBubbleState extends State<_MessageBubble> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Просмотры есть только у постов канала; в остальных беседах
+                // сервер их не считает и поле не присылает.
+                if (widget.message.viewCount != null) ...[
+                  Icon(Icons.visibility_outlined,
+                      size: 12,
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary),
+                  const SizedBox(width: 3),
+                  Text(
+                    '${widget.message.viewCount}',
+                    style: TextStyle(
+                      color: widget.isMe
+                          ? Colors.white.withValues(alpha: 0.6)
+                          : AppColors.of(context).textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
                 if (widget.message.transport == 'mesh') ...[
                   Text(
                     AppLocalizations.of(context)!.chatViaMesh,

@@ -1952,5 +1952,23 @@
         "type": "int"
       }
     }
+  },
+  "chatViews": "{count} просмотров",
+  "chatReadBy": "Прочитали",
+  "chatReadByMore": "и ещё {count}",
+  "chatReadByNobody": "Пока никто",
+  "@chatViews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@chatReadByMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

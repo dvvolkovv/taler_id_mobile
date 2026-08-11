@@ -57,6 +57,10 @@ class MessageEntity with _$MessageEntity {
     /// Кого упомянули. Считает сервер по участникам беседы — клиенту эти id
     /// нужны только чтобы подсветить своё упоминание.
     @Default([]) List<String> mentionedUserIds,
+
+    /// Просмотры поста канала. null у остальных бесед: там то же число
+    /// показывается галочками.
+    int? viewCount,
   }) = _MessageEntity;
 
   factory MessageEntity.fromJson(Map<String, dynamic> json) =>

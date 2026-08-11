@@ -700,6 +700,12 @@ class MessengerRemoteDataSource {
     return (data['transcript'] as String?) ?? '';
   }
 
+  /// Кто дочитал до этого сообщения.
+  Future<Map<String, dynamic>> messageReaders(String messageId) => _http.get(
+        '/messenger/messages/$messageId/readers',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+
   // ─── Приглашения ───
 
   Future<Map<String, dynamic>> previewInvite(String code) => _http.get(

@@ -4095,4 +4095,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invitePublicNameBad =>
       '5-32 characters, starting with a letter: a-z, 0-9 and _';
+
+  @override
+  String chatViews(int count) {
+    return '$count views';
+  }
+
+  @override
+  String get chatReadBy => 'Read by';
+
+  @override
+  String chatReadByMore(int count) {
+    return 'and $count more';
+  }
+
+  @override
+  String get chatReadByNobody => 'Nobody yet';
 }

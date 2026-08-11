@@ -1959,5 +1959,23 @@
         "type": "int"
       }
     }
+  },
+  "chatViews": "{count} views",
+  "chatReadBy": "Read by",
+  "chatReadByMore": "and {count} more",
+  "chatReadByNobody": "Nobody yet",
+  "@chatViews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@chatReadByMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
