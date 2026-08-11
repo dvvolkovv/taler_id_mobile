@@ -1713,6 +1713,95 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     setState(() => _mentionQuery = null);
   }
 
+  /// Варианты отправки: без звука и в назначенное время.
+  Future<void> _showSendOptions() async {
+    final text = _ctrl.text.trim();
+    if (text.isEmpty) return;
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: colors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            ListTile(
+              leading: Icon(Icons.notifications_off_outlined, color: colors.textSecondary),
+              title: Text(l10n.chatSendSilently,
+                  style: TextStyle(color: colors.textPrimary)),
+              onTap: () => Navigator.pop(ctx, 'silent'),
+            ),
+            ListTile(
+              leading: Icon(Icons.schedule_rounded, color: colors.textSecondary),
+              title: Text(l10n.chatSendLater,
+                  style: TextStyle(color: colors.textPrimary)),
+              onTap: () => Navigator.pop(ctx, 'later'),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+
+    if (choice == 'silent') {
+      _messengerBloc.add(SendMessage(
+        widget.conversationId,
+        text,
+        topicId: widget.topicId,
+        replyToId: _replyTo?.id,
+        silent: true,
+      ));
+      _ctrl.clear();
+      _cancelReply();
+      return;
+    }
+
+    // Планирование: сначала день, потом время. Меньше чем через полминуты
+    // сервер откажет — это уже обычная отправка, а не отложенная.
+    final now = DateTime.now();
+    final day = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
+    if (!mounted || day == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+    );
+    if (!mounted || time == null) return;
+    final when = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+
+    try {
+      await sl<MessengerRemoteDataSource>().scheduleMessage(
+        widget.conversationId,
+        content: text,
+        sendAt: when,
+        replyToId: _replyTo?.id,
+        topicId: widget.topicId,
+      );
+      if (!mounted) return;
+      _ctrl.clear();
+      _cancelReply();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.chatSendScheduled)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.errorWithMessage(e.toString()))),
+      );
+    }
+  }
+
   void _onTextChanged() {
     _updateMentionQuery();
     // Локально — сразу: это дешёво и переживает убийство приложения.
@@ -2242,6 +2331,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return _InputBar(
         controller: _ctrl,
         onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+        onSendOptions: _showSendOptions,
         onAttach: _showAttachMenu,
         isRecording: _isRecording,
         onRecordStart: _startRecording,
@@ -3498,6 +3588,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 _InputBar(
                   controller: _ctrl,
                   onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+                  onSendOptions: _showSendOptions,
                   onAttach: _showAttachMenu,
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
@@ -4247,6 +4338,7 @@ class _MessageBubbleState extends State<_MessageBubble> {
                       : FontWeight.w500,
                 ),
                 onMentionTap: widget.onMentionTap,
+                richMarkup: true,
               ),
             // Карточка ссылки — только у обычных текстовых сообщений: под
             // файлом или опросом ей взяться неоткуда.
@@ -5383,6 +5475,8 @@ class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
 class _InputBar extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback onSend;
+  /// Долгий тап по «отправить»: без звука или в назначенное время.
+  final VoidCallback? onSendOptions;
   final VoidCallback onAttach;
   final bool isRecording;
   final VoidCallback onRecordStart;
@@ -5394,6 +5488,7 @@ class _InputBar extends StatefulWidget {
   const _InputBar({
     required this.controller,
     required this.onSend,
+    this.onSendOptions,
     required this.onAttach,
     required this.isRecording,
     required this.onRecordStart,
@@ -5534,9 +5629,14 @@ class _InputBarState extends State<_InputBar> {
             ),
           ),
           if (!widget.isRecording)
-            IconButton(
-              onPressed: widget.onSend,
-              icon: Icon(Icons.send_rounded, color: colors.primary),
+            GestureDetector(
+              // Долгий тап — варианты отправки. Обычный тап остаётся обычной
+              // отправкой: скрывать её за меню было бы издевательством.
+              onLongPress: widget.onSendOptions,
+              child: IconButton(
+                onPressed: widget.onSend,
+                icon: Icon(Icons.send_rounded, color: colors.primary),
+              ),
             ),
         ],
       ),

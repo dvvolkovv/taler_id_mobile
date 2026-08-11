@@ -7743,6 +7743,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nobody yet'**
   String get chatReadByNobody;
+
+  /// No description provided for @chatSendSilently.
+  ///
+  /// In en, this message translates to:
+  /// **'Send without sound'**
+  String get chatSendSilently;
+
+  /// No description provided for @chatSendLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Send later'**
+  String get chatSendLater;
+
+  /// No description provided for @chatScheduledFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Will be sent {when}'**
+  String chatScheduledFor(String when);
+
+  /// No description provided for @chatSendScheduled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled'**
+  String get chatSendScheduled;
+
+  /// No description provided for @chatFormatBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get chatFormatBold;
+
+  /// No description provided for @chatFormatItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get chatFormatItalic;
+
+  /// No description provided for @chatFormatStrike.
+  ///
+  /// In en, this message translates to:
+  /// **'Strikethrough'**
+  String get chatFormatStrike;
+
+  /// No description provided for @chatFormatCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Code'**
+  String get chatFormatCode;
+
+  /// No description provided for @chatFormatSpoiler.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoiler'**
+  String get chatFormatSpoiler;
 }
 
 class _AppLocalizationsDelegate

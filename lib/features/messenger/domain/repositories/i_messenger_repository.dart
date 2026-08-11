@@ -13,7 +13,7 @@ abstract class IMessengerRepository {
   Future<SyncResult> sync({String? cursor, int limit});
   Future<List<UserSearchEntity>> searchUsers(String query);
   void joinConversation(String id);
-  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId, String? replyToId, List<double>? waveform, int? durationMs});
+  void sendMessage(String conversationId, String content, {String? fileUrl, String? fileName, int? fileSize, String? fileType, String? s3Key, String? thumbnailSmallUrl, String? thumbnailMediumUrl, String? thumbnailLargeUrl, String? fileRecordId, String? topicId, String? clientTempId, String? replyToId, List<double>? waveform, int? durationMs, bool silent});
   /// Расшифровка голосового сообщения.
   Future<String> transcribeVoice(String messageId);
   /// Черновик беседы; пустая строка стирает его.

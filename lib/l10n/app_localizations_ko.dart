@@ -4071,4 +4071,33 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get chatReadByNobody => 'Nobody yet';
+
+  @override
+  String get chatSendSilently => 'Send without sound';
+
+  @override
+  String get chatSendLater => 'Send later';
+
+  @override
+  String chatScheduledFor(String when) {
+    return 'Will be sent $when';
+  }
+
+  @override
+  String get chatSendScheduled => 'Scheduled';
+
+  @override
+  String get chatFormatBold => 'Bold';
+
+  @override
+  String get chatFormatItalic => 'Italic';
+
+  @override
+  String get chatFormatStrike => 'Strikethrough';
+
+  @override
+  String get chatFormatCode => 'Code';
+
+  @override
+  String get chatFormatSpoiler => 'Spoiler';
 }

@@ -1970,5 +1970,21 @@
         "type": "int"
       }
     }
+  },
+  "chatSendSilently": "Отправить без звука",
+  "chatSendLater": "Отправить позже",
+  "chatScheduledFor": "Отправится {when}",
+  "chatSendScheduled": "Запланировано",
+  "chatFormatBold": "Жирный",
+  "chatFormatItalic": "Курсив",
+  "chatFormatStrike": "Зачёркнутый",
+  "chatFormatCode": "Код",
+  "chatFormatSpoiler": "Спойлер",
+  "@chatScheduledFor": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
   }
 }

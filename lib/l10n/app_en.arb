@@ -1977,5 +1977,21 @@
         "type": "int"
       }
     }
+  },
+  "chatSendSilently": "Send without sound",
+  "chatSendLater": "Send later",
+  "chatScheduledFor": "Will be sent {when}",
+  "chatSendScheduled": "Scheduled",
+  "chatFormatBold": "Bold",
+  "chatFormatItalic": "Italic",
+  "chatFormatStrike": "Strikethrough",
+  "chatFormatCode": "Code",
+  "chatFormatSpoiler": "Spoiler",
+  "@chatScheduledFor": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
   }
 }

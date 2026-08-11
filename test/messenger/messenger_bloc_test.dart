@@ -462,6 +462,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).thenReturn(null);
         return buildBloc();
       },
@@ -484,6 +488,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             ));
         // Now release pending.save() and let sendMessage proceed.
         (sl<PendingMessageService>() as _BlockingPendingMessageService)
@@ -506,6 +514,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).called(1);
       },
     );
@@ -531,6 +543,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).thenReturn(null);
         return buildBloc();
       },
@@ -627,6 +643,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).thenReturn(null);
         return buildBloc();
       },
@@ -651,6 +671,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).called(1);
 
         // Simulate the outage: socket dropped, then re-established.
@@ -678,6 +702,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).called(greaterThanOrEqualTo(1));
       },
     );
@@ -712,6 +740,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).thenReturn(null);
         return buildBloc();
       },
@@ -748,6 +780,10 @@ void main() {
               fileRecordId: any(named: 'fileRecordId'),
               topicId: any(named: 'topicId'),
               clientTempId: any(named: 'clientTempId'),
+              replyToId: any(named: 'replyToId'),
+              waveform: any(named: 'waveform'),
+              durationMs: any(named: 'durationMs'),
+              silent: any(named: 'silent'),
             )).called(2);
       },
     );

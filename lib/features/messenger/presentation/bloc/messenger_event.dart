@@ -54,6 +54,8 @@ class SendMessage extends MessengerEvent {
   /// Дорожка и длительность голосового; у остальных сообщений null.
   final List<double>? waveform;
   final int? durationMs;
+  /// Отправить без звука: получателю не прилетит пуш.
+  final bool silent;
   const SendMessage(
     this.conversationId,
     this.content, {
@@ -70,6 +72,7 @@ class SendMessage extends MessengerEvent {
     this.replyToId,
     this.waveform,
     this.durationMs,
+    this.silent = false,
   });
   @override
   List<Object?> get props => [conversationId, content, fileUrl, fileName, replyToId];

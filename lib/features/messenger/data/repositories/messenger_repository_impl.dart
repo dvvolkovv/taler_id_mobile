@@ -93,6 +93,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
     String? replyToId,
     List<double>? waveform,
     int? durationMs,
+    bool silent = false,
   }) {
     // Always-on server path when socket is connected. Server fans out to all
     // members of the conversation (1:1 echo or group fanout).
@@ -114,6 +115,7 @@ class MessengerRepositoryImpl implements IMessengerRepository {
         replyToId: replyToId,
         waveform: waveform,
         durationMs: durationMs,
+        silent: silent,
       );
     }
     // (When socket is offline, MessengerBloc's _resendPending will retry on

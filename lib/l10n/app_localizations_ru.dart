@@ -4129,4 +4129,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatReadByNobody => 'Пока никто';
+
+  @override
+  String get chatSendSilently => 'Отправить без звука';
+
+  @override
+  String get chatSendLater => 'Отправить позже';
+
+  @override
+  String chatScheduledFor(String when) {
+    return 'Отправится $when';
+  }
+
+  @override
+  String get chatSendScheduled => 'Запланировано';
+
+  @override
+  String get chatFormatBold => 'Жирный';
+
+  @override
+  String get chatFormatItalic => 'Курсив';
+
+  @override
+  String get chatFormatStrike => 'Зачёркнутый';
+
+  @override
+  String get chatFormatCode => 'Код';
+
+  @override
+  String get chatFormatSpoiler => 'Спойлер';
 }

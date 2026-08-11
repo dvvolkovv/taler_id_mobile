@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../features/messenger/utils/rich_text_parser.dart';
+
 // Matches both full URLs (https://example.com/path) and bare domains
 // (example.com, sub.example.co.uk/path). The bare-domain pattern requires
 // at least one dot and a known-length TLD (2-12 chars) to avoid false
@@ -28,7 +30,7 @@ final _mentionRegex = RegExp(r'(?<![\w@])@([A-Za-z0-9_]{2,32})');
 ///
 /// Shared across messenger chat bubbles, voice assistant transcript,
 /// call-history AI twin transcript, and any future text surface.
-class LinkifiedText extends StatelessWidget {
+class LinkifiedText extends StatefulWidget {
   final String text;
   final TextStyle style;
   final TextStyle? linkStyle;
@@ -43,6 +45,11 @@ class LinkifiedText extends StatelessWidget {
   /// Тап по упоминанию. Null — упоминание просто подсвечено.
   final void Function(String handle)? onMentionTap;
 
+  /// Разбирать ли **жирный**, __курсив__, ~~зачёркнутый~~, `код` и ||спойлер||.
+  /// Выключено по умолчанию: вне чата (транскрипт ассистента, история звонков)
+  /// звёздочки в тексте разметкой не являются.
+  final bool richMarkup;
+
   const LinkifiedText({
     super.key,
     required this.text,
@@ -52,32 +59,114 @@ class LinkifiedText extends StatelessWidget {
     this.overflow,
     this.mentionStyle,
     this.onMentionTap,
+    this.richMarkup = false,
   });
 
   @override
+  State<LinkifiedText> createState() => _LinkifiedTextState();
+}
+
+class _LinkifiedTextState extends State<LinkifiedText> {
+  /// Раскрытые спойлеры — по индексу куска в разобранном тексте.
+  final Set<int> _revealed = {};
+
+  @override
   Widget build(BuildContext context) {
+    // Разметка разбирается первой: внутри `кода` и ||спойлера|| ссылки и
+    // упоминания не ищутся — там текст показывается как есть.
+    if (widget.richMarkup && hasRichMarkup(widget.text)) {
+      return _buildRich(context);
+    }
+    return _buildFlat(context, widget.text);
+  }
+
+  /// Текст с разметкой: каждый кусок рисуется своим стилем, спойлер — по тапу.
+  Widget _buildRich(BuildContext context) {
+    final tokens = parseRichText(widget.text);
+    final spans = <InlineSpan>[];
+    for (var i = 0; i < tokens.length; i++) {
+      final tk = tokens[i];
+      switch (tk.style) {
+        case RichStyle.plain:
+          spans.add(_flatSpan(context, tk.text));
+        case RichStyle.bold:
+          spans.add(TextSpan(
+              text: tk.text,
+              style: widget.style.copyWith(fontWeight: FontWeight.w700)));
+        case RichStyle.italic:
+          spans.add(TextSpan(
+              text: tk.text,
+              style: widget.style.copyWith(fontStyle: FontStyle.italic)));
+        case RichStyle.strike:
+          spans.add(TextSpan(
+              text: tk.text,
+              style: widget.style
+                  .copyWith(decoration: TextDecoration.lineThrough)));
+        case RichStyle.code:
+          spans.add(TextSpan(
+              text: tk.text,
+              style: widget.style.copyWith(
+                fontFamily: 'monospace',
+                fontSize: (widget.style.fontSize ?? 14) - 1,
+              )));
+        case RichStyle.spoiler:
+          final open = _revealed.contains(i);
+          spans.add(TextSpan(
+            text: tk.text,
+            style: widget.style.copyWith(
+              // Скрытый спойлер закрашивается собственным цветом текста: так
+              // из него нельзя ничего вычитать, даже подсветив выделением.
+              color: open ? widget.style.color : widget.style.color,
+              backgroundColor: open
+                  ? null
+                  : (widget.style.color ?? Colors.grey).withValues(alpha: 0.85),
+            ),
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => setState(() => _revealed.add(i)),
+          ));
+      }
+    }
+    return SelectionArea(
+      child: Text.rich(TextSpan(children: spans),
+          maxLines: widget.maxLines, overflow: widget.overflow),
+    );
+  }
+
+  /// Один кусок обычного текста как спан — со ссылками и упоминаниями внутри.
+  InlineSpan _flatSpan(BuildContext context, String text) =>
+      TextSpan(children: _spansFor(context, text));
+
+  Widget _buildFlat(BuildContext context, String text) {
+    final spans = _spansFor(context, text);
+    if (spans.length == 1 && spans.first is TextSpan &&
+        (spans.first as TextSpan).recognizer == null) {
+      return SelectionArea(
+        child: Text(text,
+            style: widget.style, maxLines: widget.maxLines, overflow: widget.overflow),
+      );
+    }
+    return SelectionArea(
+      child: Text.rich(TextSpan(children: spans),
+          maxLines: widget.maxLines, overflow: widget.overflow),
+    );
+  }
+
+  List<InlineSpan> _spansFor(BuildContext context, String text) {
     // Ссылки и упоминания склеиваем в один упорядоченный список: они не
     // пересекаются, но идут вперемешку, а спаны надо выдавать по порядку.
     final matches = <_Span>[
       for (final m in _urlRegex.allMatches(text))
         _Span(m.start, m.end, m.group(0)!, isLink: true),
-      if (mentionStyle != null)
+      if (widget.mentionStyle != null)
         for (final m in _mentionRegex.allMatches(text))
           _Span(m.start, m.end, m.group(0)!, isLink: false),
     ]..sort((a, b) => a.start.compareTo(b.start));
     if (matches.isEmpty) {
-      return SelectionArea(
-        child: Text(
-          text,
-          style: style,
-          maxLines: maxLines,
-          overflow: overflow,
-        ),
-      );
+      return [TextSpan(text: text, style: widget.style)];
     }
 
-    final effectiveLinkStyle = linkStyle ??
-        style.copyWith(
+    final effectiveLinkStyle = widget.linkStyle ??
+        widget.style.copyWith(
           color: Colors.blue,
           decoration: TextDecoration.underline,
           decorationColor: Colors.blue.withValues(alpha: 0.4),
@@ -92,7 +181,7 @@ class LinkifiedText extends StatelessWidget {
       if (m.start > lastEnd) {
         spans.add(TextSpan(
           text: text.substring(lastEnd, m.start),
-          style: style,
+          style: widget.style,
         ));
       }
       if (m.isLink) {
@@ -105,28 +194,19 @@ class LinkifiedText extends StatelessWidget {
       } else {
         spans.add(TextSpan(
           text: m.text,
-          style: mentionStyle,
-          recognizer: onMentionTap == null
+          style: widget.mentionStyle,
+          recognizer: widget.onMentionTap == null
               ? null
               : (TapGestureRecognizer()
-                ..onTap = () => onMentionTap!(m.text.substring(1))),
+                ..onTap = () => widget.onMentionTap!(m.text.substring(1))),
         ));
       }
       lastEnd = m.end;
     }
     if (lastEnd < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(lastEnd),
-        style: style,
-      ));
+      spans.add(TextSpan(text: text.substring(lastEnd), style: widget.style));
     }
-    return SelectionArea(
-      child: Text.rich(
-        TextSpan(children: spans),
-        maxLines: maxLines,
-        overflow: overflow,
-      ),
-    );
+    return spans;
   }
 
   static void _handleTap(BuildContext context, String url) {

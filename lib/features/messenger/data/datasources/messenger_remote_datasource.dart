@@ -395,6 +395,7 @@ class MessengerRemoteDataSource {
     String? replyToId,
     List<double>? waveform,
     int? durationMs,
+    bool silent = false,
   }) {
     final payload = <String, dynamic>{'conversationId': id, 'content': content};
     if (clientTempId != null) payload['clientTempId'] = clientTempId;
@@ -403,6 +404,7 @@ class MessengerRemoteDataSource {
     if (replyToId != null) payload['replyToId'] = replyToId;
     if (waveform != null && waveform.isNotEmpty) payload['waveform'] = waveform;
     if (durationMs != null) payload['durationMs'] = durationMs;
+    if (silent) payload['silent'] = true;
     if (fileUrl != null) {
       payload['fileUrl'] = fileUrl;
       payload['fileName'] = fileName;
@@ -699,6 +701,25 @@ class MessengerRemoteDataSource {
     );
     return (data['transcript'] as String?) ?? '';
   }
+
+  /// Планирует отправку сообщения на указанное время.
+  Future<Map<String, dynamic>> scheduleMessage(
+    String conversationId, {
+    required String content,
+    required DateTime sendAt,
+    String? replyToId,
+    String? topicId,
+  }) =>
+      _http.post(
+        '/messenger/conversations/$conversationId/scheduled',
+        data: {
+          'content': content,
+          'sendAt': sendAt.toUtc().toIso8601String(),
+          if (replyToId != null) 'replyToId': replyToId,
+          if (topicId != null) 'topicId': topicId,
+        },
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
 
   /// Кто дочитал до этого сообщения.
   Future<Map<String, dynamic>> messageReaders(String messageId) => _http.get(
