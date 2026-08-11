@@ -28,6 +28,7 @@ import '../../features/kyc/presentation/screens/kyc_screen.dart';
 import '../../features/tenant/presentation/screens/organization_list_screen.dart';
 import '../../features/tenant/presentation/screens/organization_detail_screen.dart';
 import '../../features/tenant/presentation/screens/invite_screen.dart';
+import '../../features/messenger/presentation/screens/chat_invite_screen.dart';
 import '../../features/sessions/presentation/screens/sessions_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/mesh_debug/presentation/screens/mesh_debug_screen.dart';
@@ -163,6 +164,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteConstants.pinEntry,
       builder: (_, __) => const PinEntryScreen(),
+    ),
+    // Приглашение в беседу (ссылка /invite/<code>)
+    GoRoute(
+      path: '/chat-invite/:code',
+      builder: (_, state) =>
+          ChatInviteScreen(code: state.pathParameters['code'] ?? ''),
     ),
     // Deep link: invite
     GoRoute(

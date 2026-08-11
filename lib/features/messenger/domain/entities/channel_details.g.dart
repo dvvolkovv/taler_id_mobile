@@ -15,6 +15,7 @@ _$ChannelDetailsImpl _$$ChannelDetailsImplFromJson(Map<String, dynamic> json) =>
       subscribersCount: (json['subscribersCount'] as num?)?.toInt() ?? 0,
       isSubscribed: json['isSubscribed'] as bool? ?? false,
       myRole: json['myRole'] as String?,
+      publicUsername: json['publicUsername'] as String?,
     );
 
 Map<String, dynamic> _$$ChannelDetailsImplToJson(
@@ -27,4 +28,5 @@ Map<String, dynamic> _$$ChannelDetailsImplToJson(
       'subscribersCount': instance.subscribersCount,
       'isSubscribed': instance.isSubscribed,
       'myRole': instance.myRole,
+      'publicUsername': instance.publicUsername,
     };

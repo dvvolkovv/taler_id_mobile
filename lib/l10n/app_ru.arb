@@ -1927,5 +1927,30 @@
   "chatTranscribeVoice": "Расшифровать",
   "chatTranscribing": "Расшифровываю…",
   "chatTranscribeEmpty": "В записи ничего не разобрать",
-  "chatTranscribeFailed": "Не удалось расшифровать"
+  "chatTranscribeFailed": "Не удалось расшифровать",
+  "inviteJoinTitle": "Приглашение",
+  "inviteJoinAction": "Вступить",
+  "inviteOpenChat": "Открыть",
+  "inviteAlreadyMember": "Вы уже участник",
+  "inviteRevoked": "Ссылка отозвана",
+  "inviteExpired": "Срок действия ссылки истёк",
+  "inviteExhausted": "По этой ссылке больше нельзя вступить",
+  "inviteNotFound": "Ссылка недействительна",
+  "inviteMembers": "участников: {count}",
+  "inviteLinkTitle": "Ссылка-приглашение",
+  "inviteLinkCreate": "Создать ссылку",
+  "inviteLinkCopied": "Ссылка скопирована",
+  "inviteLinkRevoke": "Отозвать",
+  "invitePublicName": "Публичное имя",
+  "invitePublicNameHint": "например talerid_news",
+  "invitePublicNameSaved": "Публичное имя сохранено",
+  "invitePublicNameTaken": "Имя уже занято",
+  "invitePublicNameBad": "От 5 до 32 символов, начиная с буквы: a-z, 0-9 и _",
+  "@inviteMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

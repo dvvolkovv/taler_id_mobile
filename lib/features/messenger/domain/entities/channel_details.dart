@@ -13,6 +13,8 @@ class ChannelDetails with _$ChannelDetails {
     @Default(0) int subscribersCount,
     @Default(false) bool isSubscribed,
     String? myRole,
+    /// Публичное имя канала: по нему он открывается ссылкой без приглашения.
+    String? publicUsername,
   }) = _ChannelDetails;
 
   factory ChannelDetails.fromJson(Map<String, dynamic> json) =>

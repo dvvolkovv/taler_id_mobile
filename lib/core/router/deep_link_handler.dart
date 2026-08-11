@@ -103,6 +103,17 @@ class DeepLinkHandler {
       );
     }
 
+    // Приглашение в беседу: https://<host>/invite/<code>
+    //
+    // Проверяется раньше организационного приглашения ниже: у того код лежит в
+    // параметре token, а здесь — сегментом пути, и спутать их легко.
+    if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'invite') {
+      final code = uri.pathSegments[1];
+      if (code.isNotEmpty) {
+        return DeepLinkTarget('/chat-invite/$code', push: true);
+      }
+    }
+
     // Handle invite links:
     // https://id.taler.tirol/ui/invite.html?token=X
     // talerid://invite?token=X

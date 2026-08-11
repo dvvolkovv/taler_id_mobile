@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/conversation_share_section.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -199,6 +200,11 @@ class _ChannelSettingsScreenState extends State<ChannelSettingsScreen> {
               border: const OutlineInputBorder(),
             ),
           ),
+          if (_channel?.myRole == 'OWNER' || _channel?.myRole == 'ADMIN')
+            ConversationShareSection(
+              conversationId: widget.channelId,
+              publicUsername: _channel?.publicUsername,
+            ),
           const SizedBox(height: 32),
           if (_channel?.myRole == 'OWNER')
             OutlinedButton.icon(

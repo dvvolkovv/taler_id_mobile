@@ -7611,6 +7611,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not transcribe'**
   String get chatTranscribeFailed;
+
+  /// No description provided for @inviteJoinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invitation'**
+  String get inviteJoinTitle;
+
+  /// No description provided for @inviteJoinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get inviteJoinAction;
+
+  /// No description provided for @inviteOpenChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get inviteOpenChat;
+
+  /// No description provided for @inviteAlreadyMember.
+  ///
+  /// In en, this message translates to:
+  /// **'You are already a member'**
+  String get inviteAlreadyMember;
+
+  /// No description provided for @inviteRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This link was revoked'**
+  String get inviteRevoked;
+
+  /// No description provided for @inviteExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This link has expired'**
+  String get inviteExpired;
+
+  /// No description provided for @inviteExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'This link can no longer be used'**
+  String get inviteExhausted;
+
+  /// No description provided for @inviteNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This link is not valid'**
+  String get inviteNotFound;
+
+  /// No description provided for @inviteMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'members: {count}'**
+  String inviteMembers(int count);
+
+  /// No description provided for @inviteLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite link'**
+  String get inviteLinkTitle;
+
+  /// No description provided for @inviteLinkCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create link'**
+  String get inviteLinkCreate;
+
+  /// No description provided for @inviteLinkCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Link copied'**
+  String get inviteLinkCopied;
+
+  /// No description provided for @inviteLinkRevoke.
+  ///
+  /// In en, this message translates to:
+  /// **'Revoke'**
+  String get inviteLinkRevoke;
+
+  /// No description provided for @invitePublicName.
+  ///
+  /// In en, this message translates to:
+  /// **'Public handle'**
+  String get invitePublicName;
+
+  /// No description provided for @invitePublicNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. talerid_news'**
+  String get invitePublicNameHint;
+
+  /// No description provided for @invitePublicNameSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Public handle saved'**
+  String get invitePublicNameSaved;
+
+  /// No description provided for @invitePublicNameTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Handle is already taken'**
+  String get invitePublicNameTaken;
+
+  /// No description provided for @invitePublicNameBad.
+  ///
+  /// In en, this message translates to:
+  /// **'5-32 characters, starting with a letter: a-z, 0-9 and _'**
+  String get invitePublicNameBad;
 }
 
 class _AppLocalizationsDelegate

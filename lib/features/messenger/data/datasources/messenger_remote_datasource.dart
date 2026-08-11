@@ -700,6 +700,48 @@ class MessengerRemoteDataSource {
     return (data['transcript'] as String?) ?? '';
   }
 
+  // ─── Приглашения ───
+
+  Future<Map<String, dynamic>> previewInvite(String code) => _http.get(
+        '/messenger/invites/$code',
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+
+  Future<Map<String, dynamic>> joinByInvite(String code) => _http.post(
+        '/messenger/invites/$code/join',
+        data: {},
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+
+  Future<List<Map<String, dynamic>>> listInvites(String conversationId) async {
+    final data = await _http.get(
+      '/messenger/conversations/$conversationId/invites',
+      fromJson: (d) => (d as List).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+    );
+    return data;
+  }
+
+  Future<Map<String, dynamic>> createInvite(String conversationId,
+      {int? maxUses, int? expiresInHours}) => _http.post(
+        '/messenger/conversations/$conversationId/invites',
+        data: {
+          if (maxUses != null) 'maxUses': maxUses,
+          if (expiresInHours != null) 'expiresInHours': expiresInHours,
+        },
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+
+  Future<void> revokeInvite(String code) =>
+      _http.deleteWithResponse('/messenger/invites/$code', fromJson: (d) => d);
+
+  Future<Map<String, dynamic>> setPublicUsername(
+          String conversationId, String? username) =>
+      _http.put(
+        '/messenger/conversations/$conversationId/public-username',
+        data: {'username': username},
+        fromJson: (d) => Map<String, dynamic>.from(d as Map),
+      );
+
   /// Черновик беседы. Пустая строка стирает его.
   Future<void> saveDraft(String conversationId, String text) async {
     await _http.put(

@@ -4056,4 +4056,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatTranscribeFailed => 'Не удалось расшифровать';
+
+  @override
+  String get inviteJoinTitle => 'Приглашение';
+
+  @override
+  String get inviteJoinAction => 'Вступить';
+
+  @override
+  String get inviteOpenChat => 'Открыть';
+
+  @override
+  String get inviteAlreadyMember => 'Вы уже участник';
+
+  @override
+  String get inviteRevoked => 'Ссылка отозвана';
+
+  @override
+  String get inviteExpired => 'Срок действия ссылки истёк';
+
+  @override
+  String get inviteExhausted => 'По этой ссылке больше нельзя вступить';
+
+  @override
+  String get inviteNotFound => 'Ссылка недействительна';
+
+  @override
+  String inviteMembers(int count) {
+    return 'участников: $count';
+  }
+
+  @override
+  String get inviteLinkTitle => 'Ссылка-приглашение';
+
+  @override
+  String get inviteLinkCreate => 'Создать ссылку';
+
+  @override
+  String get inviteLinkCopied => 'Ссылка скопирована';
+
+  @override
+  String get inviteLinkRevoke => 'Отозвать';
+
+  @override
+  String get invitePublicName => 'Публичное имя';
+
+  @override
+  String get invitePublicNameHint => 'например talerid_news';
+
+  @override
+  String get invitePublicNameSaved => 'Публичное имя сохранено';
+
+  @override
+  String get invitePublicNameTaken => 'Имя уже занято';
+
+  @override
+  String get invitePublicNameBad =>
+      'От 5 до 32 символов, начиная с буквы: a-z, 0-9 и _';
 }

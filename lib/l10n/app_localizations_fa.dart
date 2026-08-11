@@ -4038,4 +4038,61 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get chatTranscribeFailed => 'Could not transcribe';
+
+  @override
+  String get inviteJoinTitle => 'Invitation';
+
+  @override
+  String get inviteJoinAction => 'Join';
+
+  @override
+  String get inviteOpenChat => 'Open';
+
+  @override
+  String get inviteAlreadyMember => 'You are already a member';
+
+  @override
+  String get inviteRevoked => 'This link was revoked';
+
+  @override
+  String get inviteExpired => 'This link has expired';
+
+  @override
+  String get inviteExhausted => 'This link can no longer be used';
+
+  @override
+  String get inviteNotFound => 'This link is not valid';
+
+  @override
+  String inviteMembers(int count) {
+    return 'members: $count';
+  }
+
+  @override
+  String get inviteLinkTitle => 'Invite link';
+
+  @override
+  String get inviteLinkCreate => 'Create link';
+
+  @override
+  String get inviteLinkCopied => 'Link copied';
+
+  @override
+  String get inviteLinkRevoke => 'Revoke';
+
+  @override
+  String get invitePublicName => 'Public handle';
+
+  @override
+  String get invitePublicNameHint => 'e.g. talerid_news';
+
+  @override
+  String get invitePublicNameSaved => 'Public handle saved';
+
+  @override
+  String get invitePublicNameTaken => 'Handle is already taken';
+
+  @override
+  String get invitePublicNameBad =>
+      '5-32 characters, starting with a letter: a-z, 0-9 and _';
 }

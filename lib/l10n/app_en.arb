@@ -1934,5 +1934,30 @@
   "chatTranscribeVoice": "Transcribe",
   "chatTranscribing": "Transcribing…",
   "chatTranscribeEmpty": "Nothing audible in this recording",
-  "chatTranscribeFailed": "Could not transcribe"
+  "chatTranscribeFailed": "Could not transcribe",
+  "inviteJoinTitle": "Invitation",
+  "inviteJoinAction": "Join",
+  "inviteOpenChat": "Open",
+  "inviteAlreadyMember": "You are already a member",
+  "inviteRevoked": "This link was revoked",
+  "inviteExpired": "This link has expired",
+  "inviteExhausted": "This link can no longer be used",
+  "inviteNotFound": "This link is not valid",
+  "inviteMembers": "members: {count}",
+  "inviteLinkTitle": "Invite link",
+  "inviteLinkCreate": "Create link",
+  "inviteLinkCopied": "Link copied",
+  "inviteLinkRevoke": "Revoke",
+  "invitePublicName": "Public handle",
+  "invitePublicNameHint": "e.g. talerid_news",
+  "invitePublicNameSaved": "Public handle saved",
+  "invitePublicNameTaken": "Handle is already taken",
+  "invitePublicNameBad": "5-32 characters, starting with a letter: a-z, 0-9 and _",
+  "@inviteMembers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

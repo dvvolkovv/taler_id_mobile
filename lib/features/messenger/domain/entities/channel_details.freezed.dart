@@ -28,6 +28,9 @@ mixin _$ChannelDetails {
   bool get isSubscribed => throw _privateConstructorUsedError;
   String? get myRole => throw _privateConstructorUsedError;
 
+  /// Публичное имя канала: по нему он открывается ссылкой без приглашения.
+  String? get publicUsername => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $ChannelDetailsCopyWith<ChannelDetails> get copyWith =>
@@ -47,7 +50,8 @@ abstract class $ChannelDetailsCopyWith<$Res> {
       String? avatarUrl,
       int subscribersCount,
       bool isSubscribed,
-      String? myRole});
+      String? myRole,
+      String? publicUsername});
 }
 
 /// @nodoc
@@ -70,6 +74,7 @@ class _$ChannelDetailsCopyWithImpl<$Res, $Val extends ChannelDetails>
     Object? subscribersCount = null,
     Object? isSubscribed = null,
     Object? myRole = freezed,
+    Object? publicUsername = freezed,
   }) {
     return _then(_value.copyWith(
       id: null == id
@@ -100,6 +105,10 @@ class _$ChannelDetailsCopyWithImpl<$Res, $Val extends ChannelDetails>
           ? _value.myRole
           : myRole // ignore: cast_nullable_to_non_nullable
               as String?,
+      publicUsername: freezed == publicUsername
+          ? _value.publicUsername
+          : publicUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -119,7 +128,8 @@ abstract class _$$ChannelDetailsImplCopyWith<$Res>
       String? avatarUrl,
       int subscribersCount,
       bool isSubscribed,
-      String? myRole});
+      String? myRole,
+      String? publicUsername});
 }
 
 /// @nodoc
@@ -140,6 +150,7 @@ class __$$ChannelDetailsImplCopyWithImpl<$Res>
     Object? subscribersCount = null,
     Object? isSubscribed = null,
     Object? myRole = freezed,
+    Object? publicUsername = freezed,
   }) {
     return _then(_$ChannelDetailsImpl(
       id: null == id
@@ -170,6 +181,10 @@ class __$$ChannelDetailsImplCopyWithImpl<$Res>
           ? _value.myRole
           : myRole // ignore: cast_nullable_to_non_nullable
               as String?,
+      publicUsername: freezed == publicUsername
+          ? _value.publicUsername
+          : publicUsername // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -184,7 +199,8 @@ class _$ChannelDetailsImpl implements _ChannelDetails {
       this.avatarUrl,
       this.subscribersCount = 0,
       this.isSubscribed = false,
-      this.myRole});
+      this.myRole,
+      this.publicUsername});
 
   factory _$ChannelDetailsImpl.fromJson(Map<String, dynamic> json) =>
       _$$ChannelDetailsImplFromJson(json);
@@ -206,9 +222,13 @@ class _$ChannelDetailsImpl implements _ChannelDetails {
   @override
   final String? myRole;
 
+  /// Публичное имя канала: по нему он открывается ссылкой без приглашения.
+  @override
+  final String? publicUsername;
+
   @override
   String toString() {
-    return 'ChannelDetails(id: $id, name: $name, description: $description, avatarUrl: $avatarUrl, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, myRole: $myRole)';
+    return 'ChannelDetails(id: $id, name: $name, description: $description, avatarUrl: $avatarUrl, subscribersCount: $subscribersCount, isSubscribed: $isSubscribed, myRole: $myRole, publicUsername: $publicUsername)';
   }
 
   @override
@@ -226,13 +246,15 @@ class _$ChannelDetailsImpl implements _ChannelDetails {
                 other.subscribersCount == subscribersCount) &&
             (identical(other.isSubscribed, isSubscribed) ||
                 other.isSubscribed == isSubscribed) &&
-            (identical(other.myRole, myRole) || other.myRole == myRole));
+            (identical(other.myRole, myRole) || other.myRole == myRole) &&
+            (identical(other.publicUsername, publicUsername) ||
+                other.publicUsername == publicUsername));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, description, avatarUrl,
-      subscribersCount, isSubscribed, myRole);
+      subscribersCount, isSubscribed, myRole, publicUsername);
 
   @JsonKey(ignore: true)
   @override
@@ -257,7 +279,8 @@ abstract class _ChannelDetails implements ChannelDetails {
       final String? avatarUrl,
       final int subscribersCount,
       final bool isSubscribed,
-      final String? myRole}) = _$ChannelDetailsImpl;
+      final String? myRole,
+      final String? publicUsername}) = _$ChannelDetailsImpl;
 
   factory _ChannelDetails.fromJson(Map<String, dynamic> json) =
       _$ChannelDetailsImpl.fromJson;
@@ -276,6 +299,10 @@ abstract class _ChannelDetails implements ChannelDetails {
   bool get isSubscribed;
   @override
   String? get myRole;
+  @override
+
+  /// Публичное имя канала: по нему он открывается ссылкой без приглашения.
+  String? get publicUsername;
   @override
   @JsonKey(ignore: true)
   _$$ChannelDetailsImplCopyWith<_$ChannelDetailsImpl> get copyWith =>
