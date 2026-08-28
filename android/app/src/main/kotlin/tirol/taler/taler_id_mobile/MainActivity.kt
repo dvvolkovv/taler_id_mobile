@@ -19,6 +19,8 @@ import android.util.Log
 import com.cloudwebrtc.webrtc.FlutterWebRTCPlugin
 import tirol.taler.taler_id_mobile.audio.AudioCaptureChannel
 import tirol.taler.taler_id_mobile.audio.AudioPlaybackChannel
+import tirol.taler.taler_id_mobile.audio.AudioRouteController
+import tirol.taler.taler_id_mobile.audio.AudioRouteDevice
 import tirol.taler.taler_id_mobile.installer.ApkInstaller
 import tirol.taler.taler_id_mobile.notifications.NotificationBridge
 import com.cloudwebrtc.webrtc.LocalTrack
@@ -44,6 +46,26 @@ class MainActivity : FlutterFragmentActivity() {
     private var webrtcPlugin: FlutterWebRTCPlugin? = null
     private val audioRouteEventSink = AtomicReference<EventChannel.EventSink?>(null)
     private var audioDeviceCallback: AudioDeviceCallback? = null
+
+    /**
+     * Single owner of the in-call output route. Every path that requests audio
+     * focus goes through it, because the focus request itself resets the route
+     * to the earpiece — see [AudioRouteController].
+     */
+    private val audioRoute by lazy {
+        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+        AudioRouteController(object : AudioRouteDevice {
+            override var speakerphoneOn: Boolean
+                get() = am.isSpeakerphoneOn
+                set(value) { am.isSpeakerphoneOn = value }
+            override var bluetoothScoOn: Boolean
+                get() = am.isBluetoothScoOn
+                set(value) { am.isBluetoothScoOn = value }
+            override fun enterCommunicationMode() { am.mode = AudioManager.MODE_IN_COMMUNICATION }
+            override fun startBluetoothSco() = am.startBluetoothSco()
+            override fun stopBluetoothSco() = am.stopBluetoothSco()
+        })
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -154,12 +176,11 @@ class MainActivity : FlutterFragmentActivity() {
                     "setSpeaker" -> {
                         val on = call.arguments as? Boolean ?: false
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
-                        am.mode = AudioManager.MODE_IN_COMMUNICATION
+                        audioRoute.setSpeakerphone(on)
                         // Always re-request focus so second toggle doesn't leave the session
                         // half-configured (previously we only did this on toggle-ON, and toggle-OFF
-                        // silently killed mic input on some devices).
+                        // silently killed mic input on some devices). It re-applies the route.
                         requestAudioFocus(am)
-                        am.isSpeakerphoneOn = on  // Must be after requestAudioFocus (which resets to false)
                         result.success(null)
                     }
                     "getAudioOutputs" -> {
@@ -194,26 +215,11 @@ class MainActivity : FlutterFragmentActivity() {
                         val type = call.arguments as? String ?: "earpiece"
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager
                         Log.i("AudDbg", "setAudioOutput: type=$type modeBefore=${am.mode} speakerBefore=${am.isSpeakerphoneOn}")
-                        am.mode = AudioManager.MODE_IN_COMMUNICATION
-                        when (type) {
-                            "speaker" -> {
-                                am.stopBluetoothSco()
-                                am.isBluetoothScoOn = false
-                                am.isSpeakerphoneOn = true
-                            }
-                            "bluetooth" -> {
-                                am.isSpeakerphoneOn = false
-                                am.startBluetoothSco()
-                                am.isBluetoothScoOn = true
-                            }
-                            else -> { // earpiece, headphones
-                                am.stopBluetoothSco()
-                                am.isBluetoothScoOn = false
-                                am.isSpeakerphoneOn = false
-                            }
-                        }
-                        Log.i("AudDbg", "setAudioOutput: after switch mode=${am.mode} speaker=${am.isSpeakerphoneOn}")
+                        audioRoute.select(type)
+                        // requestAudioFocus re-applies the route it just set — the focus
+                        // request resets the output to the earpiece on most devices.
                         requestAudioFocus(am)
+                        Log.i("AudDbg", "setAudioOutput: after switch mode=${am.mode} speaker=${am.isSpeakerphoneOn}")
                         result.success(null)
                     }
                     "requestAudioFocus" -> {
@@ -380,9 +386,9 @@ class MainActivity : FlutterFragmentActivity() {
     private fun requestAudioFocus(am: AudioManager) {
         val modeBefore = am.mode
         Log.i("AudDbg", "requestAudioFocus: enter granted=$audioFocusGranted modeBefore=$modeBefore speakerBefore=${am.isSpeakerphoneOn}")
-        // Set earpiece mode immediately — LiveKit may default to speakerphone
-        am.mode = AudioManager.MODE_IN_COMMUNICATION
-        am.isSpeakerphoneOn = false
+        // Assert the route immediately — LiveKit may default to speakerphone.
+        // Defaults to the earpiece; stays on whatever the user last picked.
+        audioRoute.reapply()
 
         // If we already hold audio focus, just enforce the mode — don't re-request.
         // Re-requesting would cause the previous listener to receive AUDIOFOCUS_LOSS_TRANSIENT
@@ -402,10 +408,10 @@ class MainActivity : FlutterFragmentActivity() {
                     runOnUiThread { flutterChannel?.invokeMethod("audioInterrupted", null) }
                 }
                 AudioManager.AUDIOFOCUS_GAIN -> {
-                    // Focus returned — restore earpiece mode
+                    // Focus returned — restore communication mode and the route
+                    // the call was on before the interruption.
                     audioFocusGranted = true
-                    am.mode = AudioManager.MODE_IN_COMMUNICATION
-                    am.isSpeakerphoneOn = false
+                    audioRoute.reapply()
                     runOnUiThread { flutterChannel?.invokeMethod("audioResumed", null) }
                 }
                 AudioManager.AUDIOFOCUS_LOSS -> {
@@ -437,10 +443,16 @@ class MainActivity : FlutterFragmentActivity() {
             audioFocusGranted = (result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED)
             Log.i("AudDbg", "requestAudioFocus: NEW request (legacy) result=$result granted=$audioFocusGranted modeAfter=${am.mode}")
         }
+        // Granting focus re-routes to the earpiece behind our back — put the
+        // call back where the user wanted it.
+        audioRoute.reapply()
     }
 
     private fun abandonAudioFocus(am: AudioManager) {
         audioFocusGranted = false
+        // Call over — the next one starts on the earpiece, not on whatever
+        // output this call ended on.
+        audioRoute.reset()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             audioFocusRequest?.let { am.abandonAudioFocusRequest(it) }
             audioFocusRequest = null
@@ -460,9 +472,7 @@ class MainActivity : FlutterFragmentActivity() {
                 val bt = addedDevices.firstOrNull { isBluetoothHeadset(it) } ?: return
                 if (am.mode != AudioManager.MODE_IN_COMMUNICATION) return
                 try {
-                    am.isSpeakerphoneOn = false
-                    am.startBluetoothSco()
-                    am.isBluetoothScoOn = true
+                    audioRoute.select(AudioRouteController.ROUTE_BLUETOOTH)
                     requestAudioFocus(am)
                 } catch (e: Exception) {
                     Log.w("AudioRoute", "BT SCO start failed: ${e.message}")
@@ -478,9 +488,11 @@ class MainActivity : FlutterFragmentActivity() {
                 if (!hadBt) return
                 if (am.mode != AudioManager.MODE_IN_COMMUNICATION) return
                 try {
-                    am.stopBluetoothSco()
-                    am.isBluetoothScoOn = false
-                    am.isSpeakerphoneOn = false
+                    // Headset gone: fall back to the earpiece, but don't yank a
+                    // call that was deliberately put on the loudspeaker.
+                    if (audioRoute.route == AudioRouteController.ROUTE_BLUETOOTH) {
+                        audioRoute.select(AudioRouteController.ROUTE_EARPIECE)
+                    }
                 } catch (e: Exception) {
                     Log.w("AudioRoute", "BT SCO stop failed: ${e.message}")
                 }
