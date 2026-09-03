@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:flutter/foundation.dart';
 
 /// Одно сообщение в чате комнаты.
@@ -22,7 +24,10 @@ class RoomChatMessage {
 /// позже не видит написанного до него — осознанное решение.
 ///
 /// Дедупликацией по `msgId` не занимается: она сделана централизованно
-/// в начале `_handleDataReceived`, до разбора типа пакета.
+/// в начале `_handleDataReceived`, до разбора типа пакета. Она работает
+/// потому, что `msgId` проставляют все три отправителя чата: веб
+/// (`broadcastData` в `room.html`), приложение (`_broadcastData`) и сервер
+/// (`sendRoomChatMessage`).
 ///
 /// Разбор пакета намеренно устойчив к типам: данные приходят из `jsonDecode`
 /// по сети, и любое поле может оказаться не той природы, которую мы ждём.
@@ -34,14 +39,23 @@ class RoomChatController extends ChangeNotifier {
   int _unread = 0;
   bool _open = false;
 
-  List<RoomChatMessage> get messages => List.unmodifiable(_messages);
+  /// Живое представление ленты, а не копия: панель дёргает геттер по
+  /// несколько раз за перерисовку, а перерисовка идёт на каждое сообщение —
+  /// `List.unmodifiable` копировал бы весь список каждый раз.
+  late final List<RoomChatMessage> messages = UnmodifiableListView(_messages);
   int get unread => _unread;
   bool get isOpen => _open;
 
   void setOpen(bool open) {
+    // Повторный вызов с тем же значением не должен дёргать перерисовку.
+    // Второе слагаемое — на случай, если счётчик когда-нибудь сможет
+    // накопиться при открытой панели: сейчас `_append` этого не допускает,
+    // поэтому состояние недостижимо и тестом не покрыто, но обнуление без
+    // уведомления оставило бы бейдж висеть.
+    final changed = _open != open || (open && _unread != 0);
     _open = open;
     if (open) _unread = 0;
-    notifyListeners();
+    if (changed) notifyListeners();
   }
 
   /// Разбирает пакет из data-канала. Возвращает false, если это не сообщение

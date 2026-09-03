@@ -2402,12 +2402,18 @@ Answer briefly — the user is in the middle of a conversation.''';
     if (!mounted || _navigatedAway) return;
     try {
       final msg = jsonDecode(utf8.decode(event.data)) as Map<String, dynamic>;
-      final type = msg['type'] as String?;
+      // `is` rather than `as`: the packet comes from jsonDecode over the wire,
+      // and a throwing cast on a malformed `type`/`msgId` would abort the whole
+      // handler — taking recording consent and transcription status down with
+      // it. A non-string value is simply treated as absent.
+      final rawType = msg['type'];
+      final type = rawType is String ? rawType : null;
       final participant = event.participant;
       if (type == null) return;
 
       // Deduplicate messages
-      final msgId = msg['msgId'] as String?;
+      final rawMsgId = msg['msgId'];
+      final msgId = rawMsgId is String ? rawMsgId : null;
       if (msgId != null) {
         if (_processedMessageIds.contains(msgId)) return;
         _processedMessageIds.add(msgId);

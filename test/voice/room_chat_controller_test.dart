@@ -64,6 +64,34 @@ void main() {
     expect(c.isOpen, isTrue);
   });
 
+  test('закрытие панели возвращает подсчёт непрочитанных', () {
+    c.setOpen(true);
+    c.setOpen(false);
+    c.handlePacket({'type': 'chat_message', 'text': 'раз'}, fallbackName: 'Г');
+
+    expect(c.isOpen, isFalse);
+    expect(c.unread, 1);
+  });
+
+  test('setOpen уведомляет слушателей', () {
+    var notified = 0;
+    c.addListener(() => notified++);
+
+    c.setOpen(true);
+
+    expect(notified, 1);
+  });
+
+  test('повторный setOpen с тем же значением не уведомляет вхолостую', () {
+    c.setOpen(true);
+    var notified = 0;
+    c.addListener(() => notified++);
+
+    c.setOpen(true);
+
+    expect(notified, 0);
+  });
+
   test('при открытой панели непрочитанные не копятся', () {
     c.setOpen(true);
     c.handlePacket({'type': 'chat_message', 'text': 'раз'}, fallbackName: 'Г');
@@ -76,6 +104,18 @@ void main() {
 
     expect(c.messages.single.own, isTrue);
     expect(c.unread, 0);
+  });
+
+  test('своё пустое сообщение не добавляется', () {
+    c.addOwn('Я', '   ');
+
+    expect(c.messages, isEmpty);
+  });
+
+  test('своё сообщение обрезается по краям', () {
+    c.addOwn('Я', '  привет  ');
+
+    expect(c.messages.single.text, 'привет');
   });
 
   test('уведомляет слушателей о новом сообщении', () {
