@@ -1500,6 +1500,18 @@ class AppLocalizationsFa extends AppLocalizations {
   String get voiceYou => 'شما';
 
   @override
+  String get voiceChat => 'Chat';
+
+  @override
+  String get voiceChatHint => 'Message...';
+
+  @override
+  String get voiceChatEmpty => 'Nothing has been written yet';
+
+  @override
+  String get voiceChatSend => 'Send';
+
+  @override
   String get voiceAiAssistant => 'دستیار AI';
 
   @override

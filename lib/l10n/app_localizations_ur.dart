@@ -1505,6 +1505,18 @@ class AppLocalizationsUr extends AppLocalizations {
   String get voiceYou => 'آپ';
 
   @override
+  String get voiceChat => 'Chat';
+
+  @override
+  String get voiceChatHint => 'Message...';
+
+  @override
+  String get voiceChatEmpty => 'Nothing has been written yet';
+
+  @override
+  String get voiceChatSend => 'Send';
+
+  @override
   String get voiceAiAssistant => 'AI اسسٹنٹ';
 
   @override

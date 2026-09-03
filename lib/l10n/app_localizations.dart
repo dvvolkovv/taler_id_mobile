@@ -2974,6 +2974,30 @@ abstract class AppLocalizations {
   /// **'You'**
   String get voiceYou;
 
+  /// No description provided for @voiceChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get voiceChat;
+
+  /// No description provided for @voiceChatHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Message...'**
+  String get voiceChatHint;
+
+  /// No description provided for @voiceChatEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been written yet'**
+  String get voiceChatEmpty;
+
+  /// No description provided for @voiceChatSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get voiceChatSend;
+
   /// No description provided for @voiceAiAssistant.
   ///
   /// In en, this message translates to:

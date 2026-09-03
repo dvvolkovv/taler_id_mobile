@@ -1504,6 +1504,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceYou => 'Вы';
 
   @override
+  String get voiceChat => 'Чат';
+
+  @override
+  String get voiceChatHint => 'Сообщение...';
+
+  @override
+  String get voiceChatEmpty => 'Пока никто ничего не написал';
+
+  @override
+  String get voiceChatSend => 'Отправить';
+
+  @override
   String get voiceAiAssistant => 'AI Ассистент';
 
   @override

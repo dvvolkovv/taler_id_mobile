@@ -1514,6 +1514,18 @@ class AppLocalizationsTa extends AppLocalizations {
   String get voiceYou => 'நீங்கள்';
 
   @override
+  String get voiceChat => 'Chat';
+
+  @override
+  String get voiceChatHint => 'Message...';
+
+  @override
+  String get voiceChatEmpty => 'Nothing has been written yet';
+
+  @override
+  String get voiceChatSend => 'Send';
+
+  @override
   String get voiceAiAssistant => 'AI உதவியாளர்';
 
   @override
