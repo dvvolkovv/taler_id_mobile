@@ -33,6 +33,7 @@ import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../../../../core/desktop/desktop_breakpoints.dart';
 import '../controllers/room_chat_controller.dart';
+import '../controllers/room_data_packet_ids.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
@@ -138,7 +139,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // ── Hold state ──
   bool _onHold = false;
   final AudioPlayer _holdPlayer = AudioPlayer();
-  final Set<String> _processedMessageIds = {};  // dedup DataChannel messages
+  // Выдача id исходящим пакетам и дедупликация входящих. Префикс уникален на
+  // экземпляр экрана, а не на identity: identity переживает сворачивание
+  // звонка, а состояние экрана — нет, см. RoomDataPacketIds.
+  final RoomDataPacketIds _packetIds = RoomDataPacketIds();
 
   // ── Room chat ──
   // Lives for the duration of the call only: no history, whoever joins later
@@ -2414,14 +2418,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       // Deduplicate messages
       final rawMsgId = msg['msgId'];
       final msgId = rawMsgId is String ? rawMsgId : null;
-      if (msgId != null) {
-        if (_processedMessageIds.contains(msgId)) return;
-        _processedMessageIds.add(msgId);
-        // Keep set bounded
-        if (_processedMessageIds.length > 200) {
-          _processedMessageIds.clear();
-        }
-      }
+      if (msgId != null && _packetIds.isDuplicate(msgId)) return;
 
       switch (type) {
         case 'recording_consent_request':
@@ -2796,22 +2793,32 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   // ── Shared helpers ──
 
-  int _msgSeq = 0;
-  void _broadcastData(Map<String, dynamic> msg) {
+  /// Возвращает true, если пакет отдан LiveKit'у. Большинству вызывающих
+  /// результат безразличен, но тем, кто рисует локальное эхо (чат), знать
+  /// об отказе обязательно — иначе неотправленное покажется отправленным.
+  ///
+  /// Это не подтверждение доставки: `publishData` асинхронный, и false
+  /// означает лишь «отправлять было некуда или бросило сразу».
+  bool _broadcastData(Map<String, dynamic> msg) {
     final room = _room;
-    if (room == null) return;
+    final local = room?.localParticipant;
+    // Без localParticipant публикация ниже молча ничего не делает — такой
+    // случай тоже неуспех, иначе чат нарисует эхо в пустоту.
+    if (room == null || local == null) return false;
     // Add unique messageId for deduplication
-    msg['msgId'] = '${room.localParticipant?.identity ?? ''}_${_msgSeq++}';
+    msg['msgId'] = _packetIds.next();
     final type = msg['type'];
     final remoteCount = room.remoteParticipants.length;
     debugPrint('[VoiceCall] broadcastData type=$type to $remoteCount participants');
     try {
-      room.localParticipant?.publishData(
+      local.publishData(
         utf8.encode(jsonEncode(msg)),
         reliable: true,
       );
+      return true;
     } catch (e) {
       debugPrint('[VoiceCall] broadcastData error: $e');
+      return false;
     }
   }
 
@@ -2820,16 +2827,28 @@ Answer briefly — the user is in the middle of a conversation.''';
   /// `_broadcastData`, so the receivers' dedup works as for any other packet.
   void _sendChatMessage(String text) {
     final me = _room?.localParticipant;
+    // Имя уходит в эфир, поэтому подставлять «Вы» нельзя: это метка от
+    // первого лица, остальные увидели бы сообщение от «Вы», а автор бы
+    // ничего не заметил — своё имя в пузыре не рисуется. Порядок отступления
+    // тот же, что у получателя в `_handleDataReceived`: имя → identity →
+    // обезличенное «Участник». Сейчас `makeToken` на сервере имя гарантирует,
+    // но `generateGroupCallToken` его уже не ставит.
     final myName = (me?.name.isNotEmpty ?? false)
         ? me!.name
-        : AppLocalizations.of(context)!.voiceYou;
+        : ((me?.identity.isNotEmpty ?? false)
+            ? me!.identity
+            : AppLocalizations.of(context)!.voiceParticipant);
 
-    _broadcastData({
+    // Эхо рисуем только если пакет действительно ушёл: иначе неотправленное
+    // сообщение выглядело бы отправленным.
+    if (!_broadcastData({
       'type': 'chat_message',
       'text': text,
       'name': myName,
       'ts': DateTime.now().millisecondsSinceEpoch,
-    });
+    })) {
+      return;
+    }
 
     _chat.addOwn(myName, text);
     setState(() {});
@@ -2844,7 +2863,7 @@ Answer briefly — the user is in the middle of a conversation.''';
   void _sendDataTo(List<String> identities, Map<String, dynamic> msg) {
     final room = _room;
     if (room == null) return;
-    msg['msgId'] = '${room.localParticipant?.identity ?? ''}_${_msgSeq++}';
+    msg['msgId'] = _packetIds.next();
     debugPrint('[VoiceCall] sendDataTo ${identities.join(',')} type=${msg['type']}');
     try {
       room.localParticipant?.publishData(
