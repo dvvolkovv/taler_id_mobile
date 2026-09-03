@@ -74,6 +74,25 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'send_room_chat',
+            'description':
+                'Send a text message to the chat of the voice room the user is currently in. '
+                'Only works while a call is active. Use when the user asks to write something '
+                'to the other participants of the current call ("напиши в чат…", "скинь им ссылку", '
+                '"write it in the chat"). NOT for messenger conversations — that is send_message.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'text': {
+                  'type': 'string',
+                  'description': 'The message text, up to 500 characters',
+                },
+              },
+              'required': ['text'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'agent_task',
             'description':
                 'Run a complex task on the AI agent (Claude on analyst box). Use for: '

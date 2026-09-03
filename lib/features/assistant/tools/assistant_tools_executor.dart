@@ -6,6 +6,7 @@ import '../../../core/agent/agent_client.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/dio_client.dart';
 import '../../../core/di/service_locator.dart';
+import '../../../core/services/call_state_service.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../../billing/domain/repositories/billing_repository.dart';
@@ -106,6 +107,37 @@ class AssistantToolsExecutor {
                 'Найдено: ${query.length > 40 ? query.substring(0, 40) : query}',
           ));
         }
+      } else if (name == 'send_room_chat') {
+        // Chat of the LiveKit room the user is talking in. The app's own chat
+        // publishes over the data channel (VoiceCallScreen._sendChatMessage);
+        // the assistant has no room handle, so it goes through the REST
+        // endpoint, which broadcasts the same `chat_message` packet.
+        final roomName = CallStateService.instance.roomName;
+        if (roomName == null || roomName.isEmpty) {
+          return 'There is no active call, so there is no room chat to write to.';
+        }
+        // Deliberately not `args['text'] as String?`: the model sends a number
+        // where a string is declared often enough, and that cast throws a
+        // TypeError the outer catch would relay to the user as a failure.
+        // Same reasoning as RoomChatController.handlePacket.
+        final rawText = args['text'];
+        final text = rawText is String ? rawText.trim() : '';
+        if (text.isEmpty) {
+          return 'The message is empty, nothing to send.';
+        }
+        if (text.length > _roomChatMaxLength) {
+          // Same ceiling the human input enforces (maxLength in
+          // room_chat_panel.dart). Refused rather than truncated: a silently
+          // cut message reads as complete to everyone in the room.
+          return 'The message is too long ($_roomChatMaxLength characters max). '
+              'Shorten it and send again.';
+        }
+        final data = await client.post<Map<String, dynamic>>(
+          '/voice/rooms/$roomName/chat',
+          data: {'text': text, 'name': _roomChatSenderName()},
+          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        );
+        output = jsonEncode(data);
       } else if (name == 'set_preferred_name') {
         final newName = (args['name'] as String? ?? '').trim();
         if (newName.isEmpty) {
@@ -950,4 +982,19 @@ class AssistantToolsExecutor {
     }
     return output;
   }
+
+  /// Room-chat ceiling, mirroring the human input's `maxLength` in
+  /// room_chat_panel.dart.
+  static const int _roomChatMaxLength = 500;
+
+  /// Sender label for send_room_chat.
+  ///
+  /// The endpoint stamps a neutral "Taler ID" when no name is given, which
+  /// reads to the other participants as a system notice; passing the user's
+  /// own name would read as if they typed it. Neither is true, so the message
+  /// says plainly that an assistant wrote it. Which user's assistant is not
+  /// stated — the client cannot prove it, and the endpoint already knows the
+  /// caller from their token, so that attribution belongs server-side.
+  String _roomChatSenderName() =>
+      (hooks?.localeCode() ?? 'ru') == 'ru' ? 'Ассистент' : 'Assistant';
 }
