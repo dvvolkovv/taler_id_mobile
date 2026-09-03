@@ -18,6 +18,7 @@ import '../../messenger/presentation/bloc/messenger_event.dart';
 import '../../notifications/notification_filter.dart';
 import '../../notifications/notification_permission_service.dart';
 import '../../notifications/notification_store.dart';
+import '../../voice/domain/room_chat_text.dart';
 import '../domain/assistant_action.dart';
 
 /// Session-bound operations available only during an active voice session.
@@ -116,25 +117,16 @@ class AssistantToolsExecutor {
         if (roomName == null || roomName.isEmpty) {
           return 'There is no active call, so there is no room chat to write to.';
         }
-        // Deliberately not `args['text'] as String?`: the model sends a number
-        // where a string is declared often enough, and that cast throws a
-        // TypeError the outer catch would relay to the user as a failure.
-        // Same reasoning as RoomChatController.handlePacket.
-        final rawText = args['text'];
-        final text = rawText is String ? rawText.trim() : '';
-        if (text.isEmpty) {
-          return 'The message is empty, nothing to send.';
-        }
-        if (text.length > _roomChatMaxLength) {
-          // Same ceiling the human input enforces (maxLength in
-          // room_chat_panel.dart). Refused rather than truncated: a silently
-          // cut message reads as complete to everyone in the room.
-          return 'The message is too long ($_roomChatMaxLength characters max). '
-              'Shorten it and send again.';
+        // Parsing and the length ceiling live in parseRoomChatText — the
+        // in-call assistant on VoiceCallScreen has its own, independent tool
+        // list and has to refuse on exactly the same grounds.
+        final parsed = parseRoomChatText(args['text']);
+        if (!parsed.isValid) {
+          return parsed.refusal!;
         }
         final data = await client.post<Map<String, dynamic>>(
           '/voice/rooms/$roomName/chat',
-          data: {'text': text, 'name': _roomChatSenderName()},
+          data: {'text': parsed.text, 'name': _roomChatSenderName()},
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
         );
         output = jsonEncode(data);
@@ -982,10 +974,6 @@ class AssistantToolsExecutor {
     }
     return output;
   }
-
-  /// Room-chat ceiling, mirroring the human input's `maxLength` in
-  /// room_chat_panel.dart.
-  static const int _roomChatMaxLength = 500;
 
   /// Sender label for send_room_chat.
   ///

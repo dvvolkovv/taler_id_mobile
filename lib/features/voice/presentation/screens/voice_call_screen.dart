@@ -32,6 +32,7 @@ import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../../../../core/desktop/desktop_breakpoints.dart';
+import '../../domain/room_chat_text.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_data_packet_ids.dart';
 import '../widgets/room_chat_panel.dart';
@@ -1832,6 +1833,8 @@ $participantsStr
 3. Вызови send_call_invite с conversationId найденного диалога
 4. Если не нашёл в диалогах — вызови search_contacts и повтори поиск
 
+У комнаты есть текстовый чат, его видят все участники звонка. Если пользователь просит «напиши в чат», «скинь им …», «продиктуй в чат» — вызови send_room_chat с текстом. Он для того, что лучше написать, чем произнести: ссылки, адреса, номера, коды, суммы. До $kRoomChatMaxLength символов; чат живёт только пока идёт звонок.
+
 Отвечай коротко — пользователь в разгаре разговора.''';
     }
 
@@ -1845,6 +1848,8 @@ If the user asks to add someone to the call:
 2. Find the needed person by name or username (otherUserUsername)
 3. Call send_call_invite with the conversationId of the found conversation
 4. If not found in conversations — call search_contacts and retry
+
+The room has a text chat that every participant of the call sees. If the user asks to "write it in the chat", "send them …", "put that in the chat" — call send_room_chat with the text. It is for things better written than spoken: links, addresses, phone numbers, codes, amounts. Up to $kRoomChatMaxLength characters; the chat only lives while the call does.
 
 Answer briefly — the user is in the middle of a conversation.''';
   }
@@ -1894,6 +1899,18 @@ Answer briefly — the user is in the middle of a conversation.''';
                 'name': {'type': 'string', 'description': 'Name of the person being invited'},
               },
               'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'send_room_chat',
+            'description': 'Write a text message into the chat of this call room. Every participant of the call sees it. Use for things better written than spoken: links, addresses, phone numbers, codes, amounts.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'text': {'type': 'string', 'description': 'The message text, up to $kRoomChatMaxLength characters'},
+              },
+              'required': ['text'],
             },
           },
         ],
@@ -2072,6 +2089,30 @@ Answer briefly — the user is in the middle of a conversation.''';
           output = jsonEncode({'ok': true, 'message': l10n.voiceInvitationSent(inviteeName.isNotEmpty ? inviteeName : l10n.voiceParticipant)});
         } else {
           output = jsonEncode({'ok': false, 'message': AppLocalizations.of(context)!.voiceNoActiveRoom});
+        }
+      } else if (name == 'send_room_chat') {
+        // Комната известна прямо здесь, поэтому — в отличие от отдельного
+        // ассистента (`AssistantToolsExecutor`) — серверная ручка
+        // `POST /voice/rooms/:roomName/chat` не нужна: лишний сетевой круг, и,
+        // главное, автор своего сообщения бы не увидел — локальное эхо рисует
+        // только UI-путь, LiveKit пакет отправителю не возвращает.
+        final parsed = parseRoomChatText(args['text']);
+        debugPrint('[InCallAssistant] send_room_chat: ${parsed.refusal ?? '${parsed.text!.length} chars'}');
+        if (!parsed.isValid) {
+          output = jsonEncode({'ok': false, 'message': parsed.refusal});
+        } else if (!mounted || !_sendChatMessage(parsed.text!)) {
+          // `mounted` проверяется первым: `_sendChatMessage` дёргает context и
+          // setState. Отказ публикации и уехавший экран для модели одно и то
+          // же — сообщение не ушло, и врать «отправил» нельзя.
+          output = jsonEncode({
+            'ok': false,
+            'message': 'The message could not be sent to the room chat.',
+          });
+        } else {
+          output = jsonEncode({
+            'ok': true,
+            'message': 'Sent to the room chat.',
+          });
         }
       } else {
         debugPrint('[InCallAssistant] unknown function: $name');
@@ -2825,7 +2866,12 @@ Answer briefly — the user is in the middle of a conversation.''';
   /// Publishes a chat line to the room and echoes it into the local feed —
   /// LiveKit doesn't loop published data back to the sender. `msgId` is set by
   /// `_broadcastData`, so the receivers' dedup works as for any other packet.
-  void _sendChatMessage(String text) {
+  ///
+  /// Returns whether the line actually went out. The chat panel passes this as
+  /// a `ValueChanged<String>` and ignores the result — the empty feed says it
+  /// all — but the in-call assistant has to know, otherwise it reports a
+  /// message as sent that nobody will ever see.
+  bool _sendChatMessage(String text) {
     final me = _room?.localParticipant;
     // Имя уходит в эфир, поэтому подставлять «Вы» нельзя: это метка от
     // первого лица, остальные увидели бы сообщение от «Вы», а автор бы
@@ -2847,11 +2893,12 @@ Answer briefly — the user is in the middle of a conversation.''';
       'name': myName,
       'ts': DateTime.now().millisecondsSinceEpoch,
     })) {
-      return;
+      return false;
     }
 
     _chat.addOwn(myName, text);
     setState(() {});
+    return true;
   }
 
   void _toggleChat() {
