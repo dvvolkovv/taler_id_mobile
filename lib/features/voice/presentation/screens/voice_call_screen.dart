@@ -31,6 +31,9 @@ import '../../../profile/presentation/bloc/profile_state.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
+import '../../../../core/desktop/desktop_breakpoints.dart';
+import '../controllers/room_chat_controller.dart';
+import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -136,6 +139,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _onHold = false;
   final AudioPlayer _holdPlayer = AudioPlayer();
   final Set<String> _processedMessageIds = {};  // dedup DataChannel messages
+
+  // ── Room chat ──
+  // Lives for the duration of the call only: no history, whoever joins later
+  // doesn't see what was written before them.
+  final RoomChatController _chat = RoomChatController();
 
   // ── Transcription state ──
   bool _transcriptionActive = false;
@@ -2431,6 +2439,18 @@ Answer briefly — the user is in the middle of a conversation.''';
         case 'transcription_status':
           _onTranscriptionStatus(msg);
           break;
+        case 'chat_message':
+          // `participant` is null for packets published by the backend through
+          // RoomServiceClient.sendData — those have no sender participant.
+          if (_chat.handlePacket(
+            msg,
+            fallbackName: participant?.name.isNotEmpty == true
+                ? participant!.name
+                : (participant?.identity ?? '—'),
+          )) {
+            setState(() {});
+          }
+          break;
         case 'recording_status':
           // legacy web client broadcast — ignore in mobile
           break;
@@ -2787,6 +2807,31 @@ Answer briefly — the user is in the middle of a conversation.''';
     } catch (e) {
       debugPrint('[VoiceCall] broadcastData error: $e');
     }
+  }
+
+  /// Publishes a chat line to the room and echoes it into the local feed —
+  /// LiveKit doesn't loop published data back to the sender. `msgId` is set by
+  /// `_broadcastData`, so the receivers' dedup works as for any other packet.
+  void _sendChatMessage(String text) {
+    final me = _room?.localParticipant;
+    final myName = (me?.name.isNotEmpty ?? false)
+        ? me!.name
+        : AppLocalizations.of(context)!.voiceYou;
+
+    _broadcastData({
+      'type': 'chat_message',
+      'text': text,
+      'name': myName,
+      'ts': DateTime.now().millisecondsSinceEpoch,
+    });
+
+    _chat.addOwn(myName, text);
+    setState(() {});
+  }
+
+  void _toggleChat() {
+    _chat.setOpen(!_chat.isOpen);
+    setState(() {});
   }
 
   /// Send data to specific participants only (not broadcast)
@@ -3850,6 +3895,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _holdPlayer.stop().catchError((_) {});
     _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
+    _chat.dispose();
     _callControlsHideTimer?.cancel();
     // Restore portrait + native iOS orientation lock for the rest of the app
     _restorePortraitLock();
@@ -4049,6 +4095,34 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ),
               ),
             ),
+          if (_chat.isOpen)
+            Builder(builder: (context) {
+              final media = MediaQuery.of(context);
+              final isWide = media.size.width >= kDesktopBreakpoint;
+              // The Scaffold runs with resizeToAvoidBottomInset: false so the
+              // keyboard doesn't reflow the video grid — which also means
+              // nothing lifts the chat input above it. Do it here, for the
+              // panel only.
+              final panel = Padding(
+                padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+                child: SafeArea(
+                  child: RoomChatPanel(
+                    controller: _chat,
+                    onSend: _sendChatMessage,
+                    onClose: _toggleChat,
+                  ),
+                ),
+              );
+
+              // Wide window — panel to the side, like in the web room.
+              // Narrow — over the call, full screen.
+              return isWide
+                  ? Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(width: 320, child: panel),
+                    )
+                  : Positioned.fill(child: panel);
+            }),
         ],
       ),
     );
@@ -4407,6 +4481,22 @@ Answer briefly — the user is in the middle of a conversation.''';
                 child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Chat lives in this row (not the 3-button main row below):
+                  // that one is spaceEvenly with labels underneath and a fourth
+                  // button overflows it on narrow phones. This row scrolls
+                  // horizontally, and the leading slot stays visible without
+                  // scrolling.
+                  _ControlButton(
+                    icon: _chat.unread > 0
+                        ? Icons.mark_chat_unread_rounded
+                        : Icons.chat_bubble_outline_rounded,
+                    label: AppLocalizations.of(context)!.voiceChat,
+                    color: _chat.isOpen
+                        ? AppColors.of(context).primary.withValues(alpha: 0.2)
+                        : AppColors.of(context).card,
+                    iconColor: _chat.unread > 0 ? AppColors.of(context).primary : null,
+                    onTap: _toggleChat,
+                  ),
                   _ControlButton(
                     icon: (_isRecording || _transcriptionActive || (_consentPending && !_consentForTranscription))
                         ? Icons.stop_circle_rounded
@@ -4656,6 +4746,16 @@ Answer briefly — the user is in the middle of a conversation.''';
               : colors.card,
           onTap: _showVideoEffectsPicker,
         ),
+      _ControlButton(
+        compact: true,
+        icon: _chat.unread > 0
+            ? Icons.mark_chat_unread_rounded
+            : Icons.chat_bubble_outline_rounded,
+        label: l10n.voiceChat,
+        color: _chat.isOpen ? colors.primary.withValues(alpha: 0.2) : colors.card,
+        iconColor: _chat.unread > 0 ? colors.primary : null,
+        onTap: _toggleChat,
+      ),
       _ControlButton(
         compact: true,
         icon: _muted ? Icons.mic_off_rounded : Icons.mic_rounded,
