@@ -349,7 +349,7 @@ void main() {
       expect(c.messages.map((m) => m.text).toList(), ['старое 1', 'старое 2', 'живое']);
     });
 
-    test('append:true кладёт новые записи в конец — догоняющий запрос, а не начальный', () {
+    test('mode:append кладёт новые записи в конец — догоняющий запрос, а не начальный', () {
       c.handlePacket({'type': 'chat_message', 'text': 'до отъезда'}, fallbackName: 'Боб');
 
       c.setHistory(
@@ -371,11 +371,147 @@ void main() {
             own: false,
           ),
         ],
-        append: true,
+        mode: RoomChatMergeMode.append,
       );
 
       expect(c.messages.map((m) => m.text).toList(),
           ['до отъезда', 'пропущенное 1', 'пропущенное 2']);
+    });
+
+    test('mode:append считает непрочитанными свежие чужие записи (панель закрыта)', () {
+      expect(c.unread, 0);
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'пропущенное 1',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 1,
+            own: false,
+          ),
+          RoomChatHistoryMessage(
+            msgId: 's2',
+            text: 'пропущенное 2',
+            name: 'Боб',
+            sentAt: DateTime.now(),
+            seq: 2,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.append,
+      );
+
+      expect(c.unread, 2,
+          reason: 'догоняющий запрос после возврата — это для человека новые сообщения');
+    });
+
+    test('mode:append не считает непрочитанной свою же запись из истории', () {
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'моё',
+            name: 'Я',
+            sentAt: DateTime.now(),
+            seq: 1,
+            own: true,
+          ),
+        ],
+        mode: RoomChatMergeMode.append,
+      );
+
+      expect(c.unread, 0);
+    });
+
+    test('mode:append не копит непрочитанные при открытой панели', () {
+      c.setOpen(true);
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'пропущенное',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 1,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.append,
+      );
+
+      expect(c.unread, 0);
+    });
+
+    test('mode:replace не увеличивает непрочитанные — это аварийный ресинк, не догонка', () {
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'после truncated',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 5,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      expect(c.unread, 0);
+    });
+
+    test('mode:replace заменяет ленту целиком — старые записи не выживают', () {
+      c.handlePacket({'type': 'chat_message', 'text': 'старое до truncated'}, fallbackName: 'Боб');
+      c.addOwn('Я', 'моё до truncated', 'cid-before-replace');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'полная свежая страница',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      expect(c.messages.map((m) => m.text).toList(), ['полная свежая страница']);
+    });
+
+    test('mode:replace не сверяет — совпадающий clientMsgId не подхватывает старую запись (другой текст это доказывает)', () {
+      // Сверка (_applyReconcile) меняет только msgId/failed и НИКОГДА не
+      // трогает text — поэтому разный текст у старой и новой записи с
+      // ОДНИМ И ТЕМ ЖЕ clientMsgId различает "сверилась" от "заменилась
+      // целиком": одинаковый текст (как было раньше) давал бы одинаковый
+      // результат в обоих случаях и ничего не проверял бы на самом деле.
+      c.addOwn('Я', 'старый текст до truncated', 'cid-r1');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 'srv-r1',
+            text: 'новый текст со свежей страницы',
+            name: 'Я',
+            sentAt: DateTime.now(),
+            seq: 7,
+            own: true,
+            clientMsgId: 'cid-r1',
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      // Ровно одна запись — не два экземпляра — и с текстом СО СТРАНИЦЫ,
+      // а не унаследованным от старой (что случилось бы при сверке).
+      expect(c.messages, hasLength(1));
+      expect(c.messages.single.text, 'новый текст со свежей страницы',
+          reason: 'если бы сработала сверка вместо замены, остался бы старый текст');
     });
 
     test('own из истории определяет сторону пузыря', () {

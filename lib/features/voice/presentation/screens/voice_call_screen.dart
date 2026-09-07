@@ -157,9 +157,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // showed the wrong call's conversation outright). See RoomChatLines'
   // class doc. `_chat` always points at the active line's controller;
   // `_selectChatLine` is what moves it and must be called at every point
-  // this screen starts showing a (possibly different) room.
+  // this screen starts showing a (possibly different) room. Starts on
+  // `_chatLines.pending`, not a bare untracked `RoomChatController()`: a
+  // message composed in the brief window before the first real room is
+  // known would otherwise live on a controller `_chatLines.disposeAll()`
+  // can never reach.
   final RoomChatLines _chatLines = RoomChatLines();
-  RoomChatController _chat = RoomChatController();
+  // `late`, assigned in initState: an inline initializer here can't reach
+  // `_chatLines` above (Dart instance field initializers can't access other
+  // instance members), and this must be `_chatLines.pending`, not a second,
+  // untracked `RoomChatController()` — see the field doc above.
+  late RoomChatController _chat;
 
   /// Points `_chat` at [roomName]'s own controller (creating one the first
   /// time this screen shows that room) and kicks off a history fetch for
@@ -167,20 +175,42 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   /// listener at all (see `RoomChatLines`' class doc), so returning to one
   /// is the only chance to learn what was sent while it was held. The fetch
   /// is a full one the first time this line is shown, a cursor-based
-  /// catch-up (`?since=`) every time after — `_chatLines.fetchCursor`
-  /// decides which.
+  /// catch-up (`?since=`) every time after — `_chatLines.planFetch` decides
+  /// which and how the eventual result gets merged.
   ///
-  /// Call this at every point the screen starts showing a room: fresh
-  /// connect, resuming an already-connected room, and `_switchToLine`. Do
-  /// NOT call this from `_startManualReconnect()` — that keeps showing the
-  /// SAME room, just with a fresh LiveKit token, so `_chat` must not move
-  /// and nothing was missed to catch up on.
+  /// Call this at every point the screen starts showing a (possibly
+  /// different) room: fresh connect, resuming an already-connected room,
+  /// and `_switchToLine`. Do NOT call this from `_startManualReconnect` —
+  /// that keeps showing the SAME room, so `_chat` must not move — but DO
+  /// still call `_catchUpChatAfterReconnect` there; see its doc for why
+  /// skipping it entirely was the bug that shipped before this fix.
   void _selectChatLine(String roomName, String? lkToken) {
     _chat = _chatLines.select(roomName);
     if (lkToken != null) {
-      final since = _chatLines.fetchCursor(roomName);
-      unawaited(_loadChatHistory(roomName, lkToken, _chat, since));
+      final plan = _chatLines.planFetch(roomName);
+      unawaited(_loadChatHistory(roomName, lkToken, _chat, plan));
     }
+  }
+
+  /// Catches this line's chat up after `_startManualReconnect` recovers —
+  /// WITHOUT calling `_selectChatLine`/`select`: the room hasn't changed,
+  /// only the LiveKit connection under it, so `_chat` must keep pointing at
+  /// the SAME controller it already did.
+  ///
+  /// This is not optional polish. The data-channel listener is torn down
+  /// for the entire outage — `_startManualReconnect` disconnects the old
+  /// room and only resubscribes once a fresh connection succeeds, which its
+  /// own backoff schedule can stretch to several minutes across its eight
+  /// attempts — so this room has exactly the same "no live listener" gap a
+  /// held line has (see `RoomChatLines`' class doc), just caused by the
+  /// network instead of a line switch, and reachable from any single,
+  /// ordinary call. Skipping this call was exactly the gap an earlier
+  /// version of this fix had: `_chatLines.planFetch` already had the right
+  /// cursor sitting there the whole time, and nothing downstream needed it
+  /// touched — it just was never asked for.
+  void _catchUpChatAfterReconnect(String roomName, String token) {
+    final plan = _chatLines.planFetch(roomName);
+    unawaited(_loadChatHistory(roomName, token, _chat, plan));
   }
 
   // ── Transcription state ──
@@ -312,6 +342,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   @override
   void initState() {
     super.initState();
+    _chat = _chatLines.pending;
     WidgetsBinding.instance.addObserver(this);
     _configureRingPlayerContext();
     // Dismiss any keyboard left over from the previous screen (e.g. chat input)
@@ -833,7 +864,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final token = res['token'] as String;
       _lkToken = token;
       _roomName = (res['roomName'] as String?) ?? widget.roomName ?? 'room-${DateTime.now().millisecondsSinceEpoch}';
-      _selectChatLine(_roomName!, token);
+      // _selectChatLine (and the history fetch it kicks off) is deliberately
+      // NOT called here yet — see the comment right after `_room!.connect()`
+      // below for why.
       debugPrint('[VoiceCall] API join OK, roomName=$_roomName, e2ee=${widget.e2eeKey != null}');
       // Outgoing call placed with no pre-created room: now that the room exists,
       // ring the callee. (The caller navigated here instantly for the "Calling…"
@@ -889,6 +922,28 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             : const lk.ConnectOptions(autoSubscribe: false),
       );
       debugPrint('[VoiceCall] LiveKit connected, state=${_room!.connectionState}, relayOnly=$_onEdge');
+      // Only NOW — after `connect()` actually resolves, not right after the
+      // HTTP join response — is it safe to select this chat line and kick
+      // off its history fetch. `_subscribeRoomEvents()` above attaches the
+      // event listener to the (still-connecting) `_room` instance, but no
+      // data-channel packet can physically arrive before the handshake
+      // this `connect()` performs completes; subscribing early only means
+      // the listener is armed and waiting, not that anything sent by
+      // someone else in this window would reach it. Fetching history
+      // BEFORE this line (as this screen used to) opened a real gap: the
+      // server's snapshot can easily be taken before the LiveKit handshake
+      // finishes, so a message sent in between lands in neither the
+      // history page (already past) nor the live stream (not listening
+      // yet) — invisible, and permanently so, since the very next live
+      // packet's `seq` moves the catch-up cursor forward past it. The
+      // other two paths that call `_selectChatLine` (`_initCall`'s
+      // "already connected" resume branch and `_switchToLine`) don't have
+      // this problem, but only because in both of them the room is already
+      // fully connected — and has been for a while — before
+      // `_selectChatLine` ever runs: their safety is an accident of
+      // ordering, not a guarantee, which is exactly why it's called out
+      // here rather than left implicit.
+      _selectChatLine(_roomName!, token);
       // Snapshot post-connect room state to correlate with audio symptoms.
       // If remote audio tracks are already known here, subscription MUST cover
       // them below. If missing, we depend on TrackPublishedEvent firing later.
@@ -1453,6 +1508,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         );
 
         CallStateService.instance.setRoom(newRoom, roomName, widget.conversationId, e2eeKeyValue: reconnectKey, lkToken: token);
+
+        // Catch this line's chat up on whatever was sent during the outage
+        // — NOT optional, see `_catchUpChatAfterReconnect`'s doc. Deliberately
+        // NOT `_selectChatLine`: this is the SAME room, `_chat` must not move.
+        _catchUpChatAfterReconnect(roomName, token);
 
         try { await newRoom.localParticipant?.setMicrophoneEnabled(!_muted); } catch (_) {}
         if (_cameraOn) { try { await newRoom.localParticipant?.setCameraEnabled(true); } catch (_) {} }
@@ -3027,27 +3087,26 @@ Answer briefly — the user is in the middle of a conversation.''';
   }
 
   /// Fetches [roomName]'s chat history (`GET /voice/rooms/:roomName/chat`)
-  /// into [controller] — called by `_selectChatLine` every time this line
-  /// becomes active, not just the first: a held line has no data-channel
-  /// listener at all (see `RoomChatLines`' class doc), so this is the only
-  /// way this screen ever learns what was sent while it was held. Never
-  /// awaited in the connect/switch flow: history isn't critical to a call
-  /// starting or a switch completing, and shouldn't hold either up for an
-  /// extra network round trip.
+  /// into [controller] per [plan] — called by `_selectChatLine` every time
+  /// this line becomes active and by `_catchUpChatAfterReconnect` after a
+  /// recovered connection, not just the first time a line is ever shown: a
+  /// held line, or one whose data channel just spent a while reconnecting,
+  /// has no live listener at all (see `RoomChatLines`' class doc), so this
+  /// is the only way this screen ever learns what was sent during that
+  /// window. Never awaited in the connect/switch/reconnect flow: history
+  /// isn't critical to any of those completing, and shouldn't hold them up
+  /// for an extra network round trip.
   ///
-  /// [since] is `null` for a full fetch (first time this line is shown, or
-  /// a previous fetch for it that never got far enough to record a cursor)
-  /// or a catch-up cursor from `_chatLines.fetchCursor` otherwise. A
-  /// catch-up page is appended — its entries are everything AFTER the point
-  /// the feed already reflects — a full page is prepended, per
-  /// `RoomChatController.setHistory`'s `append` doc; getting this backwards
-  /// would show the missed conversation in reverse.
+  /// [plan] (from `_chatLines.planFetch`) carries both the `since` cursor
+  /// for the request and how to merge the result — see
+  /// `RoomChatController.setHistory`'s `mode` doc; getting prepend vs.
+  /// append backwards would show the missed conversation in reverse.
   ///
-  /// If a catch-up response comes back `truncated`, it is discarded in
-  /// favour of one more, full, re-fetch rather than merged in: something
-  /// between the cursor and now didn't fit in the page, and gluing a gapped
-  /// catch-up onto the existing feed would silently paper over missing
-  /// messages — see `RoomChatLines.needsFullRefetch`.
+  /// If the response comes back `truncated`, [RoomChatLines.planRefetch]
+  /// decides whether that's the accepted "more history than one page"
+  /// limit (nothing to do) or a gapped catch-up that must be discarded in
+  /// favour of one more, full, re-fetch merged with
+  /// [RoomChatMergeMode.replace].
   ///
   /// [roomName], [token] and [controller] are all captured by the caller
   /// BEFORE this `await` (both awaits, if the truncated retry above fires),
@@ -3068,21 +3127,26 @@ Answer briefly — the user is in the middle of a conversation.''';
     String roomName,
     String token,
     RoomChatController controller,
-    int? since,
+    RoomChatFetchPlan plan,
   ) async {
     try {
+      var activePlan = plan;
       var page = await sl<RoomChatApi>().fetchHistory(
         roomName: roomName,
         lkToken: token,
-        since: since,
+        since: activePlan.since,
       );
-      var append = since != null;
-      if (RoomChatLines.needsFullRefetch(truncated: page.truncated, since: since)) {
-        page = await sl<RoomChatApi>().fetchHistory(roomName: roomName, lkToken: token);
-        append = false;
+      final refetchPlan = _chatLines.planRefetch(activePlan, truncated: page.truncated);
+      if (refetchPlan != null) {
+        activePlan = refetchPlan;
+        page = await sl<RoomChatApi>().fetchHistory(
+          roomName: roomName,
+          lkToken: token,
+          since: activePlan.since,
+        );
       }
       if (!mounted || _navigatedAway) return;
-      controller.setHistory(page.messages, append: append);
+      controller.setHistory(page.messages, mode: activePlan.mode);
       _chatLines.recordSeq(roomName, page.seq);
       // The fetched data is already safely on `controller` regardless; this
       // only avoids rebuilding the screen for a line's panel nobody is

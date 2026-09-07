@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/features/voice/domain/room_chat_history.dart';
+import 'package:taler_id_mobile/features/voice/presentation/controllers/room_chat_controller.dart';
 import 'package:taler_id_mobile/features/voice/presentation/controllers/room_chat_lines.dart';
 
 void main() {
@@ -41,22 +42,28 @@ void main() {
     });
   });
 
-  group('fetchCursor / recordSeq — первый показ линии полный, возврат — догоняющий', () {
-    test('первый показ линии: курсора ещё нет — фетч должен быть полным', () {
-      expect(lines.fetchCursor('room-a'), isNull);
+  group('planFetch / recordSeq — первый показ линии полный, возврат — догоняющий', () {
+    test('первый показ линии: курсора ещё нет — план полный', () {
+      final plan = lines.planFetch('room-a');
+
+      expect(plan.since, isNull);
+      expect(plan.mode, RoomChatMergeMode.prepend);
     });
 
-    test('после recordSeq курсор — этот seq, а не null: возврат на линию делает догоняющий запрос', () {
+    test('после recordSeq план — догоняющий с этим seq: возврат на линию делает догоняющий запрос', () {
       lines.recordSeq('room-a', 5);
 
-      expect(lines.fetchCursor('room-a'), 5);
+      final plan = lines.planFetch('room-a');
+
+      expect(plan.since, 5);
+      expect(plan.mode, RoomChatMergeMode.append);
     });
 
     test('независимо для разных линий', () {
       lines.recordSeq('room-a', 5);
 
-      expect(lines.fetchCursor('room-a'), 5);
-      expect(lines.fetchCursor('room-b'), isNull);
+      expect(lines.planFetch('room-a').since, 5);
+      expect(lines.planFetch('room-b').since, isNull);
     });
 
     test('курсор движется вперёд от повторных recordSeq — так его двигают и живые пакеты, не только страница истории', () {
@@ -64,55 +71,57 @@ void main() {
       lines.recordSeq('room-a', 3); // например, страница истории с тем же seq
       lines.recordSeq('room-a', 7); // например, seq живого пакета чата
 
-      expect(lines.fetchCursor('room-a'), 7);
+      expect(lines.planFetch('room-a').since, 7);
     });
 
     test('recordSeq монотонен: более старый seq не откатывает курсор назад', () {
       lines.recordSeq('room-a', 10);
       lines.recordSeq('room-a', 4); // переупорядоченный/повторно доставленный старый пакет
 
-      expect(lines.fetchCursor('room-a'), 10,
+      expect(lines.planFetch('room-a').since, 10,
           reason: 'иначе следующий догоняющий запрос перезапросит уже виденное');
     });
 
     test('линия, для которой ничего не фетчилось, но recordSeq вызывался напрямую от живого пакета — тоже даёт курсор', () {
-      // Сценарий: живой пакет обновил курсор ДО первого фетча истории этой
-      // линии (в теории возможно, если порядок вызовов на экране другой) —
-      // fetchCursor всё равно должен отразить его, а не null.
+      // Сценарий: живой пакет (или успешное автопереподключение на той же
+      // комнате — см. класс-док) обновил курсор ДО первого фетча истории
+      // этой линии — planFetch всё равно должен отразить его, а не null.
       lines.recordSeq('room-b', 42);
 
-      expect(lines.fetchCursor('room-b'), 42);
+      expect(lines.planFetch('room-b').since, 42);
     });
   });
 
-  group('needsFullRefetch — truncated приводит к полному перечитыванию только для догоняющего', () {
-    test('truncated + был курсор (догоняющий) → нужен полный рефетч', () {
-      expect(
-        RoomChatLines.needsFullRefetch(truncated: true, since: 5),
-        isTrue,
-      );
+  group('planRefetch — truncated приводит к полному перечитыванию только для догоняющего', () {
+    test('truncated + план был догоняющим → план замены целиком', () {
+      final plan = RoomChatFetchPlan(since: 5, mode: RoomChatMergeMode.append);
+
+      final refetch = lines.planRefetch(plan, truncated: true);
+
+      expect(refetch, isNotNull);
+      expect(refetch!.since, isNull);
+      expect(refetch.mode, RoomChatMergeMode.replace);
     });
 
-    test('truncated + курсора не было (полный запрос) → не рефетчим повторно', () {
-      expect(
-        RoomChatLines.needsFullRefetch(truncated: true, since: null),
-        isFalse,
-        reason: 'это принятое ограничение — сервер и так не отдал бы больше',
-      );
+    test('truncated + план был полным (курсора не было) → повторного плана нет', () {
+      final plan = RoomChatFetchPlan(since: null, mode: RoomChatMergeMode.prepend);
+
+      final refetch = lines.planRefetch(plan, truncated: true);
+
+      expect(refetch, isNull,
+          reason: 'это принятое ограничение — сервер и так не отдал бы больше');
     });
 
-    test('не truncated + был курсор → рефетч не нужен', () {
-      expect(
-        RoomChatLines.needsFullRefetch(truncated: false, since: 5),
-        isFalse,
-      );
+    test('не truncated + план был догоняющим → повторного плана нет', () {
+      final plan = RoomChatFetchPlan(since: 5, mode: RoomChatMergeMode.append);
+
+      expect(lines.planRefetch(plan, truncated: false), isNull);
     });
 
-    test('не truncated + курсора не было → рефетч не нужен', () {
-      expect(
-        RoomChatLines.needsFullRefetch(truncated: false, since: null),
-        isFalse,
-      );
+    test('не truncated + план был полным → повторного плана нет', () {
+      final plan = RoomChatFetchPlan(since: null, mode: RoomChatMergeMode.prepend);
+
+      expect(lines.planRefetch(plan, truncated: false), isNull);
     });
   });
 
@@ -120,23 +129,30 @@ void main() {
     test('догоняющий запрос дополняет ленту, а не переписывает её', () {
       // Первый показ линии: полная история, seq страницы = 2.
       final a = lines.select('room-a');
-      a.setHistory([
-        RoomChatHistoryMessage(
-          msgId: 's1',
-          text: 'до отъезда',
-          name: 'Аня',
-          sentAt: DateTime.now(),
-          seq: 2,
-          own: false,
-        ),
-      ]);
+      final firstPlan = lines.planFetch('room-a');
+      expect(firstPlan.mode, RoomChatMergeMode.prepend);
+      a.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'до отъезда',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 2,
+            own: false,
+          ),
+        ],
+        mode: firstPlan.mode,
+      );
       lines.recordSeq('room-a', 2);
 
       // Переключились на другую линию — на A слушателя нет, но кто-то там
       // написал. Мы об этом узнаём только при возврате.
       lines.select('room-b');
-      expect(lines.fetchCursor('room-a'), 2,
+      final planWhileAway = lines.planFetch('room-a');
+      expect(planWhileAway.since, 2,
           reason: 'при возврате на A должен уйти догоняющий запрос since=2');
+      expect(planWhileAway.mode, RoomChatMergeMode.append);
 
       // Возврат на A: догоняющий фетч приносит то, что пропустили.
       lines.select('room-a');
@@ -151,13 +167,40 @@ void main() {
             own: false,
           ),
         ],
-        append: true,
+        mode: planWhileAway.mode,
       );
       lines.recordSeq('room-a', 3);
 
       expect(a.messages.map((m) => m.text).toList(),
           ['до отъезда', 'пока меня не было']);
-      expect(lines.fetchCursor('room-a'), 3);
+      expect(lines.planFetch('room-a').since, 3);
+    });
+  });
+
+  group('pending — контроллер до выбора линии', () {
+    test('доступен до первого select и не бросает', () {
+      expect(() => lines.pending, returnsNormally);
+      expect(lines.pending.messages, isEmpty);
+    });
+
+    test('повторный доступ до select возвращает тот же контроллер', () {
+      final first = lines.pending;
+      final second = lines.pending;
+
+      expect(identical(first, second), isTrue);
+    });
+
+    test('disposeAll доходит и до pending, если к нему обращались', () {
+      final p = lines.pending;
+
+      lines.disposeAll();
+
+      expect(() => p.setOpen(true), throwsFlutterError,
+          reason: 'до фикса pending не регистрировался в _controllers, и disposeAll его не видел');
+    });
+
+    test('disposeAll не спотыкается, если pending не был тронут', () {
+      expect(() => lines.disposeAll(), returnsNormally);
     });
   });
 

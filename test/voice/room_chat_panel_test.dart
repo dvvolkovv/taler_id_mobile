@@ -178,4 +178,52 @@ void main() {
 
     expect(find.text('Не отправлено'), findsNothing);
   });
+
+  // --- подмена контроллера (переключение линии в VoiceCallScreen) -----------
+  //
+  // До деления чата по линиям `_chat` в VoiceCallScreen был `final` и никогда
+  // не менялся, поэтому didUpdateWidget's ветка смены контроллера ни разу не
+  // отрабатывала на практике — а раз так, ни один из тестов выше её и не
+  // касался: все они пампят один и тот же контроллер один раз. Теперь
+  // `_chat` двигается при каждом переключении линии, и эта ветка стала
+  // обязательной, а не защитным мёртвым кодом.
+
+  testWidgets(
+    'при подмене контроллера начинает слушать НОВЫЙ, а не оставшийся старый — автопрокрутка это доказывает',
+    (tester) async {
+      final a = RoomChatController();
+      final b = RoomChatController();
+
+      await tester.pumpWidget(_wrap(
+        RoomChatPanel(controller: a, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
+      ));
+
+      // Подменяем контроллер той же панели — ровно то, что делает
+      // VoiceCallScreen._selectChatLine (`_chat = _chatLines.select(...)`)
+      // при переключении линии.
+      await tester.pumpWidget(_wrap(
+        RoomChatPanel(controller: b, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
+      ));
+      expect(find.text('Пока никто ничего не написал'), findsOneWidget,
+          reason: 'после подмены должна показываться лента B (пустая), а не A');
+
+      // Достаточно сообщений, чтобы список стал прокручиваемым — иначе
+      // maxScrollExtent будет 0 и тест ничего не докажет вне зависимости от
+      // того, слушает панель B или нет.
+      for (var i = 0; i < 40; i++) {
+        b.handlePacket(
+          {'type': 'chat_message', 'text': 'Сообщение номер $i в линии B от Ани'},
+          fallbackName: 'Аня',
+        );
+      }
+      await tester.pump();
+      await tester.pump();
+
+      final scrollController = tester.widget<ListView>(find.byType(ListView)).controller!;
+      expect(scrollController.position.pixels, greaterThan(0),
+          reason: 'автопрокрутка должна была сработать на НОВОМ (B) контроллере после '
+              'подмены — если бы _onChanged остался подписан на A, обновления B прошли бы '
+              'мимо неё, и список остался бы на нулевой прокрутке');
+    },
+  );
 }
