@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../core/agent/agent_client.dart';
 import '../../../core/api/api_exception.dart';
@@ -18,6 +19,7 @@ import '../../messenger/presentation/bloc/messenger_event.dart';
 import '../../notifications/notification_filter.dart';
 import '../../notifications/notification_permission_service.dart';
 import '../../notifications/notification_store.dart';
+import '../../voice/data/room_chat_api.dart';
 import '../../voice/domain/room_chat_text.dart';
 import '../domain/assistant_action.dart';
 
@@ -109,13 +111,28 @@ class AssistantToolsExecutor {
           ));
         }
       } else if (name == 'send_room_chat') {
-        // Chat of the LiveKit room the user is talking in. The app's own chat
-        // publishes over the data channel (VoiceCallScreen._sendChatMessage);
-        // the assistant has no room handle, so it goes through the REST
-        // endpoint, which broadcasts the same `chat_message` packet.
+        // Chat of the LiveKit room the user is talking in, via RoomChatApi —
+        // NOT the DioClient `client` used everywhere else in this file. That
+        // client's AuthInterceptor stamps every request with the Taler ID
+        // access token, and RoomAccessGuard on `/voice/rooms/:roomName/chat`
+        // only accepts that token from the call's own participant, a
+        // personal room's owner, or an ad-hoc room's creator — a logged-in
+        // guest in someone else's temporary room would get a silent 403.
+        // RoomChatApi instead authorizes with the room-scoped LiveKit token
+        // from CallStateService (see RoomChatApi's and CallLine.lkToken's
+        // class docs), which that guest does hold.
         final roomName = CallStateService.instance.roomName;
         if (roomName == null || roomName.isEmpty) {
           return 'There is no active call, so there is no room chat to write to.';
+        }
+        final lkToken = CallStateService.instance.lkToken;
+        if (lkToken == null || lkToken.isEmpty) {
+          // Call exists but the room-scoped token hasn't landed yet — e.g. a
+          // call answered from the background while connectInBackground's
+          // join request is still in flight (see its doc on the lkToken
+          // race). Refuse rather than send with nothing, which would just
+          // 401/403 anyway.
+          return 'The room chat is not ready yet, try again in a moment.';
         }
         // Parsing and the length ceiling live in parseRoomChatText — the
         // in-call assistant on VoiceCallScreen has its own, independent tool
@@ -124,12 +141,60 @@ class AssistantToolsExecutor {
         if (!parsed.isValid) {
           return parsed.refusal!;
         }
-        final data = await client.post<Map<String, dynamic>>(
-          '/voice/rooms/$roomName/chat',
-          data: {'text': parsed.text, 'name': _roomChatSenderName()},
-          fromJson: (d) => Map<String, dynamic>.from(d as Map),
+        await sl<RoomChatApi>().sendMessage(
+          roomName: roomName,
+          lkToken: lkToken,
+          text: parsed.text!,
+          name: _roomChatSenderName(),
+          // Lets the server build the final id and lets any client watching
+          // the room recognize this as the assistant's own message, same as
+          // VoiceCallScreen._sendChatMessage's own clientMsgId.
+          clientMsgId: const Uuid().v4(),
         );
-        output = jsonEncode(data);
+        // Narrow on purpose: the model gets a plain confirmation, not the
+        // send result's msgId/seq — those are server bookkeeping, and if
+        // handed to the model it will read them out loud (same reasoning as
+        // read_room_chat below, which the backend review flagged first).
+        output = jsonEncode({'ok': true});
+      } else if (name == 'read_room_chat') {
+        // Same room-scoped-token requirement and reasoning as send_room_chat
+        // above — reading is gated by the same RoomAccessGuard as writing.
+        final roomName = CallStateService.instance.roomName;
+        if (roomName == null || roomName.isEmpty) {
+          return 'There is no active call, so there is no room chat to read.';
+        }
+        final lkToken = CallStateService.instance.lkToken;
+        if (lkToken == null || lkToken.isEmpty) {
+          return 'The room chat is not ready yet, try again in a moment.';
+        }
+        final page = await sl<RoomChatApi>().fetchHistory(
+          roomName: roomName,
+          lkToken: lkToken,
+        );
+        if (page.messages.isEmpty) {
+          // An honest, separate answer — not an empty list, which reads to
+          // the model as "the read failed" rather than "the chat is empty".
+          output = jsonEncode({
+            'ok': true,
+            'message': 'Nothing has been written in the room chat yet.',
+          });
+        } else {
+          // Only the last 20: read aloud, a handful of lines is already a
+          // lot, and the full feed would just bloat the model's context for
+          // nothing it will use. Messages come back oldest-first (see
+          // RoomChatHistoryPage's doc), so the tail of the list is the most
+          // recent — not the head.
+          final recent = page.messages.length > 20
+              ? page.messages.sublist(page.messages.length - 20)
+              : page.messages;
+          // name + text only: msgId/seq/clientMsgId are server bookkeeping
+          // the model would otherwise read out loud verbatim.
+          output = jsonEncode({
+            'ok': true,
+            'messages':
+                recent.map((m) => {'name': m.name, 'text': m.text}).toList(),
+          });
+        }
       } else if (name == 'set_preferred_name') {
         final newName = (args['name'] as String? ?? '').trim();
         if (newName.isEmpty) {

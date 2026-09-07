@@ -93,6 +93,17 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'read_room_chat',
+            'description':
+                'Read what has been written in the text chat of the voice room the user is '
+                'currently in. Only works while a call is active. Use when the user asks '
+                'what was written in the call chat ("что там в чате", "прочитай чат", '
+                '"what did they write"). NOT for messenger conversations — that is '
+                'get_messages/get_conversations.',
+            'parameters': {'type': 'object', 'properties': {}},
+          },
+          {
+            'type': 'function',
             'name': 'agent_task',
             'description':
                 'Run a complex task on the AI agent (Claude on analyst box). Use for: '
