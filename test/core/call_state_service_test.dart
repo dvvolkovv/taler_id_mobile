@@ -53,11 +53,22 @@ void main() {
   group('setRoom', () {
     test('sets all fields correctly', () {
       final room = _makeRoom();
-      svc.setRoom(room, 'room-xyz', 'conv-1', e2eeKeyValue: 'secret');
+      svc.setRoom(room, 'room-xyz', 'conv-1', e2eeKeyValue: 'secret', lkToken: 'lk-secret');
 
       expect(svc.room, same(room));
       expect(svc.roomName, 'room-xyz');
       expect(svc.conversationId, 'conv-1');
+      expect(svc.e2eeKey, 'secret');
+      expect(svc.lkToken, 'lk-secret');
+    });
+
+    test('lkToken is null when not passed — distinct from a real token', () {
+      // Guards against a copy/paste mixup with e2eeKeyValue silently landing
+      // in the wrong field: both are optional secrets threaded through the
+      // same call.
+      svc.setRoom(_makeRoom(), 'room-1', 'conv-1', e2eeKeyValue: 'secret');
+
+      expect(svc.lkToken, isNull);
       expect(svc.e2eeKey, 'secret');
     });
 

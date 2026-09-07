@@ -155,6 +155,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   String? _transcriptionInitiatorId;
   String _transcriptionInitiatorName = '';
   String? _roomName; // actual room name (resolved after connect)
+  // Room-scoped LiveKit token from the join response (POST /voice/rooms or
+  // .../join) — NOT the Taler ID access token. Kept for the upcoming
+  // room-chat REST endpoints (POST/GET /voice/rooms/:roomName/chat): their
+  // RoomAccessGuard admits a Taler ID token only for the call's own
+  // participant, the personal room's owner, or the ad-hoc room's creator, so
+  // a logged-in guest let into someone else's temporary room would get a 403
+  // with it. This is the token LiveKit itself issued to authorize whoever
+  // holds it for this exact room, guest or account holder alike. Refreshed
+  // on every reconnect (a fresh join issues a fresh token) and mirrored into
+  // CallStateService (CallLine.lkToken) for the in-call assistant to use
+  // later. Cleared when the call actually ends.
+  String? _lkToken;
   String? _publicRoomCreatorName; // owner name fetched from GET /voice/rooms/public/{code}
   String? _publicRoomCreatorAvatar; // owner avatar URL
   String? _publicRoomTitle; // room title
@@ -778,6 +790,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
 
       final token = res['token'] as String;
+      _lkToken = token;
       _roomName = (res['roomName'] as String?) ?? widget.roomName ?? 'room-${DateTime.now().millisecondsSinceEpoch}';
       debugPrint('[VoiceCall] API join OK, roomName=$_roomName, e2ee=${widget.e2eeKey != null}');
       // Outgoing call placed with no pre-created room: now that the room exists,
@@ -859,6 +872,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _roomName!,
         widget.conversationId,
         e2eeKeyValue: e2eeKey,
+        lkToken: token,
         calleeName: widget.calleeName,
       );
 
@@ -1346,6 +1360,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           fromJson: (d) => Map<String, dynamic>.from(d as Map),
         );
         final token = res['token'] as String;
+        _lkToken = token;
 
         // Teardown old room
         _eventsListener?.dispose();
@@ -1395,7 +1410,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
               : const lk.ConnectOptions(autoSubscribe: false),
         );
 
-        CallStateService.instance.setRoom(newRoom, roomName, widget.conversationId, e2eeKeyValue: reconnectKey);
+        CallStateService.instance.setRoom(newRoom, roomName, widget.conversationId, e2eeKeyValue: reconnectKey, lkToken: token);
 
         try { await newRoom.localParticipant?.setMicrophoneEnabled(!_muted); } catch (_) {}
         if (_cameraOn) { try { await newRoom.localParticipant?.setCameraEnabled(true); } catch (_) {} }
@@ -3081,6 +3096,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     // Switch to new room
     _room = line.room;
     _roomName = line.roomName;
+    _lkToken = line.lkToken;
     _currentCalleeName = line.calleeName;
     _currentCalleeAvatar = line.calleeAvatar;
 
@@ -3187,6 +3203,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
     await cs.endCall();
     _room = null;
+    _lkToken = null;
     _navigatedAway = true;
     // Release audio & navigate
     try { await _audioChannel.invokeMethod('abandonAudioFocus'); } catch (_) {}
@@ -3343,6 +3360,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     // as fire-and-forget — we still null out _room either way.
     final roomToClose = _room;
     _room = null;
+    _lkToken = null;
     if (roomToClose != null) {
       try {
         await roomToClose.disconnect().timeout(

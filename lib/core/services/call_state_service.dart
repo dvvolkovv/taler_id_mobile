@@ -12,6 +12,17 @@ class CallLine {
   final String roomName;
   final String? conversationId;
   final String? e2eeKey;
+  /// Room-scoped LiveKit token from the join response (`POST /voice/rooms`
+  /// or `.../join`) — NOT the Taler ID access token. Needed by the room-chat
+  /// REST endpoints (`POST`/`GET /voice/rooms/:roomName/chat`): their
+  /// `RoomAccessGuard` only admits a Taler ID token for the call's own
+  /// participant, the personal room's owner, or the ad-hoc room's creator,
+  /// so a logged-in guest let into someone else's temporary room would get a
+  /// 403 with it. This token is what LiveKit itself issued to authorize the
+  /// bearer for this exact room, valid for guest and account holder alike.
+  /// Replaced (new `CallLine`, see [CallStateService.setRoom]) on every
+  /// reconnect, since a fresh join issues a fresh token.
+  final String? lkToken;
   String? calleeName;
   String? calleeAvatar;
   bool isOnHold;
@@ -25,6 +36,7 @@ class CallLine {
     required this.roomName,
     this.conversationId,
     this.e2eeKey,
+    this.lkToken,
     this.calleeName,
     this.calleeAvatar,
     this.isOnHold = false,
@@ -138,6 +150,8 @@ class CallStateService {
   String? get roomName => _activeRoomName;
   String? get conversationId => activeLine?.conversationId;
   String? get e2eeKey => activeLine?.e2eeKey;
+  /// Room-scoped LiveKit token for the active line — see [CallLine.lkToken].
+  String? get lkToken => activeLine?.lkToken;
 
   bool get isInCall => _lines.isNotEmpty;
   bool get isBackgroundConnecting => _bgConnecting;
@@ -175,12 +189,13 @@ class CallStateService {
     return _bgCompleter!.future;
   }
 
-  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? calleeName, String? calleeAvatar}) {
+  void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? lkToken, String? calleeName, String? calleeAvatar}) {
     final line = CallLine(
       room: r,
       roomName: name,
       conversationId: convId,
       e2eeKey: e2eeKeyValue,
+      lkToken: lkToken,
       calleeName: calleeName,
       calleeAvatar: calleeAvatar,
     );
