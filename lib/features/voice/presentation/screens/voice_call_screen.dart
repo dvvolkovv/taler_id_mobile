@@ -162,16 +162,24 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   RoomChatController _chat = RoomChatController();
 
   /// Points `_chat` at [roomName]'s own controller (creating one the first
-  /// time this screen shows that room) and — if this is the first time —
-  /// kicks off its one-time history fetch. Call this at every point the
-  /// screen starts showing a room: fresh connect, resuming an
-  /// already-connected room, and `_switchToLine`. Do NOT call this from
-  /// `_startManualReconnect()` — that keeps showing the SAME room, just
-  /// with a fresh LiveKit token, so `_chat` must not move.
+  /// time this screen shows that room) and kicks off a history fetch for
+  /// it — EVERY time, not just the first: a held line has no data-channel
+  /// listener at all (see `RoomChatLines`' class doc), so returning to one
+  /// is the only chance to learn what was sent while it was held. The fetch
+  /// is a full one the first time this line is shown, a cursor-based
+  /// catch-up (`?since=`) every time after — `_chatLines.fetchCursor`
+  /// decides which.
+  ///
+  /// Call this at every point the screen starts showing a room: fresh
+  /// connect, resuming an already-connected room, and `_switchToLine`. Do
+  /// NOT call this from `_startManualReconnect()` — that keeps showing the
+  /// SAME room, just with a fresh LiveKit token, so `_chat` must not move
+  /// and nothing was missed to catch up on.
   void _selectChatLine(String roomName, String? lkToken) {
     _chat = _chatLines.select(roomName);
-    if (lkToken != null && _chatLines.shouldFetchHistory(roomName)) {
-      unawaited(_loadChatHistory(roomName, lkToken, _chat));
+    if (lkToken != null) {
+      final since = _chatLines.fetchCursor(roomName);
+      unawaited(_loadChatHistory(roomName, lkToken, _chat, since));
     }
   }
 
@@ -2517,6 +2525,20 @@ Answer briefly — the user is in the middle of a conversation.''';
       // room_chat_controller_test.dart's "порядок сверки и гейта" group,
       // which fails if this order is reversed.
       if (type == 'chat_message') {
+        // Moves this line's catch-up cursor forward on every live packet,
+        // not just on a history fetch's own page-level seq — otherwise an
+        // active conversation would leave the cursor stale, and the next
+        // time this line is left and revisited its catch-up fetch would
+        // re-request messages already seen live (RoomChatController's
+        // clientMsgId dedup would still catch the duplicates, but there's
+        // no reason to pull them over the wire again). Safe to record
+        // against `_roomName` unconditionally: this listener is only ever
+        // attached to the currently active room (see `_switchToLine`), so
+        // every packet reaching this handler belongs to it.
+        final rawSeq = msg['seq'];
+        if (rawSeq is int && _roomName != null) {
+          _chatLines.recordSeq(_roomName!, rawSeq);
+        }
         // `participant` is null for packets published by the backend through
         // RoomServiceClient.sendData — those have no sender participant.
         if (_chat.handleIncomingPacket(
@@ -3004,43 +3026,67 @@ Answer briefly — the user is in the middle of a conversation.''';
     unawaited(_sendChatMessage(message.text, clientMsgId: clientMsgId));
   }
 
-  /// Подгружает [roomName]'s ленту чата (`GET /voice/rooms/:roomName/chat`,
-  /// без `since` — с самого начала) into [controller] — called by
-  /// `_selectChatLine` exactly once per line per screen instance, never
+  /// Fetches [roomName]'s chat history (`GET /voice/rooms/:roomName/chat`)
+  /// into [controller] — called by `_selectChatLine` every time this line
+  /// becomes active, not just the first: a held line has no data-channel
+  /// listener at all (see `RoomChatLines`' class doc), so this is the only
+  /// way this screen ever learns what was sent while it was held. Never
   /// awaited in the connect/switch flow: history isn't critical to a call
   /// starting or a switch completing, and shouldn't hold either up for an
   /// extra network round trip.
   ///
-  /// [roomName], [token] and [controller] are all captured by the caller
-  /// BEFORE this `await`, not re-read from `_roomName`/`_lkToken`/`_chat`
-  /// after it: those mutable fields can point at a different line entirely
-  /// by the time this resolves if the user switches lines while the
-  /// request is in flight (`_switchToLine` doesn't wait for anything). This
-  /// is the exact race the docs on `RoomChatLines` describe the web getting
-  /// burned by. Writing into [controller] directly means the fetched page
-  /// always lands on the line it was fetched for — never whichever line
-  /// happens to be on screen when the response arrives — so the
-  /// `_chatLines.isActive` check below only ever decides whether a UI
-  /// rebuild is worth it, not whether the data goes to the right place.
+  /// [since] is `null` for a full fetch (first time this line is shown, or
+  /// a previous fetch for it that never got far enough to record a cursor)
+  /// or a catch-up cursor from `_chatLines.fetchCursor` otherwise. A
+  /// catch-up page is appended — its entries are everything AFTER the point
+  /// the feed already reflects — a full page is prepended, per
+  /// `RoomChatController.setHistory`'s `append` doc; getting this backwards
+  /// would show the missed conversation in reverse.
   ///
-  /// Failure is swallowed — the user just sees an empty feed, as before this
-  /// feature, not an error over the call.
+  /// If a catch-up response comes back `truncated`, it is discarded in
+  /// favour of one more, full, re-fetch rather than merged in: something
+  /// between the cursor and now didn't fit in the page, and gluing a gapped
+  /// catch-up onto the existing feed would silently paper over missing
+  /// messages — see `RoomChatLines.needsFullRefetch`.
+  ///
+  /// [roomName], [token] and [controller] are all captured by the caller
+  /// BEFORE this `await` (both awaits, if the truncated retry above fires),
+  /// not re-read from `_roomName`/`_lkToken`/`_chat` after it: those
+  /// mutable fields can point at a different line entirely by the time this
+  /// resolves if the user switches lines while the request is in flight
+  /// (`_switchToLine` doesn't wait for anything). This is the exact race
+  /// the docs on `RoomChatLines` describe the web getting burned by.
+  /// Writing into [controller] directly means the fetched page always lands
+  /// on the line it was fetched for — never whichever line happens to be on
+  /// screen when the response arrives — so the `_chatLines.isActive` check
+  /// below only ever decides whether a UI rebuild is worth it, not whether
+  /// the data goes to the right place.
+  ///
+  /// Failure is swallowed — the user just sees an empty (or not-yet-caught-
+  /// up) feed, not an error over the call.
   Future<void> _loadChatHistory(
     String roomName,
     String token,
     RoomChatController controller,
+    int? since,
   ) async {
     try {
-      final page = await sl<RoomChatApi>().fetchHistory(
+      var page = await sl<RoomChatApi>().fetchHistory(
         roomName: roomName,
         lkToken: token,
+        since: since,
       );
+      var append = since != null;
+      if (RoomChatLines.needsFullRefetch(truncated: page.truncated, since: since)) {
+        page = await sl<RoomChatApi>().fetchHistory(roomName: roomName, lkToken: token);
+        append = false;
+      }
       if (!mounted || _navigatedAway) return;
-      controller.setHistory(page.messages);
+      controller.setHistory(page.messages, append: append);
+      _chatLines.recordSeq(roomName, page.seq);
       // The fetched data is already safely on `controller` regardless; this
       // only avoids rebuilding the screen for a line's panel nobody is
-      // currently looking at (or looking at again, under a fresh fetch —
-      // `shouldFetchHistory` already prevents that from double-firing).
+      // currently looking at.
       if (_chatLines.isActive(roomName)) setState(() {});
     } catch (e) {
       debugPrint('[VoiceCall] chat history fetch failed: $e');

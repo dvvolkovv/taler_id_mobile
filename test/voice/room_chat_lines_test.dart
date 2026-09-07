@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taler_id_mobile/features/voice/domain/room_chat_history.dart';
 import 'package:taler_id_mobile/features/voice/presentation/controllers/room_chat_lines.dart';
 
 void main() {
@@ -40,16 +41,123 @@ void main() {
     });
   });
 
-  group('shouldFetchHistory', () {
-    test('true в первый раз для линии, false при повторе', () {
-      expect(lines.shouldFetchHistory('room-a'), isTrue);
-      expect(lines.shouldFetchHistory('room-a'), isFalse);
-      expect(lines.shouldFetchHistory('room-a'), isFalse);
+  group('fetchCursor / recordSeq — первый показ линии полный, возврат — догоняющий', () {
+    test('первый показ линии: курсора ещё нет — фетч должен быть полным', () {
+      expect(lines.fetchCursor('room-a'), isNull);
+    });
+
+    test('после recordSeq курсор — этот seq, а не null: возврат на линию делает догоняющий запрос', () {
+      lines.recordSeq('room-a', 5);
+
+      expect(lines.fetchCursor('room-a'), 5);
     });
 
     test('независимо для разных линий', () {
-      expect(lines.shouldFetchHistory('room-a'), isTrue);
-      expect(lines.shouldFetchHistory('room-b'), isTrue);
+      lines.recordSeq('room-a', 5);
+
+      expect(lines.fetchCursor('room-a'), 5);
+      expect(lines.fetchCursor('room-b'), isNull);
+    });
+
+    test('курсор движется вперёд от повторных recordSeq — так его двигают и живые пакеты, не только страница истории', () {
+      lines.recordSeq('room-a', 3);
+      lines.recordSeq('room-a', 3); // например, страница истории с тем же seq
+      lines.recordSeq('room-a', 7); // например, seq живого пакета чата
+
+      expect(lines.fetchCursor('room-a'), 7);
+    });
+
+    test('recordSeq монотонен: более старый seq не откатывает курсор назад', () {
+      lines.recordSeq('room-a', 10);
+      lines.recordSeq('room-a', 4); // переупорядоченный/повторно доставленный старый пакет
+
+      expect(lines.fetchCursor('room-a'), 10,
+          reason: 'иначе следующий догоняющий запрос перезапросит уже виденное');
+    });
+
+    test('линия, для которой ничего не фетчилось, но recordSeq вызывался напрямую от живого пакета — тоже даёт курсор', () {
+      // Сценарий: живой пакет обновил курсор ДО первого фетча истории этой
+      // линии (в теории возможно, если порядок вызовов на экране другой) —
+      // fetchCursor всё равно должен отразить его, а не null.
+      lines.recordSeq('room-b', 42);
+
+      expect(lines.fetchCursor('room-b'), 42);
+    });
+  });
+
+  group('needsFullRefetch — truncated приводит к полному перечитыванию только для догоняющего', () {
+    test('truncated + был курсор (догоняющий) → нужен полный рефетч', () {
+      expect(
+        RoomChatLines.needsFullRefetch(truncated: true, since: 5),
+        isTrue,
+      );
+    });
+
+    test('truncated + курсора не было (полный запрос) → не рефетчим повторно', () {
+      expect(
+        RoomChatLines.needsFullRefetch(truncated: true, since: null),
+        isFalse,
+        reason: 'это принятое ограничение — сервер и так не отдал бы больше',
+      );
+    });
+
+    test('не truncated + был курсор → рефетч не нужен', () {
+      expect(
+        RoomChatLines.needsFullRefetch(truncated: false, since: 5),
+        isFalse,
+      );
+    });
+
+    test('не truncated + курсора не было → рефетч не нужен', () {
+      expect(
+        RoomChatLines.needsFullRefetch(truncated: false, since: null),
+        isFalse,
+      );
+    });
+  });
+
+  group('пропущенные сообщения появляются при возврате на линию (сквозной сценарий)', () {
+    test('догоняющий запрос дополняет ленту, а не переписывает её', () {
+      // Первый показ линии: полная история, seq страницы = 2.
+      final a = lines.select('room-a');
+      a.setHistory([
+        RoomChatHistoryMessage(
+          msgId: 's1',
+          text: 'до отъезда',
+          name: 'Аня',
+          sentAt: DateTime.now(),
+          seq: 2,
+          own: false,
+        ),
+      ]);
+      lines.recordSeq('room-a', 2);
+
+      // Переключились на другую линию — на A слушателя нет, но кто-то там
+      // написал. Мы об этом узнаём только при возврате.
+      lines.select('room-b');
+      expect(lines.fetchCursor('room-a'), 2,
+          reason: 'при возврате на A должен уйти догоняющий запрос since=2');
+
+      // Возврат на A: догоняющий фетч приносит то, что пропустили.
+      lines.select('room-a');
+      a.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's2',
+            text: 'пока меня не было',
+            name: 'Боб',
+            sentAt: DateTime.now(),
+            seq: 3,
+            own: false,
+          ),
+        ],
+        append: true,
+      );
+      lines.recordSeq('room-a', 3);
+
+      expect(a.messages.map((m) => m.text).toList(),
+          ['до отъезда', 'пока меня не было']);
+      expect(lines.fetchCursor('room-a'), 3);
     });
   });
 

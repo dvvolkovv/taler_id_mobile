@@ -256,24 +256,29 @@ class RoomChatController extends ChangeNotifier {
     return true;
   }
 
-  /// Кладёт страницу истории (`GET /voice/rooms/:roomName/chat`) в НАЧАЛО
-  /// ленты, а не заменяет её целиком: пока запрос истории летел, по
-  /// data-каналу уже могли прийти живые пакеты, и они обязаны остаться
-  /// после истории по времени, а не быть стёртыми ответом на более ранний
-  /// запрос.
+  /// Кладёт страницу истории (`GET /voice/rooms/:roomName/chat`) в ленту.
+  ///
+  /// [append] решает, с какого конца: `false` (по умолчанию) — история
+  /// это самый первый показ линии, она СТАРШЕ всего, что уже могло прийти
+  /// вживую пока запрос летел, и встаёт в НАЧАЛО. `true` — это догоняющий
+  /// запрос (`since=<курсор>`, см. `RoomChatLines`) после возврата на
+  /// линию, которую держали без слушателя data-канала: его записи —
+  /// продолжение того, что уже в ленте, а не более раннее, и встают в
+  /// КОНЕЦ. Перепутать концы — значит показать пропущенную переписку задом
+  /// наперёд по времени.
   ///
   /// Запись, чей `clientMsgId` уже есть в ленте — своё сообщение, которое
   /// эхо/ответ ещё не сверили, либо чужое, что уже пришло вживую — не
   /// добавляется второй раз, а сверяется на месте через тот же путь, что и
   /// [reconcile] (без второго уведомления слушателей на каждую запись).
   ///
-  /// Не увеличивает [unread]: считать десятки исторических сообщений
-  /// «непрочитанными» в момент присоединения к звонку не тот сигнал, который
-  /// должен получить пользователь.
-  void setHistory(List<RoomChatHistoryMessage> history) {
+  /// Не увеличивает [unread]: считать исторические (в т.ч. пропущенные,
+  /// догнанные catch-up-ом) сообщения «непрочитанными» в момент, когда их
+  /// подгрузили, не тот сигнал, который должен получить пользователь.
+  void setHistory(List<RoomChatHistoryMessage> history, {bool append = false}) {
     if (history.isEmpty) return;
 
-    final prepended = <RoomChatMessage>[];
+    final newEntries = <RoomChatMessage>[];
     var changed = false;
     for (final h in history) {
       final clientMsgId = h.clientMsgId;
@@ -284,7 +289,7 @@ class RoomChatController extends ChangeNotifier {
         if (_applyReconcile(index, h.msgId)) changed = true;
         continue;
       }
-      prepended.add(RoomChatMessage(
+      newEntries.add(RoomChatMessage(
         name: h.name,
         text: h.text,
         sentAt: h.sentAt,
@@ -294,8 +299,12 @@ class RoomChatController extends ChangeNotifier {
       ));
     }
 
-    if (prepended.isNotEmpty) {
-      _messages.insertAll(0, prepended);
+    if (newEntries.isNotEmpty) {
+      if (append) {
+        _messages.addAll(newEntries);
+      } else {
+        _messages.insertAll(0, newEntries);
+      }
       changed = true;
     }
     if (changed) notifyListeners();

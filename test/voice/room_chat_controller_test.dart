@@ -349,6 +349,35 @@ void main() {
       expect(c.messages.map((m) => m.text).toList(), ['старое 1', 'старое 2', 'живое']);
     });
 
+    test('append:true кладёт новые записи в конец — догоняющий запрос, а не начальный', () {
+      c.handlePacket({'type': 'chat_message', 'text': 'до отъезда'}, fallbackName: 'Боб');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'пропущенное 1',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 2,
+            own: false,
+          ),
+          RoomChatHistoryMessage(
+            msgId: 's2',
+            text: 'пропущенное 2',
+            name: 'Боб',
+            sentAt: DateTime.now(),
+            seq: 3,
+            own: false,
+          ),
+        ],
+        append: true,
+      );
+
+      expect(c.messages.map((m) => m.text).toList(),
+          ['до отъезда', 'пропущенное 1', 'пропущенное 2']);
+    });
+
     test('own из истории определяет сторону пузыря', () {
       c.setHistory([
         RoomChatHistoryMessage(
