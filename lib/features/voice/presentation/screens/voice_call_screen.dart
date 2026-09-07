@@ -208,9 +208,26 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   /// version of this fix had: `_chatLines.planFetch` already had the right
   /// cursor sitting there the whole time, and nothing downstream needed it
   /// touched — it just was never asked for.
+  ///
+  /// Looks the controller up by [roomName] via `_chatLines.controllerFor`
+  /// instead of reading the screen's own `_chat` field — that was the NEXT
+  /// gap this fix shipped with: `_startManualReconnect`'s retry loop spans
+  /// several `await`s (join request, disconnect, fresh connect) long enough
+  /// for `_switchToLine` to run in between (the user answers a second call)
+  /// and repoint `_chat` at a different line entirely, one this reconnect
+  /// knows nothing about. Reading `_chat` at that point would hand the just-
+  /// recovered line's catch-up page to whichever line the screen happens to
+  /// be showing by the time this resolves — the exact cross-line mutation
+  /// `RoomChatLines` exists to prevent, reached through a still-mutable
+  /// reference instead of a stale one. If `controllerFor` finds nothing
+  /// (this room was somehow never `select`ed — shouldn't happen, but see its
+  /// doc), there is nothing safe to write the catch-up into, so this is a
+  /// deliberate no-op rather than falling back to `_chat` or `pending`.
   void _catchUpChatAfterReconnect(String roomName, String token) {
+    final controller = _chatLines.controllerFor(roomName);
+    if (controller == null) return;
     final plan = _chatLines.planFetch(roomName);
-    unawaited(_loadChatHistory(roomName, token, _chat, plan));
+    unawaited(_loadChatHistory(roomName, token, controller, plan));
   }
 
   // ── Transcription state ──

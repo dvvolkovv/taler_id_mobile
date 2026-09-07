@@ -42,6 +42,100 @@ void main() {
     });
   });
 
+  group('controllerFor — непереключающий поиск по имени (для _startManualReconnect)', () {
+    test('находит контроллер уже выбранной линии, не трогая isActive', () {
+      final a = lines.select('room-a');
+
+      final found = lines.controllerFor('room-a');
+
+      expect(identical(found, a), isTrue);
+      expect(lines.isActive('room-a'), isTrue);
+    });
+
+    test('линия, которую никогда не выбирали — null, а не свежесозданный контроллер', () {
+      expect(lines.controllerFor('room-a'), isNull);
+    });
+
+    test('не создаёт запись — повторный вызов после null остаётся null', () {
+      lines.controllerFor('room-a');
+
+      expect(lines.controllerFor('room-a'), isNull);
+    });
+
+    // Ровно сценарий из ревью: _startManualReconnect захватывает roomName
+    // один раз в начале, затем ждёт несколько await'ов (join, disconnect,
+    // connect) — достаточно долго, чтобы пользователь успел принять второй
+    // звонок и переключить экран на линию B через select(). Реконнект A не
+    // должен знать или заботиться об этом переключении.
+    test(
+      'находит контроллер линии A по имени, даже если пока A восстанавливалась активной стала линия B',
+      () {
+        final a = lines.select('room-a');
+        // ...реконнект A стартовал бы здесь, захватив roomName='room-a'...
+
+        // Пока A недоступна, пользователь принимает второй звонок — экран
+        // явно переключается на B. Это ИЗМЕНЯЕТ то, что вернул бы "текущий"
+        // контроллер экрана, но НЕ должно повлиять на поиск по имени.
+        final b = lines.select('room-b');
+        expect(lines.isActive('room-b'), isTrue);
+
+        // Реконнект A наконец успешен — экран ищет контроллер ИМЕННО A по
+        // имени, не читая "текущий".
+        final found = lines.controllerFor('room-a');
+
+        expect(identical(found, a), isTrue,
+            reason: 'догоняющая страница A обязана попасть на контроллер A, а не на то, что сейчас активно');
+        expect(identical(found, b), isFalse);
+        // И само обращение к controllerFor не должно красть активность у B.
+        expect(lines.isActive('room-b'), isTrue);
+        expect(lines.isActive('room-a'), isFalse);
+      },
+    );
+
+    test(
+      'догоняющая страница, применённая через controllerFor, попадает на A и не задевает B',
+      () {
+        final a = lines.select('room-a');
+        a.setHistory([
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'на A до разрыва',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 1,
+            own: false,
+          ),
+        ]);
+        lines.recordSeq('room-a', 1);
+
+        final b = lines.select('room-b');
+
+        // Реконнект A: находим A по имени (НЕ через select — та же комната,
+        // экран её не "выбирает" заново) и применяем догоняющую страницу.
+        final recovered = lines.controllerFor('room-a')!;
+        recovered.setHistory(
+          [
+            RoomChatHistoryMessage(
+              msgId: 's2',
+              text: 'пропущенное на A во время разрыва',
+              name: 'Боб',
+              sentAt: DateTime.now(),
+              seq: 2,
+              own: false,
+            ),
+          ],
+          mode: RoomChatMergeMode.append,
+        );
+        lines.recordSeq('room-a', 2);
+
+        expect(a.messages.map((m) => m.text).toList(),
+            ['на A до разрыва', 'пропущенное на A во время разрыва']);
+        expect(b.messages, isEmpty,
+            reason: 'B не должна была получить ничего из догонки A');
+      },
+    );
+  });
+
   group('planFetch / recordSeq — первый показ линии полный, возврат — догоняющий', () {
     test('первый показ линии: курсора ещё нет — план полный', () {
       final plan = lines.planFetch('room-a');

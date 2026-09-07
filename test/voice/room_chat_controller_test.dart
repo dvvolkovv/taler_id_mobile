@@ -463,9 +463,12 @@ void main() {
       expect(c.unread, 0);
     });
 
-    test('mode:replace заменяет ленту целиком — старые записи не выживают', () {
-      c.handlePacket({'type': 'chat_message', 'text': 'старое до truncated'}, fallbackName: 'Боб');
-      c.addOwn('Я', 'моё до truncated', 'cid-before-replace');
+    test('mode:replace заменяет ленту целиком — чужие/подтверждённые записи не выживают', () {
+      // `handlePacket` — чужое сообщение, `own: false`, никогда не
+      // "неподтверждённое своё" — на него исключение для pending не
+      // распространяется, и оно должно быть выброшено вместе с остальным
+      // старым состоянием.
+      c.handlePacket({'type': 'chat_message', 'text': 'старое до truncated', 'msgId': 'srv-old'}, fallbackName: 'Боб');
 
       c.setHistory(
         [
@@ -482,6 +485,168 @@ void main() {
       );
 
       expect(c.messages.map((m) => m.text).toList(), ['полная свежая страница']);
+    });
+
+    test('mode:replace НЕ выбрасывает своё неподтверждённое (ещё в полёте) сообщение', () {
+      c.addOwn('Я', 'ещё не подтверждено', 'cid-inflight');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'полная свежая страница',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      expect(c.messages.map((m) => m.text).toList(),
+          ['полная свежая страница', 'ещё не подтверждено']);
+      final restored = c.messages.singleWhere((m) => m.clientMsgId == 'cid-inflight');
+      expect(restored.own, isTrue);
+      expect(restored.msgId, isNull);
+      expect(restored.failed, isFalse);
+    });
+
+    test('mode:replace НЕ выбрасывает своё неподтверждённое сообщение, даже если оно уже было помечено «не отправлено»', () {
+      c.addOwn('Я', 'отказавшее до truncated', 'cid-failed-inflight');
+      c.markFailed('cid-failed-inflight');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'полная свежая страница',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      final restored = c.messages.singleWhere((m) => m.clientMsgId == 'cid-failed-inflight');
+      expect(restored.failed, isTrue,
+          reason: 'restore не должен сам по себе снимать пометку — только эхо/ответ/сверка вправе это делать');
+    });
+
+    test('mode:replace НЕ возвращает уже подтверждённое (msgId != null) своё сообщение, которого нет на свежей странице', () {
+      c.addOwn('Я', 'подтверждённое ранее', 'cid-confirmed');
+      c.reconcile('cid-confirmed', 'srv-confirmed');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'полная свежая страница',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      // Исключение только для msgId == null — подтверждённая ранее запись,
+      // которой нет на свежей странице, это тот же случай, что и чужая: её
+      // отсутствие на снимке принимаем как есть, а не спасаем.
+      expect(c.messages.map((m) => m.clientMsgId), isNot(contains('cid-confirmed')));
+    });
+
+    test('mode:replace не задваивает — если страница уже подтвердила то же clientMsgId, старая pending-запись не возвращается', () {
+      c.addOwn('Я', 'привет', 'cid-x');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 'srv-x',
+            text: 'привет',
+            name: 'Я',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: true,
+            clientMsgId: 'cid-x',
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      // Ровно одна запись — со страницы, с настоящим msgId — а не две.
+      expect(c.messages, hasLength(1));
+      expect(c.messages.single.msgId, 'srv-x');
+    });
+
+    test('mode:replace — эхо, пришедшее ПОСЛЕ замены, сверяется с восстановленной записью, а не рисуется чужим сообщением', () {
+      c.addOwn('Я', 'привет', 'cid-echo-after-replace');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'другое',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      // Эхо с data-канала приходит уже после replace — ровно сценарий из
+      // ревью: без восстановления pending-записи handleIncomingPacket не
+      // нашёл бы clientMsgId и нарисовал бы это чужим сообщением с именем
+      // пользователя.
+      final handled = c.handleIncomingPacket(
+        {
+          'type': 'chat_message',
+          'text': 'привет',
+          'name': 'Я',
+          'msgId': 'srv-echo',
+          'clientMsgId': 'cid-echo-after-replace',
+        },
+        fallbackName: 'Гость',
+        isDuplicate: (_) => false,
+      );
+
+      expect(handled, isTrue);
+      expect(c.messages, hasLength(2), reason: 'страница + сверенное своё, не третье чужое');
+      final mine = c.messages.singleWhere((m) => m.clientMsgId == 'cid-echo-after-replace');
+      expect(mine.own, isTrue, reason: 'без восстановления это стало бы чужим пузырём с собственным именем');
+      expect(mine.msgId, 'srv-echo');
+    });
+
+    test('mode:replace — отказ POST, пришедший ПОСЛЕ замены, помечает восстановленную запись, а не теряет её молча', () {
+      c.addOwn('Я', 'привет', 'cid-fail-after-replace');
+
+      c.setHistory(
+        [
+          RoomChatHistoryMessage(
+            msgId: 's1',
+            text: 'другое',
+            name: 'Аня',
+            sentAt: DateTime.now(),
+            seq: 10,
+            own: false,
+          ),
+        ],
+        mode: RoomChatMergeMode.replace,
+      );
+
+      // Запрос падает уже после replace — ровно сценарий из ревью: без
+      // восстановления markFailed не нашёл бы запись, и набранное пропало
+      // бы без пометки и без возможности повторить.
+      final result = c.markFailed('cid-fail-after-replace');
+
+      expect(result, isTrue);
+      final mine = c.messages.singleWhere((m) => m.clientMsgId == 'cid-fail-after-replace');
+      expect(mine.failed, isTrue);
     });
 
     test('mode:replace не сверяет — совпадающий clientMsgId не подхватывает старую запись (другой текст это доказывает)', () {
