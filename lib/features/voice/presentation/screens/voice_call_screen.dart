@@ -36,6 +36,7 @@ import 'package:uuid/uuid.dart';
 import '../../data/room_chat_api.dart';
 import '../../domain/room_chat_text.dart';
 import '../controllers/room_chat_controller.dart';
+import '../controllers/room_chat_lines.dart';
 import '../controllers/room_data_packet_ids.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
@@ -148,9 +149,31 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   final RoomDataPacketIds _packetIds = RoomDataPacketIds();
 
   // ── Room chat ──
-  // Lives for the duration of the call only: no history, whoever joins later
-  // doesn't see what was written before them.
-  final RoomChatController _chat = RoomChatController();
+  // One controller per call line, not one shared across the whole screen:
+  // `_switchToLine` only swaps which line is displayed, it doesn't tear the
+  // other line's LiveKit room down, so a single shared controller let an
+  // in-flight send/history-fetch from the line you just left mutate the
+  // feed you're now looking at (or a switch not clearing it at all just
+  // showed the wrong call's conversation outright). See RoomChatLines'
+  // class doc. `_chat` always points at the active line's controller;
+  // `_selectChatLine` is what moves it and must be called at every point
+  // this screen starts showing a (possibly different) room.
+  final RoomChatLines _chatLines = RoomChatLines();
+  RoomChatController _chat = RoomChatController();
+
+  /// Points `_chat` at [roomName]'s own controller (creating one the first
+  /// time this screen shows that room) and — if this is the first time —
+  /// kicks off its one-time history fetch. Call this at every point the
+  /// screen starts showing a room: fresh connect, resuming an
+  /// already-connected room, and `_switchToLine`. Do NOT call this from
+  /// `_startManualReconnect()` — that keeps showing the SAME room, just
+  /// with a fresh LiveKit token, so `_chat` must not move.
+  void _selectChatLine(String roomName, String? lkToken) {
+    _chat = _chatLines.select(roomName);
+    if (lkToken != null && _chatLines.shouldFetchHistory(roomName)) {
+      unawaited(_loadChatHistory(roomName, lkToken, _chat));
+    }
+  }
 
   // ── Transcription state ──
   bool _transcriptionActive = false;
@@ -457,6 +480,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Room chat is entirely unreachable without it: RoomChatApi requires
       // the room-scoped token, not the Taler ID one.
       _lkToken = cs.lkToken;
+      if (_roomName != null) _selectChatLine(_roomName!, _lkToken);
       _connecting = false;
       _participants.addAll(_room!.remoteParticipants.values);
       // Detect if recorder is already in the room (transcription mode)
@@ -496,9 +520,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _settingUp = false;
       if (mounted) setState(() {});
       WakelockPlus.enable();
-      // Fire-and-forget, once — see the doc on _loadChatHistory for why this
-      // must not be awaited here.
-      unawaited(_loadChatHistory());
     } else {
       _connect();
     }
@@ -804,6 +825,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final token = res['token'] as String;
       _lkToken = token;
       _roomName = (res['roomName'] as String?) ?? widget.roomName ?? 'room-${DateTime.now().millisecondsSinceEpoch}';
+      _selectChatLine(_roomName!, token);
       debugPrint('[VoiceCall] API join OK, roomName=$_roomName, e2ee=${widget.e2eeKey != null}');
       // Outgoing call placed with no pre-created room: now that the room exists,
       // ring the callee. (The caller navigated here instantly for the "Calling…"
@@ -973,9 +995,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _settingUp = false;
       setState(() => _connecting = false);
       WakelockPlus.enable();
-      // Fire-and-forget, once — see the doc on _loadChatHistory for why this
-      // must not be awaited here.
-      unawaited(_loadChatHistory());
 
       // Force earpiece mode — LiveKit may override speakerphone asynchronously on Android.
       // Call twice: once early, once after LiveKit audio stack fully initialises.
@@ -2985,26 +3004,44 @@ Answer briefly — the user is in the middle of a conversation.''';
     unawaited(_sendChatMessage(message.text, clientMsgId: clientMsgId));
   }
 
-  /// Один раз подгружает ленту чата комнаты после подключения
-  /// (`GET /voice/rooms/:roomName/chat`, без `since` — с самого начала).
-  /// Вызывается без `await` из `_connect()`/`_initCall()`: история не
-  /// критична для того, чтобы звонок начался, и не должна держать его в
-  /// состоянии "подключаюсь" лишний сетевой круг. Отказ проглатывается —
-  /// пользователь просто увидит пустую ленту, как было до этой фичи, а не
-  /// ошибку поверх звонка.
-  Future<void> _loadChatHistory() async {
-    final roomName = _roomName;
-    final token = _lkToken;
-    if (roomName == null || token == null) return;
-
+  /// Подгружает [roomName]'s ленту чата (`GET /voice/rooms/:roomName/chat`,
+  /// без `since` — с самого начала) into [controller] — called by
+  /// `_selectChatLine` exactly once per line per screen instance, never
+  /// awaited in the connect/switch flow: history isn't critical to a call
+  /// starting or a switch completing, and shouldn't hold either up for an
+  /// extra network round trip.
+  ///
+  /// [roomName], [token] and [controller] are all captured by the caller
+  /// BEFORE this `await`, not re-read from `_roomName`/`_lkToken`/`_chat`
+  /// after it: those mutable fields can point at a different line entirely
+  /// by the time this resolves if the user switches lines while the
+  /// request is in flight (`_switchToLine` doesn't wait for anything). This
+  /// is the exact race the docs on `RoomChatLines` describe the web getting
+  /// burned by. Writing into [controller] directly means the fetched page
+  /// always lands on the line it was fetched for — never whichever line
+  /// happens to be on screen when the response arrives — so the
+  /// `_chatLines.isActive` check below only ever decides whether a UI
+  /// rebuild is worth it, not whether the data goes to the right place.
+  ///
+  /// Failure is swallowed — the user just sees an empty feed, as before this
+  /// feature, not an error over the call.
+  Future<void> _loadChatHistory(
+    String roomName,
+    String token,
+    RoomChatController controller,
+  ) async {
     try {
       final page = await sl<RoomChatApi>().fetchHistory(
         roomName: roomName,
         lkToken: token,
       );
       if (!mounted || _navigatedAway) return;
-      _chat.setHistory(page.messages);
-      setState(() {});
+      controller.setHistory(page.messages);
+      // The fetched data is already safely on `controller` regardless; this
+      // only avoids rebuilding the screen for a line's panel nobody is
+      // currently looking at (or looking at again, under a fresh fetch —
+      // `shouldFetchHistory` already prevents that from double-firing).
+      if (_chatLines.isActive(roomName)) setState(() {});
     } catch (e) {
       debugPrint('[VoiceCall] chat history fetch failed: $e');
     }
@@ -3191,6 +3228,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _room = line.room;
     _roomName = line.roomName;
     _lkToken = line.lkToken;
+    _selectChatLine(line.roomName, line.lkToken);
     _currentCalleeName = line.calleeName;
     _currentCalleeAvatar = line.calleeAvatar;
 
@@ -4079,7 +4117,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _holdPlayer.stop().catchError((_) {});
     _holdPlayer.dispose();
     _screenShareTransformCtrl.dispose();
-    _chat.dispose();
+    _chatLines.disposeAll();
     _callControlsHideTimer?.cancel();
     // Restore portrait + native iOS orientation lock for the rest of the app
     _restorePortraitLock();

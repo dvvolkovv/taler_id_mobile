@@ -366,12 +366,29 @@ class CallStateService {
         return false;
       }
 
-      // lkToken: token — without it, a call answered from the background
-      // (CallKit accept / dashboard in-app accept while on another screen)
-      // connects with no room-scoped token, and VoiceCallScreen._initCall's
-      // "already connected" resume branch has nothing to copy into
-      // `_lkToken`. The room chat REST calls need that token (see CallLine
-      // doc), so chat would silently not work at all on this path.
+      // lkToken: token — the SAME `token` this method already used for
+      // r.connect() above, the room-scoped LiveKit join token from the
+      // /join response at line 337. Not the Taler ID access token, not
+      // anything from SecureStorageService — those authenticate the
+      // *account*, and RoomChatApi needs a token that authenticates the
+      // *room* (see CallLine.lkToken's doc for why the two aren't
+      // interchangeable: a guest in someone else's temporary room has no
+      // Taler ID standing to write to it at all).
+      //
+      // Omitting this parameter here was exactly the gap this feature branch
+      // shipped with until this line was added: a call answered from the
+      // background (CallKit accept / dashboard in-app accept while on
+      // another screen) reaches this line, but
+      // VoiceCallScreen never runs its own `_connect()` for it — the room
+      // is already up by the time the screen appears, so it takes the
+      // "already connected" resume branch in `_initCall()`, which only
+      // copies `CallLine.lkToken` into `_lkToken`. If this line doesn't put
+      // a token on the CallLine, that branch has nothing to copy, `_lkToken`
+      // stays null, and the room chat panel fails every send/history fetch
+      // for the rest of the call — silently, since a null token just makes
+      // RoomChatApi's caller bail out early rather than throw. There's no
+      // stack trace pointing back here; it looks like the chat feature
+      // itself is broken, not this one missing argument.
       setRoom(r, rName, convId, e2eeKeyValue: e2eeKey, lkToken: token);
       try {
         await r.localParticipant?.setMicrophoneEnabled(true);
