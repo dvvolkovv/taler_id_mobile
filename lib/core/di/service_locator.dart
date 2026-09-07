@@ -122,6 +122,9 @@ import '../../features/voice/data/repositories/group_call_repository_impl.dart';
 import '../../features/voice/domain/repositories/group_call_repository.dart';
 import '../../features/voice/presentation/bloc/group_call_bloc.dart';
 
+// Room chat (server-backed chat for LiveKit voice rooms)
+import '../../features/voice/data/room_chat_api.dart';
+
 // Group Mesh Voice (Phase: group mesh voice room v1)
 import '../audio/default_group_mesh_voice_audio_engine.dart';
 import '../mesh/voice/group_mesh_call_service.dart';
@@ -712,6 +715,12 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton<IProfileSectionsRepository>(
     () => ProfileSectionsRepositoryImpl(sl<ProfileSectionsRemoteDataSource>()),
   );
+
+  // Room chat: REST transport for the LiveKit voice-room chat panel
+  // (POST/GET /voice/rooms/:roomName/chat). Stateless wrapper around
+  // DioClient — a lazy singleton is enough, same as the other *Api/*
+  // RemoteDataSource classes above.
+  sl.registerLazySingleton(() => RoomChatApi(sl<DioClient>()));
 
   // Group Call (Phase 1) — voice multi-party rooms.
   // BLoC is a factory: a fresh instance per screen so subscriptions don't

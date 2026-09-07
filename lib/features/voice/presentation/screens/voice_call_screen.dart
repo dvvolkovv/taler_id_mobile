@@ -32,6 +32,8 @@ import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/domain/entities/user_search_entity.dart';
 import '../../../../core/services/video_effects_service.dart';
 import '../../../../core/desktop/desktop_breakpoints.dart';
+import 'package:uuid/uuid.dart';
+import '../../data/room_chat_api.dart';
 import '../../domain/room_chat_text.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_data_packet_ids.dart';
@@ -448,6 +450,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (cs.isInCall && cs.room != null) {
       _room = cs.room;
       _roomName = cs.roomName;
+      // Without this, a call answered from the background (CallKit accept /
+      // dashboard in-app accept) resumes here with `_lkToken` still null —
+      // connectInBackground() now sets it on the CallLine (see
+      // call_state_service.dart), but this screen still has to copy it out.
+      // Room chat is entirely unreachable without it: RoomChatApi requires
+      // the room-scoped token, not the Taler ID one.
+      _lkToken = cs.lkToken;
       _connecting = false;
       _participants.addAll(_room!.remoteParticipants.values);
       // Detect if recorder is already in the room (transcription mode)
@@ -487,6 +496,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _settingUp = false;
       if (mounted) setState(() {});
       WakelockPlus.enable();
+      // Fire-and-forget, once — see the doc on _loadChatHistory for why this
+      // must not be awaited here.
+      unawaited(_loadChatHistory());
     } else {
       _connect();
     }
@@ -961,6 +973,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _settingUp = false;
       setState(() => _connecting = false);
       WakelockPlus.enable();
+      // Fire-and-forget, once — see the doc on _loadChatHistory for why this
+      // must not be awaited here.
+      unawaited(_loadChatHistory());
 
       // Force earpiece mode — LiveKit may override speakerphone asynchronously on Android.
       // Call twice: once early, once after LiveKit audio stack fully initialises.
@@ -2106,16 +2121,14 @@ Answer briefly — the user is in the middle of a conversation.''';
           output = jsonEncode({'ok': false, 'message': AppLocalizations.of(context)!.voiceNoActiveRoom});
         }
       } else if (name == 'send_room_chat') {
-        // Комната известна прямо здесь, поэтому — в отличие от отдельного
-        // ассистента (`AssistantToolsExecutor`) — серверная ручка
-        // `POST /voice/rooms/:roomName/chat` не нужна: лишний сетевой круг, и,
-        // главное, автор своего сообщения бы не увидел — локальное эхо рисует
-        // только UI-путь, LiveKit пакет отправителю не возвращает.
+        // Использует тот же `_sendChatMessage`, что и панель чата человека —
+        // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
+        // что оба пути получают одинаковую сверку/пометку «не отправлено».
         final parsed = parseRoomChatText(args['text']);
         debugPrint('[InCallAssistant] send_room_chat: ${parsed.refusal ?? '${parsed.text!.length} chars'}');
         if (!parsed.isValid) {
           output = jsonEncode({'ok': false, 'message': parsed.refusal});
-        } else if (!mounted || !_sendChatMessage(parsed.text!)) {
+        } else if (!mounted || !(await _sendChatMessage(parsed.text!))) {
           // `mounted` проверяется первым: `_sendChatMessage` дёргает context и
           // setState. Отказ публикации и уехавший экран для модели одно и то
           // же — сообщение не ушло, и врать «отправил» нельзя.
@@ -2471,6 +2484,34 @@ Answer briefly — the user is in the middle of a conversation.''';
       final participant = event.participant;
       if (type == null) return;
 
+      // Chat is carved out of the generic dedup gate below and handled
+      // entirely by the controller's own decision: RoomChatController
+      // reconciles our own echo by `clientMsgId` BEFORE consulting
+      // `_packetIds.isDuplicate` at all — not after. The gate is keyed on
+      // `msgId`, and for a server-authored chat packet that's the real
+      // persisted message id, not one of our own `_packetIds`-issued ones;
+      // nothing guarantees it lands in the "already seen" set in time for
+      // reconciliation to still run if checked afterwards. The web version
+      // hit exactly this: checking the gate first let it swallow our own
+      // echo, and the "sending…" mark on our own bubble never cleared. See
+      // RoomChatController.handleIncomingPacket's doc and
+      // room_chat_controller_test.dart's "порядок сверки и гейта" group,
+      // which fails if this order is reversed.
+      if (type == 'chat_message') {
+        // `participant` is null for packets published by the backend through
+        // RoomServiceClient.sendData — those have no sender participant.
+        if (_chat.handleIncomingPacket(
+          msg,
+          fallbackName: participant?.name.isNotEmpty == true
+              ? participant!.name
+              : (participant?.identity ?? '—'),
+          isDuplicate: _packetIds.isDuplicate,
+        )) {
+          setState(() {});
+        }
+        return;
+      }
+
       // Deduplicate messages
       final rawMsgId = msg['msgId'];
       final msgId = rawMsgId is String ? rawMsgId : null;
@@ -2497,18 +2538,6 @@ Answer briefly — the user is in the middle of a conversation.''';
           break;
         case 'transcription_status':
           _onTranscriptionStatus(msg);
-          break;
-        case 'chat_message':
-          // `participant` is null for packets published by the backend through
-          // RoomServiceClient.sendData — those have no sender participant.
-          if (_chat.handlePacket(
-            msg,
-            fallbackName: participant?.name.isNotEmpty == true
-                ? participant!.name
-                : (participant?.identity ?? '—'),
-          )) {
-            setState(() {});
-          }
           break;
         case 'recording_status':
           // legacy web client broadcast — ignore in mobile
@@ -2878,15 +2907,23 @@ Answer briefly — the user is in the middle of a conversation.''';
     }
   }
 
-  /// Publishes a chat line to the room and echoes it into the local feed —
-  /// LiveKit doesn't loop published data back to the sender. `msgId` is set by
-  /// `_broadcastData`, so the receivers' dedup works as for any other packet.
+  /// Отправляет строку в чат комнаты через `RoomChatApi` (серверный
+  /// транспорт, `POST /voice/rooms/:roomName/chat`) и рисует своё сообщение
+  /// в ленте сразу — [RoomChatController.addOwn] добавляет запись синхронно,
+  /// до `await` на сам запрос, а не после ответа.
   ///
-  /// Returns whether the line actually went out. The chat panel passes this as
-  /// a `ValueChanged<String>` and ignores the result — the empty feed says it
-  /// all — but the in-call assistant has to know, otherwise it reports a
-  /// message as sent that nobody will ever see.
-  bool _sendChatMessage(String text) {
+  /// [clientMsgId] задаётся только при повторе отправки уже показанного
+  /// сообщения (см. [_retryChatMessage]) — без него генерируется новый.
+  /// Сервер эхом рассылает этот id всем участникам и возвращает его же в
+  /// ответе, поэтому повтор с тем же id гасится дедупликацией у всех, а не
+  /// только у автора.
+  ///
+  /// Возвращает, ушло ли сообщение в итоге. Панель чата вызывает это как
+  /// fire-and-forget (см. её `onSend`/`onRetry` ниже) — неотправленное само
+  /// покажет себя пометкой в ленте — но в-звонковый ассистент обязан знать
+  /// реальный исход, иначе доложит «отправлено» за сообщение, которое никто
+  /// не увидит.
+  Future<bool> _sendChatMessage(String text, {String? clientMsgId}) async {
     final me = _room?.localParticipant;
     // Имя уходит в эфир, поэтому подставлять «Вы» нельзя: это метка от
     // первого лица, остальные увидели бы сообщение от «Вы», а автор бы
@@ -2900,20 +2937,77 @@ Answer briefly — the user is in the middle of a conversation.''';
             ? me!.identity
             : AppLocalizations.of(context)!.voiceParticipant);
 
-    // Эхо рисуем только если пакет действительно ушёл: иначе неотправленное
-    // сообщение выглядело бы отправленным.
-    if (!_broadcastData({
-      'type': 'chat_message',
-      'text': text,
-      'name': myName,
-      'ts': DateTime.now().millisecondsSinceEpoch,
-    })) {
+    final id = clientMsgId ?? const Uuid().v4();
+    final added = _chat.addOwn(myName, text, id);
+    if (added == null) return false;
+    if (mounted) setState(() {});
+
+    final roomName = _roomName;
+    final token = _lkToken;
+    if (roomName == null || token == null) {
+      // Не должно происходить на практике (оба заполняются раньше, чем
+      // появляется возможность открыть панель чата), но без токена запрос
+      // всё равно 401/403-нулся бы — фейлим сразу и понятно.
+      debugPrint('[VoiceCall] chat send skipped: no room-scoped token yet');
+      _chat.markFailed(id);
+      if (mounted) setState(() {});
       return false;
     }
 
-    _chat.addOwn(myName, text);
-    setState(() {});
-    return true;
+    try {
+      final result = await sl<RoomChatApi>().sendMessage(
+        roomName: roomName,
+        lkToken: token,
+        text: text,
+        name: myName,
+        clientMsgId: id,
+      );
+      // Один из трёх независимых путей сверки (эхо/ответ/история — см.
+      // класс-док RoomChatController). Может обогнать или отстать от эха на
+      // data-канале — оба порядка покрыты тестами контроллера.
+      _chat.reconcile(id, result.msgId);
+      if (mounted) setState(() {});
+      return true;
+    } catch (e) {
+      debugPrint('[VoiceCall] chat send failed: $e');
+      _chat.markFailed(id);
+      if (mounted) setState(() {});
+      return false;
+    }
+  }
+
+  /// Повтор отправки сообщения, помеченного как не отправленное — с тем же
+  /// `clientMsgId`, что и в первый раз (см. класс-док
+  /// `RoomChatController.addOwn` про то, зачем это принципиально).
+  void _retryChatMessage(RoomChatMessage message) {
+    final clientMsgId = message.clientMsgId;
+    if (clientMsgId == null) return; // защитно: своё сообщение всегда с id
+    unawaited(_sendChatMessage(message.text, clientMsgId: clientMsgId));
+  }
+
+  /// Один раз подгружает ленту чата комнаты после подключения
+  /// (`GET /voice/rooms/:roomName/chat`, без `since` — с самого начала).
+  /// Вызывается без `await` из `_connect()`/`_initCall()`: история не
+  /// критична для того, чтобы звонок начался, и не должна держать его в
+  /// состоянии "подключаюсь" лишний сетевой круг. Отказ проглатывается —
+  /// пользователь просто увидит пустую ленту, как было до этой фичи, а не
+  /// ошибку поверх звонка.
+  Future<void> _loadChatHistory() async {
+    final roomName = _roomName;
+    final token = _lkToken;
+    if (roomName == null || token == null) return;
+
+    try {
+      final page = await sl<RoomChatApi>().fetchHistory(
+        roomName: roomName,
+        lkToken: token,
+      );
+      if (!mounted || _navigatedAway) return;
+      _chat.setHistory(page.messages);
+      setState(() {});
+    } catch (e) {
+      debugPrint('[VoiceCall] chat history fetch failed: $e');
+    }
   }
 
   void _toggleChat() {
@@ -4198,7 +4292,8 @@ Answer briefly — the user is in the middle of a conversation.''';
                 child: SafeArea(
                   child: RoomChatPanel(
                     controller: _chat,
-                    onSend: _sendChatMessage,
+                    onSend: (text) => unawaited(_sendChatMessage(text)),
+                    onRetry: _retryChatMessage,
                     onClose: _toggleChat,
                   ),
                 ),

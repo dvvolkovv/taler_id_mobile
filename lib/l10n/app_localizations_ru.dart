@@ -1516,6 +1516,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceChatSend => 'Отправить';
 
   @override
+  String get voiceChatNotSent => 'Не отправлено';
+
+  @override
   String get voiceAiAssistant => 'AI Ассистент';
 
   @override

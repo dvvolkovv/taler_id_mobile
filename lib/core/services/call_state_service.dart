@@ -366,7 +366,13 @@ class CallStateService {
         return false;
       }
 
-      setRoom(r, rName, convId, e2eeKeyValue: e2eeKey);
+      // lkToken: token — without it, a call answered from the background
+      // (CallKit accept / dashboard in-app accept while on another screen)
+      // connects with no room-scoped token, and VoiceCallScreen._initCall's
+      // "already connected" resume branch has nothing to copy into
+      // `_lkToken`. The room chat REST calls need that token (see CallLine
+      // doc), so chat would silently not work at all on this path.
+      setRoom(r, rName, convId, e2eeKeyValue: e2eeKey, lkToken: token);
       try {
         await r.localParticipant?.setMicrophoneEnabled(true);
       } catch (_) {}

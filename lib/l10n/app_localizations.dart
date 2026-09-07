@@ -2998,6 +2998,12 @@ abstract class AppLocalizations {
   /// **'Send'**
   String get voiceChatSend;
 
+  /// No description provided for @voiceChatNotSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent'**
+  String get voiceChatNotSent;
+
   /// No description provided for @voiceAiAssistant.
   ///
   /// In en, this message translates to:

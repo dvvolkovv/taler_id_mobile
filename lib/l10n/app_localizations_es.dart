@@ -1520,6 +1520,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get voiceChatSend => 'Send';
 
   @override
+  String get voiceChatNotSent => 'Not sent';
+
+  @override
   String get voiceAiAssistant => 'Asistente AI';
 
   @override

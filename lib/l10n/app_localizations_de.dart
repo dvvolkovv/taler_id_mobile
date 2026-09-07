@@ -1531,6 +1531,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get voiceChatSend => 'Send';
 
   @override
+  String get voiceChatNotSent => 'Not sent';
+
+  @override
   String get voiceAiAssistant => 'AI-Assistent';
 
   @override

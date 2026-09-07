@@ -640,6 +640,7 @@
   "voiceChatHint": "Message...",
   "voiceChatEmpty": "Nothing has been written yet",
   "voiceChatSend": "Send",
+  "voiceChatNotSent": "Not sent",
   "voiceAiAssistant": "AI Assistant",
   "voiceVideoUnavailable": "Video unavailable",
   "voiceSearchNickname": "Search by nickname...",

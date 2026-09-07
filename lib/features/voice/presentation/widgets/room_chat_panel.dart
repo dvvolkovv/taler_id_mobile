@@ -13,11 +13,17 @@ class RoomChatPanel extends StatefulWidget {
   final RoomChatController controller;
   final ValueChanged<String> onSend;
   final VoidCallback onClose;
+  /// Вызывается по тапу на пометку «не отправлено» под своим сообщением.
+  /// Получает саму запись — у неё уже есть и текст, и `clientMsgId`,
+  /// нужные, чтобы повторить отправку тем же id (см.
+  /// `RoomChatController.addOwn` про то, зачем id должен быть тем же).
+  final ValueChanged<RoomChatMessage> onRetry;
 
   const RoomChatPanel({
     super.key,
     required this.controller,
     required this.onSend,
+    required this.onRetry,
     required this.onClose,
   });
 
@@ -204,37 +210,88 @@ class _RoomChatPanelState extends State<RoomChatPanel> {
     final metaColor =
         m.own ? palette.onOwnBubbleMuted : palette.textSecondary;
 
-    return Align(
-      alignment: m.own ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        decoration: BoxDecoration(
-          color: m.own ? palette.ownBubble : palette.otherBubble,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!m.own)
-              Text(
-                m.name,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: palette.accent,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            Text(m.text, style: TextStyle(color: textColor, fontSize: 15)),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                time,
-                style: theme.textTheme.labelSmall?.copyWith(color: metaColor),
+    final bubble = Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      decoration: BoxDecoration(
+        color: m.own ? palette.ownBubble : palette.otherBubble,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!m.own)
+            Text(
+              m.name,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: palette.accent,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
+          Text(m.text, style: TextStyle(color: textColor, fontSize: 15)),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              time,
+              style: theme.textTheme.labelSmall?.copyWith(color: metaColor),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Только свои сообщения могут быть «не отправлены» — RoomChatController
+    // помечает так `failed` исключительно записи из `addOwn`, у чужих
+    // (`handlePacket`) этого поля никогда не бывает true.
+    if (!m.failed) {
+      return Align(
+        alignment: m.own ? Alignment.centerRight : Alignment.centerLeft,
+        child: bubble,
+      );
+    }
+
+    final l10n = AppLocalizations.of(context)!;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          bubble,
+          Padding(
+            padding: const EdgeInsets.only(right: 4, bottom: 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => widget.onRetry(m),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline_rounded,
+                        size: 14, color: palette.error),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.voiceChatNotSent,
+                      style: theme.textTheme.labelSmall
+                          ?.copyWith(color: palette.error),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.retry,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: palette.error,
+                        decoration: TextDecoration.underline,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -256,6 +313,8 @@ class _Palette {
   final Color onOwnBubble;
   final Color onOwnBubbleMuted;
   final Color otherBubble;
+  /// Пометка «не отправлено» под своим сообщением и текст повтора.
+  final Color error;
 
   const _Palette({
     required this.background,
@@ -267,6 +326,7 @@ class _Palette {
     required this.onOwnBubble,
     required this.onOwnBubbleMuted,
     required this.otherBubble,
+    required this.error,
   });
 
   factory _Palette.of(BuildContext context) {
@@ -285,6 +345,7 @@ class _Palette {
         onOwnBubble: scheme.onPrimary,
         onOwnBubbleMuted: scheme.onPrimary.withValues(alpha: 0.75),
         otherBubble: scheme.surfaceContainerHighest,
+        error: scheme.error,
       );
     }
 
@@ -300,6 +361,7 @@ class _Palette {
       // `surfaceContainerHighest` в нашей теме сваливается в `surface`, то есть
       // в цвет самой панели, и чужой пузырь стал бы невидимым — берём border.
       otherBubble: colors.border,
+      error: colors.error,
     );
   }
 }

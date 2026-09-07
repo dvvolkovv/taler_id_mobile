@@ -20,7 +20,7 @@ void main() {
       );
 
     await tester.pumpWidget(_wrap(
-      RoomChatPanel(controller: c, onSend: (_) {}, onClose: () {}),
+      RoomChatPanel(controller: c, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
     ));
 
     expect(find.text('Привет'), findsOneWidget);
@@ -32,6 +32,7 @@ void main() {
       RoomChatPanel(
         controller: RoomChatController(),
         onSend: (_) {},
+        onRetry: (_) {},
         onClose: () {},
       ),
     ));
@@ -46,6 +47,7 @@ void main() {
       RoomChatPanel(
         controller: RoomChatController(),
         onSend: sent.add,
+        onRetry: (_) {},
         onClose: () {},
       ),
     ));
@@ -65,6 +67,7 @@ void main() {
       RoomChatPanel(
         controller: RoomChatController(),
         onSend: sent.add,
+        onRetry: (_) {},
         onClose: () {},
       ),
     ));
@@ -80,7 +83,7 @@ void main() {
     final c = RoomChatController();
 
     await tester.pumpWidget(_wrap(
-      RoomChatPanel(controller: c, onSend: (_) {}, onClose: () {}),
+      RoomChatPanel(controller: c, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
     ));
     expect(find.text('Привет'), findsNothing);
 
@@ -100,6 +103,7 @@ void main() {
       RoomChatPanel(
         controller: RoomChatController(),
         onSend: (_) {},
+        onRetry: (_) {},
         onClose: () => closed++,
       ),
     ));
@@ -108,5 +112,70 @@ void main() {
     await tester.pump();
 
     expect(closed, 1);
+  });
+
+  // --- пометка «не отправлено» и повтор -------------------------------------
+
+  testWidgets('неотправленное своё сообщение показывает пометку', (tester) async {
+    final c = RoomChatController();
+    c.addOwn('Я', 'привет', 'cid-1');
+    c.markFailed('cid-1');
+
+    await tester.pumpWidget(_wrap(
+      RoomChatPanel(controller: c, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
+    ));
+
+    expect(find.text('Не отправлено'), findsOneWidget);
+    expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+  });
+
+  testWidgets('успешно отправленное своё сообщение пометку не показывает', (tester) async {
+    final c = RoomChatController();
+    c.addOwn('Я', 'привет', 'cid-2');
+
+    await tester.pumpWidget(_wrap(
+      RoomChatPanel(controller: c, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
+    ));
+
+    expect(find.text('Не отправлено'), findsNothing);
+  });
+
+  testWidgets('тап по пометке зовёт onRetry с этим же сообщением', (tester) async {
+    final c = RoomChatController();
+    c.addOwn('Я', 'привет', 'cid-3');
+    c.markFailed('cid-3');
+    final retried = <RoomChatMessage>[];
+
+    await tester.pumpWidget(_wrap(
+      RoomChatPanel(
+        controller: c,
+        onSend: (_) {},
+        onRetry: retried.add,
+        onClose: () {},
+      ),
+    ));
+
+    await tester.tap(find.text('Не отправлено'));
+    await tester.pump();
+
+    expect(retried, hasLength(1));
+    expect(retried.single.clientMsgId, 'cid-3');
+    expect(retried.single.text, 'привет');
+  });
+
+  testWidgets('реконсилиация после сверки убирает пометку из UI', (tester) async {
+    final c = RoomChatController();
+    c.addOwn('Я', 'привет', 'cid-4');
+    c.markFailed('cid-4');
+
+    await tester.pumpWidget(_wrap(
+      RoomChatPanel(controller: c, onSend: (_) {}, onRetry: (_) {}, onClose: () {}),
+    ));
+    expect(find.text('Не отправлено'), findsOneWidget);
+
+    c.reconcile('cid-4', 'srv-4');
+    await tester.pump();
+
+    expect(find.text('Не отправлено'), findsNothing);
   });
 }

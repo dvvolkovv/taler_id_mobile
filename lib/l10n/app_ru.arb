@@ -640,6 +640,7 @@
   "voiceChatHint": "Сообщение...",
   "voiceChatEmpty": "Пока никто ничего не написал",
   "voiceChatSend": "Отправить",
+  "voiceChatNotSent": "Не отправлено",
   "voiceAiAssistant": "AI Ассистент",
   "voiceVideoUnavailable": "Видео недоступно",
   "voiceSearchNickname": "Поиск по никнейму...",
