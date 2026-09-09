@@ -2268,6 +2268,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get callHistoryLinkCopied => 'Ссылка скопирована';
 
   @override
+  String get roomCreateTitle => 'Новая комната';
+
+  @override
+  String get roomPasswordOptional => 'Пароль (необязательно)';
+
+  @override
+  String get roomPasswordHelper => 'Гости введут его при входе по ссылке';
+
+  @override
+  String get roomPasswordLabel => 'Пароль';
+
+  @override
+  String get roomPasswordCopied => 'Пароль скопирован';
+
+  @override
   String get callHistoryShare => 'Поделиться';
 
   @override

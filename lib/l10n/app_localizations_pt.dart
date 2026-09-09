@@ -2268,6 +2268,22 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callHistoryLinkCopied => 'Link copiado';
 
   @override
+  String get roomCreateTitle => 'New room';
+
+  @override
+  String get roomPasswordOptional => 'Password (optional)';
+
+  @override
+  String get roomPasswordHelper =>
+      'Guests will enter it when joining via the link';
+
+  @override
+  String get roomPasswordLabel => 'Password';
+
+  @override
+  String get roomPasswordCopied => 'Password copied';
+
+  @override
   String get callHistoryShare => 'Compartilhar';
 
   @override

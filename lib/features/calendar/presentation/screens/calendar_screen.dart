@@ -556,6 +556,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         // For CALL type, create room and add link
         if (args['type'] == 'CALL') {
           try {
+            // No password prompt here by design — voice-assistant tool call, no UI to ask for one.
             final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Meeting'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
             final code = room?['code'] as String? ?? '';
             if (code.isNotEmpty) {
@@ -1217,6 +1218,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   List<String> _selectedContactIds = [];
   Map<String, String> _invitesMap = {};
   String? _meetingLink;
+  String? _meetingPassword;
 
   @override
   void initState() {
@@ -1286,9 +1288,15 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     }
 
     _loadContacts();
-    // Auto-generate meeting link for new CALL events
+    // Auto-generate meeting link for new CALL events. Deferred to a
+    // post-frame callback: _generateMeetingLink() now opens a password
+    // dialog first, and pushing a route from initState() (before the
+    // first frame) throws "setState() or markNeedsBuild() called during
+    // build" because the Navigator/Overlay are still being built.
     if (widget.event == null && _type == 'CALL') {
-      _generateMeetingLink();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _generateMeetingLink();
+      });
     }
   }
 
@@ -1320,10 +1328,21 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   }
 
   Future<void> _generateMeetingLink() async {
+    if (!mounted) return;
+    // Optional password, asked before creation. Empty field ⇒ no password,
+    // same room as before this feature existed; Cancel ⇒ abort, no room
+    // created and the location field stays empty (switching the type
+    // dropdown away from CALL and back retries).
+    final password = await _promptRoomPassword();
+    if (password == null || !mounted) return;
+    final trimmedPassword = password.trim();
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms/public',
-        data: {'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting},
+        data: {
+          'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting,
+          if (trimmedPassword.isNotEmpty) 'password': trimmedPassword,
+        },
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       // Prefer the full URL from the server (honours current flavor/host),
@@ -1336,10 +1355,56 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       if (link != null && link.isNotEmpty && mounted) {
         setState(() {
           _meetingLink = link;
+          _meetingPassword = trimmedPassword.isNotEmpty ? trimmedPassword : null;
           _locationCtrl.text = link!;
         });
       }
     } catch (_) {}
+  }
+
+  /// Prompt for an optional room password before creating the meeting
+  /// room. Returns the entered text (possibly empty = no password) if the
+  /// user confirmed, or null if they cancelled — callers should abort
+  /// room creation in that case.
+  Future<String?> _promptRoomPassword() async {
+    if (!mounted) return null;
+    final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: colors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(l10n.roomCreateTitle, style: TextStyle(color: colors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(color: colors.textPrimary),
+          decoration: InputDecoration(
+            labelText: l10n.roomPasswordOptional,
+            labelStyle: TextStyle(color: colors.textSecondary),
+            helperText: l10n.roomPasswordHelper,
+            helperStyle: TextStyle(color: colors.textSecondary, fontSize: 11),
+            helperMaxLines: 2,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          onSubmitted: (_) => Navigator.of(ctx).pop(controller.text),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(controller.text),
+            child: Text(l10n.create, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return result;
   }
 
   Future<void> _loadContacts() async {
@@ -1429,6 +1494,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       final loc = _locationCtrl.text.trim();
       if (loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc)) {
         description = description.isNotEmpty ? '$description\n$loc' : loc;
+        // Password goes on its own description line, never inside the
+        // link — invitees read the calendar invite text to get it, and a
+        // password embedded in the link would defeat the point of having
+        // one. Only appended while `loc` is still the link we generated
+        // it for (guards against a manually edited/pasted location).
+        if (_meetingPassword != null && _meetingPassword!.isNotEmpty && loc == _meetingLink) {
+          description = '$description\n${AppLocalizations.of(context)!.roomPasswordLabel}: $_meetingPassword';
+        }
       } else if (loc.isNotEmpty) {
         final locPrefix = AppLocalizations.of(context)!.calendarLocationPrefix(loc);
         description = description.isNotEmpty ? '$description\n$locPrefix' : locPrefix;
