@@ -943,6 +943,7 @@
   "calendarTaskDeletedMsg": "Задача удалена",
   "calendarTypeLabel": "Тип",
   "calendarMeetingLink": "Ссылка на встречу",
+  "calendarGenerateMeetingLink": "Создать ссылку на встречу",
   "calendarLocationHint": "Место",
   "calendarDateLabel": "Дата",
   "calendarTimeLabel": "Время",

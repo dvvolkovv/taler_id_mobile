@@ -2164,6 +2164,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarMeetingLink => 'Ссылка на встречу';
 
   @override
+  String get calendarGenerateMeetingLink => 'Создать ссылку на встречу';
+
+  @override
   String get calendarLocationHint => 'Место';
 
   @override

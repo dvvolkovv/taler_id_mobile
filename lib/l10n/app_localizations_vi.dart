@@ -2155,6 +2155,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get calendarMeetingLink => 'Liên kết cuộc họp';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Địa điểm';
 
   @override

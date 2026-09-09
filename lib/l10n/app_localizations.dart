@@ -4210,6 +4210,12 @@ abstract class AppLocalizations {
   /// **'Meeting link'**
   String get calendarMeetingLink;
 
+  /// No description provided for @calendarGenerateMeetingLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate meeting link'**
+  String get calendarGenerateMeetingLink;
+
   /// No description provided for @calendarLocationHint.
   ///
   /// In en, this message translates to:

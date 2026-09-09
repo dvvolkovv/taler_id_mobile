@@ -2162,6 +2162,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get calendarMeetingLink => 'Toplantı bağlantısı';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Konum';
 
   @override

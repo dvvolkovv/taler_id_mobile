@@ -2151,6 +2151,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get calendarMeetingLink => 'رابط الاجتماع';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'الموقع';
 
   @override

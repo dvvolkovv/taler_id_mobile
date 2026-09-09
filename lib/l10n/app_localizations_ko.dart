@@ -2133,6 +2133,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get calendarMeetingLink => '회의 링크';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => '위치';
 
   @override

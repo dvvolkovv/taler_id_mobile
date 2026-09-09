@@ -2157,6 +2157,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get calendarMeetingLink => 'Hadin taro';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Wuri';
 
   @override

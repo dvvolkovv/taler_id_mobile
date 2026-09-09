@@ -2160,6 +2160,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get calendarMeetingLink => 'Tautan rapat';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Lokasi';
 
   @override

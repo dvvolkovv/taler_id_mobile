@@ -943,6 +943,7 @@
   "calendarTaskDeletedMsg": "Task deleted",
   "calendarTypeLabel": "Type",
   "calendarMeetingLink": "Meeting link",
+  "calendarGenerateMeetingLink": "Generate meeting link",
   "calendarLocationHint": "Location",
   "calendarDateLabel": "Date",
   "calendarTimeLabel": "Time",

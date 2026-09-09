@@ -26,6 +26,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/active_group_call_banner.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
+import '../../../voice/presentation/widgets/room_password_dialog.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
@@ -239,8 +240,8 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     // Optional password, asked before creation. Empty field ⇒ no password
     // at all, same room as before this feature existed; Cancel ⇒ abort,
     // nothing created.
-    final password = await _promptRoomPassword();
-    if (password == null) return;
+    final password = await promptRoomPassword(context);
+    if (password == null || !mounted) return;
     final trimmedPassword = password.trim();
     setState(() => _creatingTemp = true);
     try {
@@ -264,51 +265,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     } finally {
       if (mounted) setState(() => _creatingTemp = false);
     }
-  }
-
-  /// Prompt for an optional room password before creating a meeting.
-  /// Returns the entered text (possibly empty = no password) if the user
-  /// confirmed, or null if they cancelled — callers should abort room
-  /// creation in that case.
-  Future<String?> _promptRoomPassword() async {
-    if (!mounted) return null;
-    final colors = AppColors.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(l10n.roomCreateTitle, style: TextStyle(color: colors.textPrimary)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: colors.textPrimary),
-          decoration: InputDecoration(
-            labelText: l10n.roomPasswordOptional,
-            labelStyle: TextStyle(color: colors.textSecondary),
-            helperText: l10n.roomPasswordHelper,
-            helperStyle: TextStyle(color: colors.textSecondary, fontSize: 11),
-            helperMaxLines: 2,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          onSubmitted: (_) => Navigator.of(ctx).pop(controller.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text(l10n.create, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result;
   }
 
   void _showTempRoomSheet(String code, String link, {String? password}) {
@@ -344,7 +300,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             _LinkRow(link: link),
             if (password != null && password.isNotEmpty) ...[
               const SizedBox(height: 8),
-              _PasswordRow(password: password),
+              RoomPasswordRow(password: password),
             ],
             const SizedBox(height: 20),
             Row(
@@ -1500,59 +1456,6 @@ class _LinkRow extends StatelessWidget {
         link,
         style: TextStyle(color: colors.primary, fontSize: 13),
         overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-}
-
-/// Shows a created room's password on its own line with its own copy
-/// button. Deliberately separate from `_LinkRow` — folding the password
-/// into the same row as the link would make it trivial to forward both
-/// together in one message, which defeats the point of setting one.
-class _PasswordRow extends StatelessWidget {
-  final String password;
-  const _PasswordRow({required this.password});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.only(left: 12, right: 4, top: 4, bottom: 4),
-      decoration: BoxDecoration(
-        color: colors.background.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.border.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '${l10n.roomPasswordLabel}: ',
-            style: TextStyle(color: colors.textSecondary, fontSize: 13),
-          ),
-          Expanded(
-            child: Text(
-              password,
-              style: TextStyle(color: colors.primary, fontSize: 13, fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.copy_rounded, size: 18, color: colors.textSecondary),
-            tooltip: l10n.callHistoryCopy,
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: password));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.roomPasswordCopied),
-                  backgroundColor: colors.primary,
-                  duration: const Duration(seconds: 1),
-                ),
-              );
-            },
-          ),
-        ],
       ),
     );
   }

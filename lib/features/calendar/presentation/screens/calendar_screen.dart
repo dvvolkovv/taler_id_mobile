@@ -26,6 +26,8 @@ import '../../domain/entities/calendar_event_entity.dart';
 import '../../domain/repositories/i_calendar_repository.dart';
 import '../../../notes/domain/entities/note_entity.dart' show NoteEntity;
 import '../../../notes/presentation/widgets/conflict_resolution_dialog.dart';
+import '../../../voice/presentation/widgets/room_password_dialog.dart';
+import 'calendar_event_description.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -1333,7 +1335,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     // same room as before this feature existed; Cancel ⇒ abort, no room
     // created and the location field stays empty (switching the type
     // dropdown away from CALL and back retries).
-    final password = await _promptRoomPassword();
+    final password = await promptRoomPassword(context);
     if (password == null || !mounted) return;
     final trimmedPassword = password.trim();
     try {
@@ -1359,52 +1361,18 @@ class _EventEditScreenState extends State<_EventEditScreen> {
           _locationCtrl.text = link!;
         });
       }
-    } catch (_) {}
-  }
-
-  /// Prompt for an optional room password before creating the meeting
-  /// room. Returns the entered text (possibly empty = no password) if the
-  /// user confirmed, or null if they cancelled — callers should abort
-  /// room creation in that case.
-  Future<String?> _promptRoomPassword() async {
-    if (!mounted) return null;
-    final colors = AppColors.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: colors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(l10n.roomCreateTitle, style: TextStyle(color: colors.textPrimary)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: colors.textPrimary),
-          decoration: InputDecoration(
-            labelText: l10n.roomPasswordOptional,
-            labelStyle: TextStyle(color: colors.textSecondary),
-            helperText: l10n.roomPasswordHelper,
-            helperStyle: TextStyle(color: colors.textSecondary, fontSize: 11),
-            helperMaxLines: 2,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    } catch (err) {
+      // A password the user just typed shouldn't vanish into a silent
+      // no-op — same error surface as call history's identical request.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorWithMessage(err.toString())),
+            backgroundColor: AppColors.of(context).error,
           ),
-          onSubmitted: (_) => Navigator.of(ctx).pop(controller.text),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.cancel, style: TextStyle(color: colors.textSecondary)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text),
-            child: Text(l10n.create, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return result;
+        );
+      }
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -1489,23 +1457,21 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         return;
       }
       final startAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _startTime.hour, _startTime.minute);
-      // Build description with location/link
-      String description = _descCtrl.text.trim();
+      // Build description with location/link. Password placement (own
+      // line, never inside the link, and only while the location still
+      // points at the room it was generated for) lives in
+      // buildEventDescription — see calendar_event_description.dart.
       final loc = _locationCtrl.text.trim();
-      if (loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc)) {
-        description = description.isNotEmpty ? '$description\n$loc' : loc;
-        // Password goes on its own description line, never inside the
-        // link — invitees read the calendar invite text to get it, and a
-        // password embedded in the link would defeat the point of having
-        // one. Only appended while `loc` is still the link we generated
-        // it for (guards against a manually edited/pasted location).
-        if (_meetingPassword != null && _meetingPassword!.isNotEmpty && loc == _meetingLink) {
-          description = '$description\n${AppLocalizations.of(context)!.roomPasswordLabel}: $_meetingPassword';
-        }
-      } else if (loc.isNotEmpty) {
-        final locPrefix = AppLocalizations.of(context)!.calendarLocationPrefix(loc);
-        description = description.isNotEmpty ? '$description\n$locPrefix' : locPrefix;
-      }
+      final isRoomLink = loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc);
+      final description = buildEventDescription(
+        userDescription: _descCtrl.text.trim(),
+        location: loc,
+        isRoomLink: isRoomLink,
+        meetingLink: _meetingLink,
+        meetingPassword: _meetingPassword,
+        passwordLabel: AppLocalizations.of(context)!.roomPasswordLabel,
+        locationPrefixBuilder: (l) => AppLocalizations.of(context)!.calendarLocationPrefix(l),
+      );
 
       // Calculate reminderAt from minutes
       DateTime? reminderAt;
@@ -1738,6 +1704,36 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                   ),
                 ),
               ],
+            ),
+            // Visible whenever the password we generated still applies to
+            // the current location text (room-code compared, see
+            // calendar_event_description.dart) — so if editing the link
+            // silently drops the password from the saved description,
+            // this row disappears too instead of leaving that invisible.
+            if (passwordAppliesToLocation(
+              location: _locationCtrl.text.trim(),
+              meetingLink: _meetingLink,
+              meetingPassword: _meetingPassword,
+            )) ...[
+              const SizedBox(height: 8),
+              RoomPasswordRow(password: _meetingPassword!),
+            ],
+            const SizedBox(height: 8),
+          ],
+          if (_kind == 'event' && _type == 'CALL' && !_hasMeetingLink()) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _generateMeetingLink,
+                icon: Icon(Icons.link_rounded, size: 18, color: colors.primary),
+                label: Text(l10n.calendarGenerateMeetingLink, style: TextStyle(color: colors.primary)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: colors.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
           ],

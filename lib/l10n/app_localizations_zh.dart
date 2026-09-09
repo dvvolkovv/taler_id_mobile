@@ -2127,6 +2127,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get calendarMeetingLink => '会议链接';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => '位置';
 
   @override

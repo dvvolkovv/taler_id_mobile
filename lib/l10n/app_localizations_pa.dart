@@ -2159,6 +2159,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get calendarMeetingLink => 'ਮੀਟਿੰਗ ਲਿੰਕ';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'ਟਿਕਾਣਾ';
 
   @override

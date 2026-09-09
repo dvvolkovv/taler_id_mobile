@@ -2162,6 +2162,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get calendarMeetingLink => 'মিটিং লিঙ্ক';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'অবস্থান';
 
   @override

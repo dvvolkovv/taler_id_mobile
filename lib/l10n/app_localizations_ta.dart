@@ -2172,6 +2172,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get calendarMeetingLink => 'சந்திப்பு இணைப்பு';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'இடம்';
 
   @override

@@ -2161,6 +2161,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get calendarMeetingLink => 'Odkaz na stretnutie';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Miesto';
 
   @override
