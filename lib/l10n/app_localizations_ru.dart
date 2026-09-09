@@ -2164,6 +2164,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarMeetingLink => 'Ссылка на встречу';
 
   @override
+  String get calendarGenerateMeetingLink => 'Создать ссылку на встречу';
+
+  @override
   String get calendarLocationHint => 'Место';
 
   @override
@@ -2266,6 +2269,21 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get callHistoryLinkCopied => 'Ссылка скопирована';
+
+  @override
+  String get roomCreateTitle => 'Новая комната';
+
+  @override
+  String get roomPasswordOptional => 'Пароль (необязательно)';
+
+  @override
+  String get roomPasswordHelper => 'Гости введут его при входе по ссылке';
+
+  @override
+  String get roomPasswordLabel => 'Пароль';
+
+  @override
+  String get roomPasswordCopied => 'Пароль скопирован';
 
   @override
   String get callHistoryShare => 'Поделиться';

@@ -26,6 +26,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../voice/presentation/widgets/active_group_call_banner.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
+import '../../../voice/presentation/widgets/room_password_dialog.dart';
 import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
@@ -236,15 +237,24 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
 
   Future<void> _createTemporaryRoom() async {
     if (_creatingTemp) return;
+    // Optional password, asked before creation. Empty field ⇒ no password
+    // at all, same room as before this feature existed; Cancel ⇒ abort,
+    // nothing created.
+    final password = await promptRoomPassword(context);
+    if (password == null || !mounted) return;
+    final trimmedPassword = password.trim();
     setState(() => _creatingTemp = true);
     try {
       final data = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms/temporary',
+        data: trimmedPassword.isNotEmpty ? {'password': trimmedPassword} : null,
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       final code = data['code'] as String;
       final link = data['link'] as String;
-      if (mounted) _showTempRoomSheet(code, link);
+      if (mounted) {
+        _showTempRoomSheet(code, link, password: trimmedPassword.isNotEmpty ? trimmedPassword : null);
+      }
     } catch (err) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
@@ -257,7 +267,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     }
   }
 
-  void _showTempRoomSheet(String code, String link) {
+  void _showTempRoomSheet(String code, String link, {String? password}) {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
@@ -288,6 +298,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
             ),
             const SizedBox(height: 16),
             _LinkRow(link: link),
+            if (password != null && password.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              RoomPasswordRow(password: password),
+            ],
             const SizedBox(height: 20),
             Row(
               children: [

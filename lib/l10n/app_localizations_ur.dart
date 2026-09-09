@@ -2162,6 +2162,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get calendarMeetingLink => 'میٹنگ لنک';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'مقام';
 
   @override
@@ -2264,6 +2267,22 @@ class AppLocalizationsUr extends AppLocalizations {
 
   @override
   String get callHistoryLinkCopied => 'لنک کاپی ہو گیا';
+
+  @override
+  String get roomCreateTitle => 'New room';
+
+  @override
+  String get roomPasswordOptional => 'Password (optional)';
+
+  @override
+  String get roomPasswordHelper =>
+      'Guests will enter it when joining via the link';
+
+  @override
+  String get roomPasswordLabel => 'Password';
+
+  @override
+  String get roomPasswordCopied => 'Password copied';
 
   @override
   String get callHistoryShare => 'شیئر کریں';

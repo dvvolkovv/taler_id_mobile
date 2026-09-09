@@ -2133,6 +2133,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get calendarMeetingLink => '회의 링크';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => '위치';
 
   @override
@@ -2235,6 +2238,22 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get callHistoryLinkCopied => '링크 복사됨';
+
+  @override
+  String get roomCreateTitle => 'New room';
+
+  @override
+  String get roomPasswordOptional => 'Password (optional)';
+
+  @override
+  String get roomPasswordHelper =>
+      'Guests will enter it when joining via the link';
+
+  @override
+  String get roomPasswordLabel => 'Password';
+
+  @override
+  String get roomPasswordCopied => 'Password copied';
 
   @override
   String get callHistoryShare => '공유';

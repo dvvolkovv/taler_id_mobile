@@ -26,6 +26,8 @@ import '../../domain/entities/calendar_event_entity.dart';
 import '../../domain/repositories/i_calendar_repository.dart';
 import '../../../notes/domain/entities/note_entity.dart' show NoteEntity;
 import '../../../notes/presentation/widgets/conflict_resolution_dialog.dart';
+import '../../../voice/presentation/widgets/room_password_dialog.dart';
+import 'calendar_event_description.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -556,6 +558,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         // For CALL type, create room and add link
         if (args['type'] == 'CALL') {
           try {
+            // No password prompt here by design — voice-assistant tool call, no UI to ask for one.
             final room = await client.post<Map<String, dynamic>>('/voice/rooms/public', data: {'title': args['title'] ?? 'Meeting'}, fromJson: (d) => Map<String, dynamic>.from(d as Map));
             final code = room?['code'] as String? ?? '';
             if (code.isNotEmpty) {
@@ -1217,6 +1220,7 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   List<String> _selectedContactIds = [];
   Map<String, String> _invitesMap = {};
   String? _meetingLink;
+  String? _meetingPassword;
 
   @override
   void initState() {
@@ -1286,9 +1290,15 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     }
 
     _loadContacts();
-    // Auto-generate meeting link for new CALL events
+    // Auto-generate meeting link for new CALL events. Deferred to a
+    // post-frame callback: _generateMeetingLink() now opens a password
+    // dialog first, and pushing a route from initState() (before the
+    // first frame) throws "setState() or markNeedsBuild() called during
+    // build" because the Navigator/Overlay are still being built.
     if (widget.event == null && _type == 'CALL') {
-      _generateMeetingLink();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _generateMeetingLink();
+      });
     }
   }
 
@@ -1320,10 +1330,21 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   }
 
   Future<void> _generateMeetingLink() async {
+    if (!mounted) return;
+    // Optional password, asked before creation. Empty field ⇒ no password,
+    // same room as before this feature existed; Cancel ⇒ abort, no room
+    // created and the location field stays empty (switching the type
+    // dropdown away from CALL and back retries).
+    final password = await promptRoomPassword(context);
+    if (password == null || !mounted) return;
+    final trimmedPassword = password.trim();
     try {
       final room = await sl<DioClient>().post<Map<String, dynamic>>(
         '/voice/rooms/public',
-        data: {'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting},
+        data: {
+          'title': _titleCtrl.text.trim().isNotEmpty ? _titleCtrl.text.trim() : AppLocalizations.of(context)!.calendarMeeting,
+          if (trimmedPassword.isNotEmpty) 'password': trimmedPassword,
+        },
         fromJson: (d) => Map<String, dynamic>.from(d as Map),
       );
       // Prefer the full URL from the server (honours current flavor/host),
@@ -1336,10 +1357,22 @@ class _EventEditScreenState extends State<_EventEditScreen> {
       if (link != null && link.isNotEmpty && mounted) {
         setState(() {
           _meetingLink = link;
+          _meetingPassword = trimmedPassword.isNotEmpty ? trimmedPassword : null;
           _locationCtrl.text = link!;
         });
       }
-    } catch (_) {}
+    } catch (err) {
+      // A password the user just typed shouldn't vanish into a silent
+      // no-op — same error surface as call history's identical request.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.errorWithMessage(err.toString())),
+            backgroundColor: AppColors.of(context).error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadContacts() async {
@@ -1424,15 +1457,21 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         return;
       }
       final startAt = DateTime(_startDate.year, _startDate.month, _startDate.day, _startTime.hour, _startTime.minute);
-      // Build description with location/link
-      String description = _descCtrl.text.trim();
+      // Build description with location/link. Password placement (own
+      // line, never inside the link, and only while the location still
+      // points at the room it was generated for) lives in
+      // buildEventDescription — see calendar_event_description.dart.
       final loc = _locationCtrl.text.trim();
-      if (loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc)) {
-        description = description.isNotEmpty ? '$description\n$loc' : loc;
-      } else if (loc.isNotEmpty) {
-        final locPrefix = AppLocalizations.of(context)!.calendarLocationPrefix(loc);
-        description = description.isNotEmpty ? '$description\n$locPrefix' : locPrefix;
-      }
+      final isRoomLink = loc.isNotEmpty && RegExp(r'^https://(?:staging\.)?id\.taler\.tirol/room/').hasMatch(loc);
+      final description = buildEventDescription(
+        userDescription: _descCtrl.text.trim(),
+        location: loc,
+        isRoomLink: isRoomLink,
+        meetingLink: _meetingLink,
+        meetingPassword: _meetingPassword,
+        passwordLabel: AppLocalizations.of(context)!.roomPasswordLabel,
+        locationPrefixBuilder: (l) => AppLocalizations.of(context)!.calendarLocationPrefix(l),
+      );
 
       // Calculate reminderAt from minutes
       DateTime? reminderAt;
@@ -1665,6 +1704,36 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                   ),
                 ),
               ],
+            ),
+            // Visible whenever the password we generated still applies to
+            // the current location text (room-code compared, see
+            // calendar_event_description.dart) — so if editing the link
+            // silently drops the password from the saved description,
+            // this row disappears too instead of leaving that invisible.
+            if (passwordAppliesToLocation(
+              location: _locationCtrl.text.trim(),
+              meetingLink: _meetingLink,
+              meetingPassword: _meetingPassword,
+            )) ...[
+              const SizedBox(height: 8),
+              RoomPasswordRow(password: _meetingPassword!),
+            ],
+            const SizedBox(height: 8),
+          ],
+          if (_kind == 'event' && _type == 'CALL' && !_hasMeetingLink()) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _generateMeetingLink,
+                icon: Icon(Icons.link_rounded, size: 18, color: colors.primary),
+                label: Text(l10n.calendarGenerateMeetingLink, style: TextStyle(color: colors.primary)),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: colors.primary),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
             ),
             const SizedBox(height: 8),
           ],

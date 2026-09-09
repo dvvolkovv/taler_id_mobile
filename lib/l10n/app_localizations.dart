@@ -4210,6 +4210,12 @@ abstract class AppLocalizations {
   /// **'Meeting link'**
   String get calendarMeetingLink;
 
+  /// No description provided for @calendarGenerateMeetingLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate meeting link'**
+  String get calendarGenerateMeetingLink;
+
   /// No description provided for @calendarLocationHint.
   ///
   /// In en, this message translates to:
@@ -4413,6 +4419,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Link copied'**
   String get callHistoryLinkCopied;
+
+  /// No description provided for @roomCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New room'**
+  String get roomCreateTitle;
+
+  /// No description provided for @roomPasswordOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (optional)'**
+  String get roomPasswordOptional;
+
+  /// No description provided for @roomPasswordHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests will enter it when joining via the link'**
+  String get roomPasswordHelper;
+
+  /// No description provided for @roomPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get roomPasswordLabel;
+
+  /// No description provided for @roomPasswordCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Password copied'**
+  String get roomPasswordCopied;
 
   /// No description provided for @callHistoryShare.
   ///

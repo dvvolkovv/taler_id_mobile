@@ -2157,6 +2157,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get calendarMeetingLink => 'Hadin taro';
 
   @override
+  String get calendarGenerateMeetingLink => 'Generate meeting link';
+
+  @override
   String get calendarLocationHint => 'Wuri';
 
   @override
@@ -2259,6 +2262,22 @@ class AppLocalizationsHa extends AppLocalizations {
 
   @override
   String get callHistoryLinkCopied => 'An kwafi hanyar';
+
+  @override
+  String get roomCreateTitle => 'New room';
+
+  @override
+  String get roomPasswordOptional => 'Password (optional)';
+
+  @override
+  String get roomPasswordHelper =>
+      'Guests will enter it when joining via the link';
+
+  @override
+  String get roomPasswordLabel => 'Password';
+
+  @override
+  String get roomPasswordCopied => 'Password copied';
 
   @override
   String get callHistoryShare => 'Raba';
