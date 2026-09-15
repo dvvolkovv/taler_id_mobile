@@ -2403,6 +2403,10 @@ class AppLocalizationsBn extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'ট্রান্সক্রিপ্ট তৈরি হয়েছে';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'কোনো রেকর্ডিং নেই';
 
   @override

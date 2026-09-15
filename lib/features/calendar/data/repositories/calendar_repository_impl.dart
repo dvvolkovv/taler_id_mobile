@@ -298,6 +298,8 @@ class CalendarRepositoryImpl implements ICalendarRepository {
     );
     return CalendarEventEntity(
       id: json['id'] as String,
+      userId: (json['userId'] as String?) ??
+          ((json['user'] as Map?)?['id'] as String?),
       title: json['title'] as String? ?? '',
       description: json['description'] as String?,
       type: typeEnum,

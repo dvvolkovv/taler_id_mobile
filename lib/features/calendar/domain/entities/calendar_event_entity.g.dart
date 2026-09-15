@@ -10,6 +10,7 @@ _$CalendarEventEntityImpl _$$CalendarEventEntityImplFromJson(
         Map<String, dynamic> json) =>
     _$CalendarEventEntityImpl(
       id: json['id'] as String,
+      userId: json['userId'] as String?,
       title: json['title'] as String,
       description: json['description'] as String?,
       type: $enumDecodeNullable(_$CalendarEventTypeEnumMap, json['type']) ??
@@ -40,6 +41,7 @@ Map<String, dynamic> _$$CalendarEventEntityImplToJson(
         _$CalendarEventEntityImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'userId': instance.userId,
       'title': instance.title,
       'description': instance.description,
       'type': _$CalendarEventTypeEnumMap[instance.type]!,

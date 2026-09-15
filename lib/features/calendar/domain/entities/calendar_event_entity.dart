@@ -14,6 +14,9 @@ enum CalendarEventType {
 class CalendarEventEntity with _$CalendarEventEntity {
   const factory CalendarEventEntity({
     required String id,
+    // Organizer/owner user id (from the server). Null for locally-created or
+    // older cached events; used to decide edit permission (own vs invited).
+    String? userId,
     required String title,
     String? description,
     @Default(CalendarEventType.event) CalendarEventType type,

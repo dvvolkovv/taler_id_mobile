@@ -327,6 +327,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Map<String, dynamic> _entityToMap(CalendarEventEntity e) {
     return {
       'id': e.id,
+      'userId': e.userId,
       'title': e.title,
       'description': e.description,
       'type': e.type.name.toUpperCase(),
@@ -1585,7 +1586,14 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     final l10n = AppLocalizations.of(context)!;
     final currentUserId = context.read<MessengerBloc>().state.currentUserId;
     final eventUserId = widget.event?['userId'] as String?;
-    final isOrganizer = widget.event == null || currentUserId == eventUserId;
+    // Editable unless we can PROVE the event belongs to someone else (both ids
+    // known and different). Otherwise (new event, unknown owner on older cached
+    // events, or unknown current user) allow editing — the backend still
+    // enforces ownership (403) as the real guard.
+    final isOrganizer = widget.event == null ||
+        eventUserId == null ||
+        currentUserId == null ||
+        currentUserId == eventUserId;
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(

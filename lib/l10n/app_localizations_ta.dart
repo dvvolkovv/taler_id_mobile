@@ -2413,6 +2413,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'மொழிபெயர்ப்பு உருவாக்கப்பட்டது';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'பதிவுகள் இல்லை';
 
   @override

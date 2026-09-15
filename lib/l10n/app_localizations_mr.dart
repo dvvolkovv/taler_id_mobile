@@ -2399,6 +2399,10 @@ class AppLocalizationsMr extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'प्रतिलिपी तयार झाली';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'कोणतेही रेकॉर्डिंग नाहीत';
 
   @override

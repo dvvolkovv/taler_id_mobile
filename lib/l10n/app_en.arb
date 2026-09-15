@@ -1057,6 +1057,7 @@
   },
   "callHistoryTranscribing": "Transcribing and summarizing...",
   "callHistoryTranscriptCreated": "Transcript created",
+  "callHistoryTranscriptStarted": "Building the transcript — a few minutes for a long meeting",
   "callHistoryNoRecordings": "No recordings",
   "callHistoryRecordingDate": "Recording {date}",
   "@callHistoryRecordingDate": {

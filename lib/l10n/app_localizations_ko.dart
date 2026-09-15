@@ -2372,6 +2372,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callHistoryTranscriptCreated => '기록 생성됨';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => '녹음 없음';
 
   @override
