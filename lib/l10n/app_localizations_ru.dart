@@ -2404,6 +2404,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'Протокол создан';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Протокол собирается — на длинной встрече это несколько минут';
+
+  @override
   String get callHistoryNoRecordings => 'Нет записей';
 
   @override

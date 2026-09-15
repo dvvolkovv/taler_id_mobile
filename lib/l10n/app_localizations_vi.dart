@@ -2394,6 +2394,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'Bản ghi đã được tạo';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'Không có ghi âm';
 
   @override

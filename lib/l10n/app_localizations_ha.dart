@@ -2397,6 +2397,10 @@ class AppLocalizationsHa extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'An ƙirƙiri rubutun magana';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'Babu rakodi';
 
   @override

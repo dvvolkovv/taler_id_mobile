@@ -2418,6 +2418,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'Transkript erstellt';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'Keine Aufnahmen';
 
   @override

@@ -2370,6 +2370,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callHistoryTranscriptCreated => '文字起こしが作成されました';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => '録音なし';
 
   @override

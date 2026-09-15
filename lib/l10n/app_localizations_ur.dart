@@ -2403,6 +2403,10 @@ class AppLocalizationsUr extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'ٹرانسکرپٹ تیار ہو گیا';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'کوئی ریکارڈنگ نہیں';
 
   @override

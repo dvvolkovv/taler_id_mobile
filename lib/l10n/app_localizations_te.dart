@@ -2408,6 +2408,10 @@ class AppLocalizationsTe extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'ట్రాన్స్క్రిప్ట్ సృష్టించబడింది';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'రికార్డింగ్స్ లేవు';
 
   @override

@@ -2409,6 +2409,10 @@ class AppLocalizationsIt extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'Trascrizione creata';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'Nessuna registrazione';
 
   @override
