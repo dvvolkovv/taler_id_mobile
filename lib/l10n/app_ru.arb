@@ -1057,6 +1057,7 @@
   },
   "callHistoryTranscribing": "Транскрибация и суммаризация...",
   "callHistoryTranscriptCreated": "Протокол создан",
+  "callHistoryTranscriptStarted": "Протокол собирается — на длинной встрече это несколько минут",
   "callHistoryNoRecordings": "Нет записей",
   "callHistoryRecordingDate": "Запись {date}",
   "@callHistoryRecordingDate": {

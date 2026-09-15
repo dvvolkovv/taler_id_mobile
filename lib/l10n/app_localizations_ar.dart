@@ -2390,6 +2390,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'تم إنشاء النص';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'لا توجد تسجيلات';
 
   @override

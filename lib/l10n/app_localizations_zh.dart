@@ -2366,6 +2366,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callHistoryTranscriptCreated => '记录已创建';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => '无录音';
 
   @override

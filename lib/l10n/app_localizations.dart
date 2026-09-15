@@ -4666,6 +4666,12 @@ abstract class AppLocalizations {
   /// **'Transcript created'**
   String get callHistoryTranscriptCreated;
 
+  /// No description provided for @callHistoryTranscriptStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Building the transcript — a few minutes for a long meeting'**
+  String get callHistoryTranscriptStarted;
+
   /// No description provided for @callHistoryNoRecordings.
   ///
   /// In en, this message translates to:

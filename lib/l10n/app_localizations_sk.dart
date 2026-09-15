@@ -2402,6 +2402,10 @@ class AppLocalizationsSk extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'Prepis vytvorený';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'Žiadne nahrávky';
 
   @override

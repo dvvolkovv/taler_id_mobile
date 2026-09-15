@@ -1698,6 +1698,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
   double _playbackSpeed = 1.0;
   final List<StreamSubscription> _subs = [];
   bool _transcribing = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
@@ -1719,6 +1720,7 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     for (final s in _subs) s.cancel();
     _player.dispose();
     super.dispose();
@@ -1726,7 +1728,19 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
 
   Future<Map<String, dynamic>> _load() async {
     final data = await sl<DioClient>().get<dynamic>('/voice/call-history/${widget.callId}');
-    return Map<String, dynamic>.from(data as Map);
+    final map = Map<String, dynamic>.from(data as Map);
+    // Протокол собирается в фоне, и экран узнаёт об этом только перечитав
+    // встречу. Список такое уже умеет, а здесь без таймера «Обработка...»
+    // висела бы до ручного возврата назад и обратно.
+    final summary = map['summary'];
+    final processing = summary is Map && summary['status'] == 'processing';
+    _refreshTimer?.cancel();
+    if (processing && mounted) {
+      _refreshTimer = Timer(const Duration(seconds: 15), () {
+        if (mounted) setState(() { _future = _load(); });
+      });
+    }
+    return map;
   }
 
   Future<void> _togglePlay(String url) async {
@@ -1772,8 +1786,15 @@ class _CallDetailScreenState extends State<CallDetailScreen> {
     if (_transcribing) return;
     setState(() { _transcribing = true; });
     try {
+      // 202: принято, но не готово. Перечитываем встречу — она встанет в
+      // processing, и дальше её ведёт таймер в _load().
       await sl<DioClient>().post<dynamic>('/voice/recordings/$summaryId/transcribe');
-      // Reload to show processing state
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.callHistoryTranscriptStarted)),
+        );
+      }
       setState(() { _future = _load(); });
     } catch (e) {
       if (mounted) {
@@ -2711,12 +2732,18 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     if (_transcribingIds.contains(id)) return;
     setState(() => _transcribingIds.add(id));
     try {
+      // Ручка отвечает 202: работа принята, но не сделана — на часовой встрече
+      // она идёт минуты. Здесь раньше говорилось «Протокол создан», хотя ждать
+      // столько всё равно некому: Dio сдаётся через 30 секунд, а балансировщик
+      // рвёт соединение на 60-й, так что сообщение об успехе приходило либо
+      // раньше времени, либо не приходило вовсе. Просто перечитываем список —
+      // строка встанет в processing, дальше её ведёт автообновление в _load().
       await sl<DioClient>().post<dynamic>('/voice/recordings/$id/transcribe');
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(l10n.callHistoryTranscriptCreated),
+            content: Text(l10n.callHistoryTranscriptStarted),
             backgroundColor: AppColors.of(context).primary,
           ),
         );

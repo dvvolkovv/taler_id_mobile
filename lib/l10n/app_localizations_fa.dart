@@ -2396,6 +2396,10 @@ class AppLocalizationsFa extends AppLocalizations {
   String get callHistoryTranscriptCreated => 'متن ایجاد شد';
 
   @override
+  String get callHistoryTranscriptStarted =>
+      'Building the transcript — a few minutes for a long meeting';
+
+  @override
   String get callHistoryNoRecordings => 'بدون ضبط';
 
   @override
