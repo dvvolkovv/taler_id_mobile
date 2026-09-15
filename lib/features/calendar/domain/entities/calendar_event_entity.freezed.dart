@@ -20,7 +20,10 @@ CalendarEventEntity _$CalendarEventEntityFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$CalendarEventEntity {
-  String get id => throw _privateConstructorUsedError;
+  String get id =>
+      throw _privateConstructorUsedError; // Organizer/owner user id (from the server). Null for locally-created or
+// older cached events; used to decide edit permission (own vs invited).
+  String? get userId => throw _privateConstructorUsedError;
   String get title => throw _privateConstructorUsedError;
   String? get description => throw _privateConstructorUsedError;
   CalendarEventType get type => throw _privateConstructorUsedError;
@@ -53,6 +56,7 @@ abstract class $CalendarEventEntityCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
+      String? userId,
       String title,
       String? description,
       CalendarEventType type,
@@ -85,6 +89,7 @@ class _$CalendarEventEntityCopyWithImpl<$Res, $Val extends CalendarEventEntity>
   @override
   $Res call({
     Object? id = null,
+    Object? userId = freezed,
     Object? title = null,
     Object? description = freezed,
     Object? type = null,
@@ -107,6 +112,10 @@ class _$CalendarEventEntityCopyWithImpl<$Res, $Val extends CalendarEventEntity>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      userId: freezed == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String?,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -185,6 +194,7 @@ abstract class _$$CalendarEventEntityImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
+      String? userId,
       String title,
       String? description,
       CalendarEventType type,
@@ -215,6 +225,7 @@ class __$$CalendarEventEntityImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? id = null,
+    Object? userId = freezed,
     Object? title = null,
     Object? description = freezed,
     Object? type = null,
@@ -237,6 +248,10 @@ class __$$CalendarEventEntityImplCopyWithImpl<$Res>
           ? _value.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
+      userId: freezed == userId
+          ? _value.userId
+          : userId // ignore: cast_nullable_to_non_nullable
+              as String?,
       title: null == title
           ? _value.title
           : title // ignore: cast_nullable_to_non_nullable
@@ -310,6 +325,7 @@ class __$$CalendarEventEntityImplCopyWithImpl<$Res>
 class _$CalendarEventEntityImpl implements _CalendarEventEntity {
   const _$CalendarEventEntityImpl(
       {required this.id,
+      this.userId,
       required this.title,
       this.description,
       this.type = CalendarEventType.event,
@@ -335,6 +351,10 @@ class _$CalendarEventEntityImpl implements _CalendarEventEntity {
 
   @override
   final String id;
+// Organizer/owner user id (from the server). Null for locally-created or
+// older cached events; used to decide edit permission (own vs invited).
+  @override
+  final String? userId;
   @override
   final String title;
   @override
@@ -397,7 +417,7 @@ class _$CalendarEventEntityImpl implements _CalendarEventEntity {
 
   @override
   String toString() {
-    return 'CalendarEventEntity(id: $id, title: $title, description: $description, type: $type, startAt: $startAt, endAt: $endAt, allDay: $allDay, reminderAt: $reminderAt, reminderSent: $reminderSent, displayTime: $displayTime, recurrence: $recurrence, contactIds: $contactIds, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, localPending: $localPending, conflictedWith: $conflictedWith)';
+    return 'CalendarEventEntity(id: $id, userId: $userId, title: $title, description: $description, type: $type, startAt: $startAt, endAt: $endAt, allDay: $allDay, reminderAt: $reminderAt, reminderSent: $reminderSent, displayTime: $displayTime, recurrence: $recurrence, contactIds: $contactIds, createdBy: $createdBy, createdAt: $createdAt, updatedAt: $updatedAt, localPending: $localPending, conflictedWith: $conflictedWith)';
   }
 
   @override
@@ -406,6 +426,7 @@ class _$CalendarEventEntityImpl implements _CalendarEventEntity {
         (other.runtimeType == runtimeType &&
             other is _$CalendarEventEntityImpl &&
             (identical(other.id, id) || other.id == id) &&
+            (identical(other.userId, userId) || other.userId == userId) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.description, description) ||
                 other.description == description) &&
@@ -440,6 +461,7 @@ class _$CalendarEventEntityImpl implements _CalendarEventEntity {
   int get hashCode => Object.hash(
       runtimeType,
       id,
+      userId,
       title,
       description,
       type,
@@ -475,6 +497,7 @@ class _$CalendarEventEntityImpl implements _CalendarEventEntity {
 abstract class _CalendarEventEntity implements CalendarEventEntity {
   const factory _CalendarEventEntity(
       {required final String id,
+      final String? userId,
       required final String title,
       final String? description,
       final CalendarEventType type,
@@ -497,6 +520,9 @@ abstract class _CalendarEventEntity implements CalendarEventEntity {
 
   @override
   String get id;
+  @override // Organizer/owner user id (from the server). Null for locally-created or
+// older cached events; used to decide edit permission (own vs invited).
+  String? get userId;
   @override
   String get title;
   @override
