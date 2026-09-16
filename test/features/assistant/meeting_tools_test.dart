@@ -179,6 +179,20 @@ void main() {
       expect(out['transcriptTruncated'], isTrue);
     });
 
+    test('flags a recap that is still being built', () async {
+      // Transcription is asynchronous since the endpoint started answering 202:
+      // the row exists with status=processing and an empty summary. Without a
+      // flag the assistant reads that as "the meeting had nothing in it".
+      stubMeeting({'status': 'processing', 'summary': '', 'transcript': ''});
+
+      final out = jsonDecode(await executor()
+          .execute('get_meeting_summary', {'meetingId': 'm-1'})) as Map;
+
+      expect(out['status'], 'processing');
+      expect(out['recapPending'], isTrue);
+      expect(out.containsKey('recordingFailed'), isFalse);
+    });
+
     test('says plainly when the recording produced nothing', () async {
       // The row exists precisely so the user learns the recording failed;
       // handing the assistant an empty recap would make it invent a reason.
@@ -197,9 +211,13 @@ void main() {
   });
 
   group('transcribe_meeting', () {
-    test('kicks off transcription for a recording that has none', () async {
+    // The backend answers 202 and does the work in the background — an hour of
+    // meeting takes minutes, longer than the mobile client or the load balancer
+    // will hold a request. So the tool starts the job; the recap is picked up
+    // later through get_meeting_summary.
+    test('starts the job and reports that it is running', () async {
       when(() => client.post<dynamic>(any(), data: any(named: 'data')))
-          .thenAnswer((_) async => {'id': 'm-1', 'status': 'done'});
+          .thenAnswer((_) async => {'id': 'm-1', 'status': 'processing'});
 
       final out = jsonDecode(
           await executor().execute('transcribe_meeting', {'meetingId': 'm-1'})) as Map;
@@ -209,7 +227,21 @@ void main() {
           .captured
           .single as String;
       expect(path, '/voice/recordings/m-1/transcribe');
-      expect(out['status'], 'done');
+      expect(out['status'], 'processing');
+      expect(out['started'], isTrue);
+    });
+
+    test('passes through that a run was already in flight', () async {
+      // Asking twice must not read as two transcriptions — or as a failure.
+      when(() => client.post<dynamic>(any(), data: any(named: 'data')))
+          .thenAnswer((_) async =>
+              {'id': 'm-1', 'status': 'processing', 'alreadyRunning': true});
+
+      final out = jsonDecode(
+          await executor().execute('transcribe_meeting', {'meetingId': 'm-1'})) as Map;
+
+      expect(out['alreadyRunning'], isTrue);
+      expect(out['started'], isTrue);
     });
   });
 }

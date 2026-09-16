@@ -505,7 +505,7 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
             'type': 'function',
             'name': 'transcribe_meeting',
             'description':
-                'Transcribe a meeting recording that has no recap yet (get_meetings shows it without a summary) and build the recap. Costs the user balance, so say so and take an explicit yes before calling. Takes a while on long meetings.',
+                'Start transcribing a meeting recording that has no recap yet (get_meetings shows it without a summary). Costs the user balance, so say so and take an explicit yes before calling. Returns immediately: the work runs in the background and an hour of meeting takes minutes. Tell the user it started, do not call it again to check — read the result later with get_meeting_summary (recapPending=true means still running).',
             'parameters': {
               'type': 'object',
               'properties': {

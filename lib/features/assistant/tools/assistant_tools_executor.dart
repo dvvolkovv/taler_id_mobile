@@ -523,8 +523,12 @@ class AssistantToolsExecutor {
           'durationSec': meeting['durationSec'],
           'createdAt': meeting['createdAt'],
           'hasTranscript': transcript.isNotEmpty,
-          // The row exists precisely so the user learns the recording failed —
-          // without this the assistant reads an empty recap and invents a reason.
+          // An empty recap has two very different reasons, and on its own it
+          // invites the assistant to invent a third. `processing` means the
+          // transcription is still running (the endpoint answers 202 and works
+          // in the background); `failed` means the row exists precisely so the
+          // user learns the recording produced nothing.
+          if (status == 'processing') 'recapPending': true,
           if (status.startsWith('failed')) 'recordingFailed': true,
           if (wantsTranscript && transcript.isNotEmpty) ...{
             'transcript': transcript.length > transcriptCap
@@ -534,10 +538,18 @@ class AssistantToolsExecutor {
           },
         });
       } else if (name == 'transcribe_meeting') {
+        // The backend accepts the job and returns at once — an hour of meeting
+        // takes minutes to transcribe, longer than this client or the load
+        // balancer will hold a request. Nothing to wait for here: the recap is
+        // collected later through get_meeting_summary.
         final data = await client.post<dynamic>(
           '/voice/recordings/${args['meetingId']}/transcribe',
         );
-        output = jsonEncode(data);
+        final accepted = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+        output = jsonEncode({
+          ...accepted,
+          'started': true,
+        });
       } else if (name == 'get_sessions') {
         final data = await client.get<List<dynamic>>(
           '/auth/sessions',
