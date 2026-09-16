@@ -37,6 +37,7 @@ import '../../data/room_chat_api.dart';
 import '../../domain/room_chat_text.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_chat_lines.dart';
+import '../controllers/recording_dialect.dart';
 import '../controllers/room_data_packet_ids.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
@@ -139,6 +140,22 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   bool _recordingApproved = false;
   bool _consentDialogShowing = false;  // prevent duplicate dialogs
   bool _consentForTranscription = false; // true = consent is for protocol, false = for recording
+
+  /// Идёт ли в комнате запись — с точки зрения того, кто на неё смотрит, а не
+  /// того, кто её начал.
+  ///
+  /// [_isRecording] поднимается только у инициатора, поэтому у остальных
+  /// индикатор не загорался вовсе: ни для записи, начатой из веба, ни для
+  /// начатой с другого телефона. Рекордер при этом входит в комнату обычным
+  /// участником, и его присутствие — признак, не зависящий ни от диалекта
+  /// пакетов, ни от того, дошёл ли до нас пакет о старте.
+  ///
+  /// Протокол встречи поднимает того же рекордера, но он не запись, и цвет у
+  /// него свой — поэтому исключён.
+  bool get _recordingInRoom =>
+      _isRecording ||
+      (!_transcriptionActive &&
+          _participants.any((p) => p.identity == 'meeting-recorder'));
 
   // ── Hold state ──
   bool _onHold = false;
@@ -1213,7 +1230,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           // If consent is pending, add new participant and send request ONLY to them
           if (_consentPending && _recordingInitiatorId == localId) {
             _consentResponses[newId] = _ConsentEntry(event.participant.name ?? AppLocalizations.of(context)!.voiceParticipant);
-            _sendDataTo([newId], {
+            _sendRecordingDataTo([newId], {
               'type': 'recording_consent_request',
               'initiatorId': _recordingInitiatorId,
               'initiatorName': _recordingInitiatorName,
@@ -1225,7 +1242,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             _consentResponses.clear(); // clear old entries — only track new participant
             _consentResponses[newId] = _ConsentEntry(event.participant.name ?? AppLocalizations.of(context)!.voiceParticipant);
             setState(() => _consentPending = true);
-            _sendDataTo([newId], {
+            _sendRecordingDataTo([newId], {
               'type': 'recording_consent_request',
               'initiatorId': _recordingInitiatorId,
               'initiatorName': _recordingInitiatorName,
@@ -2536,7 +2553,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       } else {
         _startRecording();
       }
-      _broadcastData({'type': 'recording_approved', 'initiatorId': localId, 'initiatorName': localName, 'forTranscription': _consentForTranscription});
+      _broadcastRecordingData({'type': 'recording_approved', 'initiatorId': localId, 'initiatorName': localName, 'forTranscription': _consentForTranscription});
       return;
     }
 
@@ -2564,7 +2581,7 @@ Answer briefly — the user is in the middle of a conversation.''';
         final anyPending = _consentResponses.values.any((e) => e.accepted == null);
         if (!anyPending && i > 0) return; // all responded — stop retrying
         debugPrint('[VoiceCall] Sending consent request attempt ${i + 1}/4 forTranscription=$_consentForTranscription');
-        _broadcastData({
+        _broadcastRecordingData({
           'type': 'recording_consent_request',
           'initiatorId': initiatorId,
           'initiatorName': initiatorName,
@@ -2635,7 +2652,14 @@ Answer briefly — the user is in the middle of a conversation.''';
       final msgId = rawMsgId is String ? rawMsgId : null;
       if (msgId != null && _packetIds.isDuplicate(msgId)) return;
 
-      switch (type) {
+      // Пакеты серверной записи приходят в двух диалектах: родной srv_rec_* и
+      // дублёр recording_* с пометкой — его шлют для сборок, которые родного
+      // не знают. Родной разбираем ниже, дублёр пропускаем, иначе одно
+      // согласие обработается дважды. Подробности — в RecordingDialect.
+      if (RecordingDialect.isTwin(msg)) return;
+      final routedType = RecordingDialect.legacyTypeFor(type) ?? type;
+
+      switch (routedType) {
         case 'recording_consent_request':
           _onConsentRequest(participant, msg);
           break;
@@ -2707,6 +2731,9 @@ Answer briefly — the user is in the middle of a conversation.''';
       if (_isRecording && _recordingApproved) {
         setState(() => _consentPending = false);
         _consentResponses.remove(identity);
+        // Прежним диалектом и без дублёра намеренно: пакета про уход
+        // отказавшегося от уже идущей записи в веб-семействе нет вовсе,
+        // поднимать и дублировать нечего.
         _broadcastData({
           'type': 'recording_denied_late',
           'initiatorId': localId,
@@ -2716,7 +2743,7 @@ Answer briefly — the user is in the middle of a conversation.''';
         return;
       }
       setState(() => _consentPending = false);
-      _broadcastData({'type': 'recording_denied', 'initiatorId': localId, 'declinedBy': responderName});
+      _broadcastRecordingData({'type': 'recording_denied', 'initiatorId': localId, 'declinedBy': responderName});
       _showSnack('$responderName отклонил запись');
       _resetRecordingState();
       return;
@@ -2747,7 +2774,7 @@ Answer briefly — the user is in the middle of a conversation.''';
       } else {
         _showSnack(l10n.voiceNewParticipantAgreed);
       }
-      _broadcastData({
+      _broadcastRecordingData({
         'type': 'recording_approved',
         'initiatorId': _recordingInitiatorId,
         'initiatorName': _recordingInitiatorName,
@@ -2818,7 +2845,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     final localId = _room?.localParticipant?.identity;
     if (_recordingInitiatorId != localId) return;
     if (_isRecording || _transcriptionActive) _stopRecording();
-    _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
+    _broadcastRecordingData({'type': 'recording_ended', 'initiatorId': localId});
     _resetRecordingState();
   }
 
@@ -2956,7 +2983,7 @@ Answer briefly — the user is in the middle of a conversation.''';
   void _respondToConsent(bool accepted) {
     final localId = _room?.localParticipant?.identity;
     final localName = _room?.localParticipant?.name ?? AppLocalizations.of(context)!.voiceParticipant;
-    _broadcastData({
+    _broadcastRecordingData({
       'type': 'recording_consent_response',
       'accepted': accepted,
       'responderId': localId,
@@ -3177,6 +3204,42 @@ Answer briefly — the user is in the middle of a conversation.''';
   void _toggleChat() {
     _chat.setOpen(!_chat.isOpen);
     setState(() {});
+  }
+
+  /// Поднять тип пакета записи до родного диалекта серверной записи.
+  ///
+  /// Места вызова по-прежнему пишут прежний тип (`recording_*`) — так меньше
+  /// шансов разойтись с обработчиками, которые на нём и построены. Подмена
+  /// происходит здесь: своя запись у приложения серверная, поэтому веб должен
+  /// увидеть её родным семейством и нарисовать диалог про запись на сервер, а
+  /// не про запись в браузер. Протокол встречи родного семейства не имеет и
+  /// остаётся как есть.
+  void _upgradeRecordingType(Map<String, dynamic> msg) {
+    if (_consentForTranscription) return;
+    final legacy = msg['type'];
+    if (legacy is! String) return;
+    final native = RecordingDialect.serverTypeFor(legacy);
+    if (native != null) msg['type'] = native;
+  }
+
+  /// Разослать пакет записи в обоих диалектах: родном и дублёре для сборок,
+  /// которые родного не знают. Дублёр собирается ДО отправки оригинала —
+  /// [_broadcastData] проставляет msgId прямо в переданную карту, и копия,
+  /// снятая после, унесла бы тот же идентификатор; сосед отбросил бы её как
+  /// повтор, и дублировать было бы незачем.
+  void _broadcastRecordingData(Map<String, dynamic> msg) {
+    _upgradeRecordingType(msg);
+    final twin = RecordingDialect.twinFor(msg);
+    _broadcastData(msg);
+    if (twin != null) _broadcastData(twin);
+  }
+
+  /// То же, но конкретным участникам — для позднего гостя.
+  void _sendRecordingDataTo(List<String> identities, Map<String, dynamic> msg) {
+    _upgradeRecordingType(msg);
+    final twin = RecordingDialect.twinFor(msg);
+    _sendDataTo(identities, msg);
+    if (twin != null) _sendDataTo(identities, twin);
   }
 
   /// Send data to specific participants only (not broadcast)
@@ -3576,10 +3639,10 @@ Answer briefly — the user is in the middle of a conversation.''';
     // Stop recording/transcription on server BEFORE disconnecting
     final localId = _room?.localParticipant?.identity;
     if (_recordingInitiatorId == localId && (_isRecording || _transcriptionActive)) {
-      _broadcastData({'type': 'recording_ended', 'initiatorId': localId});
+      _broadcastRecordingData({'type': 'recording_ended', 'initiatorId': localId});
       await _stopRecording();
     } else if (_recordingInitiatorId == localId && _consentPending) {
-      _broadcastData({'type': 'recording_denied', 'initiatorId': localId});
+      _broadcastRecordingData({'type': 'recording_denied', 'initiatorId': localId});
     }
     // Disable microphone first to release audio track
     try {
@@ -4682,7 +4745,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                 width: 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: (_isRecording || (_consentPending && !_consentForTranscription)) ? Colors.red
+                  color: (_recordingInRoom || (_consentPending && !_consentForTranscription)) ? Colors.red
                       : (_transcriptionActive || (_consentPending && _consentForTranscription)) ? const Color(0xFF10B981)
                       : Colors.green,
                   shape: BoxShape.circle,
@@ -4697,7 +4760,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              if (_isRecording || (_consentPending && !_consentForTranscription)) ...[
+              if (_recordingInRoom || (_consentPending && !_consentForTranscription)) ...[
                 const SizedBox(width: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
