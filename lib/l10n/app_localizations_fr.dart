@@ -2393,6 +2393,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get callHistoryProcessing => 'Traitement...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Créer un transcript';
 
   @override

@@ -2383,6 +2383,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get callHistoryProcessing => 'Обработка...';
 
   @override
+  String get callHistoryRecordingFailed => 'Запись не удалась';
+
+  @override
   String get callHistoryCreateTranscript => 'Создать протокол';
 
   @override

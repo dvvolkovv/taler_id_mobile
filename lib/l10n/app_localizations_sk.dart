@@ -2382,6 +2382,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get callHistoryProcessing => 'Spracovávanie...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Vytvoriť prepis';
 
   @override

@@ -2382,6 +2382,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get callHistoryProcessing => 'تیار ہو رہا ہے...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'ٹرانسکرپٹ بنائیں';
 
   @override

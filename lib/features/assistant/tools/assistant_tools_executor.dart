@@ -491,6 +491,53 @@ class AssistantToolsExecutor {
           fromJson: (d) => d,
         );
         output = jsonEncode(data);
+      } else if (name == 'get_meetings') {
+        final limit = args['limit'] as int? ?? 20;
+        final data = await client.get<dynamic>(
+          '/voice/meetings?page=0&limit=$limit',
+          fromJson: (d) => d,
+        );
+        output = jsonEncode(data);
+      } else if (name == 'get_meeting_summary') {
+        final data = await client.get<dynamic>(
+          '/voice/meetings/${args['meetingId']}',
+          fromJson: (d) => d,
+        );
+        final meeting = Map<String, dynamic>.from(data as Map);
+        final transcript = meeting['transcript'] as String? ?? '';
+        final status = meeting['status'] as String? ?? 'done';
+        // A 56-minute meeting transcribes to ~50 000 characters. Handing that
+        // back as a tool result costs more than the recap it came from and
+        // pushes everything else out of the session's context, so the words
+        // come only when asked for, and capped.
+        const transcriptCap = 8000;
+        final wantsTranscript = args['includeTranscript'] == true;
+        output = jsonEncode({
+          'id': meeting['id'],
+          'status': status,
+          'summary': meeting['summary'] ?? '',
+          'keyPoints': meeting['keyPoints'] ?? [],
+          'actionItems': meeting['actionItems'] ?? [],
+          'decisions': meeting['decisions'] ?? [],
+          'participants': meeting['participants'] ?? [],
+          'durationSec': meeting['durationSec'],
+          'createdAt': meeting['createdAt'],
+          'hasTranscript': transcript.isNotEmpty,
+          // The row exists precisely so the user learns the recording failed —
+          // without this the assistant reads an empty recap and invents a reason.
+          if (status.startsWith('failed')) 'recordingFailed': true,
+          if (wantsTranscript && transcript.isNotEmpty) ...{
+            'transcript': transcript.length > transcriptCap
+                ? transcript.substring(0, transcriptCap)
+                : transcript,
+            'transcriptTruncated': transcript.length > transcriptCap,
+          },
+        });
+      } else if (name == 'transcribe_meeting') {
+        final data = await client.post<dynamic>(
+          '/voice/recordings/${args['meetingId']}/transcribe',
+        );
+        output = jsonEncode(data);
       } else if (name == 'get_sessions') {
         final data = await client.get<List<dynamic>>(
           '/auth/sessions',

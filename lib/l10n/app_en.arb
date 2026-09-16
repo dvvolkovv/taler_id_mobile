@@ -1044,6 +1044,7 @@
   "callHistorySummaryProcessing": "Summary processing...",
   "callHistoryMeetingRecording": "Meeting recording",
   "callHistoryProcessing": "Processing...",
+  "callHistoryRecordingFailed": "Recording failed",
   "callHistoryCreateTranscript": "Create transcript",
   "callHistoryNoSummaries": "No summaries",
   "callHistoryRecordDuringCall": "Press \"Record\" during a call",

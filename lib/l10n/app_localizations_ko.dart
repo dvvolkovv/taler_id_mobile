@@ -2352,6 +2352,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get callHistoryProcessing => '처리 중...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => '기록 생성';
 
   @override

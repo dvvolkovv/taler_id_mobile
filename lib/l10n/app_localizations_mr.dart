@@ -2378,6 +2378,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get callHistoryProcessing => 'प्रक्रिया...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'प्रतिलिपी तयार करा';
 
   @override

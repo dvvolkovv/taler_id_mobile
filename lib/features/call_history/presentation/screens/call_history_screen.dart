@@ -2356,7 +2356,9 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
     final createdAt = (DateTime.tryParse(item['createdAt'] as String? ?? '') ?? DateTime.now()).toLocal();
     final timeStr = '${createdAt.day}.${createdAt.month.toString().padLeft(2, '0')} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
     final durationStr = durationSec != null ? '${durationSec ~/ 60} мин' : '';
-    final isProcessing = item['status'] == 'processing';
+    final cardState = meetingCardState(item['status'] as String?);
+    final isProcessing = cardState == MeetingCardState.processing;
+    final hasFailed = cardState == MeetingCardState.failed;
 
     return GestureDetector(
       onTap: isProcessing ? null : () => Navigator.of(context).push(
@@ -2373,19 +2375,26 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                   height: 28,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                    gradient: LinearGradient(
+                      colors: hasFailed
+                          ? const [Color(0xFFF59E0B), Color(0xFFD97706)]
+                          : const [Color(0xFFA855F7), Color(0xFF7C3AED)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFA855F7).withOpacity(0.45),
+                        color: (hasFailed ? const Color(0xFFF59E0B) : const Color(0xFFA855F7))
+                            .withOpacity(0.45),
                         blurRadius: 6,
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.smart_toy_rounded, size: 16, color: Colors.white),
+                  child: Icon(
+                    hasFailed ? Icons.mic_off_rounded : Icons.smart_toy_rounded,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -2403,6 +2412,14 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(l10n.callHistoryProcessing, style: TextStyle(color: colors.primary, fontSize: 12)),
+                ] else if (hasFailed) ...[
+                  const SizedBox(width: 8),
+                  const Icon(Icons.error_outline_rounded, size: 14, color: Color(0xFFF59E0B)),
+                  const SizedBox(width: 6),
+                  Text(
+                    l10n.callHistoryRecordingFailed,
+                    style: const TextStyle(color: Color(0xFFF59E0B), fontSize: 12),
+                  ),
                 ],
               ],
             ),
@@ -3149,4 +3166,19 @@ class ParticipantTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How a meeting card should read, derived from the recap's status.
+enum MeetingCardState { processing, failed, ready }
+
+/// `failed_no_audio` (recorder heard nobody) and `failed` (transcription died)
+/// both mean there is no recap to show — the row exists so the user learns that
+/// rather than wondering where the meeting went. Anything unrecognised, including
+/// legacy rows with no status at all, stays an ordinary meeting.
+MeetingCardState meetingCardState(String? status) {
+  if (status == 'processing') return MeetingCardState.processing;
+  if (status == 'failed' || status == 'failed_no_audio') {
+    return MeetingCardState.failed;
+  }
+  return MeetingCardState.ready;
 }
