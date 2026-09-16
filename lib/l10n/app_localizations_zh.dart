@@ -2346,6 +2346,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callHistoryProcessing => '处理中...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => '创建记录';
 
   @override

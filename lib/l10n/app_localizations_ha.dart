@@ -2377,6 +2377,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get callHistoryProcessing => 'Ana sarrafawa...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Ƙirƙiri rubutun magana';
 
   @override

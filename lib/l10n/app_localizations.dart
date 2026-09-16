@@ -4630,6 +4630,12 @@ abstract class AppLocalizations {
   /// **'Processing...'**
   String get callHistoryProcessing;
 
+  /// No description provided for @callHistoryRecordingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording failed'**
+  String get callHistoryRecordingFailed;
+
   /// No description provided for @callHistoryCreateTranscript.
   ///
   /// In en, this message translates to:

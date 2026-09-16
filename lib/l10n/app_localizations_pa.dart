@@ -2379,6 +2379,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get callHistoryProcessing => 'ਪ੍ਰਕਿਰਿਆ...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'ਟ੍ਰਾਂਸਕ੍ਰਿਪਟ ਬਣਾਓ';
 
   @override

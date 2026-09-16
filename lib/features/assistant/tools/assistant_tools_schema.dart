@@ -474,6 +474,48 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'get_meetings',
+            'description':
+                'List recorded meetings with their recaps (the "Резюме встреч" list): date, participants, duration, short summary, status. Use for "какие были встречи", "что было на встрече вчера", "покажи мои совещания".',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'limit': {'type': 'integer', 'description': 'How many meetings to return (default 20)'},
+              },
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'get_meeting_summary',
+            'description':
+                'Full recap of ONE meeting: summary, key points, decisions, action items with assignees, participants. Get meetingId from get_meetings first. Ask for includeTranscript only when the user wants the actual words ("что именно сказал Владимир", "зачитай кусок") — the transcript is long and is truncated.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'meetingId': {'type': 'string', 'description': 'Meeting id from get_meetings'},
+                'includeTranscript': {
+                  'type': 'boolean',
+                  'description': 'Also return the transcript with speaker names (truncated). Default false.',
+                },
+              },
+              'required': ['meetingId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'transcribe_meeting',
+            'description':
+                'Start transcribing a meeting recording that has no recap yet (get_meetings shows it without a summary). Costs the user balance, so say so and take an explicit yes before calling. Returns immediately: the work runs in the background and an hour of meeting takes minutes. Tell the user it started, do not call it again to check — read the result later with get_meeting_summary (recapPending=true means still running).',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'meetingId': {'type': 'string', 'description': 'Meeting id from get_meetings'},
+              },
+              'required': ['meetingId'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'get_sessions',
             'description': 'Get list of active user sessions (devices logged in). Returns device, IP, last activity.',
             'parameters': {'type': 'object', 'properties': {}},

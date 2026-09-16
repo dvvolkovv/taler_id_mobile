@@ -2374,6 +2374,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get callHistoryProcessing => 'Đang xử lý...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Tạo bản ghi';
 
   @override

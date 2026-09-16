@@ -2381,6 +2381,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get callHistoryProcessing => 'İşleniyor...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Transkript oluştur';
 
   @override

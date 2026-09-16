@@ -2350,6 +2350,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get callHistoryProcessing => '処理中...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => '文字起こしを作成';
 
   @override

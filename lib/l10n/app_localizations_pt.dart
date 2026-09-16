@@ -2384,6 +2384,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get callHistoryProcessing => 'Processando...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Criar transcrição';
 
   @override

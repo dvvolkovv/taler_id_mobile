@@ -2380,6 +2380,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get callHistoryProcessing => 'Memproses...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'Buat transkrip';
 
   @override

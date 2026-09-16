@@ -1044,6 +1044,7 @@
   "callHistorySummaryProcessing": "Резюме обрабатывается...",
   "callHistoryMeetingRecording": "Запись встречи",
   "callHistoryProcessing": "Обработка...",
+  "callHistoryRecordingFailed": "Запись не удалась",
   "callHistoryCreateTranscript": "Создать протокол",
   "callHistoryNoSummaries": "Нет резюме",
   "callHistoryRecordDuringCall": "Нажмите \"Запись\" во время звонка",

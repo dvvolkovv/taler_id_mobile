@@ -2370,6 +2370,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get callHistoryProcessing => 'جاري المعالجة...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'إنشاء نص';
 
   @override

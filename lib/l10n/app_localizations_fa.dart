@@ -2376,6 +2376,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get callHistoryProcessing => 'در حال پردازش...';
 
   @override
+  String get callHistoryRecordingFailed => 'Recording failed';
+
+  @override
   String get callHistoryCreateTranscript => 'ایجاد متن';
 
   @override
