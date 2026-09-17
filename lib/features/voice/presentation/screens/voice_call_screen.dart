@@ -605,6 +605,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _playInterruptionBeeps();
     } else if (call.method == 'audioResumed') {
       await _restoreAudioAfterInterruption();
+    } else if (call.method == 'audioDucked') {
+      // The system only turned us down — an incoming call ringing in the
+      // background, typically. The conversation is intact, so it gets the
+      // signal and nothing else: no recovery, no mic flip, no resubscribe.
+      _playInterruptionBeeps();
+    } else if (call.method == 'audioUnducked') {
+      // Nothing was torn down, so nothing needs rebuilding. Re-assert the
+      // route only, in case something else moved it while we were quiet.
+      if (mounted && !_navigatedAway) {
+        await _applyAudioOutput(_audioOutputType);
+      }
     }
     return null;
   }
@@ -720,14 +731,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     debugPrint('[VoiceCall] _restoreAudioAfterInterruption: complete');
   }
 
+  /// Two signals, the way call waiting does it — enough to notice someone is
+  /// trying to reach you, short enough not to take the conversation over
+  /// (asked for in those words, 2026-09-16).
   Future<void> _playInterruptionBeeps() async {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
       if (!mounted) return;
       try {
         await _playRingTone(0.7);
         await Future.delayed(const Duration(milliseconds: 180));
         await _stopRingTone();
-        if (i < 2) await Future.delayed(const Duration(milliseconds: 350));
+        if (i < 1) await Future.delayed(const Duration(milliseconds: 350));
       } catch (_) {}
     }
   }
