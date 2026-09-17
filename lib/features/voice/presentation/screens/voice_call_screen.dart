@@ -1988,6 +1988,8 @@ $participantsStr
 
 У комнаты есть текстовый чат, его видят все участники звонка. Если пользователь просит «напиши в чат», «скинь им …», «продиктуй в чат» — вызови send_room_chat с текстом. Он для того, что лучше написать, чем произнести: ссылки, адреса, номера, коды, суммы. До $kRoomChatMaxLength символов; чат живёт только пока идёт звонок.
 
+В звонке есть живой перевод. Если пользователь называет пару языков — «переводи с русского на немецкий», «включи перевод, он говорит по-английски» — вызови set_translation: hear_lang это язык, на котором пользователь хочет слышать остальных, speak_lang — на каком его собственную речь услышит собеседник. Хватает того, что пару назвал один человек; собеседнику ничего настраивать не нужно. Если названа только одна сторона — переспроси вторую, не догадывайся.
+
 Отвечай коротко — пользователь в разгаре разговора.''';
     }
 
@@ -2003,6 +2005,8 @@ If the user asks to add someone to the call:
 4. If not found in conversations — call search_contacts and retry
 
 The room has a text chat that every participant of the call sees. If the user asks to "write it in the chat", "send them …", "put that in the chat" — call send_room_chat with the text. It is for things better written than spoken: links, addresses, phone numbers, codes, amounts. Up to $kRoomChatMaxLength characters; the chat only lives while the call does.
+
+The call has live translation. If the user names a pair of languages — "translate between Russian and German", "turn on translation, he speaks English" — call set_translation: hear_lang is the language the user wants to hear everyone else in, speak_lang is what the other side hears the user's own speech in. One person naming the pair is enough; the other side does not have to set anything. If only one side is named, ask for the other rather than guessing.
 
 Answer briefly — the user is in the middle of a conversation.''';
   }
@@ -2052,6 +2056,26 @@ Answer briefly — the user is in the middle of a conversation.''';
                 'name': {'type': 'string', 'description': 'Name of the person being invited'},
               },
               'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'set_translation',
+            'description':
+                'Turn on live translation for this call between two languages. Call when someone says "переводи с русского на немецкий", "translate between English and German", "включи перевод и обратно". hear_lang is the language THIS user wants to hear everyone else in; speak_lang is what this user\'s own speech is rendered into for the other side. Both ISO 639-1. One person naming the pair is enough — the other side does not have to set anything.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'hear_lang': {
+                  'type': 'string',
+                  'description': 'ISO 639-1 code this user wants to hear, e.g. "ru"',
+                },
+                'speak_lang': {
+                  'type': 'string',
+                  'description': "ISO 639-1 code the other side should hear, e.g. \"de\"",
+                },
+              },
+              'required': ['hear_lang', 'speak_lang'],
             },
           },
           {
@@ -2243,6 +2267,11 @@ Answer briefly — the user is in the middle of a conversation.''';
         } else {
           output = jsonEncode({'ok': false, 'message': AppLocalizations.of(context)!.voiceNoActiveRoom});
         }
+      } else if (name == 'set_translation') {
+        final hear = (args['hear_lang'] as String? ?? '').toLowerCase();
+        final speak = (args['speak_lang'] as String? ?? '').toLowerCase();
+        debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
+        output = jsonEncode(await _setTranslationPair(hear, speak));
       } else if (name == 'send_room_chat') {
         // Использует тот же `_sendChatMessage`, что и панель чата человека —
         // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
@@ -4020,17 +4049,67 @@ Answer briefly — the user is in the middle of a conversation.''';
     return _translationLangs.containsKey(locale) ? locale : 'ru';
   }
 
-  Future<void> _setServerLang(String roomName, String lang) async {
+  /// `lang` is what I want to hear. `speakTo`, when given, is the other half of
+  /// a pair — what MY speech is rendered into. Without it the translator only
+  /// works in one direction until the other side declares a language too, which
+  /// is not what someone switching it on for a conversation expects.
+  Future<void> _setServerLang(String roomName, String lang,
+      {String? speakTo}) async {
     try {
       final client = sl<DioClient>();
       await client.post(
         '/voice/rooms/$roomName/set-lang',
-        data: {'lang': lang, 'sourceLang': _sourceLang},
+        data: {
+          'lang': lang,
+          'sourceLang': _sourceLang,
+          if (speakTo != null && speakTo.isNotEmpty) 'speakTo': speakTo,
+        },
         fromJson: (d) => d,
       );
     } catch (e) {
       debugPrint('[Translation] Failed to set server lang: $e');
     }
+  }
+
+  /// Turns the in-call translator on for a named pair of languages, spoken
+  /// aloud to the assistant ("переводи с русского на немецкий"). Returns a
+  /// short verdict for the model to read back.
+  Future<Map<String, dynamic>> _setTranslationPair(
+      String hearLang, String speakLang) async {
+    final roomName = _roomName;
+    if (roomName == null) {
+      return {'ok': false, 'message': 'No active call room.'};
+    }
+    if (!_translationLangs.containsKey(hearLang) ||
+        !_translationLangs.containsKey(speakLang)) {
+      return {'ok': false, 'message': 'Unsupported language code.'};
+    }
+    if (mounted) {
+      setState(() {
+        _preferredLang = hearLang;
+        _translationEnabled = true;
+        _translationActive = true;
+      });
+    }
+    await _startServerTranslator();
+    await _setServerLang(roomName, hearLang, speakTo: speakLang);
+    _updateTranslationTrackSubscription();
+    _applyRemoteVolumes();
+    // The translation track is published only once the server has built the
+    // session for it, which does not happen by the time this returns.
+    for (final delay in [500, 1500, 3000, 5000]) {
+      Future.delayed(Duration(milliseconds: delay), () {
+        if (mounted && _preferredLang == hearLang) {
+          _updateTranslationTrackSubscription();
+        }
+      });
+    }
+    return {
+      'ok': true,
+      'hear': hearLang,
+      'speak': speakLang,
+      'message': 'Translator on: you hear $hearLang, they hear $speakLang.',
+    };
   }
 
   Future<void> _setPreferredLang(String lang) async {
