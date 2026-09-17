@@ -592,6 +592,7 @@
   "voiceAudioOutput": "Аудиовыход",
   "voiceAudioPhone": "Телефон",
   "voiceAudioSpeaker": "Динамик",
+  "voicePeerVolume": "Громкость собеседника",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "Наушники",
   "voiceLinkCopied": "Ссылка скопирована",

@@ -1362,6 +1362,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceAudioSpeaker => '扬声器';
 
   @override
+  String get voicePeerVolume => '对方音量';
+
+  @override
   String get voiceAudioBluetooth => '蓝牙';
 
   @override

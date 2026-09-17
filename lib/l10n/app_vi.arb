@@ -415,6 +415,7 @@
   "voiceAudioOutput": "Đầu ra âm thanh",
   "voiceAudioPhone": "Điện thoại",
   "voiceAudioSpeaker": "Loa",
+  "voicePeerVolume": "Âm lượng người gọi",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "Tai nghe",
   "voiceLinkCopied": "Đã sao chép liên kết",

@@ -1391,6 +1391,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceAudioSpeaker => 'Динамик';
 
   @override
+  String get voicePeerVolume => 'Громкость собеседника';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

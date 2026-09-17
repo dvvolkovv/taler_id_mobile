@@ -1406,6 +1406,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get voiceAudioSpeaker => 'Lautsprecher';
 
   @override
+  String get voicePeerVolume => 'Lautstärke des Gesprächspartners';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

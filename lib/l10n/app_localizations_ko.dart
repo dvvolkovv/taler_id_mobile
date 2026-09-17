@@ -1367,6 +1367,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceAudioSpeaker => '스피커';
 
   @override
+  String get voicePeerVolume => '상대방 볼륨';
+
+  @override
   String get voiceAudioBluetooth => '블루투스';
 
   @override

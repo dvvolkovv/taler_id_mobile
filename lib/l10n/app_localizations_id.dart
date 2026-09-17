@@ -1390,6 +1390,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceAudioSpeaker => 'Speaker';
 
   @override
+  String get voicePeerVolume => 'Volume penelepon';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

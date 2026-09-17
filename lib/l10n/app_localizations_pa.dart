@@ -1390,6 +1390,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get voiceAudioSpeaker => 'ਸਪੀਕਰ';
 
   @override
+  String get voicePeerVolume => 'ਕਾਲਰ ਦੀ ਆਵਾਜ਼';
+
+  @override
   String get voiceAudioBluetooth => 'ਬਲੂਟੂਥ';
 
   @override

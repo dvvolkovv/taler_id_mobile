@@ -1402,6 +1402,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceAudioSpeaker => 'Haut-parleur';
 
   @override
+  String get voicePeerVolume => 'Volume de l\'interlocuteur';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

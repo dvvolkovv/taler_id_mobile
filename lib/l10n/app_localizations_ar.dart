@@ -1382,6 +1382,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceAudioSpeaker => 'مكبر الصوت';
 
   @override
+  String get voicePeerVolume => 'مستوى صوت المتحدث';
+
+  @override
   String get voiceAudioBluetooth => 'بلوتوث';
 
   @override

@@ -415,6 +415,7 @@
   "voiceAudioOutput": "خروجی صدا",
   "voiceAudioPhone": "تلفن",
   "voiceAudioSpeaker": "بلندگو",
+  "voicePeerVolume": "بلندی صدای طرف مقابل",
   "voiceAudioBluetooth": "بلوتوث",
   "voiceAudioHeadphones": "هدفون",
   "voiceLinkCopied": "لینک کپی شد",

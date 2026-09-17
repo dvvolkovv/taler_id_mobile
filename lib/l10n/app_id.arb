@@ -415,6 +415,7 @@
   "voiceAudioOutput": "Output audio",
   "voiceAudioPhone": "Telepon",
   "voiceAudioSpeaker": "Speaker",
+  "voicePeerVolume": "Volume penelepon",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "Headphone",
   "voiceLinkCopied": "Tautan disalin",

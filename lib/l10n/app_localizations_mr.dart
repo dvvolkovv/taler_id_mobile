@@ -1389,6 +1389,9 @@ class AppLocalizationsMr extends AppLocalizations {
   String get voiceAudioSpeaker => 'स्पीकर';
 
   @override
+  String get voicePeerVolume => 'कॉलरचा आवाज';
+
+  @override
   String get voiceAudioBluetooth => 'ब्लूटूथ';
 
   @override

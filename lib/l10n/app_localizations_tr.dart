@@ -1392,6 +1392,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voiceAudioSpeaker => 'Hoparlör';
 
   @override
+  String get voicePeerVolume => 'Karşı taraf ses seviyesi';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

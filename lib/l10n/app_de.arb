@@ -415,6 +415,7 @@
   "voiceAudioOutput": "Audioausgabe",
   "voiceAudioPhone": "Telefon",
   "voiceAudioSpeaker": "Lautsprecher",
+  "voicePeerVolume": "Lautstärke des Gesprächspartners",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "Kopfhörer",
   "voiceLinkCopied": "Link kopiert",
