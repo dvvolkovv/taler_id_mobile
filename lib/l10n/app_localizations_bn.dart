@@ -1391,6 +1391,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get voiceAudioSpeaker => 'স্পিকার';
 
   @override
+  String get voicePeerVolume => 'কলারের ভলিউম';
+
+  @override
   String get voiceAudioBluetooth => 'ব্লুটুথ';
 
   @override

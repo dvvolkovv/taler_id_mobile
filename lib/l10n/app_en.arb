@@ -592,6 +592,7 @@
   "voiceAudioOutput": "Audio output",
   "voiceAudioPhone": "Phone",
   "voiceAudioSpeaker": "Speaker",
+  "voicePeerVolume": "Caller volume",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "Headphones",
   "voiceLinkCopied": "Link copied",

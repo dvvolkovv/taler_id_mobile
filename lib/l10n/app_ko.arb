@@ -415,6 +415,7 @@
   "voiceAudioOutput": "오디오 출력",
   "voiceAudioPhone": "전화",
   "voiceAudioSpeaker": "스피커",
+  "voicePeerVolume": "상대방 볼륨",
   "voiceAudioBluetooth": "블루투스",
   "voiceAudioHeadphones": "헤드폰",
   "voiceLinkCopied": "링크가 복사되었습니다",

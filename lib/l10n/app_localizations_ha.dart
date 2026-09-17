@@ -1388,6 +1388,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get voiceAudioSpeaker => 'Makarar magana';
 
   @override
+  String get voicePeerVolume => 'Ƙarar muryar mai kira';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

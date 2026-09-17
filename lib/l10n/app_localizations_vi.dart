@@ -1387,6 +1387,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get voiceAudioSpeaker => 'Loa';
 
   @override
+  String get voicePeerVolume => 'Âm lượng người gọi';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

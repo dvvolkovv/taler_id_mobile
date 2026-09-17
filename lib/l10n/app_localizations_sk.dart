@@ -1391,6 +1391,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get voiceAudioSpeaker => 'Reproduktor';
 
   @override
+  String get voicePeerVolume => 'Hlasitosť volajúceho';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

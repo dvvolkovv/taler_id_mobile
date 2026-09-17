@@ -415,6 +415,7 @@
   "voiceAudioOutput": "オーディオ出力",
   "voiceAudioPhone": "電話",
   "voiceAudioSpeaker": "スピーカー",
+  "voicePeerVolume": "通話相手の音量",
   "voiceAudioBluetooth": "Bluetooth",
   "voiceAudioHeadphones": "ヘッドフォン",
   "voiceLinkCopied": "リンクをコピーしました",

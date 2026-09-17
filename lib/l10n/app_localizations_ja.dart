@@ -1365,6 +1365,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voiceAudioSpeaker => 'スピーカー';
 
   @override
+  String get voicePeerVolume => '通話相手の音量';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

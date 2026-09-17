@@ -1392,6 +1392,9 @@ class AppLocalizationsUr extends AppLocalizations {
   String get voiceAudioSpeaker => 'اسپیکر';
 
   @override
+  String get voicePeerVolume => 'کالر کی آواز';
+
+  @override
   String get voiceAudioBluetooth => 'بلوٹوتھ';
 
   @override

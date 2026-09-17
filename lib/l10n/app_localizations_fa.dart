@@ -1387,6 +1387,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get voiceAudioSpeaker => 'بلندگو';
 
   @override
+  String get voicePeerVolume => 'بلندی صدای طرف مقابل';
+
+  @override
   String get voiceAudioBluetooth => 'بلوتوث';
 
   @override

@@ -415,6 +415,7 @@
   "voiceAudioOutput": "مخرج الصوت",
   "voiceAudioPhone": "الهاتف",
   "voiceAudioSpeaker": "مكبر الصوت",
+  "voicePeerVolume": "مستوى صوت المتحدث",
   "voiceAudioBluetooth": "بلوتوث",
   "voiceAudioHeadphones": "سماعات",
   "voiceLinkCopied": "تم نسخ الرابط",

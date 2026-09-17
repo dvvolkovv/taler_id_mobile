@@ -1395,6 +1395,9 @@ class AppLocalizationsTe extends AppLocalizations {
   String get voiceAudioSpeaker => 'స్పీకర్';
 
   @override
+  String get voicePeerVolume => 'కాలర్ వాల్యూమ్';
+
+  @override
   String get voiceAudioBluetooth => 'బ్లూటూత్';
 
   @override

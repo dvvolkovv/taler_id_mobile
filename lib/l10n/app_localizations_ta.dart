@@ -1400,6 +1400,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get voiceAudioSpeaker => 'ஸ்பீக்கர்';
 
   @override
+  String get voicePeerVolume => 'அழைப்பாளர் ஒலி';
+
+  @override
   String get voiceAudioBluetooth => 'ப்ளூடூத்';
 
   @override

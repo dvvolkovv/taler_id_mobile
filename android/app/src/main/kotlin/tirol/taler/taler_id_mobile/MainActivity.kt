@@ -35,6 +35,9 @@ class MainActivity : FlutterFragmentActivity() {
     private var audioFocusRequest: AudioFocusRequest? = null
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
     private var audioFocusGranted = false
+    /// The system only lowered our volume — the call never stopped, so the
+    /// gain that follows must not trigger the full interruption recovery.
+    private var duckedOnly = false
     private var flutterChannel: MethodChannel? = null
     private var savedNotifVolume = -1
     private var savedMusicVolume = -1
@@ -401,18 +404,35 @@ class MainActivity : FlutterFragmentActivity() {
         val listener = AudioManager.OnAudioFocusChangeListener { focusChange ->
             Log.i("AudDbg", "focusChange: $focusChange (granted=$audioFocusGranted mode=${am.mode})")
             when (focusChange) {
-                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
-                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                     // A real external audio source (phone call, alarm) took focus
                     audioFocusGranted = false
+                    duckedOnly = false
                     runOnUiThread { flutterChannel?.invokeMethod("audioInterrupted", null) }
+                }
+                AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                    // Ducking only lowers our volume. The audio unit never
+                    // stopped and neither did the conversation, so this must
+                    // not go down the interruption path: that one flips the
+                    // microphone off and on (every peer sees the mute) and
+                    // resubscribes every remote track, which is itself the
+                    // break in a call that was never broken. An incoming call
+                    // ringing in the background should pass through as a
+                    // signal, not knock the conversation out.
+                    duckedOnly = true
+                    runOnUiThread { flutterChannel?.invokeMethod("audioDucked", null) }
                 }
                 AudioManager.AUDIOFOCUS_GAIN -> {
                     // Focus returned — restore communication mode and the route
                     // the call was on before the interruption.
                     audioFocusGranted = true
                     audioRoute.reapply()
-                    runOnUiThread { flutterChannel?.invokeMethod("audioResumed", null) }
+                    if (duckedOnly) {
+                        duckedOnly = false
+                        runOnUiThread { flutterChannel?.invokeMethod("audioUnducked", null) }
+                    } else {
+                        runOnUiThread { flutterChannel?.invokeMethod("audioResumed", null) }
+                    }
                 }
                 AudioManager.AUDIOFOCUS_LOSS -> {
                     audioFocusGranted = false

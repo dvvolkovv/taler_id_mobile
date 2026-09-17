@@ -392,6 +392,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
+    // Someone who had to turn a previous call up will want this one up too.
+    unawaited(_loadPeerVolume());
     _initTime = DateTime.now();
     // Listen for call_ended socket event — the other party hung up
     _callEndedSub = sl<MessengerRemoteDataSource>()
@@ -603,6 +605,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _playInterruptionBeeps();
     } else if (call.method == 'audioResumed') {
       await _restoreAudioAfterInterruption();
+    } else if (call.method == 'audioDucked') {
+      // The system only turned us down — an incoming call ringing in the
+      // background, typically. The conversation is intact, so it gets the
+      // signal and nothing else: no recovery, no mic flip, no resubscribe.
+      _playInterruptionBeeps();
+    } else if (call.method == 'audioUnducked') {
+      // Nothing was torn down, so nothing needs rebuilding. Re-assert the
+      // route only, in case something else moved it while we were quiet.
+      if (mounted && !_navigatedAway) {
+        await _applyAudioOutput(_audioOutputType);
+      }
     }
     return null;
   }
@@ -718,14 +731,17 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     debugPrint('[VoiceCall] _restoreAudioAfterInterruption: complete');
   }
 
+  /// Two signals, the way call waiting does it — enough to notice someone is
+  /// trying to reach you, short enough not to take the conversation over
+  /// (asked for in those words, 2026-09-16).
   Future<void> _playInterruptionBeeps() async {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 2; i++) {
       if (!mounted) return;
       try {
         await _playRingTone(0.7);
         await Future.delayed(const Duration(milliseconds: 180));
         await _stopRingTone();
-        if (i < 2) await Future.delayed(const Duration(milliseconds: 350));
+        if (i < 1) await Future.delayed(const Duration(milliseconds: 350));
       } catch (_) {}
     }
   }
@@ -1254,9 +1270,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         if (event.participant.identity == 'voice-translator') {
           if (_translationEnabled) _updateTranslationTrackSubscription();
         }
-        // New peer audio track may arrive at peer-default volume; re-apply
-        // ducking so this participant is quieter than the translator track.
-        if (_translationActive) _applyTranslationDucking();
+        // A new peer track arrives at default loudness — re-apply the
+        // listener's gain, and the ducking if a translation is running.
+        _applyRemoteVolumes();
       })
       ..on<lk.TrackPublishedEvent>((event) {
         debugPrint('[AudDbg] TrackPublishedEvent: ${event.participant.identity} '
@@ -1266,7 +1282,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           if (_translationEnabled && event.publication.name == wantedName) {
             try { event.publication.subscribe(); } catch (_) {}
           }
-          if (_translationActive) _applyTranslationDucking();
+          _applyRemoteVolumes();
           return;
         }
         try {
@@ -1275,16 +1291,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         } catch (e) {
           debugPrint('[AudDbg]   subscribe request FAILED: $e');
         }
-        // A peer just published a new audio track — duck it immediately if
-        // the translator is active, otherwise it would land at full volume.
-        if (_translationActive) _applyTranslationDucking();
+        // A peer just published a new audio track — set its volume now,
+        // otherwise it lands at default loudness whatever the listener chose.
+        _applyRemoteVolumes();
       })
       ..on<lk.TrackSubscribedEvent>((event) {
         debugPrint('[AudDbg] TrackSubscribedEvent: ${event.participant.identity} '
             'kind=${event.publication.kind} sid=${event.publication.sid} muted=${event.publication.muted}');
-        // Volume can only be set on a subscribed RemoteAudioTrack; re-apply
-        // ducking the moment a track becomes subscribable.
-        if (_translationActive) _applyTranslationDucking();
+        // Volume can only be set on a subscribed RemoteAudioTrack; apply it
+        // the moment the track becomes subscribable.
+        _applyRemoteVolumes();
       })
       ..on<lk.ParticipantDisconnectedEvent>((event) {
         if (!mounted || _navigatedAway) return;
@@ -1986,6 +2002,8 @@ $participantsStr
 
 У комнаты есть текстовый чат, его видят все участники звонка. Если пользователь просит «напиши в чат», «скинь им …», «продиктуй в чат» — вызови send_room_chat с текстом. Он для того, что лучше написать, чем произнести: ссылки, адреса, номера, коды, суммы. До $kRoomChatMaxLength символов; чат живёт только пока идёт звонок.
 
+В звонке есть живой перевод. Если пользователь называет пару языков — «переводи с русского на немецкий», «включи перевод, он говорит по-английски» — вызови set_translation: hear_lang это язык, на котором пользователь хочет слышать остальных, speak_lang — на каком его собственную речь услышит собеседник. Хватает того, что пару назвал один человек; собеседнику ничего настраивать не нужно. Если названа только одна сторона — переспроси вторую, не догадывайся.
+
 Отвечай коротко — пользователь в разгаре разговора.''';
     }
 
@@ -2001,6 +2019,8 @@ If the user asks to add someone to the call:
 4. If not found in conversations — call search_contacts and retry
 
 The room has a text chat that every participant of the call sees. If the user asks to "write it in the chat", "send them …", "put that in the chat" — call send_room_chat with the text. It is for things better written than spoken: links, addresses, phone numbers, codes, amounts. Up to $kRoomChatMaxLength characters; the chat only lives while the call does.
+
+The call has live translation. If the user names a pair of languages — "translate between Russian and German", "turn on translation, he speaks English" — call set_translation: hear_lang is the language the user wants to hear everyone else in, speak_lang is what the other side hears the user's own speech in. One person naming the pair is enough; the other side does not have to set anything. If only one side is named, ask for the other rather than guessing.
 
 Answer briefly — the user is in the middle of a conversation.''';
   }
@@ -2050,6 +2070,26 @@ Answer briefly — the user is in the middle of a conversation.''';
                 'name': {'type': 'string', 'description': 'Name of the person being invited'},
               },
               'required': ['conversationId'],
+            },
+          },
+          {
+            'type': 'function',
+            'name': 'set_translation',
+            'description':
+                'Turn on live translation for this call between two languages. Call when someone says "переводи с русского на немецкий", "translate between English and German", "включи перевод и обратно". hear_lang is the language THIS user wants to hear everyone else in; speak_lang is what this user\'s own speech is rendered into for the other side. Both ISO 639-1. One person naming the pair is enough — the other side does not have to set anything.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'hear_lang': {
+                  'type': 'string',
+                  'description': 'ISO 639-1 code this user wants to hear, e.g. "ru"',
+                },
+                'speak_lang': {
+                  'type': 'string',
+                  'description': "ISO 639-1 code the other side should hear, e.g. \"de\"",
+                },
+              },
+              'required': ['hear_lang', 'speak_lang'],
             },
           },
           {
@@ -2241,6 +2281,11 @@ Answer briefly — the user is in the middle of a conversation.''';
         } else {
           output = jsonEncode({'ok': false, 'message': AppLocalizations.of(context)!.voiceNoActiveRoom});
         }
+      } else if (name == 'set_translation') {
+        final hear = (args['hear_lang'] as String? ?? '').toLowerCase();
+        final speak = (args['speak_lang'] as String? ?? '').toLowerCase();
+        debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
+        output = jsonEncode(await _setTranslationPair(hear, speak));
       } else if (name == 'send_room_chat') {
         // Использует тот же `_sendChatMessage`, что и панель чата человека —
         // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
@@ -3363,6 +3408,55 @@ Answer briefly — the user is in the middle of a conversation.''';
                 },
               );
             }),
+            // The route alone does not settle loudness: at maximum system
+            // volume a quiet caller on a loudspeaker is still quiet. The
+            // slider lives here because this is the sheet people open when
+            // they cannot hear.
+            const Divider(height: 24),
+            StatefulBuilder(
+              builder: (ctx, setSheetState) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.hearing_rounded,
+                            size: 20,
+                            color: AppColors.of(context).textSecondary),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            l10n.voicePeerVolume,
+                            style: TextStyle(
+                                color: AppColors.of(context).textPrimary),
+                          ),
+                        ),
+                        Text(
+                          '${(_peerVolume * 100).round()}%',
+                          style: TextStyle(
+                            color: _peerVolume > _defaultPeerVolume
+                                ? AppColors.of(context).primary
+                                : AppColors.of(context).textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Slider(
+                      value: _peerVolume,
+                      min: _defaultPeerVolume,
+                      max: _maxPeerVolume,
+                      divisions: 6,
+                      onChanged: (v) {
+                        setSheetState(() => _peerVolume = v);
+                        _setPeerVolume(v);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -3854,23 +3948,61 @@ Answer briefly — the user is in the middle of a conversation.''';
       await _stopServerTranslator();
     }
     _updateTranslationTrackSubscription();
-    _applyTranslationDucking();
+    _applyRemoteVolumes();
   }
 
-  /// Duck (lower) all peer audio tracks while the translator track is the
-  /// foreground audio. Without this, the original speaker and the translator
-  /// play at equal volume and listeners can't make out the translation.
-  /// Volume choice: 0.15 keeps the original voice barely perceptible (you
-  /// still know who is speaking) while the TTS clearly dominates — 0.25 was
-  /// reported as not enough separation (feedback 2026-07-17). The translator
-  /// is additionally boosted server-side (TRANSLATOR_GAIN in
+  /// Sets the volume of every remote audio track: the listener's own gain, and
+  /// the ducking that keeps a translated call intelligible.
+  ///
+  /// Ducking: while the translator track is the foreground audio, the peers are
+  /// dropped to 0.15 — the original voice stays barely perceptible (you still
+  /// know who is speaking) while the TTS clearly dominates. 0.25 was reported
+  /// as not enough separation (feedback 2026-07-17). The translator is
+  /// additionally boosted server-side (TRANSLATOR_GAIN in
   /// livekit-agent/translator.js).
+  ///
+  /// Gain: on Android the call audio sits on STREAM_VOICE_CALL, whose ceiling
+  /// the system owns — at maximum system volume a quiet caller is still quiet,
+  /// and on a loudspeaker in a noisy room that is the end of it. The gain here
+  /// is applied under that ceiling, so it is the only way to go louder than the
+  /// hardware buttons allow (reported 2026-09-16: "максимальная громкость —
+  /// недостаточная громкость").
+  ///
   /// Idempotent — safe to call from track-published / participant-connected
-  /// events, and from the toggle itself.
+  /// events, and from the volume slider.
   static const double _duckedPeerVolume = 0.15;
-  static const double _fullVolume = 1.0;
+  static const double _defaultPeerVolume = 1.0;
+  /// Past this the amplification is mostly clipping, not loudness.
+  static const double _maxPeerVolume = 4.0;
+  static const String _peerVolumeKey = 'call_peer_volume';
 
-  void _applyTranslationDucking() {
+  double _peerVolume = _defaultPeerVolume;
+
+  Future<void> _loadPeerVolume() async {
+    try {
+      final raw = await sl<SecureStorageService>().read(_peerVolumeKey);
+      final parsed = double.tryParse(raw ?? '');
+      if (parsed == null || !parsed.isFinite) return;
+      final clamped = parsed.clamp(_defaultPeerVolume, _maxPeerVolume);
+      if (!mounted) return;
+      setState(() => _peerVolume = clamped);
+      _applyRemoteVolumes();
+    } catch (_) {
+      // A missing or unreadable preference just means default loudness.
+    }
+  }
+
+  Future<void> _setPeerVolume(double value) async {
+    final clamped = value.clamp(_defaultPeerVolume, _maxPeerVolume);
+    if (mounted) setState(() => _peerVolume = clamped);
+    _applyRemoteVolumes();
+    try {
+      await sl<SecureStorageService>()
+          .write(_peerVolumeKey, clamped.toStringAsFixed(2));
+    } catch (_) {}
+  }
+
+  void _applyRemoteVolumes() {
     final room = _room;
     if (room == null) return;
     final ducked = _translationActive;
@@ -3884,9 +4016,11 @@ Answer briefly — the user is in the middle of a conversation.''';
         // drop to the underlying flutter_webrtc MediaStreamTrack and use the
         // platform helper. Fire-and-forget — failures are non-fatal (volume
         // stays at default 1.0).
+        // Ducked peers keep the fixed low level: the point of ducking is
+        // separation, and scaling it by the listener's gain would erase that.
         final volume = isTranslator
-            ? _fullVolume
-            : (ducked ? _duckedPeerVolume : _fullVolume);
+            ? _peerVolume
+            : (ducked ? _duckedPeerVolume : _peerVolume);
         rtc.Helper.setVolume(volume, mst).catchError((_) {});
       }
     }
@@ -3929,17 +4063,67 @@ Answer briefly — the user is in the middle of a conversation.''';
     return _translationLangs.containsKey(locale) ? locale : 'ru';
   }
 
-  Future<void> _setServerLang(String roomName, String lang) async {
+  /// `lang` is what I want to hear. `speakTo`, when given, is the other half of
+  /// a pair — what MY speech is rendered into. Without it the translator only
+  /// works in one direction until the other side declares a language too, which
+  /// is not what someone switching it on for a conversation expects.
+  Future<void> _setServerLang(String roomName, String lang,
+      {String? speakTo}) async {
     try {
       final client = sl<DioClient>();
       await client.post(
         '/voice/rooms/$roomName/set-lang',
-        data: {'lang': lang, 'sourceLang': _sourceLang},
+        data: {
+          'lang': lang,
+          'sourceLang': _sourceLang,
+          if (speakTo != null && speakTo.isNotEmpty) 'speakTo': speakTo,
+        },
         fromJson: (d) => d,
       );
     } catch (e) {
       debugPrint('[Translation] Failed to set server lang: $e');
     }
+  }
+
+  /// Turns the in-call translator on for a named pair of languages, spoken
+  /// aloud to the assistant ("переводи с русского на немецкий"). Returns a
+  /// short verdict for the model to read back.
+  Future<Map<String, dynamic>> _setTranslationPair(
+      String hearLang, String speakLang) async {
+    final roomName = _roomName;
+    if (roomName == null) {
+      return {'ok': false, 'message': 'No active call room.'};
+    }
+    if (!_translationLangs.containsKey(hearLang) ||
+        !_translationLangs.containsKey(speakLang)) {
+      return {'ok': false, 'message': 'Unsupported language code.'};
+    }
+    if (mounted) {
+      setState(() {
+        _preferredLang = hearLang;
+        _translationEnabled = true;
+        _translationActive = true;
+      });
+    }
+    await _startServerTranslator();
+    await _setServerLang(roomName, hearLang, speakTo: speakLang);
+    _updateTranslationTrackSubscription();
+    _applyRemoteVolumes();
+    // The translation track is published only once the server has built the
+    // session for it, which does not happen by the time this returns.
+    for (final delay in [500, 1500, 3000, 5000]) {
+      Future.delayed(Duration(milliseconds: delay), () {
+        if (mounted && _preferredLang == hearLang) {
+          _updateTranslationTrackSubscription();
+        }
+      });
+    }
+    return {
+      'ok': true,
+      'hear': hearLang,
+      'speak': speakLang,
+      'message': 'Translator on: you hear $hearLang, they hear $speakLang.',
+    };
   }
 
   Future<void> _setPreferredLang(String lang) async {
@@ -4894,11 +5078,24 @@ Answer briefly — the user is in the middle of a conversation.''';
                 child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Chat lives in this row (not the 3-button main row below):
-                  // that one is spaceEvenly with labels underneath and a fourth
-                  // button overflows it on narrow phones. This row scrolls
-                  // horizontally, and the leading slot stays visible without
-                  // scrolling.
+                  // Audio output leads this row. It used to sit fourth, behind
+                  // chat/record/translate, and on a phone that put it past the
+                  // right edge of a row that scrolls with no hint that it
+                  // scrolls — people looking for the loudspeaker listed every
+                  // other button and concluded there wasn't one (reported
+                  // 2026-09-16). The leading slot is visible without scrolling,
+                  // and during a call "I can't hear" beats everything else here.
+                  _ControlButton(
+                    icon: _outputIcons[_audioOutputType] ?? Icons.volume_up_rounded,
+                    label: _outputLabels(AppLocalizations.of(context)!)[_audioOutputType] ?? AppLocalizations.of(context)!.voiceAudio,
+                    color: _audioOutputType != 'earpiece'
+                        ? AppColors.of(context).primary.withValues(alpha: 0.2)
+                        : AppColors.of(context).card,
+                    onTap: _showAudioOutputPicker,
+                  ),
+                  // Chat comes next (not the 3-button main row below): that one is
+                  // spaceEvenly with labels underneath and a fourth button
+                  // overflows it on narrow phones.
                   _ControlButton(
                     icon: _chat.unread > 0
                         ? Icons.mark_chat_unread_rounded
@@ -4955,14 +5152,6 @@ Answer briefly — the user is in the middle of a conversation.''';
                           ),
                         ),
                     ],
-                  ),
-                  _ControlButton(
-                    icon: _outputIcons[_audioOutputType] ?? Icons.volume_up_rounded,
-                    label: _outputLabels(AppLocalizations.of(context)!)[_audioOutputType] ?? AppLocalizations.of(context)!.voiceAudio,
-                    color: _audioOutputType != 'earpiece'
-                        ? AppColors.of(context).primary.withValues(alpha: 0.2)
-                        : AppColors.of(context).card,
-                    onTap: _showAudioOutputPicker,
                   ),
                   if (_cameraOn) ...[
                     _ControlButton(

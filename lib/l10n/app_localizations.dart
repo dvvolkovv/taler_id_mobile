@@ -2752,6 +2752,12 @@ abstract class AppLocalizations {
   /// **'Speaker'**
   String get voiceAudioSpeaker;
 
+  /// No description provided for @voicePeerVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller volume'**
+  String get voicePeerVolume;
+
   /// No description provided for @voiceAudioBluetooth.
   ///
   /// In en, this message translates to:

@@ -1390,6 +1390,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceAudioSpeaker => 'Speaker';
 
   @override
+  String get voicePeerVolume => 'Caller volume';
+
+  @override
   String get voiceAudioBluetooth => 'Bluetooth';
 
   @override

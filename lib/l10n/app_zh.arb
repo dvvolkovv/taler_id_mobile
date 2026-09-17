@@ -415,6 +415,7 @@
   "voiceAudioOutput": "音频输出",
   "voiceAudioPhone": "手机",
   "voiceAudioSpeaker": "扬声器",
+  "voicePeerVolume": "对方音量",
   "voiceAudioBluetooth": "蓝牙",
   "voiceAudioHeadphones": "耳机",
   "voiceLinkCopied": "链接已复制",
