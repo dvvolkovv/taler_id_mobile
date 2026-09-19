@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:taler_id_mobile/core/api/api_exception.dart';
 import 'package:taler_id_mobile/core/services/outbox_replay_handler.dart';
 import 'package:taler_id_mobile/core/storage/outbox_op.dart';
 import 'package:taler_id_mobile/features/calendar/data/datasources/calendar_remote_datasource.dart';
@@ -64,6 +65,33 @@ void main() {
 
   test('unknown error → retry', () async {
     when(() => remote.create(any(), id: 'e-1')).thenThrow(Exception('network'));
+    final res = await handler.replay(
+      _op(payload: {'title': 't', 'type': 'EVENT', 'startAt': '2026-05-14T10:00:00Z'}),
+    );
+    expect(res, isA<OutboxReplayRetry>());
+  });
+
+  // --- Регрессия «отравленный outbox» (bug 2026-09-19): _http бросает ApiException, а не
+  // DioException → раньше всё падало в generic retry. delete-404 ретраился вечно и морозил очередь. ---
+  test('delete ApiException(404) → success (идемпотентно, не отравляет очередь)', () async {
+    when(() => remote.delete('e-1'))
+        .thenThrow(const ApiException(statusCode: 404, message: 'Event not found'));
+    final res = await handler.replay(_op(op: OutboxOpKind.delete));
+    expect(res, isA<OutboxReplaySuccess>());
+  });
+
+  test('create ApiException(400) → dead (перманентная клиентская ошибка, без вечного ретрая)', () async {
+    when(() => remote.create(any(), id: 'e-1'))
+        .thenThrow(const ApiException(statusCode: 400, message: 'Bad request'));
+    final res = await handler.replay(
+      _op(payload: {'title': 't', 'type': 'EVENT', 'startAt': '2026-05-14T10:00:00Z'}),
+    );
+    expect(res, isA<OutboxReplayDead>());
+  });
+
+  test('create ApiException(401) → retry (токен обновится)', () async {
+    when(() => remote.create(any(), id: 'e-1'))
+        .thenThrow(const ApiException(statusCode: 401, message: 'Invalid or expired token'));
     final res = await handler.replay(
       _op(payload: {'title': 't', 'type': 'EVENT', 'startAt': '2026-05-14T10:00:00Z'}),
     );
