@@ -29,10 +29,24 @@ class CallKitEvent {
       'com.hiennv.flutter_callkit_incoming.ACTION_CALL_CALLBACK';
   static const typePushTokenVoip =
       'com.hiennv.flutter_callkit_incoming.DID_UPDATE_DEVICE_PUSH_TOKEN_VOIP';
+
+  /// On iOS: sent when the system holds or resumes the call ("Hold &
+  /// Accept" from the call UI) and as the echo of our own
+  /// [CallKitPlatform.setHeld]; the id is upper-case (Swift `uuidString`)
+  /// — compare lower-cased. On Android: only that echo, with the id as
+  /// passed.
   static const typeToggleHold =
       'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_HOLD';
+
+  /// On iOS: sent when the user taps mute in the call UI (lock screen /
+  /// Dynamic Island) and as the echo of our own [CallKitPlatform.setMuted];
+  /// the id is upper-case (Swift `uuidString`) — compare lower-cased. On
+  /// Android: only that echo, with the id as passed.
   static const typeToggleMute =
       'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_MUTE';
+
+  /// iOS only. Carries no call id — the event body is only
+  /// `{isActivate: bool}`, so [CallKitEvent.uuid] is '' for this event.
   static const typeToggleAudioSession =
       'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_AUDIO_SESSION';
 
@@ -47,8 +61,9 @@ class CallKitEvent {
   });
 }
 
-/// Platform-agnostic interface for native incoming-call UI (CallKit / android
-/// full-screen notification).
+/// Platform-agnostic interface to the native call UI (CallKit / android
+/// full-screen notification): incoming and outgoing calls, plus in-call
+/// controls (connect, hold, mute).
 ///
 /// Dispatch is done once at first access: mobile platforms get [CallKitMobile]
 /// (which delegates to `flutter_callkit_incoming`); desktop platforms get
@@ -85,8 +100,21 @@ abstract class CallKitPlatform {
   Future<void> endAllCalls();
 
   /// Put a conversation that did not ring through CallKit (an outgoing call,
-  /// a meeting joined by link) into the OS call system. iOS confirms with a
-  /// [CallKitEvent.typeStart] event carrying the same [uuid].
+  /// a meeting joined by link) into the OS call system.
+  ///
+  /// iOS only — don't call this (or [setCallConnected], [setHeld],
+  /// [setMuted]) on Android, where they are not no-ops: this starts the
+  /// plugin's phone-call foreground service with an ongoing-call
+  /// notification, emits [CallKitEvent.typeStart] and records an *accepted*
+  /// call in [activeCalls] — while one is there, `call_cancelled` no longer
+  /// dismisses a ringing call.
+  ///
+  /// [uuid] must be a valid UUID: the iOS plugin force-unwraps it
+  /// (`CallManager.swift`), so anything else crashes the app. The returned
+  /// future only means the request reached the plugin; iOS confirms with a
+  /// [CallKitEvent.typeStart] event carrying the same [uuid], and sends
+  /// nothing if it refuses the call. [extra] must be JSON-encodable — the
+  /// plugin embeds it in the call's handle, which iOS keeps in Recents.
   Future<void> startCall({
     required String uuid,
     required String callerName,
@@ -96,12 +124,21 @@ abstract class CallKitPlatform {
 
   /// Outgoing call: report it connected. Ringing incoming call: answer it,
   /// exactly as the Accept button of the CallKit UI would.
+  ///
+  /// iOS only — see [startCall]. On Android this posts the ongoing-call
+  /// notification and emits [CallKitEvent.typeConnected].
   Future<void> setCallConnected(String uuid);
 
   /// Put [uuid] on hold, or take it off hold.
+  ///
+  /// iOS only — see [startCall]. On Android this only echoes
+  /// [CallKitEvent.typeToggleHold] back into [events].
   Future<void> setHeld(String uuid, bool onHold);
 
   /// Mirror our mute state in the system call UI.
+  ///
+  /// iOS only — see [startCall]. On Android this only echoes
+  /// [CallKitEvent.typeToggleMute] back into [events].
   Future<void> setMuted(String uuid, bool muted);
 
   /// Return the list of currently active calls (raw plugin format).

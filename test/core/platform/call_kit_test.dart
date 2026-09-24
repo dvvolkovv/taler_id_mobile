@@ -1,4 +1,5 @@
 // test/core/platform/call_kit_test.dart
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/platform/call_kit.dart';
 import 'package:taler_id_mobile/core/platform/call_kit_desktop.dart';
@@ -35,12 +36,12 @@ void main() {
     });
 
     test('hold, mute and audio-session event types match the plugin', () {
-      expect(CallKitEvent.typeToggleHold,
-          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_HOLD');
-      expect(CallKitEvent.typeToggleMute,
-          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_MUTE');
+      // Compared against the plugin's own Event enum (not pasted strings)
+      // so a plugin rename fails this test instead of silently drifting.
+      expect(CallKitEvent.typeToggleHold, Event.actionCallToggleHold.name);
+      expect(CallKitEvent.typeToggleMute, Event.actionCallToggleMute.name);
       expect(CallKitEvent.typeToggleAudioSession,
-          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_AUDIO_SESSION');
+          Event.actionCallToggleAudioSession.name);
     });
   });
 
