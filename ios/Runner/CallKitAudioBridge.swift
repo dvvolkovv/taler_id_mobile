@@ -22,15 +22,19 @@ final class CallKitAudioBridge: NSObject {
   /// on a killed app long before Flutter runs — and the plugin's fake
   /// "interruption ended" on that activation must not reach the old recovery.
   private var answeredHere = Set<UUID>()
-  /// Managed calls CallKit has already ended (onEnd/onDecline/the call
-  /// observer) that Dart has not dropped yet. When the system ends our call
-  /// — the End button, "End & Accept", a held call hung up — WebRTC audio is
-  /// already off (didDeactivate) by the time Dart hears about it and calls
-  /// setManagedCalls; switching useManualAudio off right then gives WebRTC a
-  /// canPlayOrRecord false→true edge, and it reinitialises its audio unit
-  /// and activates the session on its own — exactly while a rival call
-  /// (WhatsApp) may be setting up its own. Tracking "CallKit already killed
-  /// this one" lets didDeactivate leave isAudioEnabled alone for it.
+  /// Managed calls CallKit ended while ACTIVE — the End button, "End &
+  /// Accept" — that Dart has not dropped yet. The following didDeactivate
+  /// sees the uuid already here and leaves isAudioEnabled alone instead of
+  /// forcing it false, so when Dart's later drop flips useManualAudio off
+  /// there is no false→true edge for WebRTC to reinitialise its audio unit
+  /// and activate the session on its own — exactly while a rival call
+  /// (WhatsApp) may be setting up its own.
+  /// Does NOT cover a held call being hung up: that call's audio already
+  /// went off at the hold's own didDeactivate while it was still alive, so
+  /// marking it here after the fact changes nothing for it — if Dart drops
+  /// it before the room disconnects, the same edge can still happen there
+  /// (in practice iOS will most likely refuse our activation while the
+  /// rival call that held us is still active).
   private var endedHere = Set<UUID>()
   /// CallKit has our session activated right now.
   private var activatedSession: AVAudioSession?
@@ -59,7 +63,7 @@ final class CallKitAudioBridge: NSObject {
         }
         let uuids = ids.compactMap { UUID(uuidString: $0) }
         if uuids.count != ids.count {
-          NSLog("[CallKitAudio] setManagedCalls: dropped %d malformed id(s)", ids.count - uuids.count)
+          NSLog("[CallKitAudio] setManagedCalls: dropped %ld malformed id(s)", ids.count - uuids.count)
         }
         self.setManagedCalls(uuids)
         result(nil)
@@ -119,7 +123,10 @@ final class CallKitAudioBridge: NSObject {
     activatedSession = nil
     updateManaged {
       answeredHere.removeAll()
-      endedHere.removeAll()
+      // Every call CallKit still had registered is ended too, not just
+      // forgotten — a didDeactivate delivered after the reset must not
+      // count a stale Dart id as still alive (see endedHere).
+      endedHere = registeredByDart
     }
   }
 
@@ -184,7 +191,7 @@ final class CallKitAudioBridge: NSObject {
   private func updateManaged(_ change: () -> Void) {
     let wasManaging = isManaging
     change()
-    NSLog("[CallKitAudio] managed=%d sessionActive=%@", managedCalls.count, "\(activatedSession != nil)")
+    NSLog("[CallKitAudio] managed=%ld sessionActive=%@", managedCalls.count, "\(activatedSession != nil)")
     if !wasManaging && isManaging, let session = activatedSession {
       // CallKit switched the session on before the call was known as ours.
       enableWebRTCAudio(session)
