@@ -232,6 +232,21 @@ class CallStateService {
     return l.room.localParticipant?.isMicrophoneEnabled() ?? false;
   }
 
+  /// Un-holds a line the app itself put on hold, without touching the
+  /// active-line pointer — the caller decides whether this line stays (or
+  /// becomes) active. Shared by connectInBackground's failure path and
+  /// holdAndSwitch's target-vanished-mid-flight path: both need to roll
+  /// back an in-app hold the same way.
+  Future<void> _undoAppHold(CallLine line) async {
+    line.isOnHold = false;
+    _reportLineHold(line.roomName, false);
+    if (!line.heldBySystem) {
+      try {
+        await line.room.localParticipant?.setMicrophoneEnabled(!line.wasMuted);
+      } catch (_) {}
+    }
+  }
+
   /// Call waiting took the audio: the peer gets a muted mic, and whatever the
   /// mic was is remembered for the resume. A room with no line yet (join
   /// still in flight) is remembered as pending — see [_pendingSystemHolds].
@@ -257,7 +272,15 @@ class CallStateService {
     final line = _lines[roomName];
     if (line == null || !line.heldBySystem) return;
     line.heldBySystem = false;
-    if (line.isOnHold || !line.micOnBeforeSystemHold) return;
+    if (line.isOnHold) {
+      // Both holds were active and the system let go first. Fold its
+      // recorded intent into wasMuted — the in-app switch back reads
+      // wasMuted, not micOnBeforeSystemHold, and would otherwise apply
+      // whatever wasMuted was left at from before this hold even started.
+      line.wasMuted = !line.micOnBeforeSystemHold;
+      return;
+    }
+    if (!line.micOnBeforeSystemHold) return;
     try {
       await line.room.localParticipant?.setMicrophoneEnabled(true);
     } catch (_) {}
@@ -266,7 +289,10 @@ class CallStateService {
   /// The mute button of the system call UI. A held line (either way) never
   /// touches the mic directly — it records what the user wants for whichever
   /// hold ends first (system resume, or the in-app line switch) to apply.
-  Future<void> applySystemMute(String roomName, bool muted) async {
+  Future<void> applySystemMute(String roomName, bool muted) => setLineMuted(roomName, muted);
+
+  /// The app's own mute button — same held-line rule as [applySystemMute].
+  Future<void> setLineMuted(String roomName, bool muted) async {
     final line = _lines[roomName];
     if (line == null) return;
     if (line.heldBySystem) {
@@ -324,8 +350,10 @@ class CallStateService {
     // for an already-connected conversation, and without this guard it would
     // report an unhold — asking CallKit to resume our call in the middle of
     // call waiting, taking the audio back from WhatsApp, for a switch that
-    // never actually happened. A *stuck* isOnHold (the dashboard's swap
-    // button relies on being able to force this) still falls through below.
+    // never actually happened. A *stuck* isOnHold on the active line (e.g.
+    // from an interrupted switch — see the target-vanished undo below)
+    // still falls through: the dashboard shows the swap icon for any
+    // isOnHold line and calls holdAndSwitch on it, which is how it clears.
     if (target != null && _activeRoomName == targetRoomName && !target.isOnHold) {
       return;
     }
@@ -340,6 +368,21 @@ class CallStateService {
         await current.room.localParticipant?.setMicrophoneEnabled(false);
         await current.room.localParticipant?.setCameraEnabled(false);
       } catch (_) {}
+    }
+
+    // The awaits above can outlive `target` (its line ends — screen
+    // hang-up, system end — while we were still muting `current`):
+    // re-resolve by identity rather than trusting the lookup from before
+    // them, or this would switch the UI onto a room that's already gone.
+    if (!identical(_lines[targetRoomName], target)) {
+      if (current != null &&
+          current.roomName != targetRoomName &&
+          identical(_lines[current.roomName], current) &&
+          _activeRoomName == current.roomName &&
+          current.isOnHold) {
+        await _undoAppHold(current);
+      }
+      return;
     }
 
     if (target != null) {
@@ -363,8 +406,17 @@ class CallStateService {
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
     clearAnsweredState(name);
-    if (line != null) _reportLineEnded(name);
+    // Unconditional, whether or not `name` was ever a line: a system hold
+    // can land for a room that's still joining (see applySystemHold), and
+    // if that join then ends here — screen hang-up, a system end, a failed
+    // join's own cleanup — the pending hold must not survive it. Meeting
+    // and personal rooms are reused, so leaving it would make the *next*
+    // line for this room start heldBySystem with no CallKit hold behind
+    // it: the lock-screen mute gets recorded but never applied, and a real
+    // later hold hits applySystemHold's already-held early return.
+    _pendingSystemHolds.remove(name);
     if (line != null) {
+      _reportLineEnded(name);
       try { await line.room.disconnect(); } catch (_) {}
     }
     if (_activeRoomName == name) {
@@ -582,13 +634,7 @@ class CallStateService {
           identical(_lines[current.roomName], current) &&
           _activeRoomName == current.roomName &&
           current.isOnHold) {
-        current.isOnHold = false;
-        _reportLineHold(current.roomName, false);
-        if (!current.heldBySystem) {
-          try {
-            await current.room.localParticipant?.setMicrophoneEnabled(!current.wasMuted);
-          } catch (_) {}
-        }
+        await _undoAppHold(current);
       }
       settleOwn(false);
       return false;

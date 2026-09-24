@@ -255,6 +255,39 @@ void main() {
       final p2 = room2.localParticipant as MockLocalParticipant;
       verify(() => p2.setMicrophoneEnabled(false)).called(greaterThan(0));
     });
+
+    test('a target that ends mid-switch does not strand the current line held (N3)', () async {
+      svc.setRoom(_makeRoom(), 'b', 'c2'); // will be the target — ends mid-flight
+
+      // 'a' is current (created last, so active); its setMicrophoneEnabled
+      // (false) is gated by a Completer so 'b' can be ended while that
+      // await is still pending — the exact race this guards against.
+      final roomA = MockRoom();
+      final micA = MockLocalParticipant();
+      final gate = Completer<void>();
+      var micAOn = true;
+      when(() => roomA.localParticipant).thenReturn(micA);
+      when(() => micA.isMicrophoneEnabled()).thenAnswer((_) => micAOn);
+      when(() => micA.setMicrophoneEnabled(any())).thenAnswer((invocation) async {
+        await gate.future;
+        micAOn = invocation.positionalArguments[0] as bool;
+        return null;
+      });
+      when(() => micA.setCameraEnabled(any())).thenAnswer((_) async => null);
+      when(() => roomA.disconnect()).thenAnswer((_) async {});
+      svc.setRoom(roomA, 'a', 'c1'); // now active
+
+      final switching = svc.holdAndSwitch('b'); // blocks inside the gated mic-off await
+      await Future.delayed(Duration.zero);
+
+      await svc.endLine('b'); // target ends while 'a' is still being muted
+      gate.complete(); // release the gated setMicrophoneEnabled(false)
+      await switching;
+
+      expect(svc.activeLine!.roomName, 'a'); // never switched onto the gone line
+      expect(svc.activeLine!.isOnHold, isFalse); // hold undone, not stranded
+      expect(micA.isMicrophoneEnabled(), isTrue); // mic restored
+    });
   });
 
   // ── endLine ───────────────────────────────────────────────────────────────
@@ -664,6 +697,35 @@ void main() {
       verifyNever(() => mic.setMicrophoneEnabled(any()));
       expect(held.wasMuted, isFalse);
     });
+
+    test('resume while still app-held folds its intent into wasMuted (N2)', () async {
+      line(micOn: true);
+      final l = svc.activeLine!;
+      l.isOnHold = true; // both holds active at once
+      l.wasMuted = true; // stale — as if the app hold wanted the mic off
+      await svc.applySystemHold('room-1'); // now also heldBySystem
+
+      await svc.applySystemMute('room-1', false); // "unmute" via the system UI
+      expect(l.micOnBeforeSystemHold, isTrue); // heldBySystem branch wins
+
+      await svc.applySystemResume('room-1'); // system lets go; isOnHold still true
+
+      expect(l.heldBySystem, isFalse);
+      // Folded from micOnBeforeSystemHold, not left at the stale `true` —
+      // the in-app switch back reads wasMuted, not micOnBeforeSystemHold.
+      expect(l.wasMuted, isFalse);
+    });
+
+    test('setLineMuted while system-held records intent for the resume to apply', () async {
+      // e.g. the in-call assistant hands the mic back mid-hold.
+      line(micOn: false);
+      await svc.applySystemHold('room-1');
+
+      await svc.setLineMuted('room-1', false); // hand-back: mic wanted ON
+
+      await svc.applySystemResume('room-1');
+      expect(mic.isMicrophoneEnabled(), isTrue);
+    });
   });
 
   // "Hold & Accept" can land while the LiveKit join for that room is still
@@ -691,6 +753,22 @@ void main() {
       svc.setRoom(_makeRoom(), 'not-yet-joined', 'conv-1');
 
       expect(svc.activeLine!.heldBySystem, isFalse);
+    });
+
+    test('endLine clears a pending hold whose room never became a line (N1)', () async {
+      // Screen hang-up / system end of a room whose join hadn't produced a
+      // CallLine yet. Meeting/personal rooms are reused, so without this the
+      // *next* line for 'r' would start heldBySystem with no CallKit hold
+      // behind it — mic recorded muted but never actually turned off, and a
+      // later real hold would hit applySystemHold's already-held early
+      // return and never turn it off either.
+      await svc.applySystemHold('r');
+      await svc.endLine('r'); // no line exists yet — just clears the pending hold
+
+      svc.setRoom(_makeRoom(), 'r', 'conv-1'); // room reused for a later call
+
+      expect(svc.activeLine!.heldBySystem, isFalse);
+      expect(svc.activeLine!.room.localParticipant!.isMicrophoneEnabled(), isTrue);
     });
   });
 
@@ -749,9 +827,10 @@ void main() {
     });
 
     test('holdAndSwitch to a stuck-held active line still clears it', () async {
-      // The dashboard's swap button forces isOnHold on the active line as a
-      // marker; switching to that same line must still clear it and report
-      // the unhold, unlike the true no-op above.
+      // A stuck isOnHold on the active line (e.g. from an interrupted
+      // switch) still shows the swap icon on the dashboard; tapping it
+      // calls holdAndSwitch on the same room, which must still clear the
+      // flag and report the unhold, unlike the true no-op above.
       svc.setRoom(_makeRoom(), 'a', 'c1');
       svc.activeLine!.isOnHold = true;
 
@@ -807,13 +886,15 @@ void main() {
       sl.registerLazySingleton<DioClient>(() => client);
       addTearDown(() => sl.unregister<DioClient>());
 
-      svc.setRoom(_makeRoom(), 'a', 'c1');
+      final roomA = _makeRoom();
+      svc.setRoom(roomA, 'a', 'c1');
       final result = await svc.connectInBackground('b', 'c2');
 
       expect(result, isFalse);
       // Held, then un-held again once the join failed — not left stranded.
       expect(holds, ['a:true', 'a:false']);
       expect(svc.activeLine!.isOnHold, isFalse);
+      expect((roomA.localParticipant as MockLocalParticipant).isMicrophoneEnabled(), isTrue);
     });
 
     test('connectInBackground reads wasMuted from micOnBeforeSystemHold when '
