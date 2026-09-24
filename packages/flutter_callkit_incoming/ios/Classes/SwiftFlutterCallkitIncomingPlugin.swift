@@ -335,6 +335,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             self.data = data
         }
         initCallkitProvider(data)
+        // PATCH P8 (Taler ID): remember the start's own data for CXStartCallAction.
         if let uuid = UUID(uuidString: data.uuid) { startingCalls[uuid] = data }
         self.callManager.startCall(data)
     }
@@ -437,6 +438,10 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
             appDelegate.onTimeOut(call)
         }
+        // PATCH P12 (Taler ID): a timed-out call is gone — upstream kept it in
+        // the manager, so a later reset (P9) reported it as ended again.
+        call.endCall()
+        self.callManager.removeCall(call)
     }
     
     func getHandleType(_ handleType: String?) -> CXHandle.HandleType {

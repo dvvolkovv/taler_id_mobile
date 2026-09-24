@@ -75,6 +75,9 @@ class CallManager: NSObject {
             callItem?.connectedCall(completion: nil)
             return
         }
+        // PATCH P5 (Taler ID): already answered through CallKit — a second
+        // answer request is noise.
+        if callItem?.data.isAccepted == true { return }
         let answerAction = CXAnswerCallAction(call: call.uuid)
         let transaction = CXTransaction(action: answerAction)
 
