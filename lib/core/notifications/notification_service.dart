@@ -9,12 +9,16 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../api/dio_client.dart';
 import '../di/service_locator.dart';
 import '../platform/call_kit.dart';
+import '../platform/callkit_support.dart';
 import '../platform/fcm_messaging.dart';
 import '../platform/secure_storage.dart';
 import '../storage/secure_storage_service.dart';
 import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../firebase_options.dart';
 import '../router/app_router.dart';
+
+// toCallkitId lived here; main.dart and the dashboard still import it from here.
+export '../platform/callkit_support.dart' show toCallkitId;
 
 /// Notification strings resolved by locale (no BuildContext needed).
 class _NotifStrings {
@@ -155,29 +159,6 @@ Future<void> _showMissedCallNotification({required String fromName}) async {
   );
 }
 
-bool get _isIosSimulator =>
-    !kIsWeb &&
-    Platform.isIOS &&
-    (Platform.environment['SIMULATOR_DEVICE_NAME'] != null ||
-        Platform.environment['SIMULATOR_UDID'] != null);
-
-/// Extract UUID part from roomName like "call-550e8400-e29b-41d4-a716-446655440000"
-/// CallKit requires a valid RFC4122 UUID string as id.
-String toCallkitId(String roomName) {
-  // If roomName already looks like a UUID, use it directly
-  final uuidRegex = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-  if (uuidRegex.hasMatch(roomName)) return roomName;
-  // Strip prefix "call-" and take remaining UUID part
-  final stripped = roomName.replaceFirst(RegExp(r'^call-'), '');
-  if (uuidRegex.hasMatch(stripped)) return stripped;
-  // Fallback: derive UUID from hash (must be a valid UUID)
-  final hash = roomName.hashCode.abs();
-  return '00000000-0000-4000-8000-${hash.toRadixString(16).padLeft(12, '0').substring(0, 12)}';
-}
-
 /// Shows native OS-level incoming call screen (Android full-screen / iOS CallKit).
 /// Skipped on iOS Simulator where CallKit is not supported.
 Future<void> showCallkitIncoming({
@@ -186,7 +167,7 @@ Future<void> showCallkitIncoming({
   required String convId,
   String? fromAvatar,
 }) async {
-  if (_isIosSimulator) return;
+  if (isIosSimulator) return;
   final s = await _notifStrings();
   await CallKitPlatform.instance.showIncomingCall(
     uuid: toCallkitId(roomName),
@@ -355,7 +336,7 @@ class NotificationService {
     }
 
     // Register VoIP push token for iOS (real device only, not simulator).
-    if (!kIsWeb && Platform.isIOS && !_isIosSimulator) {
+    if (!kIsWeb && Platform.isIOS && !isIosSimulator) {
       try {
         final voipToken = await CallKitPlatform.instance.getDevicePushTokenVoIP();
         if (voipToken != null && voipToken.isNotEmpty) {
@@ -414,7 +395,7 @@ class NotificationService {
     // Re-save VoIP token on iOS after login.
     // init() runs before authentication, so the initial save may fail with 401.
     // This call runs from DashboardScreen (post-login) to ensure the token is persisted.
-    if (!kIsWeb && Platform.isIOS && !_isIosSimulator) {
+    if (!kIsWeb && Platform.isIOS && !isIosSimulator) {
       try {
         final voipToken = await CallKitPlatform.instance.getDevicePushTokenVoIP();
         if (voipToken != null && voipToken.isNotEmpty) {
