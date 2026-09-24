@@ -150,6 +150,15 @@ class SystemCallRegistry {
     if (!enabled || _callKitSub != null) return;
     _callKitSub = _callKit.events.listen(_onCallKitEvent);
     _bridgeSub = _bridge.otherCallsEnded.listen((_) => _onOtherCallsEnded());
+    // Pushes the current set once — empty on a fresh start, since _entries is
+    // still empty here. Safe for a killed-app answer: native only ever
+    // subtracts registeredByDart from answeredHere, so an empty push cannot
+    // touch a call native already marked answered on its own. And it clears
+    // stale native state left over from a Dart hot restart — without this,
+    // native can keep believing a uuid from before the restart is still
+    // registeredByDart, with no Dart-side entry left to ever clear it, so
+    // manual audio would stay on for good.
+    unawaited(_syncManaged());
   }
 
   @visibleForTesting

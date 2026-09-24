@@ -41,6 +41,16 @@ void main() {
 
   tearDown(() => reg.detach());
 
+  group('attach', () {
+    test('pushes the current managed set once, and not again on a second attach', () async {
+      // setUp's build() already attached reg once, with no conversations yet.
+      expect(bridge.managed, [[]]);
+      reg.attach(); // already attached: the guard must make this a no-op
+      await pumpEventQueue();
+      expect(bridge.managed, [[]]);
+    });
+  });
+
   group('outgoing registration', () {
     test('confirmed start returns the uuid and makes it a conversation', () async {
       final uuid = await reg.startOutgoing(displayName: 'Alice', handle: 'conv-1');
@@ -75,6 +85,7 @@ void main() {
       expect(await reg.startOutgoing(displayName: 'Alice', handle: 'h'), isNull);
       expect(bridge.lastManaged, isEmpty);
       expect(bridge.managed, [
+        [], // attach()'s own initial sync
         [u1],
         [],
       ]);
