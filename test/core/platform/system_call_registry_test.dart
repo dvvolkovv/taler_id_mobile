@@ -232,6 +232,143 @@ void main() {
     });
   });
 
+  group('ending', () {
+    Future<void> conversation(String uuid, String room) async {
+      kit.emit(CallKitEvent.typeAccept, uuid, {
+        'extra': {'roomName': room},
+      });
+      await pumpEventQueue();
+    }
+
+    test('an end from the system reaches the app once', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeEnded, u1);
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallEndedBySystem>().single.roomName, 'call-r1');
+      expect(reg.isConversation('call-r1'), isFalse);
+      expect(bridge.lastManaged, isEmpty);
+    });
+
+    test('a declined second call does not touch the conversation', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeDecline, u2);
+      kit.emit(CallKitEvent.typeEnded, u2);
+      await pumpEventQueue();
+      expect(events, isEmpty);
+      expect(reg.isConversation('call-r1'), isTrue);
+    });
+
+    test('our own hang-up is not reported back as a system end', () async {
+      await conversation(u1, 'call-r1');
+      await reg.endConversation('call-r1');
+      kit.emit(CallKitEvent.typeEnded, u1);
+      await pumpEventQueue();
+      expect(kit.log, contains('endCall:$u1'));
+      expect(events, isEmpty);
+    });
+
+    test('endConversationByUuid and endAllConversations end only ours', () async {
+      await conversation(u1, 'call-r1');
+      await conversation(u2, 'call-r2');
+      await reg.endConversationByUuid(u1.toUpperCase());
+      expect(kit.log, contains('endCall:$u1'));
+      await reg.endAllConversations();
+      expect(kit.log, contains('endCall:$u2'));
+      expect(kit.log, isNot(contains('endAllCalls')));
+      expect(reg.hasConversations, isFalse);
+    });
+
+    test('hanging up before CallKit confirms the start stops the wait', () async {
+      kit.confirmStarts = false;
+      final started = reg.startOutgoing(displayName: 'A', handle: 'h', roomName: 'call-r1');
+      await pumpEventQueue();
+      final connected = reg.markConnected('call-r1');
+      await reg.endConversation('call-r1');
+      // Well inside the harness startTimeout: the wait ended with the hang-up.
+      expect(await started.timeout(const Duration(milliseconds: 200)), isNull);
+      // markConnected was waiting on the same pending start; the hang-up frees
+      // it too, without ever reaching CallKit — exercises its identity check.
+      await connected.timeout(const Duration(milliseconds: 200));
+      expect(kit.log, isNot(contains('setCallConnected:$u1')));
+      kit.emit(CallKitEvent.typeStart, u1); // CallKit processes the start late
+      await pumpEventQueue();
+      expect(kit.log.where((l) => l == 'endCall:$u1'), hasLength(1),
+          reason: 'ended once by the hang-up, not again as an abandoned start');
+    });
+  });
+
+  group('dismissRinging', () {
+    test('ends ringing calls, keeps conversations and other apps\' calls', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'call-r1'},
+      });
+      await pumpEventQueue();
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'call-r1'},
+        },
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-r2'},
+        },
+        {'id': 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA'}, // WhatsApp: no payload
+      ];
+      await reg.dismissRinging();
+      expect(kit.log.where((l) => l.startsWith('endCall:')), ['endCall:$u2']);
+    });
+
+    test('disabled registry: the old endAllCalls', () async {
+      await reg.detach();
+      reg = build(enabled: false);
+      await reg.dismissRinging();
+      expect(kit.log, ['endAllCalls']);
+    });
+  });
+
+  group('endRingingForRoom', () {
+    test('ends the room\'s ringing call', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': u2},
+        },
+      ];
+      expect(await reg.endRingingForRoom(u2), isFalse);
+      expect(kit.log, ['endCall:$u2']);
+    });
+
+    test('leaves a conversation alone and says so', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': u1},
+      });
+      await pumpEventQueue();
+      expect(await reg.endRingingForRoom(u1), isTrue);
+      expect(kit.log, isEmpty);
+    });
+
+    test(
+        'a call CallKit reports answered counts as a conversation — '
+        'the background isolate has no entries', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': u2},
+          'isAccepted': true,
+        },
+      ];
+      expect(await reg.endRingingForRoom(u2), isTrue);
+      expect(kit.log, isEmpty);
+    });
+
+    test('disabled registry: the old endAllCalls', () async {
+      await reg.detach();
+      reg = build(enabled: false);
+      expect(await reg.endRingingForRoom(u2), isFalse);
+      expect(kit.log, ['endAllCalls']);
+    });
+  });
+
   group('instance', () {
     test('the off-iPhone singleton works without a native channel', () async {
       SystemCallRegistry.debugInstance = null;

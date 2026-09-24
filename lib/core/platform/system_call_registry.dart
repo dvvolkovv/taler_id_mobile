@@ -205,6 +205,8 @@ class SystemCallRegistry {
       return false;
     });
     if (ok) return uuid;
+    // Ended while starting — _end already hung it up; nothing to abandon.
+    if (!identical(_entries[uuid], entry)) return null;
     _entries.remove(uuid);
     _abandonedStarts.add(uuid);
     await _syncManaged();
@@ -251,6 +253,70 @@ class SystemCallRegistry {
     }
   }
 
+  /// Hangs up our side of [roomName]'s conversation in CallKit.
+  Future<void> endConversation(String roomName) async {
+    final entry = _entryForRoom(roomName);
+    if (entry != null) await _end(entry.uuid);
+  }
+
+  Future<void> endConversationByUuid(String uuid) async {
+    final key = uuid.toLowerCase();
+    if (_entries.containsKey(key)) await _end(key);
+  }
+
+  Future<void> endAllConversations() async {
+    for (final uuid in List.of(_entries.keys)) {
+      await _end(uuid);
+    }
+  }
+
+  /// Ends every CallKit call that is not one of our conversations — what the
+  /// blanket endAllCalls() was used for: dismissing ringing calls. Disabled
+  /// registry: exactly the old endAllCalls().
+  Future<void> dismissRinging() async {
+    if (!enabled) return _callKit.endAllCalls();
+    for (final raw in await _callKit.activeCalls()) {
+      if (raw is! Map) continue;
+      final id = (raw['id'] ?? '').toString().toLowerCase();
+      // Other apps' calls come without our payload — never ours to end.
+      if (id.isEmpty || !raw.containsKey('extra') || _entries.containsKey(id)) continue;
+      await _callKit.endCall(id);
+    }
+  }
+
+  /// Ends [roomName]'s ringing call (cancelled by the caller, answered on
+  /// another device, declined in our dialog). Returns true — and ends nothing —
+  /// when that call is a conversation: an entry, or a call CallKit reports as
+  /// answered. The second check is what protects the device that just picked
+  /// up when this runs in the background isolate, where there are no entries.
+  /// Disabled registry: the old endAllCalls(), returns false.
+  Future<bool> endRingingForRoom(String roomName) async {
+    if (!enabled) {
+      await _callKit.endAllCalls();
+      return false;
+    }
+    if (_entryForRoom(roomName) != null) return true;
+    final uuid = toCallkitId(roomName).toLowerCase();
+    for (final raw in await _callKit.activeCalls()) {
+      if (raw is! Map || (raw['id'] ?? '').toString().toLowerCase() != uuid) continue;
+      if (raw['isAccepted'] == true || raw['accepted'] == true) return true;
+      await _callKit.endCall(uuid);
+      return false;
+    }
+    return false;
+  }
+
+  Future<void> _end(String uuid) async {
+    // Removed first: the ENDED event CallKit sends back is then not "ours",
+    // and nobody hangs up a second time.
+    final entry = _entries.remove(uuid);
+    // Hung up before CallKit confirmed the start: startOutgoing stops waiting
+    // now instead of timing out.
+    if (entry != null && !entry.started.isCompleted) entry.started.complete(false);
+    await _syncManaged();
+    await _callKit.endCall(uuid);
+  }
+
   void _onCallKitEvent(CallKitEvent event) {
     final uuid = event.uuid.toLowerCase();
     switch (event.type) {
@@ -268,6 +334,13 @@ class SystemCallRegistry {
         if (!entry.started.isCompleted) entry.started.complete(true);
       case CallKitEvent.typeAccept:
         _onAccepted(uuid, event.data);
+      case CallKitEvent.typeEnded || CallKitEvent.typeDecline || CallKitEvent.typeTimeout:
+        // For a conversation DECLINE and ENDED mean the same: the system ended it.
+        final entry = _entries.remove(uuid);
+        if (entry == null) return;
+        unawaited(_syncManaged());
+        if (!entry.started.isCompleted) entry.started.complete(false);
+        _events.add(SystemCallEndedBySystem(uuid, entry.roomName));
     }
   }
 
