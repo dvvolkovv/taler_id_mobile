@@ -8,7 +8,7 @@
 Основа: pub.dev `flutter_callkit_incoming` 2.5.8, sha256 архива
 `993fb0f0cd990961072f0d13ff815a91773f92bfa1895be17d3366b2225ec9cd`.
 Не скопированы: `example/`, `images/`, `test/`, `*.iml`, `android/.gradle/`.
-Сверка с оригиналом (после правок должна показывать только P1–P12). После
+Сверка с оригиналом (после правок должна показывать только P1–P13). После
 перехода на path-зависимость `flutter pub get` больше не кладёт оригинал в
 pub cache — его нужно положить туда вручную:
 
@@ -67,6 +67,21 @@ pub cache — его нужно положить туда вручную:
 - **P12** там же, `callEndTimeout` — таймаут снимает вызов из `callManager`
   (`call.endCall()` + `removeCall`). Было: снятый по таймауту вызов оставался
   в менеджере, и сброс CallKit (P9) снова сообщал о нём.
+- **P13** `CallkitIncomingAppDelegate.swift` + `SwiftFlutterCallkitIncomingPlugin.swift`:
+  (a) протокол — `providerDidReset` необязательным (`@objc optional`)
+  требованием; `providerDidReset(_:)` (P9) зовёт его после своей штатной
+  очистки. `CallKitAudioBridge` на это сбрасывает `answeredHere`/`endedHere`
+  и, если WebRTC считал сессию активной, досообщает ей о деактивации — P9
+  говорит каждому звонку ENDED, но не тому, что делось само CallKit-состояние.
+  (b) оба `showCallkitIncoming` — тело `completion` у `reportNewIncomingCall`
+  переехало на `DispatchQueue.main.async`. `CXProvider.h`: `setDelegate` с
+  `queue: nil` — это «delegate callbacks on the main queue», но у
+  `reportNewIncomingCallWithUUID:update:completion:` для `completion`
+  отдельная фраза — «on delegate queue, if specified, otherwise on a private
+  serial queue» — и наш `nil` «указанной очередью» не считается: тело
+  фактически исполнялось в фоновом serial, откуда `callManager.addCall`/
+  `sendEvent` (Flutter method channel) трогать нельзя. Было: делегатские
+  колбэки на main, а этот `completion` — незаметно в фоне.
 
 ## Оставлено как есть (одиночные поля, осознанно)
 
@@ -84,3 +99,9 @@ pub cache — его нужно положить туда вручную:
 - отклонённый CallKit `startCall` оставляет запись в `startingCalls` до
   следующего `providerDidReset` (P9) — утечка только в памяти, uuid не
   переиспользуются.
+- `provider(_:didActivate:)` зовёт `appDelegate.didActivateAudioSession`
+  (сейчас строка 765) ДО своих же
+  `sendDefaultAudioInterruptionNotificationToStartAudioResource()` (строки
+  769/773/787) — `CallKitAudioBridge` полагается именно на этот порядок
+  (включает WebRTC до фейкового «прерывание закончилось»). При правках
+  плагина порядок сохранять.

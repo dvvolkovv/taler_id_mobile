@@ -5,7 +5,6 @@ import PushKit
 import Intents
 import CallKit
 import flutter_callkit_incoming
-import WebRTC
 
 // Phase 3 mesh voice: libopus is force-loaded into Runner via the local
 // pod, but iOS strips the app's export trie so dlsym(RTLD_DEFAULT, "opus_*")
@@ -560,6 +559,26 @@ extension AppDelegate: PKPushRegistryDelegate {
       data.configureAudioSession = false
       data.supportsHolding = true
       data.audioSessionMode = "voiceChat"
+      // The push carries no `ios` dict, so besides the three fields above the
+      // plugin's own Data() defaults would otherwise apply — mirror
+      // CallKitMobile's _iosCallParams (lib/core/platform/call_kit_mobile.dart)
+      // for everything that changes CallKit's own behaviour, so a VoIP-push
+      // call looks the same to iOS as one reported while the app was
+      // running. Only the four booleans below actually change anything: the
+      // plugin defaults them to true with no `ios` dict. maximumCallGroups/
+      // PerCallGroup and iconName already match the plugin's own no-`ios`-dict
+      // defaults (2/1/"CallKitLogo") — set explicitly anyway, for parity with
+      // _iosCallParams rather than because today's default is wrong.
+      // ringtonePath is deliberately left at the plugin's default (the
+      // system ringtone) — the socket path's own bumer_ringtone.caf is a UX
+      // choice out of scope here, not a behaviour bug.
+      data.supportsVideo = false
+      data.supportsDTMF = false
+      data.supportsGrouping = false
+      data.supportsUngrouping = false
+      data.maximumCallGroups = 2
+      data.maximumCallsPerCallGroup = 1
+      data.iconName = "CallKitLogo"
       // The push carries no duration: the plugin's 30 s default would ring
       // half as long as the same call arriving over the socket (60 s).
       data.duration = 60000
@@ -618,5 +637,10 @@ extension AppDelegate: CallkitIncomingAppDelegate {
 
   func didDeactivateAudioSession(_ audioSession: AVAudioSession) {
     CallKitAudioBridge.shared.didDeactivate(audioSession)
+  }
+
+  // PATCH P13 (Taler ID) forwards this from the plugin's providerDidReset.
+  func providerDidReset() {
+    CallKitAudioBridge.shared.providerDidReset()
   }
 }

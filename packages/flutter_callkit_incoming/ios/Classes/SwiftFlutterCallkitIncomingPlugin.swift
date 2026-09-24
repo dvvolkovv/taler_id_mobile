@@ -278,13 +278,21 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         
         self.configureAudioSession()
         self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
-            if(error == nil) {
-                self.configureAudioSession()
-                let call = Call(uuid: uuid!, data: data)
-                call.handle = data.handle
-                self.callManager.addCall(call)
-                self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
-                self.endCallNotExist(data)
+            // PATCH P13 (Taler ID): CXProvider.h documents this completion as
+            // running "on delegate queue, if specified, otherwise on a
+            // private serial queue" — a different rule from delegate
+            // callbacks themselves, where a nil queue (ours) means main. We
+            // never specified one, so this needs its own hop to main before
+            // touching callManager/sendEvent (Flutter method channel).
+            DispatchQueue.main.async {
+                if(error == nil) {
+                    self.configureAudioSession()
+                    let call = Call(uuid: uuid!, data: data)
+                    call.handle = data.handle
+                    self.callManager.addCall(call)
+                    self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
+                    self.endCallNotExist(data)
+                }
             }
         }
     }
@@ -316,15 +324,22 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         let uuid = UUID(uuidString: data.uuid)
         
         self.sharedProvider?.reportNewIncomingCall(with: uuid!, update: callUpdate) { error in
-            if(error == nil) {
-                self.configureAudioSession()
-                let call = Call(uuid: uuid!, data: data)
-                call.handle = data.handle
-                self.callManager.addCall(call)
-                self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
-                self.endCallNotExist(data)
+            // PATCH P13 (Taler ID): see the other showCallkitIncoming
+            // overload above — same CXProvider.h completion-queue caveat.
+            // completion() moves inside the hop too, so PushKit is not told
+            // "done" (which can let iOS suspend the app) before the call is
+            // actually registered here.
+            DispatchQueue.main.async {
+                if(error == nil) {
+                    self.configureAudioSession()
+                    let call = Call(uuid: uuid!, data: data)
+                    call.handle = data.handle
+                    self.callManager.addCall(call)
+                    self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_INCOMING, data.toJSON())
+                    self.endCallNotExist(data)
+                }
+                completion()
             }
-            completion()
         }
     }
     
@@ -570,6 +585,13 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         self.answerCall = nil
         self.outgoingCall = nil
         self.startingCalls.removeAll()
+        // PATCH P13 (Taler ID): forward the reset itself — P9's ENDED events
+        // above tell the app each call is over, but not that CallKit's own
+        // state (e.g. an audio session it activated but never got to
+        // deactivate) is gone too.
+        if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
+            appDelegate.providerDidReset?()
+        }
     }
     
     public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
