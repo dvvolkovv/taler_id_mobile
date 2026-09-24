@@ -230,6 +230,14 @@ import flutter_callkit_incoming
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
+  /// Only CallKit switches the session of a managed conversation on; our own
+  /// setActive(true) there could even take the audio back from a WhatsApp
+  /// call that holds us.
+  private func activateUnlessCallKitOwns(_ session: AVAudioSession, options: AVAudioSession.SetActiveOptions = []) throws {
+    if CallKitAudioBridge.shared.isManaging { return }
+    try session.setActive(true, options: options)
+  }
+
   // Extracted from the `taler_id/audio` MethodChannel closure: the giant
   // switch made the Swift type-checker time out ("unable to type-check this
   // expression in reasonable time") when compiled as one closure literal.
@@ -243,7 +251,7 @@ import flutter_callkit_incoming
           let volume = (call.arguments as? Double) ?? 0.6
           do {
             try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
+            try activateUnlessCallKitOwns(session)
           } catch {}
           let key = FlutterDartProject.lookupKey(forAsset: "assets/audio/ringback.wav")
           if let path = Bundle.main.path(forResource: key, ofType: nil) {
@@ -263,7 +271,7 @@ import flutter_callkit_incoming
           let on = call.arguments as? Bool ?? false
           do {
             try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
+            try activateUnlessCallKitOwns(session)
             try session.overrideOutputAudioPort(on ? .speaker : .none)
             result(nil)
           } catch {
@@ -293,15 +301,15 @@ import flutter_callkit_incoming
             switch type {
             case "speaker":
               try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-              try session.setActive(true)
+              try activateUnlessCallKitOwns(session)
               try session.overrideOutputAudioPort(.speaker)
             case "bluetooth":
               try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth])
-              try session.setActive(true)
+              try activateUnlessCallKitOwns(session)
               try session.overrideOutputAudioPort(.none)
             default: // earpiece, headphones
               try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-              try session.setActive(true)
+              try activateUnlessCallKitOwns(session)
               try session.overrideOutputAudioPort(.none)
             }
             result(nil)
@@ -311,7 +319,7 @@ import flutter_callkit_incoming
         case "requestAudioFocus":
           do {
             try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true, options: .notifyOthersOnDeactivation)
+            try activateUnlessCallKitOwns(session, options: .notifyOthersOnDeactivation)
             result(nil)
           } catch {
             result(nil) // Non-fatal
@@ -320,7 +328,7 @@ import flutter_callkit_incoming
           // Switch AVAudioSession to videoChat mode so camera capture works alongside audio
           do {
             try session.setCategory(.playAndRecord, mode: .videoChat, options: [.allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
+            try activateUnlessCallKitOwns(session)
             result(nil)
           } catch {
             result(nil) // Non-fatal
@@ -331,23 +339,30 @@ import flutter_callkit_incoming
           // may suppress AudioPlayer output on some iOS versions.
           do {
             try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker])
-            try session.setActive(true)
+            try activateUnlessCallKitOwns(session)
             result(nil)
           } catch {
             result(nil)
           }
         case "restoreVoiceChat":
-          // Restore .voiceChat mode after playback ends. Keep .mixWithOthers —
-          // this path runs mid-call, and dropping the mix flag re-opens the
-          // rival-VoIP preemption window (see enableCallAudioMix).
+          // Restore .voiceChat mode after playback ends. Off CallKit's old
+          // path keep .mixWithOthers — this runs mid-call, and dropping the
+          // mix flag re-opens the rival-VoIP preemption window (see
+          // enableCallAudioMix). While CallKit manages the conversation it
+          // already owns exclusivity itself (hold/resume, not mixing), and
+          // activateUnlessCallKitOwns leaves setActive to CallKit too.
+          let options: AVAudioSession.CategoryOptions = CallKitAudioBridge.shared.isManaging
+            ? [.allowBluetooth, .allowBluetoothA2DP]
+            : [.mixWithOthers, .allowBluetooth, .allowBluetoothA2DP]
           do {
-            try session.setCategory(.playAndRecord, mode: .voiceChat, options: [.mixWithOthers, .allowBluetooth, .allowBluetoothA2DP])
-            try session.setActive(true)
+            try session.setCategory(.playAndRecord, mode: .voiceChat, options: options)
+            try activateUnlessCallKitOwns(session)
             result(nil)
           } catch {
             result(nil)
           }
         case "deactivateAudioSession":
+          if CallKitAudioBridge.shared.isManaging { result(nil); return }
           do {
             try session.setActive(false, options: .notifyOthersOnDeactivation)
             result(nil)
@@ -369,9 +384,11 @@ import flutter_callkit_incoming
             result("earpiece")
           }
         case "enableCallAudioMix":
+          if CallKitAudioBridge.shared.isManaging { result(nil); return }
           self.enableCallAudioMix()
           result(nil)
         case "disableCallAudioMix":
+          if CallKitAudioBridge.shared.isManaging { result(nil); return }
           self.disableCallAudioMix()
           result(nil)
         default:
@@ -383,6 +400,10 @@ import flutter_callkit_incoming
   private var audioInterrupted = false
 
   @objc private func handleAudioInterruption(_ notification: Notification) {
+    // CallKit owns the session of a managed conversation: hold and resume are
+    // its deactivate/activate, not interruptions to recover from — and the
+    // plugin posts a fake "interruption ended" on every activation.
+    if CallKitAudioBridge.shared.isManaging { return }
     guard let info = notification.userInfo,
           let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
           let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
@@ -411,6 +432,7 @@ import flutter_callkit_incoming
   }
 
   @objc private func handleRouteChange(_ notification: Notification) {
+    if CallKitAudioBridge.shared.isManaging { return }
     guard let info = notification.userInfo,
           let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
           let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
@@ -601,6 +623,10 @@ extension AppDelegate: CXCallObserverDelegate {
   /// (long-standing iOS bug). Our own calls never set audioInterrupted, so
   /// this can't misfire on Taler ID call teardown.
   func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
+    if CallKitAudioBridge.shared.isManaging {
+      CallKitAudioBridge.shared.callChanged(callObserver, call)
+      return
+    }
     guard call.hasEnded, audioInterrupted else { return }
     NSLog("[Audio] CXCallObserver: rival call ended — forcing session restore")
     audioInterrupted = false
