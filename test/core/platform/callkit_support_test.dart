@@ -1,12 +1,8 @@
+// test/core/platform/callkit_support_test.dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/platform/callkit_support.dart';
 
 void main() {
-  final uuidShape = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    caseSensitive: false,
-  );
-
   test('a UUID-shaped room name is used as is', () {
     expect(toCallkitId('550e8400-e29b-41d4-a716-446655440000'),
         '550e8400-e29b-41d4-a716-446655440000');
@@ -17,9 +13,16 @@ void main() {
         '550e8400-e29b-41d4-a716-446655440000');
   });
 
-  test('any other name maps to a stable valid UUID', () {
-    final a = toCallkitId('personal-c79530ed-36fc367a');
-    expect(a, matches(uuidShape));
-    expect(toCallkitId('personal-c79530ed-36fc367a'), a);
+  test('fallback id is fixed — the FCM background isolate derives the same one', () {
+    // VM String.hashCode is unseeded: same in every isolate, run, JIT and AOT.
+    // A seeded hash (Object.hash/hashAll) would fail here, yet pass a
+    // same-isolate or Isolate.run comparison.
+    expect(toCallkitId('group-550e8400-e29b-41d4-a716-446655440000'),
+        '00000000-0000-4000-8000-00003fd2cc79');
+  });
+
+  test('case is kept as given — callers lowercase for comparisons', () {
+    expect(toCallkitId('550E8400-E29B-41D4-A716-446655440000'),
+        '550E8400-E29B-41D4-A716-446655440000');
   });
 }
