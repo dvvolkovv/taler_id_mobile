@@ -1521,6 +1521,19 @@ EOF
       expect(kit.log, isNot(contains('endAllCalls')));
       expect(reg.hasConversations, isFalse);
     });
+
+    test('hanging up before CallKit confirms the start stops the wait', () async {
+      kit.confirmStarts = false;
+      final started = reg.startOutgoing(displayName: 'A', handle: 'h', roomName: 'call-r1');
+      await pumpEventQueue();
+      await reg.endConversation('call-r1');
+      // Well inside the harness startTimeout: the wait ended with the hang-up.
+      expect(await started.timeout(const Duration(milliseconds: 200)), isNull);
+      kit.emit(CallKitEvent.typeStart, u1); // CallKit processes the start late
+      await pumpEventQueue();
+      expect(kit.log.where((l) => l == 'endCall:$u1'), hasLength(1),
+          reason: 'ended once by the hang-up, not again as an abandoned start');
+    });
   });
 
   group('dismissRinging', () {
@@ -1639,10 +1652,20 @@ Expected: FAIL — нет `endConversation`, `dismissRinging` и прочего.
   Future<void> _end(String uuid) async {
     // Removed first: the ENDED event CallKit sends back is then not "ours",
     // and nobody hangs up a second time.
-    _entries.remove(uuid);
+    final entry = _entries.remove(uuid);
+    // Hung up before CallKit confirmed the start: startOutgoing stops waiting
+    // now instead of timing out.
+    if (entry != null && !entry.started.isCompleted) entry.started.complete(false);
     await _syncManaged();
     await _callKit.endCall(uuid);
   }
+```
+
+В `startOutgoing` сразу после ожидания подтверждения (после строки `if (ok) return uuid;`) вставить:
+
+```dart
+    // Ended while starting — _end already hung it up; nothing to abandon.
+    if (!identical(_entries[uuid], entry)) return null;
 ```
 
 В `_onCallKitEvent` в `switch` добавить ветку:
@@ -1880,7 +1903,9 @@ Expected: FAIL — нет `holdForLineSwitch`, `resume`, `setMuted`, `answerRing
   /// itself, not by a button). If iOS resumes it first, the hold event makes
   /// this a no-op.
   void _onOtherCallsEnded() {
-    if (_entries.values.any((e) => e.state == _State.active)) return;
+    // A start CallKit hasn't confirmed yet counts as active: the user is
+    // opening a new line, and resuming the held one now would fight it.
+    if (_entries.values.any((e) => e.state == _State.active || e.state == _State.starting)) return;
     for (final entry in _entries.values) {
       if (entry.state == _State.heldBySystem) {
         unawaited(_callKit.setHeld(entry.uuid, false));
