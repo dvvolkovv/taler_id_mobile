@@ -65,13 +65,16 @@ class CallManager: NSObject {
     
     func connectedCall(call: Call) {
         let callItem = self.callWithUUID(uuid: call.uuid)
-        callItem?.connectedCall(completion: nil)
         // PATCH P5 (Taler ID): an outgoing call is connected by reporting it —
-        // the hasConnectDidChange hook set in CXStartCallAction does that.
-        // Answering it made CallKit run an answer action on our own outgoing
-        // call.
-        if callItem?.isOutGoing == true { return }
-
+        // the hasConnectDidChange hook set in CXStartCallAction does that — and
+        // is never answered. A ringing incoming call is answered, and only
+        // CallKit's answer (the CXAnswerCallAction handler sets isAccepted)
+        // makes it answered: marking it connected here, before CallKit agreed,
+        // made a refused answer look like an accepted call.
+        if callItem?.isOutGoing == true {
+            callItem?.connectedCall(completion: nil)
+            return
+        }
         let answerAction = CXAnswerCallAction(call: call.uuid)
         let transaction = CXTransaction(action: answerAction)
 

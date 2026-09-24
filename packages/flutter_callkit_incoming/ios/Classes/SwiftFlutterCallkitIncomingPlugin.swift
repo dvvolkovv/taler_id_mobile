@@ -35,7 +35,10 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     private var outgoingCall : Call?
     private var answerCall : Call?
-    
+    // PATCH P8 (Taler ID): data of outgoing calls between startCall and
+    // CallKit performing the start, by uuid.
+    private var startingCalls: [UUID: Data] = [:]
+
     private var data: Data?
     private var isFromPushKit: Bool = false
     private var silenceEvents: Bool = false
@@ -332,6 +335,7 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             self.data = data
         }
         initCallkitProvider(data)
+        if let uuid = UUID(uuidString: data.uuid) { startingCalls[uuid] = data }
         self.callManager.startCall(data)
     }
     
@@ -550,14 +554,28 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     }
     
     public func providerDidReset(_ provider: CXProvider) {
+        // PATCH P9 (Taler ID): CallKit dropped every call (e.g. its daemon
+        // restarted). The app keeps conversations in CallKit and must learn
+        // they are gone, so each call gets an ENDED event; then forget them all.
         for call in self.callManager.calls {
             call.endCall()
+            sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, call.data.toJSON())
         }
         self.callManager.removeAllCalls()
+        self.answerCall = nil
+        self.outgoingCall = nil
+        self.startingCalls.removeAll()
     }
     
     public func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
-        let call = Call(uuid: action.callUUID, data: self.data!, isOutGoing: true)
+        // PATCH P8 (Taler ID): the start's own data. Upstream used the
+        // remembered self.data, which an incoming call reported in between
+        // overwrites — the outgoing call then carried the incoming call's id.
+        guard let data = startingCalls.removeValue(forKey: action.callUUID) ?? self.data else {
+            action.fail()
+            return
+        }
+        let call = Call(uuid: action.callUUID, data: data, isOutGoing: true)
         call.handle = action.handle.value
         configureAudioSession()
         call.hasStartedConnectDidChange = { [weak self] in
@@ -575,6 +593,13 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
         guard let call = self.callManager.callWithUUID(uuid: action.callUUID) else{
+            action.fail()
+            return
+        }
+        // PATCH P11 (Taler ID): an outgoing call can't be answered. Refuse it
+        // before any side effect — upstream set answerCall and isAccepted and
+        // sent ACCEPT (which opens a call screen) before the app could say no.
+        if call.isOutGoing {
             action.fail()
             return
         }
@@ -613,10 +638,11 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         guard let call = self.callManager.callWithUUID(uuid: action.callUUID) else {
+            // PATCH P6 (Taler ID): this call's own id — `self.data` can name a different call.
             if(self.answerCall == nil && self.outgoingCall == nil){
-                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TIMEOUT, self.data?.toJSON())
+                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_TIMEOUT, ["id": action.callUUID.uuidString])
             } else {
-                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, self.data?.toJSON())
+                sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, ["id": action.callUUID.uuidString])
             }
             action.fail()
             return
@@ -657,7 +683,9 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             return
         }
         call.isOnHold = action.isOnHold
-        call.isMuted = action.isOnHold
+        // PATCH P10 (Taler ID): holding is not muting. Upstream overwrote the
+        // user's mute with the hold state, so after a resume an unmute from the
+        // app looked like an echo in muteCall and never reached CallKit.
         self.callManager.setHold(call: call, onHold: action.isOnHold)
         sendHoldEvent(action.callUUID.uuidString, action.isOnHold)
         action.fulfill()
