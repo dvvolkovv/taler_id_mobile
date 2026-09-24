@@ -6,6 +6,9 @@ import 'outbox_replay_handler.dart';
 
 class OutboxReplayService {
   static const int maxAttempts = 10;
+  /// Верхняя граница на один replay. Страхует от зависшего HTTP без ответа, который иначе
+  /// навсегда держит _draining=true и морозит всю очередь (см. _processOp).
+  static const Duration replayTimeout = Duration(seconds: 30);
 
   final OutboxQueue _queue;
   final Map<String, OutboxReplayHandler> _handlers = {};
@@ -60,7 +63,10 @@ class OutboxReplayService {
     await _queue.markInflight(op.opId);
     final OutboxReplayResult result;
     try {
-      result = await handler.replay(op);
+      // Таймаут ОБЯЗАТЕЛЕН: без него зависший HTTP-replay (нет ответа) навсегда оставляет
+      // _draining=true → весь outbox замерзает (bug 2026-09-19: очередь стояла с 15.09). При
+      // таймауте — TimeoutException попадает в catch ниже → markPending(retry), очередь живёт.
+      result = await handler.replay(op).timeout(replayTimeout);
     } catch (e, st) {
       debugPrint('[outbox] handler threw for ${op.opId}: $e\n$st');
       await _queue.markPending(
