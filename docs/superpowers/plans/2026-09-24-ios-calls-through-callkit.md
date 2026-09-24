@@ -3086,6 +3086,31 @@ import '../../../../core/platform/system_call_registry.dart';
       }
 ```
 
+- [ ] **Step 7a: Входящий, уже завершённый системой**
+
+Первым делом в `_initCall()`:
+
+```dart
+    // Ended from the system call UI while it was still joining (main.dart
+    // marks it): a pending route may still open this screen — close it
+    // instead of connecting a call the user has already hung up.
+    final incomingRoom = widget.roomName;
+    if (widget.isIncoming && incomingRoom != null &&
+        CallStateService.instance.consumeSystemEnded(incomingRoom)) {
+      _navigatedAway = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(RouteConstants.messenger);
+        }
+      });
+      return;
+    }
+```
+Так закрываются все копии отложенного перехода (в `NotificationService`, в дашборде, опрос `_navigateWhenResumed`) одной проверкой.
+
 - [ ] **Step 8: Анализ**
 
 ```bash
@@ -3145,7 +3170,9 @@ EOF
     if (!mounted || _navigatedAway || !_isOurSystemCall(e)) return;
     switch (e) {
       case SystemCallEndedBySystem():
-        // The system End button or "End & Accept" — the user decided.
+        // The system End button or "End & Accept" — the user decided. Not
+        // a second teardown if ours is already running.
+        if (_hangingUp) return;
         _hangUp(userInitiated: true);
       case SystemCallHeld(bySystem: true):
         setState(() => _heldBySystem = true);
@@ -3280,6 +3307,10 @@ EOF
       } catch (_) {}
     }
 ```
+
+- [ ] **Step 3a: Комната звонка при сбросе**
+
+В `_hangUpInner` строку `final rName = _roomName ?? cs.roomName;` заменить на `final rName = _roomName ?? widget.roomName ?? cs.roomName;`. Пока экран ждёт фонового подключения, `_roomName` ещё пуст, а системное «Завершить» теперь доходит до экрана — со старым фолбэком он завершил бы активную линию другого звонка и отправил бы `call_ended` с чужой парой «разговор — комната».
 
 - [ ] **Step 4: Переключение линий**
 
@@ -3533,9 +3564,13 @@ import '../../../core/platform/system_call_registry.dart';
       final loc = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
       if (loc.startsWith('/dashboard/voice')) return;
     } catch (_) {}
+    // No room: an outgoing call ended before its room existed — the call
+    // screen handles that by uuid; falling back to the active line here
+    // would end another call.
+    if (roomName == null) return;
     final cs = CallStateService.instance;
-    final rn = roomName ?? cs.roomName;
-    if (rn == null || rn != cs.roomName) return;
+    final rn = roomName;
+    if (rn != cs.roomName) return;
     final cId = cs.conversationId;
     if (cId != null) {
       try { sl<MessengerRemoteDataSource>().sendCallEnded(cId, rn); } catch (_) {}
@@ -3786,9 +3821,10 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 | 14 | Групповой звонок принят через CallKit | звук как раньше (регресс) |
 | 15 | «Удержать и ответить» на WhatsApp, и пока он идёт — собеседник в Taler ID выключает и включает интернет | WhatsApp не теряет звук; после WhatsApp наш разговор возвращается (риск 3 проекта). Отдельно смотреть: если LiveKit успел включить сессию во время удержания, возврат может прийти без `didActivate` — тогда звук после возврата пропадёт (лечится в мосту: включать звук на снятии удержания управляемого звонка, если сессия уже активна) |
 | 16 | Две линии Taler ID, кнопка «Поменять» в системном интерфейсе звонка | приложение переключается на ту же линию, что iOS; звук и микрофон у активной, вторая на удержании |
-| 17 | Две линии Taler ID, звонит WhatsApp → «Завершить и ответить» | активная линия завершена у обеих сторон; удержанная не забирает звук у WhatsApp и возвращается после его конца (если CallKit откажет снять удержание сразу — автовозврат по `otherCallsEnded`) |
+| 17 | Две линии Taler ID, звонит WhatsApp → «Завершить и ответить»; вариант: во время WhatsApp завершить удержанную линию из системного интерфейса | активная линия завершена у обеих сторон; удержанная не забирает звук у WhatsApp и возвращается после его конца (если CallKit откажет снять удержание сразу — автовозврат по `otherCallsEnded`). Вариант: WhatsApp звук не теряет; если теряет — реестр должен отпускать управляемый звонок не по ENDED, а по `onLineEnded` (после отключения комнаты) |
 | 18 | На удержании (WhatsApp идёт) открыть Taler ID, не нажимая «Вернуться»; затем свернуть; затем «Вернуться» | пока на удержании — у собеседника значок выключенного микрофона, WhatsApp звук не теряет; после «Вернуться» — звук и mute как были |
 | 19 | На удержании (WhatsApp идёт) собеседник в Taler ID кладёт трубку — с открытым экраном звонка и с закрытым (плашка) | у нас разговор завершён; WhatsApp звук не теряет |
+| 20 | Приложение убито, ответить на экране блокировки и сразу, пока звонок подключается, нажать «Завершить» | звонок не подключается, экран звонка не открывается, у звонящего — «завершён» |
 
 - [ ] **Step 3: Найденное — чинить по одной причине за раз**
 
@@ -3800,7 +3836,7 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 
 - [ ] **Step 1: Итог пользователю**
 
-Кратко: что сделано, что прошла матрица (таблица 1–19 с отметками), что не проверено. Известные ограничения назвать отдельно:
+Кратко: что сделано, что прошла матрица (таблица 1–20 с отметками), что не проверено. Известные ограничения назвать отдельно:
 - **Вторая линия, фоновое подключение не удалось** (давнее ограничение многолинейности, не этой работы): экран второго звонка возвращается к первой линии (`_initCall` берёт `cs.room`), принятый вызов CallKit второго звонка никто не завершает — у звонящего нет `call_ended`, пока он сам не положит трубку, а мост считает звонок управляемым, и ручной режим WebRTC не сбрасывается до его конца (завершить можно из системного интерфейса). Переделка `_initCall` на собственное подключение без удержания первой линии дала бы два живых микрофона.
 - **Кнопка «Поменять» против автовозврата iOS** (пункт 11, вариант с WhatsApp). Спросить, сливать ли `fix/ios-callkit-calls` в `dev`, и дальше — обычный релизный порядок из CLAUDE.md (версия, `APP_RELEASES`, TestFlight DEV → TEST → PROD). Ничего из этого без явного согласия.
 
