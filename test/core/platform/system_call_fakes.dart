@@ -26,6 +26,10 @@ class FakeCallKit implements CallKitPlatform {
   /// error handling.
   Object? setHeldError;
 
+  /// Set by a test that needs [setCallConnected] to fail after logging the
+  /// attempt, e.g. to exercise answerRinging's error handling.
+  Object? setCallConnectedError;
+
   /// Set by a test that needs to observe call order across both fakes,
   /// without changing what [log] records.
   void Function(String tag)? onCall;
@@ -56,7 +60,10 @@ class FakeCallKit implements CallKitPlatform {
   }
 
   @override
-  Future<void> setCallConnected(String uuid) async => log.add('setCallConnected:$uuid');
+  Future<void> setCallConnected(String uuid) async {
+    log.add('setCallConnected:$uuid');
+    if (setCallConnectedError != null) throw setCallConnectedError!;
+  }
 
   @override
   Future<void> setHeld(String uuid, bool onHold) async {

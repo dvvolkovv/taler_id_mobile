@@ -569,7 +569,8 @@ void main() {
 
       kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false});
       await pumpEventQueue();
-      expect(events.last, isA<SystemCallResumed>());
+      final resumed = events.last as SystemCallResumed;
+      expect(resumed.swapped, isFalse, reason: 'a call-waiting resume is not a Swap');
       expect(reg.isHeldBySystem('call-r1'), isFalse);
     });
 
@@ -611,6 +612,132 @@ void main() {
       // would otherwise surface as an unhandled error in the test zone.
       expect(kit.log, contains('setHeld:$u1:false'));
     });
+
+    test('the system Swap (unhold ours, hold another) is reported as swapped', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo -> heldByApp
+      await pumpEventQueue();
+      // The app never asked for it back — the mark is still set — so this
+      // unhold can only be the system's own doing (the Swap button).
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false});
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallResumed>().single.swapped, isTrue);
+    });
+
+    test('an app-requested resume echo is not a swap', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo -> heldByApp
+      await pumpEventQueue();
+      await reg.holdForLineSwitch('call-r1', false); // app asks for it back; clears the mark first
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false}); // echo of our own request
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallResumed>().single.swapped, isFalse);
+    });
+
+    test('a failed line-switch hold rolls the app-hold mark back', () async {
+      await conversation(u1, 'call-r1');
+      kit.setHeldError = Exception('boom');
+      await reg.holdForLineSwitch('call-r1', true); // fails; mark must not stick
+      kit.setHeldError = null;
+      // If the mark had stuck, this would read as byApp (bySystem: false).
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallHeld>().single.bySystem, isTrue);
+    });
+
+    test('an app resume CallKit refused is retried once other calls end', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo -> heldByApp
+      await pumpEventQueue();
+      await reg.holdForLineSwitch('call-r1', false); // mark cleared, setHeld(false) asked
+      // CallKit "refuses" -- no echo arrives (another call was up); state
+      // stays heldByApp with the mark already gone.
+      await pumpEventQueue();
+      kit.log.clear();
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log, contains('setHeld:$u1:false'));
+    });
+
+    test('an unhold clears the app-hold mark', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo -> heldByApp
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false}); // resumed, mark cleared
+      await pumpEventQueue();
+      // A fresh hold with the mark still set would misread as ours.
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallHeld>().last.bySystem, isTrue);
+    });
+
+    test('a second unhold echo produces no second Resumed event', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false});
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false}); // echo
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallResumed>(), hasLength(1));
+    });
+
+    test('a starting call also blocks auto-resume', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      kit.confirmStarts = false;
+      final started = reg.startOutgoing(displayName: 'B', handle: 'h');
+      await pumpEventQueue();
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log, isNot(contains('setHeld:$u1:false')));
+      expect(await started, isNull); // let the pending start settle cleanly
+    });
+
+    test('hold and mute events for a non-conversation are ignored', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'group-g1'}, // group call -> no entry created
+      });
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      kit.emit(CallKitEvent.typeToggleMute, u1, {'isMuted': true});
+      await pumpEventQueue();
+      expect(events, isEmpty);
+    });
+
+    test('"Hold & Accept" of our own second call converts a system hold to ours', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // system hold (call waiting)
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallHeld>().single.bySystem, isTrue);
+      expect(reg.isHeldBySystem('call-r1'), isTrue);
+
+      await reg.holdForLineSwitch('call-r1', true); // app also holds the same line
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo, now byApp
+      await pumpEventQueue();
+
+      final held = events.whereType<SystemCallHeld>().toList();
+      expect(held, hasLength(2));
+      expect(held[1].bySystem, isFalse);
+      expect(reg.isHeldBySystem('call-r1'), isFalse);
+    });
+
+    test('iOS resuming before otherCallsEnded fires produces one Resumed and no extra setHeld', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false}); // iOS resumes it first
+      await pumpEventQueue();
+      kit.log.clear();
+      bridge.otherCallsGone(); // arrives after the fact
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallResumed>(), hasLength(1));
+      expect(kit.log, isNot(contains('setHeld:$u1:false')));
+    });
   });
 
   group('mute', () {
@@ -638,17 +765,132 @@ void main() {
 
   group('answerRinging', () {
     test('answers through CallKit and reports the accept', () async {
-      final answered = reg.answerRinging(u2);
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      final answered = reg.answerRinging('call-$u2');
       await pumpEventQueue();
       expect(kit.log, contains('setCallConnected:$u2'));
       kit.emit(CallKitEvent.typeAccept, u2, {
-        'extra': {'roomName': u2},
+        'extra': {'roomName': 'call-$u2'},
       });
       expect(await answered, isTrue);
     });
 
-    test('false when CallKit stays silent — the dialog takes the old path', () async {
-      expect(await reg.answerRinging(u2), isFalse);
+    test('no CallKit call for the room — false at once, the dialog takes its old path', () async {
+      expect(await reg.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isFalse);
+      expect(kit.log, isEmpty);
+    });
+
+    test('already a Dart-side conversation — true at once, nothing re-answered', () async {
+      kit.emit(CallKitEvent.typeAccept, u2, {
+        'extra': {'roomName': 'call-$u2'},
+      });
+      await pumpEventQueue();
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      expect(await reg.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isTrue);
+      expect(kit.log, isEmpty);
+    });
+
+    test('CallKit already reports the call accepted — true at once', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+          'isAccepted': true,
+        },
+      ];
+      expect(await reg.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isTrue);
+      expect(kit.log, isEmpty);
+    });
+
+    test('answers the found call\'s own id when it differs from the derived uuid (VoIP fallback)', () async {
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'custom-room-xyz'},
+        },
+      ];
+      final answered = reg.answerRinging('custom-room-xyz');
+      await pumpEventQueue();
+      expect(kit.log, contains('setCallConnected:$u1'));
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'custom-room-xyz'},
+      });
+      expect(await answered, isTrue);
+    });
+
+    test('CallKit found the call but never confirms — false, after actually trying to answer', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      expect(await reg.answerRinging('call-$u2'), isFalse);
+      expect(kit.log, contains('setCallConnected:$u2')); // proves it did not fast-fail at "none found"
+    });
+
+    test('activeCalls failing falls back to answering the derived uuid blind', () async {
+      kit.activeCallsError = Exception('boom');
+      final answered = reg.answerRinging('call-$u2');
+      await pumpEventQueue();
+      expect(kit.log, contains('setCallConnected:$u2'));
+      kit.emit(CallKitEvent.typeAccept, u2, {
+        'extra': {'roomName': 'call-$u2'},
+      });
+      expect(await answered, isTrue);
+    });
+
+    test('setCallConnected throwing returns false at once', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      kit.setCallConnectedError = Exception('boom');
+      expect(await reg.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isFalse);
+    });
+
+    test('concurrent answerRinging for the same room shares one pending answer', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      final first = reg.answerRinging('call-$u2');
+      await pumpEventQueue();
+      final second = reg.answerRinging('call-$u2');
+      await pumpEventQueue();
+      expect(kit.log.where((l) => l == 'setCallConnected:$u2'), hasLength(1));
+      kit.emit(CallKitEvent.typeAccept, u2, {
+        'extra': {'roomName': 'call-$u2'},
+      });
+      expect(await first, isTrue);
+      expect(await second, isTrue);
+    });
+
+    test('answerRinging before attach() is false at once', () async {
+      final fresh = SystemCallRegistry(
+        callKit: kit,
+        bridge: bridge,
+        enabled: true,
+        startTimeout: const Duration(milliseconds: 500),
+        answerTimeout: const Duration(milliseconds: 500),
+        newUuid: () => u1,
+      ); // no .attach()
+      expect(await fresh.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isFalse);
+      expect(kit.log, isEmpty);
     });
   });
 

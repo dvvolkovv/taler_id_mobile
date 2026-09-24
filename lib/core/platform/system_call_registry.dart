@@ -29,7 +29,11 @@ final class SystemCallHeld extends SystemCallEvent {
 }
 
 final class SystemCallResumed extends SystemCallEvent {
-  const SystemCallResumed(super.uuid, super.roomName);
+  const SystemCallResumed(super.uuid, super.roomName, {required this.swapped});
+
+  /// The system resumed a line the app had put on hold — e.g. the Swap
+  /// button — so the app should switch to it.
+  final bool swapped;
 }
 
 /// The mute button of the system call UI (lock screen, Dynamic Island).
@@ -281,7 +285,8 @@ class SystemCallRegistry {
     if (_entries.containsKey(key)) await _end(key);
   }
 
-  /// Hangs up every one of our conversations in CallKit, e.g. on sign-out.
+  /// Hangs up every one of our conversations in CallKit — the call screen's
+  /// "hang up all". (Sign-out still uses the raw `endAllCalls()`, not this.)
   Future<void> endAllConversations() async {
     for (final uuid in List.of(_entries.keys)) {
       // A CallKit ENDED processed while a previous iteration's _end was
@@ -299,7 +304,8 @@ class SystemCallRegistry {
   /// conversation Dart has not turned into an entry yet (the same race
   /// [endRingingForRoom] guards against). An answered group/mesh call is
   /// none of those — it never becomes an entry — so it stays dismissable
-  /// here; the dashboard ends it itself once the group call is under way.
+  /// here: the dashboard ends an accepted group call by calling this once
+  /// the group call itself ends.
   /// A plugin failure is swallowed and logged, leaving any remaining
   /// ringing calls alone rather than throwing. Disabled registry: exactly
   /// the old endAllCalls().
@@ -337,8 +343,9 @@ class SystemCallRegistry {
   /// accepted/connected. The second check covers the moment before Dart has
   /// turned an accept into an entry: on iOS the FCM handler that calls this
   /// runs on the main isolate, sharing this same singleton, so a concurrent
-  /// accept not yet registered is still caught here; on Android the registry
-  /// is disabled and this whole method is a no-op. Matches the ringing call
+  /// accept not yet registered is still caught here; on Android the
+  /// registry is disabled and this method falls back to the old
+  /// `endAllCalls()` instead — not a no-op. Matches the ringing call
   /// either by the uuid [roomName] derives ([toCallkitId]) or by its own
   /// `extra.roomName` — a VoIP-push call whose room isn't
   /// `call-<uuid>`/uuid-shaped keeps the push's own id, which doesn't equal
@@ -382,6 +389,7 @@ class SystemCallRegistry {
   Future<void> holdForLineSwitch(String roomName, bool onHold) async {
     final entry = _entryForRoom(roomName);
     if (entry == null) return;
+    final wasMarked = _appHolds.contains(entry.uuid);
     if (onHold) {
       _appHolds.add(entry.uuid);
     } else {
@@ -391,6 +399,12 @@ class SystemCallRegistry {
       await _callKit.setHeld(entry.uuid, onHold);
     } catch (e) {
       debugPrint('[SystemCall] setHeld failed for ${entry.uuid}: $e');
+      // CallKit never got the request: put the mark back to what it was.
+      if (wasMarked) {
+        _appHolds.add(entry.uuid);
+      } else {
+        _appHolds.remove(entry.uuid);
+      }
     }
   }
 
@@ -418,11 +432,59 @@ class SystemCallRegistry {
 
   /// Our dialog's "Answer": answers the ringing CallKit call, so the call
   /// takes the same path as an answer on the CallKit UI (main.dart's accept
-  /// handler connects and navigates). False when CallKit did not confirm in
-  /// [answerTimeout] — the dialog then takes its old in-app path.
+  /// handler connects and navigates). Resolves the call via
+  /// [CallKitPlatform.activeCalls] first, matching either the uuid
+  /// [roomName] derives ([toCallkitId]) or the call's own `extra.roomName`
+  /// — same as [endRingingForRoom] — rather than answering blind: iOS may
+  /// have rejected the incoming report (Focus/DND, a blocked number) while
+  /// our dialog still shows it, and answering a uuid CallKit never heard of
+  /// would otherwise just wait out [answerTimeout] for nothing. False at
+  /// once when no matching call is found; true at once when it is already
+  /// a conversation or CallKit already reports it accepted/connected;
+  /// otherwise answers that call's own id — which may differ from the
+  /// derived uuid, e.g. a VoIP-push fallback id — and waits for the ACCEPT
+  /// up to [answerTimeout], false on timeout, same as before. If
+  /// [CallKitPlatform.activeCalls] itself fails, falls back to answering
+  /// the derived uuid blind. A concurrent call for the same resolved uuid
+  /// shares the one pending answer rather than issuing a second CallKit
+  /// request. False at once when disabled or not attached — the ACCEPT
+  /// this waits for would never be heard.
   Future<bool> answerRinging(String roomName) async {
     if (!enabled) return false;
-    final uuid = toCallkitId(roomName).toLowerCase();
+    if (_callKitSub == null) {
+      // Not attached: the ACCEPT event this method waits for is never
+      // heard, so without this guard it would just time out.
+      debugPrint('[SystemCall] answerRinging before attach() — dialog takes its old path');
+      return false;
+    }
+    final derivedUuid = toCallkitId(roomName).toLowerCase();
+    String uuid;
+    try {
+      final calls = await _callKit.activeCalls();
+      Map? found;
+      for (final raw in calls) {
+        if (raw is! Map) continue;
+        final id = (raw['id'] ?? '').toString().toLowerCase();
+        final extra = raw['extra'];
+        final matchesRoom = extra is Map && extra['roomName'] == roomName;
+        if (id == derivedUuid || matchesRoom) {
+          found = raw;
+          break;
+        }
+      }
+      if (found == null) return false;
+      if (_entryForRoom(roomName) != null || found['isAccepted'] == true || found['accepted'] == true) {
+        return true;
+      }
+      uuid = (found['id'] ?? '').toString().toLowerCase();
+    } catch (e) {
+      debugPrint('[SystemCall] answerRinging: activeCalls failed, answering blind: $e');
+      uuid = derivedUuid;
+    }
+
+    final existing = _pendingAnswers[uuid];
+    if (existing != null) return existing.future;
+
     final pending = Completer<bool>();
     _pendingAnswers[uuid] = pending;
     try {
@@ -432,7 +494,7 @@ class SystemCallRegistry {
       if (!pending.isCompleted) pending.complete(false);
     }
     final ok = await pending.future.timeout(answerTimeout, onTimeout: () => false);
-    _pendingAnswers.remove(uuid);
+    if (identical(_pendingAnswers[uuid], pending)) _pendingAnswers.remove(uuid);
     return ok;
   }
 
@@ -479,10 +541,16 @@ class SystemCallRegistry {
           entry.state = held;
           _events.add(SystemCallHeld(uuid, entry.roomName, bySystem: !byApp));
         } else {
+          // Computed before the mark is cleared: an entry the app itself
+          // put on hold, whose mark is STILL set, means the app never
+          // asked for it back (holdForLineSwitch(room, false) clears the
+          // mark before requesting) — so this unhold is the system's own
+          // doing, e.g. the "Swap" button.
+          final swapped = entry.state == _State.heldByApp && _appHolds.contains(uuid);
           _appHolds.remove(uuid);
           if (entry.state == _State.active) return; // echo
           entry.state = _State.active;
-          _events.add(SystemCallResumed(uuid, entry.roomName));
+          _events.add(SystemCallResumed(uuid, entry.roomName, swapped: swapped));
         }
       case CallKitEvent.typeToggleMute:
         final entry = _entries[uuid];
@@ -522,13 +590,19 @@ class SystemCallRegistry {
   /// The call that put us on hold is over and nothing else is going on:
   /// take the conversation back (agreed with the user 2026-09-24 — resume by
   /// itself, not by a button). If iOS resumes it first, the hold event makes
-  /// this a no-op.
+  /// this a no-op. Also retries a resume the app itself asked for
+  /// ([holdForLineSwitch]) that CallKit refused while another call was up:
+  /// that call's mark is already cleared (the request clears it before
+  /// asking), so it reads as [_State.heldByApp] with no mark — distinct
+  /// from a fresh app hold, which still has one.
   void _onOtherCallsEnded() {
     // A start CallKit hasn't confirmed yet counts as active: the user is
     // opening a new line, and resuming the held one now would fight it.
     if (_entries.values.any((e) => e.state == _State.active || e.state == _State.starting)) return;
     for (final entry in _entries.values) {
-      if (entry.state == _State.heldBySystem) {
+      final isCallWaitingHold = entry.state == _State.heldBySystem;
+      final isRefusedAppResume = entry.state == _State.heldByApp && !_appHolds.contains(entry.uuid);
+      if (isCallWaitingHold || isRefusedAppResume) {
         unawaited(_callKit.setHeld(entry.uuid, false).catchError((Object e) {
           debugPrint('[SystemCall] auto-resume setHeld failed for ${entry.uuid}: $e');
         }));
