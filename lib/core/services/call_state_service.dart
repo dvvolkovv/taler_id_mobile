@@ -402,6 +402,16 @@ class CallStateService {
     }
   }
 
+  /// Disconnects a room with a bounded wait — a hung disconnect (dead room,
+  /// unresponsive LiveKit) must not stall whoever is waiting on it forever.
+  /// Timeout and any error are swallowed, same as
+  /// VoiceCallScreen._hangUpInner's own guard around room.disconnect().
+  Future<void> _disconnectRoom(lk.Room room) async {
+    try {
+      await room.disconnect().timeout(const Duration(seconds: 2), onTimeout: () {});
+    } catch (_) {}
+  }
+
   /// End a specific call line.
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
@@ -416,8 +426,13 @@ class CallStateService {
     // later hold hits applySystemHold's already-held early return.
     _pendingSystemHolds.remove(name);
     if (line != null) {
+      // Disconnect BEFORE reporting the line ended: onLineEnded ends this
+      // conversation's CallKit call, which releases our manual WebRTC audio
+      // ownership. A still-connected room would then have WebRTC grab the
+      // audio unit and activate the session on its own — mid a
+      // WhatsApp/cellular call, if this line had been on hold for one.
+      await _disconnectRoom(line.room);
       _reportLineEnded(name);
-      try { await line.room.disconnect(); } catch (_) {}
     }
     if (_activeRoomName == name) {
       // Switch to another held line if available
@@ -443,19 +458,24 @@ class CallStateService {
   Future<void> endCall() async {
     final lines = List<CallLine>.from(_lines.values);
     _lines.clear();
-    for (final line in lines) {
-      _reportLineEnded(line.roomName);
-    }
     _activeRoomName = null;
     _bgConnecting = false;
     _bgGeneration++;
     _answeredElsewhereRooms.clear();
     _selfAnsweredRooms.clear();
     _pendingSystemHolds.clear();
+    // Cleared and emitted before the disconnects below are awaited — "the
+    // call ended" reaches subscribers right away, not only once every room
+    // has (possibly slowly) hung up.
     _stateCtrl.add(false);
     _activeRoomCtrl.add(null);
+    // Disconnect every room BEFORE reporting any line ended — same reason
+    // as endLine: a room still connected when onLineEnded releases manual
+    // WebRTC audio ownership would have WebRTC grab it right back. Parallel,
+    // so N held lines cost one 2 s timeout, not N of them in a row.
+    await Future.wait(lines.map((line) => _disconnectRoom(line.room)));
     for (final line in lines) {
-      try { await line.room.disconnect(); } catch (_) {}
+      _reportLineEnded(line.roomName);
     }
   }
 

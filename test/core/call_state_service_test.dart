@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:mocktail/mocktail.dart';
@@ -918,6 +919,86 @@ void main() {
       // from the live mic reading — that's already off because of the
       // system hold and would wrongly say "was muted" if read directly.
       expect(svc.allLines.firstWhere((l) => l.roomName == 'a').wasMuted, isFalse);
+    });
+  });
+
+  // ── Step 0: room disconnects before the line is reported ended ──────────
+  //
+  // onLineEnded is wired (main.dart) to SystemCallRegistry.endConversation,
+  // which ends this conversation's CallKit call and releases manual WebRTC
+  // audio ownership. A room still connected at that point would have WebRTC
+  // grab the audio unit and activate the session on its own — mid a
+  // WhatsApp/cellular call, if this line had been held for one. So the room
+  // must disconnect first.
+  group('room disconnects before the line is reported ended', () {
+    test('endLine: hook only fires after room.disconnect() completes', () async {
+      final log = <String>[];
+      final room = _makeRoom();
+      when(() => room.disconnect()).thenAnswer((_) async {
+        log.add('disconnect:a');
+      });
+      svc.setRoom(room, 'a', 'c1');
+      svc.onLineEnded = (roomName) async => log.add('ended:$roomName');
+      addTearDown(() => svc.onLineEnded = null);
+
+      await svc.endLine('a');
+
+      expect(log, ['disconnect:a', 'ended:a']);
+    });
+
+    test('endCall: every room disconnects before any line is reported ended', () async {
+      final log = <String>[];
+      final roomA = _makeRoom();
+      final roomB = _makeRoom();
+      when(() => roomA.disconnect()).thenAnswer((_) async => log.add('disconnect:a'));
+      when(() => roomB.disconnect()).thenAnswer((_) async => log.add('disconnect:b'));
+      svc.setRoom(roomA, 'a', 'c1');
+      svc.setRoom(roomB, 'b', 'c2');
+      svc.onLineEnded = (roomName) async => log.add('ended:$roomName');
+      addTearDown(() => svc.onLineEnded = null);
+
+      await svc.endCall();
+
+      // Both disconnects land before either "ended" report — endCall
+      // disconnects every room in parallel, not one line at a time.
+      final firstEnded = log.indexWhere((e) => e.startsWith('ended:'));
+      expect(firstEnded, 2);
+      expect(log.sublist(0, 2), unorderedEquals(['disconnect:a', 'disconnect:b']));
+      expect(log.sublist(2), unorderedEquals(['ended:a', 'ended:b']));
+    });
+
+    test('endLine: a hung room.disconnect() does not delay the report past the 2s timeout', () {
+      fakeAsync((async) {
+        final gate = Completer<void>(); // never completes
+        final room = _makeRoom();
+        when(() => room.disconnect()).thenAnswer((_) => gate.future);
+        svc.setRoom(room, 'a', 'c1');
+        final log = <String>[];
+        svc.onLineEnded = (roomName) async => log.add(roomName);
+        addTearDown(() => svc.onLineEnded = null);
+
+        unawaited(svc.endLine('a'));
+        async.elapse(const Duration(seconds: 2));
+
+        expect(log, ['a']);
+      });
+    });
+
+    test('endCall: a hung room.disconnect() does not delay the report past the 2s timeout', () {
+      fakeAsync((async) {
+        final gate = Completer<void>(); // never completes
+        final room = _makeRoom();
+        when(() => room.disconnect()).thenAnswer((_) => gate.future);
+        svc.setRoom(room, 'a', 'c1');
+        final log = <String>[];
+        svc.onLineEnded = (roomName) async => log.add(roomName);
+        addTearDown(() => svc.onLineEnded = null);
+
+        unawaited(svc.endCall());
+        async.elapse(const Duration(seconds: 2));
+
+        expect(log, ['a']);
+      });
     });
   });
 }
