@@ -94,26 +94,32 @@ void _wireSystemCalls() {
   });
 }
 
+/// "This call ended": the socket emit (fast, but silently dropped by a
+/// not-yet-reconnected socket) plus a durable POST fallback — the exact
+/// pair VoiceCallScreen and the dashboard both send. The POST is
+/// un-awaited: a network round trip here must never hold back whatever the
+/// caller does next (in both call sites below, endLine's disconnect).
+void _reportCallEnded(String convId, String roomName) {
+  try {
+    sl<MessengerRemoteDataSource>().sendCallEnded(convId, roomName);
+  } catch (_) {}
+  try {
+    unawaited(sl<DioClient>().post(
+      '/messenger/call-ended',
+      data: {'conversationId': convId, 'roomName': roomName},
+      fromJson: (d) => d,
+    ).catchError((Object e) {
+      debugPrint('[CallKit] call-ended POST failed: $e');
+    }));
+  } catch (_) {}
+}
+
 Future<void> _endBackgroundLine(String roomName, {String? conversationId}) async {
   final calls = CallStateService.instance;
   for (final line in calls.allLines) {
     if (line.roomName != roomName) continue;
     final convId = line.conversationId;
-    if (convId != null) {
-      try {
-        sl<MessengerRemoteDataSource>().sendCallEnded(convId, roomName);
-      } catch (_) {}
-      // Socket emit has no queue — a not-yet-reconnected socket silently
-      // drops it. The POST is the durable half; VoiceCallScreen and the
-      // dashboard both send this exact pair for the same reason.
-      try {
-        await sl<DioClient>().post(
-          '/messenger/call-ended',
-          data: {'conversationId': convId, 'roomName': roomName},
-          fromJson: (d) => d,
-        );
-      } catch (_) {}
-    }
+    if (convId != null) _reportCallEnded(convId, roomName);
     await calls.endLine(roomName);
     return;
   }
@@ -127,24 +133,15 @@ Future<void> _endBackgroundLine(String roomName, {String? conversationId}) async
   // the event's own id when both are available.
   final abandonedConvId = calls.abandonBackgroundConnect(roomName);
   final conv = conversationId ?? abandonedConvId;
-  if (conv != null) {
-    try {
-      sl<MessengerRemoteDataSource>().sendCallEnded(conv, roomName);
-    } catch (_) {}
-    try {
-      await sl<DioClient>().post(
-        '/messenger/call-ended',
-        data: {'conversationId': conv, 'roomName': roomName},
-        fromJson: (d) => d,
-      );
-    } catch (_) {}
-  }
-  // A pending call route for this room (set by the accept handler or the
-  // cold-start check) must not survive to reopen and reconnect a call the
-  // user just ended — clear it, and mark the room so a copy of the route
-  // that outruns this cleanup can still be caught by whoever consumes it.
+  // Local work FIRST, before anything that touches the network: a stale
+  // pending route must not survive long enough for the user to unlock the
+  // phone and have _navigateWhenResumed push it (~200 ms after resume)
+  // before it's cleared — that reconnects the very call this method exists
+  // to make sure stays ended. markSystemEnded/clearPendingCallRouteFor cost
+  // nothing to run even when conv turns out null.
   calls.markSystemEnded(roomName);
   NotificationService.clearPendingCallRouteFor(roomName);
+  if (conv != null) _reportCallEnded(conv, roomName);
   // endLine still forgets what the service remembers for the room even
   // without a line — e.g. a hold that arrived meanwhile (applySystemHold's
   // pending-hold path) — and clears the answered-elsewhere/self-answered

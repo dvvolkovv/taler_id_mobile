@@ -1108,6 +1108,89 @@ void main() {
       joinGate.complete({'token': 'unused'}); // let connectInBackground unwind
       await connecting;
     });
+
+    test('abandon, then the join FAILS: line A still comes back off hold '
+        '(mic per the rule)', () async {
+      // An abandoned join is *likely* to fail right where it resumes:
+      // call_ended was just sent for that room, so the server may refuse
+      // the join or close the room mid-connect. The catch block's own undo
+      // must not depend on gen == _bgGeneration — abandon already bumped
+      // it — or it would skip and strand line A held forever.
+      final roomA = _makeRoom();
+      svc.setRoom(roomA, 'a', 'c1');
+
+      final client = MockDioClient();
+      final joinGate = Completer<Map<String, dynamic>>();
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenAnswer((_) => joinGate.future);
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      final connecting = svc.connectInBackground('r', 'conv-r');
+      await Future.delayed(Duration.zero); // reach the gated HTTP join
+
+      expect(svc.abandonBackgroundConnect('r'), 'conv-r');
+
+      joinGate.completeError(Exception('server refused the join')); // lands in the catch block
+      final result = await connecting;
+
+      expect(result, isFalse);
+      final lineA = svc.allLines.firstWhere((l) => l.roomName == 'a');
+      expect(lineA.isOnHold, isFalse);
+      expect((roomA.localParticipant as MockLocalParticipant).isMicrophoneEnabled(), isTrue);
+    });
+
+    test('abandon while a newer join D is in flight: the abandoned join '
+        'returning does not un-hold A', () async {
+      final roomA = _makeRoom();
+      svc.setRoom(roomA, 'a', 'c1');
+
+      // Each call to post() gets its own gate, in call order: gates[0] is
+      // R's (abandoned) join, gates[1] is D's.
+      final client = MockDioClient();
+      final gates = <Completer<Map<String, dynamic>>>[];
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenAnswer((_) {
+        final gate = Completer<Map<String, dynamic>>();
+        gates.add(gate);
+        return gate.future;
+      });
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      final connectingR = svc.connectInBackground('r', 'conv-r');
+      await Future.delayed(Duration.zero); // R reaches its gated HTTP join
+      svc.abandonBackgroundConnect('r'); // cancels R, clears _bgConnecting
+
+      // _bgConnecting is clear again, so D is free to start — and, like R
+      // before it, holds line A for its own switch.
+      final connectingD = svc.connectInBackground('d', 'conv-d');
+      await Future.delayed(Duration.zero); // D reaches its own gated HTTP join
+      expect(svc.isBackgroundConnecting, isTrue, reason: 'D owns it now');
+      expect(svc.activeLine!.isOnHold, isTrue, reason: 'A is held for D now');
+
+      // R's abandoned join finally resolves. Its cancel-after-join branch
+      // runs (gen is stale), but must see D owns the hold and leave A alone.
+      gates[0].complete({'token': 'unused-r'});
+      expect(await connectingR, isFalse);
+
+      expect(svc.activeLine!.roomName, 'a');
+      expect(svc.activeLine!.isOnHold, isTrue);
+      expect((roomA.localParticipant as MockLocalParticipant).isMicrophoneEnabled(), isFalse);
+
+      // Let D fail too (cheapest way to settle it without touching real
+      // LiveKit) so it doesn't leak a pending Future into later tests. Its
+      // own catch block then owns undoing A's hold — not asserted here,
+      // just letting it unwind.
+      gates[1].completeError(Exception('cleanup'));
+      await connectingD;
+    });
   });
 
   group('system ended marker', () {

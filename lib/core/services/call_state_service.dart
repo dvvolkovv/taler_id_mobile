@@ -562,12 +562,17 @@ class CallStateService {
   /// Cancels the background join in flight for [roomName], if that is what
   /// is currently in flight — e.g. a system End arrived for a call CallKit
   /// already marked answered, but whose LiveKit join hasn't produced a line
-  /// yet (see [_endBackgroundLine] in main.dart). Bumps the generation so
-  /// connectInBackground's own cancellation checks (after the HTTP join,
-  /// after the LiveKit connect) take it from here — same path a stale
-  /// attempt already takes when a newer one supersedes it — so the mic never
-  /// gets turned on for a call the user just ended, and whichever line it
-  /// held for the switch gets its hold undone there.
+  /// yet (see [_endBackgroundLine] in main.dart). Bumps the generation and
+  /// clears [_bgConnecting] so connectInBackground's own cancellation checks
+  /// (after the HTTP join, after the LiveKit connect, and its catch block on
+  /// outright failure) take over from here — same path a stale attempt
+  /// already takes when a newer one supersedes it. Clearing `_bgConnecting`
+  /// (not just bumping the generation) is what those three exits key their
+  /// `!_bgConnecting` guard on: it stays false until something else claims
+  /// it, telling the abandoned attempt it may still safely undo whatever
+  /// hold it placed on another line for the switch — and flips true the
+  /// moment a newer connectInBackground starts and takes that line's hold
+  /// over instead, telling the abandoned one not to touch it.
   ///
   /// Returns the abandoned join's conversation id — the caller needs it to
   /// send `call_ended`, since without a line there is nowhere else in
@@ -636,12 +641,14 @@ class CallStateService {
       // The call may have ended while the join request was in flight.
       if (gen != _bgGeneration) {
         debugPrint('[CallState] connectInBackground cancelled after join, room=$rName');
-        // Same undo as the catch block below, minus its `gen == _bgGeneration`
-        // guard — we are already inside the branch where that would be
-        // false. After endCall/notifyEnded, `current`'s line is gone too, so
-        // the identical() check is false and this is a no-op; after
-        // abandonBackgroundConnect it is not — line A comes back off hold.
-        if (current != null &&
+        // Same condition as the catch block below (and the other
+        // cancellation branch past the LiveKit connect) — see
+        // abandonBackgroundConnect's doc for why !_bgConnecting is what
+        // decides whether THIS attempt still owns `current`'s hold. After
+        // endCall/notifyEnded, `current`'s line is gone too, so the
+        // identical() check alone is already false and this is a no-op.
+        if (!_bgConnecting &&
+            current != null &&
             identical(_lines[current.roomName], current) &&
             _activeRoomName == current.roomName &&
             current.isOnHold) {
@@ -679,8 +686,9 @@ class CallStateService {
         try {
           await r.disconnect();
         } catch (_) {}
-        // Same undo, same reasoning as the cancel-after-join branch above.
-        if (current != null &&
+        // Same condition, same reasoning as the cancel-after-join branch above.
+        if (!_bgConnecting &&
+            current != null &&
             identical(_lines[current.roomName], current) &&
             _activeRoomName == current.roomName &&
             current.isOnHold) {
@@ -738,8 +746,17 @@ class CallStateService {
       // Undo the hold placed on the previous line above, but only if it's
       // still exactly what we left it as: a newer connect/switch may have
       // already moved it on, and clobbering that would be worse than the
-      // original bug.
-      if (gen == _bgGeneration &&
+      // original bug. !_bgConnecting, not gen == _bgGeneration: this join
+      // may have been abandoned (abandonBackgroundConnect also bumps the
+      // generation), and an abandoned join is *likely* to fail right here —
+      // call_ended was just sent for this room, so the server may refuse
+      // the join or close the room mid-connect. gen == _bgGeneration would
+      // then read false and skip this, stranding `current` held forever —
+      // in the service and in CallKit's own app-hold. !_bgConnecting stays
+      // true after an abandon (nothing has claimed the flag since) and
+      // correctly reads false once a newer connect owns `current` instead
+      // (same reasoning as the two cancellation branches above).
+      if (!_bgConnecting &&
           current != null &&
           identical(_lines[current.roomName], current) &&
           _activeRoomName == current.roomName &&
