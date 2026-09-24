@@ -3241,21 +3241,31 @@ EOF
 заменить на
 
 ```dart
+    // iOS: a conversation in CallKit is ended there further down, once the
+    // room is gone. The mix/deactivate dance is for calls without CallKit.
     final systemCallUuid = _systemCallUuid;
-    if (systemCallUuid != null) {
-      // iOS: this conversation's CallKit call ends here; CallKit turns the
-      // session off. The mix/deactivate dance is for calls without CallKit.
-      _systemCallUuid = null;
-      _heldBySystem = false;
-      try {
-        await SystemCallRegistry.instance.endConversationByUuid(systemCallUuid);
-      } catch (_) {}
-    } else {
+    if (systemCallUuid == null) {
       try {
         await _audioChannel.invokeMethod('disableCallAudioMix');
       } catch (e) {
         debugPrint('[CallAudio] disableCallAudioMix failed: $e');
       }
+    }
+```
+
+И в том же `_hangUpInner` сразу после блока `if (roomToClose != null) { … roomToClose.disconnect() … }` и перед `// End only this line — CallStateService will auto-switch to next held line`:
+
+```dart
+    if (systemCallUuid != null) {
+      // iOS: end the CallKit call only now, with the room gone. Releasing
+      // manual audio while WebRTC still had a room would let it restart its
+      // audio unit and grab the session — mid-WhatsApp if we were on hold.
+      // CallKit turns the session off itself.
+      _systemCallUuid = null;
+      _heldBySystem = false;
+      try {
+        await SystemCallRegistry.instance.endConversationByUuid(systemCallUuid);
+      } catch (_) {}
     }
 ```
 
@@ -3762,10 +3772,11 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 | 12 | После исходящего: новый входящий → «Отклонить» | звонящий видит отказ сразу (P3); без ответа вызов снимается сам через 60 с (P4) |
 | 13 | После звонка открыть ассистента | ассистента слышно, он слышит нас |
 | 14 | Групповой звонок принят через CallKit | звук как раньше (регресс) |
-| 15 | «Удержать и ответить» на WhatsApp, и пока он идёт — собеседник в Taler ID выключает и включает интернет | WhatsApp не теряет звук; после WhatsApp наш разговор возвращается (риск 3 проекта) |
+| 15 | «Удержать и ответить» на WhatsApp, и пока он идёт — собеседник в Taler ID выключает и включает интернет | WhatsApp не теряет звук; после WhatsApp наш разговор возвращается (риск 3 проекта). Отдельно смотреть: если LiveKit успел включить сессию во время удержания, возврат может прийти без `didActivate` — тогда звук после возврата пропадёт (лечится в мосту: включать звук на снятии удержания управляемого звонка, если сессия уже активна) |
 | 16 | Две линии Taler ID, кнопка «Поменять» в системном интерфейсе звонка | приложение переключается на ту же линию, что iOS; звук и микрофон у активной, вторая на удержании |
 | 17 | Две линии Taler ID, звонит WhatsApp → «Завершить и ответить» | активная линия завершена у обеих сторон; удержанная не забирает звук у WhatsApp и возвращается после его конца (если CallKit откажет снять удержание сразу — автовозврат по `otherCallsEnded`) |
 | 18 | На удержании (WhatsApp идёт) открыть Taler ID, не нажимая «Вернуться»; затем свернуть; затем «Вернуться» | пока на удержании — у собеседника значок выключенного микрофона, WhatsApp звук не теряет; после «Вернуться» — звук и mute как были |
+| 19 | На удержании (WhatsApp идёт) собеседник в Taler ID кладёт трубку | у нас разговор завершён; WhatsApp звук не теряет |
 
 - [ ] **Step 3: Найденное — чинить по одной причине за раз**
 
@@ -3777,7 +3788,7 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 
 - [ ] **Step 1: Итог пользователю**
 
-Кратко: что сделано, что прошла матрица (таблица 1–18 с отметками), что не проверено. Известные ограничения назвать отдельно:
+Кратко: что сделано, что прошла матрица (таблица 1–19 с отметками), что не проверено. Известные ограничения назвать отдельно:
 - **Вторая линия, фоновое подключение не удалось** (давнее ограничение многолинейности, не этой работы): экран второго звонка возвращается к первой линии (`_initCall` берёт `cs.room`), принятый вызов CallKit второго звонка никто не завершает — у звонящего нет `call_ended`, пока он сам не положит трубку, а мост считает звонок управляемым, и ручной режим WebRTC не сбрасывается до его конца (завершить можно из системного интерфейса). Переделка `_initCall` на собственное подключение без удержания первой линии дала бы два живых микрофона.
 - **Кнопка «Поменять» против автовозврата iOS** (пункт 11, вариант с WhatsApp). Спросить, сливать ли `fix/ios-callkit-calls` в `dev`, и дальше — обычный релизный порядок из CLAUDE.md (версия, `APP_RELEASES`, TestFlight DEV → TEST → PROD). Ничего из этого без явного согласия.
 

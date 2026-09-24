@@ -78,11 +78,13 @@
 - Мост всегда помнит, включена ли сессия CallKit (`didActivate` → да, `didDeactivate` → нет).
 - Управляемые звонки = набор от Dart (`setManagedCalls([uuid])` по каналу `taler_id/callkit_audio`) ∪ входящие, отвеченные через CallKit (см. `onAccept`). Пока он не пуст:
   - `didActivate(s)` → `rtc.audioSessionDidActivate(s)`, `rtc.isAudioEnabled = true`, затем `rtc.useManualAudio = true`. Порядок важен: сначала разрешить звук, потом включить ручной режим, чтобы идущий аудиоюнит не остановился;
-  - `didDeactivate(s)` → `rtc.audioSessionDidDeactivate(s)`, `rtc.isAudioEnabled = false`.
-- Переход набора «пусто → не пусто», когда сессия CallKit уже включена, — те же шаги, что в `didActivate`. Это путь убитого приложения: CallKit включает звук раньше, чем стартует Flutter и реестр регистрирует звонок.
+  - `didDeactivate(s)` → `rtc.audioSessionDidDeactivate(s)`, и `rtc.isAudioEnabled = false` — если жив хоть один управляемый звонок. Звонок, который CallKit уже завершил, а Dart ещё не отпустил, живым не считается: иначе снятие ручного режима следом дало бы WebRTC перепад «нельзя → можно», он поднял бы аудиоюнит и сам включил сессию — посреди звонка WhatsApp;
+- Переход набора «пусто → не пусто», когда сессия CallKit уже включена, — те же шаги, что в `didActivate`. Путь убитого приложения идёт не через него, а через `onAccept`: звонок управляемый ещё до `didActivate`, иначе поддельное «перерыв закончился» от плагина застало бы WebRTC без активации и выключило бы сессию, которую только что включил CallKit. Переход нужен, когда разговор регистрируется, пока сессией CallKit уже владеет другой звонок (групповой, mesh).
+- Мост полагается на порядок плагина: `didActivateAudioSession` приходит раньше поддельного «перерыв закончился» (записано в `PATCHES.md`).
 - Переход «не пусто → пусто» → `rtc.useManualAudio = false`: WebRTC снова сам управляет сессией (ассистент и всё, что не звонок).
 - Пока набор пуст, колбэки CallKit WebRTC не трогают — запасной путь работает как сегодня.
-- Категория: `prepareCallAudio()` — `setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])` без `setActive`. Вызывается из Dart перед `startCall` и нативно в `onAccept` перед `fulfill` (путь убитого приложения).
+- Категория: `prepareCallAudio()` — `setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])` без `setActive`, и только пока сессия CallKit не включена (живую — второй линией, видеорежимом, динамиком — не трогает). Вызывается из Dart перед `startCall` и нативно в `onAccept` перед `fulfill` (путь убитого приложения).
+- Сброс CallKit (`providerDidReset`) плагин передаёт мосту (P13): мост забывает звонки, отвеченные без Dart, и сообщает WebRTC о выключении сессии.
 - Плагину везде передаются `configureAudioSession: false` и `supportsHolding: true`, включая путь VoIP-пуша в `AppDelegate.pushRegistry` (поля `Data` правятся перед `showCallkitIncoming`; там же `duration = 60000` — в пуше длительности нет, и по умолчанию плагина вызов звонил бы 30 с вместо 60).
 - Пока набор не пуст, старая машинерия молчит:
   - `handleAudioInterruption` не шлёт `audioInterrupted`/`audioResumed` и не восстанавливает сессию;
