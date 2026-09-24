@@ -647,6 +647,20 @@ void main() {
       expect(events.whereType<SystemCallHeld>().single.bySystem, isTrue);
     });
 
+    test('a failed line-switch unhold leaves the mark cleared for the retry to catch', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo -> heldByApp
+      await pumpEventQueue();
+      kit.setHeldError = Exception('boom');
+      await reg.holdForLineSwitch('call-r1', false); // fails; mark must stay cleared, not roll back
+      kit.setHeldError = null;
+      kit.log.clear();
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log, contains('setHeld:$u1:false'));
+    });
+
     test('an app resume CallKit refused is retried once other calls end', () async {
       await conversation(u1, 'call-r1');
       await reg.holdForLineSwitch('call-r1', true);
@@ -785,17 +799,14 @@ void main() {
       expect(kit.log, isEmpty);
     });
 
-    test('already a Dart-side conversation — true at once, nothing re-answered', () async {
+    test('already a Dart-side conversation — true at once, not even asking CallKit', () async {
       kit.emit(CallKitEvent.typeAccept, u2, {
         'extra': {'roomName': 'call-$u2'},
       });
       await pumpEventQueue();
-      kit.active = [
-        {
-          'id': u2,
-          'extra': {'roomName': 'call-$u2'},
-        },
-      ];
+      // kit.active deliberately left empty: the conversation check must run
+      // before activeCalls() is even consulted, since a call already ours
+      // might not currently be listed there (the nit this guards against).
       expect(await reg.answerRinging('call-$u2').timeout(const Duration(milliseconds: 200)), isTrue);
       expect(kit.log, isEmpty);
     });
@@ -880,7 +891,35 @@ void main() {
       expect(await second, isTrue);
     });
 
+    test('concurrent answerRinging when CallKit stays silent: both get false, promptly', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      final first = reg.answerRinging('call-$u2');
+      await pumpEventQueue();
+      final second = reg.answerRinging('call-$u2');
+      await pumpEventQueue();
+      expect(kit.log.where((l) => l == 'setCallConnected:$u2'), hasLength(1));
+      // No ACCEPT ever arrives. Without completing the shared completer on
+      // timeout, `second` — which awaits it directly, not its own wrapped
+      // future — would hang forever; the outer timeout here is a test-level
+      // safety net, not the fix itself.
+      expect(await first.timeout(const Duration(seconds: 2)), isFalse);
+      expect(await second.timeout(const Duration(seconds: 2)), isFalse);
+    });
+
     test('answerRinging before attach() is false at once', () async {
+      // A real match in activeCalls(): only the attach guard can make this
+      // false — an empty kit.active would already do that on its own.
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
       final fresh = SystemCallRegistry(
         callKit: kit,
         bridge: bridge,

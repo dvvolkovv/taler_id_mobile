@@ -389,7 +389,6 @@ class SystemCallRegistry {
   Future<void> holdForLineSwitch(String roomName, bool onHold) async {
     final entry = _entryForRoom(roomName);
     if (entry == null) return;
-    final wasMarked = _appHolds.contains(entry.uuid);
     if (onHold) {
       _appHolds.add(entry.uuid);
     } else {
@@ -399,12 +398,11 @@ class SystemCallRegistry {
       await _callKit.setHeld(entry.uuid, onHold);
     } catch (e) {
       debugPrint('[SystemCall] setHeld failed for ${entry.uuid}: $e');
-      // CallKit never got the request: put the mark back to what it was.
-      if (wasMarked) {
-        _appHolds.add(entry.uuid);
-      } else {
-        _appHolds.remove(entry.uuid);
-      }
+      // A failed hold request never actually happened: undo the mark. A
+      // failed UNhold leaves the mark cleared on purpose — _onOtherCallsEnded's
+      // retry (M2(b)) covers it, and putting the mark back would make a
+      // later iOS unhold misread as the system's own Swap.
+      if (onHold) _appHolds.remove(entry.uuid);
     }
   }
 
@@ -432,23 +430,27 @@ class SystemCallRegistry {
 
   /// Our dialog's "Answer": answers the ringing CallKit call, so the call
   /// takes the same path as an answer on the CallKit UI (main.dart's accept
-  /// handler connects and navigates). Resolves the call via
-  /// [CallKitPlatform.activeCalls] first, matching either the uuid
-  /// [roomName] derives ([toCallkitId]) or the call's own `extra.roomName`
-  /// — same as [endRingingForRoom] — rather than answering blind: iOS may
-  /// have rejected the incoming report (Focus/DND, a blocked number) while
-  /// our dialog still shows it, and answering a uuid CallKit never heard of
-  /// would otherwise just wait out [answerTimeout] for nothing. False at
-  /// once when no matching call is found; true at once when it is already
-  /// a conversation or CallKit already reports it accepted/connected;
-  /// otherwise answers that call's own id — which may differ from the
-  /// derived uuid, e.g. a VoIP-push fallback id — and waits for the ACCEPT
-  /// up to [answerTimeout], false on timeout, same as before. If
+  /// handler connects and navigates). True at once if [roomName] is already
+  /// one of our conversations — checked before consulting CallKit at all,
+  /// since a call already ours might not currently be listed there.
+  /// Otherwise resolves the call via [CallKitPlatform.activeCalls],
+  /// matching either the uuid [roomName] derives ([toCallkitId]) or the
+  /// call's own `extra.roomName` — same as [endRingingForRoom] — rather
+  /// than answering blind: iOS may have rejected the incoming report
+  /// (Focus/DND, a blocked number) while our dialog still shows it, and
+  /// answering a uuid CallKit never heard of would otherwise just wait out
+  /// [answerTimeout] for nothing. False at once when no matching call is
+  /// found there either; true at once when CallKit already reports it
+  /// accepted/connected; otherwise answers that call's own id — which may
+  /// differ from the derived uuid, e.g. a VoIP-push fallback id — and waits
+  /// for the ACCEPT up to [answerTimeout], false on timeout. If
   /// [CallKitPlatform.activeCalls] itself fails, falls back to answering
   /// the derived uuid blind. A concurrent call for the same resolved uuid
-  /// shares the one pending answer rather than issuing a second CallKit
-  /// request. False at once when disabled or not attached — the ACCEPT
-  /// this waits for would never be heard.
+  /// shares the one pending answer instead of issuing a second CallKit
+  /// request — completed false on timeout too, so the second caller is not
+  /// left hanging on a completer nothing else would ever complete. False at
+  /// once when disabled or not attached — the ACCEPT this waits for would
+  /// never be heard.
   Future<bool> answerRinging(String roomName) async {
     if (!enabled) return false;
     if (_callKitSub == null) {
@@ -457,6 +459,7 @@ class SystemCallRegistry {
       debugPrint('[SystemCall] answerRinging before attach() — dialog takes its old path');
       return false;
     }
+    if (_entryForRoom(roomName) != null) return true;
     final derivedUuid = toCallkitId(roomName).toLowerCase();
     String uuid;
     try {
@@ -473,9 +476,7 @@ class SystemCallRegistry {
         }
       }
       if (found == null) return false;
-      if (_entryForRoom(roomName) != null || found['isAccepted'] == true || found['accepted'] == true) {
-        return true;
-      }
+      if (found['isAccepted'] == true || found['accepted'] == true) return true;
       uuid = (found['id'] ?? '').toString().toLowerCase();
     } catch (e) {
       debugPrint('[SystemCall] answerRinging: activeCalls failed, answering blind: $e');
@@ -493,7 +494,13 @@ class SystemCallRegistry {
       debugPrint('[SystemCall] answer via CallKit failed: $e');
       if (!pending.isCompleted) pending.complete(false);
     }
-    final ok = await pending.future.timeout(answerTimeout, onTimeout: () => false);
+    final ok = await pending.future.timeout(answerTimeout, onTimeout: () {
+      // Complete the completer itself, not just this wrapped future: a
+      // concurrent caller sharing it awaits pending.future directly and
+      // must not hang forever if CallKit never confirms.
+      if (!pending.isCompleted) pending.complete(false);
+      return false;
+    });
     if (identical(_pendingAnswers[uuid], pending)) _pendingAnswers.remove(uuid);
     return ok;
   }
