@@ -33,6 +33,15 @@ void main() {
       );
       expect(e.data?['extra'], isA<Map>());
     });
+
+    test('hold, mute and audio-session event types match the plugin', () {
+      expect(CallKitEvent.typeToggleHold,
+          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_HOLD');
+      expect(CallKitEvent.typeToggleMute,
+          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_MUTE');
+      expect(CallKitEvent.typeToggleAudioSession,
+          'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_AUDIO_SESSION');
+    });
   });
 
   group('CallKitDesktop (no-op)', () {
@@ -75,6 +84,14 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       await sub.cancel();
       expect(events, isEmpty);
+    });
+
+    test('call-control methods are no-ops', () async {
+      await expectLater(
+          desktop.startCall(uuid: 'u1', callerName: 'A', handle: 'h'), completes);
+      await expectLater(desktop.setCallConnected('u1'), completes);
+      await expectLater(desktop.setHeld('u1', true), completes);
+      await expectLater(desktop.setMuted('u1', true), completes);
     });
   });
 

@@ -19,6 +19,28 @@ import 'call_kit.dart';
 class CallKitMobile implements CallKitPlatform {
   final _controller = StreamController<CallKitEvent>.broadcast();
 
+  /// Every conversation stays in CallKit for as long as it lasts (see
+  /// docs/superpowers/specs/2026-09-24-ios-calls-through-callkit-design.md):
+  /// holdable, so WhatsApp and cellular calls offer "Hold & Accept"; and the
+  /// plugin keeps its hands off the audio session — CallKit activates it and
+  /// the app sets its category (CallKitAudioBridge).
+  static const _iosCallParams = IOSParams(
+    iconName: 'CallKitLogo',
+    supportsVideo: false,
+    maximumCallGroups: 2,
+    maximumCallsPerCallGroup: 1,
+    audioSessionMode: 'voiceChat',
+    audioSessionActive: true,
+    audioSessionPreferredSampleRate: 44100.0,
+    audioSessionPreferredIOBufferDuration: 0.005,
+    configureAudioSession: false,
+    supportsDTMF: false,
+    supportsHolding: true,
+    supportsGrouping: false,
+    supportsUngrouping: false,
+    ringtonePath: 'bumer_ringtone.caf',
+  );
+
   CallKitMobile() {
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
@@ -68,21 +90,7 @@ class CallKitMobile implements CallKitPlatform {
         missedCallNotificationChannelName: androidMissedChannelName,
         isShowCallID: false,
       ),
-      ios: const IOSParams(
-        iconName: 'CallKitLogo',
-        supportsVideo: false,
-        maximumCallGroups: 2,
-        maximumCallsPerCallGroup: 1,
-        audioSessionMode: 'default',
-        audioSessionActive: true,
-        audioSessionPreferredSampleRate: 44100.0,
-        audioSessionPreferredIOBufferDuration: 0.005,
-        supportsDTMF: false,
-        supportsHolding: false,
-        supportsGrouping: false,
-        supportsUngrouping: false,
-        ringtonePath: 'bumer_ringtone.caf',
-      ),
+      ios: _iosCallParams,
     );
     await FlutterCallkitIncoming.showCallkitIncoming(params);
   }
@@ -92,6 +100,35 @@ class CallKitMobile implements CallKitPlatform {
 
   @override
   Future<void> endAllCalls() => FlutterCallkitIncoming.endAllCalls();
+
+  @override
+  Future<void> startCall({
+    required String uuid,
+    required String callerName,
+    required String handle,
+    Map<String, dynamic>? extra,
+  }) =>
+      FlutterCallkitIncoming.startCall(CallKitParams(
+        id: uuid,
+        nameCaller: callerName,
+        appName: 'Taler ID',
+        handle: handle,
+        type: 0,
+        extra: extra,
+        ios: _iosCallParams,
+      ));
+
+  @override
+  Future<void> setCallConnected(String uuid) =>
+      FlutterCallkitIncoming.setCallConnected(uuid);
+
+  @override
+  Future<void> setHeld(String uuid, bool onHold) =>
+      FlutterCallkitIncoming.holdCall(uuid, isOnHold: onHold);
+
+  @override
+  Future<void> setMuted(String uuid, bool muted) =>
+      FlutterCallkitIncoming.muteCall(uuid, isMuted: muted);
 
   @override
   Future<List<dynamic>> activeCalls() async {

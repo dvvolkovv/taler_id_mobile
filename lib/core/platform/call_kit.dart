@@ -29,6 +29,12 @@ class CallKitEvent {
       'com.hiennv.flutter_callkit_incoming.ACTION_CALL_CALLBACK';
   static const typePushTokenVoip =
       'com.hiennv.flutter_callkit_incoming.DID_UPDATE_DEVICE_PUSH_TOKEN_VOIP';
+  static const typeToggleHold =
+      'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_HOLD';
+  static const typeToggleMute =
+      'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_MUTE';
+  static const typeToggleAudioSession =
+      'com.hiennv.flutter_callkit_incoming.ACTION_CALL_TOGGLE_AUDIO_SESSION';
 
   final String type;
   final String uuid;
@@ -77,6 +83,26 @@ abstract class CallKitPlatform {
 
   /// End all active calls.
   Future<void> endAllCalls();
+
+  /// Put a conversation that did not ring through CallKit (an outgoing call,
+  /// a meeting joined by link) into the OS call system. iOS confirms with a
+  /// [CallKitEvent.typeStart] event carrying the same [uuid].
+  Future<void> startCall({
+    required String uuid,
+    required String callerName,
+    required String handle,
+    Map<String, dynamic>? extra,
+  });
+
+  /// Outgoing call: report it connected. Ringing incoming call: answer it,
+  /// exactly as the Accept button of the CallKit UI would.
+  Future<void> setCallConnected(String uuid);
+
+  /// Put [uuid] on hold, or take it off hold.
+  Future<void> setHeld(String uuid, bool onHold);
+
+  /// Mirror our mute state in the system call UI.
+  Future<void> setMuted(String uuid, bool muted);
 
   /// Return the list of currently active calls (raw plugin format).
   Future<List<dynamic>> activeCalls();
