@@ -25,7 +25,7 @@
 
 | Файл | Что | Ответственность |
 |---|---|---|
-| `packages/flutter_callkit_incoming/**` | новый (копия 2.5.8) | плагин с правками P1–P7, только iOS-часть |
+| `packages/flutter_callkit_incoming/**` | новый (копия 2.5.8) | плагин с правками P1–P12, только iOS-часть |
 | `packages/flutter_callkit_incoming/PATCHES.md` | новый | список правок для переноса при обновлении |
 | `pubspec.yaml`, `analysis_options.yaml` | правка | `dependency_overrides` на копию, исключение копии из анализа |
 | `lib/core/platform/callkit_support.dart` | новый | `toCallkitId`, `isIosSimulator` (перенесены из `notification_service.dart`) |
@@ -2755,6 +2755,9 @@ Future<void> _endBackgroundLine(String roomName) async {
     await calls.endLine(roomName);
     return;
   }
+  // Not a line (yet — it was still joining): endLine still forgets what the
+  // service remembers for the room, e.g. a hold that arrived meanwhile.
+  await calls.endLine(roomName);
 }
 ```
 
@@ -3269,8 +3272,18 @@ EOF
 4. `_startManualReconnect`: `await newRoom.localParticipant?.setMicrophoneEnabled(!_muted);` → `…(!_muted && !_heldBySystem);`.
 5. `_retryMicEnable`: `if (!_muted) {` → `if (!_muted && !_heldBySystem) {`.
 6. `_reactivateAudio()` (возврат приложения на передний план): `setMicrophoneEnabled(!_muted)` → `setMicrophoneEnabled(!_muted && !_heldBySystem)`. Это ровно момент, когда пользователь переключается из WhatsApp в Taler ID, чтобы нажать «Вернуться», — микрофон на удержании включаться не должен.
-7. `_releaseAssistantResources` («Hand the microphone back…»): `if (wasActive) {` → `if (wasActive && !_heldBySystem) {`.
-8. `_stopAssistant`: `await _room!.localParticipant?.setMicrophoneEnabled(true);` → `if (!_heldBySystem) await _room!.localParticipant?.setMicrophoneEnabled(true);` (состояние `_assistantActive`/`_muted` обновлять как прежде).
+7. `_releaseAssistantResources` («Hand the microphone back…»): на удержании не включать микрофон, а запомнить, что звонок хочет его обратно, — включит возврат:
+   ```dart
+    if (wasActive) {
+      final room = _roomName;
+      if (_heldBySystem && room != null) {
+        unawaited(CallStateService.instance.setLineMuted(room, false));
+      } else {
+        // … прежний setMicrophoneEnabled(true)
+      }
+    }
+   ```
+8. `_stopAssistant`: `await _room!.localParticipant?.setMicrophoneEnabled(true);` → на удержании `await CallStateService.instance.setLineMuted(_roomName!, false);` (запомнить), иначе прежний вызов; состояние `_assistantActive`/`_muted` обновлять как прежде.
 
 Проверка, что вне удержания микрофон включают только эти места и сама `CallStateService`:
 ```bash
@@ -3741,7 +3754,7 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 | 8 | Встреча по ссылке `/room/…` | звук; WhatsApp при отклонении не прерывает |
 | 9 | Mute и «Завершить» на заблокированном экране | mute отражается на нашем экране; «Завершить» кладёт трубку у обеих сторон |
 | 10 | Динамик / наушник / Bluetooth — в разговоре и после возврата с удержания | маршрут переключается и сохраняется после возврата |
-| 11 | Вторая линия: второй вызов Taler ID → «Удержать и ответить» → переключение → завершить одну | первая возвращается, звук есть; отклонение второго вызова первую не трогает |
+| 11 | Вторая линия: второй вызов Taler ID → «Удержать и ответить» → переключение → завершить одну; и вариант: две линии, WhatsApp «Удержать и ответить», во время WhatsApp переключиться в приложении на другую линию, WhatsApp завершить | первая возвращается, звук есть; отклонение второго вызова первую не трогает; в варианте с WhatsApp после его конца остаётся выбранная пользователем линия (iOS может вернуть ту, что держала сама, — реестр прочтёт это как «Поменять») |
 | 12 | После исходящего: новый входящий → «Отклонить» | звонящий видит отказ сразу (P3); без ответа вызов снимается сам через 60 с (P4) |
 | 13 | После звонка открыть ассистента | ассистента слышно, он слышит нас |
 | 14 | Групповой звонок принят через CallKit | звук как раньше (регресс) |
@@ -3760,8 +3773,10 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 
 - [ ] **Step 1: Итог пользователю**
 
-Кратко: что сделано, что прошла матрица (таблица 1–14 с отметками), что не проверено. Спросить, сливать ли `fix/ios-callkit-calls` в `dev`, и дальше — обычный релизный порядок из CLAUDE.md (версия, `APP_RELEASES`, TestFlight DEV → TEST → PROD). Ничего из этого без явного согласия.
+Кратко: что сделано, что прошла матрица (таблица 1–18 с отметками), что не проверено. Известные ограничения назвать отдельно:
+- **Вторая линия, фоновое подключение не удалось** (давнее ограничение многолинейности, не этой работы): экран второго звонка возвращается к первой линии (`_initCall` берёт `cs.room`), принятый вызов CallKit второго звонка никто не завершает — у звонящего нет `call_ended`, пока он сам не положит трубку, а мост считает звонок управляемым, и ручной режим WebRTC не сбрасывается до его конца (завершить можно из системного интерфейса). Переделка `_initCall` на собственное подключение без удержания первой линии дала бы два живых микрофона.
+- **Кнопка «Поменять» против автовозврата iOS** (пункт 11, вариант с WhatsApp). Спросить, сливать ли `fix/ios-callkit-calls` в `dev`, и дальше — обычный релизный порядок из CLAUDE.md (версия, `APP_RELEASES`, TestFlight DEV → TEST → PROD). Ничего из этого без явного согласия.
 
 - [ ] **Step 2: Память**
 
-Записать в `~/.claude/projects/-Users-dmitry-talerid/memory/` заметку `project_ios_calls_callkit.md` (тип project): разговор на iOS живёт в CallKit до конца; плагин вендорный с правками P1–P7 (`packages/flutter_callkit_incoming/PATCHES.md`); Android не менялся и ждёт лога аудиофокуса во время звонка WhatsApp; итог пунктов 2 и 5 матрицы. Добавить строку в `MEMORY.md`.
+Записать в `~/.claude/projects/-Users-dmitry-talerid/memory/` заметку `project_ios_calls_callkit.md` (тип project): разговор на iOS живёт в CallKit до конца; плагин вендорный с правками P1–P12 (`packages/flutter_callkit_incoming/PATCHES.md`); Android не менялся и ждёт лога аудиофокуса во время звонка WhatsApp; итог пунктов 2 и 5 матрицы. Добавить строку в `MEMORY.md`.
