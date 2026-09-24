@@ -14,6 +14,7 @@ import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/analyst_events.dart';
 import '../../domain/entities/sync_result.dart';
 import '../../domain/entities/conversation_read_state.dart';
+import 'pending_call_answers.dart';
 
 class MessengerRemoteDataSource {
   final DioClient _http;
@@ -23,6 +24,7 @@ class MessengerRemoteDataSource {
   final _callEndedCtrl = StreamController<String>.broadcast();
   final _callAnsweredCtrl = StreamController<String>.broadcast();
   final _joinedConversations = <String>{};
+  final _pendingCallAnswers = PendingCallAnswers();
   final _disconnectCtrl = StreamController<String>.broadcast();
   final _messageUpdatedCtrl = StreamController<Map<String, dynamic>>.broadcast();
   final _messagesReadCtrl = StreamController<Map<String, dynamic>>.broadcast();
@@ -281,6 +283,10 @@ class MessengerRemoteDataSource {
       for (final id in _joinedConversations) {
         _socket?.emit('join', {'conversationId': id});
       }
+      for (final a in _pendingCallAnswers.drain()) {
+        debugPrint('[Socket] call_answered delivered after connect: room=${a.roomName}');
+        _socket?.emit('call_answered', {'conversationId': a.conversationId, 'roomName': a.roomName});
+      }
     });
     // If the socket can't reach the current endpoint repeatedly (e.g. DPI block
     // and HTTP hasn't run lately), fail over to the next edge. Switching the
@@ -466,11 +472,23 @@ class MessengerRemoteDataSource {
     });
   }
 
-  void sendCallEnded(String conversationId, String roomName) =>
-      _socket?.emit('call_ended', {'conversationId': conversationId, 'roomName': roomName});
+  void sendCallEnded(String conversationId, String roomName) {
+    _pendingCallAnswers.remove(roomName);
+    _socket?.emit('call_ended', {'conversationId': conversationId, 'roomName': roomName});
+  }
 
-  void sendCallAnswered(String conversationId, String roomName) =>
-      _socket?.emit('call_answered', {'conversationId': conversationId, 'roomName': roomName});
+  /// Accepting from the lock screen runs before the socket is up; a plain
+  /// emit then went nowhere, and the "already answered" flag set by the
+  /// caller suppressed every later retry. Queue it and send on connect.
+  void sendCallAnswered(String conversationId, String roomName) {
+    final socket = _socket;
+    if (socket != null && socket.connected) {
+      socket.emit('call_answered', {'conversationId': conversationId, 'roomName': roomName});
+      return;
+    }
+    debugPrint('[Socket] call_answered queued until connect: room=$roomName');
+    _pendingCallAnswers.add(conversationId, roomName);
+  }
 
   void markRead(String conversationId) =>
       _socket?.emit('mark_read', {'conversationId': conversationId});
