@@ -56,6 +56,23 @@ class _Entry {
   final started = Completer<bool>();
 }
 
+/// Used off a real iPhone, where [SystemCallRegistry] is disabled and every
+/// method on it a no-op: avoids [MethodChannelSystemCallBridge]'s
+/// constructor, which installs a platform-channel handler that throws
+/// without an initialized Flutter binding — as in a plain unit test, which
+/// is where later tasks reach [SystemCallRegistry.instance] from main.dart,
+/// the dashboard and notification_service.
+class _NoBridge implements SystemCallBridge {
+  @override
+  Future<void> setManagedCalls(List<String> uuids) async {}
+
+  @override
+  Future<void> prepareCallAudio() async {}
+
+  @override
+  Stream<void> get otherCallsEnded => const Stream<void>.empty();
+}
+
 /// iOS: every conversation on the call screen lives in CallKit for as long as
 /// it lasts, so WhatsApp and cellular calls arrive as call waiting instead of
 /// taking our audio session. This is the Dart side of it: which CallKit call
@@ -79,11 +96,14 @@ class SystemCallRegistry {
 
   static SystemCallRegistry? _instance;
 
-  static SystemCallRegistry get instance => _instance ??= SystemCallRegistry(
-        callKit: CallKitPlatform.instance,
-        bridge: MethodChannelSystemCallBridge(),
-        enabled: !kIsWeb && Platform.isIOS && !isIosSimulator,
-      );
+  static SystemCallRegistry get instance {
+    final onIPhone = !kIsWeb && Platform.isIOS && !isIosSimulator;
+    return _instance ??= SystemCallRegistry(
+      callKit: CallKitPlatform.instance,
+      bridge: onIPhone ? MethodChannelSystemCallBridge() : _NoBridge(),
+      enabled: onIPhone,
+    );
+  }
 
   @visibleForTesting
   static set debugInstance(SystemCallRegistry? registry) => _instance = registry;
@@ -107,7 +127,10 @@ class SystemCallRegistry {
 
   Stream<SystemCallEvent> get events => _events.stream;
 
-  /// At least one conversation is in CallKit — CallKit owns the audio session.
+  /// At least one conversation is in CallKit — CallKit owns the audio
+  /// session. Also true for an outgoing call still waiting for iOS to
+  /// confirm the start: native already treats it as managed from
+  /// [startOutgoing]'s first sync, before CallKit itself agrees.
   bool get hasConversations => _entries.isNotEmpty;
 
   /// Starts listening. Call once, before runApp, so an accept that launched a
@@ -143,10 +166,24 @@ class SystemCallRegistry {
     String? roomName,
   }) async {
     if (!enabled) return null;
+    if (_callKitSub == null) {
+      // Not attached: the START event this method waits for is never heard,
+      // so without this guard the call would just time out — and a late
+      // start would never be ended, leaving an orphan CallKit call.
+      debugPrint('[SystemCall] startOutgoing before attach() — call runs without CallKit');
+      return null;
+    }
     final uuid = _newUuid().toLowerCase();
     final entry = _Entry(uuid: uuid, outgoing: true, state: _State.starting, roomName: roomName);
     _entries[uuid] = entry;
-    await _syncManaged();
+    // Registered and synced before startCall: CallKit activates the audio
+    // session right after the start, before the START event could reach
+    // Dart and come back — native must already treat the call as managed
+    // by then, or CallKit and the old WebRTC audio path would fight over it.
+    if (!await _syncManaged()) {
+      _entries.remove(uuid);
+      return null;
+    }
     try {
       await _bridge.prepareCallAudio();
       await _callKit.startCall(
@@ -159,7 +196,13 @@ class SystemCallRegistry {
       debugPrint('[SystemCall] could not start $uuid in CallKit: $e');
       if (!entry.started.isCompleted) entry.started.complete(false);
     }
-    final ok = await entry.started.future.timeout(startTimeout, onTimeout: () => false);
+    final ok = await entry.started.future.timeout(startTimeout, onTimeout: () {
+      // Complete the completer itself, not just this wrapped future: other
+      // callers (markConnected) await entry.started.future directly and
+      // must not hang forever if iOS never confirms.
+      if (!entry.started.isCompleted) entry.started.complete(false);
+      return false;
+    });
     if (ok) return uuid;
     _entries.remove(uuid);
     _abandonedStarts.add(uuid);
@@ -177,6 +220,7 @@ class SystemCallRegistry {
   /// listening (cold start after an answer on the lock screen).
   Future<void> adoptAnswered({required String uuid, required String roomName}) async {
     if (!enabled) return;
+    if (!_isCallScreenConversation(roomName)) return;
     final key = uuid.toLowerCase();
     if (_entries.containsKey(key)) return;
     _entries[key] = _Entry(uuid: key, outgoing: false, state: _State.active, roomName: roomName);
@@ -189,8 +233,21 @@ class SystemCallRegistry {
   Future<void> markConnected(String roomName) async {
     final entry = _entryForRoom(roomName);
     if (entry == null || !entry.outgoing || entry.connectedReported) return;
+    if (entry.state == _State.starting) {
+      // Reporting "connected" before CallKit even knows the call exists
+      // makes the plugin request an answer action that fails, and would
+      // latch connectedReported so the real report is never sent. Wait for
+      // startOutgoing's own confirmation (or give-up) instead — that future
+      // always completes, including on timeout (see startOutgoing).
+      final started = await entry.started.future;
+      if (!started || _entries[entry.uuid] != entry) return;
+    }
     entry.connectedReported = true;
-    await _callKit.setCallConnected(entry.uuid);
+    try {
+      await _callKit.setCallConnected(entry.uuid);
+    } catch (e) {
+      debugPrint('[SystemCall] setCallConnected failed for ${entry.uuid}: $e');
+    }
   }
 
   void _onCallKitEvent(CallKitEvent event) {
@@ -199,7 +256,11 @@ class SystemCallRegistry {
       case CallKitEvent.typeStart:
         final entry = _entries[uuid];
         if (entry == null) {
-          if (_abandonedStarts.remove(uuid)) unawaited(_callKit.endCall(uuid));
+          if (_abandonedStarts.remove(uuid)) {
+            unawaited(_callKit.endCall(uuid).catchError((Object e) {
+              debugPrint('[SystemCall] could not end late-started $uuid: $e');
+            }));
+          }
           return;
         }
         if (entry.state == _State.starting) entry.state = _State.active;
@@ -214,13 +275,17 @@ class SystemCallRegistry {
     final extra = data?['extra'];
     if (extra is! Map) return;
     final roomName = extra['roomName'];
-    if (roomName is! String || roomName.isEmpty) return;
-    // Mesh group calls run their own audio stack, LiveKit group calls
-    // ('group-<id>') their own screen — neither is a call-screen conversation.
-    if (extra['kind'] == 'mesh_gc' || roomName.startsWith('group-')) return;
+    if (roomName is! String) return;
+    if (!_isCallScreenConversation(roomName, kind: extra['kind'])) return;
     _entries[uuid] = _Entry(uuid: uuid, outgoing: false, state: _State.active, roomName: roomName);
     unawaited(_syncManaged());
   }
+
+  /// Mesh group calls run their own audio stack, LiveKit group calls
+  /// (`group-<id>`) their own screen — neither is a call-screen conversation.
+  /// Must match `CallKitAudioBridge.isCallScreenConversation` (Swift).
+  static bool _isCallScreenConversation(String roomName, {Object? kind}) =>
+      roomName.isNotEmpty && !roomName.startsWith('group-') && kind != 'mesh_gc';
 
   void _onOtherCallsEnded() {}
 
@@ -231,11 +296,16 @@ class SystemCallRegistry {
     return null;
   }
 
-  Future<void> _syncManaged() async {
+  /// Pushes the current managed set to the bridge. Returns false if the
+  /// bridge call failed, so a caller that must not proceed without native
+  /// already treating the call as managed can bail out.
+  Future<bool> _syncManaged() async {
     try {
       await _bridge.setManagedCalls(_entries.keys.toList());
+      return true;
     } catch (e) {
       debugPrint('[SystemCall] setManagedCalls failed: $e');
+      return false;
     }
   }
 }

@@ -12,8 +12,19 @@ class FakeCallKit implements CallKitPlatform {
   List<dynamic> active = [];
   bool confirmStarts = true;
 
-  void emit(String type, String uuid, [Map<String, dynamic> data = const {}]) =>
-      _events.add(CallKitEvent(type: type, uuid: uuid, data: {'id': uuid, ...data}));
+  /// Set by a test that needs to observe call order across both fakes,
+  /// without changing what [log] records.
+  void Function(String tag)? onCall;
+
+  /// iOS echoes hold/mute toggles with the upper-case `uuidString` Swift
+  /// keeps (see [CallKitEvent.typeToggleHold]/[typeToggleMute]); START and
+  /// ACCEPT are passed through as given so a test can pick either case.
+  void emit(String type, String uuid, [Map<String, dynamic> data = const {}]) {
+    final id = (type == CallKitEvent.typeToggleHold || type == CallKitEvent.typeToggleMute)
+        ? uuid.toUpperCase()
+        : uuid;
+    _events.add(CallKitEvent(type: type, uuid: id, data: {'id': id, ...data}));
+  }
 
   @override
   Stream<CallKitEvent> get events => _events.stream;
@@ -25,6 +36,7 @@ class FakeCallKit implements CallKitPlatform {
     required String handle,
     Map<String, dynamic>? extra,
   }) async {
+    onCall?.call('startCall');
     log.add('startCall:$uuid:$callerName:$handle');
     if (confirmStarts) emit(CallKitEvent.typeStart, uuid);
   }
@@ -72,14 +84,29 @@ class FakeBridge implements SystemCallBridge {
   int prepared = 0;
   final _otherCallsEnded = StreamController<void>.broadcast();
 
+  /// Set by a test to make [prepareCallAudio] throw, e.g. to exercise
+  /// startOutgoing's early-abort path.
+  Object? prepareCallAudioError;
+
+  /// Set by a test that needs to observe call order across both fakes,
+  /// without changing what [managed] / [prepared] record.
+  void Function(String tag)? onCall;
+
   List<String> get lastManaged => managed.isEmpty ? const [] : managed.last;
   void otherCallsGone() => _otherCallsEnded.add(null);
 
   @override
-  Future<void> setManagedCalls(List<String> uuids) async => managed.add(List.of(uuids));
+  Future<void> setManagedCalls(List<String> uuids) async {
+    onCall?.call('setManagedCalls');
+    managed.add(List.of(uuids));
+  }
 
   @override
-  Future<void> prepareCallAudio() async => prepared++;
+  Future<void> prepareCallAudio() async {
+    onCall?.call('prepareCallAudio');
+    if (prepareCallAudioError != null) throw prepareCallAudioError!;
+    prepared++;
+  }
 
   @override
   Stream<void> get otherCallsEnded => _otherCallsEnded.stream;
