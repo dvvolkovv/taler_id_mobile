@@ -25,6 +25,7 @@
 		A1B2C3D401000005AABBCCDD /* AudioIOSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */; };
 		A1B2C3D401000006AABBCCDD /* AudioPlaybackChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */; };
 		A1B2C3D401000007AABBCCDD /* OpusSymbolsKeeper.m in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */; };
+		A1B2C3D401000008AABBCCDD /* CallKitAudioBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D402000008AABBCCDD /* CallKitAudioBridge.swift */; };
 		AEAC2806219256D39C2812FA /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8067FC52EEB5679D1A10E46 /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
@@ -107,6 +108,7 @@
 		A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioIOSession.swift; path = Audio/AudioIOSession.swift; sourceTree = "<group>"; };
 		A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioPlaybackChannel.swift; path = Audio/AudioPlaybackChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D402000007AABBCCDD /* OpusSymbolsKeeper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = OpusSymbolsKeeper.m; path = Audio/OpusSymbolsKeeper.m; sourceTree = "<group>"; };
+		A1B2C3D402000008AABBCCDD /* CallKitAudioBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallKitAudioBridge.swift; sourceTree = "<group>"; };
 		A60365C9C053BCBCA3708F57 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		AA110000000001000000BEEF /* Debug-dev.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Debug-dev.xcconfig"; path = "Flutter/Debug-dev.xcconfig"; sourceTree = "<group>"; };
 		AA220000000002000000BEEF /* Release-dev.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = "Release-dev.xcconfig"; path = "Flutter/Release-dev.xcconfig"; sourceTree = "<group>"; };
@@ -240,6 +242,7 @@
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
+				A1B2C3D402000008AABBCCDD /* CallKitAudioBridge.swift */,
 				A1B2C3D402000004AABBCCDD /* AudioCaptureChannel.swift */,
 				A1B2C3D402000005AABBCCDD /* AudioIOSession.swift */,
 				A1B2C3D402000006AABBCCDD /* AudioPlaybackChannel.swift */,
@@ -551,6 +554,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				A1B2C3D401000008AABBCCDD /* CallKitAudioBridge.swift in Sources */,
 				A1B2C3D401000004AABBCCDD /* AudioCaptureChannel.swift in Sources */,
 				A1B2C3D401000005AABBCCDD /* AudioIOSession.swift in Sources */,
 				A1B2C3D401000006AABBCCDD /* AudioPlaybackChannel.swift in Sources */,

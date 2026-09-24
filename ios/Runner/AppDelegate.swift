@@ -5,6 +5,7 @@ import PushKit
 import Intents
 import CallKit
 import flutter_callkit_incoming
+import WebRTC
 
 // Phase 3 mesh voice: libopus is force-loaded into Runner via the local
 // pod, but iOS strips the app's export trie so dlsym(RTLD_DEFAULT, "opus_*")
@@ -57,6 +58,13 @@ import flutter_callkit_incoming
     // Register mesh audio playback channel (shares the same AudioIOSession as capture)
     if let registrar = self.registrar(forPlugin: "AudioPlaybackChannel") {
       AudioPlaybackChannel.register(with: registrar)
+    }
+
+    // CallKit → WebRTC bridge. Registered through a plugin registrar, not the
+    // window's controller: on a VoIP cold start the window may not exist yet,
+    // and that is exactly when the answered call needs the bridge.
+    if let registrar = self.registrar(forPlugin: "CallKitAudioBridge") {
+      CallKitAudioBridge.shared.register(messenger: registrar.messenger())
     }
 
     // Set up audio method channel (safe cast — nil-safe if window not ready on VoIP cold start)
@@ -517,13 +525,15 @@ extension AppDelegate: PKPushRegistryDelegate {
       var args = payload.dictionaryPayload as [AnyHashable: Any]
       let rawId = args["id"] as? String ?? ""
       NSLog("[VoIP] payload id=%@", rawId)
-      // Always derive UUID from roomName to match Flutter's _toCallkitId(roomName).
+      // Always derive UUID from roomName to match `toCallkitId` in
+      // lib/core/platform/callkit_support.dart.
       // Server payload: { id: uuidv4(), extra: { roomName: "call-<uuid>", conversationId: "..." } }
       // Matching UUIDs lets CallKit deduplicate the VoIP-push call and the socket-triggered call,
       // preventing two simultaneous CallKit UIs and audio-session conflicts.
       let payloadExtra = args["extra"] as? [AnyHashable: Any]
       if let rn = payloadExtra?["roomName"] as? String {
-        // Mirror Flutter's _toCallkitId: strip "call-" prefix, check UUID format.
+        // Mirror `toCallkitId` in lib/core/platform/callkit_support.dart:
+        // strip "call-" prefix, check UUID format.
         let stripped = rn.hasPrefix("call-") ? String(rn.dropFirst(5)) : rn
         let uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
         if let regex = try? NSRegularExpression(pattern: uuidPattern, options: .caseInsensitive),
@@ -544,6 +554,15 @@ extension AppDelegate: PKPushRegistryDelegate {
       // args["extra"] already contains roomName/conversationId from the server payload —
       // no need to re-wrap; the plugin reads extra directly from args["extra"].
       let data = flutter_callkit_incoming.Data(args: args as NSDictionary)
+      // Every conversation lives in CallKit now: the plugin must not configure
+      // or activate the session itself, and the call must be holdable for
+      // WhatsApp/cellular call waiting (same settings as CallKitMobile).
+      data.configureAudioSession = false
+      data.supportsHolding = true
+      data.audioSessionMode = "voiceChat"
+      // The push carries no duration: the plugin's 30 s default would ring
+      // half as long as the same call arriving over the socket (60 s).
+      data.duration = 60000
       instance.showCallkitIncoming(data, fromPushKit: true) {
         completion()
       }
@@ -567,5 +586,37 @@ extension AppDelegate: CXCallObserverDelegate {
     NSLog("[Audio] CXCallObserver: rival call ended — forcing session restore")
     audioInterrupted = false
     restoreAudioSessionAfterInterruption()
+  }
+}
+
+extension AppDelegate: CallkitIncomingAppDelegate {
+  // Conforming hands fulfilment of these actions to us — the plugin no
+  // longer fulfils them itself. Every path must fulfil or fail. (Answering an
+  // outgoing call is refused inside the plugin, PATCH P11.)
+
+  func onAccept(_ call: Call, _ action: CXAnswerCallAction) {
+    CallKitAudioBridge.shared.callAnswered(call)
+    CallKitAudioBridge.shared.prepareCallAudio()
+    action.fulfill()
+  }
+
+  func onDecline(_ call: Call, _ action: CXEndCallAction) {
+    CallKitAudioBridge.shared.callFinished(call.uuid)
+    action.fulfill()
+  }
+
+  func onEnd(_ call: Call, _ action: CXEndCallAction) {
+    CallKitAudioBridge.shared.callFinished(call.uuid)
+    action.fulfill()
+  }
+
+  func onTimeOut(_ call: Call) {}
+
+  func didActivateAudioSession(_ audioSession: AVAudioSession) {
+    CallKitAudioBridge.shared.didActivate(audioSession)
+  }
+
+  func didDeactivateAudioSession(_ audioSession: AVAudioSession) {
+    CallKitAudioBridge.shared.didDeactivate(audioSession)
   }
 }
