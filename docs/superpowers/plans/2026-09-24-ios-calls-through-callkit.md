@@ -2118,6 +2118,8 @@ Expected: FAIL — нет `applySystemHold`, `heldBySystem`, `onLineEnded`.
 
 В `holdAndSwitch` после `current.isOnHold = true;` добавить `_reportLineHold(current.roomName, true);`, после `target.isOnHold = false;` — `_reportLineHold(targetRoomName, false);`.
 
+В `connectInBackground` после `current.isOnHold = true;` добавить `_reportLineHold(current.roomName, true);`. Это вторая линия, принятая через CallKit или диалог: первая уходит на удержание и в CallKit — иначе у iOS два «активных» звонка, хотя слышна одна линия. Если iOS уже удержала первую сама («Удержать и ответить»), плагин на неизменное состояние только шлёт эхо (P7), лишнего действия CallKit нет. Тест — в группе `line hooks`, если в `sl` просто регистрируется `DioClient`, чей `post` бросает: `setRoom(… 'a' …)`, затем `connectInBackground('b', 'c2')` → `false`, а в `holds` — `'a:true'`.
+
 В `endLine` после `clearAnsweredState(name);` добавить `if (line != null) _reportLineEnded(name);`; в ветке переключения после `next.isOnHold = false;` — `_reportLineHold(next.roomName, false);`.
 
 В `endCall()` после `_lines.clear();` добавить:
