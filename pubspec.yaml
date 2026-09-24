@@ -143,6 +143,9 @@ dependencies:
 
 dependency_overrides:
   path_provider_foundation: 2.3.2
+  # Patched copy — see packages/flutter_callkit_incoming/PATCHES.md.
+  flutter_callkit_incoming:
+    path: packages/flutter_callkit_incoming
 
 dev_dependencies:
   integration_test:
