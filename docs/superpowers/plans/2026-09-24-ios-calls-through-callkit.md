@@ -2375,7 +2375,14 @@ final class CallKitAudioBridge: NSObject {
   }
 
   private func setManagedCalls(_ ids: [UUID]) {
-    updateManaged { registeredByDart = Set(ids) }
+    let registered = Set(ids)
+    updateManaged {
+      // A call Dart dropped is over for us too — also after a CallKit reset,
+      // which the plugin reports to Dart (P9) but which may reach neither
+      // onEnd nor the call observer here.
+      answeredHere.subtract(registeredByDart.subtracting(registered))
+      registeredByDart = registered
+    }
   }
 
   private func updateManaged(_ change: () -> Void) {
@@ -3034,11 +3041,6 @@ EOF
         if (!_heldBySystem) return;
         setState(() => _heldBySystem = false);
         unawaited(_applyAudioOutput(_audioOutputType));
-        final room = _roomName;
-        // The plugin clears its mute flag on hold; put ours back in the UI.
-        if (_muted && room != null) {
-          unawaited(SystemCallRegistry.instance.setMuted(room, true));
-        }
       case SystemCallMuteChanged(:final muted):
         if (muted != _muted) setState(() => _muted = muted);
       case SystemCallHeld():
