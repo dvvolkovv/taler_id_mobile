@@ -2471,6 +2471,8 @@ final class CallKitAudioBridge: NSObject {
       data.duration = 60000
 ```
 
+В `pushRegistry(...)` два комментария ссылаются на «Flutter's `_toCallkitId`» — такой функции нет. Заменить упоминание на «`toCallkitId` in `lib/core/platform/callkit_support.dart`» (логику не трогать).
+
 В конец файла:
 
 ```swift
@@ -3442,6 +3444,15 @@ import '../../../core/platform/system_call_registry.dart';
         }
 ```
 
+- [ ] **Step 5a: Убрать временный re-export `toCallkitId`**
+
+В задаче 3 `toCallkitId` переехал в `lib/core/platform/callkit_support.dart`, а `notification_service.dart` временно его ре-экспортирует. Импортёров двое, убрать шов надо одним коммитом (с живым export прямой импорт даёт `unnecessary_import`):
+- `lib/features/dashboard/presentation/dashboard_screen.dart`: добавить `import '../../../core/platform/callkit_support.dart';`
+- `lib/main.dart`: добавить `import 'core/platform/callkit_support.dart';`
+- `lib/core/notifications/notification_service.dart`: удалить строку `export '../platform/callkit_support.dart' show toCallkitId;` и комментарий над ней.
+
+Проверка: `grep -rn "show toCallkitId" lib/` — пусто; анализ `main.dart` — 0, дашборд — 2 (база).
+
 - [ ] **Step 6: Проверка, что `endAllCalls()` в дашборде не осталось**
 
 ```bash
@@ -3453,7 +3464,7 @@ Expected: только строки комментариев; `2` — не бо�
 - [ ] **Step 7: Коммит**
 
 ```bash
-git add lib/features/dashboard/presentation/dashboard_screen.dart
+git add lib/features/dashboard/presentation/dashboard_screen.dart lib/main.dart lib/core/notifications/notification_service.dart
 git commit -F - <<'EOF'
 fix(звонок): дашборд не кладёт разговор, убирая звонящие вызовы
 
