@@ -2266,6 +2266,10 @@ void installCallAudioConfiguration({required bool Function() callKitOwnsAudio}) 
 }
 ```
 
+- [ ] **Step 3a: Маршрут динамика остаётся за LiveKit**
+
+`Hardware.setSpeakerphoneOn` в LiveKit на iOS тоже идёт через `onConfigureNativeAudio`, а нативная часть ставит динамик/трубку только по `preferSpeakerOutput` в конфигурации. Подмена закрепляет категорию, режим и опции — но не маршрут: в её конфигурацию добавить `preferSpeakerOutput: preferSpeakerOutput()`, где источник — параметр `installCallAudioConfiguration({…, bool Function()? preferSpeakerOutput})` со значением по умолчанию `() => Hardware.instance.preferSpeakerOutput` (читать лениво, внутри хука). Параметр — ради тестов: конструктор `Hardware.instance` зовёт flutter_webrtc, и в модульном тесте его трогать нельзя. Экран звонка держит `Hardware` в согласии со своим маршрутом (`_applyAudioOutput` → `setSpeakerphoneOn`, потом `setAudioOutput`), так что поведение динамика не меняется. Тесты: источник `() => true` / `() => false` → `preferSpeakerOutput` в конфигурации такой же.
+
 - [ ] **Step 4: Тест проходит**
 
 Run: `flutter test test/core/platform/call_audio_configuration_test.dart`
