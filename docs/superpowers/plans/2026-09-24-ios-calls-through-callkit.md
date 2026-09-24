@@ -2118,6 +2118,18 @@ Expected: FAIL — нет `applySystemHold`, `heldBySystem`, `onLineEnded`.
 
 В `holdAndSwitch` после `current.isOnHold = true;` добавить `_reportLineHold(current.roomName, true);`, после `target.isOnHold = false;` — `_reportLineHold(targetRoomName, false);`.
 
+В `holdAndSwitch` и `connectInBackground` строку `current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);` заменить на
+
+```dart
+      // On a system hold the mic is off because of the hold; what the user
+      // had is in micOnBeforeSystemHold.
+      current.wasMuted = current.heldBySystem
+          ? !current.micOnBeforeSystemHold
+          : !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+```
+
+Иначе при «Поменять» в системе (iOS сперва удерживает линию, `applySystemHold` выключает микрофон, потом приложение переключает линии) у говорившего пользователя запоминается «был выключен». Тест: линия с включённым микрофоном → `applySystemHold` → `holdAndSwitch` на другую → обратно → микрофон включается.
+
 В `connectInBackground` после `current.isOnHold = true;` добавить `_reportLineHold(current.roomName, true);`. Это вторая линия, принятая через CallKit или диалог: первая уходит на удержание и в CallKit — иначе у iOS два «активных» звонка, хотя слышна одна линия. Если iOS уже удержала первую сама («Удержать и ответить»), плагин на неизменное состояние только шлёт эхо (P7), лишнего действия CallKit нет. Тест — в группе `line hooks`, если в `sl` просто регистрируется `DioClient`, чей `post` бросает: `setRoom(… 'a' …)`, затем `connectInBackground('b', 'c2')` → `false`, а в `holds` — `'a:true'`.
 
 В `endLine` после `clearAnsweredState(name);` добавить `if (line != null) _reportLineEnded(name);`; в ветке переключения после `next.isOnHold = false;` — `_reportLineHold(next.roomName, false);`.
@@ -2708,7 +2720,7 @@ void _wireSystemCalls() {
       case SystemCallHeld(bySystem: true):
         calls.applySystemHold(room);
       case SystemCallResumed(:final swapped):
-        if (swapped) {
+        if (swapped && calls.allLines.any((l) => l.roomName == room)) {
           // The system call UI swapped our two lines: follow it, or the app
           // keeps playing the line iOS has just put on hold. Switch first:
           // holdAndSwitch sets the mic from the line's own state, and
