@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:mocktail/mocktail.dart';
+import 'package:taler_id_mobile/core/api/dio_client.dart';
+import 'package:taler_id_mobile/core/di/service_locator.dart';
 import 'package:taler_id_mobile/core/services/call_state_service.dart';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -12,6 +14,8 @@ class MockRoom extends Mock implements lk.Room {
 }
 
 class MockLocalParticipant extends Mock implements lk.LocalParticipant {}
+
+class MockDioClient extends Mock implements DioClient {}
 
 /// Build a MockRoom with a stubbed LocalParticipant.
 MockRoom _makeRoom({bool micEnabled = true}) {
@@ -510,6 +514,140 @@ void main() {
 
       svc.setRoom(_makeRoom(), 'room-1', null);
       expect(await svc.waitForBackgroundConnect(), isTrue);
+    });
+  });
+
+  // ── System calls (iOS CallKit) ───────────────────────────────────────────
+
+  group('system hold', () {
+    late MockRoom room;
+    late MockLocalParticipant mic;
+
+    void line({required bool micOn}) {
+      room = _makeRoom(micEnabled: micOn);
+      mic = room.localParticipant! as MockLocalParticipant;
+      svc.setRoom(room, 'room-1', 'conv-1');
+    }
+
+    test('hold turns an open mic off, resume turns it back on', () async {
+      line(micOn: true);
+      await svc.applySystemHold('room-1');
+      verify(() => mic.setMicrophoneEnabled(false)).called(1);
+      expect(svc.activeLine!.heldBySystem, isTrue);
+      await svc.applySystemResume('room-1');
+      verify(() => mic.setMicrophoneEnabled(true)).called(1);
+      expect(svc.activeLine!.heldBySystem, isFalse);
+    });
+
+    test('a mic muted before the hold stays muted after it', () async {
+      line(micOn: false);
+      await svc.applySystemHold('room-1');
+      await svc.applySystemResume('room-1');
+      verifyNever(() => mic.setMicrophoneEnabled(true));
+    });
+
+    test('repeats are no-ops', () async {
+      line(micOn: true);
+      await svc.applySystemHold('room-1');
+      await svc.applySystemHold('room-1');
+      verify(() => mic.setMicrophoneEnabled(false)).called(1);
+      await svc.applySystemResume('room-1');
+      await svc.applySystemResume('room-1');
+      verify(() => mic.setMicrophoneEnabled(true)).called(1);
+    });
+
+    test('system mute applies, but not while held', () async {
+      line(micOn: true);
+      await svc.applySystemMute('room-1', true);
+      verify(() => mic.setMicrophoneEnabled(false)).called(1);
+      await svc.applySystemHold('room-1');
+      clearInteractions(mic);
+      await svc.applySystemMute('room-1', false);
+      verifyNever(() => mic.setMicrophoneEnabled(true));
+    });
+
+    test('holdAndSwitch after a system hold remembers the mic was on', () async {
+      // A second line must already exist for holdAndSwitch to have
+      // somewhere to send room-1 to — created first so room-1 (via line())
+      // ends up the active one.
+      svc.setRoom(_makeRoom(), 'room-2', 'conv-2');
+      line(micOn: true);
+      await svc.applySystemHold('room-1');
+      // The mock doesn't simulate real hardware, so isMicrophoneEnabled()
+      // still says true after setMicrophoneEnabled(false) above — reflect
+      // what the mic actually reads once the hold has silenced it, as it
+      // would on a real device by the time the app switches lines.
+      when(() => mic.isMicrophoneEnabled()).thenReturn(false);
+
+      await svc.holdAndSwitch('room-2'); // in-app switch away from room-1
+      await svc.holdAndSwitch('room-1'); // ...and back
+
+      verify(() => mic.setMicrophoneEnabled(true)).called(1);
+    });
+  });
+
+  group('line hooks', () {
+    final ended = <String>[];
+    final holds = <String>[];
+
+    setUp(() {
+      ended.clear();
+      holds.clear();
+      svc.onLineEnded = (room) async => ended.add(room);
+      svc.onLineHoldChanged = (room, onHold) async => holds.add('$room:$onHold');
+    });
+
+    tearDown(() {
+      svc.onLineEnded = null;
+      svc.onLineHoldChanged = null;
+    });
+
+    test('every path that removes a line reports it', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      svc.setRoom(_makeRoom(), 'b', 'c2');
+      await svc.endLine('b');
+      expect(ended, ['b']);
+      svc.notifyEnded();
+      expect(ended, ['b', 'a']);
+      svc.setRoom(_makeRoom(), 'x', 'c3');
+      svc.setRoom(_makeRoom(), 'y', 'c4');
+      await svc.endCall();
+      expect(ended, containsAll(['x', 'y']));
+    });
+
+    test('line switching is mirrored as holds', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      svc.setRoom(_makeRoom(), 'b', 'c2');
+      await svc.holdAndSwitch('a');
+      expect(holds, ['b:true', 'a:false']);
+    });
+
+    test('ending the active line brings the next one back', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      svc.setRoom(_makeRoom(), 'b', 'c2');
+      await svc.endLine('b');
+      expect(holds, ['a:false']);
+    });
+
+    test('connectInBackground holds the current line before dialling', () async {
+      // sl<DioClient>() must throw so connectInBackground fails right after
+      // holding the current line, without a real join request. Registered
+      // here (not in the group setUp) so the other line-hooks tests, which
+      // never touch sl, are unaffected.
+      final client = MockDioClient();
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenThrow(Exception('network down'));
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      final result = await svc.connectInBackground('b', 'c2');
+
+      expect(result, isFalse);
+      expect(holds, ['a:true']);
     });
   });
 }

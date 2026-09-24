@@ -30,6 +30,10 @@ class CallLine {
   bool wasMuted = false;
   /// When the call was connected (for duration display).
   DateTime? connectedAt;
+  /// iOS put this line on hold for another call (call waiting).
+  bool heldBySystem = false;
+  /// Mic state when that hold began — restored on resume.
+  bool micOnBeforeSystemHold = false;
 
   CallLine({
     required this.room,
@@ -184,6 +188,57 @@ class CallStateService {
   bool get hasHeldLines => _lines.values.any((l) => l.isOnHold);
   bool get canAddLine => _lines.length < maxLines;
 
+  // ── System calls (iOS CallKit) ───────────────────────────────────────────
+
+  /// Ends the CallKit call of every line that goes away, whichever path
+  /// removes it. Set in main.dart; null on platforms without CallKit calls.
+  Future<void> Function(String roomName)? onLineEnded;
+
+  /// Mirrors in-app line switching into CallKit holds.
+  Future<void> Function(String roomName, bool onHold)? onLineHoldChanged;
+
+  void _reportLineEnded(String roomName) {
+    final hook = onLineEnded;
+    if (hook != null) unawaited(hook(roomName));
+  }
+
+  void _reportLineHold(String roomName, bool onHold) {
+    final hook = onLineHoldChanged;
+    if (hook != null) unawaited(hook(roomName, onHold));
+  }
+
+  /// Call waiting took the audio: the peer gets a muted mic, and whatever the
+  /// mic was is remembered for the resume.
+  Future<void> applySystemHold(String roomName) async {
+    final line = _lines[roomName];
+    if (line == null || line.heldBySystem) return;
+    line.heldBySystem = true;
+    line.micOnBeforeSystemHold = line.room.localParticipant?.isMicrophoneEnabled() ?? false;
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(false);
+    } catch (_) {}
+  }
+
+  Future<void> applySystemResume(String roomName) async {
+    final line = _lines[roomName];
+    if (line == null || !line.heldBySystem) return;
+    line.heldBySystem = false;
+    if (!line.micOnBeforeSystemHold) return;
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(true);
+    } catch (_) {}
+  }
+
+  /// The mute button of the system call UI. Ignored while held — the mic is
+  /// off then, and the resume restores it.
+  Future<void> applySystemMute(String roomName, bool muted) async {
+    final line = _lines[roomName];
+    if (line == null || line.heldBySystem) return;
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(!muted);
+    } catch (_) {}
+  }
+
   Future<bool> waitForBackgroundConnect() async {
     if (!_bgConnecting || _bgCompleter == null) return isInCall;
     return _bgCompleter!.future;
@@ -211,8 +266,13 @@ class CallStateService {
     final current = activeLine;
     if (current != null && current.roomName != targetRoomName) {
       // Save mic state before hold so it can be restored later.
-      current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+      // On a system hold the mic is off because of the hold; what the user
+      // had is in micOnBeforeSystemHold.
+      current.wasMuted = current.heldBySystem
+          ? !current.micOnBeforeSystemHold
+          : !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
       current.isOnHold = true;
+      _reportLineHold(current.roomName, true);
       try {
         await current.room.localParticipant?.setMicrophoneEnabled(false);
         await current.room.localParticipant?.setCameraEnabled(false);
@@ -222,6 +282,7 @@ class CallStateService {
     final target = _lines[targetRoomName];
     if (target != null) {
       target.isOnHold = false;
+      _reportLineHold(targetRoomName, false);
       _activeRoomName = targetRoomName;
       try {
         // Restore the mic state the user had before this line was held.
@@ -236,6 +297,7 @@ class CallStateService {
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
     clearAnsweredState(name);
+    if (line != null) _reportLineEnded(name);
     if (line != null) {
       try { await line.room.disconnect(); } catch (_) {}
     }
@@ -245,6 +307,7 @@ class CallStateService {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
         next.isOnHold = false;
+        _reportLineHold(next.roomName, false);
         try {
           await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
         } catch (_) {}
@@ -260,6 +323,9 @@ class CallStateService {
   Future<void> endCall() async {
     final lines = List<CallLine>.from(_lines.values);
     _lines.clear();
+    for (final line in lines) {
+      _reportLineEnded(line.roomName);
+    }
     _activeRoomName = null;
     _bgConnecting = false;
     _bgGeneration++;
@@ -275,15 +341,20 @@ class CallStateService {
   void notifyEnded() {
     // Remove the active line (or all if unknown)
     if (_activeRoomName != null) {
-      _lines.remove(_activeRoomName);
+      final ended = _activeRoomName!;
+      if (_lines.remove(ended) != null) _reportLineEnded(ended);
       if (_lines.isNotEmpty) {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
         next.isOnHold = false;
+        _reportLineHold(next.roomName, false);
       } else {
         _activeRoomName = null;
       }
     } else {
+      for (final name in _lines.keys) {
+        _reportLineEnded(name);
+      }
       _lines.clear();
     }
     _bgConnecting = false;
@@ -313,8 +384,13 @@ class CallStateService {
       // Hold current active line, preserving mic state
       final current = activeLine;
       if (current != null) {
-        current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+        // On a system hold the mic is off because of the hold; what the user
+        // had is in micOnBeforeSystemHold.
+        current.wasMuted = current.heldBySystem
+            ? !current.micOnBeforeSystemHold
+            : !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
         current.isOnHold = true;
+        _reportLineHold(current.roomName, true);
         try {
           await current.room.localParticipant?.setMicrophoneEnabled(false);
           await current.room.localParticipant?.setCameraEnabled(false);
