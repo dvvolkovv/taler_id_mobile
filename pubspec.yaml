@@ -85,6 +85,8 @@ dependencies:
   wakelock_plus: ^1.2.8
 
   # Native incoming call UI (like a real phone call)
+  # Resolved from packages/flutter_callkit_incoming via dependency_overrides
+  # (patched copy, see its PATCHES.md). Bumping this constraint does nothing.
   flutter_callkit_incoming: ^2.0.2
 
   # File picking and URL launching

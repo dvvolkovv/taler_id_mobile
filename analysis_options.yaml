@@ -12,7 +12,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     # Vendored plugin, linted upstream.
-    - packages/**
+    - packages/flutter_callkit_incoming/**
 
 linter:
   # The lint rules applied to this project can be customized in the
