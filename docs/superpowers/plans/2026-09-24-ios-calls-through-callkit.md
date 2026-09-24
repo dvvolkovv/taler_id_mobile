@@ -2707,8 +2707,16 @@ void _wireSystemCalls() {
     switch (event) {
       case SystemCallHeld(bySystem: true):
         calls.applySystemHold(room);
-      case SystemCallResumed():
-        calls.applySystemResume(room);
+      case SystemCallResumed(:final swapped):
+        if (swapped) {
+          // The system call UI swapped our two lines: follow it, or the app
+          // keeps playing the line iOS has just put on hold. Switch first:
+          // holdAndSwitch sets the mic from the line's own state, and
+          // applySystemResume then restores what a call-waiting hold took.
+          unawaited(calls.holdAndSwitch(room).then((_) => calls.applySystemResume(room)));
+        } else {
+          calls.applySystemResume(room);
+        }
       case SystemCallMuteChanged(:final muted):
         calls.applySystemMute(room, muted);
       case SystemCallEndedBySystem():
@@ -2766,6 +2774,10 @@ Future<void> _endBackgroundLine(String roomName) async {
       }
       return;
 ```
+
+- [ ] **Step 4a: О приёме сообщается один раз**
+
+Диалог дашборда (задача 17) сообщает о приёме сам, до ответа через CallKit, а потом приходит ACCEPT и этот обработчик сообщил бы второй раз. В `_setupCallkitListener` условие блока `// Announce accept to the server IMMEDIATELY …` заменить: `if (convId != null && convId.isNotEmpty) {` → `if (convId != null && convId.isNotEmpty && !CallStateService.instance.didSelfAnswer(roomName)) {`.
 
 - [ ] **Step 5: Холодный старт — принятый вызов, событие о котором потерялось**
 
@@ -3505,15 +3517,16 @@ import '../../../core/platform/system_call_registry.dart';
 - [ ] **Step 4: Диалог входящего**
 
 1. «Отклонить»: `CallKitPlatform.instance.endAllCalls();` → `SystemCallRegistry.instance.endRingingForRoom(roomName);`.
-2. «Ответить»: внутри `if (CallStateService.instance.isAnsweredElsewhere(roomName)) {` заменить `try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}` на `try { await SystemCallRegistry.instance.endRingingForRoom(roomName); } catch (_) {}`. Сразу после закрывающей `}` этого `if` вставить:
+2. «Ответить»: внутри `if (CallStateService.instance.isAnsweredElsewhere(roomName)) {` заменить `try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}` на `try { await SystemCallRegistry.instance.endRingingForRoom(roomName); } catch (_) {}`. Сразу ПОСЛЕ блока `// Announce accept to server IMMEDIATELY …` (он остаётся первым: соседние устройства гасят звонок, не дожидаясь CallKit; обработчик приёма в main.dart второй раз не сообщит — задача 13, шаг 4a) и перед `_acceptingInApp = true;` вставить:
    ```dart
                       // iOS: answer the ringing CallKit call — from here the
                       // call goes exactly as an answer on the CallKit UI does
-                      // (main.dart's accept handler announces, connects and
-                      // navigates), and it stays in CallKit.
+                      // (main.dart's accept handler connects and navigates),
+                      // and it stays in CallKit. False at once when CallKit
+                      // has no call for this room (Focus/DND filtered it).
                       if (await SystemCallRegistry.instance.answerRinging(roomName)) return;
    ```
-   Ниже, в старом пути, `await CallKitPlatform.instance.endAllCalls();` и `CallKitPlatform.instance.endAllCalls();` в цикле `for (final delay in [500, 1500, 3000])` → `SystemCallRegistry.instance.dismissRinging()` (с `await` там, где он был).
+   Ниже, в старом пути: `await CallKitPlatform.instance.endCall(toCallkitId(roomName));` → `await SystemCallRegistry.instance.endRingingForRoom(roomName);` (если CallKit ответил позже тайм-аута, звонок уже разговор — сырой endCall вернулся бы «завершён системой» и положил бы только что принятый звонок; `endRingingForRoom` разговор не трогает); `await CallKitPlatform.instance.endAllCalls();` и `CallKitPlatform.instance.endAllCalls();` в цикле `for (final delay in [500, 1500, 3000])` → `SystemCallRegistry.instance.dismissRinging()` (с `await` там, где он был).
 
 - [ ] **Step 5: «Потерянный» принятый вызов**
 
@@ -3712,6 +3725,8 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 | 13 | После звонка открыть ассистента | ассистента слышно, он слышит нас |
 | 14 | Групповой звонок принят через CallKit | звук как раньше (регресс) |
 | 15 | «Удержать и ответить» на WhatsApp, и пока он идёт — собеседник в Taler ID выключает и включает интернет | WhatsApp не теряет звук; после WhatsApp наш разговор возвращается (риск 3 проекта) |
+| 16 | Две линии Taler ID, кнопка «Поменять» в системном интерфейсе звонка | приложение переключается на ту же линию, что iOS; звук и микрофон у активной, вторая на удержании |
+| 17 | Две линии Taler ID, звонит WhatsApp → «Завершить и ответить» | активная линия завершена у обеих сторон; удержанная не забирает звук у WhatsApp и возвращается после его конца (если CallKit откажет снять удержание сразу — автовозврат по `otherCallsEnded`) |
 
 - [ ] **Step 3: Найденное — чинить по одной причине за раз**
 
