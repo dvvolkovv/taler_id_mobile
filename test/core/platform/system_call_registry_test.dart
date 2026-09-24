@@ -48,9 +48,18 @@ void main() {
       expect(bridge.prepared, 1, reason: 'category is set before CallKit activates');
       expect(kit.log, ['startCall:$u1:Alice:conv-1']);
       expect(bridge.lastManaged, [u1]);
-      reg.bindRoom(u1.toUpperCase(), 'call-room-1');
+      expect(reg.bindRoom(u1.toUpperCase(), 'call-room-1'), isTrue);
       expect(reg.isConversation('call-room-1'), isTrue);
       expect(reg.uuidForRoom('call-room-1'), u1);
+    });
+
+    test('bindRoom returns false once the call was ended while still starting', () async {
+      kit.confirmStarts = false;
+      final started = reg.startOutgoing(displayName: 'Alice', handle: 'h');
+      await pumpEventQueue();
+      await reg.endConversationByUuid(u1);
+      expect(await started.timeout(const Duration(milliseconds: 200)), isNull);
+      expect(reg.bindRoom(u1, 'call-room-1'), isFalse);
     });
 
     test('the bridge is told before CallKit: set-managed, prepare audio, start', () async {
@@ -249,6 +258,30 @@ void main() {
       expect(bridge.lastManaged, isEmpty);
     });
 
+    test('DECLINE on a conversation is a system end too', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeDecline, u1);
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallEndedBySystem>().single.roomName, 'call-r1');
+      expect(reg.isConversation('call-r1'), isFalse);
+    });
+
+    test('TIMEOUT on a conversation is a system end too', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeTimeout, u1);
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallEndedBySystem>().single.roomName, 'call-r1');
+      expect(reg.isConversation('call-r1'), isFalse);
+    });
+
+    test('a second ENDED does not produce a second event', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeEnded, u1);
+      kit.emit(CallKitEvent.typeEnded, u1);
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallEndedBySystem>(), hasLength(1));
+    });
+
     test('a declined second call does not touch the conversation', () async {
       await conversation(u1, 'call-r1');
       kit.emit(CallKitEvent.typeDecline, u2);
@@ -278,6 +311,15 @@ void main() {
       expect(reg.hasConversations, isFalse);
     });
 
+    test('a failed endCall does not stop endAllConversations from ending the rest', () async {
+      await conversation(u1, 'call-r1');
+      await conversation(u2, 'call-r2');
+      kit.endCallError = Exception('boom');
+      await reg.endAllConversations();
+      expect(kit.log, containsAll(['endCall:$u1', 'endCall:$u2']));
+      expect(reg.hasConversations, isFalse);
+    });
+
     test('hanging up before CallKit confirms the start stops the wait', () async {
       kit.confirmStarts = false;
       final started = reg.startOutgoing(displayName: 'A', handle: 'h', roomName: 'call-r1');
@@ -294,6 +336,14 @@ void main() {
       await pumpEventQueue();
       expect(kit.log.where((l) => l == 'endCall:$u1'), hasLength(1),
           reason: 'ended once by the hang-up, not again as an abandoned start');
+    });
+
+    test('a system end while still starting completes the pending start promptly', () async {
+      kit.confirmStarts = false;
+      final started = reg.startOutgoing(displayName: 'A', handle: 'h');
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeEnded, u1);
+      expect(await started.timeout(const Duration(milliseconds: 200)), isNull);
     });
   });
 
@@ -318,6 +368,72 @@ void main() {
       expect(kit.log.where((l) => l.startsWith('endCall:')), ['endCall:$u2']);
     });
 
+    test('a registered conversation listed under an upper-case id is not ended', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'call-r1'},
+      });
+      await pumpEventQueue();
+      kit.active = [
+        {
+          'id': u1.toUpperCase(),
+          'extra': {'roomName': 'call-r1'},
+        },
+      ];
+      await reg.dismissRinging();
+      expect(kit.log, isEmpty);
+    });
+
+    test('an answered call-screen conversation Dart has not registered yet is left alone', () async {
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'call-r1'},
+          'isAccepted': true,
+        },
+      ];
+      await reg.dismissRinging();
+      expect(kit.log, isEmpty);
+    });
+
+    test('an answered group/mesh call stays dismissable', () async {
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'group-g1'},
+          'isAccepted': true,
+        },
+        {
+          'id': u2,
+          'extra': {'roomName': 'r-mesh', 'kind': 'mesh_gc'},
+          'accepted': true,
+        },
+      ];
+      await reg.dismissRinging();
+      expect(kit.log.where((l) => l.startsWith('endCall:')), containsAll(['endCall:$u1', 'endCall:$u2']));
+    });
+
+    test('activeCalls failing leaves dismissRinging silent, not throwing', () async {
+      kit.activeCallsError = Exception('boom');
+      await reg.dismissRinging();
+      expect(kit.log, isEmpty);
+    });
+
+    test('a failed endCall does not stop dismissRinging from continuing', () async {
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'call-r1'},
+        },
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-r2'},
+        },
+      ];
+      kit.endCallError = Exception('boom');
+      await reg.dismissRinging();
+      expect(kit.log, ['endCall:$u1', 'endCall:$u2']);
+    });
+
     test('disabled registry: the old endAllCalls', () async {
       await reg.detach();
       reg = build(enabled: false);
@@ -338,6 +454,39 @@ void main() {
       expect(kit.log, ['endCall:$u2']);
     });
 
+    test('matches a realistic call-<uuid> room name', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': 'call-$u2'},
+        },
+      ];
+      expect(await reg.endRingingForRoom('call-$u2'), isFalse);
+      expect(kit.log, ['endCall:$u2']);
+    });
+
+    test('an upper-case raw id is matched too', () async {
+      kit.active = [
+        {
+          'id': u2.toUpperCase(),
+          'extra': {'roomName': u2},
+        },
+      ];
+      expect(await reg.endRingingForRoom(u2), isFalse);
+      expect(kit.log, ['endCall:$u2']);
+    });
+
+    test('matches by extra.roomName when the id is not derived from the room (VoIP fallback id)', () async {
+      kit.active = [
+        {
+          'id': u1,
+          'extra': {'roomName': 'custom-room-xyz'},
+        },
+      ];
+      expect(await reg.endRingingForRoom('custom-room-xyz'), isFalse);
+      expect(kit.log, ['endCall:$u1']);
+    });
+
     test('leaves a conversation alone and says so', () async {
       kit.emit(CallKitEvent.typeAccept, u1, {
         'extra': {'roomName': u1},
@@ -349,7 +498,7 @@ void main() {
 
     test(
         'a call CallKit reports answered counts as a conversation — '
-        'the background isolate has no entries', () async {
+        'covers the moment before Dart registers the accept', () async {
       kit.active = [
         {
           'id': u2,
@@ -359,6 +508,35 @@ void main() {
       ];
       expect(await reg.endRingingForRoom(u2), isTrue);
       expect(kit.log, isEmpty);
+    });
+
+    test('accepted (not isAccepted) also counts as a conversation', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': u2},
+          'accepted': true,
+        },
+      ];
+      expect(await reg.endRingingForRoom(u2), isTrue);
+      expect(kit.log, isEmpty);
+    });
+
+    test('activeCalls failing returns false, not throwing', () async {
+      kit.activeCallsError = Exception('boom');
+      expect(await reg.endRingingForRoom(u2), isFalse);
+    });
+
+    test('a failed endCall still returns false, not throwing', () async {
+      kit.active = [
+        {
+          'id': u2,
+          'extra': {'roomName': u2},
+        },
+      ];
+      kit.endCallError = Exception('boom');
+      expect(await reg.endRingingForRoom(u2), isFalse);
+      expect(kit.log, ['endCall:$u2']);
     });
 
     test('disabled registry: the old endAllCalls', () async {

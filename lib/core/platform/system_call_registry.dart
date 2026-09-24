@@ -214,9 +214,16 @@ class SystemCallRegistry {
     return null;
   }
 
-  /// Attaches the room name once the server has created the room.
-  void bindRoom(String uuid, String roomName) {
-    _entries[uuid.toLowerCase()]?.roomName = roomName;
+  /// Attaches the room name once the server has created the room. Returns
+  /// false when [uuid] is no longer a conversation — e.g. the system End
+  /// button was pressed while an outgoing call was still connecting, before
+  /// the room existed — so the caller (the call screen) knows to hang up
+  /// instead of proceeding.
+  bool bindRoom(String uuid, String roomName) {
+    final entry = _entries[uuid.toLowerCase()];
+    if (entry == null) return false;
+    entry.roomName = roomName;
+    return true;
   }
 
   /// A conversation whose CallKit call was answered while the app was not
@@ -259,37 +266,78 @@ class SystemCallRegistry {
     if (entry != null) await _end(entry.uuid);
   }
 
+  /// Hangs up our side of a conversation in CallKit, keyed by its uuid —
+  /// same as [endConversation], for a caller that already has the uuid to
+  /// hand instead of the room name.
   Future<void> endConversationByUuid(String uuid) async {
     final key = uuid.toLowerCase();
     if (_entries.containsKey(key)) await _end(key);
   }
 
+  /// Hangs up every one of our conversations in CallKit, e.g. on sign-out.
   Future<void> endAllConversations() async {
     for (final uuid in List.of(_entries.keys)) {
+      // A CallKit ENDED processed while a previous iteration's _end was
+      // awaiting may already have removed this uuid — don't hang it up
+      // (and call endCall on it) a second time.
+      if (!_entries.containsKey(uuid)) continue;
       await _end(uuid);
     }
   }
 
-  /// Ends every CallKit call that is not one of our conversations — what the
-  /// blanket endAllCalls() was used for: dismissing ringing calls. Disabled
-  /// registry: exactly the old endAllCalls().
+  /// Ends every ringing CallKit call that is ours but not (yet) a
+  /// conversation — what the blanket endAllCalls() was used for: dismissing
+  /// ringing calls. Leaves alone: other apps' calls (no `extra` payload),
+  /// calls already registered as conversations, and an answered call-screen
+  /// conversation Dart has not turned into an entry yet (the same race
+  /// [endRingingForRoom] guards against). An answered group/mesh call is
+  /// none of those — it never becomes an entry — so it stays dismissable
+  /// here; the dashboard ends it itself once the group call is under way.
+  /// A plugin failure is swallowed and logged, leaving any remaining
+  /// ringing calls alone rather than throwing. Disabled registry: exactly
+  /// the old endAllCalls().
   Future<void> dismissRinging() async {
     if (!enabled) return _callKit.endAllCalls();
-    for (final raw in await _callKit.activeCalls()) {
+    List<dynamic> calls;
+    try {
+      calls = await _callKit.activeCalls();
+    } catch (e) {
+      debugPrint('[SystemCall] dismissRinging: activeCalls failed: $e');
+      return;
+    }
+    for (final raw in calls) {
       if (raw is! Map) continue;
       final id = (raw['id'] ?? '').toString().toLowerCase();
       // Other apps' calls come without our payload — never ours to end.
       if (id.isEmpty || !raw.containsKey('extra') || _entries.containsKey(id)) continue;
-      await _callKit.endCall(id);
+      final extra = raw['extra'];
+      final roomName = extra is Map ? extra['roomName'] : null;
+      final answered = raw['isAccepted'] == true || raw['accepted'] == true;
+      if (answered && roomName is String && _isCallScreenConversation(roomName, kind: extra['kind'])) {
+        continue; // answered — Dart just has not registered it as a conversation yet
+      }
+      try {
+        await _callKit.endCall(id);
+      } catch (e) {
+        debugPrint('[SystemCall] dismissRinging: endCall failed for $id: $e');
+      }
     }
   }
 
   /// Ends [roomName]'s ringing call (cancelled by the caller, answered on
   /// another device, declined in our dialog). Returns true — and ends nothing —
   /// when that call is a conversation: an entry, or a call CallKit reports as
-  /// answered. The second check is what protects the device that just picked
-  /// up when this runs in the background isolate, where there are no entries.
-  /// Disabled registry: the old endAllCalls(), returns false.
+  /// accepted/connected. The second check covers the moment before Dart has
+  /// turned an accept into an entry: on iOS the FCM handler that calls this
+  /// runs on the main isolate, sharing this same singleton, so a concurrent
+  /// accept not yet registered is still caught here; on Android the registry
+  /// is disabled and this whole method is a no-op. Matches the ringing call
+  /// either by the uuid [roomName] derives ([toCallkitId]) or by its own
+  /// `extra.roomName` — a VoIP-push call whose room isn't
+  /// `call-<uuid>`/uuid-shaped keeps the push's own id, which doesn't equal
+  /// the derived uuid. Never throws: a plugin failure is treated as "nothing
+  /// ended, not known as a conversation" (false). Disabled registry: the old
+  /// endAllCalls(), returns false.
   Future<bool> endRingingForRoom(String roomName) async {
     if (!enabled) {
       await _callKit.endAllCalls();
@@ -297,10 +345,25 @@ class SystemCallRegistry {
     }
     if (_entryForRoom(roomName) != null) return true;
     final uuid = toCallkitId(roomName).toLowerCase();
-    for (final raw in await _callKit.activeCalls()) {
-      if (raw is! Map || (raw['id'] ?? '').toString().toLowerCase() != uuid) continue;
+    List<dynamic> calls;
+    try {
+      calls = await _callKit.activeCalls();
+    } catch (e) {
+      debugPrint('[SystemCall] endRingingForRoom: activeCalls failed: $e');
+      return false;
+    }
+    for (final raw in calls) {
+      if (raw is! Map) continue;
+      final id = (raw['id'] ?? '').toString().toLowerCase();
+      final extra = raw['extra'];
+      final matchesRoom = extra is Map && extra['roomName'] == roomName;
+      if (id != uuid && !matchesRoom) continue;
       if (raw['isAccepted'] == true || raw['accepted'] == true) return true;
-      await _callKit.endCall(uuid);
+      try {
+        await _callKit.endCall(id);
+      } catch (e) {
+        debugPrint('[SystemCall] endRingingForRoom: endCall failed for $id: $e');
+      }
       return false;
     }
     return false;
@@ -314,7 +377,11 @@ class SystemCallRegistry {
     // now instead of timing out.
     if (entry != null && !entry.started.isCompleted) entry.started.complete(false);
     await _syncManaged();
-    await _callKit.endCall(uuid);
+    try {
+      await _callKit.endCall(uuid);
+    } catch (e) {
+      debugPrint('[SystemCall] endCall failed for $uuid: $e');
+    }
   }
 
   void _onCallKitEvent(CallKitEvent event) {

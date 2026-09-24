@@ -12,6 +12,15 @@ class FakeCallKit implements CallKitPlatform {
   List<dynamic> active = [];
   bool confirmStarts = true;
 
+  /// Set by a test that needs [activeCalls] to fail, e.g. to exercise
+  /// dismissRinging's/endRingingForRoom's error handling.
+  Object? activeCallsError;
+
+  /// Set by a test that needs [endCall] to fail after logging the attempt,
+  /// e.g. to exercise dismissRinging's/endRingingForRoom's/_end's error
+  /// handling.
+  Object? endCallError;
+
   /// Set by a test that needs to observe call order across both fakes,
   /// without changing what [log] records.
   void Function(String tag)? onCall;
@@ -51,13 +60,19 @@ class FakeCallKit implements CallKitPlatform {
   Future<void> setMuted(String uuid, bool muted) async => log.add('setMuted:$uuid:$muted');
 
   @override
-  Future<void> endCall(String uuid) async => log.add('endCall:$uuid');
+  Future<void> endCall(String uuid) async {
+    log.add('endCall:$uuid');
+    if (endCallError != null) throw endCallError!;
+  }
 
   @override
   Future<void> endAllCalls() async => log.add('endAllCalls');
 
   @override
-  Future<List<dynamic>> activeCalls() async => active;
+  Future<List<dynamic>> activeCalls() async {
+    if (activeCallsError != null) throw activeCallsError!;
+    return active;
+  }
 
   @override
   Future<String?> getDevicePushTokenVoIP() async => null;
