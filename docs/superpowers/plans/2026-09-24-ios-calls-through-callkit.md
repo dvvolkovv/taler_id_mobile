@@ -2850,6 +2850,19 @@ import '../../../../core/platform/system_call_registry.dart';
     );
   }
 
+  /// Starts the CallKit registration and takes the uuid as soon as iOS
+  /// confirms, not only after LiveKit has connected: a system "End" pressed
+  /// while the call is still connecting must already find this screen.
+  void _beginSystemCallRegistration() {
+    final registration = _registerSystemCall();
+    _systemCallRegistration = registration;
+    unawaited(registration.then((uuid) {
+      if (uuid != null && mounted && !_hangingUp && _systemCallUuid == null) {
+        _systemCallUuid = uuid;
+      }
+    }));
+  }
+
   /// The callee, the AI twin or a meeting answered: iOS shows the call
   /// connected. No-op for incoming calls — the answer connected them.
   void _markSystemCallConnected() {
@@ -2892,8 +2905,12 @@ import '../../../../core/platform/system_call_registry.dart';
 ```dart
       // Not in CallKit yet (Android, or iOS answered outside it): iOS gets a
       // CallKit call now, so call waiting protects the rest of it.
-      _systemCallRegistration = _registerSystemCall();
+      _beginSystemCallRegistration();
 ```
+
+- [ ] **Step 3a: Старый путь не снимает разговоры CallKit**
+
+В `_restoreAudioAfterCallKit()` и в блоке входящего без CallKit (ветка `else if (widget.isIncoming)` из шага 3) заменить `await CallKitPlatform.instance.endAllCalls();` на `await SystemCallRegistry.instance.dismissRinging();` (текст `debugPrint` рядом — под новое имя). На iPhone сплошной `endAllCalls()` положил бы и разговоры, которые живут в CallKit: например, первую линию, пока вторую принимают по старому пути (`answerRinging` не дождался ответа CallKit). `dismissRinging()` снимает только звонящие вызовы, а на Android и без реестра — это ровно прежний `endAllCalls()`.
 
 - [ ] **Step 4: Исходящий и встречи**
 
@@ -2904,14 +2921,14 @@ import '../../../../core/platform/system_call_registry.dart';
     // anything plays, so the ringback already sounds in the call's session.
     // Rooms by public link wait for their join dialog below.
     if (!widget.isIncoming && widget.publicCode == null) {
-      _systemCallRegistration = _registerSystemCall();
+      _beginSystemCallRegistration();
     }
 ```
 
 После строки `        final roomPassword = joinResult['password'] as String?;`:
 
 ```dart
-        _systemCallRegistration = _registerSystemCall();
+        _beginSystemCallRegistration();
 ```
 
 - [ ] **Step 5: После подключения к комнате**
@@ -2929,11 +2946,25 @@ import '../../../../core/platform/system_call_registry.dart';
 заменить на
 
 ```dart
+      // Hung up while connecting (the red button, or a system End that
+      // reached this screen through its uuid): nothing left to set up, and
+      // _hangUpInner has already dropped _room.
+      if (_hangingUp || _navigatedAway) return;
       final registration = _systemCallRegistration;
-      if (registration != null) _systemCallUuid = await registration;
+      if (registration != null) {
+        final uuid = await registration;
+        if (_hangingUp || _navigatedAway) return;
+        _systemCallUuid = uuid;
+      }
       final systemCallUuid = _systemCallUuid;
       if (systemCallUuid != null) {
-        SystemCallRegistry.instance.bindRoom(systemCallUuid, _roomName!);
+        if (!SystemCallRegistry.instance.bindRoom(systemCallUuid, _roomName!)) {
+          // The CallKit call was ended from the system UI before the room
+          // existed — hang up, as that End asked.
+          _systemCallUuid = null;
+          unawaited(_hangUp(userInitiated: true));
+          return;
+        }
         // A room joined without ringing has nobody to wait for.
         if (!_ringing) _markSystemCallConnected();
       } else {
@@ -3122,8 +3153,23 @@ EOF
     }
     final registry = SystemCallRegistry.instance;
     if (registry.enabled) {
-      // Only our own conversations: a second call still ringing keeps ringing.
-      try { await registry.endAllConversations(); } catch (_) {}
+      // Only this screen's own call. Not endAllConversations(): a call just
+      // taken with "End & Accept" may not be a line yet, and this hang-up must
+      // not end it too. _hangUpInner normally ended ours already; if its 8 s
+      // guard cut it short, end it here — a CallKit call left behind keeps
+      // WebRTC in manual audio and the next calls silent.
+      final own = _systemCallUuid;
+      if (own != null) {
+        _systemCallUuid = null;
+        try { await registry.endConversationByUuid(own); } catch (_) {}
+      }
+      // A start iOS has not confirmed yet: ended once it is.
+      final pending = _systemCallRegistration;
+      if (pending != null) {
+        unawaited(pending.then((uuid) {
+          if (uuid != null) registry.endConversationByUuid(uuid);
+        }));
+      }
     } else {
       try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}
     }
