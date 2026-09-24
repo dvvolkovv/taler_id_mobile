@@ -1359,7 +1359,7 @@ class SystemCallRegistry {
         extra: {if (roomName != null) 'roomName': roomName},
       );
     } catch (e) {
-      debugPrint('[SystemCall] startCall failed: $e');
+      debugPrint('[SystemCall] could not start $uuid in CallKit: $e');
       if (!entry.started.isCompleted) entry.started.complete(false);
     }
     final ok = await entry.started.future.timeout(startTimeout, onTimeout: () => false);
@@ -2302,8 +2302,17 @@ final class CallKitAudioBridge: NSObject {
       guard let self else { result(nil); return }
       switch call.method {
       case "setManagedCalls":
-        let ids = (call.arguments as? [String]) ?? []
-        self.setManagedCalls(ids.compactMap { UUID(uuidString: $0) })
+        // A shape mismatch must not read as "manage nothing" — that would
+        // switch manual audio off in the middle of a call.
+        guard let ids = call.arguments as? [String] else {
+          result(FlutterError(code: "bad_args", message: "setManagedCalls expects [String]", details: nil))
+          return
+        }
+        let uuids = ids.compactMap { UUID(uuidString: $0) }
+        if uuids.count != ids.count {
+          NSLog("[CallKitAudio] setManagedCalls: dropped \(ids.count - uuids.count) malformed id(s)")
+        }
+        self.setManagedCalls(uuids)
         result(nil)
       case "prepareCallAudio":
         self.prepareCallAudio()

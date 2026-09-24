@@ -86,7 +86,7 @@
 - Плагину везде передаются `configureAudioSession: false` и `supportsHolding: true`, включая путь VoIP-пуша в `AppDelegate.pushRegistry` (поля `Data` правятся перед `showCallkitIncoming`; там же `duration = 60000` — в пуше длительности нет, и по умолчанию плагина вызов звонил бы 30 с вместо 60).
 - Пока набор не пуст, старая машинерия молчит:
   - `handleAudioInterruption` не шлёт `audioInterrupted`/`audioResumed` и не восстанавливает сессию;
-  - `CXCallObserver` не форсирует восстановление, а сообщает `foreignCallEnded`, если закончился звонок не из набора;
+  - `CXCallObserver` не форсирует восстановление, а сообщает `otherCallsEnded`, если закончился звонок не из набора;
   - `handleRouteChange` не восстанавливает;
   - методы `taler_id/audio`, которые сейчас включают или выключают сессию (`requestAudioFocus`, `setAudioOutput`, `setSpeaker`, `playRingback`, `setAudioSessionForVideo`, `prepareForPlayback`, `restoreVoiceChat`, `deactivateAudioSession`, `enableCallAudioMix`, `disableCallAudioMix`), не вызывают `setActive` и не ставят `.mixWithOthers`. Смена категории и режима и `overrideOutputAudioPort` остаются.
 - Канал `taler_id/callkit_audio` отдельный: обработчик `taler_id/audio` принадлежит экрану звонка и снимается при его закрытии, а мост должен работать и в режиме плашки.
@@ -104,7 +104,7 @@
 - `dismissRinging()` снимает все вызовы из `activeCalls()`, кроме управляемых разговоров. `endRingingForRoom(roomName)` снимает вызов конкретной комнаты — для `call_cancelled` и «ответили на другом устройстве».
 - `setMuted(roomName, muted)`; `holdForLineSwitch(roomName, onHold)`.
 - Фильтрует события плагина по UUID и отдаёт поток `SystemCallEvent`: `held(roomName, bySystem)`, `resumed(roomName)`, `muteChanged(roomName, muted)`, `endedBySystem(roomName)`. Для управляемого UUID `DECLINE` и `ENDED` значат одно — разговор снят системой.
-- Автовозврат: `foreignCallEnded` от моста → для записей `heldBySystem`, если ни один наш звонок сейчас не активен, → `holdCall(uuid, false)`. Если iOS снимет удержание сама, придёт то же событие `resumed`, запрос реестра станет пустым.
+- Автовозврат: `otherCallsEnded` от моста → для записей `heldBySystem`, если ни один наш звонок сейчас не активен, → `holdCall(uuid, false)`. Если iOS снимет удержание сама, придёт то же событие `resumed`, запрос реестра станет пустым.
 - Каждое изменение набора управляемых UUID отправляется мосту.
 
 ### 4. `CallKitPlatform`
@@ -181,7 +181,7 @@ Android, десктоп, симулятор и звонок, который Call
 - Юнит-тесты реестра (поддельные `CallKitPlatform` и мост):
   - подтверждение старта и откат по таймауту;
   - фильтр событий по UUID: снятый второй вызов не кладёт разговор;
-  - удержание системой → автовозврат только после `foreignCallEnded` и только если ни один наш звонок не активен;
+  - удержание системой → автовозврат только после `otherCallsEnded` и только если ни один наш звонок не активен;
   - удержание для переключения линий само не снимается;
   - `dismissRinging()` не трогает разговор;
   - выключенный реестр — `endAllCalls()` как раньше;
