@@ -8,16 +8,24 @@ import 'package:taler_id_mobile/core/platform/call_audio_configuration.dart';
 void main() {
   tearDown(() => onConfigureNativeAudio = defaultNativeAudioConfigurationFunc);
 
-  test('while CallKit owns a conversation every track state keeps the call category', () async {
-    installCallAudioConfiguration(callKitOwnsAudio: () => true);
-    for (final state in AudioTrackState.values) {
-      final config = await onConfigureNativeAudio(state);
-      expect(config.appleAudioCategory, AppleAudioCategory.playAndRecord, reason: '$state');
-      expect(config.appleAudioMode, AppleAudioMode.voiceChat, reason: '$state');
-      expect(config.appleAudioCategoryOptions,
-          isNot(contains(AppleAudioCategoryOption.mixWithOthers)), reason: '$state');
-    }
-  });
+  for (final preferSpeaker in [true, false]) {
+    test(
+        'while CallKit owns a conversation every track state keeps the call '
+        'category and mirrors preferSpeakerOutput=$preferSpeaker', () async {
+      installCallAudioConfiguration(
+        callKitOwnsAudio: () => true,
+        preferSpeakerOutput: () => preferSpeaker,
+      );
+      for (final state in AudioTrackState.values) {
+        final config = await onConfigureNativeAudio(state);
+        expect(config.appleAudioCategory, AppleAudioCategory.playAndRecord, reason: '$state');
+        expect(config.appleAudioMode, AppleAudioMode.voiceChat, reason: '$state');
+        expect(config.appleAudioCategoryOptions,
+            isNot(contains(AppleAudioCategoryOption.mixWithOthers)), reason: '$state');
+        expect(config.preferSpeakerOutput, preferSpeaker, reason: '$state');
+      }
+    });
+  }
 
   test('otherwise LiveKit decides as before', () async {
     installCallAudioConfiguration(callKitOwnsAudio: () => false);
