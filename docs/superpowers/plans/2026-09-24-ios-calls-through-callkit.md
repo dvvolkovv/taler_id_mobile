@@ -3111,6 +3111,13 @@ import '../../../../core/platform/system_call_registry.dart';
 ```
 Так закрываются все копии отложенного перехода (в `NotificationService`, в дашборде, опрос `_navigateWhenResumed`) одной проверкой.
 
+Та же проверка — ещё раз после ожидания фонового подключения в `_initCall` (блок `if (cs.isBackgroundConnecting) { … waitForBackgroundConnect() … }`): экран мог открыться раньше, чем пользователь нажал «Завершить», и ожидание тогда просыпается с `false`. Сразу после ожидания:
+
+```dart
+    if (!mounted || _navigatedAway || _hangingUp) return;
+```
+и затем тот же блок с `consumeSystemEnded` (вынести его в метод `bool _closeIfEndedBySystem()`, чтобы не дублировать). Иначе экран подключит или подхватит комнату, которую уже положили, а `_hangUp` экрана этого не остановит: `_connect()` проверяет сброс только после подключения LiveKit.
+
 - [ ] **Step 8: Анализ**
 
 ```bash
