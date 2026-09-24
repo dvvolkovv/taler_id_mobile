@@ -182,6 +182,7 @@ class SystemCallRegistry {
     // by then, or CallKit and the old WebRTC audio path would fight over it.
     if (!await _syncManaged()) {
       _entries.remove(uuid);
+      if (!entry.started.isCompleted) entry.started.complete(false);
       return null;
     }
     try {
@@ -240,7 +241,7 @@ class SystemCallRegistry {
       // startOutgoing's own confirmation (or give-up) instead — that future
       // always completes, including on timeout (see startOutgoing).
       final started = await entry.started.future;
-      if (!started || _entries[entry.uuid] != entry) return;
+      if (!started || _entries[entry.uuid] != entry || entry.connectedReported) return;
     }
     entry.connectedReported = true;
     try {

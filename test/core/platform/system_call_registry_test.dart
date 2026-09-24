@@ -48,7 +48,7 @@ void main() {
       expect(bridge.prepared, 1, reason: 'category is set before CallKit activates');
       expect(kit.log, ['startCall:$u1:Alice:conv-1']);
       expect(bridge.lastManaged, [u1]);
-      reg.bindRoom(u1, 'call-room-1');
+      reg.bindRoom(u1.toUpperCase(), 'call-room-1');
       expect(reg.isConversation('call-room-1'), isTrue);
       expect(reg.uuidForRoom('call-room-1'), u1);
     });
@@ -100,6 +100,17 @@ void main() {
       expect(result, isNull);
       expect(bridge.lastManaged, isEmpty);
       expect(kit.log, isEmpty);
+    });
+
+    test('a failed initial sync returns null without touching CallKit, and frees a concurrent markConnected',
+        () async {
+      bridge.setManagedCallsError = Exception('boom');
+      final f = reg.startOutgoing(displayName: 'Alice', handle: 'h', roomName: 'call-r1');
+      final connected = reg.markConnected('call-r1');
+      expect(await f, isNull);
+      expect(kit.log, isEmpty);
+      await connected.timeout(const Duration(seconds: 1));
+      expect(kit.log, isNot(contains('setCallConnected:$u1')));
     });
 
     test('disabled registry never touches CallKit', () async {
@@ -196,6 +207,38 @@ void main() {
       expect(await f, u1);
       await connected;
       expect(kit.log, contains('setCallConnected:$u1'));
+    });
+
+    test('two markConnected calls during a pending start report exactly once', () async {
+      kit.confirmStarts = false;
+      final f = reg.startOutgoing(displayName: 'Alice', handle: 'h', roomName: 'call-r1');
+      final c1 = reg.markConnected('call-r1');
+      final c2 = reg.markConnected('call-r1');
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeStart, u1);
+      expect(await f, u1);
+      await c1;
+      await c2;
+      expect(kit.log.where((l) => l == 'setCallConnected:$u1'), hasLength(1));
+    });
+
+    test('markConnected during a start CallKit never confirms returns without reporting', () async {
+      kit.confirmStarts = false;
+      final f = reg.startOutgoing(displayName: 'Alice', handle: 'h', roomName: 'call-r1');
+      final connected = reg.markConnected('call-r1');
+      expect(await f, isNull);
+      await connected.timeout(const Duration(seconds: 1));
+      expect(kit.log, isNot(contains('setCallConnected:$u1')));
+    });
+  });
+
+  group('instance', () {
+    test('the off-iPhone singleton works without a native channel', () async {
+      SystemCallRegistry.debugInstance = null;
+      addTearDown(() => SystemCallRegistry.debugInstance = null);
+      final instance = SystemCallRegistry.instance;
+      expect(instance.enabled, isFalse);
+      expect(await instance.startOutgoing(displayName: 'Alice', handle: 'h'), isNull);
     });
   });
 }

@@ -88,6 +88,10 @@ class FakeBridge implements SystemCallBridge {
   /// startOutgoing's early-abort path.
   Object? prepareCallAudioError;
 
+  /// Set by a test to make [setManagedCalls] throw, e.g. to exercise
+  /// startOutgoing's initial-sync early-abort path.
+  Object? setManagedCallsError;
+
   /// Set by a test that needs to observe call order across both fakes,
   /// without changing what [managed] / [prepared] record.
   void Function(String tag)? onCall;
@@ -98,6 +102,7 @@ class FakeBridge implements SystemCallBridge {
   @override
   Future<void> setManagedCalls(List<String> uuids) async {
     onCall?.call('setManagedCalls');
+    if (setManagedCallsError != null) throw setManagedCallsError!;
     managed.add(List.of(uuids));
   }
 
