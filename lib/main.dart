@@ -32,8 +32,10 @@ import 'features/sessions/presentation/bloc/sessions_bloc.dart';
 import 'package:taler_id_mobile/core/mesh/voice/group_mesh_call_service.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_bloc.dart';
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
+import 'core/platform/call_audio_configuration.dart';
 import 'core/platform/call_kit.dart';
 import 'core/platform/platform_utils.dart';
+import 'core/platform/system_call_registry.dart';
 import 'features/dashboard/desktop/window/window_setup.dart';
 import 'features/messenger/data/datasources/messenger_remote_datasource.dart';
 import 'core/desktop_tray/desktop_tray_service.dart';
@@ -48,6 +50,65 @@ import 'core/platform/desktop_av_permission.dart';
 ///   the widget tree when centrally surfacing the insufficient-funds paywall.
 /// Keep this as the single source of truth — do not introduce parallel keys.
 final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+
+/// iOS: every conversation lives in CallKit (SystemCallRegistry). Wires the
+/// registry to the call lines. Must run before [_setupCallkitListener]: the
+/// registry has to see an accept that launched a killed app before the
+/// accept handler acts on it.
+void _wireSystemCalls() {
+  final registry = SystemCallRegistry.instance;
+  if (!registry.enabled) return;
+  final calls = CallStateService.instance;
+  registry.attach();
+  calls.onLineEnded = registry.endConversation;
+  calls.onLineHoldChanged = registry.holdForLineSwitch;
+  installCallAudioConfiguration(callKitOwnsAudio: () => registry.hasConversations);
+  registry.events.listen((event) {
+    final room = event.roomName;
+    if (room == null) return;
+    switch (event) {
+      case SystemCallHeld(bySystem: true):
+        calls.applySystemHold(room);
+      case SystemCallResumed(:final swapped):
+        if (swapped && calls.allLines.any((l) => l.roomName == room)) {
+          // The system call UI swapped our two lines: follow it, or the app
+          // keeps playing the line iOS has just put on hold. Switch first:
+          // holdAndSwitch sets the mic from the line's own state, and
+          // applySystemResume then restores what a call-waiting hold took.
+          unawaited(calls.holdAndSwitch(room).then((_) => calls.applySystemResume(room)));
+        } else {
+          calls.applySystemResume(room);
+        }
+      case SystemCallMuteChanged(:final muted):
+        calls.applySystemMute(room, muted);
+      case SystemCallEndedBySystem():
+        // The line on display is hung up by the call screen, or by the
+        // dashboard behind the banner. A held background line has nobody
+        // else to do it.
+        if (calls.roomName != room) _endBackgroundLine(room);
+      case SystemCallHeld():
+        break;
+    }
+  });
+}
+
+Future<void> _endBackgroundLine(String roomName) async {
+  final calls = CallStateService.instance;
+  for (final line in calls.allLines) {
+    if (line.roomName != roomName) continue;
+    final convId = line.conversationId;
+    if (convId != null) {
+      try {
+        sl<MessengerRemoteDataSource>().sendCallEnded(convId, roomName);
+      } catch (_) {}
+    }
+    await calls.endLine(roomName);
+    return;
+  }
+  // Not a line (yet — it was still joining): endLine still forgets what the
+  // service remembers for the room, e.g. a hold that arrived meanwhile.
+  await calls.endLine(roomName);
+}
 
 /// Set up CallKit event listener as early as possible (before runApp) so that
 /// accept events are not missed when the app is launched from a killed state.
@@ -100,7 +161,13 @@ void _setupCallkitListener() {
     // DashboardScreen's _listenForCallAnswered listener.
     if (CallStateService.instance.isAnsweredElsewhere(roomName)) {
       debugPrint('[CallKit] accept SKIPPED: $roomName already answered on another device');
-      try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+      final registry = SystemCallRegistry.instance;
+      if (registry.enabled) {
+        // It was just answered here: end exactly that call, not every call.
+        try { registry.endConversation(roomName); } catch (_) {}
+      } else {
+        try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+      }
       return;
     }
     // Announce accept to the server IMMEDIATELY so sibling devices dismiss
@@ -108,7 +175,7 @@ void _setupCallkitListener() {
     // this was sent only after LiveKit connect completed (~1-3 s), which
     // left a race window wide enough to produce a 3-way join. Marking
     // selfAnswered first so the server echo doesn't fire our own listener.
-    if (convId != null && convId.isNotEmpty) {
+    if (convId != null && convId.isNotEmpty && !CallStateService.instance.didSelfAnswer(roomName)) {
       try {
         CallStateService.instance.markSelfAnswered(roomName);
         sl<MessengerRemoteDataSource>().sendCallAnswered(convId, roomName);
@@ -327,6 +394,10 @@ Future<void> _checkInitialCallKitCall() async {
         _navigateWhenResumed(route, 0);
         return;
       }
+      if (call['isAccepted'] == true || call['accepted'] == true) {
+        await SystemCallRegistry.instance.adoptAnswered(
+            uuid: (call['id'] ?? '').toString(), roomName: roomName);
+      }
       final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
       final route =
           '/dashboard/voice?room=$roomName&convId=${convId ?? ''}&incoming=1$e2eeParam';
@@ -348,6 +419,10 @@ Future<void> main() async {
   // fonts.gstatic.com. The TTFs live under google_fonts/ (declared as an
   // asset in pubspec.yaml) and google_fonts resolves them locally.
   GoogleFonts.config.allowRuntimeFetching = false;
+
+  // Wire the CallKit system-call registry to the call lines before the
+  // CallKit listener itself, so it sees a killed-app-launching accept first.
+  _wireSystemCalls();
 
   // Set up CallKit listener early — before runApp — to catch accept events
   // that arrive while the app is cold-starting.
