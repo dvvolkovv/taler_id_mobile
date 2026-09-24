@@ -2264,18 +2264,25 @@ import AVFoundation
 import CallKit
 import Flutter
 import WebRTC
+import flutter_callkit_incoming
 
 /// Single meeting point of CallKit and WebRTC for Taler ID conversations.
-/// While Dart manages a conversation in CallKit (SystemCallRegistry), CallKit
-/// owns the audio session and WebRTC runs in manual-audio mode, starting its
-/// audio unit exactly when CallKit activates the session: call waiting, hold
-/// and resume become deactivate/activate instead of interruptions we had to
-/// recover from. See docs/superpowers/specs/2026-09-24-ios-calls-through-callkit-design.md.
+/// While a conversation is in CallKit, CallKit owns the audio session and
+/// WebRTC runs in manual-audio mode, starting its audio unit exactly when
+/// CallKit activates the session: call waiting, hold and resume become
+/// deactivate/activate instead of interruptions we had to recover from.
+/// See docs/superpowers/specs/2026-09-24-ios-calls-through-callkit-design.md.
 final class CallKitAudioBridge: NSObject {
   static let shared = CallKitAudioBridge()
 
   private var channel: FlutterMethodChannel?
-  private var managedCalls = Set<UUID>()
+  /// Conversations Dart registered (SystemCallRegistry).
+  private var registeredByDart = Set<UUID>()
+  /// Incoming calls answered through CallKit, known here before Dart can
+  /// register them. CallKit activates the session right after the answer —
+  /// on a killed app long before Flutter runs — and the plugin's fake
+  /// "interruption ended" on that activation must not reach the old recovery.
+  private var answeredHere = Set<UUID>()
   /// CallKit has our session activated right now.
   private var activatedSession: AVAudioSession?
   /// WebRTC was told the session is active (audioSessionDidActivate) and must
@@ -2283,6 +2290,8 @@ final class CallKitAudioBridge: NSObject {
   /// believes the session is still live and never activates it again (the
   /// assistant after a call would go silent).
   private var webRTCKnowsActive = false
+
+  private var managedCalls: Set<UUID> { registeredByDart.union(answeredHere) }
 
   /// A conversation is in CallKit: CallKit owns the audio session.
   var isManaging: Bool { !managedCalls.isEmpty }
@@ -2317,6 +2326,19 @@ final class CallKitAudioBridge: NSObject {
     }
   }
 
+  /// onAccept: a call-screen conversation (not a group or mesh call) is ours
+  /// from the moment it is answered.
+  func callAnswered(_ call: Call) {
+    guard Self.isCallScreenConversation(call) else { return }
+    updateManaged { answeredHere.insert(call.uuid) }
+  }
+
+  /// onDecline / onEnd / the call observer: the call is over.
+  func callFinished(_ uuid: UUID) {
+    guard answeredHere.contains(uuid) else { return }
+    updateManaged { answeredHere.remove(uuid) }
+  }
+
   func didActivate(_ session: AVAudioSession) {
     activatedSession = session
     NSLog("[CallKitAudio] didActivate managing=\(isManaging)")
@@ -2337,7 +2359,12 @@ final class CallKitAudioBridge: NSObject {
   /// CXCallObserver hook while managing: tells Dart once no call other than
   /// our conversations remains (the WhatsApp call that held us is over).
   func callChanged(_ observer: CXCallObserver, _ call: CXCall) {
-    guard isManaging, call.hasEnded, !managedCalls.contains(call.uuid) else { return }
+    guard isManaging, call.hasEnded else { return }
+    if managedCalls.contains(call.uuid) {
+      // One of ours ended — possibly without onEnd (a CallKit reset).
+      callFinished(call.uuid)
+      return
+    }
     let othersLeft = observer.calls.contains { other in
       other.uuid != call.uuid && !other.hasEnded && !managedCalls.contains(other.uuid)
     }
@@ -2348,16 +2375,27 @@ final class CallKitAudioBridge: NSObject {
   }
 
   private func setManagedCalls(_ ids: [UUID]) {
+    updateManaged { registeredByDart = Set(ids) }
+  }
+
+  private func updateManaged(_ change: () -> Void) {
     let wasManaging = isManaging
-    managedCalls = Set(ids)
+    change()
     NSLog("[CallKitAudio] managed=\(managedCalls.count) sessionActive=\(activatedSession != nil)")
     if !wasManaging && isManaging, let session = activatedSession {
-      // CallKit switched the session on before Dart knew the call — the
-      // killed-app answer path. Hand the activation to WebRTC now.
+      // CallKit switched the session on before the call was known as ours.
       enableWebRTCAudio(session)
     } else if wasManaging && !isManaging {
       RTCAudioSession.sharedInstance().useManualAudio = false
     }
+  }
+
+  /// Group and mesh calls ring through CallKit too but run their own audio;
+  /// the same filter as SystemCallRegistry._onAccepted.
+  private static func isCallScreenConversation(_ call: Call) -> Bool {
+    guard let extra = call.data.extra as? [String: Any],
+          let room = extra["roomName"] as? String, !room.isEmpty else { return false }
+    return !room.hasPrefix("group-") && (extra["kind"] as? String) != "mesh_gc"
   }
 
   private func enableWebRTCAudio(_ session: AVAudioSession) {
@@ -2421,6 +2459,9 @@ final class CallKitAudioBridge: NSObject {
       data.configureAudioSession = false
       data.supportsHolding = true
       data.audioSessionMode = "voiceChat"
+      // The push carries no duration: the plugin's 30 s default would ring
+      // half as long as the same call arriving over the socket (60 s).
+      data.duration = 60000
 ```
 
 В конец файла:
@@ -2428,24 +2469,22 @@ final class CallKitAudioBridge: NSObject {
 ```swift
 extension AppDelegate: CallkitIncomingAppDelegate {
   // Conforming hands fulfilment of these actions to us — the plugin no
-  // longer fulfils them itself. Every path must fulfil or fail.
+  // longer fulfils them itself. Every path must fulfil or fail. (Answering an
+  // outgoing call is refused inside the plugin, PATCH P11.)
 
   func onAccept(_ call: Call, _ action: CXAnswerCallAction) {
-    if call.isOutGoing {
-      // PATCH P5 stops the plugin from answering our own outgoing calls; if
-      // anything still does, refusing is the only correct answer.
-      action.fail()
-      return
-    }
+    CallKitAudioBridge.shared.callAnswered(call)
     CallKitAudioBridge.shared.prepareCallAudio()
     action.fulfill()
   }
 
   func onDecline(_ call: Call, _ action: CXEndCallAction) {
+    CallKitAudioBridge.shared.callFinished(call.uuid)
     action.fulfill()
   }
 
   func onEnd(_ call: Call, _ action: CXEndCallAction) {
+    CallKitAudioBridge.shared.callFinished(call.uuid)
     action.fulfill()
   }
 

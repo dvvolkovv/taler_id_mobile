@@ -61,23 +61,29 @@
 - **P5.** `callConnected` на исходящий только сообщает CallKit «соединён» (`reportOutgoingCall(connectedAt:)`) и не порождает `CXAnswerCallAction`.
 - **P6.** События о звонке несут данные этого звонка (`call.data`), а не последние запомненные.
 - **P7.** `holdCall` при неизменном состоянии шлёт событие удержания, а не mute.
+- **P8.** Исходящий строится из своих данных (`startingCalls` по UUID), а не из запомненного `self.data`: входящий, пришедший между `startCall` и стартом в CallKit, больше не подменяет исходящему данные и UUID.
+- **P9.** Сброс CallKit (`providerDidReset`) сообщает о каждом звонке событием ENDED и очищает все поля.
+- **P10.** Удержание не перезаписывает mute.
+- **P11.** Ответ на собственный исходящий отклоняется до побочных эффектов (раньше плагин успевал отправить ACCEPT, открывающий экран звонка).
+
+Добавлены по итогам ревью 2026-09-24; подробности — в `PATCHES.md`.
 
 ### 2. Нативный мост — `ios/Runner/CallKitAudioBridge.swift` (новый)
 
 Единственная точка стыка CallKit и WebRTC; `AppDelegate` только делегирует ему.
 
 - `AppDelegate` реализует `CallkitIncomingAppDelegate` плагина. После этого подтверждать действия обязаны мы — плагин сам `fulfill()` не вызывает:
-  - `onAccept(call, action)`: исходящий → `action.fail()` (страховка к P5); иначе задать категорию → `action.fulfill()`;
-  - `onDecline`, `onEnd` → `action.fulfill()`; `onTimeOut` — ничего.
+  - `onAccept(call, action)`: входящий разговор экрана звонка (комната не `group-…`, не mesh) мост **сам** считает управляемым с этой секунды, задаёт категорию → `action.fulfill()`. Иначе между ответом и регистрацией в Dart (на убитом приложении Flutter ещё не запущен) CallKit включает звук, плагин шлёт поддельное «перерыв закончился», и старое восстановление влезает в сессию. Ответ на исходящий отклоняет сам плагин (P11);
+  - `onDecline`, `onEnd` → мост отпускает звонок, `action.fulfill()`; `onTimeOut` — ничего. Звонок, завершённый без `onEnd` (сброс CallKit), мост отпускает по `CXCallObserver`.
 - Мост всегда помнит, включена ли сессия CallKit (`didActivate` → да, `didDeactivate` → нет).
-- Набор управляемых UUID задаёт Dart (`setManagedCalls([uuid])` по каналу `taler_id/callkit_audio`). Пока набор не пуст:
+- Управляемые звонки = набор от Dart (`setManagedCalls([uuid])` по каналу `taler_id/callkit_audio`) ∪ входящие, отвеченные через CallKit (см. `onAccept`). Пока он не пуст:
   - `didActivate(s)` → `rtc.audioSessionDidActivate(s)`, `rtc.isAudioEnabled = true`, затем `rtc.useManualAudio = true`. Порядок важен: сначала разрешить звук, потом включить ручной режим, чтобы идущий аудиоюнит не остановился;
   - `didDeactivate(s)` → `rtc.audioSessionDidDeactivate(s)`, `rtc.isAudioEnabled = false`.
 - Переход набора «пусто → не пусто», когда сессия CallKit уже включена, — те же шаги, что в `didActivate`. Это путь убитого приложения: CallKit включает звук раньше, чем стартует Flutter и реестр регистрирует звонок.
 - Переход «не пусто → пусто» → `rtc.useManualAudio = false`: WebRTC снова сам управляет сессией (ассистент и всё, что не звонок).
 - Пока набор пуст, колбэки CallKit WebRTC не трогают — запасной путь работает как сегодня.
 - Категория: `prepareCallAudio()` — `setCategory(.playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])` без `setActive`. Вызывается из Dart перед `startCall` и нативно в `onAccept` перед `fulfill` (путь убитого приложения).
-- Плагину везде передаются `configureAudioSession: false` и `supportsHolding: true`, включая путь VoIP-пуша в `AppDelegate.pushRegistry` (поля `Data` правятся перед `showCallkitIncoming`).
+- Плагину везде передаются `configureAudioSession: false` и `supportsHolding: true`, включая путь VoIP-пуша в `AppDelegate.pushRegistry` (поля `Data` правятся перед `showCallkitIncoming`; там же `duration = 60000` — в пуше длительности нет, и по умолчанию плагина вызов звонил бы 30 с вместо 60).
 - Пока набор не пуст, старая машинерия молчит:
   - `handleAudioInterruption` не шлёт `audioInterrupted`/`audioResumed` и не восстанавливает сессию;
   - `CXCallObserver` не форсирует восстановление, а сообщает `foreignCallEnded`, если закончился звонок не из набора;
