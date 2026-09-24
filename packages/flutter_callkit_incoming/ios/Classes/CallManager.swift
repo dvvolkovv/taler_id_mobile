@@ -66,8 +66,13 @@ class CallManager: NSObject {
     func connectedCall(call: Call) {
         let callItem = self.callWithUUID(uuid: call.uuid)
         callItem?.connectedCall(completion: nil)
-        
-        let answerAction = CXAnswerCallAction(call: call.uuid)        
+        // PATCH P5 (Taler ID): an outgoing call is connected by reporting it —
+        // the hasConnectDidChange hook set in CXStartCallAction does that.
+        // Answering it made CallKit run an answer action on our own outgoing
+        // call.
+        if callItem?.isOutGoing == true { return }
+
+        let answerAction = CXAnswerCallAction(call: call.uuid)
         let transaction = CXTransaction(action: answerAction)
 
         callController.request(transaction) { error in

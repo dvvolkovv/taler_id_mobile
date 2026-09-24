@@ -126,18 +126,14 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             result(true)
             break
         case "endCall":
-            guard let args = call.arguments else {
+            // PATCH P1 (Taler ID): end the call that was asked for. Upstream
+            // replaced `self.data` with these args — or, after a PushKit call,
+            // ignored them and ended the remembered call instead.
+            guard let args = call.arguments as? [String: Any] else {
                 result(true)
                 return
             }
-            if(self.isFromPushKit){
-                self.endCall(self.data!)
-            }else{
-                if let getArgs = args as? [String: Any] {
-                    self.data = Data(args: getArgs)
-                    self.endCall(self.data!)
-                }
-            }
+            self.endCall(Data(args: args))
             result(true)
             break
         case "muteCall":
@@ -175,18 +171,13 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             result(true)
             break
         case "callConnected":
-            guard let args = call.arguments else {
+            // PATCH P1 (Taler ID): as endCall — the requested call, `self.data`
+            // left alone.
+            guard let args = call.arguments as? [String: Any] else {
                 result(true)
                 return
             }
-            if(self.isFromPushKit){
-                self.connectedCall(self.data!)
-            }else{
-                if let getArgs = args as? [String: Any] {
-                    self.data = Data(args: getArgs)
-                    self.connectedCall(self.data!)
-                }
-            }
+            self.connectedCall(Data(args: args))
             result(true)
             break
         case "activeCalls":
@@ -362,33 +353,27 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             return
         }
         if call.isOnHold == onHold {
-            self.sendMuteEvent(callId.uuidString,  onHold)
+            // PATCH P7 (Taler ID): the echo of an unchanged hold is a hold event.
+            self.sendHoldEvent(callId.uuidString, onHold)
         } else {
             self.callManager.holdCall(call: call, onHold: onHold)
         }
     }
     
     @objc public func endCall(_ data: Data) {
-        var call: Call? = nil
-        if(self.isFromPushKit){
-            call = Call(uuid: UUID(uuidString: self.data!.uuid)!, data: data)
-            self.isFromPushKit = false
-            self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, data.toJSON())
-        }else {
-            call = Call(uuid: UUID(uuidString: data.uuid)!, data: data)
-        }
-        self.callManager.endCall(call: call!)
+        // PATCH P1 (Taler ID): always the requested uuid.
+        guard let uuid = UUID(uuidString: data.uuid) else { return }
+        self.isFromPushKit = false
+        let call = self.callManager.callWithUUID(uuid: uuid) ?? Call(uuid: uuid, data: data)
+        self.callManager.endCall(call: call)
     }
-    
+
     @objc public func connectedCall(_ data: Data) {
-        var call: Call? = nil
-        if(self.isFromPushKit){
-            call = Call(uuid: UUID(uuidString: self.data!.uuid)!, data: data)
-            self.isFromPushKit = false
-        }else {
-            call = Call(uuid: UUID(uuidString: data.uuid)!, data: data)
-        }
-        self.callManager.connectedCall(call: call!)
+        // PATCH P1 (Taler ID): always the requested uuid.
+        guard let uuid = UUID(uuidString: data.uuid) else { return }
+        self.isFromPushKit = false
+        let call = self.callManager.callWithUUID(uuid: uuid) ?? Call(uuid: uuid, data: data)
+        self.callManager.connectedCall(call: call)
     }
     
     @objc public func activeCalls() -> [[String: Any]] {
@@ -425,8 +410,12 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
     
     func endCallNotExist(_ data: Data) {
         DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(data.duration)) {
-            let call = self.callManager.callWithUUID(uuid: UUID(uuidString: data.uuid)!)
-            if (call != nil && self.answerCall == nil && self.outgoingCall == nil) {
+            // PATCH P4 (Taler ID): time out this call only while it is still
+            // unanswered. Upstream skipped the timeout whenever ANY call was
+            // answered or had ever been placed.
+            guard let uuid = UUID(uuidString: data.uuid),
+                  let call = self.callManager.callWithUUID(uuid: uuid) else { return }
+            if !call.isOutGoing && !call.hasConnected && !call.data.isAccepted && call !== self.answerCall {
                 self.callEndTimeout(data)
             }
         }
@@ -579,7 +568,8 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         }
         self.outgoingCall = call;
         self.callManager.addCall(call)
-        self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_START, self.data?.toJSON())
+        // PATCH P6 (Taler ID): this call's data.
+        self.sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_START, call.data.toJSON())
         action.fulfill()
     }
     
@@ -597,9 +587,10 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
         call.hasConnectDidChange = { [weak self] in
             self?.sharedProvider?.reportOutgoingCall(with: call.uuid, connectedAt: call.connectedData)
         }
-        self.data?.isAccepted = true
+        // PATCH P6 (Taler ID): this call's data, not the last one remembered.
+        call.data.isAccepted = true
         self.answerCall = call
-        sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ACCEPT, self.data?.toJSON())
+        sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ACCEPT, call.data.toJSON())
         if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
             appDelegate.onAccept(call, action)
         }else {
@@ -630,17 +621,26 @@ public class SwiftFlutterCallkitIncomingPlugin: NSObject, FlutterPlugin, CXProvi
             action.fail()
             return
         }
+        // PATCH P3 (Taler ID): declined vs ended is a property of THIS call.
+        // Upstream looked at the global answerCall/outgoingCall, so once any
+        // outgoing call had happened, declining a ringing call came out as
+        // ENDED and the caller was never told.
+        let wasAnswered = call.isOutGoing || call.hasConnected || call.data.isAccepted || call === self.answerCall
         call.endCall()
         self.callManager.removeCall(call)
-        if (self.answerCall == nil && self.outgoingCall == nil) {
-            sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_DECLINE, self.data?.toJSON())
+        // PATCH P2 (Taler ID): forget only the call that ended. Upstream never
+        // cleared outgoingCall and cleared answerCall on any call's end.
+        if call === self.answerCall { self.answerCall = nil }
+        if call === self.outgoingCall { self.outgoingCall = nil }
+        if !wasAnswered {
+            // PATCH P6 (Taler ID): the event carries this call's data.
+            sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_DECLINE, call.data.toJSON())
             if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
                 appDelegate.onDecline(call, action)
             } else {
                 action.fulfill()
             }
-        }else {
-            self.answerCall = nil
+        } else {
             sendEvent(SwiftFlutterCallkitIncomingPlugin.ACTION_CALL_ENDED, call.data.toJSON())
             if let appDelegate = UIApplication.shared.delegate as? CallkitIncomingAppDelegate {
                 appDelegate.onEnd(call, action)
