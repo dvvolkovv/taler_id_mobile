@@ -17,13 +17,20 @@ class MockLocalParticipant extends Mock implements lk.LocalParticipant {}
 
 class MockDioClient extends Mock implements DioClient {}
 
-/// Build a MockRoom with a stubbed LocalParticipant.
+/// Build a MockRoom with a stubbed LocalParticipant whose mic state is
+/// tracked like real hardware would: isMicrophoneEnabled() reflects the last
+/// setMicrophoneEnabled() call instead of a fixed snapshot, so tests can
+/// assert the final mic state instead of only counting calls.
 MockRoom _makeRoom({bool micEnabled = true}) {
   final room = MockRoom();
   final participant = MockLocalParticipant();
+  var micOn = micEnabled;
   when(() => room.localParticipant).thenReturn(participant);
-  when(() => participant.isMicrophoneEnabled()).thenReturn(micEnabled);
-  when(() => participant.setMicrophoneEnabled(any())).thenAnswer((_) async => null);
+  when(() => participant.isMicrophoneEnabled()).thenAnswer((_) => micOn);
+  when(() => participant.setMicrophoneEnabled(any())).thenAnswer((invocation) async {
+    micOn = invocation.positionalArguments[0] as bool;
+    return null;
+  });
   when(() => participant.setCameraEnabled(any())).thenAnswer((_) async => null);
   when(() => room.disconnect()).thenAnswer((_) async {});
   return room;
@@ -119,6 +126,18 @@ void main() {
       await Future.delayed(Duration.zero);
       expect(emitted, contains('room-1'));
       await sub.cancel();
+    });
+
+    test('reconnecting an existing line carries its system hold over', () {
+      svc.setRoom(_makeRoom(), 'room-1', 'conv-1');
+      svc.activeLine!.heldBySystem = true;
+      svc.activeLine!.micOnBeforeSystemHold = true;
+
+      // _startManualReconnect: same roomName, fresh Room/CallLine.
+      svc.setRoom(_makeRoom(), 'room-1', 'conv-1');
+
+      expect(svc.activeLine!.heldBySystem, isTrue);
+      expect(svc.activeLine!.micOnBeforeSystemHold, isTrue);
     });
   });
 
@@ -417,6 +436,33 @@ void main() {
       expect(events, contains(false));
       await sub.cancel();
     });
+
+    test('restores the mic on the line it switches back to', () {
+      final room1 = _makeRoom(micEnabled: false);
+      svc.setRoom(room1, 'room-1', null);
+      svc.allLines.first.isOnHold = true;
+      svc.allLines.first.wasMuted = false; // mic was on before the hold
+
+      svc.setRoom(_makeRoom(), 'room-2', null);
+      svc.notifyEnded(); // ends room-2 (active), switches back to room-1
+
+      final p1 = room1.localParticipant as MockLocalParticipant;
+      expect(p1.isMicrophoneEnabled(), isTrue);
+    });
+
+    test('does not touch the mic when switching back to a system-held line', () {
+      final room1 = _makeRoom(micEnabled: false);
+      svc.setRoom(room1, 'room-1', null);
+      svc.allLines.first.isOnHold = true;
+      svc.allLines.first.wasMuted = false; // would want the mic on...
+      svc.allLines.first.heldBySystem = true; // ...but the system still owns it
+
+      svc.setRoom(_makeRoom(), 'room-2', null);
+      svc.notifyEnded();
+
+      final p1 = room1.localParticipant as MockLocalParticipant;
+      expect(p1.isMicrophoneEnabled(), isFalse);
+    });
   });
 
   // ── stateStream ───────────────────────────────────────────────────────────
@@ -566,23 +612,85 @@ void main() {
       verifyNever(() => mic.setMicrophoneEnabled(true));
     });
 
-    test('holdAndSwitch after a system hold remembers the mic was on', () async {
+    test('holdAndSwitch after a system hold remembers the mic was on, but '
+        'only applySystemResume may turn it back on', () async {
       // A second line must already exist for holdAndSwitch to have
       // somewhere to send room-1 to — created first so room-1 (via line())
       // ends up the active one.
       svc.setRoom(_makeRoom(), 'room-2', 'conv-2');
       line(micOn: true);
-      await svc.applySystemHold('room-1');
-      // The mock doesn't simulate real hardware, so isMicrophoneEnabled()
-      // still says true after setMicrophoneEnabled(false) above — reflect
-      // what the mic actually reads once the hold has silenced it, as it
-      // would on a real device by the time the app switches lines.
-      when(() => mic.isMicrophoneEnabled()).thenReturn(false);
+      await svc.applySystemHold('room-1'); // mic off; micOnBeforeSystemHold=true
 
       await svc.holdAndSwitch('room-2'); // in-app switch away from room-1
       await svc.holdAndSwitch('room-1'); // ...and back
 
-      verify(() => mic.setMicrophoneEnabled(true)).called(1);
+      // Still heldBySystem — holdAndSwitch must not have touched the mic,
+      // even though wasMuted correctly remembers "was on" underneath.
+      expect(mic.isMicrophoneEnabled(), isFalse);
+      expect(svc.activeLine!.wasMuted, isFalse);
+
+      await svc.applySystemResume('room-1'); // only this may turn it on
+      expect(mic.isMicrophoneEnabled(), isTrue);
+    });
+
+    test('mute while system-held records intent, never touches the mic', () async {
+      line(micOn: true);
+      await svc.applySystemHold('room-1');
+      clearInteractions(mic);
+
+      await svc.applySystemMute('room-1', true); // "mute" via the system UI
+      verifyNever(() => mic.setMicrophoneEnabled(any()));
+      expect(svc.activeLine!.micOnBeforeSystemHold, isFalse);
+
+      await svc.applySystemMute('room-1', false); // "unmute"
+      verifyNever(() => mic.setMicrophoneEnabled(any()));
+      expect(svc.activeLine!.micOnBeforeSystemHold, isTrue);
+
+      await svc.applySystemResume('room-1');
+      expect(mic.isMicrophoneEnabled(), isTrue); // honors the last recorded intent
+    });
+
+    test('mute while app-held records wasMuted, never touches the mic', () async {
+      line(micOn: true);
+      final held = svc.activeLine!;
+      held.isOnHold = true; // as holdAndSwitch/endLine leave the held line
+      clearInteractions(mic);
+
+      await svc.applySystemMute('room-1', true);
+      verifyNever(() => mic.setMicrophoneEnabled(any()));
+      expect(held.wasMuted, isTrue);
+
+      await svc.applySystemMute('room-1', false);
+      verifyNever(() => mic.setMicrophoneEnabled(any()));
+      expect(held.wasMuted, isFalse);
+    });
+  });
+
+  // "Hold & Accept" can land while the LiveKit join for that room is still
+  // in flight — before setRoom has ever created its CallLine.
+  group('pending system holds', () {
+    test('a hold for an unknown room is applied once the line appears', () async {
+      await svc.applySystemHold('not-yet-joined');
+      svc.setRoom(_makeRoom(), 'not-yet-joined', 'conv-1');
+
+      expect(svc.activeLine!.heldBySystem, isTrue);
+      expect(svc.activeLine!.micOnBeforeSystemHold, isTrue);
+    });
+
+    test('resume for an unknown room forgets the pending hold', () async {
+      await svc.applySystemHold('not-yet-joined');
+      await svc.applySystemResume('not-yet-joined');
+      svc.setRoom(_makeRoom(), 'not-yet-joined', 'conv-1');
+
+      expect(svc.activeLine!.heldBySystem, isFalse);
+    });
+
+    test('endCall clears pending holds', () async {
+      await svc.applySystemHold('not-yet-joined');
+      await svc.endCall();
+      svc.setRoom(_makeRoom(), 'not-yet-joined', 'conv-1');
+
+      expect(svc.activeLine!.heldBySystem, isFalse);
     });
   });
 
@@ -612,7 +720,18 @@ void main() {
       svc.setRoom(_makeRoom(), 'x', 'c3');
       svc.setRoom(_makeRoom(), 'y', 'c4');
       await svc.endCall();
-      expect(ended, containsAll(['x', 'y']));
+      // Exact order, not just membership: _lines preserves insertion order,
+      // and endCall reports in that order.
+      expect(ended, ['b', 'a', 'x', 'y']);
+    });
+
+    test('nothing is reported for a line or room that never existed', () async {
+      await svc.endLine('nope');
+      await svc.applySystemResume('nope');
+      await svc.applySystemMute('nope', true);
+
+      expect(ended, isEmpty);
+      expect(holds, isEmpty);
     });
 
     test('line switching is mirrored as holds', () async {
@@ -622,6 +741,26 @@ void main() {
       expect(holds, ['b:true', 'a:false']);
     });
 
+    test('holdAndSwitch to the active non-held line reports nothing', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      await svc.holdAndSwitch('a'); // already active, not held — no-op
+
+      expect(holds, isEmpty);
+    });
+
+    test('holdAndSwitch to a stuck-held active line still clears it', () async {
+      // The dashboard's swap button forces isOnHold on the active line as a
+      // marker; switching to that same line must still clear it and report
+      // the unhold, unlike the true no-op above.
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      svc.activeLine!.isOnHold = true;
+
+      await svc.holdAndSwitch('a');
+
+      expect(holds, ['a:false']);
+      expect(svc.activeLine!.isOnHold, isFalse);
+    });
+
     test('ending the active line brings the next one back', () async {
       svc.setRoom(_makeRoom(), 'a', 'c1');
       svc.setRoom(_makeRoom(), 'b', 'c2');
@@ -629,11 +768,36 @@ void main() {
       expect(holds, ['a:false']);
     });
 
-    test('connectInBackground holds the current line before dialling', () async {
-      // sl<DioClient>() must throw so connectInBackground fails right after
-      // holding the current line, without a real join request. Registered
-      // here (not in the group setUp) so the other line-hooks tests, which
-      // never touch sl, are unaffected.
+    test('notifyEnded reports the unhold when it switches to the next line', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      svc.setRoom(_makeRoom(), 'b', 'c2');
+      svc.notifyEnded(); // ends 'b' (active), switches to 'a'
+      expect(holds, ['a:false']);
+    });
+
+    test('a hook that throws synchronously does not abort endCall', () async {
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      final room = svc.allLines.first.room as MockRoom;
+      // Not `async` on purpose: this throws to its caller immediately,
+      // unlike the group's default async hook — the case Future.sync
+      // guards against.
+      svc.onLineEnded = (roomName) {
+        throw Exception('boom');
+      };
+
+      await svc.endCall(); // must not throw, and must still disconnect
+
+      verify(() => room.disconnect()).called(1);
+      expect(svc.isInCall, isFalse);
+    });
+
+    test('a failed connectInBackground undoes the hold on the previous line', () async {
+      // Registering a throwing DioClient makes the failure explicit and
+      // deliberate — with nothing registered at all, sl<DioClient>() itself
+      // throws inside this same try block and would fail the test the same
+      // way, just less obviously on purpose. Registered here (not in the
+      // group setUp) so the other line-hooks tests, which never touch sl,
+      // are unaffected.
       final client = MockDioClient();
       when(() => client.post<Map<String, dynamic>>(
             any(),
@@ -647,7 +811,32 @@ void main() {
       final result = await svc.connectInBackground('b', 'c2');
 
       expect(result, isFalse);
-      expect(holds, ['a:true']);
+      // Held, then un-held again once the join failed — not left stranded.
+      expect(holds, ['a:true', 'a:false']);
+      expect(svc.activeLine!.isOnHold, isFalse);
+    });
+
+    test('connectInBackground reads wasMuted from micOnBeforeSystemHold when '
+        'the current line is system-held', () async {
+      final client = MockDioClient();
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenThrow(Exception('network down')); // fail fast; only the
+      // hold computed before the join matters to this test.
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      svc.setRoom(_makeRoom(), 'a', 'c1');
+      await svc.applySystemHold('a'); // mic off; micOnBeforeSystemHold=true
+
+      await svc.connectInBackground('b', 'c2');
+
+      // Must come from micOnBeforeSystemHold (mic was on → not muted), not
+      // from the live mic reading — that's already off because of the
+      // system hold and would wrongly say "was muted" if read directly.
+      expect(svc.allLines.firstWhere((l) => l.roomName == 'a').wasMuted, isFalse);
     });
   });
 }

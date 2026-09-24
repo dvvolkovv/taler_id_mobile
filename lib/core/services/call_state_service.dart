@@ -197,43 +197,86 @@ class CallStateService {
   /// Mirrors in-app line switching into CallKit holds.
   Future<void> Function(String roomName, bool onHold)? onLineHoldChanged;
 
+  /// Rooms the system already held before their `CallLine` existed —
+  /// "Hold & Accept" can land while the LiveKit join for that room is still
+  /// in flight. Consumed by [setRoom] once the line finally shows up.
+  final Set<String> _pendingSystemHolds = {};
+
   void _reportLineEnded(String roomName) {
     final hook = onLineEnded;
-    if (hook != null) unawaited(hook(roomName));
+    if (hook == null) return;
+    // Future.sync catches a synchronous throw from the hook too — without
+    // it, a hook that throws before returning its Future would propagate
+    // straight out of here and abort whatever call site (e.g. endCall,
+    // mid-way through disconnecting rooms) invoked us.
+    unawaited(Future.sync(() => hook(roomName)).catchError((Object e) {
+      debugPrint('[CallState] onLineEnded hook failed: $e');
+    }));
   }
 
   void _reportLineHold(String roomName, bool onHold) {
     final hook = onLineHoldChanged;
-    if (hook != null) unawaited(hook(roomName, onHold));
+    if (hook == null) return;
+    unawaited(Future.sync(() => hook(roomName, onHold)).catchError((Object e) {
+      debugPrint('[CallState] onLineHoldChanged hook failed: $e');
+    }));
+  }
+
+  /// What the user wants this line's mic to be right now, independent of
+  /// whichever hold — system or in-app — currently forces it off. Reads
+  /// whichever *other* hold's recorded intent applies, or the live hardware
+  /// state if the line isn't held at all.
+  bool _micWanted(CallLine l) {
+    if (l.heldBySystem) return l.micOnBeforeSystemHold;
+    if (l.isOnHold) return !l.wasMuted;
+    return l.room.localParticipant?.isMicrophoneEnabled() ?? false;
   }
 
   /// Call waiting took the audio: the peer gets a muted mic, and whatever the
-  /// mic was is remembered for the resume.
+  /// mic was is remembered for the resume. A room with no line yet (join
+  /// still in flight) is remembered as pending — see [_pendingSystemHolds].
   Future<void> applySystemHold(String roomName) async {
     final line = _lines[roomName];
-    if (line == null || line.heldBySystem) return;
+    if (line == null) {
+      _pendingSystemHolds.add(roomName);
+      return;
+    }
+    if (line.heldBySystem) return;
+    line.micOnBeforeSystemHold = _micWanted(line);
     line.heldBySystem = true;
-    line.micOnBeforeSystemHold = line.room.localParticipant?.isMicrophoneEnabled() ?? false;
     try {
       await line.room.localParticipant?.setMicrophoneEnabled(false);
     } catch (_) {}
   }
 
+  /// Only this method may turn a `heldBySystem` line's mic on — and even
+  /// then, not if the line is also app-held (`isOnHold`): the in-app switch
+  /// back to it owns the mic in that case.
   Future<void> applySystemResume(String roomName) async {
+    _pendingSystemHolds.remove(roomName);
     final line = _lines[roomName];
     if (line == null || !line.heldBySystem) return;
     line.heldBySystem = false;
-    if (!line.micOnBeforeSystemHold) return;
+    if (line.isOnHold || !line.micOnBeforeSystemHold) return;
     try {
       await line.room.localParticipant?.setMicrophoneEnabled(true);
     } catch (_) {}
   }
 
-  /// The mute button of the system call UI. Ignored while held — the mic is
-  /// off then, and the resume restores it.
+  /// The mute button of the system call UI. A held line (either way) never
+  /// touches the mic directly — it records what the user wants for whichever
+  /// hold ends first (system resume, or the in-app line switch) to apply.
   Future<void> applySystemMute(String roomName, bool muted) async {
     final line = _lines[roomName];
-    if (line == null || line.heldBySystem) return;
+    if (line == null) return;
+    if (line.heldBySystem) {
+      line.micOnBeforeSystemHold = !muted;
+      return;
+    }
+    if (line.isOnHold) {
+      line.wasMuted = muted;
+      return;
+    }
     try {
       await line.room.localParticipant?.setMicrophoneEnabled(!muted);
     } catch (_) {}
@@ -245,6 +288,7 @@ class CallStateService {
   }
 
   void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? lkToken, String? calleeName, String? calleeAvatar}) {
+    final previous = _lines[name];
     final line = CallLine(
       room: r,
       roomName: name,
@@ -255,6 +299,18 @@ class CallStateService {
       calleeAvatar: calleeAvatar,
     );
     line.connectedAt = DateTime.now();
+    if (previous != null) {
+      // Reconnect (_startManualReconnect): a system hold in effect on the
+      // old line must carry over, or applySystemResume later has nothing
+      // left to resume and the mic never comes back.
+      line.heldBySystem = previous.heldBySystem;
+      line.micOnBeforeSystemHold = previous.micOnBeforeSystemHold;
+    } else if (_pendingSystemHolds.remove(name)) {
+      // The system already held this call before we'd even joined it — the
+      // line starts held so nothing turns the mic on until resume says so.
+      line.heldBySystem = true;
+      line.micOnBeforeSystemHold = true;
+    }
     _lines[name] = line;
     _activeRoomName = name;
     _stateCtrl.add(true);
@@ -263,14 +319,21 @@ class CallStateService {
 
   /// Put the active call on hold and switch to another line.
   Future<void> holdAndSwitch(String targetRoomName) async {
+    final target = _lines[targetRoomName];
+    // Already the active, non-held line: nothing to do. _initCall calls this
+    // for an already-connected conversation, and without this guard it would
+    // report an unhold — asking CallKit to resume our call in the middle of
+    // call waiting, taking the audio back from WhatsApp, for a switch that
+    // never actually happened. A *stuck* isOnHold (the dashboard's swap
+    // button relies on being able to force this) still falls through below.
+    if (target != null && _activeRoomName == targetRoomName && !target.isOnHold) {
+      return;
+    }
+
     final current = activeLine;
     if (current != null && current.roomName != targetRoomName) {
       // Save mic state before hold so it can be restored later.
-      // On a system hold the mic is off because of the hold; what the user
-      // had is in micOnBeforeSystemHold.
-      current.wasMuted = current.heldBySystem
-          ? !current.micOnBeforeSystemHold
-          : !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+      current.wasMuted = !_micWanted(current);
       current.isOnHold = true;
       _reportLineHold(current.roomName, true);
       try {
@@ -279,15 +342,18 @@ class CallStateService {
       } catch (_) {}
     }
 
-    final target = _lines[targetRoomName];
     if (target != null) {
       target.isOnHold = false;
       _reportLineHold(targetRoomName, false);
       _activeRoomName = targetRoomName;
-      try {
-        // Restore the mic state the user had before this line was held.
-        await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
-      } catch (_) {}
+      // heldBySystem still owns the mic — only applySystemResume may turn it
+      // on for this line.
+      if (!target.heldBySystem) {
+        try {
+          // Restore the mic state the user had before this line was held.
+          await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
+        } catch (_) {}
+      }
       _stateCtrl.add(true);
       _activeRoomCtrl.add(targetRoomName);
     }
@@ -308,9 +374,11 @@ class CallStateService {
         _activeRoomName = next.roomName;
         next.isOnHold = false;
         _reportLineHold(next.roomName, false);
-        try {
-          await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
-        } catch (_) {}
+        if (!next.heldBySystem) {
+          try {
+            await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
+          } catch (_) {}
+        }
         _activeRoomCtrl.add(next.roomName);
       } else {
         _activeRoomName = null;
@@ -331,6 +399,7 @@ class CallStateService {
     _bgGeneration++;
     _answeredElsewhereRooms.clear();
     _selfAnsweredRooms.clear();
+    _pendingSystemHolds.clear();
     _stateCtrl.add(false);
     _activeRoomCtrl.add(null);
     for (final line in lines) {
@@ -348,11 +417,28 @@ class CallStateService {
         _activeRoomName = next.roomName;
         next.isOnHold = false;
         _reportLineHold(next.roomName, false);
+        // notifyEnded is sync (called straight from the socket/CallKit
+        // handler), so the restore can't be awaited here — fire it the same
+        // way the hooks above do. heldBySystem still owns the mic in that
+        // case, same rule as everywhere else.
+        final mic = next.room.localParticipant;
+        if (mic != null && !next.heldBySystem) {
+          unawaited(() async {
+            try {
+              await mic.setMicrophoneEnabled(!next.wasMuted);
+            } catch (e) {
+              debugPrint('[CallState] notifyEnded mic restore failed: $e');
+            }
+          }());
+        }
       } else {
         _activeRoomName = null;
       }
     } else {
-      for (final name in _lines.keys) {
+      // Copy the keys: _reportLineEnded's hook can re-enter (e.g. a hook
+      // that itself starts a new call via setRoom) and mutate _lines while
+      // this loop is still walking its live key view.
+      for (final name in _lines.keys.toList()) {
         _reportLineEnded(name);
       }
       _lines.clear();
@@ -380,15 +466,15 @@ class CallStateService {
       if (identical(_bgCompleter, completer)) _bgCompleter = null;
     }
 
+    // Declared outside the try so the catch block below can undo the hold
+    // on failure — a failed join (caller hung up, network blip) must not
+    // strand line A app-held with nothing left to ever resume it.
+    CallLine? current;
     try {
       // Hold current active line, preserving mic state
-      final current = activeLine;
+      current = activeLine;
       if (current != null) {
-        // On a system hold the mic is off because of the hold; what the user
-        // had is in micOnBeforeSystemHold.
-        current.wasMuted = current.heldBySystem
-            ? !current.micOnBeforeSystemHold
-            : !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+        current.wasMuted = !_micWanted(current);
         current.isOnHold = true;
         _reportLineHold(current.roomName, true);
         try {
@@ -466,9 +552,14 @@ class CallStateService {
       // stack trace pointing back here; it looks like the chat feature
       // itself is broken, not this one missing argument.
       setRoom(r, rName, convId, e2eeKeyValue: e2eeKey, lkToken: token);
-      try {
-        await r.localParticipant?.setMicrophoneEnabled(true);
-      } catch (_) {}
+      // A pending system hold (see setRoom/_pendingSystemHolds) means this
+      // very line started heldBySystem — only applySystemResume may turn
+      // its mic on then, same rule as everywhere else.
+      if (!(_lines[rName]?.heldBySystem ?? false)) {
+        try {
+          await r.localParticipant?.setMicrophoneEnabled(true);
+        } catch (_) {}
+      }
       try {
         await Future.delayed(const Duration(milliseconds: 500));
         const audioChannel = MethodChannel('taler_id/audio');
@@ -482,6 +573,23 @@ class CallStateService {
     } catch (e) {
       debugPrint('[CallState] connectInBackground failed: $e');
       if (gen == _bgGeneration) _bgConnecting = false;
+      // Undo the hold placed on the previous line above, but only if it's
+      // still exactly what we left it as: a newer connect/switch may have
+      // already moved it on, and clobbering that would be worse than the
+      // original bug.
+      if (gen == _bgGeneration &&
+          current != null &&
+          identical(_lines[current.roomName], current) &&
+          _activeRoomName == current.roomName &&
+          current.isOnHold) {
+        current.isOnHold = false;
+        _reportLineHold(current.roomName, false);
+        if (!current.heldBySystem) {
+          try {
+            await current.room.localParticipant?.setMicrophoneEnabled(!current.wasMuted);
+          } catch (_) {}
+        }
+      }
       settleOwn(false);
       return false;
     }
