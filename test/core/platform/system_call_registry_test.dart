@@ -599,6 +599,18 @@ void main() {
       await reg.resume('call-r1');
       expect(kit.log, contains('setHeld:$u1:false'));
     });
+
+    test('a failed auto-resume setHeld does not escape as an uncaught error', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      kit.setHeldError = Exception('boom');
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      // Reaching here at all is the assertion: unawaited's rejected future
+      // would otherwise surface as an unhandled error in the test zone.
+      expect(kit.log, contains('setHeld:$u1:false'));
+    });
   });
 
   group('mute', () {

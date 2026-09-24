@@ -529,7 +529,9 @@ class SystemCallRegistry {
     if (_entries.values.any((e) => e.state == _State.active || e.state == _State.starting)) return;
     for (final entry in _entries.values) {
       if (entry.state == _State.heldBySystem) {
-        unawaited(_callKit.setHeld(entry.uuid, false));
+        unawaited(_callKit.setHeld(entry.uuid, false).catchError((Object e) {
+          debugPrint('[SystemCall] auto-resume setHeld failed for ${entry.uuid}: $e');
+        }));
         return;
       }
     }

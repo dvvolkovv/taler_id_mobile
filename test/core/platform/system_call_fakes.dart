@@ -21,6 +21,11 @@ class FakeCallKit implements CallKitPlatform {
   /// handling.
   Object? endCallError;
 
+  /// Set by a test that needs [setHeld] to fail after logging the attempt,
+  /// e.g. to exercise _onOtherCallsEnded's/holdForLineSwitch's/resume's
+  /// error handling.
+  Object? setHeldError;
+
   /// Set by a test that needs to observe call order across both fakes,
   /// without changing what [log] records.
   void Function(String tag)? onCall;
@@ -54,7 +59,10 @@ class FakeCallKit implements CallKitPlatform {
   Future<void> setCallConnected(String uuid) async => log.add('setCallConnected:$uuid');
 
   @override
-  Future<void> setHeld(String uuid, bool onHold) async => log.add('setHeld:$uuid:$onHold');
+  Future<void> setHeld(String uuid, bool onHold) async {
+    log.add('setHeld:$uuid:$onHold');
+    if (setHeldError != null) throw setHeldError!;
+  }
 
   @override
   Future<void> setMuted(String uuid, bool muted) async => log.add('setMuted:$uuid:$muted');
