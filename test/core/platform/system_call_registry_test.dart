@@ -547,6 +547,99 @@ void main() {
     });
   });
 
+  group('hold and auto-resume', () {
+    Future<void> conversation(String uuid, String room) async {
+      kit.emit(CallKitEvent.typeAccept, uuid, {
+        'extra': {'roomName': room},
+      });
+      await pumpEventQueue();
+    }
+
+    test('call waiting holds the call; the end of the other call resumes it', () async {
+      await conversation(u1, 'call-r1');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true}); // echo
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallHeld>().single.bySystem, isTrue);
+      expect(reg.isHeldBySystem('call-r1'), isTrue);
+
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log, contains('setHeld:$u1:false'));
+
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': false});
+      await pumpEventQueue();
+      expect(events.last, isA<SystemCallResumed>());
+      expect(reg.isHeldBySystem('call-r1'), isFalse);
+    });
+
+    test('no auto-resume while another conversation is active', () async {
+      await conversation(u1, 'call-r1');
+      await conversation(u2, 'call-r2');
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log, isNot(contains('setHeld:$u1:false')));
+    });
+
+    test('a line-switch hold is ours and never auto-resumed', () async {
+      await conversation(u1, 'call-r1');
+      await reg.holdForLineSwitch('call-r1', true);
+      kit.emit(CallKitEvent.typeToggleHold, u1, {'isOnHold': true});
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallHeld>().single.bySystem, isFalse);
+      bridge.otherCallsGone();
+      await pumpEventQueue();
+      expect(kit.log.where((l) => l == 'setHeld:$u1:false'), isEmpty);
+    });
+
+    test('resume() is the overlay button', () async {
+      await conversation(u1, 'call-r1');
+      await reg.resume('call-r1');
+      expect(kit.log, contains('setHeld:$u1:false'));
+    });
+  });
+
+  group('mute', () {
+    test('the system mute button reaches the app', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'call-r1'},
+      });
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeToggleMute, u1, {'isMuted': true});
+      await pumpEventQueue();
+      final e = events.whereType<SystemCallMuteChanged>().single;
+      expect(e.muted, isTrue);
+      expect(e.roomName, 'call-r1');
+    });
+
+    test('our mute is mirrored into CallKit', () async {
+      kit.emit(CallKitEvent.typeAccept, u1, {
+        'extra': {'roomName': 'call-r1'},
+      });
+      await pumpEventQueue();
+      await reg.setMuted('call-r1', true);
+      expect(kit.log, contains('setMuted:$u1:true'));
+    });
+  });
+
+  group('answerRinging', () {
+    test('answers through CallKit and reports the accept', () async {
+      final answered = reg.answerRinging(u2);
+      await pumpEventQueue();
+      expect(kit.log, contains('setCallConnected:$u2'));
+      kit.emit(CallKitEvent.typeAccept, u2, {
+        'extra': {'roomName': u2},
+      });
+      expect(await answered, isTrue);
+    });
+
+    test('false when CallKit stays silent — the dialog takes the old path', () async {
+      expect(await reg.answerRinging(u2), isFalse);
+    });
+  });
+
   group('instance', () {
     test('the off-iPhone singleton works without a native channel', () async {
       SystemCallRegistry.debugInstance = null;

@@ -121,6 +121,13 @@ class SystemCallRegistry {
   /// Outgoing starts [startOutgoing] gave up on: ended if iOS starts them late.
   final Set<String> _abandonedStarts = {};
 
+  /// Holds we asked for ourselves (line switch) — not call waiting.
+  final Set<String> _appHolds = {};
+
+  /// Uuid -> completer for a pending [answerRinging]: completed by
+  /// [_onAccepted] when the ACCEPT it is waiting for arrives.
+  final Map<String, Completer<bool>> _pendingAnswers = {};
+
   final _events = StreamController<SystemCallEvent>.broadcast();
   StreamSubscription<CallKitEvent>? _callKitSub;
   StreamSubscription<void>? _bridgeSub;
@@ -369,10 +376,71 @@ class SystemCallRegistry {
     return false;
   }
 
+  /// In-app line switch (call held from our own UI, e.g. switching to
+  /// another conversation) mirrored into CallKit. Not call waiting, so
+  /// never auto-resumed by [_onOtherCallsEnded].
+  Future<void> holdForLineSwitch(String roomName, bool onHold) async {
+    final entry = _entryForRoom(roomName);
+    if (entry == null) return;
+    if (onHold) {
+      _appHolds.add(entry.uuid);
+    } else {
+      _appHolds.remove(entry.uuid);
+    }
+    try {
+      await _callKit.setHeld(entry.uuid, onHold);
+    } catch (e) {
+      debugPrint('[SystemCall] setHeld failed for ${entry.uuid}: $e');
+    }
+  }
+
+  /// The "Resume" button of the hold overlay.
+  Future<void> resume(String roomName) async {
+    final entry = _entryForRoom(roomName);
+    if (entry == null) return;
+    try {
+      await _callKit.setHeld(entry.uuid, false);
+    } catch (e) {
+      debugPrint('[SystemCall] setHeld failed for ${entry.uuid}: $e');
+    }
+  }
+
+  /// Mirrors our mute state into the system call UI.
+  Future<void> setMuted(String roomName, bool muted) async {
+    final entry = _entryForRoom(roomName);
+    if (entry == null) return;
+    try {
+      await _callKit.setMuted(entry.uuid, muted);
+    } catch (e) {
+      debugPrint('[SystemCall] setMuted failed for ${entry.uuid}: $e');
+    }
+  }
+
+  /// Our dialog's "Answer": answers the ringing CallKit call, so the call
+  /// takes the same path as an answer on the CallKit UI (main.dart's accept
+  /// handler connects and navigates). False when CallKit did not confirm in
+  /// [answerTimeout] — the dialog then takes its old in-app path.
+  Future<bool> answerRinging(String roomName) async {
+    if (!enabled) return false;
+    final uuid = toCallkitId(roomName).toLowerCase();
+    final pending = Completer<bool>();
+    _pendingAnswers[uuid] = pending;
+    try {
+      await _callKit.setCallConnected(uuid);
+    } catch (e) {
+      debugPrint('[SystemCall] answer via CallKit failed: $e');
+      if (!pending.isCompleted) pending.complete(false);
+    }
+    final ok = await pending.future.timeout(answerTimeout, onTimeout: () => false);
+    _pendingAnswers.remove(uuid);
+    return ok;
+  }
+
   Future<void> _end(String uuid) async {
     // Removed first: the ENDED event CallKit sends back is then not "ours",
     // and nobody hangs up a second time.
     final entry = _entries.remove(uuid);
+    _appHolds.remove(uuid);
     // Hung up before CallKit confirmed the start: startOutgoing stops waiting
     // now instead of timing out.
     if (entry != null && !entry.started.isCompleted) entry.started.complete(false);
@@ -401,9 +469,30 @@ class SystemCallRegistry {
         if (!entry.started.isCompleted) entry.started.complete(true);
       case CallKitEvent.typeAccept:
         _onAccepted(uuid, event.data);
+      case CallKitEvent.typeToggleHold:
+        final entry = _entries[uuid];
+        if (entry == null) return;
+        if (event.data?['isOnHold'] == true) {
+          final byApp = _appHolds.contains(uuid);
+          final held = byApp ? _State.heldByApp : _State.heldBySystem;
+          if (entry.state == held) return; // echo
+          entry.state = held;
+          _events.add(SystemCallHeld(uuid, entry.roomName, bySystem: !byApp));
+        } else {
+          _appHolds.remove(uuid);
+          if (entry.state == _State.active) return; // echo
+          entry.state = _State.active;
+          _events.add(SystemCallResumed(uuid, entry.roomName));
+        }
+      case CallKitEvent.typeToggleMute:
+        final entry = _entries[uuid];
+        if (entry == null) return;
+        _events.add(SystemCallMuteChanged(uuid, entry.roomName,
+            muted: event.data?['isMuted'] == true));
       case CallKitEvent.typeEnded || CallKitEvent.typeDecline || CallKitEvent.typeTimeout:
         // For a conversation DECLINE and ENDED mean the same: the system ended it.
         final entry = _entries.remove(uuid);
+        _appHolds.remove(uuid);
         if (entry == null) return;
         unawaited(_syncManaged());
         if (!entry.started.isCompleted) entry.started.complete(false);
@@ -412,6 +501,8 @@ class SystemCallRegistry {
   }
 
   void _onAccepted(String uuid, Map<String, dynamic>? data) {
+    final pending = _pendingAnswers.remove(uuid);
+    if (pending != null && !pending.isCompleted) pending.complete(true);
     if (_entries.containsKey(uuid)) return;
     final extra = data?['extra'];
     if (extra is! Map) return;
@@ -428,7 +519,21 @@ class SystemCallRegistry {
   static bool _isCallScreenConversation(String roomName, {Object? kind}) =>
       roomName.isNotEmpty && !roomName.startsWith('group-') && kind != 'mesh_gc';
 
-  void _onOtherCallsEnded() {}
+  /// The call that put us on hold is over and nothing else is going on:
+  /// take the conversation back (agreed with the user 2026-09-24 — resume by
+  /// itself, not by a button). If iOS resumes it first, the hold event makes
+  /// this a no-op.
+  void _onOtherCallsEnded() {
+    // A start CallKit hasn't confirmed yet counts as active: the user is
+    // opening a new line, and resuming the held one now would fight it.
+    if (_entries.values.any((e) => e.state == _State.active || e.state == _State.starting)) return;
+    for (final entry in _entries.values) {
+      if (entry.state == _State.heldBySystem) {
+        unawaited(_callKit.setHeld(entry.uuid, false));
+        return;
+      }
+    }
+  }
 
   _Entry? _entryForRoom(String roomName) {
     for (final entry in _entries.values) {
