@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/platform/call_kit.dart';
+import '../../../../core/platform/system_call_registry.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:permission_handler/permission_handler.dart';
@@ -159,6 +160,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   // ── Hold state ──
   bool _onHold = false;
+  /// CallKit uuid of this conversation (iOS). Null: no CallKit call — Android,
+  /// desktop, the simulator, or iOS refused and the call runs the old way.
+  String? _systemCallUuid;
+  bool get _systemCallManaged => _systemCallUuid != null;
+  /// iOS put this conversation on hold for another call (call waiting).
+  bool _heldBySystem = false;
+  Future<String?>? _systemCallRegistration;
   final AudioPlayer _holdPlayer = AudioPlayer();
   // Выдача id исходящим пакетам и дедупликация входящих. Префикс уникален на
   // экземпляр экрана, а не на identity: identity переживает сворачивание
@@ -489,6 +497,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       CallStateService.instance.markAiTwinActive(joinedRoom);
       debugPrint('[AI_TWIN] _aiTwinActive=true set — call is now in AI twin mode');
       _stopRingback();
+      _markSystemCallConnected();
     });
     _aiTwinLeftSub = sl<MessengerRemoteDataSource>()
         .callAiTwinLeftStream
@@ -513,9 +522,34 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     _initCall();
   }
 
+  /// Ended from the system call UI while it was still joining (main.dart
+  /// marks it): a pending route may still open this screen — close it
+  /// instead of connecting a call the user has already hung up. Called
+  /// first thing in [_initCall], and again right after it waits for a
+  /// background connect — that wait can itself wake up after the End
+  /// already arrived. Returns true when it closed the screen.
+  bool _closeIfEndedBySystem() {
+    final incomingRoom = widget.roomName;
+    if (widget.isIncoming && incomingRoom != null &&
+        CallStateService.instance.consumeSystemEnded(incomingRoom)) {
+      _navigatedAway = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(RouteConstants.messenger);
+        }
+      });
+      return true;
+    }
+    return false;
+  }
+
   /// Initialise the call — either resume an existing background-connected room,
   /// wait for a background connect in progress, or start a fresh connection.
   Future<void> _initCall() async {
+    if (_closeIfEndedBySystem()) return;
     final cs = CallStateService.instance;
 
     // Prevent calling same conversation that's already on another line
@@ -543,6 +577,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         onTimeout: () => false,
       );
     }
+    if (!mounted || _navigatedAway || _hangingUp) return;
+    if (_closeIfEndedBySystem()) return;
 
     // Resume existing room if already connected (e.g. from background connect)
     if (cs.isInCall && cs.room != null) {
@@ -572,8 +608,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           }
         }
       }
-      // End CallKit and restore audio — must be properly sequenced
-      if (widget.isIncoming) {
+      _systemCallUuid = SystemCallRegistry.instance.uuidForRoom(_roomName!);
+      _heldBySystem = SystemCallRegistry.instance.isHeldBySystem(_roomName!);
+      if (_systemCallManaged) {
+        // iOS: answered through CallKit and it stays there.
+        await _startManagedCallAudio();
+      } else if (widget.isIncoming) {
+        // End CallKit and restore audio — must be properly sequenced
         await _restoreAudioAfterCallKit();
       }
       // Notify other devices this device answered (dismiss their CallKit).
@@ -753,10 +794,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   Future<void> _restoreAudioAfterCallKit() async {
     debugPrint('[VoiceCall] _restoreAudioAfterCallKit: starting');
     try {
-      await CallKitPlatform.instance.endAllCalls();
-      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls done');
+      await SystemCallRegistry.instance.dismissRinging();
+      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: dismissRinging done');
     } catch (e) {
-      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: endAllCalls error: $e');
+      debugPrint('[VoiceCall] _restoreAudioAfterCallKit: dismissRinging error: $e');
     }
     // Wait for CallKit to fully release the audio session.
     // iOS CXProvider.reportCall(endedAt:) triggers async audio deactivation
@@ -795,6 +836,56 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     debugPrint('[VoiceCall] _restoreAudioAfterCallKit: complete');
   }
 
+  /// iOS: puts this conversation into CallKit unless it is there already
+  /// (answered through CallKit). Null: the call runs without CallKit.
+  ///
+  /// Runs synchronously from initState for outgoing calls (`_initCall` →
+  /// `_connect` with no await in between), so no `context` lookups here —
+  /// AppLocalizations.of would throw before initState completes.
+  Future<String?> _registerSystemCall() {
+    final registry = SystemCallRegistry.instance;
+    final room = _roomName ?? widget.roomName;
+    final existing = room == null ? null : registry.uuidForRoom(room);
+    if (existing != null) return Future.value(existing);
+    final name = _currentCalleeName ?? widget.calleeName ?? _publicRoomTitle ?? 'Taler ID';
+    return registry.startOutgoing(
+      displayName: name,
+      handle: widget.conversationId ?? widget.publicCode ?? room ?? name,
+      roomName: room,
+    );
+  }
+
+  /// Starts the CallKit registration and takes the uuid as soon as iOS
+  /// confirms, not only after LiveKit has connected: a system "End" pressed
+  /// while the call is still connecting must already find this screen.
+  void _beginSystemCallRegistration() {
+    final registration = _registerSystemCall();
+    _systemCallRegistration = registration;
+    unawaited(registration.then((uuid) {
+      if (uuid != null && mounted && !_hangingUp && _systemCallUuid == null) {
+        _systemCallUuid = uuid;
+      }
+    }));
+  }
+
+  /// The callee, the AI twin or a meeting answered: iOS shows the call
+  /// connected. No-op for incoming calls — the answer connected them.
+  void _markSystemCallConnected() {
+    final room = _roomName;
+    if (_systemCallManaged && room != null) {
+      unawaited(SystemCallRegistry.instance.markConnected(room));
+    }
+  }
+
+  /// A conversation CallKit owns: the session is already live (CallKit
+  /// activated it on the answer); only the mic and the route are ours.
+  Future<void> _startManagedCallAudio() async {
+    try {
+      await _room?.localParticipant?.setMicrophoneEnabled(!_muted && !_heldBySystem);
+    } catch (_) {}
+    await _applyAudioOutput(_audioOutputType);
+  }
+
   Future<void> _connect() async {
     debugPrint('[VoiceCall] _connect() called, isIncoming=${widget.isIncoming}, room=${widget.roomName}, calleeName=${widget.calleeName}, calleeAvatar=${widget.calleeAvatar}, calleeId=${widget.calleeId}');
     // Multi-device race guard: if a sibling device already answered THIS
@@ -818,15 +909,25 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
     _loadMyAvatar();
     if (widget.isIncoming) {
+      final incomingRoom = widget.roomName;
+      _systemCallUuid = incomingRoom == null
+          ? null
+          : SystemCallRegistry.instance.uuidForRoom(incomingRoom);
+    }
+    if (widget.isIncoming && _systemCallManaged) {
+      // iOS: answered through CallKit, and it stays there — CallKit owns the
+      // audio session, WebRTC follows it. Nothing to release or re-activate.
+      debugPrint('[AudDbg] incoming: CallKit keeps the call $_systemCallUuid');
+    } else if (widget.isIncoming) {
       debugPrint('[AudDbg] incoming setup START room=${widget.roomName}');
       // Release the CallKit-owned audio session before LiveKit connects.
       // When accepting from locked screen, CallKit activates the audio session
       // but continues to "own" it — this blocks LiveKit's WebRTC audio stack.
       try {
-        await CallKitPlatform.instance.endAllCalls();
-        debugPrint('[AudDbg] incoming: endAllCalls done');
+        await SystemCallRegistry.instance.dismissRinging();
+        debugPrint('[AudDbg] incoming: dismissRinging done');
       } catch (e) {
-        debugPrint('[AudDbg] incoming: endAllCalls error: $e');
+        debugPrint('[AudDbg] incoming: dismissRinging error: $e');
       }
       // Wait for CallKit to fully release the audio session
       await Future.delayed(const Duration(milliseconds: 1000));
@@ -843,6 +944,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         await _audioChannel.invokeMethod('setAudioOutput', 'earpiece');
       } catch (_) {}
       debugPrint('[AudDbg] incoming setup DONE, entering LiveKit connect');
+      // Not in CallKit yet (Android, or iOS answered outside it): iOS gets a
+      // CallKit call now, so call waiting protects the rest of it.
+      _beginSystemCallRegistration();
+    }
+    // iOS: an outgoing call or a room joined by name enters CallKit before
+    // anything plays, so the ringback already sounds in the call's session.
+    // Rooms by public link wait for their join dialog below.
+    if (!widget.isIncoming && widget.publicCode == null) {
+      _beginSystemCallRegistration();
     }
     // Play ringback tone for outgoing calls to user (not incoming, not AI assistant).
     // For outgoing-created rooms (widget.outgoing && widget.roomName == null) start
@@ -873,6 +983,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           return;
         }
         final roomPassword = joinResult['password'] as String?;
+        _beginSystemCallRegistration();
 
         // 3. Try authenticated join first, fall back to guest
         try {
@@ -1006,11 +1117,34 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
             'subscribed=${audioPubs.map((pub) => pub.subscribed).toList()} '
             'muted=${audioPubs.map((pub) => pub.muted).toList()}');
       }
-      try {
-        await _audioChannel.invokeMethod('enableCallAudioMix');
-        debugPrint('[AudDbg] enableCallAudioMix done');
-      } catch (e) {
-        debugPrint('[CallAudio] enableCallAudioMix failed: $e');
+      // Hung up while connecting (the red button, or a system End that
+      // reached this screen through its uuid): nothing left to set up, and
+      // _hangUpInner has already dropped _room.
+      if (_hangingUp || _navigatedAway) return;
+      final registration = _systemCallRegistration;
+      if (registration != null) {
+        final uuid = await registration;
+        if (_hangingUp || _navigatedAway) return;
+        _systemCallUuid = uuid;
+      }
+      final systemCallUuid = _systemCallUuid;
+      if (systemCallUuid != null) {
+        if (!SystemCallRegistry.instance.bindRoom(systemCallUuid, _roomName!)) {
+          // The CallKit call was ended from the system UI before the room
+          // existed — hang up, as that End asked.
+          _systemCallUuid = null;
+          unawaited(_hangUp(userInitiated: true));
+          return;
+        }
+        // A room joined without ringing has nobody to wait for.
+        if (!_ringing) _markSystemCallConnected();
+      } else {
+        try {
+          await _audioChannel.invokeMethod('enableCallAudioMix');
+          debugPrint('[AudDbg] enableCallAudioMix done');
+        } catch (e) {
+          debugPrint('[CallAudio] enableCallAudioMix failed: $e');
+        }
       }
 
       // Register in global state so call persists across navigation
@@ -1086,6 +1220,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // If there are already human participants in the room, stop ringback immediately
       if (_participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
+        _markSystemCallConnected();
       }
 
       // Request audio focus BEFORE enabling microphone — ensures the audio session
@@ -1231,6 +1366,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         // Only stop ringback when a HUMAN answers — AI agent joins first for withAi rooms
         if (event.participant.identity != 'ai-assistant') {
           _stopRingback();
+          _markSystemCallConnected();
         }
         // Fetch avatar for new participant
         _fetchParticipantAvatar(event.participant.identity);
@@ -1455,6 +1591,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       // Stop ringback if human participants appeared
       if (_ringing && _participants.any((p) => p.identity != 'ai-assistant')) {
         _stopRingback();
+        _markSystemCallConnected();
       }
       // Auto-hangup when all remote participants left (only if someone WAS
       // here before).
