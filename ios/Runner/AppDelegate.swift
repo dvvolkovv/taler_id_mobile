@@ -403,7 +403,14 @@ import flutter_callkit_incoming
     // CallKit owns the session of a managed conversation: hold and resume are
     // its deactivate/activate, not interruptions to recover from — and the
     // plugin posts a fake "interruption ended" on every activation.
-    if CallKitAudioBridge.shared.isManaging { return }
+    if CallKitAudioBridge.shared.isManaging {
+      // Don't let a stale flag from an interruption that began before this
+      // call was managed outlive it — an unrelated call-end seen after
+      // managing stops would otherwise still find audioInterrupted true and
+      // fire a restore with nothing to restore.
+      audioInterrupted = false
+      return
+    }
     guard let info = notification.userInfo,
           let typeValue = info[AVAudioSessionInterruptionTypeKey] as? UInt,
           let type = AVAudioSession.InterruptionType(rawValue: typeValue) else { return }
@@ -432,23 +439,30 @@ import flutter_callkit_incoming
   }
 
   @objc private func handleRouteChange(_ notification: Notification) {
-    if CallKitAudioBridge.shared.isManaging { return }
     guard let info = notification.userInfo,
           let reasonValue = info[AVAudioSessionRouteChangeReasonKey] as? UInt,
           let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else { return }
     // When an old device (phone call audio) is removed, restore our session
-    if reason == .oldDeviceUnavailable && self.audioInterrupted {
+    guard reason == .oldDeviceUnavailable else { return }
+    // Route-change notifications can post on a secondary thread (Apple's
+    // docs) — isManaging and audioInterrupted are only safe to read/write on
+    // main, where every other access to them runs.
+    DispatchQueue.main.async {
+      guard !CallKitAudioBridge.shared.isManaging, self.audioInterrupted else { return }
       NSLog("[Audio] Route change: old device unavailable while interrupted — restoring")
-      DispatchQueue.main.async {
-        self.audioInterrupted = false
-        self.restoreAudioSessionAfterInterruption()
-      }
+      self.audioInterrupted = false
+      self.restoreAudioSessionAfterInterruption()
     }
   }
 
   /// Restores the audio session after an external interruption (phone call).
   /// Retries with increasing delays because iOS audio deactivation timing is unpredictable.
   private func restoreAudioSessionAfterInterruption() {
+    // A managed call may have started inside the window between the
+    // interruption and this call (e.g. "End & Accept" on the very call that
+    // interrupted us) — CallKit owns the session now, so back off before
+    // even sending audioResumed to Dart.
+    if CallKitAudioBridge.shared.isManaging { return }
     let session = AVAudioSession.sharedInstance()
     // First attempt immediately
     self.doRestoreAudioSession(session)
@@ -463,6 +477,9 @@ import flutter_callkit_incoming
   }
 
   private func doRestoreAudioSession(_ session: AVAudioSession) {
+    // Covers the retries (300/800/1500ms) racing a managed call starting in
+    // that window, the async first attempt above, and any future caller.
+    if CallKitAudioBridge.shared.isManaging { return }
     do {
       // Restoration MUST mirror enableCallAudioMix exactly, otherwise iOS
       // re-interrupts immediately after recovery: when another VoIP app
@@ -491,6 +508,9 @@ import flutter_callkit_incoming
   /// Configure AVAudioSession for active call: allow mixing with other apps' audio
   /// (WhatsApp/Telegram VoIP) so their incoming call doesn't preempt ours.
   private func enableCallAudioMix() {
+    // Safety net — callers already check isManaging, but the session this
+    // would touch belongs to CallKit while a conversation is in it.
+    if CallKitAudioBridge.shared.isManaging { return }
     let session = AVAudioSession.sharedInstance()
     do {
       try session.setCategory(
@@ -512,6 +532,8 @@ import flutter_callkit_incoming
 
   /// Revert AVAudioSession to default for non-call app behavior.
   private func disableCallAudioMix() {
+    // Safety net — see enableCallAudioMix.
+    if CallKitAudioBridge.shared.isManaging { return }
     let session = AVAudioSession.sharedInstance()
     do {
       try session.setCategory(.soloAmbient)
@@ -617,6 +639,8 @@ extension AppDelegate: PKPushRegistryDelegate {
 
 extension AppDelegate: CXCallObserverDelegate {
   /// Fires for every CallKit-visible call system-wide (ours and rival apps').
+  /// While a conversation is in CallKit, hands off to CallKitAudioBridge
+  /// instead, which tells Dart when the rival call that held us is over.
   /// Scope: only act when a call ENDS while our session is marked interrupted
   /// — that combination means a rival app's call (WhatsApp/Telegram/phone)
   /// took the audio session and iOS may never send interruption `.ended`
@@ -624,6 +648,8 @@ extension AppDelegate: CXCallObserverDelegate {
   /// this can't misfire on Taler ID call teardown.
   func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
     if CallKitAudioBridge.shared.isManaging {
+      // Same staleness guard as handleAudioInterruption's managed branch.
+      audioInterrupted = false
       CallKitAudioBridge.shared.callChanged(callObserver, call)
       return
     }
