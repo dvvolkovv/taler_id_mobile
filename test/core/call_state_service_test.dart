@@ -1000,5 +1000,137 @@ void main() {
         expect(log, ['a']);
       });
     });
+
+    test('endLine: a hold landing while the disconnect is in flight does not leak '
+        'into the room\'s next line (S0)', () async {
+      final gate = Completer<void>();
+      final room = _makeRoom();
+      when(() => room.disconnect()).thenAnswer((_) => gate.future);
+      svc.setRoom(room, 'r', 'c1');
+
+      final ending = svc.endLine('r');
+      await Future.delayed(Duration.zero); // let it reach the gated disconnect
+
+      // The line was already removed (top of endLine), so this is read as a
+      // hold for an unknown room and re-added to _pendingSystemHolds — the
+      // exact leak this test guards against.
+      await svc.applySystemHold('r');
+
+      gate.complete();
+      await ending;
+
+      // Room 'r' reused for a new call — must not inherit the leaked hold.
+      svc.setRoom(_makeRoom(), 'r', 'c2');
+      expect(svc.activeLine!.heldBySystem, isFalse);
+    });
+
+    test('endCall: a hold landing while a disconnect is in flight does not leak '
+        'into that room\'s next line (S0)', () async {
+      final gate = Completer<void>();
+      final room = _makeRoom();
+      when(() => room.disconnect()).thenAnswer((_) => gate.future);
+      svc.setRoom(room, 'r', 'c1');
+
+      final ending = svc.endCall();
+      await Future.delayed(Duration.zero);
+
+      await svc.applySystemHold('r');
+
+      gate.complete();
+      await ending;
+
+      svc.setRoom(_makeRoom(), 'r', 'c2');
+      expect(svc.activeLine!.heldBySystem, isFalse);
+    });
+  });
+
+  // ── System End while still joining (background connect) ─────────────────
+
+  group('abandonBackgroundConnect', () {
+    test('cancels the join in flight, returns its conv id, no line is created, '
+        'and the line it held comes back off hold', () async {
+      // Line 'a' is active; connectInBackground will hold it for the new join.
+      final roomA = _makeRoom();
+      svc.setRoom(roomA, 'a', 'c1');
+
+      final client = MockDioClient();
+      final joinGate = Completer<Map<String, dynamic>>();
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenAnswer((_) => joinGate.future);
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      final connecting = svc.connectInBackground('r', 'conv-r');
+      await Future.delayed(Duration.zero); // let it reach the gated HTTP join
+
+      expect(svc.isBackgroundConnecting, isTrue);
+      final convId = svc.abandonBackgroundConnect('r');
+      expect(convId, 'conv-r');
+      expect(svc.isBackgroundConnecting, isFalse);
+
+      // Let the suspended join resume: it must see the bumped generation and
+      // cancel itself instead of completing the call.
+      joinGate.complete({'token': 'unused'});
+      final result = await connecting;
+
+      expect(result, isFalse);
+      expect(svc.allLines.map((l) => l.roomName), isNot(contains('r')));
+      final lineA = svc.allLines.firstWhere((l) => l.roomName == 'a');
+      expect(lineA.isOnHold, isFalse);
+      expect((roomA.localParticipant as MockLocalParticipant).isMicrophoneEnabled(), isTrue);
+    });
+
+    test('a room that is not the join in flight is not abandoned', () async {
+      expect(svc.abandonBackgroundConnect('nope'), isNull);
+    });
+
+    test('waitForBackgroundConnect unblocks once the join it was waiting on is abandoned', () async {
+      final client = MockDioClient();
+      final joinGate = Completer<Map<String, dynamic>>();
+      when(() => client.post<Map<String, dynamic>>(
+            any(),
+            data: any(named: 'data'),
+            fromJson: any(named: 'fromJson'),
+          )).thenAnswer((_) => joinGate.future);
+      sl.registerLazySingleton<DioClient>(() => client);
+      addTearDown(() => sl.unregister<DioClient>());
+
+      final connecting = svc.connectInBackground('r', 'conv-r');
+      await Future.delayed(Duration.zero);
+
+      final waiting = svc.waitForBackgroundConnect();
+      svc.abandonBackgroundConnect('r');
+
+      expect(await waiting.timeout(const Duration(seconds: 1)), isFalse);
+      joinGate.complete({'token': 'unused'}); // let connectInBackground unwind
+      await connecting;
+    });
+  });
+
+  group('system ended marker', () {
+    test('consumeSystemEnded is true once, then forgets', () {
+      svc.markSystemEnded('r');
+      expect(svc.consumeSystemEnded('r'), isTrue);
+      expect(svc.consumeSystemEnded('r'), isFalse);
+    });
+
+    test('a room that was never marked reads false', () {
+      expect(svc.consumeSystemEnded('never-marked'), isFalse);
+    });
+
+    test('setRoom forgets a stale mark for the room name it reuses', () {
+      svc.markSystemEnded('r');
+      svc.setRoom(_makeRoom(), 'r', 'c1');
+      expect(svc.consumeSystemEnded('r'), isFalse);
+    });
+
+    test('endCall clears every mark', () async {
+      svc.markSystemEnded('r');
+      await svc.endCall();
+      expect(svc.consumeSystemEnded('r'), isFalse);
+    });
   });
 }

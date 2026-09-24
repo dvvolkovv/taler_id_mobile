@@ -68,7 +68,7 @@ void _wireSystemCalls() {
     if (room == null) return;
     switch (event) {
       case SystemCallHeld(bySystem: true):
-        calls.applySystemHold(room);
+        unawaited(calls.applySystemHold(room));
       case SystemCallResumed(:final swapped):
         if (swapped && calls.allLines.any((l) => l.roomName == room)) {
           // The system call UI swapped our two lines: follow it, or the app
@@ -77,22 +77,24 @@ void _wireSystemCalls() {
           // applySystemResume then restores what a call-waiting hold took.
           unawaited(calls.holdAndSwitch(room).then((_) => calls.applySystemResume(room)));
         } else {
-          calls.applySystemResume(room);
+          unawaited(calls.applySystemResume(room));
         }
       case SystemCallMuteChanged(:final muted):
-        calls.applySystemMute(room, muted);
-      case SystemCallEndedBySystem():
+        unawaited(calls.applySystemMute(room, muted));
+      case SystemCallEndedBySystem(:final conversationId):
         // The line on display is hung up by the call screen, or by the
         // dashboard behind the banner. A held background line has nobody
         // else to do it.
-        if (calls.roomName != room) _endBackgroundLine(room);
+        if (calls.roomName != room) {
+          unawaited(_endBackgroundLine(room, conversationId: conversationId));
+        }
       case SystemCallHeld():
         break;
     }
   });
 }
 
-Future<void> _endBackgroundLine(String roomName) async {
+Future<void> _endBackgroundLine(String roomName, {String? conversationId}) async {
   final calls = CallStateService.instance;
   for (final line in calls.allLines) {
     if (line.roomName != roomName) continue;
@@ -101,12 +103,52 @@ Future<void> _endBackgroundLine(String roomName) async {
       try {
         sl<MessengerRemoteDataSource>().sendCallEnded(convId, roomName);
       } catch (_) {}
+      // Socket emit has no queue — a not-yet-reconnected socket silently
+      // drops it. The POST is the durable half; VoiceCallScreen and the
+      // dashboard both send this exact pair for the same reason.
+      try {
+        await sl<DioClient>().post(
+          '/messenger/call-ended',
+          data: {'conversationId': convId, 'roomName': roomName},
+          fromJson: (d) => d,
+        );
+      } catch (_) {}
     }
     await calls.endLine(roomName);
     return;
   }
-  // Not a line (yet — it was still joining): endLine still forgets what the
-  // service remembers for the room, e.g. a hold that arrived meanwhile.
+  // Not a line yet — the background join (if any) is still in flight.
+  // abandonBackgroundConnect must run unconditionally: it is what actually
+  // cancels that join (bumps the generation, clears _bgConnecting, settles
+  // the completer). A `conversationId ?? calls.abandonBackgroundConnect(...)`
+  // would short-circuit and skip calling it whenever the CallKit event
+  // already carried an id, leaving the join to complete and connect anyway
+  // with a live mic — exactly the bug this method exists to close. Prefer
+  // the event's own id when both are available.
+  final abandonedConvId = calls.abandonBackgroundConnect(roomName);
+  final conv = conversationId ?? abandonedConvId;
+  if (conv != null) {
+    try {
+      sl<MessengerRemoteDataSource>().sendCallEnded(conv, roomName);
+    } catch (_) {}
+    try {
+      await sl<DioClient>().post(
+        '/messenger/call-ended',
+        data: {'conversationId': conv, 'roomName': roomName},
+        fromJson: (d) => d,
+      );
+    } catch (_) {}
+  }
+  // A pending call route for this room (set by the accept handler or the
+  // cold-start check) must not survive to reopen and reconnect a call the
+  // user just ended — clear it, and mark the room so a copy of the route
+  // that outruns this cleanup can still be caught by whoever consumes it.
+  calls.markSystemEnded(roomName);
+  NotificationService.clearPendingCallRouteFor(roomName);
+  // endLine still forgets what the service remembers for the room even
+  // without a line — e.g. a hold that arrived meanwhile (applySystemHold's
+  // pending-hold path) — and clears the answered-elsewhere/self-answered
+  // flags so a later call to the same room name isn't blocked by them.
   await calls.endLine(roomName);
 }
 
@@ -164,7 +206,10 @@ void _setupCallkitListener() {
       final registry = SystemCallRegistry.instance;
       if (registry.enabled) {
         // It was just answered here: end exactly that call, not every call.
-        try { registry.endConversation(roomName); } catch (_) {}
+        // endConversation is async but never throws — the registry swallows
+        // its own plugin errors — so try/catch here caught nothing async;
+        // unawaited says so instead.
+        unawaited(registry.endConversation(roomName));
       } else {
         try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
       }
@@ -173,12 +218,20 @@ void _setupCallkitListener() {
     // Announce accept to the server IMMEDIATELY so sibling devices dismiss
     // their CallKit UI before the user can tap Accept on both. Previously
     // this was sent only after LiveKit connect completed (~1-3 s), which
-    // left a race window wide enough to produce a 3-way join. Marking
-    // selfAnswered first so the server echo doesn't fire our own listener.
+    // left a race window wide enough to produce a 3-way join. Send first,
+    // THEN mark selfAnswered: if sl<MessengerRemoteDataSource>() throws
+    // (DI not ready yet — killed-app cold start), marking first would flag
+    // this room as self-answered without ever having told the server, and
+    // both this handler's own didSelfAnswer guard above and the dashboard's
+    // own announce (task 17) would then skip it too on any retry — nobody
+    // ever sends call_answered, and siblings keep ringing. Nothing async
+    // happens between these two synchronous calls, so the server's echo
+    // cannot arrive in between and misread as "answered elsewhere" either
+    // way — reordering costs nothing.
     if (convId != null && convId.isNotEmpty && !CallStateService.instance.didSelfAnswer(roomName)) {
       try {
-        CallStateService.instance.markSelfAnswered(roomName);
         sl<MessengerRemoteDataSource>().sendCallAnswered(convId, roomName);
+        CallStateService.instance.markSelfAnswered(roomName);
         debugPrint('[CallKit] early sendCallAnswered emitted: room=$roomName');
       } catch (e) {
         debugPrint('[CallKit] early sendCallAnswered failed (socket not ready?): $e');
@@ -394,9 +447,12 @@ Future<void> _checkInitialCallKitCall() async {
         _navigateWhenResumed(route, 0);
         return;
       }
-      if (call['isAccepted'] == true || call['accepted'] == true) {
+      final callId = (call['id'] ?? '').toString();
+      if ((call['isAccepted'] == true || call['accepted'] == true) &&
+          callId.isNotEmpty &&
+          !CallStateService.instance.isAnsweredElsewhere(roomName)) {
         await SystemCallRegistry.instance.adoptAnswered(
-            uuid: (call['id'] ?? '').toString(), roomName: roomName);
+            uuid: callId, roomName: roomName, conversationId: convId);
       }
       final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
       final route =

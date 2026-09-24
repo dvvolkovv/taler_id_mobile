@@ -278,6 +278,22 @@ class NotificationService {
 
   static bool get hasPendingCallRoute => _pendingCallRoute != null;
 
+  /// Clears the pending call route only if it targets [roomName] — a system
+  /// End that cancelled a call while it was still joining (see
+  /// `_endBackgroundLine` in main.dart) must not leave behind a route that
+  /// later reopens and reconnects the very call the user just ended. A
+  /// route for a different, unrelated call is left alone. Every builder of
+  /// this route (main.dart's two CallKit paths, notificationToRoute's
+  /// `call_invite` case below) shapes it as
+  /// `/dashboard/voice?room=$roomName&convId=...`, so matching that exact
+  /// query-param position is precise, not a loose substring guess.
+  static void clearPendingCallRouteFor(String roomName) {
+    final route = _pendingCallRoute;
+    if (route != null && route.contains('?room=$roomName&')) {
+      _pendingCallRoute = null;
+    }
+  }
+
   /// Single broadcast stream for CallKit events.
   /// Subscribe to this instead of [FlutterCallkitIncoming.onEvent] to avoid
   /// replacing the underlying EventChannel handler on each subscription.

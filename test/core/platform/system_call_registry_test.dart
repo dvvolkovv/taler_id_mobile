@@ -194,6 +194,25 @@ void main() {
       await reg.adoptAnswered(uuid: u2, roomName: 'group-g1');
       expect(reg.hasConversations, isFalse);
     });
+
+    test('an accept carrying a conversation id reports it on a later system end', () async {
+      kit.emit(CallKitEvent.typeAccept, u2, {
+        'extra': {'roomName': 'call-r2', 'conversationId': 'conv-42'},
+      });
+      await pumpEventQueue();
+      kit.emit(CallKitEvent.typeEnded, u2);
+      await pumpEventQueue();
+      final ended = events.whereType<SystemCallEndedBySystem>().single;
+      expect(ended.roomName, 'call-r2');
+      expect(ended.conversationId, 'conv-42');
+    });
+
+    test('adoptAnswered carries its own conversation id through to a later system end', () async {
+      await reg.adoptAnswered(uuid: u2, roomName: 'call-r2', conversationId: 'conv-77');
+      kit.emit(CallKitEvent.typeEnded, u2);
+      await pumpEventQueue();
+      expect(events.whereType<SystemCallEndedBySystem>().single.conversationId, 'conv-77');
+    });
   });
 
   group('markConnected', () {
@@ -264,7 +283,9 @@ void main() {
       await conversation(u1, 'call-r1');
       kit.emit(CallKitEvent.typeEnded, u1);
       await pumpEventQueue();
-      expect(events.whereType<SystemCallEndedBySystem>().single.roomName, 'call-r1');
+      final ended = events.whereType<SystemCallEndedBySystem>().single;
+      expect(ended.roomName, 'call-r1');
+      expect(ended.conversationId, isNull, reason: 'conversation() never puts one in extra');
       expect(reg.isConversation('call-r1'), isFalse);
       expect(bridge.lastManaged, isEmpty);
     });

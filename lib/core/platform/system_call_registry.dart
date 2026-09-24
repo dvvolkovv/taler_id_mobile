@@ -44,17 +44,32 @@ final class SystemCallMuteChanged extends SystemCallEvent {
 
 /// Ended outside the app: the system End button, "End & Accept".
 final class SystemCallEndedBySystem extends SystemCallEvent {
-  const SystemCallEndedBySystem(super.uuid, super.roomName);
+  const SystemCallEndedBySystem(super.uuid, super.roomName, {this.conversationId});
+
+  /// The conversation this call belonged to, when the registry knew it (see
+  /// [_Entry.conversationId]) — null for an outgoing call, or an incoming
+  /// one the registry never learned it for. The listener needs this to send
+  /// `call_ended` for a room CallStateService has no line for yet (the join
+  /// is still in flight), where there is nowhere else left to read it from.
+  final String? conversationId;
 }
 
 enum _State { starting, active, heldBySystem, heldByApp }
 
 class _Entry {
-  _Entry({required this.uuid, required this.outgoing, required this.state, this.roomName});
+  _Entry({
+    required this.uuid,
+    required this.outgoing,
+    required this.state,
+    this.roomName,
+    this.conversationId,
+  });
 
   final String uuid;
   final bool outgoing;
   String? roomName;
+  /// Carried through to [SystemCallEndedBySystem] — see its doc.
+  final String? conversationId;
   _State state;
   bool connectedReported = false;
   final started = Completer<bool>();
@@ -248,12 +263,22 @@ class SystemCallRegistry {
 
   /// A conversation whose CallKit call was answered while the app was not
   /// listening (cold start after an answer on the lock screen).
-  Future<void> adoptAnswered({required String uuid, required String roomName}) async {
+  Future<void> adoptAnswered({
+    required String uuid,
+    required String roomName,
+    String? conversationId,
+  }) async {
     if (!enabled) return;
     if (!_isCallScreenConversation(roomName)) return;
     final key = uuid.toLowerCase();
     if (_entries.containsKey(key)) return;
-    _entries[key] = _Entry(uuid: key, outgoing: false, state: _State.active, roomName: roomName);
+    _entries[key] = _Entry(
+      uuid: key,
+      outgoing: false,
+      state: _State.active,
+      roomName: roomName,
+      conversationId: conversationId,
+    );
     await _syncManaged();
   }
 
@@ -580,7 +605,7 @@ class SystemCallRegistry {
         if (entry == null) return;
         unawaited(_syncManaged());
         if (!entry.started.isCompleted) entry.started.complete(false);
-        _events.add(SystemCallEndedBySystem(uuid, entry.roomName));
+        _events.add(SystemCallEndedBySystem(uuid, entry.roomName, conversationId: entry.conversationId));
     }
   }
 
@@ -593,7 +618,14 @@ class SystemCallRegistry {
     final roomName = extra['roomName'];
     if (roomName is! String) return;
     if (!_isCallScreenConversation(roomName, kind: extra['kind'])) return;
-    _entries[uuid] = _Entry(uuid: uuid, outgoing: false, state: _State.active, roomName: roomName);
+    final conversationId = extra['conversationId'];
+    _entries[uuid] = _Entry(
+      uuid: uuid,
+      outgoing: false,
+      state: _State.active,
+      roomName: roomName,
+      conversationId: conversationId is String ? conversationId : null,
+    );
     unawaited(_syncManaged());
   }
 

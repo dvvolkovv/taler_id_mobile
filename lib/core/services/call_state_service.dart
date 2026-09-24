@@ -66,7 +66,17 @@ class CallStateService {
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
-  /// Bumped by [endCall] and [notifyEnded], and once per [connectInBackground].
+  /// Room + conversation id of the join [_bgCompleter] belongs to. Set at the
+  /// top of [connectInBackground]; read by [abandonBackgroundConnect] to
+  /// decide whether a given room is the join currently in flight, and to
+  /// hand back its conversation id (there is no line yet to read it from).
+  /// Cleared in `settleOwn`, under the same identity guard as `_bgCompleter`
+  /// itself — only the attempt that still owns it may clear it.
+  String? _bgRoomName;
+  String? _bgConvId;
+
+  /// Bumped by [endCall], [notifyEnded] and [abandonBackgroundConnect], and
+  /// once per [connectInBackground].
   ///
   /// connectInBackground awaits an HTTP join and a LiveKit connect, either of
   /// which can outlive the call: the user hangs up, or `call_ended` arrives,
@@ -132,6 +142,17 @@ class CallStateService {
     _answeredElsewhereRooms.remove(roomName);
     _selfAnsweredRooms.remove(roomName);
   }
+
+  /// Rooms the system ended before CallStateService ever got a line for
+  /// them — e.g. a system End while [connectInBackground]'s join was still
+  /// in flight. A pending call route (NotificationService, main.dart) can
+  /// outlive that cancellation; [consumeSystemEnded] lets whoever is about
+  /// to act on a stale copy of it check first. True once, then forgotten —
+  /// [setRoom] also forgets a stale mark the moment this room name is
+  /// legitimately reused, and [endCall] clears the lot.
+  final Set<String> _systemEndedRooms = {};
+  void markSystemEnded(String roomName) => _systemEndedRooms.add(roomName);
+  bool consumeSystemEnded(String roomName) => _systemEndedRooms.remove(roomName);
 
   final _stateCtrl = StreamController<bool>.broadcast();
   // Re-emit the current state to every new subscriber so the dashboard's
@@ -314,6 +335,11 @@ class CallStateService {
   }
 
   void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? lkToken, String? calleeName, String? calleeAvatar}) {
+    // A stale "system ended" mark must not survive this room name getting a
+    // real line — meeting/personal rooms are reused, and consumeSystemEnded
+    // reading true for a call that never had anything to do with the old
+    // mark would be as wrong as the leak it exists to catch.
+    _systemEndedRooms.remove(name);
     final previous = _lines[name];
     final line = CallLine(
       room: r,
@@ -433,6 +459,12 @@ class CallStateService {
       // WhatsApp/cellular call, if this line had been on hold for one.
       await _disconnectRoom(line.room);
       _reportLineEnded(name);
+      // A hold can land for `name` while the disconnect above was in
+      // flight: the line was already removed at the top of this method, so
+      // applySystemHold reads it as unknown and re-adds it to
+      // _pendingSystemHolds. Remove it again, or it leaks into whatever
+      // this reused room name's next line turns out to be.
+      _pendingSystemHolds.remove(name);
     }
     if (_activeRoomName == name) {
       // Switch to another held line if available
@@ -464,6 +496,7 @@ class CallStateService {
     _answeredElsewhereRooms.clear();
     _selfAnsweredRooms.clear();
     _pendingSystemHolds.clear();
+    _systemEndedRooms.clear();
     // Cleared and emitted before the disconnects below are awaited — "the
     // call ended" reaches subscribers right away, not only once every room
     // has (possibly slowly) hung up.
@@ -476,9 +509,15 @@ class CallStateService {
     await Future.wait(lines.map((line) => _disconnectRoom(line.room)));
     for (final line in lines) {
       _reportLineEnded(line.roomName);
+      // Same race as endLine: a hold can land for this room while its
+      // disconnect was in flight above, re-adding it to _pendingSystemHolds.
+      // Remove it again, or it leaks into whatever this room name's next
+      // line turns out to be.
+      _pendingSystemHolds.remove(line.roomName);
     }
   }
 
+  /// Contract: callers disconnect the room first — this never does it itself.
   void notifyEnded() {
     // Remove the active line (or all if unknown)
     if (_activeRoomName != null) {
@@ -520,6 +559,33 @@ class CallStateService {
     _stateCtrl.add(_lines.isNotEmpty);
   }
 
+  /// Cancels the background join in flight for [roomName], if that is what
+  /// is currently in flight — e.g. a system End arrived for a call CallKit
+  /// already marked answered, but whose LiveKit join hasn't produced a line
+  /// yet (see [_endBackgroundLine] in main.dart). Bumps the generation so
+  /// connectInBackground's own cancellation checks (after the HTTP join,
+  /// after the LiveKit connect) take it from here — same path a stale
+  /// attempt already takes when a newer one supersedes it — so the mic never
+  /// gets turned on for a call the user just ended, and whichever line it
+  /// held for the switch gets its hold undone there.
+  ///
+  /// Returns the abandoned join's conversation id — the caller needs it to
+  /// send `call_ended`, since without a line there is nowhere else in
+  /// CallStateService to read it from — or null when [roomName] is not the
+  /// join currently in flight (nothing to abandon).
+  String? abandonBackgroundConnect(String roomName) {
+    if (!_bgConnecting || _bgRoomName != roomName) return null;
+    final convId = _bgConvId;
+    _bgGeneration++;
+    _bgConnecting = false;
+    final completer = _bgCompleter;
+    if (completer != null && !completer.isCompleted) completer.complete(false);
+    _bgCompleter = null;
+    _bgRoomName = null;
+    _bgConvId = null;
+    return convId;
+  }
+
   /// Connect to a LiveKit room in the background after CallKit accept.
   Future<bool> connectInBackground(String rName, String? convId, {String? e2eeKey}) async {
     if (_lines.containsKey(rName)) return true;
@@ -529,13 +595,19 @@ class CallStateService {
     final completer = Completer<bool>();
     _bgCompleter = completer;
     final gen = ++_bgGeneration;
+    _bgRoomName = rName;
+    _bgConvId = convId;
 
     // Only settle our own completer: by the time a cancelled attempt unwinds,
     // a newer connect may already own _bgCompleter. Never clears _bgConnecting
     // either — whoever cancelled us has set it, or a newer attempt owns it now.
     void settleOwn(bool value) {
       if (!completer.isCompleted) completer.complete(value);
-      if (identical(_bgCompleter, completer)) _bgCompleter = null;
+      if (identical(_bgCompleter, completer)) {
+        _bgCompleter = null;
+        _bgRoomName = null;
+        _bgConvId = null;
+      }
     }
 
     // Declared outside the try so the catch block below can undo the hold
@@ -564,6 +636,17 @@ class CallStateService {
       // The call may have ended while the join request was in flight.
       if (gen != _bgGeneration) {
         debugPrint('[CallState] connectInBackground cancelled after join, room=$rName');
+        // Same undo as the catch block below, minus its `gen == _bgGeneration`
+        // guard — we are already inside the branch where that would be
+        // false. After endCall/notifyEnded, `current`'s line is gone too, so
+        // the identical() check is false and this is a no-op; after
+        // abandonBackgroundConnect it is not — line A comes back off hold.
+        if (current != null &&
+            identical(_lines[current.roomName], current) &&
+            _activeRoomName == current.roomName &&
+            current.isOnHold) {
+          await _undoAppHold(current);
+        }
         settleOwn(false);
         return false;
       }
@@ -596,6 +679,13 @@ class CallStateService {
         try {
           await r.disconnect();
         } catch (_) {}
+        // Same undo, same reasoning as the cancel-after-join branch above.
+        if (current != null &&
+            identical(_lines[current.roomName], current) &&
+            _activeRoomName == current.roomName &&
+            current.isOnHold) {
+          await _undoAppHold(current);
+        }
         settleOwn(false);
         return false;
       }
