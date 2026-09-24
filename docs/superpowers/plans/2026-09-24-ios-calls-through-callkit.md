@@ -3268,6 +3268,15 @@ EOF
 3. `RoomReconnectedEvent`: `setMicrophoneEnabled(!_muted)` → `setMicrophoneEnabled(!_muted && !_heldBySystem)`.
 4. `_startManualReconnect`: `await newRoom.localParticipant?.setMicrophoneEnabled(!_muted);` → `…(!_muted && !_heldBySystem);`.
 5. `_retryMicEnable`: `if (!_muted) {` → `if (!_muted && !_heldBySystem) {`.
+6. `_reactivateAudio()` (возврат приложения на передний план): `setMicrophoneEnabled(!_muted)` → `setMicrophoneEnabled(!_muted && !_heldBySystem)`. Это ровно момент, когда пользователь переключается из WhatsApp в Taler ID, чтобы нажать «Вернуться», — микрофон на удержании включаться не должен.
+7. `_releaseAssistantResources` («Hand the microphone back…»): `if (wasActive) {` → `if (wasActive && !_heldBySystem) {`.
+8. `_stopAssistant`: `await _room!.localParticipant?.setMicrophoneEnabled(true);` → `if (!_heldBySystem) await _room!.localParticipant?.setMicrophoneEnabled(true);` (состояние `_assistantActive`/`_muted` обновлять как прежде).
+
+Проверка, что вне удержания микрофон включают только эти места и сама `CallStateService`:
+```bash
+grep -n "setMicrophoneEnabled(" lib/features/voice/presentation/screens/voice_call_screen.dart
+```
+Каждое включение — с `!_heldBySystem` (или в ветке, куда на удержании не попасть).
 
 - [ ] **Step 6: Mute зеркалится в CallKit**
 
@@ -3739,6 +3748,7 @@ flutter run --profile --flavor dev -t lib/main_dev.dart \
 | 15 | «Удержать и ответить» на WhatsApp, и пока он идёт — собеседник в Taler ID выключает и включает интернет | WhatsApp не теряет звук; после WhatsApp наш разговор возвращается (риск 3 проекта) |
 | 16 | Две линии Taler ID, кнопка «Поменять» в системном интерфейсе звонка | приложение переключается на ту же линию, что iOS; звук и микрофон у активной, вторая на удержании |
 | 17 | Две линии Taler ID, звонит WhatsApp → «Завершить и ответить» | активная линия завершена у обеих сторон; удержанная не забирает звук у WhatsApp и возвращается после его конца (если CallKit откажет снять удержание сразу — автовозврат по `otherCallsEnded`) |
+| 18 | На удержании (WhatsApp идёт) открыть Taler ID, не нажимая «Вернуться»; затем свернуть; затем «Вернуться» | пока на удержании — у собеседника значок выключенного микрофона, WhatsApp звук не теряет; после «Вернуться» — звук и mute как были |
 
 - [ ] **Step 3: Найденное — чинить по одной причине за раз**
 
