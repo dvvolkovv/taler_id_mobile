@@ -430,6 +430,8 @@
   "voiceCopyLink": "Salin tautan",
   "voiceAddParticipant": "Tambah peserta",
   "voiceReconnecting": "Menyambungkan kembali...",
+  "callHeldBySystem": "Panggilan ditahan — ada panggilan lain yang berlangsung",
+  "callResumeFromHold": "Kembali ke panggilan",
   "voiceConnectionError": "Kesalahan koneksi",
   "voiceClose": "Tutup",
   "voiceCalling": "Memanggil...",

@@ -4908,6 +4908,7 @@ Answer briefly — the user is in the middle of a conversation.''';
                 ),
               ),
             ),
+          if (_heldBySystem) _buildSystemHoldOverlay(),
           // Back FAB shown only when AppBar is hidden in landscape (and we
           // aren't already in immersive fullscreen, which has its own exit btn)
           if (isLandscape && !immersiveFs)
@@ -5130,6 +5131,45 @@ Answer briefly — the user is in the middle of a conversation.''';
               ),
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+
+  /// iOS put the call on hold for another one ("Hold & Accept" on a WhatsApp
+  /// or cellular call). It comes back by itself when that call ends; the
+  /// button takes it back sooner.
+  Widget _buildSystemHoldOverlay() {
+    final l10n = AppLocalizations.of(context)!;
+    return Container(
+      color: Colors.black87,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.pause_circle_outline_rounded, color: Colors.white, size: 56),
+              const SizedBox(height: 16),
+              Text(
+                l10n.callHeldBySystem,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () {
+                  final room = _roomName;
+                  if (room != null) SystemCallRegistry.instance.resume(room);
+                },
+                child: Text(l10n.callResumeFromHold),
+              ),
+            ],
+          ),
         ),
       ),
     );

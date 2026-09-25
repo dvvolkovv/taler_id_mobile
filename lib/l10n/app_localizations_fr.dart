@@ -1449,6 +1449,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceReconnecting => 'Reconnexion...';
 
   @override
+  String get callHeldBySystem =>
+      'Appel en attente — un autre appel est en cours';
+
+  @override
+  String get callResumeFromHold => 'Reprendre l\'appel';
+
+  @override
   String get voiceConnectionError => 'Erreur de connexion';
 
   @override

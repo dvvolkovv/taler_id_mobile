@@ -2842,6 +2842,18 @@ abstract class AppLocalizations {
   /// **'Reconnecting...'**
   String get voiceReconnecting;
 
+  /// No description provided for @callHeldBySystem.
+  ///
+  /// In en, this message translates to:
+  /// **'Call on hold — another call is in progress'**
+  String get callHeldBySystem;
+
+  /// No description provided for @callResumeFromHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume call'**
+  String get callResumeFromHold;
+
   /// No description provided for @voiceConnectionError.
   ///
   /// In en, this message translates to:

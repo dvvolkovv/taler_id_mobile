@@ -1436,6 +1436,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get voiceReconnecting => 'पुनः कनेक्ट कर रहे हैं...';
 
   @override
+  String get callHeldBySystem => 'कॉल होल्ड पर है — दूसरी कॉल चल रही है';
+
+  @override
+  String get callResumeFromHold => 'कॉल पर वापस जाएँ';
+
+  @override
   String get voiceConnectionError => 'कनेक्शन त्रुटि';
 
   @override

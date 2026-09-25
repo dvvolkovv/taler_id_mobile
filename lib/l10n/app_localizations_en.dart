@@ -1437,6 +1437,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceReconnecting => 'Reconnecting...';
 
   @override
+  String get callHeldBySystem => 'Call on hold — another call is in progress';
+
+  @override
+  String get callResumeFromHold => 'Resume call';
+
+  @override
   String get voiceConnectionError => 'Connection error';
 
   @override

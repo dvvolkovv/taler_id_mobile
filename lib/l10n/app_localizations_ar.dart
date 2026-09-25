@@ -1429,6 +1429,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceReconnecting => 'إعادة الاتصال...';
 
   @override
+  String get callHeldBySystem =>
+      'المكالمة قيد الانتظار — هناك مكالمة أخرى جارية';
+
+  @override
+  String get callResumeFromHold => 'استئناف المكالمة';
+
+  @override
   String get voiceConnectionError => 'خطأ في الاتصال';
 
   @override

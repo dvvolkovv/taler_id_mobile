@@ -1447,6 +1447,13 @@ class AppLocalizationsTa extends AppLocalizations {
   String get voiceReconnecting => 'மீண்டும் இணைக்கப்படுகிறது...';
 
   @override
+  String get callHeldBySystem =>
+      'அழைப்பு நிறுத்தி வைக்கப்பட்டுள்ளது — மற்றொரு அழைப்பு நடக்கிறது';
+
+  @override
+  String get callResumeFromHold => 'அழைப்புக்குத் திரும்பு';
+
+  @override
   String get voiceConnectionError => 'இணைப்பு பிழை';
 
   @override

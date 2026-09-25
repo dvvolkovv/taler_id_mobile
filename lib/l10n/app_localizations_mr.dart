@@ -1436,6 +1436,12 @@ class AppLocalizationsMr extends AppLocalizations {
   String get voiceReconnecting => 'पुन्हा कनेक्ट करत आहे...';
 
   @override
+  String get callHeldBySystem => 'कॉल होल्डवर आहे — दुसरा कॉल सुरू आहे';
+
+  @override
+  String get callResumeFromHold => 'कॉलवर परत जा';
+
+  @override
   String get voiceConnectionError => 'कनेक्शन त्रुटी';
 
   @override

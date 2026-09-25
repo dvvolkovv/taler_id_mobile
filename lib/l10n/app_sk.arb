@@ -430,6 +430,8 @@
   "voiceCopyLink": "Kopírovať odkaz",
   "voiceAddParticipant": "Pridať účastníka",
   "voiceReconnecting": "Opätovné pripojenie...",
+  "callHeldBySystem": "Hovor je podržaný — prebieha iný hovor",
+  "callResumeFromHold": "Vrátiť sa k hovoru",
   "voiceConnectionError": "Chyba pripojenia",
   "voiceClose": "Zavrieť",
   "voiceCalling": "Volanie...",

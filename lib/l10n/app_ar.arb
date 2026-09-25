@@ -430,6 +430,8 @@
   "voiceCopyLink": "نسخ الرابط",
   "voiceAddParticipant": "إضافة مشارك",
   "voiceReconnecting": "إعادة الاتصال...",
+  "callHeldBySystem": "المكالمة قيد الانتظار — هناك مكالمة أخرى جارية",
+  "callResumeFromHold": "استئناف المكالمة",
   "voiceConnectionError": "خطأ في الاتصال",
   "voiceClose": "إغلاق",
   "voiceCalling": "جارٍ الاتصال...",

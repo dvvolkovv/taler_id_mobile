@@ -430,6 +430,8 @@
   "voiceCopyLink": "লিঙ্ক কপি করুন",
   "voiceAddParticipant": "অংশগ্রহণকারী যোগ করুন",
   "voiceReconnecting": "পুনঃসংযোগ হচ্ছে...",
+  "callHeldBySystem": "কল হোল্ডে আছে — অন্য একটি কল চলছে",
+  "callResumeFromHold": "কলে ফিরে যান",
   "voiceConnectionError": "সংযোগ ত্রুটি",
   "voiceClose": "বন্ধ করুন",
   "voiceCalling": "কল হচ্ছে...",

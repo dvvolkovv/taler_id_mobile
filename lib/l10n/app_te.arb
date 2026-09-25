@@ -430,6 +430,8 @@
   "voiceCopyLink": "లింక్ కాపీ చేయండి",
   "voiceAddParticipant": "పాల్గొనేవారిని జోడించండి",
   "voiceReconnecting": "మళ్లీ కలుపుతున్నారు...",
+  "callHeldBySystem": "కాల్ హోల్డ్‌లో ఉంది — మరో కాల్ జరుగుతోంది",
+  "callResumeFromHold": "కాల్‌కు తిరిగి వెళ్లండి",
   "voiceConnectionError": "కనెక్షన్ లోపం",
   "voiceClose": "మూసివేయండి",
   "voiceCalling": "కాల్ చేస్తున్నారు...",

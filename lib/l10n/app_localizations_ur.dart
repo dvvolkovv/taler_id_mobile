@@ -1439,6 +1439,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get voiceReconnecting => 'دوبارہ جڑ رہا ہے...';
 
   @override
+  String get callHeldBySystem => 'کال ہولڈ پر ہے — ایک اور کال جاری ہے';
+
+  @override
+  String get callResumeFromHold => 'کال پر واپس جائیں';
+
+  @override
   String get voiceConnectionError => 'کنکشن کی خرابی';
 
   @override

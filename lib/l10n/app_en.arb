@@ -614,6 +614,8 @@
   "voiceCopyLink": "Copy link",
   "voiceAddParticipant": "Add participant",
   "voiceReconnecting": "Reconnecting...",
+  "callHeldBySystem": "Call on hold — another call is in progress",
+  "callResumeFromHold": "Resume call",
   "voiceConnectionError": "Connection error",
   "voiceClose": "Close",
   "voiceCalling": "Calling...",

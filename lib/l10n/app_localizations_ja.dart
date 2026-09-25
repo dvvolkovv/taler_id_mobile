@@ -1412,6 +1412,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voiceReconnecting => '再接続中...';
 
   @override
+  String get callHeldBySystem => '通話を保留中 — 別の通話中です';
+
+  @override
+  String get callResumeFromHold => '通話に戻る';
+
+  @override
   String get voiceConnectionError => '接続エラー';
 
   @override

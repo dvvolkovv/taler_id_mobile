@@ -430,6 +430,8 @@
   "voiceCopyLink": "کپی لینک",
   "voiceAddParticipant": "افزودن شرکت‌کننده",
   "voiceReconnecting": "در حال اتصال مجدد...",
+  "callHeldBySystem": "تماس در انتظار است — تماس دیگری در جریان است",
+  "callResumeFromHold": "بازگشت به تماس",
   "voiceConnectionError": "خطای اتصال",
   "voiceClose": "بستن",
   "voiceCalling": "در حال تماس...",

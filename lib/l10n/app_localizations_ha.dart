@@ -1435,6 +1435,12 @@ class AppLocalizationsHa extends AppLocalizations {
   String get voiceReconnecting => 'Sake haɗawa...';
 
   @override
+  String get callHeldBySystem => 'An dakatar da kiran — wani kira yana gudana';
+
+  @override
+  String get callResumeFromHold => 'Koma kan kiran';
+
+  @override
   String get voiceConnectionError => 'Kuskuren haɗi';
 
   @override

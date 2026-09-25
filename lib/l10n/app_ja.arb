@@ -430,6 +430,8 @@
   "voiceCopyLink": "リンクをコピー",
   "voiceAddParticipant": "参加者を追加",
   "voiceReconnecting": "再接続中...",
+  "callHeldBySystem": "通話を保留中 — 別の通話中です",
+  "callResumeFromHold": "通話に戻る",
   "voiceConnectionError": "接続エラー",
   "voiceClose": "閉じる",
   "voiceCalling": "呼び出し中...",

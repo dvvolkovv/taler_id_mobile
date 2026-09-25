@@ -1414,6 +1414,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceReconnecting => '재연결 중...';
 
   @override
+  String get callHeldBySystem => '통화 대기 중 — 다른 통화가 진행 중입니다';
+
+  @override
+  String get callResumeFromHold => '통화로 돌아가기';
+
+  @override
   String get voiceConnectionError => '연결 오류';
 
   @override

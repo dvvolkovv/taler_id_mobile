@@ -1444,6 +1444,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get voiceReconnecting => 'Riconnessione...';
 
   @override
+  String get callHeldBySystem =>
+      'Chiamata in attesa: è in corso un\'altra chiamata';
+
+  @override
+  String get callResumeFromHold => 'Riprendi la chiamata';
+
+  @override
   String get voiceConnectionError => 'Errore di connessione';
 
   @override
