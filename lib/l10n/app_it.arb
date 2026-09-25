@@ -430,6 +430,8 @@
   "voiceCopyLink": "Copia link",
   "voiceAddParticipant": "Aggiungi partecipante",
   "voiceReconnecting": "Riconnessione...",
+  "callHeldBySystem": "Chiamata in attesa: è in corso un'altra chiamata",
+  "callResumeFromHold": "Riprendi la chiamata",
   "voiceConnectionError": "Errore di connessione",
   "voiceClose": "Chiudi",
   "voiceCalling": "Chiamata in corso...",

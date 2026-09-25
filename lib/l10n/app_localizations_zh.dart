@@ -1409,6 +1409,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceReconnecting => '重新连接中...';
 
   @override
+  String get callHeldBySystem => '通话已保持 — 正在进行另一通电话';
+
+  @override
+  String get callResumeFromHold => '返回通话';
+
+  @override
   String get voiceConnectionError => '连接错误';
 
   @override

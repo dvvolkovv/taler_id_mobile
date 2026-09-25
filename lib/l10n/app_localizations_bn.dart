@@ -1438,6 +1438,12 @@ class AppLocalizationsBn extends AppLocalizations {
   String get voiceReconnecting => 'পুনঃসংযোগ হচ্ছে...';
 
   @override
+  String get callHeldBySystem => 'কল হোল্ডে আছে — অন্য একটি কল চলছে';
+
+  @override
+  String get callResumeFromHold => 'কলে ফিরে যান';
+
+  @override
   String get voiceConnectionError => 'সংযোগ ত্রুটি';
 
   @override

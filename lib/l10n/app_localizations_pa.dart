@@ -1437,6 +1437,12 @@ class AppLocalizationsPa extends AppLocalizations {
   String get voiceReconnecting => 'ਮੁੜ ਜੁੜ ਰਿਹਾ ਹੈ...';
 
   @override
+  String get callHeldBySystem => 'ਕਾਲ ਹੋਲਡ \'ਤੇ ਹੈ — ਇੱਕ ਹੋਰ ਕਾਲ ਚੱਲ ਰਹੀ ਹੈ';
+
+  @override
+  String get callResumeFromHold => 'ਕਾਲ \'ਤੇ ਵਾਪਸ ਜਾਓ';
+
+  @override
   String get voiceConnectionError => 'ਕਨੈਕਸ਼ਨ ਗਲਤੀ';
 
   @override

@@ -1453,6 +1453,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get voiceReconnecting => 'Wiederverbinden...';
 
   @override
+  String get callHeldBySystem => 'Anruf gehalten – ein anderer Anruf läuft';
+
+  @override
+  String get callResumeFromHold => 'Zum Gespräch zurückkehren';
+
+  @override
   String get voiceConnectionError => 'Verbindungsfehler';
 
   @override

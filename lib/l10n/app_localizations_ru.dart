@@ -1438,6 +1438,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceReconnecting => 'Переподключение...';
 
   @override
+  String get callHeldBySystem => 'Разговор на удержании — идёт другой звонок';
+
+  @override
+  String get callResumeFromHold => 'Вернуться к разговору';
+
+  @override
   String get voiceConnectionError => 'Ошибка подключения';
 
   @override

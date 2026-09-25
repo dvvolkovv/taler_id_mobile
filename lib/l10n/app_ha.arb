@@ -430,6 +430,8 @@
   "voiceCopyLink": "Kwafi mahaɗin",
   "voiceAddParticipant": "Ƙara mahalarta",
   "voiceReconnecting": "Sake haɗawa...",
+  "callHeldBySystem": "An dakatar da kiran — wani kira yana gudana",
+  "callResumeFromHold": "Koma kan kiran",
   "voiceConnectionError": "Kuskuren haɗi",
   "voiceClose": "Rufe",
   "voiceCalling": "Ana kira...",

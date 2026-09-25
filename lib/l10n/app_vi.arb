@@ -430,6 +430,8 @@
   "voiceCopyLink": "Sao chép liên kết",
   "voiceAddParticipant": "Thêm người tham gia",
   "voiceReconnecting": "Đang kết nối lại...",
+  "callHeldBySystem": "Cuộc gọi đang chờ — đang có cuộc gọi khác",
+  "callResumeFromHold": "Quay lại cuộc gọi",
   "voiceConnectionError": "Lỗi kết nối",
   "voiceClose": "Đóng",
   "voiceCalling": "Đang gọi...",

@@ -430,6 +430,8 @@
   "voiceCopyLink": "लिंक कॉपी करें",
   "voiceAddParticipant": "प्रतिभागी जोड़ें",
   "voiceReconnecting": "पुनः कनेक्ट कर रहे हैं...",
+  "callHeldBySystem": "कॉल होल्ड पर है — दूसरी कॉल चल रही है",
+  "callResumeFromHold": "कॉल पर वापस जाएँ",
   "voiceConnectionError": "कनेक्शन त्रुटि",
   "voiceClose": "बंद करें",
   "voiceCalling": "कॉल कर रहे हैं...",

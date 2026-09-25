@@ -430,6 +430,8 @@
   "voiceCopyLink": "இணைப்பை நகலெடு",
   "voiceAddParticipant": "பங்கேற்பாளரை சேர்",
   "voiceReconnecting": "மீண்டும் இணைக்கப்படுகிறது...",
+  "callHeldBySystem": "அழைப்பு நிறுத்தி வைக்கப்பட்டுள்ளது — மற்றொரு அழைப்பு நடக்கிறது",
+  "callResumeFromHold": "அழைப்புக்குத் திரும்பு",
   "voiceConnectionError": "இணைப்பு பிழை",
   "voiceClose": "மூடு",
   "voiceCalling": "அழைக்கிறது...",

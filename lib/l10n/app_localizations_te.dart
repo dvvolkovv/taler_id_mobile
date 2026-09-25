@@ -1442,6 +1442,12 @@ class AppLocalizationsTe extends AppLocalizations {
   String get voiceReconnecting => 'మళ్లీ కలుపుతున్నారు...';
 
   @override
+  String get callHeldBySystem => 'కాల్ హోల్డ్‌లో ఉంది — మరో కాల్ జరుగుతోంది';
+
+  @override
+  String get callResumeFromHold => 'కాల్‌కు తిరిగి వెళ్లండి';
+
+  @override
   String get voiceConnectionError => 'కనెక్షన్ లోపం';
 
   @override

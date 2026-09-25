@@ -430,6 +430,8 @@
   "voiceCopyLink": "링크 복사",
   "voiceAddParticipant": "참가자 추가",
   "voiceReconnecting": "재연결 중...",
+  "callHeldBySystem": "통화 대기 중 — 다른 통화가 진행 중입니다",
+  "callResumeFromHold": "통화로 돌아가기",
   "voiceConnectionError": "연결 오류",
   "voiceClose": "닫기",
   "voiceCalling": "통화 중...",

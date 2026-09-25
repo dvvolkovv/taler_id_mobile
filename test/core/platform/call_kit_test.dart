@@ -1,4 +1,5 @@
 // test/core/platform/call_kit_test.dart
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/platform/call_kit.dart';
 import 'package:taler_id_mobile/core/platform/call_kit_desktop.dart';
@@ -32,6 +33,15 @@ void main() {
         data: {'extra': <String, dynamic>{'roomName': 'room1'}},
       );
       expect(e.data?['extra'], isA<Map>());
+    });
+
+    test('hold, mute and audio-session event types match the plugin', () {
+      // Compared against the plugin's own Event enum (not pasted strings)
+      // so a plugin rename fails this test instead of silently drifting.
+      expect(CallKitEvent.typeToggleHold, Event.actionCallToggleHold.name);
+      expect(CallKitEvent.typeToggleMute, Event.actionCallToggleMute.name);
+      expect(CallKitEvent.typeToggleAudioSession,
+          Event.actionCallToggleAudioSession.name);
     });
   });
 
@@ -75,6 +85,14 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       await sub.cancel();
       expect(events, isEmpty);
+    });
+
+    test('call-control methods are no-ops', () async {
+      await expectLater(
+          desktop.startCall(uuid: 'u1', callerName: 'A', handle: 'h'), completes);
+      await expectLater(desktop.setCallConnected('u1'), completes);
+      await expectLater(desktop.setHeld('u1', true), completes);
+      await expectLater(desktop.setMuted('u1', true), completes);
     });
   });
 

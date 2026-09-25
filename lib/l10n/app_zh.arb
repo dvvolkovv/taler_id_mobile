@@ -430,6 +430,8 @@
   "voiceCopyLink": "复制链接",
   "voiceAddParticipant": "添加参与者",
   "voiceReconnecting": "重新连接中...",
+  "callHeldBySystem": "通话已保持 — 正在进行另一通电话",
+  "callResumeFromHold": "返回通话",
   "voiceConnectionError": "连接错误",
   "voiceClose": "关闭",
   "voiceCalling": "正在呼叫...",

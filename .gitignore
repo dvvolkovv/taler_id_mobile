@@ -54,3 +54,15 @@ ios/Runner/GoogleService-Info.plist
 .worktrees/
 .superpowers/
 .icon_backup_20260624/
+
+# Vendored packages: output of standalone IDE/Gradle imports.
+# The app build itself writes plugin outputs to /build/.
+packages/*/build/
+packages/*/pubspec.lock
+packages/*/android/.gradle/
+packages/*/android/.kotlin/
+packages/*/android/build/
+packages/*/android/local.properties
+packages/*/android/gradlew
+packages/*/android/gradlew.bat
+packages/*/android/gradle/wrapper/gradle-wrapper.jar

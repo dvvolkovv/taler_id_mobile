@@ -30,6 +30,10 @@ class CallLine {
   bool wasMuted = false;
   /// When the call was connected (for duration display).
   DateTime? connectedAt;
+  /// iOS put this line on hold for another call (call waiting).
+  bool heldBySystem = false;
+  /// Mic state when that hold began — restored on resume.
+  bool micOnBeforeSystemHold = false;
 
   CallLine({
     required this.room,
@@ -62,7 +66,17 @@ class CallStateService {
   bool _bgConnecting = false;
   Completer<bool>? _bgCompleter;
 
-  /// Bumped by [endCall] and [notifyEnded], and once per [connectInBackground].
+  /// Room + conversation id of the join [_bgCompleter] belongs to. Set at the
+  /// top of [connectInBackground]; read by [abandonBackgroundConnect] to
+  /// decide whether a given room is the join currently in flight, and to
+  /// hand back its conversation id (there is no line yet to read it from).
+  /// Cleared in `settleOwn`, under the same identity guard as `_bgCompleter`
+  /// itself — only the attempt that still owns it may clear it.
+  String? _bgRoomName;
+  String? _bgConvId;
+
+  /// Bumped by [endCall], [notifyEnded] and [abandonBackgroundConnect], and
+  /// once per [connectInBackground].
   ///
   /// connectInBackground awaits an HTTP join and a LiveKit connect, either of
   /// which can outlive the call: the user hangs up, or `call_ended` arrives,
@@ -129,6 +143,17 @@ class CallStateService {
     _selfAnsweredRooms.remove(roomName);
   }
 
+  /// Rooms the system ended before CallStateService ever got a line for
+  /// them — e.g. a system End while [connectInBackground]'s join was still
+  /// in flight. A pending call route (NotificationService, main.dart) can
+  /// outlive that cancellation; [consumeSystemEnded] lets whoever is about
+  /// to act on a stale copy of it check first. True once, then forgotten —
+  /// [setRoom] also forgets a stale mark the moment this room name is
+  /// legitimately reused, and [endCall] clears the lot.
+  final Set<String> _systemEndedRooms = {};
+  void markSystemEnded(String roomName) => _systemEndedRooms.add(roomName);
+  bool consumeSystemEnded(String roomName) => _systemEndedRooms.remove(roomName);
+
   final _stateCtrl = StreamController<bool>.broadcast();
   // Re-emit the current state to every new subscriber so the dashboard's
   // "active call" banner reappears correctly after the voice screen is
@@ -184,12 +209,138 @@ class CallStateService {
   bool get hasHeldLines => _lines.values.any((l) => l.isOnHold);
   bool get canAddLine => _lines.length < maxLines;
 
+  // ── System calls (iOS CallKit) ───────────────────────────────────────────
+
+  /// Ends the CallKit call of every line that goes away, whichever path
+  /// removes it. Set in main.dart; null on platforms without CallKit calls.
+  Future<void> Function(String roomName)? onLineEnded;
+
+  /// Mirrors in-app line switching into CallKit holds.
+  Future<void> Function(String roomName, bool onHold)? onLineHoldChanged;
+
+  /// Rooms the system already held before their `CallLine` existed —
+  /// "Hold & Accept" can land while the LiveKit join for that room is still
+  /// in flight. Consumed by [setRoom] once the line finally shows up.
+  final Set<String> _pendingSystemHolds = {};
+
+  void _reportLineEnded(String roomName) {
+    final hook = onLineEnded;
+    if (hook == null) return;
+    // Future.sync catches a synchronous throw from the hook too — without
+    // it, a hook that throws before returning its Future would propagate
+    // straight out of here and abort whatever call site (e.g. endCall,
+    // mid-way through disconnecting rooms) invoked us.
+    unawaited(Future.sync(() => hook(roomName)).catchError((Object e) {
+      debugPrint('[CallState] onLineEnded hook failed: $e');
+    }));
+  }
+
+  void _reportLineHold(String roomName, bool onHold) {
+    final hook = onLineHoldChanged;
+    if (hook == null) return;
+    unawaited(Future.sync(() => hook(roomName, onHold)).catchError((Object e) {
+      debugPrint('[CallState] onLineHoldChanged hook failed: $e');
+    }));
+  }
+
+  /// What the user wants this line's mic to be right now, independent of
+  /// whichever hold — system or in-app — currently forces it off. Reads
+  /// whichever *other* hold's recorded intent applies, or the live hardware
+  /// state if the line isn't held at all.
+  bool _micWanted(CallLine l) {
+    if (l.heldBySystem) return l.micOnBeforeSystemHold;
+    if (l.isOnHold) return !l.wasMuted;
+    return l.room.localParticipant?.isMicrophoneEnabled() ?? false;
+  }
+
+  /// Un-holds a line the app itself put on hold, without touching the
+  /// active-line pointer — the caller decides whether this line stays (or
+  /// becomes) active. Shared by connectInBackground's failure path and
+  /// holdAndSwitch's target-vanished-mid-flight path: both need to roll
+  /// back an in-app hold the same way.
+  Future<void> _undoAppHold(CallLine line) async {
+    line.isOnHold = false;
+    _reportLineHold(line.roomName, false);
+    if (!line.heldBySystem) {
+      try {
+        await line.room.localParticipant?.setMicrophoneEnabled(!line.wasMuted);
+      } catch (_) {}
+    }
+  }
+
+  /// Call waiting took the audio: the peer gets a muted mic, and whatever the
+  /// mic was is remembered for the resume. A room with no line yet (join
+  /// still in flight) is remembered as pending — see [_pendingSystemHolds].
+  Future<void> applySystemHold(String roomName) async {
+    final line = _lines[roomName];
+    if (line == null) {
+      _pendingSystemHolds.add(roomName);
+      return;
+    }
+    if (line.heldBySystem) return;
+    line.micOnBeforeSystemHold = _micWanted(line);
+    line.heldBySystem = true;
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(false);
+    } catch (_) {}
+  }
+
+  /// Only this method may turn a `heldBySystem` line's mic on — and even
+  /// then, not if the line is also app-held (`isOnHold`): the in-app switch
+  /// back to it owns the mic in that case.
+  Future<void> applySystemResume(String roomName) async {
+    _pendingSystemHolds.remove(roomName);
+    final line = _lines[roomName];
+    if (line == null || !line.heldBySystem) return;
+    line.heldBySystem = false;
+    if (line.isOnHold) {
+      // Both holds were active and the system let go first. Fold its
+      // recorded intent into wasMuted — the in-app switch back reads
+      // wasMuted, not micOnBeforeSystemHold, and would otherwise apply
+      // whatever wasMuted was left at from before this hold even started.
+      line.wasMuted = !line.micOnBeforeSystemHold;
+      return;
+    }
+    if (!line.micOnBeforeSystemHold) return;
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(true);
+    } catch (_) {}
+  }
+
+  /// The mute button of the system call UI. A held line (either way) never
+  /// touches the mic directly — it records what the user wants for whichever
+  /// hold ends first (system resume, or the in-app line switch) to apply.
+  Future<void> applySystemMute(String roomName, bool muted) => setLineMuted(roomName, muted);
+
+  /// The app's own mute button — same held-line rule as [applySystemMute].
+  Future<void> setLineMuted(String roomName, bool muted) async {
+    final line = _lines[roomName];
+    if (line == null) return;
+    if (line.heldBySystem) {
+      line.micOnBeforeSystemHold = !muted;
+      return;
+    }
+    if (line.isOnHold) {
+      line.wasMuted = muted;
+      return;
+    }
+    try {
+      await line.room.localParticipant?.setMicrophoneEnabled(!muted);
+    } catch (_) {}
+  }
+
   Future<bool> waitForBackgroundConnect() async {
     if (!_bgConnecting || _bgCompleter == null) return isInCall;
     return _bgCompleter!.future;
   }
 
   void setRoom(lk.Room r, String name, String? convId, {String? e2eeKeyValue, String? lkToken, String? calleeName, String? calleeAvatar}) {
+    // A stale "system ended" mark must not survive this room name getting a
+    // real line — meeting/personal rooms are reused, and consumeSystemEnded
+    // reading true for a call that never had anything to do with the old
+    // mark would be as wrong as the leak it exists to catch.
+    _systemEndedRooms.remove(name);
+    final previous = _lines[name];
     final line = CallLine(
       room: r,
       roomName: name,
@@ -200,6 +351,18 @@ class CallStateService {
       calleeAvatar: calleeAvatar,
     );
     line.connectedAt = DateTime.now();
+    if (previous != null) {
+      // Reconnect (_startManualReconnect): a system hold in effect on the
+      // old line must carry over, or applySystemResume later has nothing
+      // left to resume and the mic never comes back.
+      line.heldBySystem = previous.heldBySystem;
+      line.micOnBeforeSystemHold = previous.micOnBeforeSystemHold;
+    } else if (_pendingSystemHolds.remove(name)) {
+      // The system already held this call before we'd even joined it — the
+      // line starts held so nothing turns the mic on until resume says so.
+      line.heldBySystem = true;
+      line.micOnBeforeSystemHold = true;
+    }
     _lines[name] = line;
     _activeRoomName = name;
     _stateCtrl.add(true);
@@ -208,36 +371,100 @@ class CallStateService {
 
   /// Put the active call on hold and switch to another line.
   Future<void> holdAndSwitch(String targetRoomName) async {
+    final target = _lines[targetRoomName];
+    // Already the active, non-held line: nothing to do. _initCall calls this
+    // for an already-connected conversation, and without this guard it would
+    // report an unhold — asking CallKit to resume our call in the middle of
+    // call waiting, taking the audio back from WhatsApp, for a switch that
+    // never actually happened. A *stuck* isOnHold on the active line (e.g.
+    // from an interrupted switch — see the target-vanished undo below)
+    // still falls through: the dashboard shows the swap icon for any
+    // isOnHold line and calls holdAndSwitch on it, which is how it clears.
+    if (target != null && _activeRoomName == targetRoomName && !target.isOnHold) {
+      return;
+    }
+
     final current = activeLine;
     if (current != null && current.roomName != targetRoomName) {
       // Save mic state before hold so it can be restored later.
-      current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+      current.wasMuted = !_micWanted(current);
       current.isOnHold = true;
+      _reportLineHold(current.roomName, true);
       try {
         await current.room.localParticipant?.setMicrophoneEnabled(false);
         await current.room.localParticipant?.setCameraEnabled(false);
       } catch (_) {}
     }
 
-    final target = _lines[targetRoomName];
+    // The awaits above can outlive `target` (its line ends — screen
+    // hang-up, system end — while we were still muting `current`):
+    // re-resolve by identity rather than trusting the lookup from before
+    // them, or this would switch the UI onto a room that's already gone.
+    if (!identical(_lines[targetRoomName], target)) {
+      if (current != null &&
+          current.roomName != targetRoomName &&
+          identical(_lines[current.roomName], current) &&
+          _activeRoomName == current.roomName &&
+          current.isOnHold) {
+        await _undoAppHold(current);
+      }
+      return;
+    }
+
     if (target != null) {
       target.isOnHold = false;
+      _reportLineHold(targetRoomName, false);
       _activeRoomName = targetRoomName;
-      try {
-        // Restore the mic state the user had before this line was held.
-        await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
-      } catch (_) {}
+      // heldBySystem still owns the mic — only applySystemResume may turn it
+      // on for this line.
+      if (!target.heldBySystem) {
+        try {
+          // Restore the mic state the user had before this line was held.
+          await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
+        } catch (_) {}
+      }
       _stateCtrl.add(true);
       _activeRoomCtrl.add(targetRoomName);
     }
+  }
+
+  /// Disconnects a room with a bounded wait — a hung disconnect (dead room,
+  /// unresponsive LiveKit) must not stall whoever is waiting on it forever.
+  /// Timeout and any error are swallowed, same as
+  /// VoiceCallScreen._hangUpInner's own guard around room.disconnect().
+  Future<void> _disconnectRoom(lk.Room room) async {
+    try {
+      await room.disconnect().timeout(const Duration(seconds: 2), onTimeout: () {});
+    } catch (_) {}
   }
 
   /// End a specific call line.
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
     clearAnsweredState(name);
+    // Unconditional, whether or not `name` was ever a line: a system hold
+    // can land for a room that's still joining (see applySystemHold), and
+    // if that join then ends here — screen hang-up, a system end, a failed
+    // join's own cleanup — the pending hold must not survive it. Meeting
+    // and personal rooms are reused, so leaving it would make the *next*
+    // line for this room start heldBySystem with no CallKit hold behind
+    // it: the lock-screen mute gets recorded but never applied, and a real
+    // later hold hits applySystemHold's already-held early return.
+    _pendingSystemHolds.remove(name);
     if (line != null) {
-      try { await line.room.disconnect(); } catch (_) {}
+      // Disconnect BEFORE reporting the line ended: onLineEnded ends this
+      // conversation's CallKit call, which releases our manual WebRTC audio
+      // ownership. A still-connected room would then have WebRTC grab the
+      // audio unit and activate the session on its own — mid a
+      // WhatsApp/cellular call, if this line had been on hold for one.
+      await _disconnectRoom(line.room);
+      _reportLineEnded(name);
+      // A hold can land for `name` while the disconnect above was in
+      // flight: the line was already removed at the top of this method, so
+      // applySystemHold reads it as unknown and re-adds it to
+      // _pendingSystemHolds. Remove it again, or it leaks into whatever
+      // this reused room name's next line turns out to be.
+      _pendingSystemHolds.remove(name);
     }
     if (_activeRoomName == name) {
       // Switch to another held line if available
@@ -245,9 +472,12 @@ class CallStateService {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
         next.isOnHold = false;
-        try {
-          await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
-        } catch (_) {}
+        _reportLineHold(next.roomName, false);
+        if (!next.heldBySystem) {
+          try {
+            await next.room.localParticipant?.setMicrophoneEnabled(!next.wasMuted);
+          } catch (_) {}
+        }
         _activeRoomCtrl.add(next.roomName);
       } else {
         _activeRoomName = null;
@@ -265,30 +495,100 @@ class CallStateService {
     _bgGeneration++;
     _answeredElsewhereRooms.clear();
     _selfAnsweredRooms.clear();
+    _pendingSystemHolds.clear();
+    _systemEndedRooms.clear();
+    // Cleared and emitted before the disconnects below are awaited — "the
+    // call ended" reaches subscribers right away, not only once every room
+    // has (possibly slowly) hung up.
     _stateCtrl.add(false);
     _activeRoomCtrl.add(null);
+    // Disconnect every room BEFORE reporting any line ended — same reason
+    // as endLine: a room still connected when onLineEnded releases manual
+    // WebRTC audio ownership would have WebRTC grab it right back. Parallel,
+    // so N held lines cost one 2 s timeout, not N of them in a row.
+    await Future.wait(lines.map((line) => _disconnectRoom(line.room)));
     for (final line in lines) {
-      try { await line.room.disconnect(); } catch (_) {}
+      _reportLineEnded(line.roomName);
+      // Same race as endLine: a hold can land for this room while its
+      // disconnect was in flight above, re-adding it to _pendingSystemHolds.
+      // Remove it again, or it leaks into whatever this room name's next
+      // line turns out to be.
+      _pendingSystemHolds.remove(line.roomName);
     }
   }
 
+  /// Contract: callers disconnect the room first — this never does it itself.
   void notifyEnded() {
     // Remove the active line (or all if unknown)
     if (_activeRoomName != null) {
-      _lines.remove(_activeRoomName);
+      final ended = _activeRoomName!;
+      if (_lines.remove(ended) != null) _reportLineEnded(ended);
       if (_lines.isNotEmpty) {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
         next.isOnHold = false;
+        _reportLineHold(next.roomName, false);
+        // notifyEnded is sync (called straight from the socket/CallKit
+        // handler), so the restore can't be awaited here — fire it the same
+        // way the hooks above do. heldBySystem still owns the mic in that
+        // case, same rule as everywhere else.
+        final mic = next.room.localParticipant;
+        if (mic != null && !next.heldBySystem) {
+          unawaited(() async {
+            try {
+              await mic.setMicrophoneEnabled(!next.wasMuted);
+            } catch (e) {
+              debugPrint('[CallState] notifyEnded mic restore failed: $e');
+            }
+          }());
+        }
       } else {
         _activeRoomName = null;
       }
     } else {
+      // Copy the keys: _reportLineEnded's hook can re-enter (e.g. a hook
+      // that itself starts a new call via setRoom) and mutate _lines while
+      // this loop is still walking its live key view.
+      for (final name in _lines.keys.toList()) {
+        _reportLineEnded(name);
+      }
       _lines.clear();
     }
     _bgConnecting = false;
     _bgGeneration++;
     _stateCtrl.add(_lines.isNotEmpty);
+  }
+
+  /// Cancels the background join in flight for [roomName], if that is what
+  /// is currently in flight — e.g. a system End arrived for a call CallKit
+  /// already marked answered, but whose LiveKit join hasn't produced a line
+  /// yet (see [_endBackgroundLine] in main.dart). Bumps the generation and
+  /// clears [_bgConnecting] so connectInBackground's own cancellation checks
+  /// (after the HTTP join, after the LiveKit connect, and its catch block on
+  /// outright failure) take over from here — same path a stale attempt
+  /// already takes when a newer one supersedes it. Clearing `_bgConnecting`
+  /// (not just bumping the generation) is what those three exits key their
+  /// `!_bgConnecting` guard on: it stays false until something else claims
+  /// it, telling the abandoned attempt it may still safely undo whatever
+  /// hold it placed on another line for the switch — and flips true the
+  /// moment a newer connectInBackground starts and takes that line's hold
+  /// over instead, telling the abandoned one not to touch it.
+  ///
+  /// Returns the abandoned join's conversation id — the caller needs it to
+  /// send `call_ended`, since without a line there is nowhere else in
+  /// CallStateService to read it from — or null when [roomName] is not the
+  /// join currently in flight (nothing to abandon).
+  String? abandonBackgroundConnect(String roomName) {
+    if (!_bgConnecting || _bgRoomName != roomName) return null;
+    final convId = _bgConvId;
+    _bgGeneration++;
+    _bgConnecting = false;
+    final completer = _bgCompleter;
+    if (completer != null && !completer.isCompleted) completer.complete(false);
+    _bgCompleter = null;
+    _bgRoomName = null;
+    _bgConvId = null;
+    return convId;
   }
 
   /// Connect to a LiveKit room in the background after CallKit accept.
@@ -300,21 +600,32 @@ class CallStateService {
     final completer = Completer<bool>();
     _bgCompleter = completer;
     final gen = ++_bgGeneration;
+    _bgRoomName = rName;
+    _bgConvId = convId;
 
     // Only settle our own completer: by the time a cancelled attempt unwinds,
     // a newer connect may already own _bgCompleter. Never clears _bgConnecting
     // either — whoever cancelled us has set it, or a newer attempt owns it now.
     void settleOwn(bool value) {
       if (!completer.isCompleted) completer.complete(value);
-      if (identical(_bgCompleter, completer)) _bgCompleter = null;
+      if (identical(_bgCompleter, completer)) {
+        _bgCompleter = null;
+        _bgRoomName = null;
+        _bgConvId = null;
+      }
     }
 
+    // Declared outside the try so the catch block below can undo the hold
+    // on failure — a failed join (caller hung up, network blip) must not
+    // strand line A app-held with nothing left to ever resume it.
+    CallLine? current;
     try {
       // Hold current active line, preserving mic state
-      final current = activeLine;
+      current = activeLine;
       if (current != null) {
-        current.wasMuted = !(current.room.localParticipant?.isMicrophoneEnabled() ?? false);
+        current.wasMuted = !_micWanted(current);
         current.isOnHold = true;
+        _reportLineHold(current.roomName, true);
         try {
           await current.room.localParticipant?.setMicrophoneEnabled(false);
           await current.room.localParticipant?.setCameraEnabled(false);
@@ -330,6 +641,19 @@ class CallStateService {
       // The call may have ended while the join request was in flight.
       if (gen != _bgGeneration) {
         debugPrint('[CallState] connectInBackground cancelled after join, room=$rName');
+        // Same condition as the catch block below (and the other
+        // cancellation branch past the LiveKit connect) — see
+        // abandonBackgroundConnect's doc for why !_bgConnecting is what
+        // decides whether THIS attempt still owns `current`'s hold. After
+        // endCall/notifyEnded, `current`'s line is gone too, so the
+        // identical() check alone is already false and this is a no-op.
+        if (!_bgConnecting &&
+            current != null &&
+            identical(_lines[current.roomName], current) &&
+            _activeRoomName == current.roomName &&
+            current.isOnHold) {
+          await _undoAppHold(current);
+        }
         settleOwn(false);
         return false;
       }
@@ -362,6 +686,14 @@ class CallStateService {
         try {
           await r.disconnect();
         } catch (_) {}
+        // Same condition, same reasoning as the cancel-after-join branch above.
+        if (!_bgConnecting &&
+            current != null &&
+            identical(_lines[current.roomName], current) &&
+            _activeRoomName == current.roomName &&
+            current.isOnHold) {
+          await _undoAppHold(current);
+        }
         settleOwn(false);
         return false;
       }
@@ -390,9 +722,14 @@ class CallStateService {
       // stack trace pointing back here; it looks like the chat feature
       // itself is broken, not this one missing argument.
       setRoom(r, rName, convId, e2eeKeyValue: e2eeKey, lkToken: token);
-      try {
-        await r.localParticipant?.setMicrophoneEnabled(true);
-      } catch (_) {}
+      // A pending system hold (see setRoom/_pendingSystemHolds) means this
+      // very line started heldBySystem — only applySystemResume may turn
+      // its mic on then, same rule as everywhere else.
+      if (!(_lines[rName]?.heldBySystem ?? false)) {
+        try {
+          await r.localParticipant?.setMicrophoneEnabled(true);
+        } catch (_) {}
+      }
       try {
         await Future.delayed(const Duration(milliseconds: 500));
         const audioChannel = MethodChannel('taler_id/audio');
@@ -406,6 +743,26 @@ class CallStateService {
     } catch (e) {
       debugPrint('[CallState] connectInBackground failed: $e');
       if (gen == _bgGeneration) _bgConnecting = false;
+      // Undo the hold placed on the previous line above, but only if it's
+      // still exactly what we left it as: a newer connect/switch may have
+      // already moved it on, and clobbering that would be worse than the
+      // original bug. !_bgConnecting, not gen == _bgGeneration: this join
+      // may have been abandoned (abandonBackgroundConnect also bumps the
+      // generation), and an abandoned join is *likely* to fail right here —
+      // call_ended was just sent for this room, so the server may refuse
+      // the join or close the room mid-connect. gen == _bgGeneration would
+      // then read false and skip this, stranding `current` held forever —
+      // in the service and in CallKit's own app-hold. !_bgConnecting stays
+      // true after an abandon (nothing has claimed the flag since) and
+      // correctly reads false once a newer connect owns `current` instead
+      // (same reasoning as the two cancellation branches above).
+      if (!_bgConnecting &&
+          current != null &&
+          identical(_lines[current.roomName], current) &&
+          _activeRoomName == current.roomName &&
+          current.isOnHold) {
+        await _undoAppHold(current);
+      }
       settleOwn(false);
       return false;
     }

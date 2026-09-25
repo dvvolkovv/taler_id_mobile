@@ -430,6 +430,8 @@
   "voiceCopyLink": "Bağlantıyı kopyala",
   "voiceAddParticipant": "Katılımcı ekle",
   "voiceReconnecting": "Yeniden bağlanıyor...",
+  "callHeldBySystem": "Arama beklemede — başka bir arama sürüyor",
+  "callResumeFromHold": "Aramaya dön",
   "voiceConnectionError": "Bağlantı hatası",
   "voiceClose": "Kapat",
   "voiceCalling": "Aranıyor...",

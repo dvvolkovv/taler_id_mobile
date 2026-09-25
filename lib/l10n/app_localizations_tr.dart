@@ -1439,6 +1439,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voiceReconnecting => 'Yeniden bağlanıyor...';
 
   @override
+  String get callHeldBySystem => 'Arama beklemede — başka bir arama sürüyor';
+
+  @override
+  String get callResumeFromHold => 'Aramaya dön';
+
+  @override
   String get voiceConnectionError => 'Bağlantı hatası';
 
   @override

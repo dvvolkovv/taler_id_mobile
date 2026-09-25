@@ -1434,6 +1434,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get voiceReconnecting => 'در حال اتصال مجدد...';
 
   @override
+  String get callHeldBySystem => 'تماس در انتظار است — تماس دیگری در جریان است';
+
+  @override
+  String get callResumeFromHold => 'بازگشت به تماس';
+
+  @override
   String get voiceConnectionError => 'خطای اتصال';
 
   @override

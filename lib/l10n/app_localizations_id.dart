@@ -1437,6 +1437,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceReconnecting => 'Menyambungkan kembali...';
 
   @override
+  String get callHeldBySystem =>
+      'Panggilan ditahan — ada panggilan lain yang berlangsung';
+
+  @override
+  String get callResumeFromHold => 'Kembali ke panggilan';
+
+  @override
   String get voiceConnectionError => 'Kesalahan koneksi';
 
   @override

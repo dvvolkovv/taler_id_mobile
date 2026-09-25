@@ -1434,6 +1434,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get voiceReconnecting => 'Đang kết nối lại...';
 
   @override
+  String get callHeldBySystem => 'Cuộc gọi đang chờ — đang có cuộc gọi khác';
+
+  @override
+  String get callResumeFromHold => 'Quay lại cuộc gọi';
+
+  @override
   String get voiceConnectionError => 'Lỗi kết nối';
 
   @override

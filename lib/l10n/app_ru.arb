@@ -614,6 +614,8 @@
   "voiceCopyLink": "Скопировать ссылку",
   "voiceAddParticipant": "Добавить участника",
   "voiceReconnecting": "Переподключение...",
+  "callHeldBySystem": "Разговор на удержании — идёт другой звонок",
+  "callResumeFromHold": "Вернуться к разговору",
   "voiceConnectionError": "Ошибка подключения",
   "voiceClose": "Закрыть",
   "voiceCalling": "Вызов...",

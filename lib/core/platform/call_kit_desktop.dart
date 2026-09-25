@@ -32,6 +32,23 @@ class CallKitDesktop implements CallKitPlatform {
   Future<void> endAllCalls() async {}
 
   @override
+  Future<void> startCall({
+    required String uuid,
+    required String callerName,
+    required String handle,
+    Map<String, dynamic>? extra,
+  }) async {}
+
+  @override
+  Future<void> setCallConnected(String uuid) async {}
+
+  @override
+  Future<void> setHeld(String uuid, bool onHold) async {}
+
+  @override
+  Future<void> setMuted(String uuid, bool muted) async {}
+
+  @override
   Future<List<dynamic>> activeCalls() async => [];
 
   @override

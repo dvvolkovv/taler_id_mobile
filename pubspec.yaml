@@ -1,7 +1,7 @@
 name: taler_id_mobile
 description: Taler ID — мобильное приложение для iOS и Android
 publish_to: 'none'
-version: 1.1.33+234
+version: 1.1.34+235
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
@@ -85,6 +85,8 @@ dependencies:
   wakelock_plus: ^1.2.8
 
   # Native incoming call UI (like a real phone call)
+  # Resolved from packages/flutter_callkit_incoming via dependency_overrides
+  # (patched copy, see its PATCHES.md). Bumping this constraint does nothing.
   flutter_callkit_incoming: ^2.0.2
 
   # File picking and URL launching
@@ -143,6 +145,9 @@ dependencies:
 
 dependency_overrides:
   path_provider_foundation: 2.3.2
+  # Patched copy — see packages/flutter_callkit_incoming/PATCHES.md.
+  flutter_callkit_incoming:
+    path: packages/flutter_callkit_incoming
 
 dev_dependencies:
   integration_test:

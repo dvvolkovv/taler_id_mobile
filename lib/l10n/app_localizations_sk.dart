@@ -1438,6 +1438,12 @@ class AppLocalizationsSk extends AppLocalizations {
   String get voiceReconnecting => 'Opätovné pripojenie...';
 
   @override
+  String get callHeldBySystem => 'Hovor je podržaný — prebieha iný hovor';
+
+  @override
+  String get callResumeFromHold => 'Vrátiť sa k hovoru';
+
+  @override
   String get voiceConnectionError => 'Chyba pripojenia';
 
   @override

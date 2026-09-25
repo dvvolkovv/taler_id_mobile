@@ -19,6 +19,44 @@ import 'call_kit.dart';
 class CallKitMobile implements CallKitPlatform {
   final _controller = StreamController<CallKitEvent>.broadcast();
 
+  /// One name for every report. It sets no visible label: the plugin reads
+  /// it once, from the first call reported, and iOS 14+ ignores it
+  /// (`CXProviderConfiguration.localizedName` is no longer supported) and
+  /// shows the app's display name.
+  static const _appName = 'Taler ID';
+
+  /// Every conversation stays in CallKit for as long as it lasts (see
+  /// docs/superpowers/specs/2026-09-24-ios-calls-through-callkit-design.md):
+  /// holdable, so WhatsApp and cellular calls offer "Hold & Accept"; and the
+  /// plugin keeps its hands off the audio session — CallKit activates it and
+  /// the app sets its category (CallKitAudioBridge).
+  ///
+  /// The audioSession* fields below are only read inside the plugin's own
+  /// `configureAudioSession()` (Swift), which no-ops whenever
+  /// `configureAudioSession` is false — so they're inert today (the 44100
+  /// sample rate does not force WebRTC's own). Kept so that, if this flag
+  /// were ever flipped, the plugin would apply these values (mode
+  /// `voiceChat`, as the spec above pins) rather than its own defaults.
+  /// The plugin reads the flag — and these values — from the last reported
+  /// call only, so every report path, the VoIP push in AppDelegate.swift
+  /// included, must pass `configureAudioSession: false`.
+  static const _iosCallParams = IOSParams(
+    iconName: 'CallKitLogo',
+    supportsVideo: false,
+    maximumCallGroups: 2,
+    maximumCallsPerCallGroup: 1,
+    audioSessionMode: 'voiceChat',
+    audioSessionActive: true,
+    audioSessionPreferredSampleRate: 44100.0,
+    audioSessionPreferredIOBufferDuration: 0.005,
+    configureAudioSession: false,
+    supportsDTMF: false,
+    supportsHolding: true,
+    supportsGrouping: false,
+    supportsUngrouping: false,
+    ringtonePath: 'bumer_ringtone.caf',
+  );
+
   CallKitMobile() {
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       if (event == null) return;
@@ -48,7 +86,7 @@ class CallKitMobile implements CallKitPlatform {
     final params = CallKitParams(
       id: uuid,
       nameCaller: callerName,
-      appName: 'Taler ID',
+      appName: _appName,
       handle: handle ?? roomName,
       type: isVideo ? 1 : 0,
       avatar: avatar,
@@ -68,21 +106,7 @@ class CallKitMobile implements CallKitPlatform {
         missedCallNotificationChannelName: androidMissedChannelName,
         isShowCallID: false,
       ),
-      ios: const IOSParams(
-        iconName: 'CallKitLogo',
-        supportsVideo: false,
-        maximumCallGroups: 2,
-        maximumCallsPerCallGroup: 1,
-        audioSessionMode: 'default',
-        audioSessionActive: true,
-        audioSessionPreferredSampleRate: 44100.0,
-        audioSessionPreferredIOBufferDuration: 0.005,
-        supportsDTMF: false,
-        supportsHolding: false,
-        supportsGrouping: false,
-        supportsUngrouping: false,
-        ringtonePath: 'bumer_ringtone.caf',
-      ),
+      ios: _iosCallParams,
     );
     await FlutterCallkitIncoming.showCallkitIncoming(params);
   }
@@ -92,6 +116,35 @@ class CallKitMobile implements CallKitPlatform {
 
   @override
   Future<void> endAllCalls() => FlutterCallkitIncoming.endAllCalls();
+
+  @override
+  Future<void> startCall({
+    required String uuid,
+    required String callerName,
+    required String handle,
+    Map<String, dynamic>? extra,
+  }) =>
+      FlutterCallkitIncoming.startCall(CallKitParams(
+        id: uuid,
+        nameCaller: callerName,
+        appName: _appName,
+        handle: handle,
+        type: 0,
+        extra: extra,
+        ios: _iosCallParams,
+      ));
+
+  @override
+  Future<void> setCallConnected(String uuid) =>
+      FlutterCallkitIncoming.setCallConnected(uuid);
+
+  @override
+  Future<void> setHeld(String uuid, bool onHold) =>
+      FlutterCallkitIncoming.holdCall(uuid, isOnHold: onHold);
+
+  @override
+  Future<void> setMuted(String uuid, bool muted) =>
+      FlutterCallkitIncoming.muteCall(uuid, isMuted: muted);
 
   @override
   Future<List<dynamic>> activeCalls() async {

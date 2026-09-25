@@ -1441,6 +1441,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get voiceReconnecting => 'Reconectando...';
 
   @override
+  String get callHeldBySystem =>
+      'Chamada em espera — outra chamada em andamento';
+
+  @override
+  String get callResumeFromHold => 'Voltar à chamada';
+
+  @override
   String get voiceConnectionError => 'Erro de conexão';
 
   @override
