@@ -423,8 +423,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }
 
   /// Ends the CallKit call identified by [roomName] stored in its extra data.
-  /// Falls back to endAllCalls() only when [wasInCallRoom] matches or [fallbackEndAll] is true.
-  /// This prevents stale `call_ended` events from killing an unrelated incoming VoIP call.
+  /// A conversation in CallKit (iOS) is ended through the registry and nothing
+  /// else is touched. Otherwise falls back to dismissing ringing calls (the old
+  /// endAllCalls() when the registry is off) only when [wasInCallRoom] matches
+  /// or [fallbackEndAll] is true, so stale `call_ended` events can't kill an
+  /// unrelated incoming VoIP call.
   Future<void> _endCallKitCallForRoom(
     String roomName, {
     String? wasInCallRoom,
