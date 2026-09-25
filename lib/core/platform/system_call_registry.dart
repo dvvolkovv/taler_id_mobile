@@ -547,7 +547,11 @@ class SystemCallRegistry {
     // Hung up before CallKit confirmed the start: startOutgoing stops waiting
     // now instead of timing out.
     if (entry != null && !entry.started.isCompleted) entry.started.complete(false);
-    await _syncManaged();
+    // A native side still holding this call keeps WebRTC in manual audio —
+    // the next call would be silent. Retry once, and say so loudly if not.
+    if (!await _syncManaged() && !await _syncManaged()) {
+      debugPrint('[SystemCall] WARNING: native still manages $uuid — audio may stay manual until the next sync');
+    }
     try {
       await _callKit.endCall(uuid);
     } catch (e) {
