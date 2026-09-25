@@ -2133,9 +2133,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   Future<void> _toggleMute() async {
     final newMuted = !_muted;
-    await _room?.localParticipant?.setMicrophoneEnabled(!newMuted);
-    setState(() => _muted = newMuted);
     final room = _roomName;
+    if (_heldBySystem && room != null) {
+      // On hold: record what the user wants, resume applies it — touching
+      // the mic directly now would fight whatever the hold already did.
+      await CallStateService.instance.setLineMuted(room, newMuted);
+    } else {
+      await _room?.localParticipant?.setMicrophoneEnabled(!newMuted);
+    }
+    setState(() => _muted = newMuted);
     if (_systemCallManaged && room != null) {
       unawaited(SystemCallRegistry.instance.setMuted(room, newMuted));
     }
