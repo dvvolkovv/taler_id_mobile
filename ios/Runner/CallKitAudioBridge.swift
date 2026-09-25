@@ -4,6 +4,13 @@ import CallKit
 import Flutter
 import WebRTC
 import flutter_callkit_incoming
+/// The bridge's log lines are what a silent call is diagnosed from, so they
+/// must be readable in the device log without a debugger. NSLog/os_log hide
+/// *arguments* as <private> there; a finished message used as the format
+/// string is shown in full. '%' is escaped so the text can't act as a format.
+private func bridgeLog(_ message: String) {
+  NSLog(message.replacingOccurrences(of: "%", with: "%%"))
+}
 
 /// Single meeting point of CallKit and WebRTC for Taler ID conversations.
 /// While a conversation is in CallKit, CallKit owns the audio session and
@@ -50,6 +57,7 @@ final class CallKitAudioBridge: NSObject {
   var isManaging: Bool { !registeredByDart.isEmpty || !answeredHere.isEmpty }
 
   func register(messenger: FlutterBinaryMessenger) {
+    bridgeLog("[CallKitAudio] registered")
     let ch = FlutterMethodChannel(name: "taler_id/callkit_audio", binaryMessenger: messenger)
     ch.setMethodCallHandler { [weak self] call, result in
       guard let self else { result(nil); return }
@@ -63,7 +71,7 @@ final class CallKitAudioBridge: NSObject {
         }
         let uuids = ids.compactMap { UUID(uuidString: $0) }
         if uuids.count != ids.count {
-          NSLog("[CallKitAudio] setManagedCalls: dropped %ld malformed id(s)", ids.count - uuids.count)
+          bridgeLog("[CallKitAudio] setManagedCalls: dropped \(ids.count - uuids.count) malformed id(s)")
         }
         self.setManagedCalls(uuids)
         result(nil)
@@ -89,7 +97,7 @@ final class CallKitAudioBridge: NSObject {
       try AVAudioSession.sharedInstance().setCategory(
         .playAndRecord, mode: .voiceChat, options: [.allowBluetooth, .allowBluetoothA2DP])
     } catch {
-      NSLog("[CallKitAudio] prepareCallAudio failed: %@", "\(error)")
+      bridgeLog("[CallKitAudio] prepareCallAudio failed: \(String(describing: error))")
     }
   }
 
@@ -132,7 +140,7 @@ final class CallKitAudioBridge: NSObject {
 
   func didActivate(_ session: AVAudioSession) {
     activatedSession = session
-    NSLog("[CallKitAudio] didActivate managing=%@", "\(isManaging)")
+    bridgeLog("[CallKitAudio] didActivate managing=\(self.isManaging)")
     // Relies on the plugin calling this BEFORE its own fake "interruption
     // ended" notification (PATCHES.md, "Оставлено как есть") — WebRTC must
     // already be enabled by the time that notification lands.
@@ -141,7 +149,7 @@ final class CallKitAudioBridge: NSObject {
 
   func didDeactivate(_ session: AVAudioSession) {
     activatedSession = nil
-    NSLog("[CallKitAudio] didDeactivate managing=%@", "\(isManaging)")
+    bridgeLog("[CallKitAudio] didDeactivate managing=\(self.isManaging)")
     let rtc = RTCAudioSession.sharedInstance()
     if webRTCKnowsActive {
       rtc.audioSessionDidDeactivate(session)
@@ -168,7 +176,7 @@ final class CallKitAudioBridge: NSObject {
     let othersLeft = observer.calls.contains { other in
       other.uuid != call.uuid && !other.hasEnded && !managed.contains(other.uuid)
     }
-    NSLog("[CallKitAudio] other call ended, othersLeft=%@", "\(othersLeft)")
+    bridgeLog("[CallKitAudio] other call ended, othersLeft=\(othersLeft)")
     if !othersLeft {
       channel?.invokeMethod("otherCallsEnded", arguments: nil)
     }
@@ -191,7 +199,7 @@ final class CallKitAudioBridge: NSObject {
   private func updateManaged(_ change: () -> Void) {
     let wasManaging = isManaging
     change()
-    NSLog("[CallKitAudio] managed=%ld sessionActive=%@", managedCalls.count, "\(activatedSession != nil)")
+    bridgeLog("[CallKitAudio] managed=\(self.managedCalls.count) sessionActive=\(self.activatedSession != nil)")
     if !wasManaging && isManaging, let session = activatedSession {
       // CallKit switched the session on before the call was known as ours.
       enableWebRTCAudio(session)
