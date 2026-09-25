@@ -17,9 +17,6 @@ import '../../features/messenger/data/datasources/messenger_remote_datasource.da
 import '../../firebase_options.dart';
 import '../router/app_router.dart';
 
-// toCallkitId lived here; main.dart and the dashboard still import it from here.
-export '../platform/callkit_support.dart' show toCallkitId;
-
 /// Notification strings resolved by locale (no BuildContext needed).
 class _NotifStrings {
   final String channelMessages;

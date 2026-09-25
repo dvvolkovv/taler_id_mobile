@@ -17,6 +17,7 @@ import '../../../core/services/call_state_service.dart';
 // in main.dart. Use NotificationService.callEvents (the shared broadcast proxy) instead.
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/platform/call_kit.dart';
+import '../../../core/platform/system_call_registry.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
@@ -56,6 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription? _gcEndedSub;
   StreamSubscription? _gcInviteSub;
   StreamSubscription? _callkitSub;
+  StreamSubscription<SystemCallEvent>? _systemCallSub;
   StreamSubscription? _shareIntentSub;
   String? _showingCallDialogRoom;
   String? _pendingCallRoute; // queued when accept fires while phone is locked
@@ -135,10 +137,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           if (callId != null) {
             CallKitPlatform.instance.endCall(callId);
           } else {
-            CallKitPlatform.instance.endAllCalls();
+            SystemCallRegistry.instance.dismissRinging();
           }
         }
       } else if (event.type == CallKitEvent.typeEnded) {
+        // iOS: our conversations' ends come uuid-filtered from the registry
+        // (_onSystemCallEnded); a raw ENDED may belong to any CallKit call.
+        if (SystemCallRegistry.instance.enabled) return;
         // User pressed "End" on CallKit native UI during an active call.
         // Only handle here if VoiceCallScreen is NOT showing — if it is,
         // VoiceCallScreen's own listener will call _hangUp().
@@ -180,6 +185,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         }
       }
     });
+    // iOS: a CallKit conversation ended from the system UI while the call
+    // runs behind the banner.
+    _systemCallSub = SystemCallRegistry.instance.events
+        .where((e) => e is SystemCallEndedBySystem)
+        .listen((e) => _onSystemCallEnded(e.roomName));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Runs first and unconditionally: the call-routing branches below return
       // early, and everything after them used to be skipped whenever the app
@@ -312,7 +322,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         .listen((payload) async {
       debugPrint('[Dashboard] gcEndedStream fired: $payload');
       try {
-        await CallKitPlatform.instance.endAllCalls();
+        await SystemCallRegistry.instance.dismissRinging();
       } catch (_) {}
     });
   }
@@ -383,6 +393,35 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     });
   }
 
+  /// The active line was ended from the system call UI (End, "End & Accept")
+  /// while the call screen is closed. On the call screen it hangs up itself;
+  /// held background lines are handled in main.dart.
+  Future<void> _onSystemCallEnded(String? roomName) async {
+    try {
+      final loc = GoRouter.of(context).routerDelegate.currentConfiguration.uri.path;
+      if (loc.startsWith('/dashboard/voice')) return;
+    } catch (_) {}
+    // No room: an outgoing call ended before its room existed — the call
+    // screen handles that by uuid; falling back to the active line here
+    // would end another call.
+    if (roomName == null) return;
+    final cs = CallStateService.instance;
+    final rn = roomName;
+    if (rn != cs.roomName) return;
+    final cId = cs.conversationId;
+    if (cId != null) {
+      try { sl<MessengerRemoteDataSource>().sendCallEnded(cId, rn); } catch (_) {}
+      try {
+        await sl<DioClient>().post(
+          '/messenger/call-ended',
+          data: {'conversationId': cId, 'roomName': rn},
+          fromJson: (d) => d,
+        );
+      } catch (_) {}
+    }
+    await cs.endLine(rn);
+  }
+
   /// Ends the CallKit call identified by [roomName] stored in its extra data.
   /// Falls back to endAllCalls() only when [wasInCallRoom] matches or [fallbackEndAll] is true.
   /// This prevents stale `call_ended` events from killing an unrelated incoming VoIP call.
@@ -392,6 +431,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     bool fallbackEndAll = false,
   }) async {
     try {
+      final registry = SystemCallRegistry.instance;
+      if (registry.isConversation(roomName)) {
+        await registry.endConversation(roomName);
+        return;
+      }
       final calls = await CallKitPlatform.instance.activeCalls();
       for (final call in calls) {
         final callMap = call as Map;
@@ -404,12 +448,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
       // No matching call found by roomName
       if (fallbackEndAll || wasInCallRoom == roomName) {
-        await CallKitPlatform.instance.endAllCalls();
+        await SystemCallRegistry.instance.dismissRinging();
       }
       // Otherwise: stale/unrelated event — leave other CallKit calls untouched
     } catch (_) {
       if (fallbackEndAll || wasInCallRoom == roomName) {
-        CallKitPlatform.instance.endAllCalls();
+        SystemCallRegistry.instance.dismissRinging();
       }
     }
   }
@@ -536,6 +580,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           }
           return true;
         }
+        if (call['isAccepted'] == true || call['accepted'] == true) {
+          await SystemCallRegistry.instance.adoptAnswered(
+              uuid: (call['id'] ?? '').toString(),
+              roomName: roomName,
+              conversationId: convId);
+        }
         // Connect to LiveKit immediately if not already connected (1-on-1)
         if (!CallStateService.instance.isInCall) {
           CallStateService.instance.connectInBackground(roomName, convId, e2eeKey: e2eeKey);
@@ -567,6 +617,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _gcEndedSub?.cancel();
     _gcInviteSub?.cancel();
     _callkitSub?.cancel();
+    _systemCallSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
     WakeWordService.instance.stop();
@@ -830,7 +881,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                     onTap: () {
                       Navigator.of(context, rootNavigator: true).pop();
                       // Dismiss native CallKit ringing
-                      CallKitPlatform.instance.endAllCalls();
+                      SystemCallRegistry.instance.endRingingForRoom(roomName);
                       // Notify caller that the call was declined
                       if (convId.isNotEmpty && roomName.isNotEmpty) {
                         try {
@@ -864,7 +915,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       // end up in the same room as a second participant.
                       if (CallStateService.instance.isAnsweredElsewhere(roomName)) {
                         debugPrint('[Dashboard] in-app accept SKIPPED: $roomName answered elsewhere');
-                        try { await CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+                        try { await SystemCallRegistry.instance.endRingingForRoom(roomName); } catch (_) {}
                         return;
                       }
                       // Announce accept to server IMMEDIATELY so sibling devices
@@ -875,16 +926,22 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                           sl<MessengerRemoteDataSource>().sendCallAnswered(convId, roomName);
                         } catch (_) {}
                       }
+                      // iOS: answer the ringing CallKit call — from here the
+                      // call goes exactly as an answer on the CallKit UI does
+                      // (main.dart's accept handler connects and navigates),
+                      // and it stays in CallKit. False at once when CallKit
+                      // has no call for this room (Focus/DND filtered it).
+                      if (await SystemCallRegistry.instance.answerRinging(roomName)) return;
                       _acceptingInApp = true;
                       try {
-                        await CallKitPlatform.instance.endCall(toCallkitId(roomName));
+                        await SystemCallRegistry.instance.endRingingForRoom(roomName);
                       } catch (_) {}
                       try {
-                        await CallKitPlatform.instance.endAllCalls();
+                        await SystemCallRegistry.instance.dismissRinging();
                       } catch (_) {}
                       for (final delay in [500, 1500, 3000]) {
                         Future.delayed(Duration(milliseconds: delay), () {
-                          try { CallKitPlatform.instance.endAllCalls(); } catch (_) {}
+                          try { SystemCallRegistry.instance.dismissRinging(); } catch (_) {}
                         });
                       }
                       Future.delayed(const Duration(seconds: 5), () => _acceptingInApp = false);

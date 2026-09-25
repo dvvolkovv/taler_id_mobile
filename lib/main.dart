@@ -34,6 +34,7 @@ import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call
 import 'package:taler_id_mobile/features/voice/presentation/bloc/group_mesh_call_event.dart';
 import 'core/platform/call_audio_configuration.dart';
 import 'core/platform/call_kit.dart';
+import 'core/platform/callkit_support.dart';
 import 'core/platform/platform_utils.dart';
 import 'core/platform/system_call_registry.dart';
 import 'features/dashboard/desktop/window/window_setup.dart';
