@@ -900,6 +900,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (uuid != null && mounted && !_hangingUp && _systemCallUuid == null) {
         _systemCallUuid = uuid;
       }
+    }).catchError((Object e) {
+      debugPrint('[SystemCall] registration failed: $e');
+      return null;
     }));
   }
 
@@ -932,6 +935,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         CallStateService.instance.isAnsweredElsewhere(incomingRoom)) {
       debugPrint('[VoiceCall] _connect ABORTED: $incomingRoom already answered on another device');
       _settingUp = false;
+      // Answered through CallKit here, but a sibling device won the race —
+      // this screen isn't joining the room, so nobody else ends the CallKit
+      // call it is already sitting in.
+      _systemCallUuid = SystemCallRegistry.instance.uuidForRoom(incomingRoom);
+      final loserUuid = _systemCallUuid;
+      if (loserUuid != null) {
+        _systemCallUuid = null;
+        unawaited(SystemCallRegistry.instance.endConversationByUuid(loserUuid));
+      }
       if (mounted) {
         setState(() => _connecting = false);
         _navigateBack();
@@ -1288,6 +1300,22 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       _retryMicEnable();
     } catch (e) {
       debugPrint('[VoiceCall] _connect() error: $e');
+      // A CallKit call was started before the HTTP join — if the join or the
+      // LiveKit connect itself failed, nothing else ever ends it, and the
+      // user would be left in a phantom CallKit call while this screen shows
+      // an error. The Close button's _hangUp stays harmless either way — it
+      // is idempotent on an already-ended (or never-started) CallKit call.
+      final endedUuid = _systemCallUuid;
+      if (endedUuid != null) {
+        _systemCallUuid = null;
+        try { await SystemCallRegistry.instance.endConversationByUuid(endedUuid); } catch (_) {}
+      }
+      final pendingRegistration = _systemCallRegistration;
+      if (pendingRegistration != null) {
+        unawaited(pendingRegistration.then((uuid) {
+          if (uuid != null) SystemCallRegistry.instance.endConversationByUuid(uuid);
+        }));
+      }
       _settingUp = false;
       setState(() {
         _error = e.toString();
