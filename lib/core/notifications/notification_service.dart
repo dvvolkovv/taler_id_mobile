@@ -12,6 +12,7 @@ import '../platform/call_kit.dart';
 import '../platform/callkit_support.dart';
 import '../platform/fcm_messaging.dart';
 import '../platform/secure_storage.dart';
+import '../platform/system_call_registry.dart';
 import '../storage/secure_storage_service.dart';
 import '../../features/messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../firebase_options.dart';
@@ -236,13 +237,22 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     // device. Only dismiss RINGING calls — never an accepted one (the
     // answered-elsewhere cancel push also reaches the answering device).
     var hasAccepted = false;
-    try {
-      final active = await CallKitPlatform.instance.activeCalls();
-      hasAccepted = active.any((c) =>
-          c is Map && (c['isAccepted'] == true || c['accepted'] == true));
-    } catch (_) {}
-    if (!hasAccepted) {
-      await CallKitPlatform.instance.endAllCalls();
+    final roomName = message.data['roomName'] as String? ?? '';
+    final registry = SystemCallRegistry.instance;
+    if (registry.enabled && roomName.isNotEmpty) {
+      // iOS: end only this room's ringing call. Any other call — a
+      // conversation in progress, possibly the one this device just answered —
+      // is left alone.
+      hasAccepted = await registry.endRingingForRoom(roomName);
+    } else {
+      try {
+        final active = await CallKitPlatform.instance.activeCalls();
+        hasAccepted = active.any((c) =>
+            c is Map && (c['isAccepted'] == true || c['accepted'] == true));
+      } catch (_) {}
+      if (!hasAccepted) {
+        await CallKitPlatform.instance.endAllCalls();
+      }
     }
     final answeredElsewhere =
         message.data['fromName'] == 'answered_elsewhere';
@@ -475,13 +485,22 @@ class NotificationService {
         // device killed its own accepted call via endAllCalls() and showed
         // a bogus "missed call from answered_elsewhere" notification.
         var hasAccepted = false;
-        try {
-          final active = await CallKitPlatform.instance.activeCalls();
-          hasAccepted = active.any((c) =>
-              c is Map && (c['isAccepted'] == true || c['accepted'] == true));
-        } catch (_) {}
-        if (!hasAccepted) {
-          await CallKitPlatform.instance.endAllCalls();
+        final roomName = message.data['roomName'] as String? ?? '';
+        final registry = SystemCallRegistry.instance;
+        if (registry.enabled && roomName.isNotEmpty) {
+          // iOS: end only this room's ringing call. Any other call — a
+          // conversation in progress, possibly the one this device just answered —
+          // is left alone.
+          hasAccepted = await registry.endRingingForRoom(roomName);
+        } else {
+          try {
+            final active = await CallKitPlatform.instance.activeCalls();
+            hasAccepted = active.any((c) =>
+                c is Map && (c['isAccepted'] == true || c['accepted'] == true));
+          } catch (_) {}
+          if (!hasAccepted) {
+            await CallKitPlatform.instance.endAllCalls();
+          }
         }
         final answeredElsewhere =
             message.data['fromName'] == 'answered_elsewhere';
