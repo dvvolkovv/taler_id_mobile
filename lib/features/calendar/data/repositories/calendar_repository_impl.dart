@@ -40,18 +40,53 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       // returns these events, so upserting them would resurrect a just-deleted
       // event on the next refresh (the reappear-after-tab-switch bug). Skip
       // them until the delete op replays and the server stops returning them.
-      final pendingDeleteIds = (await _outbox.pending())
+      // Only ops that are still live (not permanently dead) hide their entity —
+      // a dead op lets the item reappear so the true server state wins.
+      final pendingOps = (await _outbox.pending())
+          .where((o) => o.status != OutboxOpStatus.failedDead)
+          .toList();
+      final pendingDeleteIds = pendingOps
           .where((o) => o.feature == 'calendar' && o.op == OutboxOpKind.delete)
           .map((o) => o.entityId)
           .toSet();
+      // Real-Task ops (feature `task`) hide the synthetic calendar entity
+      // "task:{taskId}:{YYYY-MM-DD}" while a delete/status write is in flight, so
+      // the just-deleted/completed task doesn't flash back until replay confirms.
+      final taskDeleteIds = <String>{}; // whole task gone → hide every occurrence
+      final taskStatusAllIds = <String>{}; // one-off status change → hide all
+      final taskStatusDates = <String>{}; // routine day → hide "task:id:date"
+      for (final o in pendingOps) {
+        if (o.feature != 'task') continue;
+        if (o.op == OutboxOpKind.delete) {
+          taskDeleteIds.add(o.entityId);
+        } else if (o.op == OutboxOpKind.update) {
+          final occ = o.payload?['occurrenceDate'] as String?;
+          if (occ != null) {
+            taskStatusDates.add('task:${o.entityId}:$occ');
+          } else {
+            taskStatusAllIds.add(o.entityId);
+          }
+        }
+      }
+      bool taskHidden(String entityId) {
+        final p = _parseTaskViewId(entityId);
+        if (p == null) return false;
+        final realId = p.$1;
+        if (taskDeleteIds.contains(realId)) return true;
+        if (taskStatusAllIds.contains(realId)) return true;
+        if (taskStatusDates.contains(entityId)) return true;
+        return false;
+      }
+
       final remoteIds = remoteList
           .map((m) => m['id'] as String)
-          .where((id) => !pendingDeleteIds.contains(id))
+          .where((id) => !pendingDeleteIds.contains(id) && !taskHidden(id))
           .toSet();
       final localAll = await _local.getAll();
       for (final r in remoteList) {
         final entity = _entityFromServerJson(r);
         if (pendingDeleteIds.contains(entity.id)) continue; // deletion in flight
+        if (taskHidden(entity.id)) continue; // task delete/status in flight
         final existing = await _local.getById(entity.id);
         if (existing != null && existing.localPending) continue;
         await _local.upsert(entity);
@@ -211,6 +246,62 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       feature: 'calendar',
       op: OutboxOpKind.delete,
       entityId: id,
+      createdAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  /// Parse a synthetic task calendar id "task:{taskId}:{YYYY-MM-DD}" →
+  /// (taskId, date). Returns null for a non-task id. Mirrors the parser in
+  /// the calendar screen (kept here so refresh can filter in-flight task ops).
+  (String, String)? _parseTaskViewId(String id) {
+    if (!id.startsWith('task:')) return null;
+    final rest = id.substring(5);
+    final i = rest.lastIndexOf(':');
+    if (i <= 0 || i >= rest.length - 1) return null;
+    return (rest.substring(0, i), rest.substring(i + 1));
+  }
+
+  @override
+  Future<void> deleteTask({required String taskId, required String viewId}) async {
+    // Optimistic: remove the tapped occurrence now; refresh() hides every
+    // "task:$taskId:*" while the delete op is live, so the whole series drops.
+    await _local.remove(viewId);
+    // Drop any queued status change for the same task — a delete supersedes it.
+    for (final o in await _outbox.pending()) {
+      if (o.feature == 'task' && o.entityId == taskId && o.op == OutboxOpKind.update) {
+        await _outbox.remove(o.opId);
+      }
+    }
+    await _outbox.enqueue(OutboxOp(
+      opId: _uuid.v4(),
+      feature: 'task',
+      op: OutboxOpKind.delete,
+      entityId: taskId,
+      createdAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  @override
+  Future<void> setTaskStatus({
+    required String taskId,
+    required String status,
+    String? occurrenceDate,
+    required String viewId,
+  }) async {
+    // done/dropped remove the item from the active calendar view (the server
+    // merge stops returning it); mirror that optimistically.
+    if (status == 'done' || status == 'dropped') {
+      await _local.remove(viewId);
+    }
+    await _outbox.enqueue(OutboxOp(
+      opId: _uuid.v4(),
+      feature: 'task',
+      op: OutboxOpKind.update,
+      entityId: taskId,
+      payload: <String, dynamic>{
+        'status': status,
+        if (occurrenceDate != null) 'occurrenceDate': occurrenceDate,
+      },
       createdAt: DateTime.now().toUtc(),
     ));
   }

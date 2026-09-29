@@ -144,6 +144,7 @@ import '../../features/calendar/data/datasources/calendar_remote_datasource.dart
 import '../../features/calendar/data/datasources/task_remote_datasource.dart';
 import '../../features/calendar/data/repositories/calendar_repository_impl.dart';
 import '../../features/calendar/data/services/calendar_outbox_replay_handler.dart';
+import '../../features/calendar/data/services/task_outbox_replay_handler.dart';
 import '../../features/calendar/domain/repositories/i_calendar_repository.dart';
 import '../../features/contacts/data/datasources/contacts_local_datasource.dart';
 import '../../features/contacts/data/repositories/contacts_repository_impl.dart';
@@ -807,6 +808,12 @@ Future<void> setupDependencies() async {
   if (!sl.isRegistered<TaskRemoteDataSource>()) {
     sl.registerLazySingleton<TaskRemoteDataSource>(() => TaskRemoteDataSource(sl<DioClient>()));
   }
+  // Task mutations go through the durable outbox (feature `task`) so a lost /
+  // offline delete/status is retried until the server confirms — otherwise it
+  // left a ghost the app hid locally but Linkeon still saw via MCP.
+  sl.registerLazySingleton<TaskOutboxReplayHandler>(() => TaskOutboxReplayHandler(
+        remote: sl<TaskRemoteDataSource>(),
+      ));
 
   // Contacts feature
   sl.registerLazySingleton<ContactsLocalDataSource>(() => ContactsLocalDataSource());
@@ -873,6 +880,7 @@ Future<void> setupDependencies() async {
   await sl<OutboxQueue>().onBoot();
   sl<OutboxReplayService>().registerHandler(sl<NotesOutboxReplayHandler>());
   sl<OutboxReplayService>().registerHandler(sl<CalendarOutboxReplayHandler>());
+  sl<OutboxReplayService>().registerHandler(sl<TaskOutboxReplayHandler>());
   sl<OutboxReplayService>().registerHandler(sl<ContactsOutboxReplayHandler>());
   sl<ConnectivityWatcher>().start();
   // First drain on app boot (in case we were offline last session)

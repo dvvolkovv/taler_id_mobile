@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/outbox_replay_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -166,17 +167,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (parsed == null) return;
     // Routine → mark just this day; one-off → mark the whole task.
     final occurrenceDate = event.recurrence != null ? parsed.$2 : null;
-    try {
-      await sl<TaskRemoteDataSource>().setStatus(parsed.$1, 'done', occurrenceDate: occurrenceDate);
-      _repo.refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDoneMsg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
-      }
+    // Durable: enqueue the status change (retried until confirmed) + optimistic
+    // removal happen in the repo; drain replays it now when online.
+    await _repo.setTaskStatus(
+      taskId: parsed.$1,
+      status: 'done',
+      occurrenceDate: occurrenceDate,
+      viewId: event.id,
+    );
+    unawaited(sl<OutboxReplayService>().drain());
+    _repo.refresh();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDoneMsg)));
     }
   }
 
@@ -198,17 +200,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
     if (ok != true) return;
-    try {
-      await sl<TaskRemoteDataSource>().delete(parsed.$1);
-      _repo.refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDeletedMsg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
-      }
+    // Durable delete via the outbox: removed optimistically + retried until the
+    // server confirms, so a lost/offline delete no longer leaves a ghost.
+    await _repo.deleteTask(taskId: parsed.$1, viewId: event.id);
+    unawaited(sl<OutboxReplayService>().drain());
+    _repo.refresh();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDeletedMsg)));
     }
   }
 
@@ -1039,10 +1037,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         try {
           if (_isTaskItem(event)) {
             final p = _parseTaskId(event.id);
-            if (p != null) {
-              await sl<TaskRemoteDataSource>().delete(p.$1);
-              _repo.refresh();
-            }
+            // Don't dismiss the tile if we can't resolve the task id — otherwise
+            // the row vanishes while the server keeps it (the ghost bug).
+            if (p == null) return false;
+            // Durable delete via the outbox (retried until confirmed).
+            await _repo.deleteTask(taskId: p.$1, viewId: event.id);
+            unawaited(sl<OutboxReplayService>().drain());
+            _repo.refresh();
           } else {
             await _repo.delete(eventId);
           }
