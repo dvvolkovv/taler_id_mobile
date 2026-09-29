@@ -57,6 +57,60 @@ void main() {
     verify(() => remote.setStatus('t-1', 'done', occurrenceDate: '2026-09-29')).called(1);
   });
 
+  test('field update (no status key) calls update(), not setStatus', () async {
+    when(() => remote.update('t-1', any()))
+        .thenAnswer((_) async => {'id': 't-1', 'title': 'Йога'});
+    final res = await handler.replay(_op(
+      op: OutboxOpKind.update,
+      payload: {'title': 'Йога', 'due': '2026-10-01T07:00:00.000Z'},
+    ));
+    expect(res, isA<OutboxReplaySuccess>());
+    verify(() => remote.update('t-1', {'title': 'Йога', 'due': '2026-10-01T07:00:00.000Z'}))
+        .called(1);
+    verifyNever(() => remote.setStatus(any(), any(), occurrenceDate: any(named: 'occurrenceDate')));
+  });
+
+  test('field update carrying recurrence:null still routes to update()', () async {
+    when(() => remote.update('t-1', any()))
+        .thenAnswer((_) async => {'id': 't-1'});
+    final res = await handler.replay(_op(
+      op: OutboxOpKind.update,
+      payload: {'recurrence': null},
+    ));
+    expect(res, isA<OutboxReplaySuccess>());
+    verify(() => remote.update('t-1', {'recurrence': null})).called(1);
+  });
+
+  test('field update ApiException(404) → success (task already gone, terminal)', () async {
+    when(() => remote.update('t-1', any()))
+        .thenThrow(const ApiException(statusCode: 404, message: 'Task not found'));
+    final res = await handler.replay(_op(
+      op: OutboxOpKind.update,
+      payload: {'title': 'x'},
+    ));
+    expect(res, isA<OutboxReplaySuccess>());
+  });
+
+  test('field update ApiException(500) → retry (transient)', () async {
+    when(() => remote.update('t-1', any()))
+        .thenThrow(const ApiException(statusCode: 500, message: 'server'));
+    final res = await handler.replay(_op(
+      op: OutboxOpKind.update,
+      payload: {'title': 'x'},
+    ));
+    expect(res, isA<OutboxReplayRetry>());
+  });
+
+  test('field update ApiException(400) → dead (permanent client error)', () async {
+    when(() => remote.update('t-1', any()))
+        .thenThrow(const ApiException(statusCode: 400, message: 'bad'));
+    final res = await handler.replay(_op(
+      op: OutboxOpKind.update,
+      payload: {'title': 'x'},
+    ));
+    expect(res, isA<OutboxReplayDead>());
+  });
+
   test('delete success → OutboxReplaySuccess', () async {
     when(() => remote.delete('t-1')).thenAnswer((_) async {});
     final res = await handler.replay(_op(op: OutboxOpKind.delete));

@@ -2148,6 +2148,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendarKindTask => 'Task';
 
   @override
+  String get calendarTaskEdit => 'Edit';
+
+  @override
+  String get calendarTaskDeadline => 'Deadline';
+
+  @override
   String get calendarTaskMarkDone => 'Mark done';
 
   @override
