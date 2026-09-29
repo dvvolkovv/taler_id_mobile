@@ -2155,6 +2155,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get calendarKindTask => 'Задача';
 
   @override
+  String get calendarTaskEdit => 'Изменить';
+
+  @override
+  String get calendarTaskDeadline => 'Дедлайн';
+
+  @override
   String get calendarTaskMarkDone => 'Отметить выполненной';
 
   @override

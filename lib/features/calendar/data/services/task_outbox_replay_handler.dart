@@ -26,13 +26,25 @@ class TaskOutboxReplayHandler implements OutboxReplayHandler {
               await _remote.create(op.payload ?? const {}, id: op.entityId);
           return OutboxReplayResult.success(serverEntity: serverEntity);
         case OutboxOpKind.update:
-          // update carries a status change: payload {status, occurrenceDate?}
+          // `update` carries EITHER a status change (payload has 'status':
+          // {status, occurrenceDate?} → POST /tasks/:id/status) OR a field
+          // edit (title/due/deadline/note/recurrence → PATCH /tasks/:id). The
+          // presence of 'status' is the discriminator, so a field edit must
+          // never include a 'status' key in its payload.
           final payload = op.payload ?? const {};
-          final serverEntity = await _remote.setStatus(
-            op.entityId,
-            (payload['status'] as String?) ?? 'done',
-            occurrenceDate: payload['occurrenceDate'] as String?,
-          );
+          final Map<String, dynamic> serverEntity;
+          if (payload.containsKey('status')) {
+            serverEntity = await _remote.setStatus(
+              op.entityId,
+              (payload['status'] as String?) ?? 'done',
+              occurrenceDate: payload['occurrenceDate'] as String?,
+            );
+          } else {
+            serverEntity = await _remote.update(
+              op.entityId,
+              Map<String, dynamic>.from(payload),
+            );
+          }
           return OutboxReplayResult.success(serverEntity: serverEntity);
         case OutboxOpKind.delete:
           await _remote.delete(op.entityId);

@@ -36,6 +36,19 @@ abstract class ICalendarRepository {
     required String viewId,
   });
 
+  /// Durably edit a real Task's fields (title/due/deadline/note/recurrence) via
+  /// the outbox — this edits the whole task/series (per-occurrence changes are
+  /// status-only, see [setTaskStatus]). [taskId] is the backend id; [viewId] the
+  /// tapped synthetic calendar id ("task:{id}:{date}") patched optimistically so
+  /// the edit shows at once. [fields] holds ONLY changed keys (no 'status' key —
+  /// that is the outbox status/field discriminator); an explicit `recurrence:null`
+  /// clears a routine. Retried until the server confirms (offline-safe).
+  Future<void> updateTask({
+    required String taskId,
+    required String viewId,
+    required Map<String, dynamic> fields,
+  });
+
   Future<void> resolveConflict(String id, ConflictResolution choice);
   Stream<int> watchPendingCount();
   Stream<int> watchConflictCount();

@@ -47,6 +47,40 @@ class TaskRemoteDataSource {
     );
   }
 
+  /// List the user's tasks (DTO shape: `uid` = task id, plus title/due/deadline/
+  /// note/recurrence/status/…). Used to read fields the calendar merge does NOT
+  /// carry — notably `deadline` — when opening a task for editing. Returns [] on
+  /// an unexpected shape; callers treat a fetch failure as "field unknown".
+  Future<List<Map<String, dynamic>>> list() async {
+    return _http.get(
+      '/tasks',
+      fromJson: (d) => (d as List?)
+              ?.whereType<Map>()
+              .map((m) => Map<String, dynamic>.from(m))
+              .toList() ??
+          <Map<String, dynamic>>[],
+    );
+  }
+
+  /// Update a task's fields (full-entity PATCH). `data` keys: title?, due?,
+  /// deadline?, note?, recurrence? — send ONLY the changed keys. Pass an
+  /// explicit `recurrence: null` to turn a routine back into a one-off task
+  /// (the backend distinguishes "key absent = unchanged" from "key present
+  /// with null = clear"). Errors propagate as ApiException and are mapped by
+  /// [TaskOutboxReplayHandler] (update + 404 → idempotent success); do NOT
+  /// swallow them here. This edits the whole task/series — per-occurrence
+  /// changes are status-only (see [setStatus]).
+  Future<Map<String, dynamic>> update(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    return _http.patch(
+      '/tasks/$id',
+      data: data,
+      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+    );
+  }
+
   /// Delete a task. Errors (incl. 404) propagate as ApiException and are mapped
   /// by [TaskOutboxReplayHandler] (delete + 404 → idempotent success) — do NOT
   /// swallow them here, or the outbox can't tell a real failure that must be

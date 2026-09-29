@@ -4192,6 +4192,18 @@ abstract class AppLocalizations {
   /// **'Task'**
   String get calendarKindTask;
 
+  /// No description provided for @calendarTaskEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get calendarTaskEdit;
+
+  /// No description provided for @calendarTaskDeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Deadline'**
+  String get calendarTaskDeadline;
+
   /// No description provided for @calendarTaskMarkDone.
   ///
   /// In en, this message translates to:
