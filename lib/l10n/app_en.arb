@@ -940,6 +940,8 @@
   "calendarTypeReminder": "Reminder",
   "calendarKindEvent": "Event",
   "calendarKindTask": "Task",
+  "calendarTaskEdit": "Edit",
+  "calendarTaskDeadline": "Deadline",
   "calendarTaskMarkDone": "Mark done",
   "calendarTaskDelete": "Delete",
   "calendarTaskDoneMsg": "Task completed",

@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:record/record.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/outbox_replay_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/constants.dart';
@@ -134,7 +135,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }).toList();
   }
 
-  void _openEditor({CalendarEventEntity? event}) async {
+  void _openEditor({CalendarEventEntity? event, String? taskId, String? taskDeadlineIso}) async {
     // For new events, use today if selected date is in the past
     final date = event != null ? _selectedDate :
         (_selectedDate.isBefore(DateTime.now().subtract(const Duration(days: 1))) ? DateTime.now() : _selectedDate);
@@ -142,9 +143,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final eventMap = event != null ? _entityToMap(event) : null;
     final result = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => _EventEditScreen(event: eventMap, selectedDate: date)),
+      MaterialPageRoute(builder: (_) => _EventEditScreen(
+        event: eventMap, selectedDate: date, taskId: taskId, taskDeadlineIso: taskDeadlineIso)),
     );
     if (result == true) _repo.refresh();
+  }
+
+  // Open the shared editor for a real Task in task-mode (title/due/deadline/
+  // note/recurrence). [event] is the synthetic calendar item; [taskId] the
+  // backend id parsed from its "task:{id}:{date}" view id. The calendar merge
+  // doesn't carry `deadline`, so fetch it from GET /tasks first (best-effort:
+  // offline/failure just opens with deadline unknown, and an untouched deadline
+  // is never sent, so it can't be clobbered).
+  Future<void> _openTaskEditor(CalendarEventEntity event) async {
+    final parsed = _parseTaskId(event.id);
+    if (parsed == null) return;
+    String? deadlineIso;
+    try {
+      final tasks = await sl<TaskRemoteDataSource>().list();
+      for (final t in tasks) {
+        if (t['uid'] == parsed.$1) {
+          deadlineIso = t['deadline'] as String?;
+          break;
+        }
+      }
+    } catch (_) {/* offline / failure → deadline unknown, edit the rest */}
+    if (!mounted) return;
+    _openEditor(event: event, taskId: parsed.$1, taskDeadlineIso: deadlineIso);
   }
 
   // ── Real Task items (surfaced in the calendar via the server-side merge as
@@ -166,17 +191,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
     if (parsed == null) return;
     // Routine → mark just this day; one-off → mark the whole task.
     final occurrenceDate = event.recurrence != null ? parsed.$2 : null;
-    try {
-      await sl<TaskRemoteDataSource>().setStatus(parsed.$1, 'done', occurrenceDate: occurrenceDate);
-      _repo.refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDoneMsg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
-      }
+    // Durable: enqueue the status change (retried until confirmed) + optimistic
+    // removal happen in the repo; drain replays it now when online.
+    await _repo.setTaskStatus(
+      taskId: parsed.$1,
+      status: 'done',
+      occurrenceDate: occurrenceDate,
+      viewId: event.id,
+    );
+    unawaited(sl<OutboxReplayService>().drain());
+    _repo.refresh();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDoneMsg)));
     }
   }
 
@@ -198,17 +224,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
       ),
     );
     if (ok != true) return;
-    try {
-      await sl<TaskRemoteDataSource>().delete(parsed.$1);
-      _repo.refresh();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDeletedMsg)));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(l10n.errorWithMessage(e.toString())), backgroundColor: Colors.red));
-      }
+    // Durable delete via the outbox: removed optimistically + retried until the
+    // server confirms, so a lost/offline delete no longer leaves a ghost.
+    await _repo.deleteTask(taskId: parsed.$1, viewId: event.id);
+    unawaited(sl<OutboxReplayService>().drain());
+    _repo.refresh();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(l10n.calendarTaskDeletedMsg)));
     }
   }
 
@@ -302,6 +324,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               const Divider(height: 1),
               ListTile(
                 contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.edit_outlined, color: colors.primary),
+                title: Text(l10n.calendarTaskEdit, style: TextStyle(color: colors.textPrimary)),
+                onTap: () => Navigator.pop(ctx, 'edit'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF22C55E)),
                 title: Text(l10n.calendarTaskMarkDone, style: TextStyle(color: colors.textPrimary)),
                 onTap: () => Navigator.pop(ctx, 'done'),
@@ -317,7 +345,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
       ),
     );
-    if (action == 'done') {
+    if (action == 'edit') {
+      await _openTaskEditor(event);
+    } else if (action == 'done') {
       await _completeTask(event);
     } else if (action == 'delete') {
       await _deleteTask(event);
@@ -1039,10 +1069,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         try {
           if (_isTaskItem(event)) {
             final p = _parseTaskId(event.id);
-            if (p != null) {
-              await sl<TaskRemoteDataSource>().delete(p.$1);
-              _repo.refresh();
-            }
+            // Don't dismiss the tile if we can't resolve the task id — otherwise
+            // the row vanishes while the server keeps it (the ghost bug).
+            if (p == null) return false;
+            // Durable delete via the outbox (retried until confirmed).
+            await _repo.deleteTask(taskId: p.$1, viewId: event.id);
+            unawaited(sl<OutboxReplayService>().drain());
+            _repo.refresh();
           } else {
             await _repo.delete(eventId);
           }
@@ -1199,7 +1232,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
 class _EventEditScreen extends StatefulWidget {
   final Map<String, dynamic>? event;
   final DateTime selectedDate;
-  const _EventEditScreen({this.event, required this.selectedDate});
+  // Non-null → editing a real Task (not an event). Carries the backend task id;
+  // [event] then holds the synthetic calendar projection ("task:{id}:{date}").
+  final String? taskId;
+  // The task's current deadline (ISO), fetched from GET /tasks since the calendar
+  // projection omits it. Null = no deadline set or fetch failed (unknown).
+  final String? taskDeadlineIso;
+  const _EventEditScreen({this.event, required this.selectedDate, this.taskId, this.taskDeadlineIso});
 
   @override
   State<_EventEditScreen> createState() => _EventEditScreenState();
@@ -1217,6 +1256,16 @@ class _EventEditScreenState extends State<_EventEditScreen> {
   String _recurrenceFrequency = 'none';
   String _kind = 'event'; // 'event' | 'task' — chooser (create mode only)
   bool _saving = false;
+  // Editing an existing Task (task-mode): drives field gating (event-only rows
+  // hidden) and routes _save through ICalendarRepository.updateTask.
+  bool get _isTaskEdit => widget.taskId != null;
+  // Snapshot of the task's fields at open, to send only what changed on save.
+  String _initialTitle = '';
+  String _initialNote = '';
+  DateTime? _initialDueUtc;
+  String _initialRecurrenceFrequency = 'none';
+  DateTime? _deadline; // task-mode only (local time); null = no deadline
+  DateTime? _initialDeadlineUtc;
   List<Map<String, dynamic>> _contacts = [];
   List<String> _selectedContactIds = [];
   Map<String, String> _invitesMap = {};
@@ -1287,6 +1336,24 @@ class _EventEditScreenState extends State<_EventEditScreen> {
         if (userId != null) {
           _invitesMap[userId] = inv['status'] as String? ?? 'PENDING';
         }
+      }
+    }
+
+    // Task-edit mode: render task fields only (event-only rows are gated on
+    // `_kind == 'event'`), and snapshot the opening values so _save sends only
+    // what changed. Chips stay hidden because widget.event != null on edit.
+    if (_isTaskEdit) {
+      _kind = 'task';
+      _initialTitle = _titleCtrl.text.trim();
+      _initialNote = _descCtrl.text.trim();
+      _initialDueUtc = (e != null && e['startAt'] != null)
+          ? DateTime.parse(e['startAt'] as String).toUtc()
+          : null;
+      _initialRecurrenceFrequency = _recurrenceFrequency;
+      if (widget.taskDeadlineIso != null) {
+        final dl = DateTime.parse(widget.taskDeadlineIso!);
+        _deadline = dl.toLocal();
+        _initialDeadlineUtc = dl.toUtc();
       }
     }
 
@@ -1424,7 +1491,13 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     if (ok != true) return;
     setState(() => _saving = true);
     try {
-      await sl<ICalendarRepository>().delete(id);
+      // A task's view id ("task:{id}:{date}") is not a real event id — route it
+      // through the durable task delete, not the event delete.
+      if (_isTaskEdit) {
+        await sl<ICalendarRepository>().deleteTask(taskId: widget.taskId!, viewId: id);
+      } else {
+        await sl<ICalendarRepository>().delete(id);
+      }
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
@@ -1440,6 +1513,46 @@ class _EventEditScreenState extends State<_EventEditScreen> {
     if (_titleCtrl.text.trim().isEmpty) return;
     setState(() => _saving = true);
     try {
+      // Edit an existing Task: durably PATCH via the outbox, sending ONLY the
+      // changed fields (recurrence => null clears a routine). Optimistic + no
+      // ghosts is handled in CalendarRepositoryImpl.updateTask.
+      if (_isTaskEdit) {
+        final dueUtc = DateTime(_startDate.year, _startDate.month, _startDate.day,
+                _startTime.hour, _startTime.minute)
+            .toUtc();
+        final note = _descCtrl.text.trim();
+        final freq = _recurrenceFrequency;
+        final fields = <String, dynamic>{};
+        if (_titleCtrl.text.trim() != _initialTitle) {
+          fields['title'] = _titleCtrl.text.trim();
+        }
+        if (_initialDueUtc == null || !dueUtc.isAtSameMomentAs(_initialDueUtc!)) {
+          fields['due'] = dueUtc.toIso8601String();
+        }
+        if (note != _initialNote) {
+          fields['note'] = note; // '' clears the note
+        }
+        if (freq != _initialRecurrenceFrequency) {
+          fields['recurrence'] =
+              freq != 'none' ? {'frequency': freq, 'interval': 1} : null;
+        }
+        final deadlineUtc = _deadline?.toUtc();
+        final deadlineChanged = _initialDeadlineUtc == null
+            ? deadlineUtc != null
+            : deadlineUtc == null || !deadlineUtc.isAtSameMomentAs(_initialDeadlineUtc!);
+        if (deadlineChanged) {
+          fields['deadline'] = deadlineUtc?.toIso8601String(); // null clears it
+        }
+        if (fields.isNotEmpty) {
+          await sl<ICalendarRepository>().updateTask(
+            taskId: widget.taskId!,
+            viewId: widget.event!['id'] as String,
+            fields: fields,
+          );
+        }
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
       // Task path: create a real Task (due/recurrence/completion) via /tasks.
       // It then appears in the calendar via the server-side task→/calendar merge.
       if (_kind == 'task') {
@@ -1751,7 +1864,12 @@ class _EventEditScreenState extends State<_EventEditScreen> {
             title: Text(l10n.calendarDateLabel, style: TextStyle(color: colors.textSecondary)),
             trailing: Text(DateFormat('dd.MM.yyyy').format(_startDate), style: TextStyle(color: colors.textPrimary)),
             onTap: () async {
-              final d = await showDatePicker(context: context, initialDate: _startDate, firstDate: today, lastDate: DateTime(2030));
+              // An overdue task (or a past event) has _startDate < today; clamp
+              // firstDate so showDatePicker's initialDate>=firstDate assert holds.
+              final first = _startDate.isBefore(today)
+                  ? DateTime(_startDate.year, _startDate.month, _startDate.day)
+                  : today;
+              final d = await showDatePicker(context: context, initialDate: _startDate, firstDate: first, lastDate: DateTime(2030));
               if (d != null) setState(() => _startDate = d);
             },
           ),
@@ -1774,6 +1892,42 @@ class _EventEditScreenState extends State<_EventEditScreen> {
                   }
                 });
               }
+            },
+          ),
+          // Deadline — tasks only (the calendar merge omits it; fetched on open).
+          if (_isTaskEdit) ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.calendarTaskDeadline, style: TextStyle(color: colors.textSecondary)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _deadline != null ? DateFormat('dd.MM.yyyy HH:mm').format(_deadline!) : '—',
+                  style: TextStyle(color: colors.textPrimary),
+                ),
+                if (_deadline != null)
+                  IconButton(
+                    tooltip: l10n.delete,
+                    icon: Icon(Icons.clear, size: 18, color: colors.textSecondary),
+                    onPressed: () => setState(() => _deadline = null),
+                  ),
+              ],
+            ),
+            onTap: () async {
+              final base = _deadline ?? _startDate;
+              final d = await showDatePicker(
+                context: context,
+                initialDate: base,
+                firstDate: base.isBefore(today) ? DateTime(base.year, base.month, base.day) : today,
+                lastDate: DateTime(2030),
+              );
+              if (d == null) return;
+              if (!context.mounted) return;
+              final t = await showTimePicker(
+                context: context,
+                initialTime: TimeOfDay.fromDateTime(_deadline ?? DateTime(d.year, d.month, d.day, 18, 0)),
+              );
+              setState(() => _deadline = DateTime(d.year, d.month, d.day, t?.hour ?? 18, t?.minute ?? 0));
             },
           ),
           if (_kind == 'event') ListTile(

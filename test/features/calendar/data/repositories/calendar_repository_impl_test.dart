@@ -162,6 +162,183 @@ void main() {
     expect(localNow!.conflictedWith, isNull);
   });
 
+  // ── Durable real-Task mutations (feature `task`) — fix for the "ghost" bug
+  // where a lost/direct delete left a task the app hid but the server kept. ──
+
+  test('deleteTask removes the view entity optimistically + enqueues a task delete op',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await repo.deleteTask(taskId: 't-1', viewId: 'task:t-1:2026-09-29');
+    expect((await local.getAll()).isEmpty, true);
+    final ops = await queue.pending();
+    expect(ops.length, 1);
+    expect(ops[0].feature, 'task');
+    expect(ops[0].op, OutboxOpKind.delete);
+    expect(ops[0].entityId, 't-1');
+  });
+
+  test('setTaskStatus done removes the view entity + enqueues a task update op with occurrenceDate',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await repo.setTaskStatus(
+      taskId: 't-1',
+      status: 'done',
+      occurrenceDate: '2026-09-29',
+      viewId: 'task:t-1:2026-09-29',
+    );
+    expect((await local.getAll()).isEmpty, true);
+    final ops = await queue.pending();
+    expect(ops.length, 1);
+    expect(ops[0].feature, 'task');
+    expect(ops[0].op, OutboxOpKind.update);
+    expect(ops[0].entityId, 't-1');
+    expect(ops[0].payload!['status'], 'done');
+    expect(ops[0].payload!['occurrenceDate'], '2026-09-29');
+  });
+
+  test('deleteTask supersedes a queued status op for the same task', () async {
+    await repo.setTaskStatus(
+        taskId: 't-1', status: 'done', viewId: 'task:t-1:2026-09-29');
+    await repo.deleteTask(taskId: 't-1', viewId: 'task:t-1:2026-09-29');
+    final ops = await queue.pending();
+    expect(ops.length, 1);
+    expect(ops[0].op, OutboxOpKind.delete);
+  });
+
+  test('refresh does NOT resurrect a task while its delete op is in flight',
+      () async {
+    final now = DateTime.now().toUtc();
+    final taskJson = <String, dynamic>{
+      'id': 'task:t-1:2026-09-29',
+      'title': 'Открыть счет МТС',
+      'type': 'task',
+      'startAt': now.toIso8601String(),
+      'createdAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+    };
+    when(() => remote.getEvents(
+          from: any(named: 'from'),
+          to: any(named: 'to'),
+        )).thenAnswer((_) async => [taskJson]);
+    // Delete op in flight — server still returns the task until it replays.
+    await queue.enqueue(OutboxOp(
+      opId: 'del-1',
+      feature: 'task',
+      op: OutboxOpKind.delete,
+      entityId: 't-1',
+      createdAt: now,
+    ));
+
+    await repo.refresh();
+
+    // The just-deleted task must not reappear.
+    expect((await local.getAll()).where((e) => e.id.startsWith('task:')).isEmpty, true);
+  });
+
+  // ── Phase 1: editable tasks (feature `task`, update op WITHOUT a status key
+  // → PATCH /tasks/:id). Optimistic + no ghosts. ──
+
+  test('updateTask patches the local view row optimistically + enqueues a status-less update op',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await repo.updateTask(
+      taskId: 't-1',
+      viewId: 'task:t-1:2026-09-29',
+      fields: {'title': 'Йога', 'note': 'коврик'},
+    );
+    final row = await local.getById('task:t-1:2026-09-29');
+    expect(row!.title, 'Йога');
+    expect(row.description, 'коврик');
+    // Optimistic row is NOT localPending — that flag would strand a stale row
+    // after a day-moving due change (see updateTask).
+    expect(row.localPending, false);
+    final ops = await queue.pending();
+    expect(ops.length, 1);
+    expect(ops[0].feature, 'task');
+    expect(ops[0].op, OutboxOpKind.update);
+    expect(ops[0].entityId, 't-1');
+    expect(ops[0].payload!.containsKey('status'), false); // → PATCH, not setStatus
+    expect(ops[0].payload!['title'], 'Йога');
+  });
+
+  test('updateTask carries a deadline change in the status-less op (→ PATCH)',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await repo.updateTask(
+      taskId: 't-1',
+      viewId: 'task:t-1:2026-09-29',
+      fields: {'deadline': '2026-10-05T18:00:00.000Z'},
+    );
+    final ops = await queue.pending();
+    expect(ops.length, 1);
+    expect(ops[0].op, OutboxOpKind.update);
+    expect(ops[0].payload!.containsKey('status'), false);
+    expect(ops[0].payload!['deadline'], '2026-10-05T18:00:00.000Z');
+  });
+
+  test('a second updateTask supersedes the first field edit (last write wins)',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await repo.updateTask(
+        taskId: 't-1', viewId: 'task:t-1:2026-09-29', fields: {'title': 'A'});
+    await repo.updateTask(
+        taskId: 't-1', viewId: 'task:t-1:2026-09-29', fields: {'title': 'B'});
+    final ops = (await queue.pending())
+        .where((o) => o.feature == 'task' && o.op == OutboxOpKind.update)
+        .toList();
+    expect(ops.length, 1);
+    expect(ops[0].payload!['title'], 'B');
+  });
+
+  test('updateTask leaves a queued status op intact (only field edits collapse)',
+      () async {
+    await local.upsert(ev('task:t-1:2026-09-29'));
+    await queue.enqueue(OutboxOp(
+      opId: 'status-op',
+      feature: 'task',
+      op: OutboxOpKind.update,
+      entityId: 't-1',
+      payload: {'status': 'done'},
+      createdAt: DateTime.now(),
+    ));
+    await repo.updateTask(
+        taskId: 't-1', viewId: 'task:t-1:2026-09-29', fields: {'title': 'B'});
+    final ops = await queue.pending();
+    expect(ops.length, 2); // status op + new field-edit op
+    expect(ops.any((o) => o.payload!.containsKey('status')), true);
+    expect(ops.any((o) => o.payload!['title'] == 'B'), true);
+  });
+
+  test('refresh overlays a pending field edit onto the server task occurrence (no ghost)',
+      () async {
+    final now = DateTime.now().toUtc();
+    final taskJson = <String, dynamic>{
+      'id': 'task:t-1:2026-09-29',
+      'title': 'старое',
+      'type': 'task',
+      'startAt': now.toIso8601String(),
+      'createdAt': now.toIso8601String(),
+      'updatedAt': now.toIso8601String(),
+    };
+    when(() => remote.getEvents(from: any(named: 'from'), to: any(named: 'to')))
+        .thenAnswer((_) async => [taskJson]);
+    await queue.enqueue(OutboxOp(
+      opId: 'field-edit',
+      feature: 'task',
+      op: OutboxOpKind.update,
+      entityId: 't-1',
+      payload: {'title': 'новое'}, // no status key → field edit
+      createdAt: now,
+    ));
+
+    await repo.refresh();
+
+    // A field edit is overlaid (not hidden): exactly one row, showing the edit.
+    final rows = (await local.getAll()).where((e) => e.id.startsWith('task:')).toList();
+    expect(rows.length, 1);
+    expect(rows.first.title, 'новое');
+  });
+
   test('resolveConflict ACCEPT_SERVER overwrites local + drops op', () async {
     final localEv = ev('e1', pending: true).copyWith(conflictedWith: {
       'id': 'e1',

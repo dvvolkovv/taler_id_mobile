@@ -940,6 +940,8 @@
   "calendarTypeReminder": "Напоминание",
   "calendarKindEvent": "Событие",
   "calendarKindTask": "Задача",
+  "calendarTaskEdit": "Изменить",
+  "calendarTaskDeadline": "Дедлайн",
   "calendarTaskMarkDone": "Отметить выполненной",
   "calendarTaskDelete": "Удалить",
   "calendarTaskDoneMsg": "Задача выполнена",

@@ -40,18 +40,73 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       // returns these events, so upserting them would resurrect a just-deleted
       // event on the next refresh (the reappear-after-tab-switch bug). Skip
       // them until the delete op replays and the server stops returning them.
-      final pendingDeleteIds = (await _outbox.pending())
+      // Only ops that are still live (not permanently dead) hide their entity —
+      // a dead op lets the item reappear so the true server state wins.
+      final pendingOps = (await _outbox.pending())
+          .where((o) => o.status != OutboxOpStatus.failedDead)
+          .toList();
+      final pendingDeleteIds = pendingOps
           .where((o) => o.feature == 'calendar' && o.op == OutboxOpKind.delete)
           .map((o) => o.entityId)
           .toSet();
+      // Real-Task ops (feature `task`) hide the synthetic calendar entity
+      // "task:{taskId}:{YYYY-MM-DD}" while a delete/status write is in flight, so
+      // the just-deleted/completed task doesn't flash back until replay confirms.
+      final taskDeleteIds = <String>{}; // whole task gone → hide every occurrence
+      final taskStatusAllIds = <String>{}; // one-off status change → hide all
+      final taskStatusDates = <String>{}; // routine day → hide "task:id:date"
+      // Field edits (feature `task`, update op WITHOUT a 'status' key) are NOT
+      // hidden — they're overlaid onto the server occurrence at upsert time so
+      // the edited fields show until replay, then converge to server truth with
+      // no stale row (the view id encodes the due date, so a day-moving edit
+      // would otherwise leave a ghost — see updateTask). taskId → patched fields.
+      final taskFieldPatches = <String, Map<String, dynamic>>{};
+      for (final o in pendingOps) {
+        if (o.feature != 'task') continue;
+        if (o.op == OutboxOpKind.delete) {
+          taskDeleteIds.add(o.entityId);
+        } else if (o.op == OutboxOpKind.update) {
+          final payload = o.payload ?? const {};
+          if (payload.containsKey('status')) {
+            final occ = payload['occurrenceDate'] as String?;
+            if (occ != null) {
+              taskStatusDates.add('task:${o.entityId}:$occ');
+            } else {
+              taskStatusAllIds.add(o.entityId);
+            }
+          } else {
+            // Field edit: later op wins if two are queued for one task.
+            taskFieldPatches[o.entityId] = Map<String, dynamic>.from(payload);
+          }
+        }
+      }
+      bool taskHidden(String entityId) {
+        final p = _parseTaskViewId(entityId);
+        if (p == null) return false;
+        final realId = p.$1;
+        if (taskDeleteIds.contains(realId)) return true;
+        if (taskStatusAllIds.contains(realId)) return true;
+        if (taskStatusDates.contains(entityId)) return true;
+        return false;
+      }
+
       final remoteIds = remoteList
           .map((m) => m['id'] as String)
-          .where((id) => !pendingDeleteIds.contains(id))
+          .where((id) => !pendingDeleteIds.contains(id) && !taskHidden(id))
           .toSet();
       final localAll = await _local.getAll();
       for (final r in remoteList) {
-        final entity = _entityFromServerJson(r);
+        var entity = _entityFromServerJson(r);
         if (pendingDeleteIds.contains(entity.id)) continue; // deletion in flight
+        if (taskHidden(entity.id)) continue; // task delete/status in flight
+        // Overlay a pending field edit onto the server task occurrence so the
+        // edit stays visible until the PATCH replays (then the server already
+        // returns these values and the overlay is a no-op).
+        if (taskFieldPatches.isNotEmpty) {
+          final p = _parseTaskViewId(entity.id);
+          final patch = p == null ? null : taskFieldPatches[p.$1];
+          if (patch != null) entity = _applyTaskFieldPatch(entity, patch);
+        }
         final existing = await _local.getById(entity.id);
         if (existing != null && existing.localPending) continue;
         await _local.upsert(entity);
@@ -213,6 +268,129 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       entityId: id,
       createdAt: DateTime.now().toUtc(),
     ));
+  }
+
+  /// Parse a synthetic task calendar id "task:{taskId}:{YYYY-MM-DD}" →
+  /// (taskId, date). Returns null for a non-task id. Mirrors the parser in
+  /// the calendar screen (kept here so refresh can filter in-flight task ops).
+  (String, String)? _parseTaskViewId(String id) {
+    if (!id.startsWith('task:')) return null;
+    final rest = id.substring(5);
+    final i = rest.lastIndexOf(':');
+    if (i <= 0 || i >= rest.length - 1) return null;
+    return (rest.substring(0, i), rest.substring(i + 1));
+  }
+
+  @override
+  Future<void> deleteTask({required String taskId, required String viewId}) async {
+    // Optimistic: remove the tapped occurrence now; refresh() hides every
+    // "task:$taskId:*" while the delete op is live, so the whole series drops.
+    await _local.remove(viewId);
+    // Drop any queued status change for the same task — a delete supersedes it.
+    for (final o in await _outbox.pending()) {
+      if (o.feature == 'task' && o.entityId == taskId && o.op == OutboxOpKind.update) {
+        await _outbox.remove(o.opId);
+      }
+    }
+    await _outbox.enqueue(OutboxOp(
+      opId: _uuid.v4(),
+      feature: 'task',
+      op: OutboxOpKind.delete,
+      entityId: taskId,
+      createdAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  @override
+  Future<void> setTaskStatus({
+    required String taskId,
+    required String status,
+    String? occurrenceDate,
+    required String viewId,
+  }) async {
+    // done/dropped remove the item from the active calendar view (the server
+    // merge stops returning it); mirror that optimistically.
+    if (status == 'done' || status == 'dropped') {
+      await _local.remove(viewId);
+    }
+    await _outbox.enqueue(OutboxOp(
+      opId: _uuid.v4(),
+      feature: 'task',
+      op: OutboxOpKind.update,
+      entityId: taskId,
+      payload: <String, dynamic>{
+        'status': status,
+        if (occurrenceDate != null) 'occurrenceDate': occurrenceDate,
+      },
+      createdAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  @override
+  Future<void> updateTask({
+    required String taskId,
+    required String viewId,
+    required Map<String, dynamic> fields,
+  }) async {
+    if (fields.isEmpty) return;
+    // Optimism (no ghosts): patch every currently-cached occurrence of this
+    // task in place — SAME ids, localPending stays false — so the edit shows at
+    // once and normal refresh reconciliation can still retire a stale row after
+    // a day-moving `due` change (the server switches "task:{id}:{oldDate}" for
+    // "task:{id}:{newDate}" once the PATCH replays; refresh().taskFieldPatches
+    // keeps the fields overlaid in the meantime). localPending is deliberately
+    // NOT set: that flag protects a row from removal, which would strand the
+    // old-date row as a ghost.
+    for (final l in await _local.getAll()) {
+      final p = _parseTaskViewId(l.id);
+      if (p == null || p.$1 != taskId) continue;
+      await _local.upsert(_applyTaskFieldPatch(l, fields));
+    }
+    // Collapse an older queued field edit for the same task — last write wins
+    // (a status change is a different payload shape and is left intact).
+    for (final o in await _outbox.pending()) {
+      if (o.feature == 'task' &&
+          o.entityId == taskId &&
+          o.op == OutboxOpKind.update &&
+          !(o.payload ?? const {}).containsKey('status')) {
+        await _outbox.remove(o.opId);
+      }
+    }
+    await _outbox.enqueue(OutboxOp(
+      opId: _uuid.v4(),
+      feature: 'task',
+      op: OutboxOpKind.update,
+      entityId: taskId,
+      // No 'status' key → TaskOutboxReplayHandler routes this to PATCH /tasks/:id.
+      payload: Map<String, dynamic>.from(fields),
+      createdAt: DateTime.now().toUtc(),
+    ));
+  }
+
+  /// Apply a task field edit (payload keys title/note/due/recurrence) onto a
+  /// calendar entity. `note` maps to description, `due` to startAt; a present
+  /// `recurrence` key (incl. null) sets/clears the routine. Keys absent from
+  /// [fields] are left unchanged. `deadline` has no calendar-entity field, so it
+  /// is not shown optimistically (still PATCHed to the server).
+  CalendarEventEntity _applyTaskFieldPatch(
+    CalendarEventEntity base,
+    Map<String, dynamic> fields,
+  ) {
+    return base.copyWith(
+      title: fields.containsKey('title')
+          ? (fields['title'] as String? ?? base.title)
+          : base.title,
+      description:
+          fields.containsKey('note') ? fields['note'] as String? : base.description,
+      startAt: (fields.containsKey('due') && fields['due'] != null)
+          ? DateTime.parse(fields['due'] as String)
+          : base.startAt,
+      recurrence: fields.containsKey('recurrence')
+          ? (fields['recurrence'] is Map
+              ? Map<String, dynamic>.from(fields['recurrence'] as Map)
+              : null)
+          : base.recurrence,
+    );
   }
 
   @override
