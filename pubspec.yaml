@@ -177,6 +177,8 @@ flutter:
   assets:
     - assets/audio/ringback.wav
     - assets/audio/hold_music.mp3
+    - assets/audio/assistant_start.wav
+    - assets/audio/translator_start.wav
     - assets/video.mp4
     - assets/video_light.mp4
     - assets/app_icon_light.png

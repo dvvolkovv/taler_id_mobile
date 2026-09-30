@@ -11,6 +11,22 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
               'Exit translator mode. Call ONLY when you hear one of the exit phrases listed in your instructions. Never call otherwise.',
           'parameters': {'type': 'object', 'properties': {}},
         },
+        {
+          'type': 'function',
+          'name': 'set_translator_languages',
+          'description':
+              'Change the translation language. Call ONLY on a command from the owner that names the language to translate into ("выбери язык словацкий", "переводи на немецкий", "язык — словацкий", "switch to German"). Never call it for ordinary conversation that merely mentions a language.',
+          'parameters': {
+            'type': 'object',
+            'properties': {
+              'lang': {
+                'type': 'string',
+                'description': 'ISO 639-1 code of the language to translate into (e.g. "sk")',
+              },
+            },
+            'required': ['lang'],
+          },
+        },
     ];
   }
   return [
@@ -18,19 +34,20 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
             'type': 'function',
             'name': 'enter_translator_mode',
             'description':
-                'Enter live translator mode between two people speaking different languages. Call when user says "включи переводчика", "translator mode", "переводи нам", etc. If the user NAMES the languages ("с русского на китайский", "between English and German"), pass them as ISO 639-1 codes in lang_a/lang_b.',
+                'Enter live translator mode between two people speaking different languages ("включи переводчика", "translator mode", "переводи нам"). lang_b — the other person\'s language — is needed: if the user named it ("на словацкий", "с русского на китайский", "between English and German"), pass both as ISO 639-1 codes; if not, first ask the user which language to translate into and call this tool after the answer. Never guess the language.',
             'parameters': {
               'type': 'object',
               'properties': {
                 'lang_a': {
                   'type': 'string',
-                  'description': 'ISO 639-1 code of the first language if the user named it (e.g. "ru")',
+                  'description': 'ISO 639-1 code of the user\'s own language (e.g. "ru")',
                 },
                 'lang_b': {
                   'type': 'string',
-                  'description': 'ISO 639-1 code of the second language if the user named it (e.g. "zh")',
+                  'description': 'ISO 639-1 code of the other person\'s language (e.g. "sk")',
                 },
               },
+              'required': ['lang_b'],
             },
           },
           {

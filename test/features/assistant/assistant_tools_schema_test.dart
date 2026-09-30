@@ -64,10 +64,10 @@ void main() {
     });
   });
 
-  test('translator mode does not expose the pin tools (only exit_translator_mode)', () {
+  test('translator mode does not expose the pin tools (only its own two)', () {
     final translatorTools = assistantToolSchemas(translatorMode: true);
     final names = translatorTools.map((t) => t['name']).toSet();
-    expect(names, {'exit_translator_mode'});
+    expect(names, {'exit_translator_mode', 'set_translator_languages'});
   });
 
   test('assistantToolSchemasForCompletions carries the three pin tools through', () {

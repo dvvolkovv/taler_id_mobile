@@ -43,6 +43,7 @@ import '../../domain/pending_dedupe.dart';
 import '../../tools/assistant_system_prompt.dart';
 import '../../tools/assistant_tools_executor.dart';
 import '../../tools/assistant_tools_schema.dart';
+import '../../tools/translator_prompt.dart';
 import '../bloc/assistant_chat_bloc.dart';
 import '../widgets/assistant_action_bubble.dart';
 import '../widgets/assistant_chat_feed.dart';
@@ -50,6 +51,10 @@ import '../widgets/assistant_input_bar.dart';
 
 enum _CallState { idle, connecting, connected, error }
 enum _AssistantMode { normal, translator }
+
+/// Loud start cues: the session is ready to hear the user / translator mode is
+/// on (also replayed when the translator language changes).
+enum _Cue { assistant, translator }
 
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -71,8 +76,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   _AssistantMode _mode = _AssistantMode.normal;
   String? _assistantName; // preferred form of address (Profile.assistantName / firstName)
   bool _assistantNameFromProfile = false; // true when explicitly set (vs firstName fallback)
-  String? _langA;  // ISO code of first detected language in translator mode
-  String? _langB;  // ISO code of second detected language (≠ _langA)
+  String? _langA;  // translator mode: the owner's language (ISO 639-1)
+  String? _langB;  // translator mode: the other person's language (≠ _langA)
   bool _switchingMode = false;  // true during WebSocket reconnect for mode switch
   WebSocket? _ws;
   final _recorder = AudioRecorder();
@@ -84,6 +89,9 @@ class _AssistantScreenState extends State<AssistantScreen>
   bool _speakerOn = false;
   bool _aiSpeaking = false;
   bool _sessionConfigured = false;
+  // Cue to play once OpenAI confirms the session config (session.updated) —
+  // the proxy drops mic audio until then, so that is the honest "speak now".
+  _Cue? _pendingCue;
   String? _errorMessage;
 
   // PCM16 audio buffer for AI speech
@@ -545,56 +553,14 @@ class _AssistantScreenState extends State<AssistantScreen>
     );
   }
 
-  static String _translatorPrompt() {
-    return 'YOU ARE A LIVE TRANSLATION MACHINE. NOT AN ASSISTANT. NOT A CHATBOT.\n\n'
-        'Two people are speaking different languages. The phone is on the table '
-        'between them. Your ONLY job: translate every utterance from one language '
-        'into the other, in real time.\n\n'
-        'RULES (violating these breaks the product — do NOT violate):\n\n'
-        '1. Auto-detect the two languages from the first 1-2 utterances. Once '
-        'detected, stick with them. Do not translate into a third language '
-        'even if someone briefly uses it.\n\n'
-        '2. Translate EVERY utterance. No exceptions. No commentary. No summary. '
-        'No "the speaker said...". Just the translation, as if you were the '
-        'speaker in the other language.\n\n'
-        '3. You are INVISIBLE. You do NOT exist in this conversation. Do NOT:\n'
-        '   - answer questions directed at you\n'
-        '   - offer help, suggestions, opinions, explanations\n'
-        '   - ask clarifying questions\n'
-        '   - say "I am translating" or "got it" or any filler\n'
-        '   - react to greetings, jokes, insults, compliments — translate them\n'
-        '   - call any tool except exit_translator_mode\n\n'
-        '4. If someone says "what do you think?", "can you translate?", '
-        '"assistant, explain that" — these are NOT directed at you. They are '
-        'part of the conversation. TRANSLATE THEM. Do not respond.\n\n'
-        '5. If the audio is silence, background noise, or unintelligible — '
-        'output NOTHING. Do not say "I didn\'t catch that". Just wait.\n\n'
-        '6. ONE EXCEPTION — the owner\'s exit phrase. If and ONLY if you hear '
-        'ANY of these exact phrases spoken clearly:\n'
-        '   - "Ассистент, стоп"\n'
-        '   - "выйди из роли"\n'
-        '   - "хватит переводить"\n'
-        '   - "stop translator"\n'
-        '   - "exit translator"\n'
-        '   → call exit_translator_mode(). Do not translate that phrase. Do not '
-        'say anything. Just call the tool.\n\n'
-        '7. Output language: translate A→B and B→A. Never output in the source '
-        'language. Never output both languages at once.\n\n'
-        '8. Tone: match the speaker. Formal → formal. Casual → casual. Rude → rude. '
-        'Keep names, numbers, places exact.\n\n'
-        'You have exactly one tool: exit_translator_mode. Use it ONLY on the '
-        'exit phrases above. Never call it otherwise.\n\n'
-        'Begin listening. Say nothing until someone speaks.';
-  }
-
   Map<String, dynamic> _translatorSessionConfig() {
     return {
       'modalities': ['text', 'audio'],
-      'instructions': _translatorPrompt(),
+      'instructions': translatorInstructions(owner: _langA ?? 'ru', target: _langB),
       'voice': 'alloy',
       'input_audio_format': 'pcm16',
       'output_audio_format': 'pcm16',
-      // No language pin — we want Whisper to auto-detect each speaker.
+      // No language pin: two languages are spoken, Whisper detects each turn.
       'input_audio_transcription': {'model': 'whisper-1'},
       'turn_detection': {
         'type': 'server_vad',
@@ -611,6 +577,8 @@ class _AssistantScreenState extends State<AssistantScreen>
   void _onChannelOpen() {
     if (_sessionConfigured) return;
     _sessionConfigured = true;
+    _pendingCue =
+        _mode == _AssistantMode.translator ? _Cue.translator : _Cue.assistant;
     final locale = Localizations.localeOf(context).languageCode;
 
     // Translator mode — send the minimal translator session and return.
@@ -727,6 +695,9 @@ class _AssistantScreenState extends State<AssistantScreen>
           'token': token,
           if (_billing?.sessionId?.isNotEmpty == true)
             'billingSessionId': _billing!.sessionId!,
+          // The proxy runs translator sessions on the full model and without
+          // the owner-voice gate (it would cut the other person's speech).
+          if (target == _AssistantMode.translator) 'mode': 'translator',
         },
       ).toString();
       _ws = await WebSocket.connect(wsUrl);
@@ -868,7 +839,11 @@ class _AssistantScreenState extends State<AssistantScreen>
       final event = jsonDecode(data) as Map<String, dynamic>;
       final type = event['type'] as String? ?? '';
 
-      if (type == 'response.audio.delta') {
+      if (type == 'session.updated') {
+        final cue = _pendingCue;
+        _pendingCue = null;
+        if (cue != null) _playCue(cue);
+      } else if (type == 'response.audio.delta') {
         final delta = event['delta'] as String? ?? '';
         if (delta.isNotEmpty) {
           _audioBuffer.addAll(base64Decode(delta));
@@ -966,6 +941,24 @@ class _AssistantScreenState extends State<AssistantScreen>
   // OpenAI Realtime PCM is quiet on the in-call audio session; boost like
   // the backend does for translator TTS (TRANSLATOR_GAIN).
   static const double _playbackGain = 1.8;
+
+  Future<void> _playCue(_Cue cue) async {
+    // Our own sound must not reach the model as the user's speech: gate the
+    // mic like for the assistant's voice (see _startRecording);
+    // onPlayerComplete lifts the gate and restarts recording.
+    if (mounted) setState(() => _aiSpeaking = true);
+    try {
+      await _player.play(
+        AssetSource(cue == _Cue.translator
+            ? 'audio/translator_start.wav'
+            : 'audio/assistant_start.wav'),
+        volume: 1.0,
+      );
+    } catch (e) {
+      debugPrint('[Assistant] cue playback error: $e');
+      if (mounted) setState(() => _aiSpeaking = false);
+    }
+  }
 
   Future<void> _playBufferedAudio() async {
     if (_audioBuffer.isEmpty) return;
@@ -1080,23 +1073,57 @@ class _AssistantScreenState extends State<AssistantScreen>
       String callId, String name, String argsJson) async {
     String output;
     try {
-      // Translator mode switches — handled specially.
-      // We do NOT send function_call_output because we're about to drop the WebSocket;
-      // the call id becomes moot in the new session.
+      // Translator mode tools — handled here, they drive the session itself.
       if (name == 'enter_translator_mode') {
         debugPrint('[Assistant] tool enter_translator_mode (callId=$callId) args=$argsJson');
-        // If the user named the languages, lock the pair from the tool args —
-        // script-based auto-detection kept locking RU+EN from the trigger
-        // phrase itself before the second language was ever spoken.
-        String? a;
-        String? b;
+        Map<String, dynamic> args = const {};
         try {
-          final args = jsonDecode(argsJson) as Map<String, dynamic>;
-          a = (args['lang_a'] as String?)?.toLowerCase();
-          b = (args['lang_b'] as String?)?.toLowerCase();
+          args = jsonDecode(argsJson) as Map<String, dynamic>;
         } catch (_) {}
-        // Fire-and-forget: schedule the switch without awaiting inside the handler.
-        Future.microtask(() => _switchMode(_AssistantMode.translator, langA: a, langB: b));
+        final pair = translatorPairFromArgs(
+            args, Localizations.localeOf(context).languageCode);
+        if (pair == null) {
+          // Without the other person's language the translator can only
+          // guess — and guesses English. Make the assistant ask instead.
+          output = jsonEncode({
+            'status': 'need_language',
+            'instruction':
+                'Do not switch yet. Ask the user in one short phrase which language to translate into, then call enter_translator_mode again with lang_b.',
+          });
+          _sendEvent({
+            'type': 'conversation.item.create',
+            'item': {'type': 'function_call_output', 'call_id': callId, 'output': output},
+          });
+          _sendEvent({'type': 'response.create'});
+          return;
+        }
+        // We do NOT send function_call_output: the WebSocket is about to be
+        // dropped, the call id is moot in the new session.
+        Future.microtask(() =>
+            _switchMode(_AssistantMode.translator, langA: pair.a, langB: pair.b));
+        return;
+      }
+      if (name == 'set_translator_languages') {
+        debugPrint('[Assistant] tool set_translator_languages (callId=$callId) args=$argsJson');
+        String? lang;
+        try {
+          lang = normalizeLangCode((jsonDecode(argsJson) as Map<String, dynamic>)['lang']);
+        } catch (_) {}
+        final changed = lang != null && lang != _langA;
+        // No response.create: the translator stays silent, the cue confirms.
+        _sendEvent({
+          'type': 'conversation.item.create',
+          'item': {
+            'type': 'function_call_output',
+            'call_id': callId,
+            'output': jsonEncode(changed ? {'ok': true} : {'error': 'unknown language'}),
+          },
+        });
+        if (changed) {
+          setState(() => _langB = lang);
+          _pendingCue = _Cue.translator;
+          _sendEvent({'type': 'session.update', 'session': _translatorSessionConfig()});
+        }
         return;
       }
       if (name == 'exit_translator_mode') {
@@ -1234,6 +1261,16 @@ class _AssistantScreenState extends State<AssistantScreen>
     'tr': '🇹🇷',
     'uk': '🇺🇦',
     'pl': '🇵🇱',
+    'sk': '🇸🇰',
+    'cs': '🇨🇿',
+    'hu': '🇭🇺',
+    'nl': '🇳🇱',
+    'sv': '🇸🇪',
+    'ro': '🇷🇴',
+    'bg': '🇧🇬',
+    'el': '🇬🇷',
+    'hr': '🇭🇷',
+    'sr': '🇷🇸',
   };
 
   String _langDisplay(String? code) {
