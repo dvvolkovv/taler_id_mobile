@@ -176,6 +176,18 @@ class MainActivity : FlutterFragmentActivity() {
         flutterChannel = ch
         ch.setMethodCallHandler { call, result ->
                 when (call.method) {
+                    "setAssistantAudio" -> {
+                        // Voice assistant: normal mode, sound through the media
+                        // stream on the loudspeaker. setSpeaker is for calls — it
+                        // enters MODE_IN_COMMUNICATION, which plays at call volume
+                        // through voice processing and made the assistant quiet.
+                        // Same on and off: leaving the assistant must not keep the
+                        // phone in communication mode either.
+                        val am = getSystemService(AUDIO_SERVICE) as AudioManager
+                        am.mode = AudioManager.MODE_NORMAL
+                        am.isSpeakerphoneOn = false
+                        result.success(null)
+                    }
                     "setSpeaker" -> {
                         val on = call.arguments as? Boolean ?: false
                         val am = getSystemService(AUDIO_SERVICE) as AudioManager

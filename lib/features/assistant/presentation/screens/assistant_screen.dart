@@ -1237,11 +1237,24 @@ class _AssistantScreenState extends State<AssistantScreen>
     }
   }
 
+  // Loudspeaker = the assistant's own loud media-style audio
+  // (setAssistantAudio); earpiece = the call-style route (setSpeaker false).
+  // setSpeaker(true) is for calls: .voiceChat / MODE_IN_COMMUNICATION play at
+  // call volume, and the assistant was barely audible through it.
   Future<void> _setSpeaker(bool on) async {
     try {
-      await _audioChannel.invokeMethod('setSpeaker', on);
+      await _audioChannel.invokeMethod(
+          on ? 'setAssistantAudio' : 'setSpeaker', on ? true : false);
     } catch (_) {}
     setState(() => _speakerOn = on);
+  }
+
+  /// Session over: leave no call-style audio mode behind.
+  Future<void> _releaseAssistantAudio() async {
+    try {
+      await _audioChannel.invokeMethod('setAssistantAudio', false);
+    } catch (_) {}
+    if (mounted) setState(() => _speakerOn = false);
   }
 
   Future<void> _toggleSpeaker() => _setSpeaker(!_speakerOn);
@@ -1377,7 +1390,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     _audioBuffer.clear();
     // Note: transcript is NOT cleared — it persists across sessions
     await _cleanup();
-    await _setSpeaker(false);
+    await _releaseAssistantAudio();
     // Resume wake word listening after session ends
     WakeWordService.instance.resume();
     if (mounted) {

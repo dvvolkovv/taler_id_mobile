@@ -267,6 +267,22 @@ import flutter_callkit_incoming
           self.ringbackPlayer?.stop()
           self.ringbackPlayer = nil
           result(nil)
+        case "setAssistantAudio":
+          // Voice assistant: loudspeaker at media loudness. .voiceChat (what
+          // setSpeaker uses for calls) runs voice processing and plays at
+          // call volume — the assistant was barely audible. The assistant is
+          // half-duplex (mic closed while it speaks), so it needs no echo
+          // cancellation. Headphones/Bluetooth still take precedence.
+          let on = call.arguments as? Bool ?? false
+          if !on { result(nil); return }
+          do {
+            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try activateUnlessCallKitOwns(session)
+            try session.overrideOutputAudioPort(.none)
+            result(nil)
+          } catch {
+            result(FlutterError(code: "AUDIO_ERROR", message: error.localizedDescription, details: nil))
+          }
         case "setSpeaker":
           let on = call.arguments as? Bool ?? false
           do {
