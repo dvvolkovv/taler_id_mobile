@@ -24,6 +24,7 @@ import '../../../../core/notifications/notification_service.dart';
 import '../../data/datasources/calendar_remote_datasource.dart';
 import '../../data/datasources/task_remote_datasource.dart';
 import '../../domain/entities/calendar_event_entity.dart';
+import '../../domain/recurrence_match.dart';
 import '../../domain/repositories/i_calendar_repository.dart';
 import '../../../notes/domain/entities/note_entity.dart' show NoteEntity;
 import '../../../notes/presentation/widgets/conflict_resolution_dialog.dart';
@@ -129,10 +130,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   List<CalendarEventEntity> _eventsForDay(DateTime day) {
-    return _events.where((e) {
-      final start = e.startAt.toLocal();
-      return start.year == day.year && start.month == day.month && start.day == day.day;
-    }).toList();
+    // Recurrence-aware: a recurring event collapses to one stored row (the
+    // backend returns every occurrence under the same id), so match the day
+    // against the whole recurrence series, not just the single stored startAt.
+    // When the match is a recurrence occurrence (not the stored date), project
+    // the event onto `day` keeping its time-of-day, so it displays at the right
+    // time and sorts in order among that day's events (otherwise the stored
+    // far-off date would push it to the bottom of the list).
+    final out = <CalendarEventEntity>[];
+    for (final e in _events) {
+      if (!eventOccursOnDay(e, day)) continue;
+      final ls = e.startAt.toLocal();
+      if (ls.year == day.year && ls.month == day.month && ls.day == day.day) {
+        out.add(e);
+      } else {
+        final start =
+            DateTime(day.year, day.month, day.day, ls.hour, ls.minute, ls.second)
+                .toUtc();
+        final dur = e.endAt?.difference(e.startAt);
+        out.add(e.copyWith(
+          startAt: start,
+          endAt: dur != null ? start.add(dur) : e.endAt,
+        ));
+      }
+    }
+    return out;
   }
 
   void _openEditor({CalendarEventEntity? event, String? taskId, String? taskDeadlineIso}) async {
