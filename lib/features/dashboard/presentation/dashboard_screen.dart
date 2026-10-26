@@ -547,6 +547,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   /// deliver the actionCallAccept event to Flutter's EventChannel because the
   /// engine was suspended. This method polls CallKit's native state directly
   /// to detect such orphaned accepts and navigate to the voice screen.
+  /// A call still ringing is not one: it gets the in-app choice instead.
   Future<bool> _checkActiveCallKitCalls() async {
     if (_waitingForCallAccept) return false;
     if (CallStateService.instance.isInCall) return false;
@@ -566,8 +567,39 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         final convId = extra?['conversationId'] as String?;
         final e2eeKey = extra?['e2eeKey'] as String?;
         if (roomName == null || roomName.isEmpty) continue;
+        final callerName = extra?['callerName'] as String? ?? call['nameCaller'] as String? ?? '';
+        final callerAvatar = extra?['callerAvatar'] as String? ?? '';
+        // Still ringing: Android lists a call from the moment it starts
+        // ringing, so opening the app — from its icon or the call
+        // notification — lands here. Joining it answered for the user (PROD,
+        // 2026-10-26): offer the choice a call ringing in the foreground gets.
+        if (call['isAccepted'] != true && call['accepted'] != true &&
+            !roomName.startsWith('group-')) {
+          debugPrint('[CallKit] _checkActiveCallKitCalls: call still ringing, room=$roomName');
+          if (mounted) {
+            _showIncomingCallDialog(
+              context,
+              fromName: callerName.isNotEmpty
+                  ? callerName
+                  : AppLocalizations.of(context)!.dashboardUser,
+              fromAvatar: callerAvatar,
+              roomName: roomName,
+              convId: convId ?? '',
+              e2eeKey: e2eeKey,
+            );
+          }
+          return true;
+        }
         debugPrint('[CallKit] _checkActiveCallKitCalls: found orphaned call, room=$roomName');
+        // The same window an ACCEPT event opens. Without the timer the flag
+        // stayed up for the rest of the session: no in-app choice for any
+        // later call, declines from the system UI never reached the caller,
+        // and this check itself never ran again.
         _waitingForCallAccept = true;
+        _callAcceptTimer?.cancel();
+        _callAcceptTimer = Timer(const Duration(seconds: 15), () {
+          _waitingForCallAccept = false;
+        });
         // Group call orphan: route to the group active screen, NOT the
         // 1-on-1 voice screen. The 1-on-1 path below would call
         // `connectInBackground` which hits `/voice/rooms/{room}/join` —
@@ -583,18 +615,15 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
           }
           return true;
         }
-        if (call['isAccepted'] == true || call['accepted'] == true) {
-          await SystemCallRegistry.instance.adoptAnswered(
-              uuid: (call['id'] ?? '').toString(),
-              roomName: roomName,
-              conversationId: convId);
-        }
+        // Answered — a ringing one-on-one call was offered above.
+        await SystemCallRegistry.instance.adoptAnswered(
+            uuid: (call['id'] ?? '').toString(),
+            roomName: roomName,
+            conversationId: convId);
         // Connect to LiveKit immediately if not already connected (1-on-1)
         if (!CallStateService.instance.isInCall) {
           CallStateService.instance.connectInBackground(roomName, convId, e2eeKey: e2eeKey);
         }
-        final callerName = extra?['callerName'] as String? ?? call['nameCaller'] as String? ?? '';
-        final callerAvatar = extra?['callerAvatar'] as String? ?? '';
         final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
         final calleeParam = callerName.isNotEmpty ? '&callee=${Uri.encodeComponent(callerName)}' : '';
         final avatarParam = callerAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(callerAvatar)}' : '';

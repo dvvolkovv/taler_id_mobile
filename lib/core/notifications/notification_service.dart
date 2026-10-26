@@ -290,8 +290,7 @@ class NotificationService {
   /// `_endBackgroundLine` in main.dart) must not leave behind a route that
   /// later reopens and reconnects the very call the user just ended. A
   /// route for a different, unrelated call is left alone. Every builder of
-  /// this route (main.dart's two CallKit paths, notificationToRoute's
-  /// `call_invite` case below) shapes it as
+  /// this route (main.dart's two CallKit paths) shapes it as
   /// `/dashboard/voice?room=$roomName&convId=...`, so matching that exact
   /// query-param position is precise, not a loose substring guess.
   static void clearPendingCallRouteFor(String roomName) {
@@ -662,17 +661,10 @@ String? notificationToRoute(RemoteMessage message) {
       final token = data['token'] as String?;
       return token != null ? '/invite?token=$token' : null;
     case 'call_invite':
-      final roomName = data['roomName'] as String?;
-      final convId = data['conversationId'] as String?;
-      if (roomName != null && convId != null) {
-        final e2eeKey = data['e2eeKey'] as String?;
-        final fromName = data['fromName'] as String? ?? '';
-        final fromAvatar = data['fromAvatar'] as String? ?? '';
-        final e2eeParam = e2eeKey != null ? '&e2ee=${Uri.encodeComponent(e2eeKey)}' : '';
-        final calleeParam = fromName.isNotEmpty ? '&callee=${Uri.encodeComponent(fromName)}' : '';
-        final avatarParam = fromAvatar.isNotEmpty ? '&calleeAvatar=${Uri.encodeComponent(fromAvatar)}' : '';
-        return '/dashboard/voice?room=$roomName&convId=$convId&incoming=1$e2eeParam$calleeParam$avatarParam';
-      }
+      // Only opens the app. The call screen with `incoming=1` answers — joins
+      // the room and tells the caller — and this notification stays in the
+      // shade after the call is over. The dashboard offers a call that is
+      // still ringing once the app is up (_checkActiveCallKitCalls).
       return null;
     case 'group_call_invite':
       final groupCallId = data['groupCallId'] as String?;

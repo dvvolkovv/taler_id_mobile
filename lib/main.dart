@@ -445,9 +445,12 @@ Future<void> _checkInitialCallKitCall() async {
         _navigateWhenResumed(route, 0);
         return;
       }
+      // Still ringing: Android lists a call from the moment it starts
+      // ringing, so launching the app from its icon lands here too. It is
+      // the user's to answer — the dashboard offers it once it is up.
+      if (call['isAccepted'] != true && call['accepted'] != true) continue;
       final callId = (call['id'] ?? '').toString();
-      if ((call['isAccepted'] == true || call['accepted'] == true) &&
-          callId.isNotEmpty &&
+      if (callId.isNotEmpty &&
           !CallStateService.instance.isAnsweredElsewhere(roomName)) {
         await SystemCallRegistry.instance.adoptAnswered(
             uuid: callId, roomName: roomName, conversationId: convId);
