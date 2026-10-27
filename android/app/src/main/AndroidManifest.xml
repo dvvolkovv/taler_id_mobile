@@ -129,6 +129,16 @@
                 <data android:mimeType="application/*"/>
             </intent-filter>
         </activity>
+        <!-- Update APK finished downloading (UpdateDownloader): exported because
+             the sender is the system DownloadManager; the receiver checks the
+             id against its own download and queries the real status. -->
+        <receiver
+            android:name=".installer.UpdateDownloadReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
         <service
             android:name=".MeshForegroundService"
             android:foregroundServiceType="phoneCall"

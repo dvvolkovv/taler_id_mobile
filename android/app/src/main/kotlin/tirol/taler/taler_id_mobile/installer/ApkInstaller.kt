@@ -38,6 +38,26 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
                     }
                     install(File(path), displayName, result)
                 }
+                "startDownload" -> {
+                    val url = call.argument<String>("url")
+                    val version = call.argument<String>("version")
+                    val build = call.argument<Int>("build")
+                    if (url == null || version == null || build == null) {
+                        result.error("invalid_args", "url, version and build required", null)
+                        return@setMethodCallHandler
+                    }
+                    result.success(UpdateDownloader.start(context, url, version, build))
+                }
+                "downloadStatus" -> result.success(UpdateDownloader.status(context))
+                "cancelDownload" -> {
+                    UpdateDownloader.clear(context)
+                    result.success(null)
+                }
+                "consumeInstallRequest" -> {
+                    val requested = UpdateDownloader.installRequested
+                    UpdateDownloader.installRequested = false
+                    result.success(requested)
+                }
                 else -> result.notImplemented()
             }
         }

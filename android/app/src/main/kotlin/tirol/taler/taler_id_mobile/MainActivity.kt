@@ -22,6 +22,7 @@ import tirol.taler.taler_id_mobile.audio.AudioPlaybackChannel
 import tirol.taler.taler_id_mobile.audio.AudioRouteController
 import tirol.taler.taler_id_mobile.audio.AudioRouteDevice
 import tirol.taler.taler_id_mobile.installer.ApkInstaller
+import tirol.taler.taler_id_mobile.installer.UpdateDownloader
 import tirol.taler.taler_id_mobile.notifications.NotificationBridge
 import com.cloudwebrtc.webrtc.LocalTrack
 import com.cloudwebrtc.webrtc.video.LocalVideoTrack
@@ -32,6 +33,18 @@ import io.flutter.plugin.common.MethodChannel
 import java.util.concurrent.atomic.AtomicReference
 
 class MainActivity : FlutterFragmentActivity() {
+    companion object {
+        /**
+         * Read by UpdateDownloadReceiver: while the activity is visible the app
+         * offers the install itself. Tracks onStart/onStop — the same moment
+         * Flutter goes `paused` and stops polling the download — so a finished
+         * download is never offered twice or missed in between.
+         */
+        @Volatile
+        @JvmStatic
+        var isInForeground = false
+    }
+
     private var audioFocusRequest: AudioFocusRequest? = null
     private var focusListener: AudioManager.OnAudioFocusChangeListener? = null
     private var audioFocusGranted = false
@@ -73,6 +86,31 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannels()
+        handleUpdateIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleUpdateIntent(intent)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        isInForeground = true
+    }
+
+    override fun onStop() {
+        isInForeground = false
+        super.onStop()
+    }
+
+    /** The "update downloaded" notification opened the app: Dart installs it. */
+    private fun handleUpdateIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(UpdateDownloader.EXTRA_INSTALL_UPDATE, false) == true) {
+            UpdateDownloader.installRequested = true
+            intent.removeExtra(UpdateDownloader.EXTRA_INSTALL_UPDATE)
+        }
     }
 
     override fun onDestroy() {
