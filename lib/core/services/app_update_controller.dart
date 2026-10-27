@@ -34,6 +34,9 @@ class AppUpdateController extends ChangeNotifier {
     // A due install blocked by a call asks again this often: not every kind
     // of call reports its end (mesh calls don't).
     Duration callRecheck = const Duration(seconds: 5),
+    // Anything ringing or connecting in the system call UI; asked right
+    // before an automatic install.
+    Future<bool> Function()? isRinging,
   })  : _platform = platform,
         _install = install,
         _openUrl = openUrl,
@@ -41,7 +44,8 @@ class AppUpdateController extends ChangeNotifier {
         _isAndroid = isAndroid,
         _pollInterval = pollInterval,
         _offerDelay = offerDelay,
-        _callRecheck = callRecheck {
+        _callRecheck = callRecheck,
+        _isRinging = isRinging {
     _callSub = callStateStream.listen(_onCallState);
   }
 
@@ -53,6 +57,7 @@ class AppUpdateController extends ChangeNotifier {
   final Duration _pollInterval;
   final Duration _offerDelay;
   final Duration _callRecheck;
+  final Future<bool> Function()? _isRinging;
   late final StreamSubscription<bool> _callSub;
   final _installResults = StreamController<UpdateInstallResult>.broadcast();
 
@@ -76,6 +81,14 @@ class AppUpdateController extends ChangeNotifier {
   /// Pending automatic offer — the delay before an install due is actually
   /// opened, or the wait for the next in-call recheck.
   Timer? _offer;
+
+  /// The system call UI question an offer is waiting on. Dropped when the app
+  /// leaves the screen, so a late answer cannot install right after a return.
+  Object? _ringQuery;
+
+  /// The last check found a call: the next clear one waits [_offerDelay]
+  /// more, so a call that just ended can finish tearing down.
+  bool _sawCall = false;
 
   UpdateInfo? get info => _info;
   UpdatePhase get phase => _phase;
@@ -189,6 +202,8 @@ class AppUpdateController extends ChangeNotifier {
     _foreground = false;
     _offer?.cancel();
     _offer = null;
+    _ringQuery = null;
+    _sawCall = false;
     _syncPolling();
   }
 
@@ -210,19 +225,26 @@ class AppUpdateController extends ChangeNotifier {
   /// Opens the installer when an install is due, but only on screen and out
   /// of a call: installing closes the app and would cut the conversation.
   /// The offer waits [_offerDelay] and checks again; while a call blocks it,
-  /// it checks every [_callRecheck] and on every call-state change.
+  /// it checks every [_callRecheck] and on every call-state change, and once
+  /// clear it waits [_offerDelay] once more. Last of all it asks the system
+  /// call UI, which rings some calls without anything in the app.
   void _maybeInstall() {
     if (!_canOffer()) {
       _offer?.cancel();
       _offer = null;
       return;
     }
-    if (_offer?.isActive ?? false) return;
-    final wait = _isInCall() ? _callRecheck : _offerDelay;
-    if (wait == Duration.zero) {
+    if (_ringQuery != null || (_offer?.isActive ?? false)) return;
+    if (_isInCall()) {
+      _blocked();
+      return;
+    }
+    // This wait is also the settle time after a call.
+    _sawCall = false;
+    if (_offerDelay == Duration.zero) {
       _offerNow();
     } else {
-      _offer = Timer(wait, _offerNow);
+      _offer = Timer(_offerDelay, _offerNow);
     }
   }
 
@@ -235,12 +257,45 @@ class AppUpdateController extends ChangeNotifier {
 
   void _offerNow() {
     _offer = null;
-    if (!_canOffer()) return;
+    if (!_canOffer() || _ringQuery != null) return;
     if (_isInCall()) {
-      // Still in a call: wait for its end (stream) or the next recheck.
-      if (_callRecheck > Duration.zero) _offer = Timer(_callRecheck, _offerNow);
+      _blocked();
       return;
     }
+    final ringing = _isRinging;
+    if (ringing == null) {
+      _offerIfClear();
+      return;
+    }
+    final query = _ringQuery = Object();
+    // A failing question must not hold the update back for good.
+    unawaited(Future.sync(ringing).catchError((_) => false).then((r) {
+      if (!identical(query, _ringQuery)) return;
+      _ringQuery = null;
+      if (!_canOffer()) return;
+      if (r || _isInCall()) {
+        _blocked();
+      } else {
+        _offerIfClear();
+      }
+    }));
+  }
+
+  /// A call or a ring is there: wait for its end (stream) or the next recheck.
+  void _blocked() {
+    _sawCall = true;
+    if (_callRecheck > Duration.zero) _offer = Timer(_callRecheck, _offerNow);
+  }
+
+  /// Nothing blocks the install now; right after a call it waits [_offerDelay]
+  /// and checks again first.
+  void _offerIfClear() {
+    if (_sawCall && _offerDelay > Duration.zero) {
+      _sawCall = false;
+      _offer = Timer(_offerDelay, _offerNow);
+      return;
+    }
+    _sawCall = false;
     _installDue = false;
     unawaited(install());
   }

@@ -414,9 +414,10 @@ void main() {
 
     // A ready download of the advertised build: resuming at 0 s makes the
     // install due.
-    AppUpdateController resumeWithReadyDownload(FakeAsync async) {
+    AppUpdateController resumeWithReadyDownload(FakeAsync async, {Future<bool> Function()? isRinging}) {
       rig.platform.next = ready();
-      final c = rig.controller(offerDelay: offerDelay, callRecheck: callRecheck)..setInfo(info());
+      final c = rig.controller(offerDelay: offerDelay, callRecheck: callRecheck, isRinging: isRinging)
+        ..setInfo(info());
       c.onResumed();
       async.flushMicrotasks();
       return c;
@@ -437,7 +438,7 @@ void main() {
       });
     });
 
-    test('a call starting during the delay holds the offer; one ending silently is caught by the recheck', () {
+    test('a call starting during the delay holds the offer; one ending silently is caught by the recheck, then settles', () {
       fakeAsync((async) {
         final c = resumeWithReadyDownload(async);
 
@@ -448,9 +449,11 @@ void main() {
 
         async.elapse(const Duration(seconds: 1));
         rig.inCall = false; // 3 s: it ends, again without an event
-        async.elapse(const Duration(milliseconds: 3900)); // 6.9 s
+        async.elapse(const Duration(seconds: 4)); // 7 s: the recheck finds it gone
         expect(rig.installs, isEmpty);
-        async.elapse(const Duration(milliseconds: 100)); // 7 s: the recheck
+        async.elapse(const Duration(milliseconds: 1900)); // 8.9 s
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 100)); // 9 s: settled
         expect(rig.installs, hasLength(1));
 
         async.elapse(const Duration(seconds: 20));
@@ -494,6 +497,108 @@ void main() {
         c.onResumed();
         async.flushMicrotasks();
         async.elapse(offerDelay);
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    test('a call that ended silently just before the recheck still gets the settle time', () {
+      fakeAsync((async) {
+        rig.inCall = true;
+        final c = resumeWithReadyDownload(async); // recheck due at 5 s
+
+        async.elapse(const Duration(milliseconds: 4990));
+        rig.inCall = false; // ends 10 ms before the recheck, without an event
+        async.elapse(const Duration(milliseconds: 10)); // 5 s: the recheck finds it gone
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 1990)); // 6.99 s
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 10)); // 7 s
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    test('a ring in the system call UI holds the offer; once it is gone the offer settles first', () {
+      fakeAsync((async) {
+        var ringing = true;
+        var asked = 0;
+        final c = resumeWithReadyDownload(async, isRinging: () async {
+          asked++;
+          return ringing;
+        });
+
+        async.elapse(offerDelay); // 2 s: asked, ringing
+        expect(asked, 1);
+        expect(rig.installs, isEmpty);
+
+        ringing = false;
+        async.elapse(callRecheck); // 7 s: asked, clear, but a ring just ended
+        expect(asked, 2);
+        expect(rig.installs, isEmpty);
+
+        async.elapse(const Duration(milliseconds: 1900)); // 8.9 s
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 100)); // 9 s: asked once more
+        expect(asked, 3);
+        expect(rig.installs, hasLength(1));
+
+        async.elapse(const Duration(seconds: 20));
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    for (final sync in [false, true]) {
+      test('a system call UI that cannot answer (${sync ? 'sync' : 'async'} throw) does not hold the update back', () {
+        fakeAsync((async) {
+          Future<bool> broken() async => throw StateError('no CallKit');
+          final c = resumeWithReadyDownload(
+            async,
+            isRinging: sync ? () => throw StateError('no CallKit') : broken,
+          );
+
+          async.elapse(offerDelay);
+          expect(rig.installs, hasLength(1));
+          c.dispose();
+        });
+      });
+    }
+
+    test('leaving the screen while the system call UI is asked drops the offer', () {
+      fakeAsync((async) {
+        final answer = Completer<bool>();
+        final c = resumeWithReadyDownload(async, isRinging: () => answer.future);
+
+        async.elapse(offerDelay); // 2 s: asked, no answer yet
+        c.onPaused();
+        answer.complete(false);
+        async.elapse(const Duration(seconds: 10));
+        expect(rig.installs, isEmpty);
+        c.dispose();
+      });
+    });
+
+    test('a late answer after leaving and coming back does not skip the delay', () {
+      fakeAsync((async) {
+        final answers = <Completer<bool>>[];
+        final c = resumeWithReadyDownload(async, isRinging: () {
+          answers.add(Completer<bool>());
+          return answers.last.future;
+        });
+
+        async.elapse(offerDelay); // 2 s: asked, no answer yet
+        c.onPaused();
+        c.onResumed();
+        async.flushMicrotasks();
+        answers.first.complete(false); // the answer for the dropped offer
+        async.flushMicrotasks();
+        expect(rig.installs, isEmpty);
+
+        async.elapse(offerDelay); // 4 s: asked afresh after the delay
+        expect(answers, hasLength(2));
+        answers.last.complete(false);
+        async.flushMicrotasks();
         expect(rig.installs, hasLength(1));
         c.dispose();
       });

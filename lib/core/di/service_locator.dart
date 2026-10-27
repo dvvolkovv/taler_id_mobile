@@ -19,6 +19,7 @@ import '../config/app_config.dart';
 import '../mesh/voice/mesh_voice_service.dart';
 import '../platform/secure_storage.dart';
 import '../platform/platform_utils.dart';
+import '../platform/call_kit.dart';
 import '../platform/mesh_transport_desktop_stub.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
@@ -855,20 +856,31 @@ Future<void> setupDependencies() async {
         }
       },
       // Installing closes the app, which would drop the call. A call is a
-      // LiveKit line or one connecting in the background, a ringing sheet or
-      // call screen (before its line exists), or a mesh 1-on-1 / group call.
+      // LiveKit line or one connecting in the background, an in-app ringing
+      // sheet or call screen (before its line exists), or a mesh 1-on-1 /
+      // group call.
       isInCall: () =>
           calls.isInAnyCall ||
           calls.isBackgroundConnecting ||
           calls.isCallUiActive ||
           busy<MeshVoiceService>((s) => s.isBusy) ||
           busy<GroupMeshCallService>((s) => s.isBusy),
-      // Re-check as soon as a LiveKit line or the call UI changes; mesh calls
-      // report no end here, so the controller also re-checks on a timer.
+      // The system call UI rings group invites and calls arriving while the
+      // app is inactive without any in-app sheet; on Android a call is listed
+      // from the moment it rings.
+      isRinging: () async {
+        try {
+          return (await CallKitPlatform.instance.activeCalls()).isNotEmpty;
+        } catch (_) {
+          return false;
+        }
+      },
+      // Re-check as soon as a LiveKit line or the call UI changes. Mesh calls
+      // report their end nowhere here, so the controller also re-checks on a
+      // timer.
       callStateStream: StreamGroup.merge([
         calls.stateStream,
         calls.callUiStream,
-        calls.activeGroupCallStream.map((_) => calls.isInAnyCall),
       ]),
       isAndroid: !kIsWeb && Platform.isAndroid,
     );

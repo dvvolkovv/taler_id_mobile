@@ -65,11 +65,15 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   Timer? _callAcceptTimer;
   StreamSubscription<UpdateInstallResult>? _installResultSub;
 
-  /// The in-app ringing sheet counts as a call for app updates (see
-  /// CallStateService.setCallUi), so the installer never covers it.
-  void _setShowingCallDialog(String? room) {
-    _showingCallDialogRoom = room;
-    CallStateService.instance.setCallUi(this, room != null);
+  /// Rooms whose in-app ringing sheet is on screen: each counts as a call for
+  /// app updates (see CallStateService.setCallUi), so the installer never
+  /// covers it.
+  final Set<String> _ringHolds = {};
+
+  void _holdRing(String room, bool on) {
+    if (on ? _ringHolds.add(room) : _ringHolds.remove(room)) {
+      CallStateService.instance.setCallUi('ring:$room', on);
+    }
   }
 
   @override
@@ -298,7 +302,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
       // Close the in-app incoming call modal dialog if it's showing
       if (mounted && _showingCallDialogRoom != null) {
-        _setShowingCallDialog(null);
+        _showingCallDialogRoom = null;
         try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
       }
       // Set flag BEFORE ending CallKit so the resulting actionCallDecline
@@ -669,7 +673,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
     _installResultSub?.cancel();
-    CallStateService.instance.setCallUi(this, false);
+    for (final r in _ringHolds.toList()) {
+      _holdRing(r, false);
+    }
     // Logged out or the session expired: nothing forwards the lifecycle any
     // more, so stop polling and offering until a dashboard is back.
     sl<AppUpdateController>().onPaused();
@@ -885,7 +891,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }) {
     // Deduplicate: don't show a second dialog for the same room
     if (_showingCallDialogRoom == roomName) return;
-    _setShowingCallDialog(roomName);
+    _showingCallDialogRoom = roomName;
+    _holdRing(roomName, true);
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -1027,7 +1034,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ),
       ),
     ).whenComplete(() {
-      if (_showingCallDialogRoom == roomName) _setShowingCallDialog(null);
+      if (_showingCallDialogRoom == roomName) _showingCallDialogRoom = null;
+      _holdRing(roomName, false);
     });
   }
 
@@ -1047,7 +1055,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     String? incomingE2eeKey,
   }) {
     if (_showingCallDialogRoom == incomingRoom) return;
-    _setShowingCallDialog(incomingRoom);
+    _showingCallDialogRoom = incomingRoom;
+    _holdRing(incomingRoom, true);
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
     showModalBottomSheet<bool>(
@@ -1113,7 +1122,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ),
       ),
     ).then((switchToTheirs) async {
-      if (_showingCallDialogRoom == incomingRoom) _setShowingCallDialog(null);
+      if (_showingCallDialogRoom == incomingRoom) _showingCallDialogRoom = null;
+      _holdRing(incomingRoom, false);
       final ds = sl<MessengerRemoteDataSource>();
       final cs = CallStateService.instance;
       if (switchToTheirs == true) {

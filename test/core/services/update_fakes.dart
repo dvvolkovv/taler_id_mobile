@@ -60,6 +60,7 @@ class UpdateRig {
     bool android = true,
     Duration offerDelay = Duration.zero,
     Duration callRecheck = Duration.zero,
+    Future<bool> Function()? isRinging,
   }) =>
       AppUpdateController(
         platform: platform,
@@ -75,6 +76,7 @@ class UpdateRig {
         isAndroid: android,
         offerDelay: offerDelay,
         callRecheck: callRecheck,
+        isRinging: isRinging,
       );
 }
 
