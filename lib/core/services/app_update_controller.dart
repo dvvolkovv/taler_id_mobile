@@ -50,8 +50,16 @@ class AppUpdateController extends ChangeNotifier {
   UpdatePhase _phase = UpdatePhase.available;
   String? _dismissedVersion;
   bool _foreground = true;
-  bool _offeredThisLaunch = false;
-  bool _offerAfterCall = false;
+  bool _starting = false;
+  bool _disposed = false;
+
+  /// Build whose finished download was already offered this launch: every
+  /// newly finished download is offered once, by itself.
+  int? _offeredBuild;
+
+  /// An install is due (a newly finished download, the "downloaded"
+  /// notification) but waits until the app is on screen and out of a call.
+  bool _installDue = false;
   Timer? _poll;
 
   UpdateInfo? get info => _info;
@@ -80,22 +88,30 @@ class AppUpdateController extends ChangeNotifier {
   /// Hides the card until a newer version shows up; a running download goes on.
   void dismiss() {
     _dismissedVersion = version;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> startDownload() async {
     final info = _info;
-    if (info == null || !info.isAvailable) return;
+    if (info == null || !info.isAvailable || _starting) return;
     if (!_isAndroid) {
       await _openUrl(Uri.parse(info.downloadUrl));
       return;
     }
+    // No polling until start answers: an early "none" would flash "Обновить".
+    _starting = true;
     _setPhase(UpdatePhase.downloading);
-    final s = await _platform.start(
-      url: info.downloadUrl,
-      version: info.latestVersion,
-      build: info.latestBuild,
-    );
+    final UpdateDownloadStatus s;
+    try {
+      s = await _platform.start(
+        url: info.downloadUrl,
+        version: info.latestVersion,
+        build: info.latestBuild,
+      );
+    } finally {
+      _starting = false;
+    }
+    if (_disposed) return;
     if (s.state == UpdateDownloadState.failed && s.reason == UpdateDownloadStatus.unavailable) {
       // No usable DownloadManager on this device: the browser downloads it.
       _download = UpdateDownloadStatus.none;
@@ -104,8 +120,11 @@ class AppUpdateController extends ChangeNotifier {
       return;
     }
     _apply(s);
-    // Downloaded earlier already: the tap asks to install now.
-    if (_phase == UpdatePhase.ready) await install();
+    if (_phase == UpdatePhase.ready) {
+      // Downloaded earlier already: the tap asks to install now, call or not.
+      _offeredBuild = _download.build;
+      await install();
+    }
   }
 
   /// Asks the system installer to replace the app. On success Android kills
@@ -113,25 +132,30 @@ class AppUpdateController extends ChangeNotifier {
   Future<void> install() async {
     final file = _download.file;
     if (_phase != UpdatePhase.ready || file == null) return;
+    _installDue = false;
     final name = 'talerid-${_download.version ?? version ?? 'update'}.apk';
     _setPhase(UpdatePhase.installing);
-    final response = await _install(file, name);
-    _setPhase(UpdatePhase.ready);
+    ApkInstallResponse response;
+    try {
+      response = await _install(file, name);
+    } catch (e) {
+      response = ApkInstallResponse(ApkInstallStatus.failureUnknown, '$e');
+    }
+    if (_disposed) return;
+    _leaveInstalling();
     _installResults.add((response: response, displayName: name));
   }
 
   Future<void> onResumed() async {
     _foreground = true;
-    if (!_isAndroid) return;
-    final fromNotification = await _platform.consumeInstallRequest();
-    // The notification path installs below; keep refresh() from offering too.
-    if (fromNotification) _offeredThisLaunch = true;
+    if (!_isAndroid || _disposed) return;
+    // Back without an answer from the system installer (e.g. Home pressed on
+    // its dialog): the card must not stay on "Установка…" for good.
+    _leaveInstalling();
+    _syncPolling();
+    if (await _platform.consumeInstallRequest()) _installDue = true;
     await refresh();
-    if (_phase != UpdatePhase.ready) return;
-    if (fromNotification || (_offerAfterCall && !_isInCall())) {
-      _offerAfterCall = false;
-      _offerNow();
-    }
+    _maybeInstall();
   }
 
   void onPaused() {
@@ -140,35 +164,45 @@ class AppUpdateController extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
-    if (!_isAndroid) return;
+    if (!_isAndroid || _disposed) return;
     final s = await _platform.status();
-    // AMENDMENT: a failed status *call* says nothing about the download
-    // itself — keep what we knew and ask again on the next poll.
+    if (_disposed) return;
+    // A failed status call says nothing about the download itself: keep what
+    // we knew and ask again on the next poll.
     if (s.reason == UpdateDownloadStatus.channelError) return;
     _apply(s);
-    if (_phase == UpdatePhase.ready && !_offeredThisLaunch) {
-      _offeredThisLaunch = true;
-      _offerNow();
+    if (_phase == UpdatePhase.ready && _download.build != _offeredBuild) {
+      _offeredBuild = _download.build;
+      _installDue = true;
     }
+    _maybeInstall();
   }
 
-  /// Opens the installer unless a call is on: installing closes the app and
-  /// would cut the conversation. Then it waits for the call to end.
-  void _offerNow() {
-    if (_isInCall()) {
-      _offerAfterCall = true;
-      return;
-    }
+  /// Opens the installer when an install is due, but only on screen and out
+  /// of a call: installing closes the app and would cut the conversation.
+  /// Until then it stays due; onResumed and the end of a call try again.
+  void _maybeInstall() {
+    if (!_installDue || _phase != UpdatePhase.ready) return;
+    if (!_foreground || _isInCall()) return;
+    _installDue = false;
     unawaited(install());
   }
 
   void _onCallState(bool inCall) {
-    if (inCall || !_offerAfterCall || !_foreground || _phase != UpdatePhase.ready) return;
-    _offerAfterCall = false;
-    unawaited(install());
+    // _maybeInstall asks isInCall() itself: a line can end while another one
+    // is still joining, and the event alone would miss that.
+    if (!inCall) _maybeInstall();
+  }
+
+  /// Lets the latest known download state decide the card again.
+  void _leaveInstalling() {
+    if (_phase != UpdatePhase.installing) return;
+    _phase = UpdatePhase.ready;
+    _apply(_download);
   }
 
   void _apply(UpdateDownloadStatus s) {
+    if (_disposed) return;
     _download = s;
     // The installer is up; a refresh landing meanwhile must not flip the card.
     if (_phase == UpdatePhase.installing) return;
@@ -188,17 +222,26 @@ class AppUpdateController extends ChangeNotifier {
             UpdateDownloadState.failed => UpdatePhase.failed,
           };
     _syncPolling();
-    notifyListeners();
+    _notify();
   }
 
   void _setPhase(UpdatePhase p) {
+    if (_disposed) return;
     _phase = p;
     _syncPolling();
-    notifyListeners();
+    _notify();
+  }
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
   }
 
   void _syncPolling() {
-    final want = _isAndroid && _foreground && _phase == UpdatePhase.downloading;
+    final want = !_disposed &&
+        _isAndroid &&
+        _foreground &&
+        !_starting &&
+        _phase == UpdatePhase.downloading;
     if (want && _poll == null) {
       _poll = Timer.periodic(_pollInterval, (_) => unawaited(refresh()));
     } else if (!want) {
@@ -209,7 +252,9 @@ class AppUpdateController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _poll?.cancel();
+    _poll = null;
     unawaited(_callSub.cancel());
     unawaited(_installResults.close());
     super.dispose();

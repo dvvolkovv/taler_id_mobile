@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:taler_id_mobile/core/services/apk_installer_service.dart';
 import 'package:taler_id_mobile/core/services/app_update_controller.dart';
 import 'package:taler_id_mobile/core/services/update_download_platform.dart';
 
@@ -200,5 +203,173 @@ void main() {
       expect(c.progress, 0.6);
       c.dispose();
     });
+  });
+
+  test('install results reach the listeners', () async {
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    final results = <UpdateInstallResult>[];
+    c.installResults.listen(results.add);
+
+    await c.onResumed();
+    await pumpEventQueue();
+
+    expect(results.single.displayName, 'talerid-1.1.37.apk');
+    expect(results.single.response.status, ApkInstallStatus.aborted);
+  });
+
+  test('a throwing installer leaves the card on Install and reports the failure', () async {
+    rig.installError = StateError('boom');
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    final results = <UpdateInstallResult>[];
+    c.installResults.listen(results.add);
+
+    await c.onResumed();
+    await pumpEventQueue();
+
+    expect(c.phase, UpdatePhase.ready);
+    expect(results.single.response.status, ApkInstallStatus.failureUnknown);
+  });
+
+  test('coming back after leaving the installer dialog un-sticks the card', () async {
+    rig.installGate = Completer<ApkInstallResponse>();
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    await c.onResumed();
+    await pumpEventQueue();
+    expect(c.phase, UpdatePhase.installing);
+
+    c.onPaused();
+    await c.onResumed();
+    expect(c.phase, UpdatePhase.ready);
+
+    rig.installGate!.complete(const ApkInstallResponse(ApkInstallStatus.aborted, 'superseded'));
+    await pumpEventQueue();
+    rig.installGate = null;
+    await c.install();
+    expect(rig.installs, hasLength(2));
+  });
+
+  test('a channel error right after returning still resumes polling', () {
+    fakeAsync((async) {
+      rig.platform.startResult = running(0.1);
+      final c = rig.controller()..setInfo(info());
+      c.startDownload();
+      async.flushMicrotasks();
+      c.onPaused();
+
+      rig.platform.next = const UpdateDownloadStatus(
+        UpdateDownloadState.failed,
+        reason: UpdateDownloadStatus.channelError,
+      );
+      c.onResumed();
+      async.flushMicrotasks();
+
+      rig.platform.next = running(0.5);
+      async.elapse(const Duration(seconds: 1));
+      expect(c.progress, 0.5);
+      c.dispose();
+    });
+  });
+
+  test('a call ending while another line still joins does not open the installer', () async {
+    rig.inCall = true; // isInCall() stays true: the second line is still connecting
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    await c.onResumed();
+    await pumpEventQueue();
+
+    rig.calls.add(false);
+    await pumpEventQueue();
+
+    expect(rig.installs, isEmpty);
+  });
+
+  test('a call that ended while the app was in the background installs on return', () async {
+    rig.inCall = true;
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    await c.onResumed();
+    await pumpEventQueue();
+
+    c.onPaused();
+    rig.inCall = false;
+    rig.calls.add(false);
+    await pumpEventQueue();
+    expect(rig.installs, isEmpty);
+
+    await c.onResumed();
+    await pumpEventQueue();
+    expect(rig.installs, hasLength(1));
+  });
+
+  test('Update on an already downloaded build installs right away, even in a call', () async {
+    rig.inCall = true;
+    rig.platform.startResult = ready();
+    final c = rig.controller()..setInfo(info());
+
+    await c.startDownload();
+
+    expect(rig.installs, hasLength(1));
+  });
+
+  test('after a restart the downloading version shows before /app/version answers', () async {
+    rig.platform.next = running(0.4);
+    final c = rig.controller();
+
+    await c.onResumed();
+
+    expect(c.visible, isTrue);
+    expect(c.version, '1.1.37');
+    expect(c.phase, UpdatePhase.downloading);
+    c.dispose();
+  });
+
+  test('hiding the card during a download keeps polling and still offers the install', () {
+    fakeAsync((async) {
+      final c = rig.controller()..setInfo(info());
+      c.startDownload();
+      async.flushMicrotasks();
+      c.dismiss();
+
+      rig.platform.next = ready();
+      async.elapse(const Duration(seconds: 1));
+
+      expect(c.visible, isFalse);
+      expect(rig.installs, hasLength(1));
+      c.dispose();
+    });
+  });
+
+  test('a second version downloaded in the same launch is offered too', () async {
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    await c.onResumed();
+    await pumpEventQueue();
+    expect(rig.installs, hasLength(1));
+
+    c.setInfo(info(v: '1.1.38', b: 239));
+    rig.platform.next = const UpdateDownloadStatus(
+      UpdateDownloadState.ready,
+      version: '1.1.38',
+      build: 239,
+      file: '/g.apk',
+    );
+    await c.refresh();
+    await pumpEventQueue();
+
+    expect(rig.installs, ['/f.apk|talerid-1.1.37.apk', '/g.apk|talerid-1.1.38.apk']);
+  });
+
+  test('a double tap on Update starts one download', () async {
+    final c = rig.controller()..setInfo(info());
+
+    final first = c.startDownload();
+    final second = c.startDownload();
+    await Future.wait([first, second]);
+
+    expect(rig.platform.starts, hasLength(1));
+    c.dispose();
   });
 }

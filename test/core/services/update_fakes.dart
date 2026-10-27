@@ -47,10 +47,18 @@ class UpdateRig {
   final calls = StreamController<bool>.broadcast();
   bool inCall = false;
 
+  /// Set to make the installer throw.
+  Object? installError;
+
+  /// Set to make the installer hang until completed (dialog left with Home).
+  Completer<ApkInstallResponse>? installGate;
+
   AppUpdateController controller({bool android = true}) => AppUpdateController(
         platform: platform,
         install: (path, name) async {
           installs.add('$path|$name');
+          if (installError != null) throw installError!;
+          if (installGate != null) return installGate!.future;
           return const ApkInstallResponse(ApkInstallStatus.aborted, '');
         },
         openUrl: (url) async => opened.add(url),
