@@ -393,6 +393,7 @@ void main() {
 
     c.setInfo(info(available: false));
     expect(c.visible, isFalse);
+    c.dispose();
   });
 
   test('the server saying no update cancels the auto-install of a remembered ready build', () async {
@@ -404,5 +405,6 @@ void main() {
     await pumpEventQueue();
 
     expect(rig.installs, isEmpty);
+    c.dispose();
   });
 }

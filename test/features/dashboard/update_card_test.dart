@@ -149,6 +149,25 @@ void main() {
     expect(t.getSize(find.byKey(const Key('update-card'))).height, lessThan(100));
   });
 
+  testWidgets('an ordinary 360dp phone in Russian at normal text scale stays one row', (t) async {
+    t.view.physicalSize = const Size(1080, 1920);
+    t.view.devicePixelRatio = 3; // 360 × 640 dp
+    addTearDown(t.view.reset);
+    final c = rig.controller()..setInfo(info());
+    addTearDown(c.dispose);
+
+    await t.pumpWidget(_wrap(UpdateCard(controller: c), locale: const Locale('ru')));
+
+    expect(t.takeException(), isNull);
+    final title = find
+        .descendant(of: find.byKey(const Key('update-card')), matching: find.byType(Text))
+        .first;
+    final actionCenter = t.getCenter(find.byKey(const Key('update-card-action')));
+    final titleCenter = t.getCenter(title);
+    expect((actionCenter.dy - titleCenter.dy).abs(), lessThan(12));
+    expect(t.getSize(find.byKey(const Key('update-card'))).height, lessThan(100));
+  });
+
   testWidgets('controls are labelled and big enough to tap', (t) async {
     final semantics = t.ensureSemantics();
     final c = rig.controller()..setInfo(info(notes: 'Fixes'));

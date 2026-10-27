@@ -13,6 +13,7 @@ class UpdateCard extends StatelessWidget {
   final AppUpdateController controller;
 
   static const _blue = Color(0xFF1565C0);
+  static const _actionHPad = 14.0;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +61,14 @@ class UpdateCard extends StatelessWidget {
         final showNotes = phase == UpdatePhase.available && (notes?.isNotEmpty ?? false);
         final faded = Colors.white.withValues(alpha: 0.85);
         const actionStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 13);
+        // The button renders with the theme's text-button style (Inter), not
+        // just actionStyle: measuring with actionStyle alone under-measures
+        // the real glyph widths and "narrow" never triggers when it should.
+        final theme = Theme.of(context);
+        final measureStyle = (theme.textButtonTheme.style?.textStyle?.resolve(const <WidgetState>{}) ??
+                theme.textTheme.labelLarge ??
+                const TextStyle())
+            .merge(actionStyle);
 
         final text = Column(
           mainAxisSize: MainAxisSize.min,
@@ -112,7 +121,7 @@ class UpdateCard extends StatelessWidget {
                     style: TextButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: _blue,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: _actionHPad, vertical: 6),
                       minimumSize: const Size(0, 36),
                       tapTargetSize: MaterialTapTargetSize.padded,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -148,12 +157,12 @@ class UpdateCard extends StatelessWidget {
                     var narrow = false;
                     if (actionLabel != null) {
                       final painter = TextPainter(
-                        text: TextSpan(text: actionLabel, style: actionStyle),
+                        text: TextSpan(text: actionLabel, style: measureStyle),
                         textDirection: Directionality.of(context),
                         textScaler: scaler,
                         maxLines: 1,
                       )..layout();
-                      final actionWidth = painter.width + 28; // the button's horizontal padding
+                      final actionWidth = painter.width + 2 * _actionHPad;
                       painter.dispose();
                       final closeWidth = showClose ? 48.0 : 8.0;
                       narrow =
