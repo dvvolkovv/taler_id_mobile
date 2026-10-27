@@ -16,17 +16,12 @@ enum ApkInstallStatus {
 class ApkInstallResponse {
   final ApkInstallStatus status;
   final String message;
-
-  /// A copy of the APK was written to the public Downloads folder: only after
-  /// a failed install, and only of an APK signed by us.
-  final bool savedToDownloads;
-
-  const ApkInstallResponse(this.status, this.message, {this.savedToDownloads = false});
+  const ApkInstallResponse(this.status, this.message);
 
   static ApkInstallResponse _fromMap(Map<dynamic, dynamic> m) {
     final s = (m['status'] as String?) ?? 'failureUnknown';
     final msg = (m['message'] as String?) ?? '';
-    return ApkInstallResponse(_parse(s), msg, savedToDownloads: m['savedToDownloads'] == true);
+    return ApkInstallResponse(_parse(s), msg);
   }
 
   static ApkInstallStatus _parse(String s) {

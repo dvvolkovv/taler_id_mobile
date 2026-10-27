@@ -2,7 +2,6 @@ package tirol.taler.taler_id_mobile.installer
 
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -12,7 +11,6 @@ import android.content.pm.Signature
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.provider.MediaStore
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -34,21 +32,23 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
             "550899753325b9d61b7170fd770a13b582d6ee413c6f25c0c8d9af879e0c4499",
             "12d7ab5036595e5109ef432773ff23c63f620d234e5695c67a742f2e1f4c9b8d",
         )
+
+        /**
+         * Writes the session and checks signatures: both read the whole APK,
+         * and the main thread here is also Flutter's UI thread. One for the
+         * process, so a re-created engine doesn't leave a thread behind.
+         */
+        private val io = Executors.newSingleThreadExecutor()
     }
 
     private val channel = MethodChannel(engine.dartExecutor.binaryMessenger, CHANNEL)
-
-    /**
-     * Writes the session, checks signatures, copies to Downloads: each one
-     * reads the whole APK, and the main thread here is also Flutter's UI thread.
-     */
-    private val io = Executors.newSingleThreadExecutor()
     private val main = Handler(Looper.getMainLooper())
 
     // The install in flight and its result receiver. Main thread only.
     private var pendingResult: MethodChannel.Result? = null
     private var pendingApk: File? = null
-    private var pendingName: String? = null
+    /** The committed session whose broadcasts answer [pendingResult]; -1 until committed. */
+    private var pendingSessionId = -1
     private var receiver: BroadcastReceiver? = null
 
     init {
@@ -96,18 +96,19 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
         }
         // Takes the result over before any work, so a failure while writing
         // answers this call rather than an earlier one.
-        registerReceiver(result, apk, displayName)
+        registerReceiver(result, apk)
         io.execute {
+            val installer = context.packageManager.packageInstaller
+            var sessionId = -1
             var session: PackageInstaller.Session? = null
             try {
-                val installer = context.packageManager.packageInstaller
                 val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
                     setAppPackageName(context.packageName)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
                     }
                 }
-                val sessionId = installer.createSession(params)
+                sessionId = installer.createSession(params)
                 val opened = installer.openSession(sessionId)
                 session = opened
 
@@ -117,10 +118,16 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
                         opened.fsync(output)
                     }
                 }
-                main.post { commit(result, opened, sessionId) }
+                val committing = sessionId
+                main.post { commit(result, opened, committing) }
             } catch (e: Exception) {
                 Log.e(TAG, "install threw", e)
-                session?.let { abandon(it) }
+                val opened = session
+                if (opened != null) {
+                    abandon(opened)
+                } else if (sessionId != -1) { // created, but openSession threw
+                    try { installer.abandonSession(sessionId) } catch (_: Exception) {}
+                }
                 main.post { finish(result, payload("failureUnknown", e.message ?: "install threw")) }
             }
         }
@@ -140,9 +147,11 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
                 PendingIntent.FLAG_UPDATE_CURRENT
             }
             val pi = PendingIntent.getBroadcast(context, sessionId, intent, flags)
+            pendingSessionId = sessionId
             session.commit(pi.intentSender)
         } catch (e: Exception) {
             Log.e(TAG, "commit threw", e)
+            pendingSessionId = -1
             abandon(session)
             finish(result, payload("failureUnknown", e.message ?: "commit threw"))
             return
@@ -151,15 +160,20 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
     }
 
     /** Main thread. */
-    private fun registerReceiver(result: MethodChannel.Result, apk: File, displayName: String) {
+    private fun registerReceiver(result: MethodChannel.Result, apk: File) {
         pendingResult?.let { try { it.success(payload("aborted", "superseded")) } catch (_: Exception) {} }
         pendingResult = result
         pendingApk = apk
-        pendingName = displayName
+        pendingSessionId = -1
         if (receiver != null) return
 
         receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context?, intent: Intent?) {
+                // A superseded session can still answer (its dialog cancelled
+                // later, say): that must not answer or unregister the new one.
+                // Nor can anything before our session is committed.
+                val sessionId = intent?.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1) ?: -1
+                if (sessionId == -1 || sessionId != pendingSessionId) return
                 val status = intent?.getIntExtra(PackageInstaller.EXTRA_STATUS, -999) ?: -999
                 val msg = intent?.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: ""
                 if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
@@ -186,35 +200,30 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
     }
 
     /**
-     * Main thread. A failed install leaves a copy in Downloads for installing
-     * by hand, but only of an APK we signed: on Android 7–10 any app with the
-     * storage permission can replace the file in our external files dir, and
-     * the conflict dialog tells the user to uninstall Taler ID and install
-     * that copy. The check hashes the whole APK, so it runs off this thread.
+     * Main thread. A failed install of an APK we didn't sign is not the
+     * installed app's fault: on Android 7–10 any app with the storage
+     * permission can replace the file in our external files dir, and a
+     * conflict would tell the user to uninstall the real Taler ID. Such a
+     * failure is reported as untrusted and the file goes. The check hashes the
+     * whole APK, so it runs off this thread.
      */
     private fun onFinalStatus(status: String, message: String) {
         val result = pendingResult
         val apk = pendingApk
-        val name = pendingName
-        if (status == "success" || status == "aborted" || result == null || apk == null || name == null) {
+        if (status == "success" || status == "aborted" || result == null || apk == null) {
             deliver(payload(status, message))
             return
         }
         io.execute {
             val ours = signedByUs(apk)
-            val saved = ours && try {
-                copyToDownloads(apk, name)
-            } catch (e: Exception) {
-                Log.w(TAG, "MediaStore copy failed: ${e.message}")
-                false
-            }
             main.post {
                 if (pendingResult !== result) return@post // answered as superseded already
                 if (ours) {
-                    deliver(payload(status, message, savedToDownloads = saved))
+                    deliver(payload(status, message))
                 } else {
                     Log.w(TAG, "downloaded APK is not signed by us, deleting it")
-                    UpdateDownloader.clear(context)
+                    // Kept as a failure, so the card says so and offers Retry.
+                    UpdateDownloader.reject(context, UNTRUSTED)
                     apk.delete()
                     deliver(payload("invalid", UNTRUSTED))
                 }
@@ -257,8 +266,8 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
         try { session.abandon() } catch (_: Exception) {}
     }
 
-    private fun payload(status: String, message: String, savedToDownloads: Boolean = false): Map<String, Any?> =
-        mapOf("status" to status, "message" to message, "savedToDownloads" to savedToDownloads)
+    private fun payload(status: String, message: String): Map<String, Any?> =
+        mapOf("status" to status, "message" to message)
 
     private fun statusToString(status: Int): String = when (status) {
         PackageInstaller.STATUS_SUCCESS -> "success"
@@ -282,45 +291,9 @@ class ApkInstaller(private val context: Context, engine: FlutterEngine) {
         val r = pendingResult
         pendingResult = null
         pendingApk = null
-        pendingName = null
+        pendingSessionId = -1
         receiver?.let { try { context.unregisterReceiver(it) } catch (_: Exception) {} }
         receiver = null
         try { r?.success(payload) } catch (_: Exception) {}
-    }
-
-    /** A copy in the public Downloads; false when none was written (below Android 10, or no stream). */
-    private fun copyToDownloads(src: File, displayName: String): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
-        val resolver = context.contentResolver
-        val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        val sel = "${MediaStore.Downloads.DISPLAY_NAME}=?"
-        resolver.query(collection, arrayOf(MediaStore.Downloads._ID), sel, arrayOf(displayName), null)?.use { c ->
-            while (c.moveToNext()) {
-                val id = c.getLong(0)
-                resolver.delete(android.content.ContentUris.withAppendedId(collection, id), null, null)
-            }
-        }
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, displayName)
-            put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive")
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val uri = resolver.insert(collection, values) ?: return false
-        try {
-            val written = resolver.openOutputStream(uri)?.use { out ->
-                FileInputStream(src).use { it.copyTo(out, 64 * 1024) }
-                true
-            } ?: false
-            if (!written) {
-                resolver.delete(uri, null, null)
-                return false
-            }
-        } catch (e: Exception) { // no half-written file left in Downloads
-            try { resolver.delete(uri, null, null) } catch (_: Exception) {}
-            throw e
-        }
-        val finalValues = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
-        resolver.update(uri, finalValues, null, null)
-        return true
     }
 }

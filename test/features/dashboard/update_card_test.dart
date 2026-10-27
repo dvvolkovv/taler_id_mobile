@@ -246,7 +246,7 @@ void main() {
   Future<void> showResult(WidgetTester t, ApkInstallResponse res) async {
     await t.pumpWidget(_wrap(Builder(
       builder: (ctx) => TextButton(
-        onPressed: () => showUpdateInstallResult(ctx, res, 'talerid-1.1.37.apk'),
+        onPressed: () => showUpdateInstallResult(ctx, res),
         child: const Text('go'),
       ),
     )));
@@ -261,17 +261,9 @@ void main() {
     expect(find.byType(AlertDialog), findsNothing);
   });
 
-  testWidgets('install result: a signature conflict explains the reinstall', (t) async {
-    await showResult(
-        t, const ApkInstallResponse(ApkInstallStatus.conflict, '', savedToDownloads: true));
-    expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text("Couldn't update in place"), findsOneWidget);
-    expect(find.textContaining('talerid-1.1.37.apk'), findsOneWidget);
-  });
-
-  testWidgets('install result: a conflict without a copy in Downloads points to the download page',
-      (t) async {
+  testWidgets('install result: a signature conflict points to the download page, no file', (t) async {
     await showResult(t, const ApkInstallResponse(ApkInstallStatus.conflict, ''));
+    expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text("Couldn't update in place"), findsOneWidget);
     expect(
       find.text("The installed version is signed with a different certificate, so Android won't "
@@ -279,25 +271,23 @@ void main() {
           'the download page. You only need to do this once.'),
       findsOneWidget,
     );
-    expect(find.textContaining('talerid-1.1.37.apk'), findsNothing);
+    expect(find.textContaining('.apk'), findsNothing);
+    expect(find.textContaining('Downloads'), findsNothing);
   });
 
-  testWidgets('install result: other failures name the reason, or the status without a message',
-      (t) async {
-    await showResult(t,
-        const ApkInstallResponse(ApkInstallStatus.failureUnknown, '', savedToDownloads: true));
+  testWidgets('install result: other failures name just the reason', (t) async {
+    await showResult(t, const ApkInstallResponse(ApkInstallStatus.storage, 'no space'));
     expect(find.byType(AlertDialog), findsOneWidget);
     expect(find.text('Install failed'), findsOneWidget);
-    expect(find.textContaining('failureUnknown'), findsOneWidget);
-    expect(find.textContaining('talerid-1.1.37.apk'), findsOneWidget);
+    expect(find.text('no space'), findsOneWidget);
+    expect(find.textContaining('.apk'), findsNothing);
+    expect(find.textContaining('Downloads'), findsNothing);
   });
 
-  testWidgets('install result: a failure without a copy in Downloads names only the reason',
-      (t) async {
-    await showResult(t, const ApkInstallResponse(ApkInstallStatus.storage, 'no space'));
+  testWidgets('install result: a failure without a message names the status', (t) async {
+    await showResult(t, const ApkInstallResponse(ApkInstallStatus.failureUnknown, ''));
     expect(find.text('Install failed'), findsOneWidget);
-    expect(find.text('no space'), findsOneWidget);
-    expect(find.textContaining('talerid-1.1.37.apk'), findsNothing);
+    expect(find.text('failureUnknown'), findsOneWidget);
   });
 
   testWidgets('install result: a file not signed by us says so and names no file', (t) async {
@@ -308,6 +298,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('untrusted_signature'), findsNothing);
-    expect(find.textContaining('talerid-1.1.37.apk'), findsNothing);
+    expect(find.textContaining('.apk'), findsNothing);
   });
 }

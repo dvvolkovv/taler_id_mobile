@@ -310,19 +310,24 @@ void main() {
     await c.onResumed();
     await pumpEventQueue();
 
-    expect(results.single.displayName, 'talerid-1.1.37.apk');
+    expect(rig.installs, ['/f.apk|talerid-1.1.37.apk']);
     expect(results.single.response.status, ApkInstallStatus.aborted);
   });
 
-  test('an APK not signed by us: the card drops Install right after the result', () async {
+  test('an APK not signed by us: the card shows the failure with Retry right after the result', () async {
     rig.platform.next = ready();
     final c = rig.controller()..setInfo(info());
     await c.onResumed();
     await pumpEventQueue();
     expect(c.phase, UpdatePhase.ready);
 
-    // Natively the file and the record are gone along with the result.
-    rig.platform.next = UpdateDownloadStatus.none;
+    // Natively the file is gone and the record keeps the reason.
+    rig.platform.next = const UpdateDownloadStatus(
+      UpdateDownloadState.failed,
+      reason: 'untrusted_signature',
+      version: '1.1.37',
+      build: 238,
+    );
     rig.installResponse =
         const ApkInstallResponse(ApkInstallStatus.invalid, 'untrusted_signature');
     final results = <UpdateInstallResult>[];
@@ -331,7 +336,40 @@ void main() {
     await pumpEventQueue();
 
     expect(results.single.response.message, 'untrusted_signature');
-    expect(c.phase, UpdatePhase.available);
+    expect(c.phase, UpdatePhase.failed);
+    expect(c.failure, 'untrusted_signature');
+    await sub.cancel();
+    c.dispose();
+  });
+
+  test('an install superseded by a newer one stays quiet: the phase and the result are the newer one', () async {
+    final first = rig.installGate = Completer<ApkInstallResponse>();
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    final results = <UpdateInstallResult>[];
+    final sub = c.installResults.listen(results.add);
+    await c.onResumed();
+    await pumpEventQueue();
+    expect(c.phase, UpdatePhase.installing);
+
+    // Home on the installer dialog, back, Install again.
+    c.onPaused();
+    await c.onResumed();
+    expect(c.phase, UpdatePhase.ready);
+    final second = rig.installGate = Completer<ApkInstallResponse>();
+    unawaited(c.install());
+    await pumpEventQueue();
+    expect(rig.installs, hasLength(2));
+
+    first.complete(const ApkInstallResponse(ApkInstallStatus.aborted, 'superseded'));
+    await pumpEventQueue();
+    expect(c.phase, UpdatePhase.installing);
+    expect(results, isEmpty);
+
+    second.complete(const ApkInstallResponse(ApkInstallStatus.conflict, ''));
+    await pumpEventQueue();
+    expect(results.single.response.status, ApkInstallStatus.conflict);
+    expect(c.phase, UpdatePhase.ready);
     await sub.cancel();
     c.dispose();
   });

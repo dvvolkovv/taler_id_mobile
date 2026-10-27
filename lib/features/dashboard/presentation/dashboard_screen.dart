@@ -84,7 +84,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     // (the install is often offered on its own, after a download).
     final updates = sl<AppUpdateController>();
     _installResultSub = updates.installResults.listen((r) {
-      if (mounted) showUpdateInstallResult(context, r.response, r.displayName);
+      if (mounted) showUpdateInstallResult(context, r.response);
     });
     // Only when really on screen: a locked phone answering a call starts
     // the app without `resumed`, and didChangeAppLifecycleState catches up.

@@ -266,7 +266,7 @@ void showUpdateWhatsNew(BuildContext context, String version, String notes) {
 }
 
 /// Explains a failed install; success and a declined prompt need no words.
-void showUpdateInstallResult(BuildContext context, ApkInstallResponse res, String displayName) {
+void showUpdateInstallResult(BuildContext context, ApkInstallResponse res) {
   final l10n = AppLocalizations.of(context)!;
   final String title;
   final String body;
@@ -276,23 +276,19 @@ void showUpdateInstallResult(BuildContext context, ApkInstallResponse res, Strin
       return;
     case ApkInstallStatus.conflict:
       title = l10n.updateInstallConflictTitle;
-      // The copy in Downloads exists only on Android 10+ and only for an APK we signed.
-      body = res.savedToDownloads
-          ? l10n.updateInstallConflictBody(displayName)
-          : l10n.updateInstallConflictBodyNoFile;
+      body = l10n.updateInstallConflictBodyNoFile;
     case ApkInstallStatus.downloadFailed:
     case ApkInstallStatus.incompatible:
     case ApkInstallStatus.blocked:
     case ApkInstallStatus.storage:
     case ApkInstallStatus.invalid:
     case ApkInstallStatus.failureUnknown:
-      final reason = res.message == 'untrusted_signature'
+      title = l10n.updateInstallFailedTitle;
+      body = res.message == 'untrusted_signature'
           ? l10n.updateInstallUntrusted
           : res.message.isNotEmpty
               ? res.message
               : res.status.name;
-      title = l10n.updateInstallFailedTitle;
-      body = res.savedToDownloads ? l10n.updateInstallFailedBody(reason, displayName) : reason;
   }
   showDialog<void>(
     context: context,

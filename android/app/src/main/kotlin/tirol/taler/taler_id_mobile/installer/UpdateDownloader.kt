@@ -52,8 +52,11 @@ object UpdateDownloader {
         val prefs = prefs(context)
         if (prefs.getLong(K_ID, -1L) != -1L && prefs.getInt(K_BUILD, -1) == build) {
             // The server sends this flavor another app's APK: downloading it
-            // again gets the same file. Dart sends the user to the browser.
-            if (prefs.getString(K_FAILED, null) == WRONG_PACKAGE) return failed(WRONG_PACKAGE)
+            // again from the same link gets the same file, so Dart sends the
+            // user to the browser. A new link for the build may be the fix.
+            if (prefs.getString(K_FAILED, null) == WRONG_PACKAGE && prefs.getString(K_URL, null) == url) {
+                return failed(WRONG_PACKAGE)
+            }
             val current = status(context)
             if (current["state"] in setOf("running", "paused", "ready")) return current
             // We only failed to ask about it: the download itself may be fine.
@@ -145,6 +148,18 @@ object UpdateDownloader {
         prefs.getString(K_FILE, null)?.let { File(it).delete() }
         prefs.edit().clear().apply()
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)?.cancel(NOTIFICATION_ID)
+    }
+
+    /**
+     * The downloaded file failed a later check (the installer's signature
+     * check): it goes, the record stays with [reason], so the card shows the
+     * failure with Retry instead of quietly going back to Update.
+     */
+    fun reject(context: Context, reason: String) {
+        val prefs = prefs(context)
+        val id = prefs.getLong(K_ID, -1L)
+        if (id == -1L) return
+        reject(context, id, prefs.getString(K_FILE, null), reason)
     }
 
     /** Deletes what the old in-app banner left in the cache: up to a whole APK per device. */

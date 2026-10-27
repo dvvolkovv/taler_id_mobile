@@ -776,30 +776,11 @@
   },
   "dashboardInstalling": "Устанавливается...",
   "updateInstallConflictTitle": "Не удалось обновить поверх",
-  "updateInstallConflictBody": "Установленная версия подписана другим сертификатом, поэтому Android отказывается её обновить. Удали приложение через Настройки → Приложения → Taler ID, затем открой папку «Загрузки» в файловом менеджере и тапни по {filename} чтобы установить заново. Этот шаг нужен один раз.",
-  "@updateInstallConflictBody": {
-    "placeholders": {
-      "filename": {
-        "type": "String"
-      }
-    }
-  },
   "updateInstallConflictBodyNoFile": "Установленная версия подписана другим сертификатом, поэтому Android отказывается её обновить. Удали приложение через Настройки → Приложения → Taler ID и установи его заново со страницы загрузки. Этот шаг нужен один раз.",
   "@updateInstallConflictBodyNoFile": {
-    "description": "Body of the signature-conflict dialog when no copy of the APK was saved to Downloads (Android below 10, or the copy failed)."
+    "description": "Body of the signature-conflict dialog: the installed app has another certificate, so it must be reinstalled from the download page."
   },
   "updateInstallFailedTitle": "Установка не удалась",
-  "updateInstallFailedBody": "{reason}\n\nAPK сохранён в папку «Загрузки» как {filename} — можно попробовать установить вручную из файлового менеджера.",
-  "@updateInstallFailedBody": {
-    "placeholders": {
-      "reason": {
-        "type": "String"
-      },
-      "filename": {
-        "type": "String"
-      }
-    }
-  },
   "updateInstallUntrusted": "Скачанный файл не прошёл проверку подписи и удалён. Попробуйте обновиться ещё раз.",
   "@updateInstallUntrusted": {
     "description": "Reason in the install-failed dialog when the downloaded APK is not signed with one of our certificates; the file has been deleted."

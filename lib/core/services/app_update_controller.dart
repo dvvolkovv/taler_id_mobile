@@ -12,7 +12,7 @@ enum UpdatePhase { available, downloading, ready, installing, failed }
 typedef UpdateInstallFn = Future<ApkInstallResponse> Function(String path, String displayName);
 
 /// One finished install attempt, for the dashboard to explain failures.
-typedef UpdateInstallResult = ({ApkInstallResponse response, String displayName});
+typedef UpdateInstallResult = ({ApkInstallResponse response});
 
 /// Owns the in-app update: what `/app/version` advertises, the Android
 /// background download (system DownloadManager, UpdateDownloader.kt) and the
@@ -187,8 +187,11 @@ class AppUpdateController extends ChangeNotifier {
       response = ApkInstallResponse(ApkInstallStatus.failureUnknown, '$e');
     }
     if (_disposed) return;
+    // Another install call took over this one natively: the phase and the
+    // result belong to that call.
+    if (response.status == ApkInstallStatus.aborted && response.message == 'superseded') return;
     _leaveInstalling();
-    _installResults.add((response: response, displayName: name));
+    _installResults.add((response: response));
     // A failed install can change the download too: an APK not signed by us
     // is deleted natively, and the card must stop offering to install it.
     if (!_disposed) unawaited(refresh());
