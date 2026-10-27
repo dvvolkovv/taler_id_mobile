@@ -870,7 +870,11 @@ Future<void> setupDependencies() async {
       // from the moment it rings.
       isRinging: () async {
         try {
-          return (await CallKitPlatform.instance.activeCalls()).isNotEmpty;
+          // A hung query must not freeze automatic offers until the next pause.
+          final active = await CallKitPlatform.instance
+              .activeCalls()
+              .timeout(const Duration(seconds: 3), onTimeout: () => const []);
+          return active.isNotEmpty;
         } catch (_) {
           return false;
         }
