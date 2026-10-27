@@ -372,4 +372,14 @@ void main() {
     expect(rig.platform.starts, hasLength(1));
     c.dispose();
   });
+
+  test('a start that throws shows the failure instead of hanging on 0%', () async {
+    rig.platform.startError = StateError('boom');
+    final c = rig.controller()..setInfo(info());
+
+    await c.startDownload();
+
+    expect(c.phase, UpdatePhase.failed);
+    c.dispose();
+  });
 }

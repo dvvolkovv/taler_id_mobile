@@ -101,13 +101,17 @@ class AppUpdateController extends ChangeNotifier {
     // No polling until start answers: an early "none" would flash "Обновить".
     _starting = true;
     _setPhase(UpdatePhase.downloading);
-    final UpdateDownloadStatus s;
+    UpdateDownloadStatus s;
     try {
       s = await _platform.start(
         url: info.downloadUrl,
         version: info.latestVersion,
         build: info.latestBuild,
       );
+    } catch (e) {
+      // The wrapper already maps channel errors; anything else still must not
+      // leave the card on "Скачивается 0%".
+      s = UpdateDownloadStatus(UpdateDownloadState.failed, reason: '$e');
     } finally {
       _starting = false;
     }

@@ -11,6 +11,7 @@ class FakeUpdatePlatform implements UpdateDownloadPlatform {
   bool installRequest = false;
   final starts = <String>[];
   int statusCalls = 0;
+  Object? startError;
 
   @override
   Future<UpdateDownloadStatus> start({
@@ -19,6 +20,7 @@ class FakeUpdatePlatform implements UpdateDownloadPlatform {
     required int build,
   }) async {
     starts.add('$url|$version|$build');
+    if (startError != null) throw startError!;
     return startResult;
   }
 
