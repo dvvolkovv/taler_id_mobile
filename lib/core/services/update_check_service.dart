@@ -38,6 +38,10 @@ class UpdateInfo {
   final bool isRequired;
   final String downloadUrl;
   final String latestVersion;
+
+  /// Build number of [latestVersion]; the Android downloader names and
+  /// checks the APK by it.
+  final int latestBuild;
   final String currentVersion;
   final List<ReleaseEntry> releases;
 
@@ -46,6 +50,7 @@ class UpdateInfo {
     required this.isRequired,
     required this.downloadUrl,
     required this.latestVersion,
+    this.latestBuild = 0,
     required this.currentVersion,
     required this.releases,
   });
@@ -110,6 +115,7 @@ class UpdateCheckService {
         isRequired: required,
         downloadUrl: downloadUrl,
         latestVersion: remoteVersion,
+        latestBuild: remoteBuild,
         currentVersion: info.version,
         releases: releases,
       );
