@@ -70,8 +70,9 @@ class UpdateRig {
       );
 }
 
-UpdateInfo info({String v = '1.1.37', int b = 238, String notes = ''}) => UpdateInfo(
-      isAvailable: true,
+UpdateInfo info({String v = '1.1.37', int b = 238, String notes = '', bool available = true}) =>
+    UpdateInfo(
+      isAvailable: available,
       isRequired: false,
       downloadUrl: 'https://x/talerid.apk',
       latestVersion: v,

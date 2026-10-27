@@ -382,4 +382,27 @@ void main() {
     expect(c.phase, UpdatePhase.failed);
     c.dispose();
   });
+
+  test('the server saying no update hides a remembered failed download', () async {
+    rig.platform.next = const UpdateDownloadStatusFailed();
+    final c = rig.controller(); // no setInfo yet: a cold start before /app/version answers
+
+    await c.onResumed();
+    expect(c.phase, UpdatePhase.failed);
+    expect(c.visible, isTrue);
+
+    c.setInfo(info(available: false));
+    expect(c.visible, isFalse);
+  });
+
+  test('the server saying no update cancels the auto-install of a remembered ready build', () async {
+    rig.platform.next = ready();
+    final c = rig.controller(); // no setInfo yet: a cold start before /app/version answers
+
+    c.setInfo(info(available: false));
+    await c.onResumed();
+    await pumpEventQueue();
+
+    expect(rig.installs, isEmpty);
+  });
 }

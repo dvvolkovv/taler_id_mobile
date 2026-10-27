@@ -59,6 +59,7 @@ class UpdateCard extends StatelessWidget {
         final showClose = phase != UpdatePhase.downloading && !busy;
         final showNotes = phase == UpdatePhase.available && (notes?.isNotEmpty ?? false);
         final faded = Colors.white.withValues(alpha: 0.85);
+        const actionStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 13);
 
         final text = Column(
           mainAxisSize: MainAxisSize.min,
@@ -116,10 +117,7 @@ class UpdateCard extends StatelessWidget {
                       tapTargetSize: MaterialTapTargetSize.padded,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
-                    child: Text(
-                      actionLabel,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
+                    child: Text(actionLabel, style: actionStyle),
                   );
         final close = showClose
             ? IconButton(
@@ -144,11 +142,24 @@ class UpdateCard extends StatelessWidget {
                 padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 4, 6),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // Large fonts and long translations leave the title no
-                    // room beside the buttons: then the action goes below it.
-                    final narrow =
-                        constraints.maxWidth < MediaQuery.textScalerOf(context).scale(320);
-                    if (!narrow || action == null) {
+                    // Room left for the title beside the icon, the button and
+                    // the close; large fonts and long translations run out of it.
+                    final scaler = MediaQuery.textScalerOf(context);
+                    var narrow = false;
+                    if (actionLabel != null) {
+                      final painter = TextPainter(
+                        text: TextSpan(text: actionLabel, style: actionStyle),
+                        textDirection: Directionality.of(context),
+                        textScaler: scaler,
+                        maxLines: 1,
+                      )..layout();
+                      final actionWidth = painter.width + 28; // the button's horizontal padding
+                      painter.dispose();
+                      final closeWidth = showClose ? 48.0 : 8.0;
+                      narrow =
+                          constraints.maxWidth - 30 - closeWidth - actionWidth < scaler.scale(120);
+                    }
+                    if (!narrow) {
                       return Row(
                         children: [
                           icon,
@@ -169,7 +180,7 @@ class UpdateCard extends StatelessWidget {
                           alignment: AlignmentDirectional.centerEnd,
                           child: Padding(
                             padding: const EdgeInsetsDirectional.only(end: 10, bottom: 4),
-                            child: action,
+                            child: action!,
                           ),
                         ),
                       ],

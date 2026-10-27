@@ -124,6 +124,29 @@ void main() {
         .descendant(of: find.byKey(const Key('update-card')), matching: find.byType(Text))
         .first;
     expect(t.getSize(title).width, greaterThan(100));
+    // Confirms this did go two-row: the action sits below the title, not beside it.
+    final actionCenter = t.getCenter(find.byKey(const Key('update-card-action')));
+    final titleCenter = t.getCenter(title);
+    expect(actionCenter.dy, greaterThan(titleCenter.dy));
+  });
+
+  testWidgets('an ordinary 360dp phone at normal text scale stays one row', (t) async {
+    t.view.physicalSize = const Size(1080, 1920);
+    t.view.devicePixelRatio = 3; // 360 × 640 dp
+    addTearDown(t.view.reset);
+    final c = rig.controller()..setInfo(info());
+    addTearDown(c.dispose);
+
+    await t.pumpWidget(_wrap(UpdateCard(controller: c)));
+
+    expect(t.takeException(), isNull);
+    final title = find
+        .descendant(of: find.byKey(const Key('update-card')), matching: find.byType(Text))
+        .first;
+    final actionCenter = t.getCenter(find.byKey(const Key('update-card-action')));
+    final titleCenter = t.getCenter(title);
+    expect((actionCenter.dy - titleCenter.dy).abs(), lessThan(12));
+    expect(t.getSize(find.byKey(const Key('update-card'))).height, lessThan(100));
   });
 
   testWidgets('controls are labelled and big enough to tap', (t) async {
@@ -222,6 +245,7 @@ void main() {
   testWidgets('install result: a signature conflict explains the reinstall', (t) async {
     await showResult(t, const ApkInstallResponse(ApkInstallStatus.conflict, ''));
     expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text("Couldn't update in place"), findsOneWidget);
     expect(find.textContaining('talerid-1.1.37.apk'), findsOneWidget);
   });
 
@@ -229,6 +253,7 @@ void main() {
       (t) async {
     await showResult(t, const ApkInstallResponse(ApkInstallStatus.failureUnknown, ''));
     expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('Install failed'), findsOneWidget);
     expect(find.textContaining('failureUnknown'), findsOneWidget);
     expect(find.textContaining('talerid-1.1.37.apk'), findsOneWidget);
   });

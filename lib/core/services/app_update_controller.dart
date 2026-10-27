@@ -68,10 +68,14 @@ class AppUpdateController extends ChangeNotifier {
   String? get failure => _download.reason;
   Stream<UpdateInstallResult> get installResults => _installResults.stream;
 
-  /// The version the card talks about: the advertised one or — right after a
-  /// restart, before `/app/version` has answered — the one being downloaded.
+  /// The version the card talks about. Once `/app/version` has answered, the
+  /// server decides: no update means no card, even for a remembered download
+  /// of a build it no longer advertises. Before it answers — a cold start —
+  /// the download on disk speaks for itself.
   String? get version {
-    if (_info?.isAvailable == true) return _info!.latestVersion;
+    final info = _info;
+    if (info != null) return info.isAvailable ? info.latestVersion : null;
+    // Right after a restart, before /app/version answers: the download on disk.
     return _download.state == UpdateDownloadState.none ? null : _download.version;
   }
 
@@ -191,6 +195,7 @@ class AppUpdateController extends ChangeNotifier {
   /// Until then it stays due; onResumed and the end of a call try again.
   void _maybeInstall() {
     if (!_installDue || _phase != UpdatePhase.ready) return;
+    if (version == null) return; // the server no longer advertises this build.
     if (!_foreground || _isInCall()) return;
     _installDue = false;
     unawaited(install());
