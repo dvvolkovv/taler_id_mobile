@@ -166,6 +166,85 @@ void main() {
     expect(rig.installs, isEmpty);
   });
 
+  test('the poll finding another app on screen opens the browser once and the card offers Update', () {
+    fakeAsync((async) {
+      final c = rig.controller()..setInfo(info());
+      c.startDownload();
+      async.flushMicrotasks();
+      expect(c.phase, UpdatePhase.downloading);
+
+      rig.platform.next = _wrongPackage;
+      async.elapse(const Duration(seconds: 1));
+      expect(rig.opened, [Uri.parse('https://x/talerid.apk')]);
+      expect(c.phase, UpdatePhase.available);
+
+      // The poll is over, and coming back opens nothing more.
+      async.elapse(const Duration(seconds: 5));
+      c.onResumed();
+      async.flushMicrotasks();
+      expect(rig.opened, hasLength(1));
+      expect(c.phase, UpdatePhase.available);
+      c.dispose();
+    });
+  });
+
+  test('a poll answering with another app after the app left opens nothing; the card offers Update', () {
+    fakeAsync((async) {
+      final c = rig.controller()..setInfo(info());
+      c.startDownload();
+      async.flushMicrotasks();
+
+      // The poll asks on screen; the answer lands once the app is away.
+      final gate = rig.platform.statusGate = Completer<UpdateDownloadStatus>();
+      async.elapse(const Duration(seconds: 1));
+      c.onPaused();
+      gate.complete(_wrongPackage);
+      async.flushMicrotasks();
+      expect(rig.opened, isEmpty);
+      expect(c.phase, UpdatePhase.available);
+
+      rig.platform.statusGate = null;
+      rig.platform.next = _wrongPackage;
+      c.onResumed();
+      async.flushMicrotasks();
+      expect(rig.opened, isEmpty);
+      expect(c.phase, UpdatePhase.available);
+      c.dispose();
+    });
+  });
+
+  test('back from the background onto another app: nothing opens until Update, which goes to the browser',
+      () async {
+    final c = rig.controller()..setInfo(info());
+    await c.startDownload();
+    c.onPaused();
+
+    rig.platform.next = _wrongPackage;
+    await c.onResumed();
+    expect(rig.opened, isEmpty);
+    expect(c.phase, UpdatePhase.available);
+
+    rig.platform.startResult = _wrongPackage;
+    await c.startDownload();
+    expect(rig.platform.starts, hasLength(2));
+    expect(rig.opened, [Uri.parse('https://x/talerid.apk')]);
+    expect(c.phase, UpdatePhase.available);
+    c.dispose();
+  });
+
+  test('DownloadManager that cannot even be asked: the browser downloads it', () async {
+    rig.platform.startResult = const UpdateDownloadStatus(
+      UpdateDownloadState.failed,
+      reason: UpdateDownloadStatus.channelError,
+    );
+    final c = rig.controller()..setInfo(info());
+
+    await c.startDownload();
+
+    expect(rig.opened, [Uri.parse('https://x/talerid.apk')]);
+    expect(c.phase, UpdatePhase.available);
+  });
+
   test('iOS opens the link and never touches the downloader', () async {
     final c = rig.controller(android: false)..setInfo(info());
 
@@ -233,6 +312,28 @@ void main() {
 
     expect(results.single.displayName, 'talerid-1.1.37.apk');
     expect(results.single.response.status, ApkInstallStatus.aborted);
+  });
+
+  test('an APK not signed by us: the card drops Install right after the result', () async {
+    rig.platform.next = ready();
+    final c = rig.controller()..setInfo(info());
+    await c.onResumed();
+    await pumpEventQueue();
+    expect(c.phase, UpdatePhase.ready);
+
+    // Natively the file and the record are gone along with the result.
+    rig.platform.next = UpdateDownloadStatus.none;
+    rig.installResponse =
+        const ApkInstallResponse(ApkInstallStatus.invalid, 'untrusted_signature');
+    final results = <UpdateInstallResult>[];
+    final sub = c.installResults.listen(results.add);
+    await c.install();
+    await pumpEventQueue();
+
+    expect(results.single.response.message, 'untrusted_signature');
+    expect(c.phase, UpdatePhase.available);
+    await sub.cancel();
+    c.dispose();
   });
 
   test('a throwing installer leaves the card on Install and reports the failure', () async {
@@ -622,3 +723,10 @@ void main() {
     });
   });
 }
+
+const _wrongPackage = UpdateDownloadStatus(
+  UpdateDownloadState.failed,
+  reason: UpdateDownloadStatus.wrongPackage,
+  version: '1.1.37',
+  build: 238,
+);

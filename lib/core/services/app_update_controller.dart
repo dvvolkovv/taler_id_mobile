@@ -153,9 +153,12 @@ class AppUpdateController extends ChangeNotifier {
     }
     if (_disposed) return;
     if (s.state == UpdateDownloadState.failed &&
-        (s.reason == UpdateDownloadStatus.unavailable || s.reason == UpdateDownloadStatus.wrongPackage)) {
+        (s.reason == UpdateDownloadStatus.unavailable ||
+            s.reason == UpdateDownloadStatus.wrongPackage ||
+            s.reason == UpdateDownloadStatus.channelError)) {
       // No usable DownloadManager on this device: the browser downloads it.
       // The server sends this flavor to another app (TEST → PROD): the browser downloads it as a separate install.
+      // DownloadManager can't even be asked about the download: the browser is the way out.
       _download = UpdateDownloadStatus.none;
       _setPhase(UpdatePhase.available);
       await _openUrl(Uri.parse(info.downloadUrl));
@@ -186,6 +189,9 @@ class AppUpdateController extends ChangeNotifier {
     if (_disposed) return;
     _leaveInstalling();
     _installResults.add((response: response, displayName: name));
+    // A failed install can change the download too: an APK not signed by us
+    // is deleted natively, and the card must stop offering to install it.
+    if (!_disposed) unawaited(refresh());
   }
 
   Future<void> onResumed() async {
@@ -209,14 +215,34 @@ class AppUpdateController extends ChangeNotifier {
     _syncPolling();
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh() => _refresh();
+
+  /// [polled]: asked by the poll timer, i.e. on screen while downloading.
+  Future<void> _refresh({bool polled = false}) async {
     if (!_isAndroid || _disposed) return;
     final s = await _platform.status();
     if (_disposed) return;
     // A failed status call says nothing about the download itself: keep what
     // we knew and ask again on the next poll.
     if (s.reason == UpdateDownloadStatus.channelError) return;
+    final wasDownloading = _phase == UpdatePhase.downloading;
     _apply(s);
+    final info = _info;
+    if (polled &&
+        wasDownloading &&
+        _foreground &&
+        s.state == UpdateDownloadState.failed &&
+        s.reason == UpdateDownloadStatus.wrongPackage &&
+        info != null &&
+        info.isAvailable) {
+      // The finished file turned out to be another app (TEST → PROD) while
+      // the user waits on screen after tapping Update: the browser finishes
+      // the job as a separate install. Off screen nothing opens, and neither
+      // does the return: the card says Update, and a tap reaches the browser
+      // through startDownload.
+      await _openUrl(Uri.parse(info.downloadUrl));
+      if (_disposed) return;
+    }
     if (_phase == UpdatePhase.ready && _download.build != _offeredBuild) {
       _offeredBuild = _download.build;
       _installDue = true;
@@ -337,6 +363,10 @@ class AppUpdateController extends ChangeNotifier {
             UpdateDownloadState.none => UpdatePhase.available,
             UpdateDownloadState.running || UpdateDownloadState.paused => UpdatePhase.downloading,
             UpdateDownloadState.ready => UpdatePhase.ready,
+            // Downloading again gets the same other app: Update goes to the
+            // browser instead (startDownload), not to a Retry.
+            UpdateDownloadState.failed when s.reason == UpdateDownloadStatus.wrongPackage =>
+              UpdatePhase.available,
             UpdateDownloadState.failed => UpdatePhase.failed,
           };
     _syncPolling();
@@ -361,7 +391,7 @@ class AppUpdateController extends ChangeNotifier {
         !_starting &&
         _phase == UpdatePhase.downloading;
     if (want && _poll == null) {
-      _poll = Timer.periodic(_pollInterval, (_) => unawaited(refresh()));
+      _poll = Timer.periodic(_pollInterval, (_) => unawaited(_refresh(polled: true)));
     } else if (!want) {
       _poll?.cancel();
       _poll = null;

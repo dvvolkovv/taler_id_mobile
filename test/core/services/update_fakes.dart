@@ -24,9 +24,13 @@ class FakeUpdatePlatform implements UpdateDownloadPlatform {
     return startResult;
   }
 
+  /// Set to hold status calls until completed (an answer landing later).
+  Completer<UpdateDownloadStatus>? statusGate;
+
   @override
   Future<UpdateDownloadStatus> status() async {
     statusCalls++;
+    if (statusGate != null) return statusGate!.future;
     return next;
   }
 
@@ -55,6 +59,9 @@ class UpdateRig {
   /// Set to make the installer hang until completed (dialog left with Home).
   Completer<ApkInstallResponse>? installGate;
 
+  /// What the installer answers.
+  ApkInstallResponse installResponse = const ApkInstallResponse(ApkInstallStatus.aborted, '');
+
   /// Offers without delay unless a test asks for the real timing.
   AppUpdateController controller({
     bool android = true,
@@ -68,7 +75,7 @@ class UpdateRig {
           installs.add('$path|$name');
           if (installError != null) throw installError!;
           if (installGate != null) return installGate!.future;
-          return const ApkInstallResponse(ApkInstallStatus.aborted, '');
+          return installResponse;
         },
         openUrl: (url) async => opened.add(url),
         isInCall: () => inCall,
