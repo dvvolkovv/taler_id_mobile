@@ -19,14 +19,11 @@ import '../../../core/notifications/notification_service.dart';
 import '../../../core/platform/call_kit.dart';
 import '../../../core/platform/system_call_registry.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'dart:io';
-import 'package:dio/dio.dart' as dio_pkg;
-import '../../../core/services/apk_installer_service.dart';
-import 'package:path_provider/path_provider.dart';
+import '../../../core/services/app_update_controller.dart';
 import '../../../core/services/update_check_service.dart';
 import '../../../core/services/share_intent_service.dart';
 import '../../../core/services/wake_word_service.dart';
+import 'widgets/update_card.dart';
 import '../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../messenger/presentation/screens/share_target_screen.dart';
 import '../../messenger/presentation/bloc/messenger_bloc.dart';
@@ -66,13 +63,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   bool _endingCallKitFromSocket = false; // suppresses actionCallDecline when CallKit ended by socket call_ended
   final Set<String> _answeredOnOtherDevice = {}; // rooms answered on another device
   Timer? _callAcceptTimer;
-  UpdateInfo? _updateInfo;
-  bool _updateDismissed = false;
+  StreamSubscription? _installResultSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Install outcomes come back here because the card may be gone by then
+    // (the install is often offered on its own, after a download).
+    final updates = sl<AppUpdateController>();
+    _installResultSub = updates.installResults.listen((r) {
+      if (mounted) showUpdateInstallResult(context, r.response, r.displayName);
+    });
+    unawaited(updates.onResumed());
     // Subscribe to the shared CallKit event proxy (broadcast stream).
     // Do NOT use FlutterCallkitIncoming.onEvent directly here — that creates a NEW
     // EventChannel listener each time, replacing (killing) the one in main.dart.
@@ -493,6 +496,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // offering the download only appeared after a full restart, so the push
       // and the banner disagreed.
       _checkForUpdate();
+      unawaited(sl<AppUpdateController>().onResumed());
 
       // _pendingCallRoute is set only from the cold-start initState postFrameCallback
       // (when lifecycle was not yet resumed at that point). Navigation for the
@@ -538,6 +542,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       // Resume wake word when app comes back to foreground
       _resumeWakeWordIfNeeded();
     } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      if (state == AppLifecycleState.paused) sl<AppUpdateController>().onPaused();
       WakeWordService.instance.pause();
     }
   }
@@ -652,6 +657,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _systemCallSub?.cancel();
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
+    _installResultSub?.cancel();
     WakeWordService.instance.stop();
     NotificationService.setMissedCallCallback(null);
     NotificationService.setCalendarInviteCallback(null);
@@ -737,14 +743,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _lastUpdateCheck = DateTime.now();
 
     final info = await sl<UpdateCheckService>().checkForUpdate();
-    if (info != null && info.isAvailable && mounted) {
-      setState(() {
-        _updateInfo = info;
-        // A newly discovered version un-dismisses the banner: dismissing 1.1.21
-        // should not hide 1.1.22.
-        _updateDismissed = false;
-      });
-    }
+    // A newer version un-dismisses the card by itself (dismissal is per version).
+    // "No update" is passed on too: once the server answers, it decides.
+    if (info != null) sl<AppUpdateController>().setInfo(info);
   }
 
   Future<void> _connectMessenger() async {
@@ -1317,283 +1318,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 );
               },
             ),
-            // Update available banner
-            if (_updateInfo != null && _updateInfo!.isAvailable && !_updateDismissed)
-              _UpdateBanner(
-                version: _updateInfo!.latestVersion,
-                downloadUrl: _updateInfo!.downloadUrl,
-                notes: _updateInfo!.latestNotes(
-                  Localizations.localeOf(context).languageCode,
-                ),
-                onDismiss: () => setState(() => _updateDismissed = true),
-              ),
             Expanded(child: widget.child),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UpdateBanner extends StatefulWidget {
-  final String version;
-  final String downloadUrl;
-  final String? notes;
-  final VoidCallback onDismiss;
-
-  const _UpdateBanner({
-    required this.version,
-    required this.downloadUrl,
-    required this.notes,
-    required this.onDismiss,
-  });
-
-  @override
-  State<_UpdateBanner> createState() => _UpdateBannerState();
-}
-
-class _UpdateBannerState extends State<_UpdateBanner> {
-  double? _progress; // null = idle, 0..1 = downloading
-  bool _installing = false;
-
-  void _showWhatsNew(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final colors = AppColors.of(context);
-    final notes = widget.notes ?? '';
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: colors.surface,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.55,
-          minChildSize: 0.3,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (ctx, scrollCtrl) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 36,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 14),
-                      decoration: BoxDecoration(
-                        color: colors.textSecondary.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  Text(
-                    l10n.dashboardWhatsNewTitle(widget.version),
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      controller: scrollCtrl,
-                      child: Text(
-                        notes,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 14,
-                          height: 1.45,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _downloadAndInstall() async {
-    if (_progress != null || _installing) return;
-
-    if (!Platform.isAndroid) {
-      final uri = Uri.parse(widget.downloadUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-      return;
-    }
-
-    setState(() => _progress = 0);
-    final displayName = 'talerid-${widget.version}.apk';
-    try {
-      final dir = await getTemporaryDirectory();
-      final apkPath = '${dir.path}/taler_id_update.apk';
-
-      await dio_pkg.Dio().download(
-        widget.downloadUrl,
-        apkPath,
-        onReceiveProgress: (received, total) {
-          if (total > 0 && mounted) {
-            setState(() => _progress = received / total);
-          }
-        },
-      );
-
-      if (!mounted) return;
-      setState(() { _progress = null; _installing = true; });
-
-      final res = await ApkInstallerService.install(
-        filePath: apkPath,
-        displayName: displayName,
-      );
-      if (mounted) {
-        setState(() { _installing = false; });
-        _handleInstallResult(res, displayName);
-      }
-    } catch (_) {
-      if (mounted) setState(() { _progress = null; _installing = false; });
-    }
-  }
-
-  void _handleInstallResult(ApkInstallResponse res, String displayName) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (res.status) {
-      case ApkInstallStatus.success:
-      case ApkInstallStatus.aborted:
-        return;
-      case ApkInstallStatus.conflict:
-        _showInstallDialog(
-          l10n.updateInstallConflictTitle,
-          l10n.updateInstallConflictBody(displayName),
-        );
-        return;
-      case ApkInstallStatus.downloadFailed:
-      case ApkInstallStatus.incompatible:
-      case ApkInstallStatus.blocked:
-      case ApkInstallStatus.storage:
-      case ApkInstallStatus.invalid:
-      case ApkInstallStatus.failureUnknown:
-        final reason = res.message.isNotEmpty ? res.message : res.status.name;
-        _showInstallDialog(
-          l10n.updateInstallFailedTitle,
-          l10n.updateInstallFailedBody(reason, displayName),
-        );
-        return;
-    }
-  }
-
-  void _showInstallDialog(String title, String body) {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(l10n.updateInstallOk),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final isDownloading = _progress != null;
-
-    return Container(
-      width: double.infinity,
-      color: const Color(0xFF1565C0),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isDownloading
-                              ? '${((_progress ?? 0) * 100).toStringAsFixed(0)}%  ${l10n.dashboardUpdateAvailable(widget.version)}'
-                              : _installing
-                                  ? l10n.dashboardInstalling
-                                  : l10n.dashboardUpdateAvailable(widget.version),
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
-                        if (!isDownloading && !_installing && (widget.notes?.isNotEmpty ?? false)) ...[
-                          const SizedBox(height: 2),
-                          GestureDetector(
-                            onTap: () => _showWhatsNew(context),
-                            child: Text(
-                              l10n.dashboardWhatsNew,
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                decoration: TextDecoration.underline,
-                                decorationColor: Colors.white.withValues(alpha: 0.85),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  if (!isDownloading && !_installing) ...[
-                    TextButton(
-                      onPressed: _downloadAndInstall,
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        minimumSize: Size.zero,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(l10n.dashboardUpdate, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
-                    const SizedBox(width: 4),
-                    GestureDetector(
-                      onTap: widget.onDismiss,
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.close, color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ] else if (isDownloading)
-                    const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    ),
-                ],
-              ),
-            ),
-            if (isDownloading)
-              LinearProgressIndicator(
-                value: _progress,
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 3,
-              ),
           ],
         ),
       ),

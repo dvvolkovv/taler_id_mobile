@@ -19,6 +19,7 @@ import 'package:audioplayers/audioplayers.dart';
 import '../../audio/pcm_gain.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
+import '../../../../core/services/app_update_controller.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
@@ -33,6 +34,7 @@ import '../../../messenger/presentation/bloc/messenger_event.dart';
 import '../../../messenger/presentation/bloc/messenger_state.dart';
 import '../../../billing/data/services/billing_event_bus.dart';
 import '../../../billing/data/services/voice_billing_bridge.dart';
+import '../../../dashboard/presentation/widgets/update_card.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../main.dart';
 import '../../data/assistant_chat_api.dart';
@@ -1734,6 +1736,15 @@ class _AssistantScreenState extends State<AssistantScreen>
               ),
             ),
 
+            // Update offer: floats over the planets and never moves the
+            // layout. Only here, not in chats, and only while no assistant
+            // session runs — its controls take the bottom of the screen.
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16 + MediaQuery.of(context).padding.bottom,
+              child: UpdateCard(controller: sl<AppUpdateController>()),
+            ),
           ],
         );
       },

@@ -1,8 +1,12 @@
+import 'dart:io' show Platform;
 import 'dart:typed_data';
+import 'package:async/async.dart' show StreamGroup;
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:get_it/get_it.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../agent/agent_client.dart';
 import '../../features/notifications/notification_permission_service.dart';
 import '../../features/notifications/notification_platform.dart';
@@ -18,8 +22,12 @@ import '../platform/platform_utils.dart';
 import '../platform/mesh_transport_desktop_stub.dart';
 import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
+import '../services/apk_installer_service.dart';
+import '../services/app_update_controller.dart';
+import '../services/call_state_service.dart';
 import '../services/device_id_service.dart';
 import '../services/update_check_service.dart';
+import '../services/update_download_platform.dart';
 import '../services/call_history_cache_service.dart';
 import '../services/contacts_cache_service.dart';
 import '../services/message_draft_service.dart';
@@ -829,6 +837,27 @@ Future<void> setupDependencies() async {
 
   // Update check
   sl.registerLazySingleton(() => UpdateCheckService(sl<DioClient>()));
+
+  sl.registerLazySingleton(() {
+    final calls = CallStateService.instance;
+    return AppUpdateController(
+      platform: MethodChannelUpdateDownloadPlatform(),
+      install: (path, name) => ApkInstallerService.install(filePath: path, displayName: name),
+      openUrl: (url) async {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      },
+      // Installing closes the app, which would drop the call: wait for the
+      // end of any call — 1-on-1, group, or one still connecting.
+      isInCall: () => calls.isInAnyCall || calls.isBackgroundConnecting,
+      // stateStream covers 1-on-1 lines; a group call ending only shows up
+      // on activeGroupCallStream.
+      callStateStream: StreamGroup.merge([
+        calls.stateStream,
+        calls.activeGroupCallStream.map((_) => calls.isInAnyCall),
+      ]),
+      isAndroid: !kIsWeb && Platform.isAndroid,
+    );
+  });
 
   // Video effects (background blur / virtual backgrounds)
   sl.registerLazySingleton(() => VideoEffectsService());
