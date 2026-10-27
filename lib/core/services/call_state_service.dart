@@ -201,6 +201,21 @@ class CallStateService {
     }
   }
 
+  // ── Call UI (Phase: app updates) ──────────────────────────────────
+
+  // Call screens and the in-app ringing sheet hold this while they are up —
+  // also before any line exists (ringing, joining, connecting). App updates
+  // read it so the installer never opens over a call.
+  final Set<Object> _callUiOwners = {};
+  final _callUiCtrl = StreamController<bool>.broadcast();
+  bool get isCallUiActive => _callUiOwners.isNotEmpty;
+  Stream<bool> get callUiStream => _callUiCtrl.stream;
+
+  void setCallUi(Object owner, bool active) {
+    final changed = active ? _callUiOwners.add(owner) : _callUiOwners.remove(owner);
+    if (changed && !_callUiCtrl.isClosed) _callUiCtrl.add(isCallUiActive);
+  }
+
   // ── Multi-line API ───────────────────────────────────────────────
 
   CallLine? get activeLine => _activeRoomName != null ? _lines[_activeRoomName] : null;

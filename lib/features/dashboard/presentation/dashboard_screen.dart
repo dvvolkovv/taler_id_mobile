@@ -63,7 +63,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   bool _endingCallKitFromSocket = false; // suppresses actionCallDecline when CallKit ended by socket call_ended
   final Set<String> _answeredOnOtherDevice = {}; // rooms answered on another device
   Timer? _callAcceptTimer;
-  StreamSubscription? _installResultSub;
+  StreamSubscription<UpdateInstallResult>? _installResultSub;
+
+  /// The in-app ringing sheet counts as a call for app updates (see
+  /// CallStateService.setCallUi), so the installer never covers it.
+  void _setShowingCallDialog(String? room) {
+    _showingCallDialogRoom = room;
+    CallStateService.instance.setCallUi(this, room != null);
+  }
 
   @override
   void initState() {
@@ -75,7 +82,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _installResultSub = updates.installResults.listen((r) {
       if (mounted) showUpdateInstallResult(context, r.response, r.displayName);
     });
-    unawaited(updates.onResumed());
+    // Only when really on screen: a locked phone answering a call starts
+    // the app without `resumed`, and didChangeAppLifecycleState catches up.
+    if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+      unawaited(updates.onResumed());
+    }
     // Subscribe to the shared CallKit event proxy (broadcast stream).
     // Do NOT use FlutterCallkitIncoming.onEvent directly here — that creates a NEW
     // EventChannel listener each time, replacing (killing) the one in main.dart.
@@ -287,7 +298,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       }
       // Close the in-app incoming call modal dialog if it's showing
       if (mounted && _showingCallDialogRoom != null) {
-        _showingCallDialogRoom = null;
+        _setShowingCallDialog(null);
         try { Navigator.of(context, rootNavigator: true).pop(); } catch (_) {}
       }
       // Set flag BEFORE ending CallKit so the resulting actionCallDecline
@@ -658,6 +669,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAcceptTimer?.cancel();
     _shareIntentSub?.cancel();
     _installResultSub?.cancel();
+    CallStateService.instance.setCallUi(this, false);
+    // Logged out or the session expired: nothing forwards the lifecycle any
+    // more, so stop polling and offering until a dashboard is back.
+    sl<AppUpdateController>().onPaused();
     WakeWordService.instance.stop();
     NotificationService.setMissedCallCallback(null);
     NotificationService.setCalendarInviteCallback(null);
@@ -870,7 +885,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   }) {
     // Deduplicate: don't show a second dialog for the same room
     if (_showingCallDialogRoom == roomName) return;
-    _showingCallDialogRoom = roomName;
+    _setShowingCallDialog(roomName);
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -1012,7 +1027,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ),
       ),
     ).whenComplete(() {
-      if (_showingCallDialogRoom == roomName) _showingCallDialogRoom = null;
+      if (_showingCallDialogRoom == roomName) _setShowingCallDialog(null);
     });
   }
 
@@ -1032,7 +1047,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     String? incomingE2eeKey,
   }) {
     if (_showingCallDialogRoom == incomingRoom) return;
-    _showingCallDialogRoom = incomingRoom;
+    _setShowingCallDialog(incomingRoom);
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
     showModalBottomSheet<bool>(
@@ -1098,7 +1113,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         ),
       ),
     ).then((switchToTheirs) async {
-      if (_showingCallDialogRoom == incomingRoom) _showingCallDialogRoom = null;
+      if (_showingCallDialogRoom == incomingRoom) _setShowingCallDialog(null);
       final ds = sl<MessengerRemoteDataSource>();
       final cs = CallStateService.instance;
       if (switchToTheirs == true) {

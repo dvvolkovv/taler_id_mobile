@@ -385,6 +385,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   @override
   void initState() {
     super.initState();
+    // Counts as a call for app updates from the first frame — before join
+    // and LiveKit connect even create a CallStateService line.
+    CallStateService.instance.setCallUi(this, true);
     _chat = _chatLines.pending;
     WidgetsBinding.instance.addObserver(this);
     _configureRingPlayerContext();
@@ -4730,6 +4733,7 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   void dispose() {
+    CallStateService.instance.setCallUi(this, false);
     _audioRouteSub?.cancel();
     _audioRouteSub = null;
     WidgetsBinding.instance.removeObserver(this);

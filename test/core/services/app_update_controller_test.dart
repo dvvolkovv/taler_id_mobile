@@ -407,4 +407,96 @@ void main() {
     expect(rig.installs, isEmpty);
     c.dispose();
   });
+
+  group('automatic offer timing', () {
+    const offerDelay = Duration(seconds: 2);
+    const callRecheck = Duration(seconds: 5);
+
+    // A ready download of the advertised build: resuming at 0 s makes the
+    // install due.
+    AppUpdateController resumeWithReadyDownload(FakeAsync async) {
+      rig.platform.next = ready();
+      final c = rig.controller(offerDelay: offerDelay, callRecheck: callRecheck)..setInfo(info());
+      c.onResumed();
+      async.flushMicrotasks();
+      return c;
+    }
+
+    test('the installer opens once, after the offer delay', () {
+      fakeAsync((async) {
+        final c = resumeWithReadyDownload(async);
+
+        async.elapse(const Duration(milliseconds: 1900));
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 100));
+        expect(rig.installs, hasLength(1));
+
+        async.elapse(const Duration(seconds: 10));
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    test('a call starting during the delay holds the offer; one ending silently is caught by the recheck', () {
+      fakeAsync((async) {
+        final c = resumeWithReadyDownload(async);
+
+        async.elapse(const Duration(seconds: 1));
+        rig.inCall = true; // a mesh call: nothing on the stream
+        async.elapse(const Duration(seconds: 1)); // 2 s: the offer finds the call
+        expect(rig.installs, isEmpty);
+
+        async.elapse(const Duration(seconds: 1));
+        rig.inCall = false; // 3 s: it ends, again without an event
+        async.elapse(const Duration(milliseconds: 3900)); // 6.9 s
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 100)); // 7 s: the recheck
+        expect(rig.installs, hasLength(1));
+
+        async.elapse(const Duration(seconds: 20));
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    test('a call ending with an event restarts the offer delay instead of waiting for the recheck', () {
+      fakeAsync((async) {
+        rig.inCall = true;
+        final c = resumeWithReadyDownload(async); // recheck due at 5 s
+
+        async.elapse(const Duration(seconds: 1));
+        rig.inCall = false;
+        rig.calls.add(false);
+        async.flushMicrotasks();
+        expect(rig.installs, isEmpty);
+
+        async.elapse(const Duration(milliseconds: 1900)); // 2.9 s
+        expect(rig.installs, isEmpty);
+        async.elapse(const Duration(milliseconds: 100)); // 3 s: the delay after the event
+        expect(rig.installs, hasLength(1));
+
+        async.elapse(const Duration(seconds: 10)); // past the dropped 5 s recheck
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+
+    test('going to the background during the delay drops the offer until the next return', () {
+      fakeAsync((async) {
+        final c = resumeWithReadyDownload(async);
+
+        async.elapse(const Duration(seconds: 1));
+        c.onPaused();
+        async.elapse(const Duration(seconds: 10));
+        expect(rig.installs, isEmpty);
+
+        // Still due: the next return offers it, after the delay again.
+        c.onResumed();
+        async.flushMicrotasks();
+        async.elapse(offerDelay);
+        expect(rig.installs, hasLength(1));
+        c.dispose();
+      });
+    });
+  });
 }

@@ -1216,4 +1216,57 @@ void main() {
       expect(svc.consumeSystemEnded('r'), isFalse);
     });
   });
+
+  // ── Call UI ───────────────────────────────────────────────────────────────
+
+  group('call UI', () {
+    // The service is a process-wide singleton and endCall leaves the call UI
+    // alone (screens release it themselves), so every test lets its owners go.
+    final screen = Object(), sheet = Object();
+    tearDown(() {
+      svc.setCallUi(screen, false);
+      svc.setCallUi(sheet, false);
+    });
+
+    test('holding it twice from one owner takes one release', () {
+      svc.setCallUi(screen, true);
+      svc.setCallUi(screen, true);
+      expect(svc.isCallUiActive, isTrue);
+
+      svc.setCallUi(screen, false);
+      expect(svc.isCallUiActive, isFalse);
+    });
+
+    test('stays active until every owner releases it', () {
+      svc.setCallUi(screen, true);
+      svc.setCallUi(sheet, true);
+
+      svc.setCallUi(sheet, false);
+      expect(svc.isCallUiActive, isTrue);
+
+      svc.setCallUi(screen, false);
+      expect(svc.isCallUiActive, isFalse);
+    });
+
+    test('emits only when the owners really change', () async {
+      final events = <bool>[];
+      final sub = svc.callUiStream.listen(events.add);
+
+      svc.setCallUi(screen, true);
+      svc.setCallUi(screen, true); // already held
+      svc.setCallUi(sheet, false); // never held
+      svc.setCallUi(screen, false);
+      svc.setCallUi(screen, false); // already released
+      await Future.delayed(Duration.zero);
+
+      expect(events, [true, false]);
+      await sub.cancel();
+    });
+
+    test('endCall leaves a call screen holding it', () async {
+      svc.setCallUi(screen, true);
+      await svc.endCall();
+      expect(svc.isCallUiActive, isTrue);
+    });
+  });
 }

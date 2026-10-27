@@ -27,12 +27,21 @@ class AppUpdateController extends ChangeNotifier {
     required Stream<bool> callStateStream,
     required bool isAndroid,
     Duration pollInterval = const Duration(seconds: 1),
+    // An automatic offer waits for the screen to settle: a call being
+    // answered or rung shows up a moment after resume, and a call that just
+    // ended is still tearing down.
+    Duration offerDelay = const Duration(seconds: 2),
+    // A due install blocked by a call asks again this often: not every kind
+    // of call reports its end (mesh calls don't).
+    Duration callRecheck = const Duration(seconds: 5),
   })  : _platform = platform,
         _install = install,
         _openUrl = openUrl,
         _isInCall = isInCall,
         _isAndroid = isAndroid,
-        _pollInterval = pollInterval {
+        _pollInterval = pollInterval,
+        _offerDelay = offerDelay,
+        _callRecheck = callRecheck {
     _callSub = callStateStream.listen(_onCallState);
   }
 
@@ -42,6 +51,8 @@ class AppUpdateController extends ChangeNotifier {
   final bool Function() _isInCall;
   final bool _isAndroid;
   final Duration _pollInterval;
+  final Duration _offerDelay;
+  final Duration _callRecheck;
   late final StreamSubscription<bool> _callSub;
   final _installResults = StreamController<UpdateInstallResult>.broadcast();
 
@@ -61,6 +72,10 @@ class AppUpdateController extends ChangeNotifier {
   /// notification) but waits until the app is on screen and out of a call.
   bool _installDue = false;
   Timer? _poll;
+
+  /// Pending automatic offer — the delay before an install due is actually
+  /// opened, or the wait for the next in-call recheck.
+  Timer? _offer;
 
   UpdateInfo? get info => _info;
   UpdatePhase get phase => _phase;
@@ -172,6 +187,8 @@ class AppUpdateController extends ChangeNotifier {
 
   void onPaused() {
     _foreground = false;
+    _offer?.cancel();
+    _offer = null;
     _syncPolling();
   }
 
@@ -192,19 +209,50 @@ class AppUpdateController extends ChangeNotifier {
 
   /// Opens the installer when an install is due, but only on screen and out
   /// of a call: installing closes the app and would cut the conversation.
-  /// Until then it stays due; onResumed and the end of a call try again.
+  /// The offer waits [_offerDelay] and checks again; while a call blocks it,
+  /// it checks every [_callRecheck] and on every call-state change.
   void _maybeInstall() {
-    if (!_installDue || _phase != UpdatePhase.ready) return;
-    if (version == null) return; // the server no longer advertises this build.
-    if (!_foreground || _isInCall()) return;
+    if (!_canOffer()) {
+      _offer?.cancel();
+      _offer = null;
+      return;
+    }
+    if (_offer?.isActive ?? false) return;
+    final wait = _isInCall() ? _callRecheck : _offerDelay;
+    if (wait == Duration.zero) {
+      _offerNow();
+    } else {
+      _offer = Timer(wait, _offerNow);
+    }
+  }
+
+  bool _canOffer() =>
+      !_disposed &&
+      _installDue &&
+      _phase == UpdatePhase.ready &&
+      _foreground &&
+      version != null; // the server no longer advertises this build otherwise
+
+  void _offerNow() {
+    _offer = null;
+    if (!_canOffer()) return;
+    if (_isInCall()) {
+      // Still in a call: wait for its end (stream) or the next recheck.
+      if (_callRecheck > Duration.zero) _offer = Timer(_callRecheck, _offerNow);
+      return;
+    }
     _installDue = false;
     unawaited(install());
   }
 
   void _onCallState(bool inCall) {
-    // _maybeInstall asks isInCall() itself: a line can end while another one
-    // is still joining, and the event alone would miss that.
-    if (!inCall) _maybeInstall();
+    if (inCall) return;
+    // A call ended: start the wait over as [_offerDelay] rather than sit out
+    // a recheck. _maybeInstall asks isInCall() itself: a line can end while
+    // another one is still joining, and the event alone would miss that.
+    _offer?.cancel();
+    _offer = null;
+    _maybeInstall();
   }
 
   /// Lets the latest known download state decide the card again.
@@ -268,6 +316,8 @@ class AppUpdateController extends ChangeNotifier {
     _disposed = true;
     _poll?.cancel();
     _poll = null;
+    _offer?.cancel();
+    _offer = null;
     unawaited(_callSub.cancel());
     unawaited(_installResults.close());
     super.dispose();

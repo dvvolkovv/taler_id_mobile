@@ -840,19 +840,34 @@ Future<void> setupDependencies() async {
 
   sl.registerLazySingleton(() {
     final calls = CallStateService.instance;
+    // Only ask a mesh service that already exists: creating one here would
+    // start mesh machinery just to learn that no call runs through it.
+    bool busy<T extends Object>(bool Function(T) isBusy) =>
+        sl.isRegistered<T>() && sl.checkLazySingletonInstanceExists<T>() && isBusy(sl<T>());
     return AppUpdateController(
       platform: MethodChannelUpdateDownloadPlatform(),
       install: (path, name) => ApkInstallerService.install(filePath: path, displayName: name),
       openUrl: (url) async {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
+        try {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } catch (e) {
+          debugPrint('[AppUpdate] cannot open $url: $e');
+        }
       },
-      // Installing closes the app, which would drop the call: wait for the
-      // end of any call — 1-on-1, group, or one still connecting.
-      isInCall: () => calls.isInAnyCall || calls.isBackgroundConnecting,
-      // stateStream covers 1-on-1 lines; a group call ending only shows up
-      // on activeGroupCallStream.
+      // Installing closes the app, which would drop the call. A call is a
+      // LiveKit line or one connecting in the background, a ringing sheet or
+      // call screen (before its line exists), or a mesh 1-on-1 / group call.
+      isInCall: () =>
+          calls.isInAnyCall ||
+          calls.isBackgroundConnecting ||
+          calls.isCallUiActive ||
+          busy<MeshVoiceService>((s) => s.isBusy) ||
+          busy<GroupMeshCallService>((s) => s.isBusy),
+      // Re-check as soon as a LiveKit line or the call UI changes; mesh calls
+      // report no end here, so the controller also re-checks on a timer.
       callStateStream: StreamGroup.merge([
         calls.stateStream,
+        calls.callUiStream,
         calls.activeGroupCallStream.map((_) => calls.isInAnyCall),
       ]),
       isAndroid: !kIsWeb && Platform.isAndroid,

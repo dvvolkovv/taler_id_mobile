@@ -1742,7 +1742,7 @@ class _AssistantScreenState extends State<AssistantScreen>
             Positioned(
               left: 16,
               right: 16,
-              bottom: 16 + MediaQuery.of(context).padding.bottom,
+              bottom: 16 + MediaQuery.paddingOf(context).bottom,
               child: UpdateCard(controller: sl<AppUpdateController>()),
             ),
           ],

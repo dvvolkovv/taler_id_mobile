@@ -55,7 +55,13 @@ class UpdateRig {
   /// Set to make the installer hang until completed (dialog left with Home).
   Completer<ApkInstallResponse>? installGate;
 
-  AppUpdateController controller({bool android = true}) => AppUpdateController(
+  /// Offers without delay unless a test asks for the real timing.
+  AppUpdateController controller({
+    bool android = true,
+    Duration offerDelay = Duration.zero,
+    Duration callRecheck = Duration.zero,
+  }) =>
+      AppUpdateController(
         platform: platform,
         install: (path, name) async {
           installs.add('$path|$name');
@@ -67,6 +73,8 @@ class UpdateRig {
         isInCall: () => inCall,
         callStateStream: calls.stream,
         isAndroid: android,
+        offerDelay: offerDelay,
+        callRecheck: callRecheck,
       );
 }
 
