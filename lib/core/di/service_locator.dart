@@ -857,8 +857,8 @@ Future<void> setupDependencies() async {
       },
       // Installing closes the app, which would drop the call. A call is a
       // LiveKit line or one connecting in the background, an in-app ringing
-      // sheet or call screen (before its line exists), or a mesh 1-on-1 /
-      // group call.
+      // sheet or call screen (before its line exists), a live assistant
+      // session, or a mesh 1-on-1 / group call.
       isInCall: () =>
           calls.isInAnyCall ||
           calls.isBackgroundConnecting ||

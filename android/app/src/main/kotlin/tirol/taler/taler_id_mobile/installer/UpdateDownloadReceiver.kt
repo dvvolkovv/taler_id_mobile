@@ -17,7 +17,8 @@ import tirol.taler.taler_id_mobile.MainActivity
  * DownloadManager could not resume.
  *
  * The app was updated: the downloaded APK, its record and the notification
- * are no longer needed, nor is the old banner's copy in the cache.
+ * are no longer needed, nor are the old banner's copies in the cache and in
+ * the public Downloads.
  */
 class UpdateDownloadReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -37,6 +38,7 @@ class UpdateDownloadReceiver : BroadcastReceiver() {
                     // installed build has caught up with the downloaded one.
                     UpdateDownloader.status(context)
                     UpdateDownloader.cleanupLegacy(context)
+                    UpdateDownloader.cleanupLegacyDownloads(context)
                 }
             }
         } catch (e: Exception) {

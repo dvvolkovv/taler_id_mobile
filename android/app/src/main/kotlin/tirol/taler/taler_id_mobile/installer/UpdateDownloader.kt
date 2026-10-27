@@ -9,6 +9,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import tirol.taler.taler_id_mobile.MainActivity
@@ -34,6 +35,12 @@ object UpdateDownloader {
     private const val K_FAILED = "failed"
     /** The download was already started over once after DownloadManager couldn't resume it. */
     private const val K_RESTARTED = "restarted"
+    /**
+     * A URL that served another app's APK (TEST is sent to PROD). Not part of
+     * the per-download record: [clear] keeps it, so every new build from the
+     * same link goes straight to the browser instead of costing a download.
+     */
+    private const val K_FOREIGN_URL = "foreign_url"
     private const val CHANNEL_ID = "app_updates"
     private const val NOTIFICATION_ID = 7301
     const val EXTRA_INSTALL_UPDATE = "install_update"
@@ -50,13 +57,10 @@ object UpdateDownloader {
 
     fun start(context: Context, url: String, version: String, build: Int): Map<String, Any?> {
         val prefs = prefs(context)
+        // This link served another app's APK before: any build from it would
+        // too, so Dart sends the user to the browser. A new link gets a download.
+        if (url == prefs.getString(K_FOREIGN_URL, null)) return failed(WRONG_PACKAGE)
         if (prefs.getLong(K_ID, -1L) != -1L && prefs.getInt(K_BUILD, -1) == build) {
-            // The server sends this flavor another app's APK: downloading it
-            // again from the same link gets the same file, so Dart sends the
-            // user to the browser. A new link for the build may be the fix.
-            if (prefs.getString(K_FAILED, null) == WRONG_PACKAGE && prefs.getString(K_URL, null) == url) {
-                return failed(WRONG_PACKAGE)
-            }
             val current = status(context)
             if (current["state"] in setOf("running", "paused", "ready")) return current
             // We only failed to ask about it: the download itself may be fine.
@@ -107,7 +111,13 @@ object UpdateDownloader {
                         val path = local ?: file
                         if (path != file) prefs.edit().putString(K_FILE, path).apply()
                         val bad = verify(context, path, build)
-                        if (bad == null) return base + mapOf("file" to path, "state" to "ready")
+                        if (bad == null) {
+                            // The link serves our package again.
+                            if (url != null && url == prefs.getString(K_FOREIGN_URL, null)) {
+                                prefs.edit().remove(K_FOREIGN_URL).apply()
+                            }
+                            return base + mapOf("file" to path, "state" to "ready")
+                        }
                         reject(context, id, path, bad)
                         return base + mapOf("file" to path) + failed(bad)
                     }
@@ -146,7 +156,11 @@ object UpdateDownloader {
         val id = prefs.getLong(K_ID, -1L)
         if (id != -1L) remove(context, id)
         prefs.getString(K_FILE, null)?.let { File(it).delete() }
-        prefs.edit().clear().apply()
+        val foreign = prefs.getString(K_FOREIGN_URL, null)
+        // An editor applies clear() before its puts: only the record goes.
+        val editor = prefs.edit().clear()
+        if (foreign != null) editor.putString(K_FOREIGN_URL, foreign)
+        editor.apply()
         (context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)?.cancel(NOTIFICATION_ID)
     }
 
@@ -160,6 +174,30 @@ object UpdateDownloader {
         val id = prefs.getLong(K_ID, -1L)
         if (id == -1L) return
         reject(context, id, prefs.getString(K_FILE, null), reason)
+    }
+
+    /**
+     * Deletes the copies the old in-app banner put into the public Downloads
+     * as talerid-<version>.apk on every update and never removed: gigabytes on
+     * a long-time Android 10+ user. Only rows this app owns, and only on
+     * Android 11+, where OWNER_PACKAGE_NAME is a reliable filter; on 10 a
+     * query can also see what the user downloaded with the browser (the
+     * TEST → PROD talerid.apk), and that is never ours to delete.
+     */
+    fun cleanupLegacyDownloads(context: Context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        try {
+            val where = "${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ? AND " +
+                "${MediaStore.MediaColumns.OWNER_PACKAGE_NAME} = ?"
+            val removed = context.contentResolver.delete(
+                MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                where,
+                arrayOf("talerid-%.apk", context.packageName),
+            )
+            if (removed > 0) Log.i(TAG, "removed $removed old update copies from Downloads")
+        } catch (e: Exception) {
+            Log.w(TAG, "Downloads cleanup failed: ${e.message}")
+        }
     }
 
     /** Deletes what the old in-app banner left in the cache: up to a whole APK per device. */
@@ -257,7 +295,11 @@ object UpdateDownloader {
         Log.w(TAG, "downloaded file rejected: $reason")
         remove(context, id)
         path?.let { File(it).delete() }
-        prefs(context).edit().putString(K_FAILED, reason).apply()
+        val prefs = prefs(context)
+        val url = prefs.getString(K_URL, null)
+        val editor = prefs.edit().putString(K_FAILED, reason)
+        if (reason == WRONG_PACKAGE && url != null) editor.putString(K_FOREIGN_URL, url)
+        editor.apply()
     }
 
     /** null when [path] is our package at [build]; otherwise what is wrong with it. */

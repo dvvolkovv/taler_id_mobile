@@ -20,6 +20,7 @@ import '../../audio/pcm_gain.dart';
 import 'package:taler_id_mobile/l10n/app_localizations.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/services/app_update_controller.dart';
+import '../../../../core/services/call_state_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/linkified_text.dart';
 import '../../../../core/api/dio_client.dart';
@@ -74,7 +75,21 @@ class AssistantScreen extends StatefulWidget {
 
 class _AssistantScreenState extends State<AssistantScreen>
     with TickerProviderStateMixin {
-  _CallState _state = _CallState.idle;
+  _CallState _callState = _CallState.idle;
+
+  /// Every change of the session state goes through here. A connecting or
+  /// live session holds the call UI, like a call screen does: app updates must
+  /// not open the installer over a running (and billed) conversation. Never
+  /// after dispose: a connect finishing late must not leave the hold behind.
+  _CallState get _state => _callState;
+  set _state(_CallState value) {
+    _callState = value;
+    CallStateService.instance.setCallUi(
+      this,
+      mounted && (value == _CallState.connecting || value == _CallState.connected),
+    );
+  }
+
   _AssistantMode _mode = _AssistantMode.normal;
   String? _assistantName; // preferred form of address (Profile.assistantName / firstName)
   bool _assistantNameFromProfile = false; // true when explicitly set (vs firstName fallback)
@@ -339,6 +354,7 @@ class _AssistantScreenState extends State<AssistantScreen>
     _transcriptCtrl.dispose();
     _cleanup();
     _player.dispose();
+    CallStateService.instance.setCallUi(this, false);
     super.dispose();
   }
 
