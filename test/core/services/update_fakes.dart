@@ -96,3 +96,8 @@ UpdateDownloadStatus ready({String version = '1.1.37', int build = 238}) =>
       build: build,
       file: '/f.apk',
     );
+
+class UpdateDownloadStatusFailed extends UpdateDownloadStatus {
+  const UpdateDownloadStatusFailed()
+      : super(UpdateDownloadState.failed, reason: 'error_1006', version: '1.1.37', build: 238);
+}
