@@ -3544,6 +3544,42 @@ abstract class AppLocalizations {
   /// **'OK'**
   String get updateInstallOk;
 
+  /// No description provided for @updateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {percent}%'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateDownloaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Update {version} downloaded'**
+  String updateDownloaded(String version);
+
+  /// No description provided for @updateInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Install'**
+  String get updateInstall;
+
+  /// No description provided for @updateHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide'**
+  String get updateHide;
+
+  /// No description provided for @updateDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download the update'**
+  String get updateDownloadFailed;
+
+  /// No description provided for @updateRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get updateRetry;
+
   /// No description provided for @contactRequestsTitle.
   ///
   /// In en, this message translates to:

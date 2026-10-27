@@ -797,6 +797,26 @@
     }
   },
   "updateInstallOk": "Понятно",
+  "updateDownloading": "Скачивается {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateDownloaded": "Обновление {version} скачано",
+  "@updateDownloaded": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstall": "Установить",
+  "updateHide": "Скрыть",
+  "updateDownloadFailed": "Не удалось скачать обновление",
+  "updateRetry": "Повторить",
   "contactRequestsTitle": "Контакты",
   "messengerContactRequestsSection": "Заявки в контакты",
   "messengerContactRequestsCount": "{count, plural, =1{1 новая заявка} few{{count} новые заявки} many{{count} новых заявок} other{{count} новых заявок}}",

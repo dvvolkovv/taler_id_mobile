@@ -1811,6 +1811,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get updateInstallOk => 'Понятно';
 
   @override
+  String updateDownloading(int percent) {
+    return 'Скачивается $percent%';
+  }
+
+  @override
+  String updateDownloaded(String version) {
+    return 'Обновление $version скачано';
+  }
+
+  @override
+  String get updateInstall => 'Установить';
+
+  @override
+  String get updateHide => 'Скрыть';
+
+  @override
+  String get updateDownloadFailed => 'Не удалось скачать обновление';
+
+  @override
+  String get updateRetry => 'Повторить';
+
+  @override
   String get contactRequestsTitle => 'Контакты';
 
   @override

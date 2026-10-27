@@ -797,6 +797,26 @@
     }
   },
   "updateInstallOk": "OK",
+  "updateDownloading": "Downloading {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateDownloaded": "Update {version} downloaded",
+  "@updateDownloaded": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "updateInstall": "Install",
+  "updateHide": "Hide",
+  "updateDownloadFailed": "Couldn't download the update",
+  "updateRetry": "Retry",
   "contactRequestsTitle": "Contacts",
   "messengerContactRequestsSection": "Contact requests",
   "messengerContactRequestsCount": "{count, plural, =1{1 new request} other{{count} new requests}}",

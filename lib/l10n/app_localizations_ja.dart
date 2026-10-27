@@ -1782,6 +1782,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get updateInstallOk => 'OK';
 
   @override
+  String updateDownloading(int percent) {
+    return 'Downloading $percent%';
+  }
+
+  @override
+  String updateDownloaded(String version) {
+    return 'Update $version downloaded';
+  }
+
+  @override
+  String get updateInstall => 'Install';
+
+  @override
+  String get updateHide => 'Hide';
+
+  @override
+  String get updateDownloadFailed => 'Couldn\'t download the update';
+
+  @override
+  String get updateRetry => 'Retry';
+
+  @override
   String get contactRequestsTitle => '連絡先';
 
   @override
