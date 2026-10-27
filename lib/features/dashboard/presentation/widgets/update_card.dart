@@ -19,11 +19,12 @@ class UpdateCard extends StatelessWidget {
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
-        if (!controller.visible) return const SizedBox.shrink();
+        final version = controller.version;
+        if (version == null || !controller.visible) return const SizedBox.shrink();
         final l10n = AppLocalizations.of(context)!;
-        final version = controller.version!;
         final phase = controller.phase;
         final notes = controller.info?.latestNotes(Localizations.localeOf(context).languageCode);
+        final canStart = controller.canStartDownload;
 
         final String title;
         String? actionLabel;
@@ -31,8 +32,10 @@ class UpdateCard extends StatelessWidget {
         switch (phase) {
           case UpdatePhase.available:
             title = l10n.dashboardUpdateAvailable(version);
-            actionLabel = l10n.dashboardUpdate;
-            onAction = () => controller.startDownload();
+            if (canStart) {
+              actionLabel = l10n.dashboardUpdate;
+              onAction = () => controller.startDownload();
+            }
           case UpdatePhase.downloading:
             title = l10n.updateDownloading((controller.progress * 100).round());
             actionLabel = l10n.updateHide;
@@ -45,12 +48,88 @@ class UpdateCard extends StatelessWidget {
             title = l10n.dashboardInstalling;
           case UpdatePhase.failed:
             title = l10n.updateDownloadFailed;
-            actionLabel = l10n.updateRetry;
-            onAction = () => controller.startDownload();
+            // Right after a restart a remembered failure can show before
+            // /app/version answers; Retry would have nothing to download.
+            if (canStart) {
+              actionLabel = l10n.updateRetry;
+              onAction = () => controller.startDownload();
+            }
         }
-        final showClose = phase != UpdatePhase.downloading && phase != UpdatePhase.installing;
+        final busy = phase == UpdatePhase.installing;
+        final showClose = phase != UpdatePhase.downloading && !busy;
         final showNotes = phase == UpdatePhase.available && (notes?.isNotEmpty ?? false);
         final faded = Colors.white.withValues(alpha: 0.85);
+
+        final text = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            if (showNotes)
+              TextButton(
+                key: const Key('update-card-notes'),
+                onPressed: () => showUpdateWhatsNew(context, version, notes!),
+                style: TextButton.styleFrom(
+                  foregroundColor: faded,
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.padded,
+                  alignment: AlignmentDirectional.centerStart,
+                ),
+                child: Text(
+                  l10n.dashboardWhatsNew,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline,
+                    decorationColor: faded,
+                  ),
+                ),
+              ),
+          ],
+        );
+
+        final Widget? action = busy
+            ? const Padding(
+                padding: EdgeInsets.all(8),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                ),
+              )
+            : actionLabel == null
+                ? null
+                : TextButton(
+                    key: const Key('update-card-action'),
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: _blue,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      minimumSize: const Size(0, 36),
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: Text(
+                      actionLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  );
+        final close = showClose
+            ? IconButton(
+                key: const Key('update-card-close'),
+                tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                onPressed: controller.dismiss,
+                icon: const Icon(Icons.close, color: Colors.white, size: 18),
+              )
+            : const SizedBox(width: 8);
+        const icon = Icon(Icons.system_update_rounded, color: Colors.white, size: 20);
 
         return Material(
           key: const Key('update-card'),
@@ -62,81 +141,40 @@ class UpdateCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
-                child: Row(
-                  children: [
-                    const Icon(Icons.system_update_rounded, color: Colors.white, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 4, 6),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Large fonts and long translations leave the title no
+                    // room beside the buttons: then the action goes below it.
+                    final narrow =
+                        constraints.maxWidth < MediaQuery.textScalerOf(context).scale(320);
+                    if (!narrow || action == null) {
+                      return Row(
                         children: [
-                          Text(
-                            title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (showNotes) ...[
-                            const SizedBox(height: 2),
-                            GestureDetector(
-                              key: const Key('update-card-notes'),
-                              onTap: () => showUpdateWhatsNew(context, version, notes!),
-                              child: Text(
-                                l10n.dashboardWhatsNew,
-                                style: TextStyle(
-                                  color: faded,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: faded,
-                                ),
-                              ),
-                            ),
-                          ],
+                          icon,
+                          const SizedBox(width: 10),
+                          Expanded(child: text),
+                          if (action case final a?) a,
+                          close,
                         ],
-                      ),
-                    ),
-                    if (actionLabel != null)
-                      TextButton(
-                        key: const Key('update-card-action'),
-                        onPressed: onAction,
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white.withValues(alpha: 0.2),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          minimumSize: Size.zero,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      );
+                    }
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [icon, const SizedBox(width: 10), Expanded(child: text), close],
                         ),
-                        child: Text(
-                          actionLabel,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: Padding(
+                            padding: const EdgeInsetsDirectional.only(end: 10, bottom: 4),
+                            child: action,
+                          ),
                         ),
-                      )
-                    else
-                      const Padding(
-                        padding: EdgeInsets.all(8),
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        ),
-                      ),
-                    if (showClose)
-                      IconButton(
-                        key: const Key('update-card-close'),
-                        onPressed: controller.dismiss,
-                        visualDensity: VisualDensity.compact,
-                        icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                      )
-                    else
-                      const SizedBox(width: 8),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
               if (phase == UpdatePhase.downloading)
@@ -159,6 +197,7 @@ void showUpdateWhatsNew(BuildContext context, String version, String notes) {
   final colors = AppColors.of(context);
   showModalBottomSheet<void>(
     context: context,
+    useRootNavigator: true,
     backgroundColor: colors.surface,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(

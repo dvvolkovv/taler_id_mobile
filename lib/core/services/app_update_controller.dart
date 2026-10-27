@@ -80,6 +80,10 @@ class AppUpdateController extends ChangeNotifier {
     return v != null && v != _dismissedVersion;
   }
 
+  /// Whether Update/Retry has something to download: right after a restart
+  /// the card can show a remembered failure before /app/version answers.
+  bool get canStartDownload => _info?.isAvailable == true;
+
   void setInfo(UpdateInfo info) {
     _info = info;
     _apply(_download);
