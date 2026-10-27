@@ -50,7 +50,7 @@ class UpdateInfo {
     required this.isRequired,
     required this.downloadUrl,
     required this.latestVersion,
-    this.latestBuild = 0,
+    required this.latestBuild,
     required this.currentVersion,
     required this.releases,
   });
