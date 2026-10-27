@@ -3526,6 +3526,12 @@ abstract class AppLocalizations {
   /// **'The installed version is signed with a different certificate, so Android refuses to update it. Uninstall the app via Settings → Apps → Taler ID, then open the Downloads folder in your file manager and tap {filename} to install fresh. This step is only needed once.'**
   String updateInstallConflictBody(String filename);
 
+  /// Body of the signature-conflict dialog when no copy of the APK was saved to Downloads (Android below 10, or the copy failed).
+  ///
+  /// In en, this message translates to:
+  /// **'The installed version is signed with a different certificate, so Android won\'t update it. Uninstall the app in Settings → Apps → Taler ID and install it again from the download page. You only need to do this once.'**
+  String get updateInstallConflictBodyNoFile;
+
   /// No description provided for @updateInstallFailedTitle.
   ///
   /// In en, this message translates to:
@@ -3537,6 +3543,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{reason}\n\nThe APK was saved to your Downloads folder as {filename} — you can try installing it manually from a file manager.'**
   String updateInstallFailedBody(String reason, String filename);
+
+  /// Reason in the install-failed dialog when the downloaded APK is not signed with one of our certificates; the file has been deleted.
+  ///
+  /// In en, this message translates to:
+  /// **'The downloaded file failed the signature check and was deleted. Try updating again.'**
+  String get updateInstallUntrusted;
 
   /// No description provided for @updateInstallOk.
   ///

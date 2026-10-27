@@ -1799,12 +1799,20 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String get updateInstallConflictBodyNoFile =>
+      'The installed version is signed with a different certificate, so Android won\'t update it. Uninstall the app in Settings → Apps → Taler ID and install it again from the download page. You only need to do this once.';
+
+  @override
   String get updateInstallFailedTitle => 'Install failed';
 
   @override
   String updateInstallFailedBody(String reason, String filename) {
     return '$reason\n\nThe APK was saved to your Downloads folder as $filename — you can try installing it manually from a file manager.';
   }
+
+  @override
+  String get updateInstallUntrusted =>
+      'The downloaded file failed the signature check and was deleted. Try updating again.';
 
   @override
   String get updateInstallOk => 'OK';

@@ -1800,12 +1800,20 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get updateInstallConflictBodyNoFile =>
+      'Установленная версия подписана другим сертификатом, поэтому Android отказывается её обновить. Удали приложение через Настройки → Приложения → Taler ID и установи его заново со страницы загрузки. Этот шаг нужен один раз.';
+
+  @override
   String get updateInstallFailedTitle => 'Установка не удалась';
 
   @override
   String updateInstallFailedBody(String reason, String filename) {
     return '$reason\n\nAPK сохранён в папку «Загрузки» как $filename — можно попробовать установить вручную из файлового менеджера.';
   }
+
+  @override
+  String get updateInstallUntrusted =>
+      'Скачанный файл не прошёл проверку подписи и удалён. Попробуйте обновиться ещё раз.';
 
   @override
   String get updateInstallOk => 'Понятно';
