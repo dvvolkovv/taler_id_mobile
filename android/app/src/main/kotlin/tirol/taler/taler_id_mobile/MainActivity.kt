@@ -36,12 +36,12 @@ class MainActivity : FlutterFragmentActivity() {
     companion object {
         /**
          * Read by UpdateDownloadReceiver: while the activity is visible the app
-         * offers the install itself. Tracks onStart/onStop — the same moment
-         * Flutter goes `paused` and stops polling the download — so a finished
-         * download is never offered twice or missed in between.
+         * offers the install itself, so no "downloaded" notification. Tracks
+         * onStart/onStop — the same moment Flutter goes `paused` and stops
+         * polling — so the two never both offer it. A download finishing on a
+         * screen that doesn't poll (sign-in) is offered on the next open.
          */
         @Volatile
-        @JvmStatic
         var isInForeground = false
     }
 
@@ -86,7 +86,13 @@ class MainActivity : FlutterFragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannels()
-        handleUpdateIntent(intent)
+        // A restore (Recents after process death, a recreated activity)
+        // re-delivers the intent the app was first opened with.
+        if (savedInstanceState == null &&
+            (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0
+        ) {
+            handleUpdateIntent(intent)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -149,6 +149,23 @@ void main() {
     expect(c.phase, UpdatePhase.available);
   });
 
+  test('the server sending another app: the browser downloads it, the card is back to Update', () async {
+    rig.platform.startResult = const UpdateDownloadStatus(
+      UpdateDownloadState.failed,
+      reason: UpdateDownloadStatus.wrongPackage,
+      version: '1.1.37',
+      build: 238,
+    );
+    final c = rig.controller()..setInfo(info());
+
+    await c.startDownload();
+
+    expect(rig.platform.starts, hasLength(1));
+    expect(rig.opened, [Uri.parse('https://x/talerid.apk')]);
+    expect(c.phase, UpdatePhase.available);
+    expect(rig.installs, isEmpty);
+  });
+
   test('iOS opens the link and never touches the downloader', () async {
     final c = rig.controller(android: false)..setInfo(info());
 

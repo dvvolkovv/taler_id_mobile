@@ -152,8 +152,10 @@ class AppUpdateController extends ChangeNotifier {
       _starting = false;
     }
     if (_disposed) return;
-    if (s.state == UpdateDownloadState.failed && s.reason == UpdateDownloadStatus.unavailable) {
+    if (s.state == UpdateDownloadState.failed &&
+        (s.reason == UpdateDownloadStatus.unavailable || s.reason == UpdateDownloadStatus.wrongPackage)) {
       // No usable DownloadManager on this device: the browser downloads it.
+      // The server sends this flavor to another app (TEST → PROD): the browser downloads it as a separate install.
       _download = UpdateDownloadStatus.none;
       _setPhase(UpdatePhase.available);
       await _openUrl(Uri.parse(info.downloadUrl));

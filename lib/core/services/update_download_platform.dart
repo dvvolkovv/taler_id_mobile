@@ -19,6 +19,10 @@ class UpdateDownloadStatus {
   /// (disabled on some custom ROMs): the caller falls back to the browser.
   static const unavailable = 'download_manager_unavailable';
 
+  /// Reason of a failed start when the server's APK for this build is another
+  /// app (TEST is sent to PROD): the caller falls back to the browser.
+  static const wrongPackage = 'wrong_package';
+
   /// A status call failed on the channel itself; the download state is unknown, not failed.
   static const channelError = 'channel_error';
 

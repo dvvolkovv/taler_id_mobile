@@ -129,14 +129,18 @@
                 <data android:mimeType="application/*"/>
             </intent-filter>
         </activity>
-        <!-- Update APK finished downloading (UpdateDownloader): exported because
-             the sender is the system DownloadManager; the receiver checks the
-             id against its own download and queries the real status. -->
+        <!-- In-app update (UpdateDownloader). DOWNLOAD_COMPLETE: the APK finished
+             downloading; exported because the sender is the system
+             DownloadManager, and the receiver checks the id against its own
+             download and queries the real status. MY_PACKAGE_REPLACED: the
+             update is installed, the downloaded file can go; it is exempt from
+             the implicit-broadcast limits and only reaches the updated app. -->
         <receiver
             android:name=".installer.UpdateDownloadReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
         <service
