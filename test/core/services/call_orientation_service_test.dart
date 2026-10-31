@@ -284,4 +284,26 @@ void main() {
     await s.callScreenOpened();
     expect(orientations, [_portrait]);
   });
+
+  test('a failing SystemChrome neither throws nor skips the iOS flag',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform,
+            (call) async => throw PlatformException(code: 'boom'));
+    final s = await make();
+
+    await s.callScreenOpened();
+
+    expect(log, ['A:true']);
+  });
+
+  test('a stored value that is not a bool reads as unlocked', () async {
+    final box = await Hive.openBox('call_prefs');
+    await box.put('rotation_locked_v1', 'yes');
+    await box.close();
+
+    final s = await make();
+
+    expect(s.rotationLocked.value, isFalse);
+  });
 }

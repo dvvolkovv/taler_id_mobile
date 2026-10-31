@@ -24,8 +24,8 @@ import '../platform/platform_utils.dart';
 /// old one is disposed, and the old one's [callScreenClosed] must not take
 /// rotation away from the new one.
 ///
-/// Callers fire and forget (`unawaited`), so nothing here throws: platform and
-/// storage failures are logged and the app carries on.
+/// Callers may fire and forget (`unawaited`): [init] and the call-screen
+/// methods log platform and storage failures instead of throwing them.
 class CallOrientationService {
   /// [openBox] is for tests; the app uses Hive.
   CallOrientationService({
@@ -101,15 +101,17 @@ class CallOrientationService {
   }
 
   /// Applies the choice right away if a call screen is open — a screen lying
-  /// sideways snaps back upright — then stores it.
+  /// sideways snaps back upright — and stores it. The write doesn't wait for
+  /// the platform, so overlapping calls are stored in the order they came.
   Future<void> setRotationLocked(bool locked) async {
     _rotationLocked.value = locked;
-    if (_openCallScreens > 0) await _apply();
+    final applying = _openCallScreens > 0 ? _apply() : Future<void>.value();
     try {
       await _box?.put(_lockedKey, locked);
     } catch (e) {
       debugPrint('[CallOrientation] choice not stored, kept in memory: $e');
     }
+    await applying;
   }
 
   Future<void> _apply() => _setFreeRotation(!_rotationLocked.value);
