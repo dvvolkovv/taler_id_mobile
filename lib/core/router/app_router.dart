@@ -68,6 +68,7 @@ import '../../features/oauth/presentation/screens/oauth_authorize_screen.dart';
 import '../storage/secure_storage_service.dart';
 import '../di/service_locator.dart';
 import '../utils/constants.dart';
+import 'share_picker_gate.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/dashboard/desktop/desktop_shell.dart';
 import '../../features/messenger/presentation/screens/share_target_screen.dart';
@@ -249,14 +250,6 @@ final appRouter = GoRouter(
         },
       ),
     ],
-    // Share-in recipient picker (full-screen, outside shell)
-    GoRoute(
-      path: '/share-target',
-      builder: (context, state) {
-        final files = (state.extra as List?)?.cast<SharedMediaFile>() ?? const <SharedMediaFile>[];
-        return ShareTargetScreen(sharedFiles: files);
-      },
-    ),
     // Billing (full-screen, outside ShellRoute) — reached from BalanceChip,
     // InsufficientFundsSheet and LowBalanceBanner across the app.
     // KYC WebSDK in a WebView — used on all native platforms (iOS, Android,
@@ -426,6 +419,16 @@ final appRouter = GoRouter(
           path: RouteConstants.messenger,
           builder: (_, __) => const ConversationsScreen(),
           routes: [
+            // «Поделиться» из другого приложения: выбор получателя поверх
+            // списка чатов, крестик возвращает в список. До ':id', иначе
+            // 'share' разберётся как id беседы.
+            GoRoute(
+              path: 'share',
+              redirect: (_, state) => sharePickerRedirect(state.extra),
+              builder: (_, state) => ShareTargetScreen(
+                sharedFiles: state.extra as List<SharedMediaFile>,
+              ),
+            ),
             GoRoute(
               path: 'search',
               builder: (_, __) => const UserSearchScreen(),
