@@ -13,6 +13,12 @@ const _free = [
 const _portrait = ['DeviceOrientation.portraitUp'];
 const _iosChannel = MethodChannel('taler_id/orientation');
 
+String _label(List<String> o) => o.join() == _portrait.join()
+    ? 'S:portrait'
+    : o.join() == _free.join()
+        ? 'S:free'
+        : 'S:$o';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -20,6 +26,8 @@ void main() {
   // Every SystemChrome.setPreferredOrientations / iOS setAllowAll, in order.
   late List<List<String>> orientations;
   late List<bool> allowAll;
+  // Both channels combined, in call order, labelled so assertions read easily.
+  late List<String> log;
   final open = <CallOrientationService>[];
 
   Future<CallOrientationService> make({
@@ -42,16 +50,22 @@ void main() {
     Hive.init(tempDir.path);
     orientations = [];
     allowAll = [];
+    log = [];
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
     messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
       if (call.method == 'SystemChrome.setPreferredOrientations') {
-        orientations.add(List<String>.from(call.arguments as List));
+        final args = List<String>.from(call.arguments as List);
+        orientations.add(args);
+        log.add(_label(args));
       }
       return null;
     });
     messenger.setMockMethodCallHandler(_iosChannel, (call) async {
-      if (call.method == 'setAllowAll') allowAll.add(call.arguments as bool);
+      if (call.method == 'setAllowAll') {
+        allowAll.add(call.arguments as bool);
+        log.add('A:${call.arguments}');
+      }
       return null;
     });
   });
@@ -72,7 +86,7 @@ void main() {
     final s = await make();
     expect(s.rotationLocked.value, isFalse);
 
-    await s.enterCall();
+    await s.callScreenOpened();
 
     expect(orientations, [_free]);
     expect(allowAll, [true]);
@@ -80,7 +94,7 @@ void main() {
 
   test('locking in a call snaps back to portrait and is remembered', () async {
     final s = await make();
-    await s.enterCall();
+    await s.callScreenOpened();
 
     await s.setRotationLocked(true);
 
@@ -97,7 +111,7 @@ void main() {
     await close(first);
 
     final s = await make();
-    await s.enterCall();
+    await s.callScreenOpened();
     await s.reapply();
 
     expect(orientations, [_portrait, _portrait]);
@@ -107,7 +121,7 @@ void main() {
   test('unlocking in a call lets the phone rotate again', () async {
     final s = await make();
     await s.setRotationLocked(true);
-    await s.enterCall();
+    await s.callScreenOpened();
 
     await s.setRotationLocked(false);
 
@@ -127,9 +141,9 @@ void main() {
 
   test('closing the last call screen puts the app back to portrait', () async {
     final s = await make();
-    await s.enterCall();
+    await s.callScreenOpened();
 
-    await s.leaveCall();
+    await s.callScreenClosed();
 
     expect(orientations, [_free, _portrait]);
     expect(allowAll, [true, false]);
@@ -138,37 +152,37 @@ void main() {
   test('an old screen closing late does not take rotation from the new one',
       () async {
     final s = await make();
-    await s.enterCall(); // the screen being minimised
-    await s.enterCall(); // re-entered before the old one is disposed
+    await s.callScreenOpened(); // the screen being minimised
+    await s.callScreenOpened(); // re-entered before the old one is disposed
     orientations.clear();
     allowAll.clear();
 
-    await s.leaveCall(); // the old screen is disposed at last
+    await s.callScreenClosed(); // the old screen is disposed at last
     expect(orientations, isEmpty);
     expect(allowAll, isEmpty);
 
-    await s.leaveCall(); // the new screen closes too
+    await s.callScreenClosed(); // the new screen closes too
     expect(orientations, [_portrait]);
     expect(allowAll, [false]);
   });
 
   test('reapply does not count as another screen', () async {
     final s = await make();
-    await s.enterCall();
+    await s.callScreenOpened();
     await s.reapply();
 
-    await s.leaveCall();
+    await s.callScreenClosed();
 
     expect(orientations, [_free, _free, _portrait]);
     expect(allowAll, [true, true, false]);
   });
 
-  test('an extra leaveCall does not break the next call', () async {
+  test('an extra callScreenClosed does not break the next call', () async {
     final s = await make();
-    await s.leaveCall();
+    await s.callScreenClosed();
 
-    await s.enterCall();
-    await s.leaveCall();
+    await s.callScreenOpened();
+    await s.callScreenClosed();
 
     expect(orientations, [_free, _portrait]);
   });
@@ -176,9 +190,9 @@ void main() {
   test('Android: SystemChrome only, no iOS channel', () async {
     final s = await make(isIOS: false);
 
-    await s.enterCall();
+    await s.callScreenOpened();
     await s.setRotationLocked(true);
-    await s.leaveCall();
+    await s.callScreenClosed();
 
     expect(orientations, [_free, _portrait, _portrait]);
     expect(allowAll, isEmpty);
@@ -187,13 +201,67 @@ void main() {
   test('desktop and web: nothing applied, the choice is still kept', () async {
     final s = await make(isSupported: false, isIOS: false);
 
-    await s.enterCall();
+    await s.callScreenOpened();
     await s.setRotationLocked(true);
-    await s.leaveCall();
+    await s.callScreenClosed();
 
     expect(orientations, isEmpty);
     expect(allowAll, isEmpty);
     expect(s.rotationLocked.value, isTrue);
+  });
+
+  test('iOS: the native flag follows SystemChrome, never ahead of it',
+      () async {
+    final s = await make();
+
+    await s.callScreenOpened();
+    await s.setRotationLocked(true);
+
+    expect(log, ['S:free', 'A:true', 'S:portrait', 'A:false']);
+  });
+
+  test('unlocking as the last call screen closes still ends in portrait',
+      () async {
+    final s = await make();
+    await s.setRotationLocked(true);
+    await s.callScreenOpened();
+
+    // Started in the same tick, as the button and dispose() can do.
+    await Future.wait([s.setRotationLocked(false), s.callScreenClosed()]);
+
+    expect(orientations.last, _portrait);
+    expect(allowAll.last, isFalse);
+  });
+
+  test('a new screen opening as the old one closes never drops to portrait',
+      () async {
+    final s = await make();
+    await s.callScreenOpened();
+    log.clear();
+
+    await Future.wait([s.callScreenOpened(), s.callScreenClosed()]);
+
+    expect(log, ['S:free', 'A:true']);
+  });
+
+  test('a box that fails to open once is recreated and keeps the choice',
+      () async {
+    var attempts = 0;
+    final s = CallOrientationService(
+      isSupported: true,
+      isIOS: false,
+      openBox: (name) => ++attempts == 1
+          ? Future.error(const FileSystemException('corrupt'))
+          : Hive.openBox(name),
+    );
+    await s.init();
+    open.add(s);
+    await s.setRotationLocked(true);
+    expect(attempts, 2);
+
+    await close(s);
+    final again = await make();
+    expect(again.rotationLocked.value, isTrue);
   });
 
   // The box is opened through an injected function: making the real Hive fail
@@ -202,7 +270,7 @@ void main() {
   // uncaught even though init() catches the rethrown one.
   test('storage that cannot be opened does not fail app start-up', () async {
     final s = CallOrientationService(
-      isSupported: false,
+      isSupported: true,
       isIOS: false,
       openBox: (_) => Future.error(const FileSystemException('read-only')),
     );
@@ -212,5 +280,8 @@ void main() {
 
     await s.setRotationLocked(true);
     expect(s.rotationLocked.value, isTrue);
+
+    await s.callScreenOpened();
+    expect(orientations, [_portrait]);
   });
 }

@@ -14,13 +14,18 @@ import '../platform/platform_utils.dart';
 ///
 /// On iOS SystemChrome alone isn't enough: AppDelegate's
 /// `supportedInterfaceOrientationsFor` answers portrait-only unless
-/// `taler_id/orientation` → `setAllowAll(true)` flips it. The calls are
-/// awaited — synchronous ones were ignored on some iOS 16+ devices.
+/// `taler_id/orientation` → `setAllowAll(true)` flips it. The native flag is
+/// sent only after SystemChrome has answered, so the two always arrive in
+/// that order. Neither answer means the window has already turned — iOS 16+
+/// sometimes misses the first request, hence [reapply].
 ///
-/// Open call screens are counted rather than flagged: re-entering a call while
-/// the minimised screen is still animating out builds the new screen before
-/// the old one is disposed, and the old one's [leaveCall] must not take
+/// Call screens are counted rather than flagged: re-entering a call while the
+/// minimised screen is still animating out builds the new screen before the
+/// old one is disposed, and the old one's [callScreenClosed] must not take
 /// rotation away from the new one.
+///
+/// Callers fire and forget (`unawaited`), so nothing here throws: platform and
+/// storage failures are logged and the app carries on.
 class CallOrientationService {
   /// [openBox] is for tests; the app uses Hive.
   CallOrientationService({
@@ -41,26 +46,31 @@ class CallOrientationService {
   final bool _isIOS;
   final Future<Box> Function(String name) _openBox;
 
-  /// The user's choice. The call screen's button listens to it.
-  final ValueNotifier<bool> rotationLocked = ValueNotifier(false);
+  final ValueNotifier<bool> _rotationLocked = ValueNotifier(false);
+
+  /// The user's choice. The call screen's button listens to it; change it
+  /// with [setRotationLocked], which also applies and stores it.
+  ValueListenable<bool> get rotationLocked => _rotationLocked;
 
   Box? _box;
   int _openCallScreens = 0;
 
+  /// Opens the storage and loads the choice. Never throws: without storage
+  /// the choice lives in memory until the app restarts.
   Future<void> init() async {
     try {
       _box = await _openBox(_boxName);
-    } catch (_) {
+    } catch (e) {
+      debugPrint('[CallOrientation] call_prefs did not open, recreating: $e');
       try {
         await Hive.deleteBoxFromDisk(_boxName);
         _box = await _openBox(_boxName);
-      } catch (_) {
-        // No storage: the choice lives until the app restarts — and the app
-        // still starts.
+      } catch (e) {
+        debugPrint('[CallOrientation] no storage, choice kept in memory: $e');
         _box = null;
       }
     }
-    rotationLocked.value = (_box?.get(_lockedKey) as bool?) ?? false;
+    _rotationLocked.value = _box?.get(_lockedKey) == true;
   }
 
   Future<void> dispose() async {
@@ -69,7 +79,7 @@ class CallOrientationService {
   }
 
   /// A call screen opened: count it and apply the choice.
-  Future<void> enterCall() {
+  Future<void> callScreenOpened() {
     _openCallScreens++;
     return _apply();
   }
@@ -80,8 +90,9 @@ class CallOrientationService {
   Future<void> reapply() =>
       _openCallScreens > 0 ? _apply() : Future<void>.value();
 
-  /// A call screen closed. The last one out puts the app back to portrait.
-  Future<void> leaveCall() {
+  /// A call screen closed — minimised or the call ended. The last one out
+  /// puts the app back to portrait.
+  Future<void> callScreenClosed() {
     if (_openCallScreens == 0) return Future<void>.value();
     _openCallScreens--;
     return _openCallScreens == 0
@@ -89,33 +100,39 @@ class CallOrientationService {
         : Future<void>.value();
   }
 
-  /// Stores the choice and, if a call screen is open, applies it right away —
-  /// a screen lying sideways snaps back upright.
+  /// Applies the choice right away if a call screen is open — a screen lying
+  /// sideways snaps back upright — then stores it.
   Future<void> setRotationLocked(bool locked) async {
-    rotationLocked.value = locked;
+    _rotationLocked.value = locked;
+    if (_openCallScreens > 0) await _apply();
     try {
       await _box?.put(_lockedKey, locked);
-    } catch (_) {
-      // Not stored: still applies for as long as the app runs.
+    } catch (e) {
+      debugPrint('[CallOrientation] choice not stored, kept in memory: $e');
     }
-    if (_openCallScreens > 0) await _apply();
   }
 
-  Future<void> _apply() => _setFreeRotation(!rotationLocked.value);
+  Future<void> _apply() => _setFreeRotation(!_rotationLocked.value);
 
   Future<void> _setFreeRotation(bool free) async {
     if (!isSupported) return;
-    await SystemChrome.setPreferredOrientations(free
-        ? const [
-            DeviceOrientation.portraitUp,
-            DeviceOrientation.landscapeLeft,
-            DeviceOrientation.landscapeRight,
-          ]
-        : const [DeviceOrientation.portraitUp]);
+    try {
+      await SystemChrome.setPreferredOrientations(free
+          ? const [
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.landscapeLeft,
+              DeviceOrientation.landscapeRight,
+            ]
+          : const [DeviceOrientation.portraitUp]);
+    } catch (e) {
+      debugPrint('[CallOrientation] setPreferredOrientations failed: $e');
+    }
     if (_isIOS) {
       try {
         await _channel.invokeMethod('setAllowAll', free);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[CallOrientation] setAllowAll($free) failed: $e');
+      }
     }
   }
 }
