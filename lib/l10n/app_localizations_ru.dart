@@ -1707,6 +1707,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatMessageHint => 'Сообщение...';
 
   @override
+  String get chatAttachmentCommentHint => 'Добавьте комментарий...';
+
+  @override
   String get chatHideKeyboard => 'Скрыть клавиатуру';
 
   @override
@@ -2006,7 +2009,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sharedNoLinks => 'Нет ссылок';
 
   @override
-  String get shareToChat => 'Переслать в чат';
+  String get shareToChat => 'Кому отправить';
 
   @override
   String get shareSelectChat => 'Выберите чат';

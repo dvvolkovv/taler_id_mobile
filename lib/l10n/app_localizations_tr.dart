@@ -1708,6 +1708,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatMessageHint => 'Mesaj...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Klavye gizle';
 
   @override

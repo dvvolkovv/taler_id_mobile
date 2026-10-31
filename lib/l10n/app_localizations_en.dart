@@ -1705,6 +1705,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatMessageHint => 'Message...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Hide keyboard';
 
   @override
@@ -2000,7 +2003,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sharedNoLinks => 'No links';
 
   @override
-  String get shareToChat => 'Forward to chat';
+  String get shareToChat => 'Send to';
 
   @override
   String get shareSelectChat => 'Select chat';

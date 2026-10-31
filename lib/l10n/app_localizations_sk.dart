@@ -1707,6 +1707,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get chatMessageHint => 'Správa...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Skryť klávesnicu';
 
   @override

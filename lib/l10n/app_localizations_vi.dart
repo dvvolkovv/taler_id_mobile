@@ -1702,6 +1702,9 @@ class AppLocalizationsVi extends AppLocalizations {
   String get chatMessageHint => 'Tin nhắn...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Ẩn bàn phím';
 
   @override

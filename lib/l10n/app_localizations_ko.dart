@@ -1682,6 +1682,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatMessageHint => '메시지...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => '키보드 숨기기';
 
   @override
