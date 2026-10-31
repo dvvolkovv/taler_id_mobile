@@ -2,10 +2,6 @@ package com.kasem.receive_sharing_intent
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.media.MediaMetadataRetriever
-import android.media.MediaMetadataRetriever.METADATA_KEY_DURATION
-import android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC
 import android.net.Uri
 import android.os.Parcelable
 import android.os.Build
@@ -22,8 +18,6 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.NewIntentListener
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.io.FileOutputStream
 import java.net.URLConnection
 
 private const val MESSAGES_CHANNEL = "receive_sharing_intent/messages"
@@ -162,32 +156,20 @@ class ReceiveSharingIntentPlugin : FlutterPlugin, ActivityAware, MethodCallHandl
         // Upstream sent "path": null, which the Dart side can't parse.
         if (path == null && text == null) return null
         val mType = mimeType ?: path?.let { URLConnection.guessContentTypeFromName(path) }
-        val type = MediaType.fromMimeType(mType)
-        val (thumbnail, duration) = path?.let { getThumbnailAndDuration(path, type) }
-                ?: Pair(null, null)
+        // PATCH P5 (Taler ID): a file that came as a stream stays a file even
+        // when its MIME type is text/* (.txt, .csv, .vcf, .ics, .html…).
+        // Upstream typed it TEXT, and the Dart side put its cache path into
+        // the message field instead of attaching the file.
+        val type = MediaType.fromMimeType(mType).let {
+            if (it == MediaType.TEXT && path != null) MediaType.FILE else it
+        }
+        // PATCH P6 (Taler ID): no video thumbnail or duration — the app
+        // doesn't read them, and MediaMetadataRetriever on the main thread
+        // cost time and could throw, dropping the video itself.
         return JSONObject()
                 .put("path", path ?: text)
                 .put("type", type.value)
                 .put("mimeType", mType)
-                .put("thumbnail", thumbnail)
-                .put("duration", duration)
-    }
-
-    // Get video thumbnail and duration.
-    private fun getThumbnailAndDuration(path: String, type: MediaType): Pair<String?, Long?> {
-        if (type != MediaType.VIDEO) return Pair(null, null) // get thumbnail and duration for video only
-        val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(path)
-        val duration = retriever.extractMetadata(METADATA_KEY_DURATION)?.toLongOrNull()
-        val bitmap = retriever.getScaledFrameAtTime(-1, OPTION_CLOSEST_SYNC, 360, 360)
-        retriever.release()
-        if (bitmap == null) return Pair(null, null)
-        val targetFile = File(applicationContext.cacheDir, "${File(path).name}.png")
-        FileOutputStream(targetFile).use { out ->
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-        }
-        bitmap.recycle()
-        return Pair(targetFile.path, duration)
     }
 
     enum class MediaType(val value: String) {

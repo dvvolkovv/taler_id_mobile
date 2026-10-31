@@ -22,11 +22,19 @@ object FileDirectory {
      * for the "document" media type (files from its Documents category were
      * lost), and handed out raw storage paths the app can't read under
      * scoped storage.
+     *
+     * Each copy goes into its own folder under cache/shared/, and over-long
+     * names are shortened to fit the file system.
      */
     fun getAbsolutePath(context: Context, uri: Uri): String? {
         if (!"content".equals(uri.scheme, ignoreCase = true)) return uri.path
-        val name = displayName(context, uri) ?: generatedName(context, uri)
-        val target = File(context.cacheDir, name)
+        val name = fitName(displayName(context, uri) ?: generatedName(context, uri))
+        // Each copy in its own folder: two items with the same name in one
+        // share (or a new share while the previous file is still uploading)
+        // must not overwrite each other.
+        val dir = File(context.cacheDir, "shared/${System.nanoTime()}")
+        if (!dir.mkdirs() && !dir.isDirectory) return null
+        val target = File(dir, name)
         val input = context.contentResolver.openInputStream(uri) ?: return null
         input.use { stream -> FileOutputStream(target).use { stream.copyTo(it) } }
         return target.path
@@ -47,6 +55,23 @@ object FileDirectory {
             Log.w("FileDirectory", "No display name for $uri: $e")
             null
         }
+
+    /**
+     * File names are limited to 255 bytes; a long Cyrillic name (2 bytes a
+     * letter) can exceed that and the copy would fail. Keep the extension.
+     */
+    private fun fitName(name: String): String {
+        if (name.toByteArray().size <= MAX_NAME_BYTES) return name
+        val dot = name.lastIndexOf('.')
+        val ext = if (dot > 0 && name.length - dot <= 10) name.substring(dot) else ""
+        var base = name.substring(0, name.length - ext.length)
+        while (base.isNotEmpty() && (base + ext).toByteArray().size > MAX_NAME_BYTES) {
+            base = base.dropLast(1)
+        }
+        return base + ext
+    }
+
+    private const val MAX_NAME_BYTES = 200
 
     private fun generatedName(context: Context, uri: Uri): String {
         val mimeType = context.contentResolver.getType(uri)
