@@ -2227,7 +2227,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
           ? ''
           : '\nУчастники текущего звонка: $participantsJoined';
       final rotationStr = _rotationLockAvailable
-          ? '\nЭкран звонка можно зафиксировать вертикально. Если пользователь просит «не переворачивай экран», «зафиксируй экран» — вызови set_screen_rotation_lock с locked=true; «разреши поворот», «пусть экран поворачивается» — с locked=false. Выбор запоминается и для следующих звонков.\n'
+          ? '\nЭкран звонка можно зафиксировать вертикально. Если пользователь просит «не переворачивай экран», «зафиксируй экран», «выключи автоповорот» — вызови set_screen_rotation_lock с locked=true; «разреши поворот», «пусть экран поворачивается», «включи автоповорот» — с locked=false. Это только про поворот экрана: камеру так не переключить (это кнопка «Повернуть» внизу), телефон не заблокировать. Выбор запоминается и для следующих звонков.\n'
           : '';
       return '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
 $participantsStr
@@ -2248,7 +2248,7 @@ $rotationStr
         ? ''
         : '\nCurrent call participants: $participantsJoined';
     final rotationStr = _rotationLockAvailable
-        ? '\nThe call screen can be locked upright. If the user asks to "stop the screen rotating", "lock the screen" — call set_screen_rotation_lock with locked=true; "let the screen rotate", "unlock rotation" — with locked=false. The choice is remembered for the next calls too.\n'
+        ? '\nThe call screen can be locked upright. If the user asks to "stop the screen rotating", "keep the screen upright", "lock rotation", "turn off auto-rotate" — call set_screen_rotation_lock with locked=true; "let the screen rotate", "allow rotation", "turn on auto-rotate" — with locked=false. Screen orientation only: it does not flip or switch the camera and does not lock the phone. The choice is remembered for the next calls too.\n'
         : '';
     return '''You are a voice assistant during a call. The user has temporarily muted their microphone in the call to give you a command. Be brief.
 $participantsStr
@@ -2348,7 +2348,7 @@ Answer briefly — the user is in the middle of a conversation.''';
             {
               'type': 'function',
               'name': 'set_screen_rotation_lock',
-              'description': 'Lock or unlock rotation of the call screen on this phone. locked=true keeps the screen upright (portrait) and stops it turning when the phone tilts — "не переворачивай экран", "зафиксируй экран", "stop the screen rotating". locked=false lets it rotate with the phone again — "разреши поворот", "let the screen rotate". The choice is remembered for the next calls too.',
+              'description': 'Lock or unlock rotation of the call screen on this phone. locked=true keeps the screen upright (portrait) and stops it turning when the phone tilts — "не переворачивай экран", "зафиксируй экран", "выключи автоповорот", "stop the screen rotating", "lock rotation". locked=false lets it rotate with the phone again — "разреши поворот", "включи автоповорот", "let the screen rotate". Screen orientation only: it does not flip or switch the camera and does not lock the phone. The choice is remembered for the next calls too.',
               'parameters': {
                 'type': 'object',
                 'properties': {
@@ -2543,11 +2543,28 @@ Answer briefly — the user is in the middle of a conversation.''';
         debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
         output = jsonEncode(await _setTranslationPair(hear, speak));
       } else if (name == 'set_screen_rotation_lock') {
-        final raw = args['locked'];
-        final locked = raw == true || raw == 'true';
+        final locked = switch (args['locked']) {
+          true || 'true' => true,
+          false || 'false' => false,
+          _ => null,
+        };
         debugPrint('[InCallAssistant] set_screen_rotation_lock: $locked');
-        await _orientation.setRotationLocked(locked);
-        output = jsonEncode({'ok': true, 'locked': locked});
+        if (locked == null) {
+          output = jsonEncode({
+            'ok': false,
+            'message': 'locked must be true or false.',
+          });
+        } else {
+          await _orientation.setRotationLocked(locked);
+          final nowLocked = _orientation.rotationLocked.value;
+          output = jsonEncode({
+            'ok': true,
+            'locked': nowLocked,
+            'message': nowLocked
+                ? 'The call screen stays upright now and in the next calls.'
+                : "The call screen turns with the phone again, unless the phone's own rotation lock is on.",
+          });
+        }
       } else if (name == 'send_room_chat') {
         // Использует тот же `_sendChatMessage`, что и панель чата человека —
         // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
