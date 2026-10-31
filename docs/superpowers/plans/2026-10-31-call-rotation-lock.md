@@ -444,7 +444,9 @@ EOF
 ### Task 2: Строки кнопки на всех языках
 
 **Files:**
-- Modify: `lib/l10n/app_*.arb` — все 24 файла (шаблон — `app_ru.arb`, см. `l10n.yaml`)
+- Modify: `lib/l10n/app_*.arb` — все 24 файла (шаблон генератора на деле `app_en.arb`: `template-arb-locale: ru` в `l10n.yaml` — не опция gen-l10n, она молча игнорируется)
+
+> **Сделано; после ревью английские подписи — `Lock rotation` / `Allow rotation`** (коммит `fix(звонок): английские подписи кнопки поворота…`): «Lock screen rotation» читалось как «экран блокировки». Остальные языки — как в скрипте ниже.
 - Regenerate: `lib/l10n/app_localizations.dart`, `lib/l10n/app_localizations_*.dart`
 
 Строки экрана звонка в этом репозитории заводятся во всех 24 ARB сразу, без `@`-описаний, сразу после `"voiceAddParticipant"` (так сделаны `callHeldBySystem` / `callResumeFromHold`, коммит `a300996`). Значение — то, что сделает нажатие.
@@ -516,7 +518,7 @@ Expected: `  22 193 untranslated`. Генератор и до правки жа�
 - [ ] **Step 3: Проверить, что дошло везде**
 
 Run: `grep -l "voiceRotationLock" lib/l10n/app_localizations*.dart | wc -l && grep -n "voiceRotationLock\|voiceRotationUnlock" lib/l10n/app_localizations_en.dart lib/l10n/app_localizations_ru.dart`
-Expected: `25` (базовый класс + 24 языка), затем по две строки-геттера в `en` (`Lock screen rotation` / `Allow screen rotation`) и в `ru` (`Не поворачивать экран` / `Разрешить поворот экрана`).
+Expected: `25` (базовый класс + 24 языка), затем по две строки-геттера в `en` (`Lock screen rotation` / `Allow screen rotation` — после ревью `Lock rotation` / `Allow rotation`) и в `ru` (`Не поворачивать экран` / `Разрешить поворот экрана`).
 
 - [ ] **Step 4: Commit**
 
@@ -580,14 +582,14 @@ void main() {
       final s = _service();
       await t.pumpWidget(_wrap(button(s)));
       expect(find.byIcon(Icons.screen_rotation_rounded), findsOneWidget);
-      expect(find.byTooltip('Lock screen rotation'), findsOneWidget);
+      expect(find.byTooltip('Lock rotation'), findsOneWidget);
 
       await t.tap(find.byKey(const Key('call-rotation-lock')));
       await t.pump();
 
       expect(s.rotationLocked.value, isTrue);
       expect(find.byIcon(Icons.screen_lock_portrait_rounded), findsOneWidget);
-      expect(find.byTooltip('Allow screen rotation'), findsOneWidget);
+      expect(find.byTooltip('Allow rotation'), findsOneWidget);
     });
 
     testWidgets('$kind: locked — tap allows rotation again', (t) async {
@@ -613,6 +615,23 @@ void main() {
     await t.pump();
 
     expect(find.byIcon(Icons.screen_lock_portrait_rounded), findsOneWidget);
+  });
+
+  testWidgets('floating: a screen reader hears a button named by the action',
+      (t) async {
+    final semantics = t.ensureSemantics();
+    final s = _service();
+    await t.pumpWidget(_wrap(CallRotationLockButton.floating(service: s)));
+
+    expect(
+      t.getSemantics(find.byKey(const Key('call-rotation-lock'))),
+      containsSemantics(
+        isButton: true,
+        label: 'Lock rotation',
+        hasTapAction: true,
+      ),
+    );
+    semantics.dispose();
   });
 }
 ```
@@ -675,24 +694,33 @@ class CallRotationLockButton extends StatelessWidget {
             onPressed: toggle,
           );
         }
-        return Tooltip(
-          message: label,
-          child: GestureDetector(
-            key: const Key('call-rotation-lock'),
-            onTap: toggle,
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.45),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white24),
-              ),
-              alignment: Alignment.center,
-              child: Icon(
-                icon,
-                color: locked ? colors.primary : Colors.white,
-                size: 20,
+        // One node for screen readers: a button named by the action. The
+        // tooltip is only the long-press hint, so it stays out of semantics
+        // (an IconButton gets the same from its tooltip by itself).
+        return Semantics(
+          container: true,
+          button: true,
+          label: label,
+          child: Tooltip(
+            message: label,
+            excludeFromSemantics: true,
+            child: GestureDetector(
+              key: const Key('call-rotation-lock'),
+              onTap: toggle,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: Colors.white24),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  icon,
+                  color: locked ? colors.primary : Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -706,7 +734,7 @@ class CallRotationLockButton extends StatelessWidget {
 - [ ] **Step 4: Убедиться, что тест проходит**
 
 Run: `flutter test test/features/voice/presentation/widgets/call_rotation_lock_button_test.dart`
-Expected: `+5: All tests passed!`
+Expected: `+6: All tests passed!`
 
 - [ ] **Step 5: Анализатор на новых файлах**
 
@@ -1241,7 +1269,7 @@ EOF
 - [ ] **Step 1: Весь набор тестов**
 
 Run: `flutter test`
-Expected: `+1605: All tests passed!` (1582 базовых + 18 из Task 1 + 5 из Task 3).
+Expected: `+1606: All tests passed!` (1582 базовых + 18 из Task 1 + 6 из Task 3).
 
 - [ ] **Step 2: Анализатор на всех тронутых файлах**
 
