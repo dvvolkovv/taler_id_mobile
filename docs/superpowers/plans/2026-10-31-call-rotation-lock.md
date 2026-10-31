@@ -42,6 +42,16 @@
 
 ### Task 1: CallOrientationService
 
+> **Сделано, и после ревью код отличается от блоков ниже** (коммит `fix(звонок): сервис поворота — по итогам ревью`):
+> - `enterCall()` / `leaveCall()` переименованы в `callScreenOpened()` / `callScreenClosed()`: они считают экраны, а не звонки — сворачивание закрывает экран, звонок идёт;
+> - `rotationLocked` наружу — `ValueListenable<bool>` (только чтение), менять — через `setRotationLocked`;
+> - `init()` читает флаг как `== true` и не бросает ни при каком содержимом бокса;
+> - `setRotationLocked` сначала применяет выбор (если экран звонка открыт), потом пишет на диск;
+> - ошибки `SystemChrome`, канала iOS и Hive пишутся в `debugPrint` и не вылетают к вызывающим через `unawaited`; сбой `SystemChrome` больше не пропускает `setAllowAll`;
+> - тестов 16: добавлены общий упорядоченный журнал обоих каналов, одновременные вызовы (разблокировка вместе с закрытием последнего экрана; новый экран открывается, пока закрывается старый), восстановление бокса после одной неудачи; тест «без хранилища» идёт с `isSupported: true`.
+>
+> Актуальный код — в файлах ветки; блоки ниже оставлены как исходный план.
+
 **Files:**
 - Create: `lib/core/services/call_orientation_service.dart`
 - Test: `test/core/services/call_orientation_service_test.dart`
@@ -788,7 +798,7 @@ EOF
 ### Task 5: Экран звонка поворачивается через сервис
 
 **Files:**
-- Modify: `lib/features/voice/presentation/screens/voice_call_screen.dart` — импорты (~строка 26), поля состояния (~строка 377), `initState` (~строки 398–404), `dispose` (~строки 4769–4770), методы поворота (~строки 6258–6281)
+- Modify: `lib/features/voice/presentation/screens/voice_call_screen.dart` — импорты (~строка 26), поля состояния (~строка 377), `initState` (~строки 398–404), начало `dispose` (~строка 4735) и старый вызов в его конце (~строки 4769–4770), методы поворота (~строки 6258–6281)
 
 Поведение после этой задачи — как сейчас (кнопки ещё нет), но поворот идёт через сервис: учитывается сохранённый выбор и работает счётчик экранов.
 
@@ -848,27 +858,40 @@ import '../../../../core/services/call_state_service.dart';
     // pick up a new allowed-orientation set immediately, so it is applied
     // again after the first frame — that triggers the native rotation
     // refresh path.
-    unawaited(_orientation.enterCall());
+    unawaited(_orientation.callScreenOpened());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_orientation.reapply());
     });
 ```
 
-- [ ] **Step 4: `dispose` — выход через сервис**
+- [ ] **Step 4: `dispose` — выход через сервис, первым делом**
 
-Найти:
+Счётчик экранов делает пропущенный `callScreenClosed()` дорогим: один экран, не отметившийся при закрытии, оставляет поворот включённым во всём приложении до перезапуска (раньше безусловный `_restorePortraitLock` на следующем закрытии это чинил). Поэтому вызов ставится в самое начало `dispose()`, до остального teardown, который может бросить, а не на место старого `_restorePortraitLock()` в конце.
+
+Найти (начало `dispose` экрана звонка — в файле есть второй `dispose` у другого класса ниже, этот узнаётся по следующей строке):
 
 ```dart
-    // Restore portrait + native iOS orientation lock for the rest of the app
-    _restorePortraitLock();
+  void dispose() {
+    CallStateService.instance.setCallUi(this, false);
 ```
 
 Заменить на:
 
 ```dart
-    // Back to portrait-only for the rest of the app — unless another call
-    // screen is already open (re-entered before this one was disposed).
-    unawaited(_orientation.leaveCall());
+  void dispose() {
+    // First, before any teardown that could throw: a call screen that never
+    // reports closing keeps the whole app rotatable until restart. Back to
+    // portrait-only — unless another call screen is already open
+    // (re-entered before this one was disposed).
+    unawaited(_orientation.callScreenClosed());
+    CallStateService.instance.setCallUi(this, false);
+```
+
+Затем найти и удалить (две строки ближе к концу того же `dispose`):
+
+```dart
+    // Restore portrait + native iOS orientation lock for the rest of the app
+    _restorePortraitLock();
 ```
 
 - [ ] **Step 5: Удалить собственные методы поворота экрана**
@@ -1218,7 +1241,7 @@ EOF
 - [ ] **Step 1: Весь набор тестов**
 
 Run: `flutter test`
-Expected: `+1599: All tests passed!` (1582 базовых + 12 из Task 1 + 5 из Task 3).
+Expected: `+1603: All tests passed!` (1582 базовых + 16 из Task 1 + 5 из Task 3).
 
 - [ ] **Step 2: Анализатор на всех тронутых файлах**
 
@@ -1264,7 +1287,10 @@ flutter run --profile --flavor dev -t lib/main_dev.dart --dart-define=FLAVOR=dev
 flutter run --flavor dev -t lib/main_dev.dart --dart-define=FLAVOR=dev --dart-define=BASE_URL=https://staging.id.taler.tirol -d 00008101-000E21100202001E
 ```
 
-Тот же список, что в Step 4 (блокировка ориентации в Пункте управления должна быть выключена — иначе звонок не поворачивается и без кнопки). Плюс голосом: в звонке включить ассистента → «не переворачивай экран» → значок в шапке меняется на замок; «разреши поворот» → обратно.
+Тот же список, что в Step 4 (блокировка ориентации в Пункте управления должна быть выключена — иначе звонок не поворачивается и без кнопки). Плюс:
+
+- [ ] держать телефон боком при включённой фиксации (экран вертикальный) → нажать замок → экран ложится набок **сам, не покачивая телефон**. При разблокировке выбор применяется один раз, без повтора после кадра, а повтор `reapply()` в `initState` появился именно из-за того, что iOS 16+ иногда пропускает первый запрос. Если не ложится — повторять применение и после переключения (тогда это правка сервиса и его теста);
+- [ ] голосом: в звонке включить ассистента → «не переворачивай экран» → значок в шапке меняется на замок; «разреши поворот» → обратно.
 
 - [ ] **Step 6: Статус спеки**
 
