@@ -399,15 +399,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
     _scheduleHideCallControls();
-    // Let the phone rotate during the call — unless the user locked it
-    // (remembered across calls, see CallOrientationService). iOS 16+ doesn't
-    // pick up a new allowed-orientation set immediately, so it is applied
-    // again after the first frame — that triggers the native rotation
-    // refresh path.
-    unawaited(_orientation.callScreenOpened());
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) unawaited(_orientation.reapply());
-    });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     // Someone who had to turn a previous call up will want this one up too.
@@ -536,6 +527,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (widget.outgoing && !widget.isIncoming && widget.calleeId != null) {
       CallStateService.instance.markOutgoing(widget.calleeId!, widget.roomName);
     }
+    // Let the phone rotate during the call — unless the user locked it
+    // (remembered across calls, see CallOrientationService). iOS 16+ doesn't
+    // pick up a new allowed-orientation set immediately, so it is applied
+    // again after the first frame — that triggers the native rotation
+    // refresh path. Last, after everything above that could throw: a State
+    // whose initState threw is never disposed, so it would never uncount.
+    unawaited(_orientation.callScreenOpened());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_orientation.reapply());
+    });
     _initCall();
   }
 
