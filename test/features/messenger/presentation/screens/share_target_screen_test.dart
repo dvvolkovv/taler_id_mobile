@@ -244,4 +244,25 @@ void main() {
     expect(find.byIcon(Icons.link_rounded), findsOneWidget);
     expect(find.byIcon(Icons.attach_file), findsNothing);
   });
+
+  testWidgets('a link shared as plain text gets the link icon',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: 'https://example.com/article', type: SharedMediaType.text),
+    ]);
+    expect(find.text('https://example.com/article'), findsOneWidget);
+    expect(find.byIcon(Icons.link_rounded), findsOneWidget);
+  });
+
+  testWidgets('a file shared with a text is described by the file',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: '/data/user/0/app/cache/Отчёт.pdf', type: SharedMediaType.file),
+      SharedMediaFile(path: 'see this', type: SharedMediaType.text),
+    ]);
+    expect(find.text('Отчёт.pdf'), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsOneWidget);
+  });
 }

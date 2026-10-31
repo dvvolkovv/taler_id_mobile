@@ -108,8 +108,28 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     }
   }
 
+  static bool _isText(SharedMediaFile f) =>
+      f.type == SharedMediaType.text || f.type == SharedMediaType.url;
+
+  /// A shared web address. Android browsers share links as plain text, so a
+  /// text item that parses as an http(s) URL counts as a link too.
+  static bool _isLink(SharedMediaFile f) {
+    if (f.type == SharedMediaType.url) return true;
+    if (f.type != SharedMediaType.text) return false;
+    final uri = Uri.tryParse(f.path.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  /// The attachments of the share; text and links go to the input field.
+  List<SharedMediaFile> get _attachments =>
+      widget.sharedFiles.where((f) => !_isText(f)).toList();
+
   Widget _buildPreview() {
-    final file = widget.sharedFiles.first;
+    final attachments = _attachments;
+    final file =
+        attachments.isNotEmpty ? attachments.first : widget.sharedFiles.first;
     final path = file.path;
 
     if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
@@ -121,9 +141,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(
-          file.type == SharedMediaType.url
-              ? Icons.link_rounded
-              : Icons.notes_rounded,
+          _isLink(file) ? Icons.link_rounded : Icons.notes_rounded,
           color: AppColors.of(context).primary,
         ),
       );
@@ -167,19 +185,11 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
   }
 
   String _getDescription() {
-    final count = widget.sharedFiles.length;
-    if (count == 1) {
-      final file = widget.sharedFiles.first;
-      // Text and links are shown as they are: they go into the input field,
-      // not as an attachment, and their "file name" would be a URL fragment.
-      if (file.type == SharedMediaType.text ||
-          file.type == SharedMediaType.url) {
-        return file.path;
-      }
-      final name = file.path.split('/').last;
-      return name;
-    }
-    return AppLocalizations.of(context)!.shareFilesCount(count);
+    final attachments = _attachments;
+    // Only text and links: shown as they are, they go into the input field.
+    if (attachments.isEmpty) return widget.sharedFiles.first.path;
+    if (attachments.length == 1) return attachments.first.path.split('/').last;
+    return AppLocalizations.of(context)!.shareFilesCount(attachments.length);
   }
 
   void _select(ConversationEntity conv) {

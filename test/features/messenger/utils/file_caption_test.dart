@@ -41,4 +41,16 @@ void main() {
             content: 'что-то', fileName: 'voice.m4a', fileType: 'audio'),
         isFalse);
   });
+
+  test('a document without a file name shows its text as the name, not twice',
+      () {
+    expect(
+        showsFileCaption(
+            content: 'Отчёт.pdf', fileName: null, fileType: 'document'),
+        isFalse);
+    expect(
+        showsFileCaption(
+            content: 'на память', fileName: null, fileType: 'image'),
+        isTrue);
+  });
 }
