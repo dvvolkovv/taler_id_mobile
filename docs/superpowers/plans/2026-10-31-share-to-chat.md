@@ -3336,3 +3336,47 @@ Run → `+2: All tests passed!`
 git add ios/ShareExtension/ShareViewController.swift packages/receive_sharing_intent test/core/services/shared_media_file_parse_test.dart
 git commit -m "fix(share): видео с iOS больше не теряются — длительность целым числом; мелочи плагина"
 ```
+
+---
+
+### Task 20: Android предлагает Taler ID для любых файлов
+
+Фильтры «Поделиться» в манифесте объявляли `SEND` для image/video/application/text и `SEND_MULTIPLE` только для image/video/application. Поэтому Android не предлагал приложение для аудио, для нескольких текстовых файлов и для набора разных типов (PDF вместе с фото — общий тип `*/*`). Чат принимает файл любого типа, iOS-расширение и так принимает всё (`public.item`).
+
+**Files:**
+- Modify: `android/app/src/main/AndroidManifest.xml`
+
+- [ ] **Step 1: Фильтры**
+
+Заменить блок от `<!-- Share: receive single image/video/file -->` до последнего `</intent-filter>` перед `</activity>` (семь фильтров `SEND`/`SEND_MULTIPLE`) на
+```xml
+            <!-- Share: receive any file(s) or text. A chat takes any kind of
+                 file; the narrower list kept the app out of the share sheet
+                 for audio, several text files and a mix of types (aggregate
+                 MIME */*, e.g. a PDF together with a photo). -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="*/*"/>
+            </intent-filter>
+```
+
+- [ ] **Step 2: Проверка и коммит**
+
+Android-сборка (TEST URL) проходит; в собранном APK фильтры на месте:
+`~/Library/Android/sdk/build-tools/*/aapt2 dump xmltree build/app/outputs/flutter-apk/app-dev-release.apk --file AndroidManifest.xml | grep -A3 "SEND"` (или `aapt dump xmltree`). `flutter test` — без изменений (1641).
+```bash
+git add android/app/src/main/AndroidManifest.xml
+git commit -m "fix(android): «Поделиться» предлагает Taler ID для любых файлов — аудио, несколько текстовых, смешанные наборы"
+```
+
+- [ ] **Step 3: Эмулятор**
+
+1. Два `.txt` с одинаковым именем и разным размером (`/sdcard/Download/same.txt` — «one», `/sdcard/Documents/same.txt` — «twotwotwotwo»), мультивыбор в «Файлах» → Taler ID есть в списке → в полосе два вложения → отправить → два документа с разными размерами (копии не затёрли друг друга).
+2. PDF + фото одним мультивыбором → Taler ID в списке → два вложения.
+3. Аудиофайл (`.mp3`/`.m4a`) → Taler ID в списке → вложение.
