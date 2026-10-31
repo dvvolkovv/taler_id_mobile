@@ -36,13 +36,17 @@ class ShareIntentService {
 
   void init() {
     // Shared while the app was running.
-    _sub = ReceiveSharingIntent.instance
-        .getMediaStream()
-        .listen((raw) => _offer(raw, 'while running'));
+    _sub = ReceiveSharingIntent.instance.getMediaStream().listen(
+          (raw) => _offer(raw, 'while running'),
+          onError: (Object e) =>
+              debugPrint('[ShareIntent] media stream error: $e'),
+        );
     // Shared into a closed app.
     ReceiveSharingIntent.instance
         .getInitialMedia()
-        .then((raw) => _offer(raw, 'at launch'));
+        .then((raw) => _offer(raw, 'at launch'))
+        .catchError(
+            (Object e) => debugPrint('[ShareIntent] initial media error: $e'));
   }
 
   void _offer(List<SharedMediaFile> raw, String when) {
@@ -52,8 +56,11 @@ class ShareIntentService {
     _pending.offer(files);
   }
 
-  /// Hands the pending share out once and drops the plugin's copy, so a
-  /// restarted engine does not deliver the same files again.
+  /// Hands the pending share out once and clears the plugin's in-memory copy.
+  ///
+  /// On Android the SEND intent itself stays with the activity: if the system
+  /// kills the process and the user reopens the app from recents, the same
+  /// share arrives again (as it did before this rewrite).
   List<SharedMediaFile>? take() {
     final files = _pending.take();
     if (files != null) ReceiveSharingIntent.instance.reset();
