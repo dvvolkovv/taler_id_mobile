@@ -57,6 +57,7 @@ import 'user_profile_screen.dart';
 import '../../utils/unread_anchor.dart';
 import '../../utils/voice_meta.dart';
 import '../../utils/shared_items.dart';
+import '../../utils/file_caption.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -4324,11 +4325,14 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 url: firstUrlIn(widget.message.content)!,
                 isMe: widget.isMe,
               ),
-            // Show caption under image/video if content differs from fileName
+            // Caption under the file, documents included: the comment written
+            // with a shared document used to show only in the chat list.
             if (widget.message.fileUrl != null &&
-                (_effectiveFileType(widget.message) == 'image' || _effectiveFileType(widget.message) == 'video') &&
-                widget.message.content.isNotEmpty &&
-                widget.message.content != widget.message.fileName)
+                showsFileCaption(
+                  content: widget.message.content,
+                  fileName: widget.message.fileName,
+                  fileType: _effectiveFileType(widget.message),
+                ))
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
