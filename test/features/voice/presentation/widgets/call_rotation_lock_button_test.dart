@@ -70,7 +70,7 @@ void main() {
     expect(find.byIcon(Icons.screen_lock_portrait_rounded), findsOneWidget);
   });
 
-  testWidgets('floating: a screen reader hears a button named by the action',
+  testWidgets('floating: one button for a screen reader, big enough to tap',
       (t) async {
     final semantics = t.ensureSemantics();
     final s = _service();
@@ -81,9 +81,12 @@ void main() {
       containsSemantics(
         isButton: true,
         label: 'Lock rotation',
+        tooltip: '',
         hasTapAction: true,
       ),
     );
+    await expectLater(t, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(t, meetsGuideline(labeledTapTargetGuideline));
     semantics.dispose();
   });
 }
