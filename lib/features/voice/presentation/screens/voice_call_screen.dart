@@ -2226,6 +2226,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final participantsStr = participantNames.isEmpty
           ? ''
           : '\nУчастники текущего звонка: $participantsJoined';
+      final rotationStr = _rotationLockAvailable
+          ? '\nЭкран звонка можно зафиксировать вертикально. Если пользователь просит «не переворачивай экран», «зафиксируй экран» — вызови set_screen_rotation_lock с locked=true; «разреши поворот», «пусть экран поворачивается» — с locked=false. Выбор запоминается и для следующих звонков.\n'
+          : '';
       return '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
 $participantsStr
 Если пользователь просит добавить кого-то в звонок:
@@ -2237,13 +2240,16 @@ $participantsStr
 У комнаты есть текстовый чат, его видят все участники звонка. Если пользователь просит «напиши в чат», «скинь им …», «продиктуй в чат» — вызови send_room_chat с текстом. Он для того, что лучше написать, чем произнести: ссылки, адреса, номера, коды, суммы. До $kRoomChatMaxLength символов; чат живёт только пока идёт звонок.
 
 В звонке есть живой перевод. Если пользователь называет пару языков — «переводи с русского на немецкий», «включи перевод, он говорит по-английски» — вызови set_translation: hear_lang это язык, на котором пользователь хочет слышать остальных, speak_lang — на каком его собственную речь услышит собеседник. Хватает того, что пару назвал один человек; собеседнику ничего настраивать не нужно. Если названа только одна сторона — переспроси вторую, не догадывайся.
-
+$rotationStr
 Отвечай коротко — пользователь в разгаре разговора.''';
     }
 
     final participantsStr = participantNames.isEmpty
         ? ''
         : '\nCurrent call participants: $participantsJoined';
+    final rotationStr = _rotationLockAvailable
+        ? '\nThe call screen can be locked upright. If the user asks to "stop the screen rotating", "lock the screen" — call set_screen_rotation_lock with locked=true; "let the screen rotate", "unlock rotation" — with locked=false. The choice is remembered for the next calls too.\n'
+        : '';
     return '''You are a voice assistant during a call. The user has temporarily muted their microphone in the call to give you a command. Be brief.
 $participantsStr
 If the user asks to add someone to the call:
@@ -2255,7 +2261,7 @@ If the user asks to add someone to the call:
 The room has a text chat that every participant of the call sees. If the user asks to "write it in the chat", "send them …", "put that in the chat" — call send_room_chat with the text. It is for things better written than spoken: links, addresses, phone numbers, codes, amounts. Up to $kRoomChatMaxLength characters; the chat only lives while the call does.
 
 The call has live translation. If the user names a pair of languages — "translate between Russian and German", "turn on translation, he speaks English" — call set_translation: hear_lang is the language the user wants to hear everyone else in, speak_lang is what the other side hears the user's own speech in. One person naming the pair is enough; the other side does not have to set anything. If only one side is named, ask for the other rather than guessing.
-
+$rotationStr
 Answer briefly — the user is in the middle of a conversation.''';
   }
 
@@ -2338,6 +2344,22 @@ Answer briefly — the user is in the middle of a conversation.''';
               'required': ['text'],
             },
           },
+          if (_rotationLockAvailable)
+            {
+              'type': 'function',
+              'name': 'set_screen_rotation_lock',
+              'description': 'Lock or unlock rotation of the call screen on this phone. locked=true keeps the screen upright (portrait) and stops it turning when the phone tilts — "не переворачивай экран", "зафиксируй экран", "stop the screen rotating". locked=false lets it rotate with the phone again — "разреши поворот", "let the screen rotate". The choice is remembered for the next calls too.',
+              'parameters': {
+                'type': 'object',
+                'properties': {
+                  'locked': {
+                    'type': 'boolean',
+                    'description': 'true keeps the screen upright, false lets it rotate',
+                  },
+                },
+                'required': ['locked'],
+              },
+            },
         ],
         'turn_detection': {
           'type': 'server_vad',
@@ -2520,6 +2542,12 @@ Answer briefly — the user is in the middle of a conversation.''';
         final speak = (args['speak_lang'] as String? ?? '').toLowerCase();
         debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
         output = jsonEncode(await _setTranslationPair(hear, speak));
+      } else if (name == 'set_screen_rotation_lock') {
+        final raw = args['locked'];
+        final locked = raw == true || raw == 'true';
+        debugPrint('[InCallAssistant] set_screen_rotation_lock: $locked');
+        await _orientation.setRotationLocked(locked);
+        output = jsonEncode({'ok': true, 'locked': locked});
       } else if (name == 'send_room_chat') {
         // Использует тот же `_sendChatMessage`, что и панель чата человека —
         // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
