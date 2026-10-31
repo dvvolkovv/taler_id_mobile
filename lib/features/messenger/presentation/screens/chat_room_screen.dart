@@ -2303,7 +2303,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         hintText: _pendingFiles.isNotEmpty
             ? AppLocalizations.of(context)!.chatAttachmentCommentHint
             : null,
-        onSendOptions: _showSendOptions,
+        onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,
         onAttach: _showAttachMenu,
         isRecording: _isRecording,
         onRecordStart: _startRecording,
@@ -3563,7 +3563,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   hintText: _pendingFiles.isNotEmpty
                       ? AppLocalizations.of(context)!.chatAttachmentCommentHint
                       : null,
-                  onSendOptions: _showSendOptions,
+                  onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,
                   onAttach: _showAttachMenu,
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
