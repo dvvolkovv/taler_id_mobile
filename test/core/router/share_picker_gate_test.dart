@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:taler_id_mobile/core/router/share_picker_gate.dart';
+import 'package:taler_id_mobile/core/services/pending_share.dart';
 import 'package:taler_id_mobile/core/utils/constants.dart';
 
 void main() {
@@ -66,6 +67,15 @@ void main() {
 
     expect(canOpen(), isTrue);
 
+    router.push('/dashboard/messenger/c-2');
+    await tester.pumpAndSettle();
+    expect(stackLocations(router.routerDelegate.currentConfiguration),
+        contains('/dashboard/messenger/c-2'),
+        reason: 'a screen pushed inside the shell is listed too');
+    expect(canOpen(), isTrue);
+    router.pop();
+    await tester.pumpAndSettle();
+
     router.push('${RouteConstants.voice}?room=r1');
     await tester.pumpAndSettle();
     expect(find.text('voice'), findsOneWidget);
@@ -104,5 +114,14 @@ void main() {
           [SharedMediaFile(path: '/tmp/a.pdf', type: SharedMediaType.file)]),
       isNull,
     );
+  });
+
+  test('a share taken from the slot passes the picker route redirect', () {
+    final files = (PendingShare()
+          ..offer([
+            SharedMediaFile(path: '/tmp/a.pdf', type: SharedMediaType.file),
+          ]))
+        .take();
+    expect(sharePickerRedirect(files), isNull);
   });
 }
