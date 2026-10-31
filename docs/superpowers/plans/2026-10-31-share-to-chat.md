@@ -12,7 +12,7 @@
 
 **Рабочий каталог:** `~/Downloads/taler_id_mobile/.worktrees/share-to-chat` (ветка `feat/share-to-chat` от `origin/dev` = `2f68fc0`, upstream снят — `git push` без аргументов никуда не уйдёт). Все пути ниже — от него.
 
-**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 38, итог — 1620.
+**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 39, итог — 1621.
 
 **Временные файлы:** в `OUT="${TMPDIR:-/tmp}/share-to-chat"`. Состояние shell между командами не сохраняется, поэтому каждая команда, которой он нужен, объявляет его сама.
 
@@ -422,6 +422,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:taler_id_mobile/core/router/share_picker_gate.dart';
+import 'package:taler_id_mobile/core/services/pending_share.dart';
 import 'package:taler_id_mobile/core/utils/constants.dart';
 
 void main() {
@@ -485,6 +486,15 @@ void main() {
 
     expect(canOpen(), isTrue);
 
+    router.push('/dashboard/messenger/c-2');
+    await tester.pumpAndSettle();
+    expect(stackLocations(router.routerDelegate.currentConfiguration),
+        contains('/dashboard/messenger/c-2'),
+        reason: 'a screen pushed inside the shell is listed too');
+    expect(canOpen(), isTrue);
+    router.pop();
+    await tester.pumpAndSettle();
+
     router.push('${RouteConstants.voice}?room=r1');
     await tester.pumpAndSettle();
     expect(find.text('voice'), findsOneWidget);
@@ -524,6 +534,15 @@ void main() {
       isNull,
     );
   });
+
+  test('a share taken from the slot passes the picker route redirect', () {
+    final files = (PendingShare()
+          ..offer([
+            SharedMediaFile(path: '/tmp/a.pdf', type: SharedMediaType.file),
+          ]))
+        .take();
+    expect(sharePickerRedirect(files), isNull);
+  });
 }
 ```
 
@@ -552,14 +571,23 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../utils/constants.dart';
 
-/// Every location on the navigation stack, pushed screens included.
+/// Every location on the navigation stack, including screens pushed over or
+/// inside a shell route.
 ///
 /// `currentConfiguration.uri` only follows `go`: after `push` of a call
 /// screen — and most call screens are pushed — it still shows the chat
-/// underneath (go_router 14.8, checked 2026-10-31). Each pushed screen is its
-/// own match here.
+/// underneath (go_router 14.8, checked 2026-10-31). A screen pushed over the
+/// shell is its own top-level match; one pushed inside the shell is folded
+/// into the shell's match, hence the walk into [ShellRouteMatch.matches].
 Iterable<String> stackLocations(RouteMatchList configuration) =>
-    configuration.matches.map((m) => m.matchedLocation);
+    _locations(configuration.matches);
+
+Iterable<String> _locations(List<RouteMatchBase> matches) sync* {
+  for (final m in matches) {
+    yield m.matchedLocation;
+    if (m is ShellRouteMatch) yield* _locations(m.matches);
+  }
+}
 
 /// Whether a share from another app may open the recipient picker over the
 /// navigation [stack] (see [stackLocations]).
@@ -585,7 +613,7 @@ String? sharePickerRedirect(Object? extra) =>
 - [ ] **Step 5: Тест проходит**
 
 Run: `flutter test test/core/router/share_picker_gate_test.dart`
-Expected: `+5: All tests passed!`
+Expected: `+6: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -1168,7 +1196,7 @@ Expected: пустой вывод (новых замечаний нет). Оши
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1613: All tests passed!` (1582 + 31 новый из Task 1–4).
+Expected: `+1614: All tests passed!` (1582 + 32 новых из Task 1–4).
 
 - [ ] **Step 5: Коммит**
 
@@ -1252,7 +1280,7 @@ Expected:
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1613: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
+Expected: `+1614: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
 
 - [ ] **Step 5: Коммит**
 
@@ -1382,7 +1410,7 @@ comm -13 <(grep chat_room_screen "$OUT/analyze-before-ours.txt") "$OUT/analyze-t
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1613: All tests passed!`
+Expected: `comm` ничего не выводит; `+1614: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -1877,7 +1905,7 @@ Expected: `+7: All tests passed!`
 - [ ] **Step 5: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1620: All tests passed!`
+Expected: `+1621: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -1959,7 +1987,7 @@ comm -13 <(grep -E "app_router|share_picker_gate" "$OUT/analyze-before-ours.txt"
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1620: All tests passed!`
+Expected: `comm` ничего не выводит; `+1621: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -2198,7 +2226,7 @@ comm -13 <(grep -E "share_intent_service|pending_share|dashboard_screen" "$OUT/a
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1620: All tests passed!`
+Expected: `comm` ничего не выводит; `+1621: All tests passed!`
 
 - [ ] **Step 9: Коммит**
 
@@ -2218,9 +2246,9 @@ git commit -m "feat(share): выбор получателя открываетс
 - [ ] **Step 1: Все тесты**
 
 Run: `flutter test`
-Expected: `+1620: All tests passed!` (1582 + 7 + 10 + 5 + 9 + 7).
+Expected: `+1621: All tests passed!` (1582 + 7 + 10 + 6 + 9 + 7).
 
-Если итог не 1620, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
+Если итог не 1621, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
 
 - [ ] **Step 2: Новых замечаний анализатора нет**
 
