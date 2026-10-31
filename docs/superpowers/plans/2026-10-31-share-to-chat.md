@@ -2266,7 +2266,10 @@ class ShareIntentService {
   /// share arrives again (as it did before this rewrite).
   List<SharedMediaFile>? take() {
     final files = _pending.take();
-    if (files != null) ReceiveSharingIntent.instance.reset();
+    if (files != null) {
+      ReceiveSharingIntent.instance.reset().catchError(
+          (Object e) => debugPrint('[ShareIntent] reset error: $e'));
+    }
     return files;
   }
 
@@ -2302,6 +2305,7 @@ import '../../../core/router/share_picker_gate.dart';
 ```dart
   GoRouter? _router; // listened to for the share picker, see _listenForShareIntent
   bool _shareCheckQueued = false;
+  StreamSubscription<bool>? _callUiSub;
 ```
 
 - [ ] **Step 4: `dispose`**
@@ -2314,33 +2318,54 @@ import '../../../core/router/share_picker_gate.dart';
 ```dart
     ShareIntentService.instance.pending.removeListener(_queueSharePickerCheck);
     _router?.routerDelegate.removeListener(_queueSharePickerCheck);
+    _callUiSub?.cancel();
 ```
 
 - [ ] **Step 5: Первая проверка — в конце стартовой цепочки**
 
-Не раньше: общий `redirect` роутера асинхронный, и `go` к выбору, запрошенный до того, как отработал `push` к звонку, перебил бы экран звонка. Если старт ушёл в звонок (ранние `return` выше), share подхватит слушатель смены маршрута, когда звонок свернут или завершат.
+Не раньше: общий `redirect` роутера асинхронный, и `go` к выбору, запрошенный, пока идёт другой переход, отменил бы его — `push` экрана звонка или переход из уведомления. Если старт ушёл в звонок (ранние `return` выше) или в экран из уведомления, share подхватит слушатель смены маршрута, когда тот переход завершится.
 
 Заменить
 ```dart
+      final initialMsg = await NotificationService.getInitialMessage();
+      if (initialMsg != null) {
+        final route = notificationToRoute(initialMsg);
+        if (route != null && mounted) {
+          context.go(route);
+        }
+      }
+      // Deliberately not part of the block above: starting the wake-word
+      // listener while the app is heading into a call would fight the call for
+      // the microphone.
       _startWakeWord();
     });
   }
-
-  /// Startup work every launch needs, regardless of what the app was opened for.
 ```
 на
 ```dart
+      final initialMsg = await NotificationService.getInitialMessage();
+      var openedFromNotification = false;
+      if (initialMsg != null) {
+        final route = notificationToRoute(initialMsg);
+        if (route != null && mounted) {
+          context.go(route);
+          openedFromNotification = true;
+        }
+      }
+      // Deliberately not part of the block above: starting the wake-word
+      // listener while the app is heading into a call would fight the call for
+      // the microphone.
       _startWakeWord();
-      // A share that arrived before the dashboard existed (login, PIN) is
-      // waiting. Checked only now, after the call branches above: the global
-      // redirect is async, so a `go` to the picker issued earlier could win
-      // over the call screen being pushed. When startup went into a call, the
-      // route listener picks the share up once the call is minimised or over.
-      _queueSharePickerCheck();
+      // A share that arrived before the dashboard existed (login, PIN) waits
+      // in the slot. The explicit check comes last, after the call branches
+      // above, and not when startup went to a notification's screen: the
+      // global redirect is async, so a `go` to the picker issued while
+      // another navigation is in flight would cancel it — a call screen or
+      // the notification's target. Then the route listener picks the share
+      // up once that navigation has landed and no call is on screen.
+      if (!openedFromNotification) _queueSharePickerCheck();
     });
   }
-
-  /// Startup work every launch needs, regardless of what the app was opened for.
 ```
 
 - [ ] **Step 6: Заменить `_listenForShareIntent`**
@@ -2355,12 +2380,15 @@ end = s.index('  void _startWakeWord() {')
 new = r'''  void _listenForShareIntent() {
     // A share from another app waits in ShareIntentService until the picker
     // can be shown: it may arrive before the dashboard exists (login, PIN) or
-    // while a call screen is open. The share arriving and every route change
-    // both re-check, so the picker opens as soon as both allow — and once.
+    // while a call, the assistant or another screen that holds it is open.
+    // The share arriving, every route change and every call-UI change
+    // re-check, so the picker opens as soon as all allow — and once.
     final router = GoRouter.of(context);
     _router = router;
     ShareIntentService.instance.pending.addListener(_queueSharePickerCheck);
     router.routerDelegate.addListener(_queueSharePickerCheck);
+    _callUiSub = CallStateService.instance.callUiStream
+        .listen((_) => _queueSharePickerCheck());
   }
 
   void _queueSharePickerCheck() {
@@ -2384,6 +2412,10 @@ new = r'''  void _listenForShareIntent() {
         stackLocations(router.routerDelegate.currentConfiguration))) {
       return;
     }
+    // A live assistant session holds the call UI without any call route (as
+    // do a mounted call screen and the in-app ringing sheet): `go` would
+    // replace the assistant tab and end its billed conversation.
+    if (CallStateService.instance.isCallUiActive) return;
     final files = ShareIntentService.instance.take();
     if (files == null) return;
     debugPrint('[Dashboard] Opening the share picker for ${files.length} files');
@@ -2554,6 +2586,13 @@ $ADB -s emulator-5554 shell am force-stop $PKG
 
 1. Почта → «Написать», набрать пару слов. «Поделиться» PDF из «Файлов». Ожидание: экран письма остаётся с текстом. Закрыть письмо (появится вопрос о черновике, ответить) → сразу открывается «Кому отправить».
 2. Известное ограничение, не ошибка: после «Поделиться» с холодного старта выгрузить процесс (`$ADB -s emulator-5554 shell am kill tirol.taler.taler_id_mobile.dev` при свёрнутом приложении) и открыть приложение из недавних — Android доставит тот же share ещё раз, и выбор откроется со старым файлом. Так было и до переделки; записать, что увидели.
+
+- [ ] **Step 7c: Ассистент, входящий звонок, чат без права писать, своя ссылка**
+
+1. Начать разговор с ассистентом (главный экран), не завершая его, отправить ссылку командой из шага 5.3. Ожидание: разговор идёт, выбор не появляется. Завершить разговор → сразу «Кому отправить».
+2. Пока на эмуляторе звонит входящий от `integration_test_2` (окно входящего в приложении), отправить ссылку. Ожидание: окно звонка на месте, выбора нет. Отклонить → открывается «Кому отправить».
+3. «Поделиться» PDF в личный чат с пользователем, который заблокировал или не в контактах (если такой есть у тестового аккаунта). Ожидание: файл в полосе, вместо поля ввода — плашка с причиной, «Отмена» убирает файл. Если подходящего чата нет — пропустить и записать.
+4. Известное ограничение: «Поделиться» ссылкой `https://staging.id.taler.tirol/room/<код>` из браузера. Записать, что произошло (ожидаемо — ничего, см. «Замечено попутно» в спеке).
 
 - [ ] **Step 8: «Переслать» не сломалось**
 
