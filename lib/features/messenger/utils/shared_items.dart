@@ -45,9 +45,11 @@ SharedItems splitSharedItems(List<SharedMediaFile> items) {
     }
     var path = item.path;
     if (path.isEmpty) continue;
-    if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
+    if (path.startsWith('file://')) path = _filePath(path);
     final name = path.split('/').last;
-    final ext = name.split('.').last.toLowerCase();
+    if (name.isEmpty) continue;
+    final dot = name.lastIndexOf('.');
+    final ext = dot > 0 ? name.substring(dot + 1).toLowerCase() : '';
     final type = _imageExts.contains(ext)
         ? 'image'
         : _videoExts.contains(ext)
@@ -56,4 +58,15 @@ SharedItems splitSharedItems(List<SharedMediaFile> items) {
     attachments.add(SharedAttachment(path: path, name: name, type: type));
   }
   return SharedItems(attachments: attachments, text: textParts.join('\n'));
+}
+
+/// `file://` URI → plain path. A name with `#`, `?` or an encoded `/` does
+/// not parse back as a URI; then the scheme is simply cut off instead of the
+/// whole share failing on one file.
+String _filePath(String uri) {
+  try {
+    return Uri.parse(uri).toFilePath();
+  } catch (_) {
+    return uri.substring('file://'.length);
+  }
 }

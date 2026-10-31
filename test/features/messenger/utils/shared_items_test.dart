@@ -68,4 +68,24 @@ void main() {
     expect(r.attachments.map((a) => a.name), ['a.pdf', 'b.jpg']);
     expect(r.text, 'caption from the app');
   });
+
+  test('a file:// URI that does not parse keeps the file, scheme cut off', () {
+    final r = splitSharedItems([
+      _item('file:///private/var/Shared/Invoice #3.pdf', SharedMediaType.file),
+      _item('/tmp/ok.pdf', SharedMediaType.file),
+    ]);
+    expect(r.attachments.map((a) => a.path),
+        ['/private/var/Shared/Invoice #3.pdf', '/tmp/ok.pdf']);
+  });
+
+  test('a name without an extension is not typed by its own name', () {
+    final r = splitSharedItems([_item('/tmp/mp4', SharedMediaType.file)]);
+    expect(r.attachments.single.name, 'mp4');
+    expect(r.attachments.single.type, isNull);
+  });
+
+  test('a path that ends with a slash is skipped', () {
+    final r = splitSharedItems([_item('/tmp/dir/', SharedMediaType.file)]);
+    expect(r.attachments, isEmpty);
+  });
 }
