@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 import '../router/deep_link_handler.dart';
+import 'pending_share.dart';
 
 class ShareIntentService {
   static final ShareIntentService instance = ShareIntentService._();
@@ -25,42 +26,41 @@ class ShareIntentService {
     }).toList(growable: false);
   }
 
-  final _pendingFilesCtrl = StreamController<List<SharedMediaFile>>.broadcast();
-  Stream<List<SharedMediaFile>> get pendingFilesStream => _pendingFilesCtrl.stream;
+  final _pending = PendingShare();
 
-  List<SharedMediaFile>? _initialFiles;
-  List<SharedMediaFile>? get initialFiles => _initialFiles;
+  /// The share waiting for the recipient picker; null when there is none.
+  /// The dashboard listens and takes it once it can show the picker.
+  ValueListenable<List<SharedMediaFile>?> get pending => _pending.files;
 
   StreamSubscription? _sub;
 
   void init() {
-    // Handle files shared while app is running
-    _sub = ReceiveSharingIntent.instance.getMediaStream().listen((raw) {
-      final files = withoutDeepLinks(raw);
-      if (files.isNotEmpty) {
-        debugPrint('[ShareIntent] Received ${files.length} files while running');
-        _pendingFilesCtrl.add(files);
-      }
-    });
-
-    // Handle files shared when app was closed
-    ReceiveSharingIntent.instance.getInitialMedia().then((raw) {
-      final files = withoutDeepLinks(raw);
-      if (files.isNotEmpty) {
-        debugPrint('[ShareIntent] Received ${files.length} initial files');
-        _initialFiles = files;
-        _pendingFilesCtrl.add(files);
-      }
-    });
+    // Shared while the app was running.
+    _sub = ReceiveSharingIntent.instance
+        .getMediaStream()
+        .listen((raw) => _offer(raw, 'while running'));
+    // Shared into a closed app.
+    ReceiveSharingIntent.instance
+        .getInitialMedia()
+        .then((raw) => _offer(raw, 'at launch'));
   }
 
-  void clearFiles() {
-    _initialFiles = null;
-    ReceiveSharingIntent.instance.reset();
+  void _offer(List<SharedMediaFile> raw, String when) {
+    final files = withoutDeepLinks(raw);
+    if (files.isEmpty) return;
+    debugPrint('[ShareIntent] Received ${files.length} files $when');
+    _pending.offer(files);
+  }
+
+  /// Hands the pending share out once and drops the plugin's copy, so a
+  /// restarted engine does not deliver the same files again.
+  List<SharedMediaFile>? take() {
+    final files = _pending.take();
+    if (files != null) ReceiveSharingIntent.instance.reset();
+    return files;
   }
 
   void dispose() {
     _sub?.cancel();
-    _pendingFilesCtrl.close();
   }
 }
