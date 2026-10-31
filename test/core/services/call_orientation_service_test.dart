@@ -316,4 +316,12 @@ void main() {
     expect(mobile.lockAvailableFor(const Size(820, 1180)), isFalse);
     expect(desktop.lockAvailableFor(const Size(390, 844)), isFalse);
   });
+
+  test('the phone/tablet boundary is 600 on the shortest side', () {
+    final mobile = CallOrientationService(isSupported: true, isIOS: true);
+
+    expect(mobile.lockAvailableFor(const Size(599, 900)), isTrue);
+    expect(mobile.lockAvailableFor(const Size(600, 960)), isFalse);
+    expect(mobile.lockAvailableFor(const Size(960, 600)), isFalse);
+  });
 }
