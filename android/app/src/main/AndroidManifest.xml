@@ -91,42 +91,19 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="talerid"/>
             </intent-filter>
-            <!-- Share: receive single image/video/file -->
+            <!-- Share: receive any file(s) or text. A chat takes any kind of
+                 file; the narrower list kept the app out of the share sheet
+                 for audio, several text files and a mix of types (aggregate
+                 MIME */*, e.g. a PDF together with a photo). -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="image/*"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="video/*"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="application/*"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="text/*"/>
-            </intent-filter>
-            <!-- Share: receive multiple images/videos/files -->
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="image/*"/>
+                <data android:mimeType="*/*"/>
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.SEND_MULTIPLE"/>
                 <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="video/*"/>
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SEND_MULTIPLE"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="application/*"/>
+                <data android:mimeType="*/*"/>
             </intent-filter>
         </activity>
         <!-- In-app update (UpdateDownloader). DOWNLOAD_COMPLETE: the APK finished
