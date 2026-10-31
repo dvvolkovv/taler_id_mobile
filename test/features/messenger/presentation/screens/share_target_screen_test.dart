@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -46,6 +48,7 @@ void main() {
   Object? openedExtra;
 
   setUpAll(() {
+    // mocktail 1.0.4: registerFallbackValue(dynamic) без параметра типа.
     registerFallbackValue(LoadConversations());
   });
 
@@ -140,9 +143,8 @@ void main() {
     verifyNever(() => bloc.add(any(that: isA<SendMessage>())));
   });
 
-  testWidgets('Favorites asks the server once and remembers the id',
+  testWidgets('Favorites asks the server and remembers the id',
       (tester) async {
-    when(() => cache.read()).thenAnswer((_) async => null);
     when(() => repo.getOrCreateSavedConversation())
         .thenAnswer((_) async => 'c-saved');
     when(() => cache.write(any())).thenAnswer((_) async {});
@@ -151,7 +153,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(openedChat, 'c-saved');
     expect((openedExtra as Map)['sharedFiles'], same(_files));
+    verify(() => repo.getOrCreateSavedConversation()).called(1);
     verify(() => cache.write('c-saved')).called(1);
+    verifyNever(() => cache.read());
+  });
+
+  testWidgets('Favorites without the server falls back to the remembered id',
+      (tester) async {
+    when(() => repo.getOrCreateSavedConversation())
+        .thenThrow(Exception('offline'));
+    when(() => cache.read()).thenAnswer((_) async => 'c-cached');
+    await pumpScreen(tester);
+    await tester.tap(find.text('Favorites'));
+    await tester.pumpAndSettle();
+    expect(openedChat, 'c-cached');
+  });
+
+  testWidgets('a second tap on Favorites while it opens is ignored',
+      (tester) async {
+    final pending = Completer<String>();
+    when(() => repo.getOrCreateSavedConversation())
+        .thenAnswer((_) => pending.future);
+    when(() => cache.write(any())).thenAnswer((_) async {});
+    await pumpScreen(tester);
+    await tester.tap(find.text('Favorites'));
+    await tester.pump();
+    await tester.tap(find.text('Favorites'));
+    await tester.pump();
+    pending.complete('c-saved');
+    await tester.pumpAndSettle();
+    verify(() => repo.getOrCreateSavedConversation()).called(1);
+    expect(openedChat, 'c-saved');
   });
 
   testWidgets('Favorites failing shows an error and keeps the picker',
@@ -180,5 +212,22 @@ void main() {
     await pumpScreen(tester, settle: false);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('No chats'), findsNothing);
+  });
+
+  testWidgets('the list appears when conversations finish loading',
+      (tester) async {
+    whenListen(
+      bloc,
+      Stream.fromIterable([
+        MessengerState(conversations: [
+          _conv('c-anna', 'DIRECT', otherUserName: 'Anna Ivanova'),
+        ]),
+      ]),
+      initialState: const MessengerState(isLoading: true),
+    );
+    await pumpScreen(tester, settle: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Ivanova'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }

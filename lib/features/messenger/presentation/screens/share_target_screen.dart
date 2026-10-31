@@ -169,18 +169,25 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     _openChat(conv.id);
   }
 
-  /// Favorites the way the chat list opens it: the remembered id, else ask
-  /// the server and remember the answer.
+  /// Favorites: the id from the server, the remembered one only when the
+  /// server can't be reached. The chat list's tile starts from the remembered
+  /// id, but here files are about to land in that conversation: a stale id
+  /// (e.g. after switching accounts — logout doesn't clear it) would send
+  /// them into someone else's.
   Future<void> _openSaved() async {
     if (_openingSaved) return;
     _openingSaved = true;
     try {
       final cache = sl<SavedConversationIdCache>();
-      var convId = await cache.read();
-      if (convId == null) {
+      String convId;
+      try {
         convId =
             await sl<IMessengerRepository>().getOrCreateSavedConversation();
         await cache.write(convId);
+      } catch (_) {
+        final cached = await cache.read();
+        if (cached == null) rethrow;
+        convId = cached;
       }
       if (!mounted) return;
       _openChat(convId);
@@ -254,6 +261,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
       );
     } catch (_) {
       // Fallback — send without topic
+      if (!mounted) return;
       _openChat(conv.id);
     }
   }
