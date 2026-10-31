@@ -12,7 +12,7 @@
 
 **Рабочий каталог:** `~/Downloads/taler_id_mobile/.worktrees/share-to-chat` (ветка `feat/share-to-chat` от `origin/dev` = `2f68fc0`, upstream снят — `git push` без аргументов никуда не уйдёт). Все пути ниже — от него.
 
-**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 45, итог — 1627.
+**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 48, итог — 1630.
 
 **Временные файлы:** в `OUT="${TMPDIR:-/tmp}/share-to-chat"`. Состояние shell между командами не сохраняется, поэтому каждая команда, которой он нужен, объявляет его сама.
 
@@ -1538,7 +1538,7 @@ git commit -m "feat(messenger): файлы из «Поделиться» жду�
 
 ### Task 8: Экран «Кому отправить»
 
-До Task 10 экран всё ещё открывается старым путём (дашборд кладёт его через `Navigator.push`). Новый код работает в обоих случаях: `context.go` в чат и `context.pop` по крестику.
+До Task 10 экран всё ещё открывается старым путём (дашборд кладёт его через `Navigator.push`). В этом промежуточном состоянии крестик работает, а переход в чат выбор не закрывает: `go` сохраняет страницу оболочки и всё, что лежит над ней (проверено пробой). Поэтому задачи 8–9 не проверять на устройстве и не сливать без задачи 10.
 
 **Files:**
 - Modify (переписать целиком): `lib/features/messenger/presentation/screens/share_target_screen.dart`
@@ -1548,6 +1548,8 @@ git commit -m "feat(messenger): файлы из «Поделиться» жду�
 
 ```dart
 // test/features/messenger/presentation/screens/share_target_screen_test.dart
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -1691,9 +1693,8 @@ void main() {
     verifyNever(() => bloc.add(any(that: isA<SendMessage>())));
   });
 
-  testWidgets('Favorites asks the server once and remembers the id',
+  testWidgets('Favorites asks the server and remembers the id',
       (tester) async {
-    when(() => cache.read()).thenAnswer((_) async => null);
     when(() => repo.getOrCreateSavedConversation())
         .thenAnswer((_) async => 'c-saved');
     when(() => cache.write(any())).thenAnswer((_) async {});
@@ -1702,7 +1703,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(openedChat, 'c-saved');
     expect((openedExtra as Map)['sharedFiles'], same(_files));
+    verify(() => repo.getOrCreateSavedConversation()).called(1);
     verify(() => cache.write('c-saved')).called(1);
+    verifyNever(() => cache.read());
+  });
+
+  testWidgets('Favorites without the server falls back to the remembered id',
+      (tester) async {
+    when(() => repo.getOrCreateSavedConversation())
+        .thenThrow(Exception('offline'));
+    when(() => cache.read()).thenAnswer((_) async => 'c-cached');
+    await pumpScreen(tester);
+    await tester.tap(find.text('Favorites'));
+    await tester.pumpAndSettle();
+    expect(openedChat, 'c-cached');
+  });
+
+  testWidgets('a second tap on Favorites while it opens is ignored',
+      (tester) async {
+    final pending = Completer<String>();
+    when(() => repo.getOrCreateSavedConversation())
+        .thenAnswer((_) => pending.future);
+    when(() => cache.write(any())).thenAnswer((_) async {});
+    await pumpScreen(tester);
+    await tester.tap(find.text('Favorites'));
+    await tester.pump();
+    await tester.tap(find.text('Favorites'));
+    await tester.pump();
+    pending.complete('c-saved');
+    await tester.pumpAndSettle();
+    verify(() => repo.getOrCreateSavedConversation()).called(1);
+    expect(openedChat, 'c-saved');
   });
 
   testWidgets('Favorites failing shows an error and keeps the picker',
@@ -1731,6 +1762,23 @@ void main() {
     await pumpScreen(tester, settle: false);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     expect(find.text('No chats'), findsNothing);
+  });
+
+  testWidgets('the list appears when conversations finish loading',
+      (tester) async {
+    whenListen(
+      bloc,
+      Stream.fromIterable([
+        MessengerState(conversations: [
+          _conv('c-anna', 'DIRECT', otherUserName: 'Anna Ivanova'),
+        ]),
+      ]),
+      initialState: const MessengerState(isLoading: true),
+    );
+    await pumpScreen(tester, settle: false);
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Ivanova'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }
 ```
@@ -1916,18 +1964,25 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     _openChat(conv.id);
   }
 
-  /// Favorites the way the chat list opens it: the remembered id, else ask
-  /// the server and remember the answer.
+  /// Favorites: the id from the server, the remembered one only when the
+  /// server can't be reached. The chat list's tile starts from the remembered
+  /// id, but here files are about to land in that conversation: a stale id
+  /// (e.g. after switching accounts — logout doesn't clear it) would send
+  /// them into someone else's.
   Future<void> _openSaved() async {
     if (_openingSaved) return;
     _openingSaved = true;
     try {
       final cache = sl<SavedConversationIdCache>();
-      var convId = await cache.read();
-      if (convId == null) {
+      String convId;
+      try {
         convId =
             await sl<IMessengerRepository>().getOrCreateSavedConversation();
         await cache.write(convId);
+      } catch (_) {
+        final cached = await cache.read();
+        if (cached == null) rethrow;
+        convId = cached;
       }
       if (!mounted) return;
       _openChat(convId);
@@ -2001,6 +2056,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
       );
     } catch (_) {
       // Fallback — send without topic
+      if (!mounted) return;
       _openChat(conv.id);
     }
   }
@@ -2020,12 +2076,12 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
 - [ ] **Step 4: Тест проходит**
 
 Run: `flutter test test/features/messenger/presentation/screens/share_target_screen_test.dart`
-Expected: `+7: All tests passed!`
+Expected: `+10: All tests passed!`
 
 - [ ] **Step 5: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1627: All tests passed!`
+Expected: `+1630: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -2107,7 +2163,7 @@ comm -13 <(grep -E "app_router|share_picker_gate" "$OUT/analyze-before-ours.txt"
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1627: All tests passed!`
+Expected: `comm` ничего не выводит; `+1630: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -2346,7 +2402,7 @@ comm -13 <(grep -E "share_intent_service|pending_share|dashboard_screen" "$OUT/a
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1627: All tests passed!`
+Expected: `comm` ничего не выводит; `+1630: All tests passed!`
 
 - [ ] **Step 9: Коммит**
 
@@ -2366,9 +2422,9 @@ git commit -m "feat(share): выбор получателя открываетс
 - [ ] **Step 1: Все тесты**
 
 Run: `flutter test`
-Expected: `+1627: All tests passed!` (1582 + 7 + 10 + 6 + 15 + 7).
+Expected: `+1630: All tests passed!` (1582 + 7 + 10 + 6 + 15 + 10).
 
-Если итог не 1627, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
+Если итог не 1630, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
 
 - [ ] **Step 2: Новых замечаний анализатора нет**
 
