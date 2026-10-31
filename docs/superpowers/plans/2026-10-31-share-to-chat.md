@@ -12,7 +12,7 @@
 
 **Рабочий каталог:** `~/Downloads/taler_id_mobile/.worktrees/share-to-chat` (ветка `feat/share-to-chat` от `origin/dev` = `2f68fc0`, upstream снят — `git push` без аргументов никуда не уйдёт). Все пути ниже — от него.
 
-**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 32, итог — 1614.
+**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 38, итог — 1620.
 
 **Временные файлы:** в `OUT="${TMPDIR:-/tmp}/share-to-chat"`. Состояние shell между командами не сохраняется, поэтому каждая команда, которой он нужен, объявляет его сама.
 
@@ -24,7 +24,7 @@
 |---|---|
 | `lib/core/services/pending_share.dart` (новый) | Ячейка «ждущий share»: положить, забрать один раз |
 | `lib/core/services/share_intent_service.dart` | Плагин → ячейка; `pending` и `take()` вместо `pendingFilesStream`, `initialFiles`, `clearFiles()` |
-| `lib/core/router/share_picker_gate.dart` (новый) | `canOpenSharePicker` — не поверх звонка; `sharePickerRedirect` — маршрут без файлов уводит в список |
+| `lib/core/router/share_picker_gate.dart` (новый) | `stackLocations` + `canOpenSharePicker` — не поверх звонка, где бы он ни был в стеке; `sharePickerRedirect` — маршрут без файлов уводит в список |
 | `lib/core/utils/constants.dart` | `RouteConstants.messengerShare` |
 | `lib/core/router/app_router.dart` | Маршрут `share` внутри «Сообщений»; верхнеуровневый `/share-target` удалён |
 | `lib/features/dashboard/presentation/dashboard_screen.dart` | Забирает share из ячейки и открывает выбор; таймеры и `Navigator.push` удалены |
@@ -121,6 +121,28 @@ void main() {
     slot.take();
     expect(seen, [2, null]);
   });
+
+  test('replacing a waiting share notifies; taking from an empty slot does not',
+      () {
+    final slot = PendingShare()..offer([_file('/tmp/old.pdf')]);
+    var notified = 0;
+    slot.files.addListener(() => notified++);
+    slot.offer([_file('/tmp/new.pdf')]);
+    expect(notified, 1);
+    slot.take();
+    expect(notified, 2);
+    slot.take();
+    expect(notified, 2);
+  });
+
+  test('the slot keeps its own unmodifiable copy', () {
+    final source = [_file('/tmp/a.pdf')];
+    final slot = PendingShare()..offer(source);
+    source.add(_file('/tmp/b.pdf'));
+    final taken = slot.take()!;
+    expect(taken.length, 1);
+    expect(() => taken.add(_file('/tmp/c.pdf')), throwsUnsupportedError);
+  });
 }
 ```
 
@@ -165,7 +187,7 @@ class PendingShare {
 - [ ] **Step 4: Тест проходит**
 
 Run: `flutter test test/core/services/pending_share_test.dart`
-Expected: `+5: All tests passed!`
+Expected: `+7: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -259,6 +281,26 @@ void main() {
     expect(r.attachments.map((a) => a.name), ['a.pdf', 'b.jpg']);
     expect(r.text, 'caption from the app');
   });
+
+  test('a file:// URI that does not parse keeps the file, scheme cut off', () {
+    final r = splitSharedItems([
+      _item('file:///private/var/Shared/Invoice #3.pdf', SharedMediaType.file),
+      _item('/tmp/ok.pdf', SharedMediaType.file),
+    ]);
+    expect(r.attachments.map((a) => a.path),
+        ['/private/var/Shared/Invoice #3.pdf', '/tmp/ok.pdf']);
+  });
+
+  test('a name without an extension is not typed by its own name', () {
+    final r = splitSharedItems([_item('/tmp/mp4', SharedMediaType.file)]);
+    expect(r.attachments.single.name, 'mp4');
+    expect(r.attachments.single.type, isNull);
+  });
+
+  test('a path that ends with a slash is skipped', () {
+    final r = splitSharedItems([_item('/tmp/dir/', SharedMediaType.file)]);
+    expect(r.attachments, isEmpty);
+  });
 }
 ```
 
@@ -318,9 +360,11 @@ SharedItems splitSharedItems(List<SharedMediaFile> items) {
     }
     var path = item.path;
     if (path.isEmpty) continue;
-    if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
+    if (path.startsWith('file://')) path = _filePath(path);
     final name = path.split('/').last;
-    final ext = name.split('.').last.toLowerCase();
+    if (name.isEmpty) continue;
+    final dot = name.lastIndexOf('.');
+    final ext = dot > 0 ? name.substring(dot + 1).toLowerCase() : '';
     final type = _imageExts.contains(ext)
         ? 'image'
         : _videoExts.contains(ext)
@@ -330,12 +374,23 @@ SharedItems splitSharedItems(List<SharedMediaFile> items) {
   }
   return SharedItems(attachments: attachments, text: textParts.join('\n'));
 }
+
+/// `file://` URI → plain path. A name with `#`, `?` or an encoded `/` does
+/// not parse back as a URI; then the scheme is simply cut off instead of the
+/// whole share failing on one file.
+String _filePath(String uri) {
+  try {
+    return Uri.parse(uri).toFilePath();
+  } catch (_) {
+    return uri.substring('file://'.length);
+  }
+}
 ```
 
 - [ ] **Step 4: Тест проходит**
 
 Run: `flutter test test/features/messenger/utils/shared_items_test.dart`
-Expected: `+7: All tests passed!`
+Expected: `+10: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -349,6 +404,8 @@ git commit -m "feat(share): splitSharedItems — разбор share на вло�
 
 ### Task 3: Когда выбор можно открыть
 
+Проверяется **весь стек навигации**, а не `currentConfiguration.uri`: в go_router 14.8.1 тот меняется только от `go`, а экраны звонков в приложении в основном открываются `push`-ем (из чата, контактов, истории, по CallKit) — после `push('/dashboard/voice')` `uri.path` остаётся адресом чата. Каждый экран, положенный `push`-ем, — отдельный элемент `currentConfiguration.matches` со своим `matchedLocation` (проверено пробой 2026-10-31).
+
 **Files:**
 - Create: `lib/core/router/share_picker_gate.dart`
 - Modify: `lib/core/utils/constants.dart` (строка 51, после `messengerSearch`)
@@ -356,44 +413,111 @@ git commit -m "feat(share): splitSharedItems — разбор share на вло�
 
 - [ ] **Step 1: Падающий тест**
 
+В виджет-тесте нельзя класть `push`-ем маршрут из `ShellRoute` поверх экрана вне его (чат поверх звонка): go_router падает на `Duplicate GlobalKey` навигатора. Поэтому поверх звонка кладётся отдельный верхнеуровневый маршрут `/other`.
+
 ```dart
 // test/core/router/share_picker_gate_test.dart
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:taler_id_mobile/core/router/share_picker_gate.dart';
 import 'package:taler_id_mobile/core/utils/constants.dart';
 
 void main() {
   test('the picker opens over ordinary screens', () {
-    for (final location in [
-      RouteConstants.assistant,
-      RouteConstants.messenger,
-      '/dashboard/messenger/c-1',
-      RouteConstants.messengerShare,
-      RouteConstants.settings,
-      RouteConstants.calendar,
+    for (final stack in [
+      [RouteConstants.assistant],
+      [RouteConstants.messenger],
+      ['/dashboard/messenger/c-1'],
+      [RouteConstants.messengerShare],
+      [RouteConstants.settings],
+      [RouteConstants.calendar],
+      ['/dashboard/messenger/c-1', '/dashboard/user/u-1'],
     ]) {
-      expect(canOpenSharePicker(location), isTrue, reason: location);
+      expect(canOpenSharePicker(stack), isTrue, reason: '$stack');
     }
   });
 
-  test('the picker waits while a call screen is open', () {
-    for (final location in [
-      RouteConstants.voice,
-      '/group-call/gc-1',
-      '/group-call/gc-1/lobby',
+  test('the picker waits while a call screen is anywhere on the stack', () {
+    for (final stack in [
+      [RouteConstants.voice],
+      ['/dashboard/messenger/c-1', RouteConstants.voice],
+      ['/dashboard/messenger/c-1', RouteConstants.voice, '/other'],
+      ['/group-call/gc-1'],
+      ['/dashboard/messenger/c-1', '/group-call/gc-1/lobby'],
     ]) {
-      expect(canOpenSharePicker(location), isFalse, reason: location);
+      expect(canOpenSharePicker(stack), isFalse, reason: '$stack');
     }
   });
 
-  test('the picker route without files goes back to the chat list', () {
+  testWidgets('stackLocations sees call screens opened with push or go',
+      (tester) async {
+    final router = GoRouter(
+      initialLocation: '/dashboard/messenger/c-1',
+      routes: [
+        GoRoute(
+            path: RouteConstants.voice,
+            builder: (_, __) => const Text('voice')),
+        GoRoute(
+            path: '/group-call/:id',
+            builder: (_, __) => const Text('group call')),
+        GoRoute(path: '/other', builder: (_, __) => const Text('other')),
+        ShellRoute(
+          builder: (_, __, child) => Scaffold(body: child),
+          routes: [
+            GoRoute(
+              path: RouteConstants.messenger,
+              builder: (_, __) => const Text('list'),
+              routes: [
+                GoRoute(path: ':id', builder: (_, __) => const Text('chat')),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    bool canOpen() => canOpenSharePicker(
+        stackLocations(router.routerDelegate.currentConfiguration));
+
+    expect(canOpen(), isTrue);
+
+    router.push('${RouteConstants.voice}?room=r1');
+    await tester.pumpAndSettle();
+    expect(find.text('voice'), findsOneWidget);
+    expect(canOpen(), isFalse, reason: 'call screen pushed over the chat');
+
+    router.push('/other');
+    await tester.pumpAndSettle();
+    expect(canOpen(), isFalse, reason: 'call screen under another screen');
+
+    router.pop();
+    await tester.pumpAndSettle();
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.text('chat'), findsOneWidget);
+    expect(canOpen(), isTrue, reason: 'call screen closed (minimised)');
+
+    router.push('/group-call/g1');
+    await tester.pumpAndSettle();
+    expect(canOpen(), isFalse, reason: 'group call pushed');
+
+    router.go('${RouteConstants.voice}?room=r2');
+    await tester.pumpAndSettle();
+    expect(canOpen(), isFalse, reason: 'call screen reached with go');
+  });
+
+  test('the picker route without shared files goes back to the chat list', () {
     expect(sharePickerRedirect(null), RouteConstants.messenger);
     expect(sharePickerRedirect(const []), RouteConstants.messenger);
     expect(sharePickerRedirect('not a list'), RouteConstants.messenger);
+    expect(sharePickerRedirect(['/tmp/a.pdf']), RouteConstants.messenger);
   });
 
-  test('the picker route with files stays', () {
+  test('the picker route with shared files stays', () {
     expect(
       sharePickerRedirect(
           [SharedMediaFile(path: '/tmp/a.pdf', type: SharedMediaType.file)]),
@@ -423,28 +547,45 @@ Expected: FAIL — `share_picker_gate.dart` не найден, `messengerShare` 
 
 ```dart
 // lib/core/router/share_picker_gate.dart
+import 'package:go_router/go_router.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+
 import '../utils/constants.dart';
 
-/// Whether a share from another app may open the recipient picker while
-/// [location] is on screen.
+/// Every location on the navigation stack, pushed screens included.
 ///
-/// Not over a call: the picker is opened with `go`, which would replace the
-/// screen the conversation runs on. The share waits until the call is
-/// minimised or over — the dashboard checks again on every route change.
-bool canOpenSharePicker(String location) =>
-    !location.startsWith(RouteConstants.voice) &&
-    !location.startsWith('/group-call/');
+/// `currentConfiguration.uri` only follows `go`: after `push` of a call
+/// screen — and most call screens are pushed — it still shows the chat
+/// underneath (go_router 14.8, checked 2026-10-31). Each pushed screen is its
+/// own match here.
+Iterable<String> stackLocations(RouteMatchList configuration) =>
+    configuration.matches.map((m) => m.matchedLocation);
 
-/// Redirect for the picker route: without files there is nothing to show,
-/// so back to the chat list.
+/// Whether a share from another app may open the recipient picker over the
+/// navigation [stack] (see [stackLocations]).
+///
+/// Not while a call screen is anywhere on it: the picker is opened with `go`,
+/// which would drop the screen the conversation runs on, even with something
+/// pushed over it. The share waits until the call is minimised or over — the
+/// dashboard checks again on every route change.
+bool canOpenSharePicker(Iterable<String> stack) => !stack.any(_isCallScreen);
+
+bool _isCallScreen(String location) =>
+    location.startsWith(RouteConstants.voice) ||
+    location.startsWith('/group-call/');
+
+/// Redirect for the picker route: without shared files there is nothing to
+/// show, so back to the chat list.
 String? sharePickerRedirect(Object? extra) =>
-    extra is List && extra.isNotEmpty ? null : RouteConstants.messenger;
+    extra is List<SharedMediaFile> && extra.isNotEmpty
+        ? null
+        : RouteConstants.messenger;
 ```
 
 - [ ] **Step 5: Тест проходит**
 
 Run: `flutter test test/core/router/share_picker_gate_test.dart`
-Expected: `+4: All tests passed!`
+Expected: `+5: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -1027,7 +1168,7 @@ Expected: пустой вывод (новых замечаний нет). Оши
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1607: All tests passed!` (1582 + 25 новых из Task 1–4).
+Expected: `+1613: All tests passed!` (1582 + 31 новый из Task 1–4).
 
 - [ ] **Step 5: Коммит**
 
@@ -1111,7 +1252,7 @@ Expected:
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1607: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
+Expected: `+1613: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
 
 - [ ] **Step 5: Коммит**
 
@@ -1241,7 +1382,7 @@ comm -13 <(grep chat_room_screen "$OUT/analyze-before-ours.txt") "$OUT/analyze-t
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1607: All tests passed!`
+Expected: `comm` ничего не выводит; `+1613: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -1736,7 +1877,7 @@ Expected: `+7: All tests passed!`
 - [ ] **Step 5: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1614: All tests passed!`
+Expected: `+1620: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -1783,7 +1924,7 @@ import 'share_picker_gate.dart';
               path: 'share',
               redirect: (_, state) => sharePickerRedirect(state.extra),
               builder: (_, state) => ShareTargetScreen(
-                sharedFiles: (state.extra as List).cast<SharedMediaFile>(),
+                sharedFiles: state.extra as List<SharedMediaFile>,
               ),
             ),
             GoRoute(
@@ -1818,7 +1959,7 @@ comm -13 <(grep -E "app_router|share_picker_gate" "$OUT/analyze-before-ours.txt"
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1614: All tests passed!`
+Expected: `comm` ничего не выводит; `+1620: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -2013,8 +2154,12 @@ new = r'''  void _listenForShareIntent() {
     final router = _router;
     if (!mounted || router == null) return;
     if (ShareIntentService.instance.pending.value == null) return;
-    final location = router.routerDelegate.currentConfiguration.uri.path;
-    if (!canOpenSharePicker(location)) return;
+    // The whole stack, not currentConfiguration.uri: that one only follows
+    // `go`, and most call screens are pushed (see stackLocations).
+    if (!canOpenSharePicker(
+        stackLocations(router.routerDelegate.currentConfiguration))) {
+      return;
+    }
     final files = ShareIntentService.instance.take();
     if (files == null) return;
     debugPrint('[Dashboard] Opening the share picker for ${files.length} files');
@@ -2053,7 +2198,7 @@ comm -13 <(grep -E "share_intent_service|pending_share|dashboard_screen" "$OUT/a
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1614: All tests passed!`
+Expected: `comm` ничего не выводит; `+1620: All tests passed!`
 
 - [ ] **Step 9: Коммит**
 
@@ -2073,9 +2218,9 @@ git commit -m "feat(share): выбор получателя открываетс
 - [ ] **Step 1: Все тесты**
 
 Run: `flutter test`
-Expected: `+1614: All tests passed!` (1582 + 5 + 7 + 4 + 9 + 7).
+Expected: `+1620: All tests passed!` (1582 + 7 + 10 + 5 + 9 + 7).
 
-Если итог не 1614, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
+Если итог не 1620, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
 
 - [ ] **Step 2: Новых замечаний анализатора нет**
 
