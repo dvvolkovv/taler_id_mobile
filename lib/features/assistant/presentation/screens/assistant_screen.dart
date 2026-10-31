@@ -423,6 +423,14 @@ class _AssistantScreenState extends State<AssistantScreen>
       _state = _CallState.connecting;
       _errorMessage = null;
       _aiSpeaking = false;
+      // A new session is always the assistant: the socket below goes to the
+      // proxy without mode=translator. A translator mode left over from a
+      // session that ended (call, network, error → retry) used to run the
+      // translator prompt on the assistant's mini model with the owner-voice
+      // gate on, and that hybrid answered questions instead of translating.
+      _mode = _AssistantMode.normal;
+      _langA = null;
+      _langB = null;
     });
     // Reset agent_task conversation continuity for the new realtime session.
     _agentConversationId = null;
@@ -1022,6 +1030,11 @@ class _AssistantScreenState extends State<AssistantScreen>
 
   void _onIncomingMessage(dynamic msg) {
     if (_ws == null || _state != _CallState.connected) return;
+    // The translator only translates. The notification below, injected into
+    // its session, made it answer as itself ("Извините, я здесь только для
+    // перевода…"). Nothing is lost: the briefing that opens the assistant
+    // session after the translator reports unread messages.
+    if (_mode == _AssistantMode.translator) return;
     final senderName = msg.senderName ?? 'Unknown';
     final content = msg.content;
     final conversationId = msg.conversationId;
