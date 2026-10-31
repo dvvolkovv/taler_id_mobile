@@ -1724,6 +1724,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get chatMessageHint => 'செய்தி...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'விசைப்பலகையை மறைக்கவும்';
 
   @override

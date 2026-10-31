@@ -1713,6 +1713,9 @@ class AppLocalizationsBn extends AppLocalizations {
   String get chatMessageHint => 'বার্তা...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'কীবোর্ড লুকান';
 
   @override

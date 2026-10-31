@@ -1709,6 +1709,9 @@ class AppLocalizationsFa extends AppLocalizations {
   String get chatMessageHint => 'پیام...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'پنهان کردن کیبورد';
 
   @override

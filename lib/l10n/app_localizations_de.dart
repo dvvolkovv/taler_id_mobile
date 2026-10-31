@@ -1728,6 +1728,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get chatMessageHint => 'Nachricht...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Tastatur ausblenden';
 
   @override

@@ -1720,6 +1720,9 @@ class AppLocalizationsIt extends AppLocalizations {
   String get chatMessageHint => 'Messaggio...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Nascondi tastiera';
 
   @override

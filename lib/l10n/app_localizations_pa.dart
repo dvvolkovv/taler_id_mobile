@@ -1712,6 +1712,9 @@ class AppLocalizationsPa extends AppLocalizations {
   String get chatMessageHint => 'ਸੁਨੇਹਾ...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'ਕੀਬੋਰਡ ਛੁਪਾਓ';
 
   @override

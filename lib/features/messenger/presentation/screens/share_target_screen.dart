@@ -3,20 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
-import '../../../../core/theme/app_theme.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
+import '../../../../core/storage/saved_conversation_id_cache.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/constants.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../../../core/services/share_intent_service.dart';
+import '../../domain/entities/conversation_entity.dart';
+import '../../domain/repositories/i_messenger_repository.dart';
 import '../bloc/messenger_bloc.dart';
 import '../bloc/messenger_event.dart';
 import '../bloc/messenger_state.dart';
-import '../../domain/entities/conversation_entity.dart';
-import '../../utils/recipient_filters.dart';
+import '../widgets/recipient_picker_list.dart';
 
-/// Screen shown when user shares files to Taler ID from another app.
-/// Displays a list of conversations to choose where to send the files.
+/// "Send to": where files shared from another app go.
+///
+/// Opens over the chat list (`/dashboard/messenger/share`), so closing it
+/// leaves the user in Messenger. The chosen chat opens with the files waiting
+/// in its attachment strip — nothing is sent from here, the comment is
+/// written in the chat itself.
 class ShareTargetScreen extends StatefulWidget {
   final List<SharedMediaFile> sharedFiles;
   const ShareTargetScreen({super.key, required this.sharedFiles});
@@ -26,6 +31,8 @@ class ShareTargetScreen extends StatefulWidget {
 }
 
 class _ShareTargetScreenState extends State<ShareTargetScreen> {
+  bool _openingSaved = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,10 +48,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
         title: Text(l10n.shareToChat),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () {
-            ShareIntentService.instance.clearFiles();
-            context.pop();
-          },
+          onPressed: _close,
         ),
       ),
       body: Column(
@@ -76,40 +80,19 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Text(
-              l10n.shareSelectChat,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
           Expanded(
             child: BlocBuilder<MessengerBloc, MessengerState>(
-              builder: (context, state) {
-                final conversations = filterRecipients(state.conversations);
-                if (conversations.isEmpty) {
-                  return Center(
-                    child: Text(
-                      l10n.shareNoChats,
-                      style: TextStyle(color: AppColors.of(context).textSecondary),
-                    ),
-                  );
-                }
-                return ListView.builder(
-                  itemCount: conversations.length,
-                  itemBuilder: (context, index) {
-                    final conv = conversations[index];
-                    return _ConversationTile(
-                      conversation: conv,
-                      onTap: () => _sendToConversation(conv),
-                    );
-                  },
-                );
-              },
+              // Only what the list shows: the bloc emits for every message,
+              // typing indicator and call event.
+              buildWhen: (prev, curr) =>
+                  prev.conversations != curr.conversations ||
+                  prev.isLoading != curr.isLoading,
+              builder: (context, state) => RecipientPickerList(
+                conversations: state.conversations,
+                loading: state.isLoading,
+                onSelected: _select,
+                onSelectSaved: _openSaved,
+              ),
             ),
           ),
         ],
@@ -117,10 +100,52 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     );
   }
 
+  void _close() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteConstants.messenger);
+    }
+  }
+
+  static bool _isText(SharedMediaFile f) =>
+      f.type == SharedMediaType.text || f.type == SharedMediaType.url;
+
+  /// A shared web address. Android browsers share links as plain text, so a
+  /// text item that parses as an http(s) URL counts as a link too.
+  static bool _isLink(SharedMediaFile f) {
+    if (f.type == SharedMediaType.url) return true;
+    if (f.type != SharedMediaType.text) return false;
+    final uri = Uri.tryParse(f.path.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  /// The attachments of the share; text and links go to the input field.
+  List<SharedMediaFile> get _attachments =>
+      widget.sharedFiles.where((f) => !_isText(f)).toList();
+
   Widget _buildPreview() {
-    final file = widget.sharedFiles.first;
+    final attachments = _attachments;
+    final file =
+        attachments.isNotEmpty ? attachments.first : widget.sharedFiles.first;
     final path = file.path;
 
+    if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.of(context).primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          _isLink(file) ? Icons.link_rounded : Icons.notes_rounded,
+          color: AppColors.of(context).primary,
+        ),
+      );
+    }
     if (file.type == SharedMediaType.image && path.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -160,26 +185,55 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
   }
 
   String _getDescription() {
-    final count = widget.sharedFiles.length;
-    if (count == 1) {
-      final file = widget.sharedFiles.first;
-      final name = file.path.split('/').last;
-      return name;
-    }
-    return AppLocalizations.of(context)!.shareFilesCount(count);
+    final attachments = _attachments;
+    // Only text and links: shown as they are, they go into the input field.
+    if (attachments.isEmpty) return widget.sharedFiles.first.path;
+    if (attachments.length == 1) return attachments.first.path.split('/').last;
+    return AppLocalizations.of(context)!.shareFilesCount(attachments.length);
   }
 
-  Future<void> _sendToConversation(ConversationEntity conv) async {
-    // If group with topics — show topic picker
+  void _select(ConversationEntity conv) {
+    // A group with topics asks for the topic first.
     if (conv.topicsEnabled) {
       _showTopicPicker(conv);
       return;
     }
-    _navigateToChat(conv.id);
+    _openChat(conv.id);
+  }
+
+  /// Favorites: the id from the server, the remembered one only when the
+  /// server can't be reached. The chat list's tile starts from the remembered
+  /// id, but here files are about to land in that conversation: a stale id
+  /// (e.g. after switching accounts — logout doesn't clear it) would send
+  /// them into someone else's.
+  Future<void> _openSaved() async {
+    if (_openingSaved) return;
+    _openingSaved = true;
+    try {
+      final cache = sl<SavedConversationIdCache>();
+      String convId;
+      try {
+        convId =
+            await sl<IMessengerRepository>().getOrCreateSavedConversation();
+        await cache.write(convId);
+      } catch (_) {
+        final cached = await cache.read();
+        if (cached == null) rethrow;
+        convId = cached;
+      }
+      if (!mounted) return;
+      _openChat(convId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context)!.savedOpenError)),
+      );
+    } finally {
+      _openingSaved = false;
+    }
   }
 
   Future<void> _showTopicPicker(ConversationEntity conv) async {
-    setState(() {}); // show loading state if needed
     try {
       final client = sl<DioClient>();
       final topics = await client.get<List<dynamic>>(
@@ -194,7 +248,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
 
       if (topicList.isEmpty) {
         // No topics — send to general
-        _navigateToChat(conv.id);
+        _openChat(conv.id);
         return;
       }
 
@@ -227,7 +281,7 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
                     trailing: Icon(Icons.send_rounded, color: AppColors.of(context).primary, size: 20),
                     onTap: () {
                       Navigator.pop(ctx);
-                      _navigateToChat(conv.id, topicId: id, topicTitle: title);
+                      _openChat(conv.id, topicId: id, topicTitle: title);
                     },
                   );
                 }),
@@ -239,118 +293,18 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
       );
     } catch (_) {
       // Fallback — send without topic
-      _navigateToChat(conv.id);
-    }
-  }
-
-  void _navigateToChat(String convId, {String? topicId, String? topicTitle}) {
-    final files = widget.sharedFiles;
-    ShareIntentService.instance.clearFiles();
-    Navigator.of(context, rootNavigator: true).pop();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.go('/dashboard/messenger/$convId', extra: {
-        'sharedFiles': files,
-        if (topicId != null) 'topicId': topicId,
-        if (topicTitle != null) 'topicTitle': topicTitle,
-      });
-    });
-  }
-}
-
-class _ConversationTile extends StatelessWidget {
-  final ConversationEntity conversation;
-  final VoidCallback onTap;
-
-  const _ConversationTile({required this.conversation, required this.onTap});
-
-  String displayName(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    if (conversation.type == 'GROUP') {
-      return conversation.name ?? l10n.chatGroup;
+      _openChat(conv.id);
     }
-    return conversation.otherUserName ?? l10n.chatDialog;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final name = displayName(context);
-    final ringColor = rainbowColorFor(name.isNotEmpty ? name : conversation.id);
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: ringColor, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: ringColor.withValues(alpha: 0.35),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              center: const Alignment(-0.3, -0.4),
-              radius: 1.1,
-              colors: [
-                Color.lerp(ringColor, Colors.white, 0.28)!,
-                ringColor,
-                Color.lerp(ringColor, Colors.black, 0.38)!,
-              ],
-              stops: const [0.0, 0.55, 1.0],
-            ),
-          ),
-          child: Center(
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-          ),
-        ),
-      ),
-      title: Text(
-        name,
-        style: TextStyle(
-          color: AppColors.of(context).textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      subtitle: conversation.lastMessageContent != null
-          ? Text(
-              conversation.lastMessageContent!,
-              style: TextStyle(
-                color: AppColors.of(context).textSecondary,
-                fontSize: 13,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
-          : null,
-      trailing: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: LinearGradient(
-            colors: [AppColors.of(context).primary, AppColors.of(context).primaryDark],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.of(context).primary.withValues(alpha: 0.4),
-              blurRadius: 6,
-            ),
-          ],
-        ),
-        child: const Icon(Icons.send_rounded, color: Colors.white, size: 16),
-      ),
-      onTap: onTap,
-    );
+  /// The chat replaces the picker and the chat list stays beneath it. The
+  /// files land in the chat's attachment strip and go only with Send.
+  void _openChat(String convId, {String? topicId, String? topicTitle}) {
+    context.go('/dashboard/messenger/$convId', extra: {
+      'sharedFiles': widget.sharedFiles,
+      if (topicId != null) 'topicId': topicId,
+      if (topicTitle != null) 'topicTitle': topicTitle,
+    });
   }
 }

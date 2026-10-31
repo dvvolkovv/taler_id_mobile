@@ -1709,6 +1709,9 @@ class AppLocalizationsHa extends AppLocalizations {
   String get chatMessageHint => 'Saƙo...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Boye madannai';
 
   @override

@@ -1704,6 +1704,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatMessageHint => 'رسالة...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'إخفاء لوحة المفاتيح';
 
   @override

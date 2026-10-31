@@ -1717,6 +1717,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get chatMessageHint => 'Mensaje...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Ocultar teclado';
 
   @override

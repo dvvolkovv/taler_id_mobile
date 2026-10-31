@@ -34,6 +34,7 @@ import 'package:camera/camera.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../widgets/markdown_color_extension.dart';
+import '../widgets/recipient_picker_list.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart';
 import '../../../../core/services/wallpaper_service.dart';
 import '../../../../core/theme/chat_wallpaper_painters.dart';
@@ -55,6 +56,8 @@ import '../../domain/entities/user_search_entity.dart';
 import 'user_profile_screen.dart';
 import '../../utils/unread_anchor.dart';
 import '../../utils/voice_meta.dart';
+import '../../utils/shared_items.dart';
+import '../../utils/file_caption.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -68,7 +71,6 @@ import '../widgets/pinned_banner.dart';
 import '../widgets/link_preview_card.dart';
 import '../widgets/voice_transcript.dart';
 import '../../domain/entities/analyst_events.dart';
-import '../../utils/recipient_filters.dart';
 import '../../../../core/mesh/services/device_key_sync_service.dart';
 import '../../../../features/mesh/presentation/bloc/mesh_status_bloc.dart';
 import '../../../../features/mesh/domain/entities/mesh_status.dart';
@@ -1146,57 +1148,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   void _addSharedFiles(List sharedFiles) {
-    const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
-    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
-    final textParts = <String>[];
+    final shared =
+        splitSharedItems(sharedFiles.whereType<SharedMediaFile>().toList());
+    if (shared.attachments.isEmpty && shared.text.isEmpty) return;
     setState(() {
-      for (final file in sharedFiles) {
-        // 1.0.69 fix: detect text / url shares (e.g. "Share new meeting link"
-        // from VoiceCallScreen) and append them to the compose field instead
-        // of treating the URL string as a file path. Without this, the room
-        // link was uploaded as an attachment, which silently failed (no valid
-        // file at that path) and nothing appeared in the chat.
-        if (file is SharedMediaFile &&
-            (file.type == SharedMediaType.text ||
-                file.type == SharedMediaType.url)) {
-          if (file.path.isNotEmpty) textParts.add(file.path);
-          // iOS sometimes sends an accompanying message alongside a URL share.
-          final msg = file.message;
-          if (msg != null && msg.isNotEmpty && msg != file.path) {
-            textParts.add(msg);
-          }
-          continue;
-        }
-        var path = (file is SharedMediaFile)
-            ? file.path
-            : (file.path as String? ?? '');
-        if (path.isEmpty) continue;
-        // Normalize: strip file:// prefix
-        if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
-        final name = path.split('/').last;
-        final ext = name.split('.').last.toLowerCase();
-        String? typeOverride;
-        if (imageExts.contains(ext)) typeOverride = 'image';
-        if (videoExts.contains(ext)) typeOverride = 'video';
-        _pendingFiles.add(_PendingFile(path: path, name: name, type: typeOverride));
+      for (final a in shared.attachments) {
+        _pendingFiles.add(_PendingFile(path: a.path, name: a.name, type: a.type));
       }
-      if (textParts.isNotEmpty) {
-        // Append shared text into the compose field. Preserve any draft the
-        // user already had — separate with a newline. Don't auto-send: text
-        // shares are typically previews the user wants to confirm before
-        // sending (vs. file shares which auto-upload).
+      if (shared.text.isNotEmpty) {
+        // Keep the draft the user already had; shared text goes on a new line.
         final existing = _ctrl.text;
-        final addition = textParts.join('\n');
-        _ctrl.text = existing.isEmpty ? addition : '$existing\n$addition';
+        _ctrl.text =
+            existing.isEmpty ? shared.text : '$existing\n${shared.text}';
         _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
       }
     });
-    // Auto-send only file attachments — text shares stay in compose for review.
-    if (_pendingFiles.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pendingFiles.isNotEmpty) _sendPendingAttachment();
-      });
-    }
+    // Nothing is sent from here: the files wait in the strip above the input
+    // so a comment can be written first, and go with the Send button like any
+    // attachment. Until 2026-10-31 they uploaded the moment the chat opened,
+    // and there was no way to add a comment.
   }
 
   Future<void> _pickFile() async {
@@ -2331,7 +2301,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return _InputBar(
         controller: _ctrl,
         onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
-        onSendOptions: _showSendOptions,
+        hintText: _pendingFiles.isNotEmpty
+            ? AppLocalizations.of(context)!.chatAttachmentCommentHint
+            : null,
+        onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,
         onAttach: _showAttachMenu,
         isRecording: _isRecording,
         onRecordStart: _startRecording,
@@ -3588,7 +3561,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 _InputBar(
                   controller: _ctrl,
                   onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
-                  onSendOptions: _showSendOptions,
+                  hintText: _pendingFiles.isNotEmpty
+                      ? AppLocalizations.of(context)!.chatAttachmentCommentHint
+                      : null,
+                  onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,
                   onAttach: _showAttachMenu,
                   isRecording: _isRecording,
                   onRecordStart: _startRecording,
@@ -4349,11 +4325,14 @@ class _MessageBubbleState extends State<_MessageBubble> {
                 url: firstUrlIn(widget.message.content)!,
                 isMe: widget.isMe,
               ),
-            // Show caption under image/video if content differs from fileName
+            // Caption under the file, documents included: the comment written
+            // with a shared document used to show only in the chat list.
             if (widget.message.fileUrl != null &&
-                (_effectiveFileType(widget.message) == 'image' || _effectiveFileType(widget.message) == 'video') &&
-                widget.message.content.isNotEmpty &&
-                widget.message.content != widget.message.fileName)
+                showsFileCaption(
+                  content: widget.message.content,
+                  fileName: widget.message.fileName,
+                  fileType: _effectiveFileType(widget.message),
+                ))
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
@@ -5245,7 +5224,9 @@ class _CallOptionsSheetState extends State<_CallOptionsSheet> {
 void showForwardPicker(BuildContext context, List<String> messageIds) {
   if (messageIds.isEmpty) return;
   final bloc = context.read<MessengerBloc>();
-  final conversations = filterRecipients(bloc.state.conversations);
+  // Снимок на момент открытия, как раньше: лист перестраивается на каждый
+  // кадр клавиатуры, и живой список переставлялся бы под пальцем.
+  final conversations = bloc.state.conversations;
   final rootContext = context;
 
   void forwardTo(String convId) {
@@ -5267,209 +5248,67 @@ void showForwardPicker(BuildContext context, List<String> messageIds) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => _ForwardPickerSheet(
-      conversations: conversations,
-      onSelected: forwardTo,
-      onSelectSaved: () async {
-        try {
-          final res = await sl<DioClient>().post(
-            '/messenger/saved',
-            fromJson: (d) => Map<String, dynamic>.from(d as Map),
-          );
-          final convId = res['conversationId'] as String?;
-          if (convId == null) return;
-          forwardTo(convId);
-        } catch (_) {}
-      },
-    ),
-  );
-}
-
-class _ForwardPickerSheet extends StatefulWidget {
-  final List<ConversationEntity> conversations;
-  final void Function(String conversationId) onSelected;
-  final VoidCallback? onSelectSaved;
-
-  const _ForwardPickerSheet({
-    required this.conversations,
-    required this.onSelected,
-    this.onSelectSaved,
-  });
-
-  @override
-  State<_ForwardPickerSheet> createState() => _ForwardPickerSheetState();
-}
-
-class _ForwardPickerSheetState extends State<_ForwardPickerSheet> {
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AppColors.of(context);
-    final l10n = AppLocalizations.of(context)!;
-    final filtered = widget.conversations.where((c) {
-      final name = c.name ?? c.otherUserName ?? '';
-      return name.toLowerCase().contains(_query.toLowerCase());
-    }).toList();
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.6,
-      minChildSize: 0.4,
-      maxChildSize: 0.9,
-      expand: false,
-      builder: (_, scrollController) => Column(
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: colors.textSecondary.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.chatForwardTo,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                ),
+    builder: (sheetContext) {
+      final colors = AppColors.of(sheetContext);
+      return DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colors.textSecondary.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              autofocus: false,
-              style: TextStyle(color: colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: l10n.chatSearchHint,
-                hintStyle: TextStyle(color: colors.textSecondary),
-                prefixIcon: Icon(Icons.search_rounded, color: colors.textSecondary),
-                filled: true,
-                fillColor: colors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-              onChanged: (v) => setState(() => _query = v),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.builder(
-              controller: scrollController,
-              // +1 for the Saved/Favorites entry at the top (hide while searching).
-              itemCount: filtered.length + ((widget.onSelectSaved != null && _query.isEmpty) ? 1 : 0),
-              itemBuilder: (_, i) {
-                final hasSaved = widget.onSelectSaved != null && _query.isEmpty;
-                if (hasSaved && i == 0) {
-                  return ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFA855F7), width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFA855F7).withValues(alpha: 0.35),
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF22D3EE), Color(0xFFA855F7)],
-                          ),
-                        ),
-                        child: const Icon(Icons.cloud_done_rounded, color: Colors.white, size: 22),
-                      ),
-                    ),
-                    title: Text(l10n.messengerSavedSection, style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.w600)),
-                    subtitle: Text(l10n.messengerSavedSubtitle, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onSelectSaved?.call();
-                    },
-                  );
-                }
-                final idx = hasSaved ? i - 1 : i;
-                final conv = filtered[idx];
-                final name = conv.name ?? conv.otherUserName ?? l10n.chatDialog;
-                final avatarUrl = conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
-                final ringColor = rainbowColorFor(name.isNotEmpty ? name : conv.id);
-                return ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: ringColor, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ringColor.withValues(alpha: 0.35),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: avatarUrl != null
-                            ? null
-                            : RadialGradient(
-                                center: const Alignment(-0.3, -0.4),
-                                radius: 1.1,
-                                colors: [
-                                  Color.lerp(ringColor, Colors.white, 0.28)!,
-                                  ringColor,
-                                  Color.lerp(ringColor, Colors.black, 0.38)!,
-                                ],
-                                stops: const [0.0, 0.55, 1.0],
-                              ),
-                      ),
-                      child: avatarUrl != null
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: avatarUrl,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                              ),
-                            ),
-                    ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  AppLocalizations.of(sheetContext)!.chatForwardTo,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
                   ),
-                  title: Text(name, style: TextStyle(color: colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(context);
-                    widget.onSelected(conv.id);
-                  },
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 12),
+            Expanded(
+              child: RecipientPickerList(
+                conversations: conversations,
+                scrollController: scrollController,
+                onSelected: (conv) {
+                  Navigator.pop(sheetContext);
+                  forwardTo(conv.id);
+                },
+                onSelectSaved: () async {
+                  Navigator.pop(sheetContext);
+                  try {
+                    final res = await sl<DioClient>().post(
+                      '/messenger/saved',
+                      fromJson: (d) => Map<String, dynamic>.from(d as Map),
+                    );
+                    final convId = res['conversationId'] as String?;
+                    if (convId == null) return;
+                    forwardTo(convId);
+                  } catch (_) {}
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 class _InputBar extends StatefulWidget {
@@ -5484,6 +5323,8 @@ class _InputBar extends StatefulWidget {
   final VoidCallback? onVideoNote;
   final VoidCallback? onVideoRecordStart;
   final VoidCallback? onVideoRecordStop;
+  /// Подсказка в пустом поле; null — обычная «Сообщение...».
+  final String? hintText;
 
   const _InputBar({
     required this.controller,
@@ -5496,6 +5337,7 @@ class _InputBar extends StatefulWidget {
     this.onVideoNote,
     this.onVideoRecordStart,
     this.onVideoRecordStop,
+    this.hintText,
   });
 
   @override
@@ -5576,7 +5418,7 @@ class _InputBarState extends State<_InputBar> {
                       minLines: 1,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.chatMessageHint,
+                        hintText: widget.hintText ?? AppLocalizations.of(context)!.chatMessageHint,
                         hintStyle: TextStyle(color: colors.textSecondary),
                         border: InputBorder.none,
                       ),

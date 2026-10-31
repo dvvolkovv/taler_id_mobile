@@ -49,6 +49,7 @@ class RouteConstants {
   static const assistant = '/dashboard/assistant';
   static const messenger = '/dashboard/messenger';
   static const messengerSearch = '/dashboard/messenger/search';
+  static const messengerShare = '/dashboard/messenger/share';
   static const voice = '/dashboard/voice';
   static const callHistory = '/dashboard/call-history';
   static const contacts = '/dashboard/contacts';

@@ -117,6 +117,7 @@ dependencies:
 
   # Share
   share_plus: ^10.1.4
+  # Resolved from packages/receive_sharing_intent via dependency_overrides (patched copy, see its PATCHES.md).
   receive_sharing_intent: ^1.8.1
 
   # QR code
@@ -148,6 +149,9 @@ dependency_overrides:
   # Patched copy — see packages/flutter_callkit_incoming/PATCHES.md.
   flutter_callkit_incoming:
     path: packages/flutter_callkit_incoming
+  # Patched copy — see packages/receive_sharing_intent/PATCHES.md.
+  receive_sharing_intent:
+    path: packages/receive_sharing_intent
 
 dev_dependencies:
   integration_test:

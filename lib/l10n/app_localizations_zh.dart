@@ -1683,6 +1683,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatMessageHint => '消息...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => '隐藏键盘';
 
   @override

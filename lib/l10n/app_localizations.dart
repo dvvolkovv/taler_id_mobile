@@ -3370,6 +3370,12 @@ abstract class AppLocalizations {
   /// **'Message...'**
   String get chatMessageHint;
 
+  /// No description provided for @chatAttachmentCommentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment...'**
+  String get chatAttachmentCommentHint;
+
   /// No description provided for @chatHideKeyboard.
   ///
   /// In en, this message translates to:
@@ -3919,7 +3925,7 @@ abstract class AppLocalizations {
   /// No description provided for @shareToChat.
   ///
   /// In en, this message translates to:
-  /// **'Forward to chat'**
+  /// **'Send to'**
   String get shareToChat;
 
   /// No description provided for @shareSelectChat.

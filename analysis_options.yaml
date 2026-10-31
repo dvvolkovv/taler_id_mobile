@@ -13,6 +13,7 @@ analyzer:
   exclude:
     # Vendored plugin, linted upstream.
     - packages/flutter_callkit_incoming/**
+    - packages/receive_sharing_intent/**
 
 linter:
   # The lint rules applied to this project can be customized in the

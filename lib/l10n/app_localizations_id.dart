@@ -1713,6 +1713,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get chatMessageHint => 'Pesan...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Sembunyikan keyboard';
 
   @override

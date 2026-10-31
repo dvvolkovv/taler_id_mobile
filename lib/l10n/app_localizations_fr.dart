@@ -1726,6 +1726,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatMessageHint => 'Message...';
 
   @override
+  String get chatAttachmentCommentHint => 'Add a comment...';
+
+  @override
   String get chatHideKeyboard => 'Masquer le clavier';
 
   @override
