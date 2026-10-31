@@ -14,7 +14,7 @@ URI не читает (см. ниже) — доли «Поделиться» в 
 `ec76056e4d258ad708e76d85591d933678625318e411564dcb9059048ca3a593`.
 Не скопированы: `example/`, `test/` (`*.iml` и `.gradle` в самом архиве 1.8.1
 и так не было — исключали на случай, если появятся при обновлении версии).
-Сверка с оригиналом (после правок должна показывать P1–P7 — оба
+Сверка с оригиналом (после правок должна показывать P1–P8 — оба
 Kotlin-файла и `lib/src/data/shared_media_file.dart` — плюс этот файл; и,
 возможно, строку `Only in …/ios: Assets`: эта папка в оригинале пустая, git
 пустые папки не хранит, а `receive_sharing_intent.podspec` на неё не
@@ -114,3 +114,10 @@ Kotlin-файла и `lib/src/data/shared_media_file.dart` — плюс этот
   коммит с этим файлом) — расширение теперь шлёт целые миллисекунды и `nil`
   вместо `NaN` (`NaN` иначе тихо ронял `JSONEncoder`, и share пропадал без
   вывода ошибки).
+- **P8** `ReceiveSharingIntentPlugin.kt`, `getMediaUris` (`ACTION_SEND`) —
+  текст читается через `intent.getCharSequenceExtra(Intent.EXTRA_TEXT)
+  ?.toString()`. Было: `intent.getStringExtra(Intent.EXTRA_TEXT)`; отправители
+  форматированного текста кладут в `EXTRA_TEXT` `CharSequence`/`Spanned`, а не
+  `String` — `getStringExtra` на таком экстра отдавал `null`, и вместе с P4
+  (нет пути и нет текста → элемент выбрасывается) весь share тихо пропадал.
+  Обычные строки читаются так же, как раньше.

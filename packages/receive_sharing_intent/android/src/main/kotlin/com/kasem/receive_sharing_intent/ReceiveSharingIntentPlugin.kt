@@ -125,7 +125,10 @@ class ReceiveSharingIntentPlugin : FlutterPlugin, ActivityAware, MethodCallHandl
 
             Intent.ACTION_SEND -> {
                 val uri = intent.parcelable<Uri>(Intent.EXTRA_STREAM)
-                val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+                // PATCH P8 (Taler ID): formatted text arrives as a CharSequence
+                // (Spanned), not a String; getStringExtra returned null and the
+                // share was dropped. Plain strings read the same as before.
+                val text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()
                 toJsonObject(uri, text, intent.type)?.let { JSONArray(listOf(it)) }
             }
 
