@@ -24,15 +24,24 @@ Iterable<String> _locations(List<RouteMatchBase> matches) sync* {
 /// Whether a share from another app may open the recipient picker over the
 /// navigation [stack] (see [stackLocations]).
 ///
-/// Not while a call screen is anywhere on it: the picker is opened with `go`,
-/// which would drop the screen the conversation runs on, even with something
-/// pushed over it. The share waits until the call is minimised or over — the
-/// dashboard checks again on every route change.
-bool canOpenSharePicker(Iterable<String> stack) => !stack.any(_isCallScreen);
+/// Not while one of these screens is anywhere on it — the picker is opened
+/// with `go`, which drops them without asking, even with something pushed
+/// over them:
+/// - a call screen: the conversation runs on it;
+/// - mail compose: the typed letter would vanish, bypassing its "save the
+///   draft?" question (`go` skips `PopScope`);
+/// - the KYC web view: the verification step in progress would be lost.
+///
+/// The share waits until such a screen is closed — the dashboard checks again
+/// on every route change.
+bool canOpenSharePicker(Iterable<String> stack) =>
+    !stack.any(_holdsSharePicker);
 
-bool _isCallScreen(String location) =>
+bool _holdsSharePicker(String location) =>
     location.startsWith(RouteConstants.voice) ||
-    location.startsWith('/group-call/');
+    location.startsWith('/group-call/') ||
+    location == '${RouteConstants.mail}/compose' ||
+    location == '/kyc/webview';
 
 /// Redirect for the picker route: without shared files there is nothing to
 /// show, so back to the chat list.

@@ -16,18 +16,22 @@ void main() {
       [RouteConstants.settings],
       [RouteConstants.calendar],
       ['/dashboard/messenger/c-1', '/dashboard/user/u-1'],
+      [RouteConstants.mail, '/mail/42'],
     ]) {
       expect(canOpenSharePicker(stack), isTrue, reason: '$stack');
     }
   });
 
-  test('the picker waits while a call screen is anywhere on the stack', () {
+  test('the picker waits while a call, mail compose or KYC is on the stack',
+      () {
     for (final stack in [
       [RouteConstants.voice],
       ['/dashboard/messenger/c-1', RouteConstants.voice],
       ['/dashboard/messenger/c-1', RouteConstants.voice, '/other'],
       ['/group-call/gc-1'],
       ['/dashboard/messenger/c-1', '/group-call/gc-1/lobby'],
+      [RouteConstants.mail, '/mail/compose'],
+      [RouteConstants.assistant, '/kyc/webview'],
     ]) {
       expect(canOpenSharePicker(stack), isFalse, reason: '$stack');
     }
