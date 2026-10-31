@@ -2839,13 +2839,13 @@ abstract class AppLocalizations {
   /// No description provided for @voiceRotationLock.
   ///
   /// In en, this message translates to:
-  /// **'Lock screen rotation'**
+  /// **'Lock rotation'**
   String get voiceRotationLock;
 
   /// No description provided for @voiceRotationUnlock.
   ///
   /// In en, this message translates to:
-  /// **'Allow screen rotation'**
+  /// **'Allow rotation'**
   String get voiceRotationUnlock;
 
   /// No description provided for @voiceReconnecting.
