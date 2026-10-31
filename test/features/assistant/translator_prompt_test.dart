@@ -24,6 +24,24 @@ void main() {
       expect(s, contains('выбери язык X'));
     });
 
+    test('questions about words are translated, not answered', () {
+      // «Как будет по-немецки слово счёт?» was answered («Rechnung») or
+      // repeated in Russian instead of being translated.
+      final s = translatorInstructions(owner: 'ru', target: 'de');
+      expect(s, contains('Questions about words and languages are conversation too'));
+      expect(s, contains('keep the word being asked about exactly as it was said'));
+      expect(s, contains('A Russian question about a German word is still Russian speech'));
+      expect(translatorInstructions(owner: 'ru'), isNot(contains('question about a')));
+    });
+
+    test('a language command works for any language and is never refused', () {
+      // «Переводи на английский» in a Russian–German session got "Я перевожу
+      // только между русским и немецким" instead of the tool call (3 of 3).
+      final s = translatorInstructions(owner: 'ru', target: 'de');
+      expect(s, contains('works for ANY language, not only the current two'));
+      expect(s, contains('Never refuse'));
+    });
+
     test('without a target asks for the language in the owner\'s language', () {
       expect(translatorInstructions(owner: 'ru'),
           contains('"На какой язык переводить?"'));

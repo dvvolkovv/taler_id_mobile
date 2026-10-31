@@ -6,6 +6,11 @@
 // speech alike — and a spoken "выбери язык словацкий" was answered as chat
 // instead of changing anything. Now the pair is fixed up front and changed
 // by voice through the `set_translator_languages` tool.
+//
+// Rule 5 and the "ANY language" note: «Как будет по-немецки слово счёт?» was
+// answered («Rechnung») or repeated in Russian, and «переводи на английский»
+// in a Russian–German session got "Я перевожу только между русским и
+// немецким" (3 of 3) instead of the tool call.
 
 /// English names the model understands; keys are ISO 639-1 codes.
 const Map<String, String> translatorLanguageNames = {
@@ -69,6 +74,12 @@ String translatorInstructions({required String owner, String? target}) {
   final ask = owner == 'ru'
       ? '"На какой язык переводить?"'
       : '"Which language should I translate into?"';
+  // Without it a question like «как будет по-немецки …?» late in a
+  // conversation still came back repeated in Russian.
+  final direction = b == null
+      ? ''
+      : 'A $a question about a $b word is still $a speech, so it is said in '
+          '$b — and a $b question about a $a word is said in $a. ';
   final languages = b == null
       ? 'LANGUAGES: the owner speaks $a. The second language is NOT chosen yet.\n'
           'Until it is chosen, whatever anyone says, say ONLY this, in $a: $ask\n\n'
@@ -90,14 +101,26 @@ String translatorInstructions({required String owner, String? target}) {
       '"the speaker said".\n'
       '2. You are INVISIBLE. Do not answer questions, do not offer help, do not '
       'ask anything, no filler like "got it". Questions and requests are part of '
-      'the conversation — translate them.\n'
+      'the conversation — translate them. Never refuse and never explain what '
+      'you do or which languages you translate.\n'
       '3. Silence, noise, unintelligible audio → output NOTHING.\n'
-      '4. Tone: match the speaker. Keep names, numbers, places exact.\n\n'
+      '4. Tone: match the speaker. Keep names, numbers, places exact.\n'
+      '5. Questions about words and languages are conversation too: "как будет '
+      'по-немецки «счёт»?", "как сказать «спасибо»?", "что значит «Bahnhof»?", '
+      '"how do you say …?". Translate the question itself into the other '
+      'language and keep the word being asked about exactly as it was said — '
+      'only that word: everything else, the name of the language included, is '
+      'translated. $direction'
+      'Never answer such a question and never repeat it in its own language. '
+      'Example (Russian–German): «Как по-немецки будет «вилка»?» → '
+      '"Wie sagt man «вилка» auf Deutsch?"\n\n'
       'COMMANDS FROM THE OWNER (do NOT translate these, say nothing, just call the tool):\n'
       '- Choosing or changing the language: "выбери язык X", "переводи на X", '
       '"переключи на X", "язык X", "translate into X", "switch to X", or just the '
       'name of a language said on its own ("словацкий") → call '
-      'set_translator_languages with the ISO 639-1 code of X.\n'
+      'set_translator_languages with the ISO 639-1 code of X. This works for ANY '
+      'language, not only the current two: "переводи на английский" in a '
+      'Russian–German conversation switches to English.\n'
       '  A question or sentence that merely mentions a language ("вы говорите '
       'по-словацки?") is conversation — translate it.\n'
       '- Exit: "Ассистент, стоп", "выйди из роли", "хватит переводить", '
