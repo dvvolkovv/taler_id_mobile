@@ -56,6 +56,7 @@ import '../../domain/entities/user_search_entity.dart';
 import 'user_profile_screen.dart';
 import '../../utils/unread_anchor.dart';
 import '../../utils/voice_meta.dart';
+import '../../utils/shared_items.dart';
 import '../../domain/entities/conversation_entity.dart';
 import '../../domain/entities/channel_details.dart';
 import '../../domain/entities/conversation_read_state.dart';
@@ -1146,57 +1147,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   }
 
   void _addSharedFiles(List sharedFiles) {
-    const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'bmp'};
-    const videoExts = {'mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'};
-    final textParts = <String>[];
+    final shared =
+        splitSharedItems(sharedFiles.whereType<SharedMediaFile>().toList());
+    if (shared.attachments.isEmpty && shared.text.isEmpty) return;
     setState(() {
-      for (final file in sharedFiles) {
-        // 1.0.69 fix: detect text / url shares (e.g. "Share new meeting link"
-        // from VoiceCallScreen) and append them to the compose field instead
-        // of treating the URL string as a file path. Without this, the room
-        // link was uploaded as an attachment, which silently failed (no valid
-        // file at that path) and nothing appeared in the chat.
-        if (file is SharedMediaFile &&
-            (file.type == SharedMediaType.text ||
-                file.type == SharedMediaType.url)) {
-          if (file.path.isNotEmpty) textParts.add(file.path);
-          // iOS sometimes sends an accompanying message alongside a URL share.
-          final msg = file.message;
-          if (msg != null && msg.isNotEmpty && msg != file.path) {
-            textParts.add(msg);
-          }
-          continue;
-        }
-        var path = (file is SharedMediaFile)
-            ? file.path
-            : (file.path as String? ?? '');
-        if (path.isEmpty) continue;
-        // Normalize: strip file:// prefix
-        if (path.startsWith('file://')) path = Uri.parse(path).toFilePath();
-        final name = path.split('/').last;
-        final ext = name.split('.').last.toLowerCase();
-        String? typeOverride;
-        if (imageExts.contains(ext)) typeOverride = 'image';
-        if (videoExts.contains(ext)) typeOverride = 'video';
-        _pendingFiles.add(_PendingFile(path: path, name: name, type: typeOverride));
+      for (final a in shared.attachments) {
+        _pendingFiles.add(_PendingFile(path: a.path, name: a.name, type: a.type));
       }
-      if (textParts.isNotEmpty) {
-        // Append shared text into the compose field. Preserve any draft the
-        // user already had — separate with a newline. Don't auto-send: text
-        // shares are typically previews the user wants to confirm before
-        // sending (vs. file shares which auto-upload).
+      if (shared.text.isNotEmpty) {
+        // Keep the draft the user already had; shared text goes on a new line.
         final existing = _ctrl.text;
-        final addition = textParts.join('\n');
-        _ctrl.text = existing.isEmpty ? addition : '$existing\n$addition';
+        _ctrl.text =
+            existing.isEmpty ? shared.text : '$existing\n${shared.text}';
         _ctrl.selection = TextSelection.collapsed(offset: _ctrl.text.length);
       }
     });
-    // Auto-send only file attachments — text shares stay in compose for review.
-    if (_pendingFiles.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pendingFiles.isNotEmpty) _sendPendingAttachment();
-      });
-    }
+    // Nothing is sent from here: the files wait in the strip above the input
+    // so a comment can be written first, and go with the Send button like any
+    // attachment. Until 2026-10-31 they uploaded the moment the chat opened,
+    // and there was no way to add a comment.
   }
 
   Future<void> _pickFile() async {
@@ -2331,6 +2300,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       return _InputBar(
         controller: _ctrl,
         onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+        hintText: _pendingFiles.isNotEmpty
+            ? AppLocalizations.of(context)!.chatAttachmentCommentHint
+            : null,
         onSendOptions: _showSendOptions,
         onAttach: _showAttachMenu,
         isRecording: _isRecording,
@@ -3588,6 +3560,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                 _InputBar(
                   controller: _ctrl,
                   onSend: _pendingFiles.isNotEmpty ? _sendPendingAttachment : _sendMessage,
+                  hintText: _pendingFiles.isNotEmpty
+                      ? AppLocalizations.of(context)!.chatAttachmentCommentHint
+                      : null,
                   onSendOptions: _showSendOptions,
                   onAttach: _showAttachMenu,
                   isRecording: _isRecording,
@@ -5344,6 +5319,8 @@ class _InputBar extends StatefulWidget {
   final VoidCallback? onVideoNote;
   final VoidCallback? onVideoRecordStart;
   final VoidCallback? onVideoRecordStop;
+  /// Подсказка в пустом поле; null — обычная «Сообщение...».
+  final String? hintText;
 
   const _InputBar({
     required this.controller,
@@ -5356,6 +5333,7 @@ class _InputBar extends StatefulWidget {
     this.onVideoNote,
     this.onVideoRecordStart,
     this.onVideoRecordStop,
+    this.hintText,
   });
 
   @override
@@ -5436,7 +5414,7 @@ class _InputBarState extends State<_InputBar> {
                       minLines: 1,
                       maxLines: 5,
                       decoration: InputDecoration(
-                        hintText: AppLocalizations.of(context)!.chatMessageHint,
+                        hintText: widget.hintText ?? AppLocalizations.of(context)!.chatMessageHint,
                         hintStyle: TextStyle(color: colors.textSecondary),
                         border: InputBorder.none,
                       ),
