@@ -536,6 +536,12 @@ EOF
 
 ### Task 3: Виджет кнопки CallRotationLockButton
 
+> **Сделано; после ревью** (коммиты `fix(звонок): плавающая кнопка поворота…` и `feat(звонок): фиксация поворота — только на телефонах`):
+> - плавающий вариант нажимается в квадрате 48 px (`HitTestBehavior.opaque` + `Padding(6)` вокруг круга 36 px) — поэтому в Task 6 смещение `+2`, а не `+8`: круг стоит там же;
+> - в зафиксированном состоянии у плавающей кнопки заливается круг (`primary`), значок всегда белый;
+> - тест семантики проверяет `tooltip: ''` (одна озвучка) и `androidTapTargetGuideline` / `labeledTapTargetGuideline`;
+> - в сервис добавлено правило «только телефоны» `lockAvailableFor(Size)` (+1 тест сервиса, всего 19): на планшетах iPadOS (многозадачность) и Android 16+ (sw ≥ 600 dp, targetSdk 36) игнорируют запреты поворота. Экран и ассистент в Task 6–7 смотрят на него, а не на `isSupported`.
+
 **Files:**
 - Create: `lib/features/voice/presentation/widgets/call_rotation_lock_button.dart`
 - Test: `test/features/voice/presentation/widgets/call_rotation_lock_button_test.dart`
@@ -1005,7 +1011,28 @@ import '../widgets/call_rotation_lock_button.dart';
 import '../widgets/room_chat_panel.dart';
 ```
 
-- [ ] **Step 2: Кнопка первой в действиях шапки (портрет)**
+- [ ] **Step 2: Где кнопка уместна — одно правило для кнопок и ассистента**
+
+Найти (поле, добавленное в Task 5):
+
+```dart
+  /// Rotation during the call and the user's "Не поворачивать экран" choice.
+  final CallOrientationService _orientation = sl<CallOrientationService>();
+```
+
+Заменить на:
+
+```dart
+  /// Rotation during the call and the user's "Не поворачивать экран" choice.
+  final CallOrientationService _orientation = sl<CallOrientationService>();
+
+  /// Phones only: on tablets the system ignores orientation requests, so the
+  /// lock would show while the screen keeps turning (see the service).
+  bool get _rotationLockAvailable =>
+      _orientation.lockAvailableFor(MediaQuery.sizeOf(context));
+```
+
+- [ ] **Step 3: Кнопка первой в действиях шапки (портрет)**
 
 Найти:
 
@@ -1020,12 +1047,12 @@ import '../widgets/room_chat_panel.dart';
 ```dart
         automaticallyImplyLeading: false,
         actions: [
-          if (_orientation.isSupported)
+          if (_rotationLockAvailable)
             CallRotationLockButton.appBar(service: _orientation),
           if (_roomName != null)
 ```
 
-- [ ] **Step 3: Плавающая кнопка в правом верхнем углу (альбомная)**
+- [ ] **Step 4: Плавающая кнопка в правом верхнем углу (альбомная)**
 
 Найти (конец блока плавающей стрелки «назад» и начало следующего блока):
 
@@ -1055,26 +1082,28 @@ import '../widgets/room_chat_panel.dart';
           // Rotation lock, paired with the back chevron: in landscape the
           // AppBar — and the lock in it — is gone. Immersive fullscreen keeps
           // its own exit button in this corner, so the lock isn't shown there.
-          if (isLandscape && !immersiveFs && _orientation.isSupported)
+          // +2, not +8: the button's 48 px tap area pads its 36 px circle by
+          // 6, so the circle lines up with the chevron's.
+          if (isLandscape && !immersiveFs && _rotationLockAvailable)
             Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              right: MediaQuery.of(context).padding.right + 8,
+              top: MediaQuery.of(context).padding.top + 2,
+              right: MediaQuery.of(context).padding.right + 2,
               child: CallRotationLockButton.floating(service: _orientation),
             ),
           // Floating restore button when bottom controls are auto-hidden
 ```
 
-- [ ] **Step 4: Анализатор**
+- [ ] **Step 5: Анализатор**
 
 Run: `flutter analyze --no-pub lib/features/voice/presentation/screens/voice_call_screen.dart 2>&1 | grep -cE "^\s*(info|warning|error) •"`
 Expected: `39` или меньше.
 
-- [ ] **Step 5: Тесты голосовой части и новых файлов**
+- [ ] **Step 6: Тесты голосовой части и новых файлов**
 
 Run: `flutter test test/features/voice test/core/services/call_orientation_service_test.dart`
 Expected: `All tests passed!`
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add lib/features/voice/presentation/screens/voice_call_screen.dart
@@ -1082,7 +1111,7 @@ git commit -m "$(cat <<'EOF'
 feat(звонок): кнопка «Не поворачивать экран» на экране звонка
 
 В портрете — первой в шапке, в альбомной — круглая в правом верхнем
-углу, парная к стрелке «назад». Только iOS и Android.
+углу, парная к стрелке «назад». Только телефоны iOS и Android.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 EOF
@@ -1096,7 +1125,7 @@ EOF
 **Files:**
 - Modify: `lib/features/voice/presentation/screens/voice_call_screen.dart` — `_buildCallAssistantPrompt` (~строки 2200–2244), список `tools` в `_configureAssistantSession` (~строки 2256–2320), `_handleAssistantFunctionCall` (~строка 2497)
 
-Правило «Assistant-first» из `CLAUDE.md`: новая функция доступна голосом. Ассистент звонка объявляет свои инструменты сам, в мобилке (бэкенд не участвует) — рядом с `set_translation`. На платформах без поворота ни инструмента, ни фразы в подсказке нет.
+Правило «Assistant-first» из `CLAUDE.md`: новая функция доступна голосом. Ассистент звонка объявляет свои инструменты сам, в мобилке (бэкенд не участвует) — рядом с `set_translation`. Где кнопки нет (десктоп, веб, планшеты — геттер `_rotationLockAvailable` из Task 6), нет ни инструмента, ни фразы в подсказке.
 
 - [ ] **Step 1: Фраза в русской подсказке**
 
@@ -1114,7 +1143,7 @@ EOF
       final participantsStr = participantNames.isEmpty
           ? ''
           : '\nУчастники текущего звонка: $participantsJoined';
-      final rotationStr = _orientation.isSupported
+      final rotationStr = _rotationLockAvailable
           ? '\nЭкран звонка можно зафиксировать вертикально. Если пользователь просит «не переворачивай экран», «зафиксируй экран» — вызови set_screen_rotation_lock с locked=true; «разреши поворот», «пусть экран поворачивается» — с locked=false. Выбор запоминается и для следующих звонков.\n'
           : '';
 ```
@@ -1153,7 +1182,7 @@ $rotationStr
     final participantsStr = participantNames.isEmpty
         ? ''
         : '\nCurrent call participants: $participantsJoined';
-    final rotationStr = _orientation.isSupported
+    final rotationStr = _rotationLockAvailable
         ? '\nThe call screen can be locked upright. If the user asks to "stop the screen rotating", "lock the screen" — call set_screen_rotation_lock with locked=true; "let the screen rotate", "unlock rotation" — with locked=false. The choice is remembered for the next calls too.\n'
         : '';
 ```
@@ -1195,7 +1224,7 @@ Answer briefly — the user is in the middle of a conversation.''';
               'required': ['text'],
             },
           },
-          if (_orientation.isSupported)
+          if (_rotationLockAvailable)
             {
               'type': 'function',
               'name': 'set_screen_rotation_lock',
@@ -1251,8 +1280,8 @@ git commit -m "$(cat <<'EOF'
 feat(звонок): «не переворачивай экран» голосом через ассистента звонка
 
 Инструмент set_screen_rotation_lock рядом с set_translation и фраза в
-подсказке ассистента звонка (ru, en). На платформах без поворота не
-объявляется.
+подсказке ассистента звонка (ru, en). Где кнопки нет (десктоп, веб,
+планшеты), не объявляется.
 
 Co-Authored-By: Claude Opus 5.5 (1M context) <noreply@anthropic.com>
 EOF
@@ -1269,7 +1298,7 @@ EOF
 - [ ] **Step 1: Весь набор тестов**
 
 Run: `flutter test`
-Expected: `+1606: All tests passed!` (1582 базовых + 18 из Task 1 + 6 из Task 3).
+Expected: `+1607: All tests passed!` (1582 базовых + 19 сервиса из Task 1 и Task 3 + 6 виджета из Task 3).
 
 - [ ] **Step 2: Анализатор на всех тронутых файлах**
 
@@ -1307,7 +1336,9 @@ flutter run --profile --flavor dev -t lib/main_dev.dart --dart-define=FLAVOR=dev
 - [ ] завершить, позвонить снова → открывается вертикально, замок горит, поворот не срабатывает;
 - [ ] нажать замок → значок поворота, поворот снова работает;
 - [ ] вне звонка (чаты, профиль) приложение по-прежнему не поворачивается;
-- [ ] долгое нажатие на кнопку показывает подсказку («Не поворачивать экран» / «Разрешить поворот экрана» в русской локали).
+- [ ] долгое нажатие на кнопку показывает подсказку («Не поворачивать экран» / «Разрешить поворот экрана» в русской локали);
+- [ ] в альбомной видеозвонке нажатие чуть мимо круга всё равно переключает фиксацию, а не камеру (своя плитка лежит под этим углом);
+- [ ] на планшете (эмулятор с короткой стороной от 600 dp, например Pixel Tablet) кнопки нет ни в шапке, ни в альбомной, звонок поворачивается как раньше.
 
 - [ ] **Step 5: Проверка на устройстве — iPhone**
 
