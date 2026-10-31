@@ -1027,9 +1027,14 @@ import '../widgets/room_chat_panel.dart';
   final CallOrientationService _orientation = sl<CallOrientationService>();
 
   /// Phones only: on tablets the system ignores orientation requests, so the
-  /// lock would show while the screen keeps turning (see the service).
-  bool get _rotationLockAvailable =>
-      _orientation.lockAvailableFor(MediaQuery.sizeOf(context));
+  /// lock would show while the screen keeps turning (see the service). The
+  /// device's display decides, not the window: an iPad in Slide Over or
+  /// Stage Manager has a phone-sized window and still won't lock.
+  bool get _rotationLockAvailable {
+    final display = View.of(context).display;
+    return _orientation
+        .lockAvailableFor(display.size / display.devicePixelRatio);
+  }
 ```
 
 - [ ] **Step 3: Кнопка первой в действиях шапки (портрет)**
