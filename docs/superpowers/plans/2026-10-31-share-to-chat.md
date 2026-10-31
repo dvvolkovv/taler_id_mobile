@@ -2616,7 +2616,7 @@ flutter run --release --flavor dev -t lib/main_dev.dart --dart-define=FLAVOR=dev
   --dart-define=BASE_URL=https://staging.id.taler.tirol -d 00008101-000E21100202001E
 ```
 
-Сценарии шагов 3–6 из Task 12, только через «Файлы», «Фото» и Safari. В шторке iOS расширение у всех бандлов подписано «Taler ID» (`CFBundleDisplayName` расширения), так что отличить dev можно только по тому, какое приложение откроется. Холодный старт — смахнуть приложение из переключателя перед «Поделиться».
+Сценарии шагов 3–6 из Task 12, только через «Файлы», «Фото» и Safari. Обязательно — видео из «Фото» (до Task 19 видео с iOS терялись целиком). В шторке iOS расширение у всех бандлов подписано «Taler ID» (`CFBundleDisplayName` расширения), так что отличить dev можно только по тому, какое приложение откроется. Холодный старт — смахнуть приложение из переключателя перед «Поделиться».
 
 - [ ] **Step 2: Группа приложений у `io.talerid.app`**
 
@@ -3232,4 +3232,107 @@ Run → `+13: All tests passed!`; `flutter test` → `+1639: All tests passed!`.
 ```bash
 git add lib/features/messenger/utils/file_caption.dart test/features/messenger/utils/file_caption_test.dart lib/features/messenger/presentation/screens/share_target_screen.dart test/features/messenger/presentation/screens/share_target_screen_test.dart
 git commit -m "fix(share): превью — ссылка из браузера как ссылка, описание по вложениям; без двойного имени у документа"
+```
+
+---
+
+### Task 19: Видео с iOS терялись; мелочи плагина
+
+Наше iOS-расширение (`ios/ShareExtension/ShareViewController.swift`, с d909dcb) пишет длительность видео дробью: `CMTimeGetSeconds(asset.duration) * 1000` → `10033.333…`. Dart-часть плагина читает `duration` как `int?` → `type 'double' is not a subtype of type 'int?'` → разбор всей пачки падает, видео теряется вместе с остальными файлами. У апстримового расширения длительность округляется. NaN (длительность не читается) вдобавок роняет `JSONEncoder`, и share пропадает молча. Ожидаемый итог тестов — **1641**.
+
+**Files:**
+- Modify: `ios/ShareExtension/ShareViewController.swift`
+- Modify: `packages/receive_sharing_intent/lib/src/data/shared_media_file.dart` (P7), `packages/receive_sharing_intent/android/src/main/kotlin/com/kasem/receive_sharing_intent/FileDirectory.kt`, `…/ReceiveSharingIntentPlugin.kt`, `packages/receive_sharing_intent/PATCHES.md`
+- Test: `test/core/services/shared_media_file_parse_test.dart` (новый)
+
+- [ ] **Step 1: Падающий тест**
+
+```dart
+// test/core/services/shared_media_file_parse_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+
+void main() {
+  test('a fractional video duration from iOS still parses', () {
+    final file = SharedMediaFile.fromMap({
+      'path': '/private/var/mobile/Containers/Shared/AppGroup/x/clip.mov',
+      'type': 'video',
+      'duration': 10033.333333333334,
+    });
+    expect(file.duration, 10033);
+    expect(file.type, SharedMediaType.video);
+  });
+
+  test('a missing duration stays null', () {
+    final file =
+        SharedMediaFile.fromMap({'path': '/tmp/a.pdf', 'type': 'file'});
+    expect(file.duration, isNull);
+  });
+}
+```
+Run → первый тест FAIL (`double is not a subtype of int?`).
+
+- [ ] **Step 2: P7 в Dart-части плагина**
+
+В `packages/receive_sharing_intent/lib/src/data/shared_media_file.dart` заменить строку
+```dart
+        duration = json['duration'],
+```
+на
+```dart
+        // PATCH P7 (Taler ID): a fractional duration (10033.333…, what our
+        // iOS share extension used to send) failed the whole share with
+        // "double is not a subtype of int?".
+        duration = (json['duration'] as num?)?.toInt(),
+```
+Run → `+2: All tests passed!`
+
+- [ ] **Step 3: iOS-расширение**
+
+В `ios/ShareExtension/ShareViewController.swift` заменить
+```swift
+            let duration = CMTimeGetSeconds(asset.duration) * 1000
+```
+на
+```swift
+            // Whole milliseconds: the Dart side reads `duration` as an int,
+            // and a fraction (10033.333…) failed the whole share there. A
+            // duration that can't be read (NaN) would fail JSON encoding —
+            // leave it out instead.
+            let seconds = CMTimeGetSeconds(asset.duration)
+            let duration: Double? = seconds.isFinite ? (seconds * 1000).rounded() : nil
+```
+
+- [ ] **Step 4: Kotlin**
+
+1. `FileDirectory.kt`, `fitName`: заменить `            base = base.dropLast(1)` на
+```kotlin
+            // Never split an emoji: a lone surrogate breaks the path the Dart
+            // side receives, and the attachment would silently not send.
+            base = base.dropLast(if (base.length >= 2 && base.last().isLowSurrogate()) 2 else 1)
+```
+2. `ReceiveSharingIntentPlugin.kt`: блок P5 (4 строки комментария + `val type = MediaType.fromMimeType(mType).let {` … `}`) заменить на
+```kotlin
+        // PATCH P5 (Taler ID): the kind follows what was actually read. A
+        // stream that was copied is a file even with a text/* MIME type
+        // (.txt, .csv, .vcf, .ics, .html…) — upstream typed it TEXT, and the
+        // Dart side put its cache path into the message field. Without a
+        // readable stream only the text is left: it is text, not an IMAGE
+        // whose "path" is a caption.
+        val type = if (path == null) {
+            MediaType.TEXT
+        } else {
+            MediaType.fromMimeType(mType).let {
+                if (it == MediaType.TEXT) MediaType.FILE else it
+            }
+        }
+```
+3. `PATCHES.md`: обновить P5, добавить P7 (Dart: «было/стало»), поправить место, где сказано, что Dart-часть не тронута; к P1 — про эмодзи в `fitName`.
+
+- [ ] **Step 5: Проверка и коммит**
+
+`flutter test` → `+1641: All tests passed!`; полный `flutter analyze` → 348 / 0 ошибок; Android: `flutter build apk --flavor dev --release -t lib/main_dev.dart --dart-define=FLAVOR=dev --dart-define=BASE_URL=https://id.taler.tirol`; iOS (компиляция Swift, включая расширение): `flutter build ios --no-codesign --release --flavor dev -t lib/main_dev.dart --dart-define=FLAVOR=dev --dart-define=BASE_URL=https://staging.id.taler.tirol`. Сверка `diff -r` с оригиналом: теперь отличаются два Kotlin-файла и `lib/src/data/shared_media_file.dart`.
+```bash
+git add ios/ShareExtension/ShareViewController.swift packages/receive_sharing_intent test/core/services/shared_media_file_parse_test.dart
+git commit -m "fix(share): видео с iOS больше не теряются — длительность целым числом; мелочи плагина"
 ```
