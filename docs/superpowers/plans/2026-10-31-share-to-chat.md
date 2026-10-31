@@ -12,7 +12,7 @@
 
 **Рабочий каталог:** `~/Downloads/taler_id_mobile/.worktrees/share-to-chat` (ветка `feat/share-to-chat` от `origin/dev` = `2f68fc0`, upstream снят — `git push` без аргументов никуда не уйдёт). Все пути ниже — от него.
 
-**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 39, итог — 1621.
+**Исходное состояние:** `flutter test` — 1582 теста, все зелёные (~80 с). Новых тестов в плане 45, итог — 1627.
 
 **Временные файлы:** в `OUT="${TMPDIR:-/tmp}/share-to-chat"`. Состояние shell между командами не сохраняется, поэтому каждая команда, которой он нужен, объявляет его сама.
 
@@ -677,10 +677,16 @@ void main() {
     );
   });
 
-  test('display name: the conversation name, else the other person', () {
-    expect(recipientDisplayName(_team), 'Taler team');
-    expect(recipientDisplayName(_anna), 'Anna Ivanova');
-    expect(recipientDisplayName(_conv('c-x', 'DIRECT')), '');
+  test('display name: the conversation name, else the other person; '
+      'the AI analyst by its app title', () {
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(recipientDisplayName(_team, en), 'Taler team');
+    expect(recipientDisplayName(_anna, en), 'Anna Ivanova');
+    expect(recipientDisplayName(_conv('c-x', 'DIRECT'), en), '');
+    expect(
+        recipientDisplayName(
+            _conv('c-ai', 'AI_ANALYST', name: 'AI Аналитик'), en),
+        'AI Analyst');
   });
 
   testWidgets('shows writable chats and Favorites once, at the top',
@@ -763,6 +769,81 @@ void main() {
     )));
     expect(find.text('No chats'), findsOneWidget);
   });
+
+  testWidgets('Favorites stays on top of the spinner while chats load',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: const [],
+      loading: true,
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('No chats'), findsNothing);
+  });
+
+  testWidgets('a search with no matches shows an empty list', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _team],
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pump();
+    expect(find.byType(ListTile), findsNothing);
+    expect(find.text('No chats'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('typing while chats still load keeps the spinner',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: const [],
+      loading: true,
+      onSelected: (_) {},
+    )));
+    await tester.enterText(find.byType(TextField), 'anna');
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('an unnamed conversation is shown as "Dialog"', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_conv('c-x', 'DIRECT')],
+      onSelected: (_) {},
+    )));
+    expect(find.text('Dialog'), findsOneWidget);
+  });
+
+  testWidgets('the AI analyst is listed and found by its app title',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _conv('c-ai', 'AI_ANALYST', name: 'AI Аналитик')],
+      onSelected: (_) {},
+    )));
+    expect(find.text('AI Analyst'), findsOneWidget);
+    expect(find.text('AI Аналитик'), findsNothing);
+    await tester.enterText(find.byType(TextField), 'analyst');
+    await tester.pump();
+    expect(find.text('AI Analyst'), findsOneWidget);
+    expect(find.text('Anna Ivanova'), findsNothing);
+  });
+
+  testWidgets('spaces around the query are ignored', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _team],
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    await tester.enterText(find.byType(TextField), ' anna ');
+    await tester.pump();
+    expect(find.text('Anna Ivanova'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Taler team'), findsOneWidget);
+  });
 }
 ```
 
@@ -785,10 +866,15 @@ import '../../../voice/presentation/widgets/pulsing_avatar.dart'
 import '../../domain/entities/conversation_entity.dart';
 import '../../utils/recipient_filters.dart';
 
-/// Имя, которое показывает строка получателя и по которому ищет поиск:
-/// название беседы, а если его нет — имя собеседника.
-String recipientDisplayName(ConversationEntity c) =>
-    c.name ?? c.otherUserName ?? '';
+/// Имя, которое показывает строка получателя и по которому ищет поиск.
+///
+/// ИИ-аналитик — по названию из локализации, как в списке чатов: на сервере
+/// его беседа записана по-русски («AI Аналитик»). Остальные — название
+/// беседы, а если его нет — имя собеседника; пустая строка, если нет ничего.
+String recipientDisplayName(ConversationEntity c, AppLocalizations l10n) {
+  if (c.type == 'AI_ANALYST') return l10n.aiAnalystTitle;
+  return c.name ?? c.otherUserName ?? '';
+}
 
 /// Беседы, которые предлагаются получателями: те, куда можно писать, кроме
 /// «Избранного». У него своя строка сверху, а созданная беседа SAVED в
@@ -802,7 +888,8 @@ List<ConversationEntity> recipientCandidates(List<ConversationEntity> all) =>
 ///
 /// Общий для «Переслать» и «Поделиться», чтобы два выбора не расходились.
 /// Обёртку (лист или полный экран, заголовок) и действие по нажатию задаёт
-/// вызывающий.
+/// вызывающий. Высота должна быть ограничена: внутри `Column` оборачивать
+/// в `Expanded`.
 class RecipientPickerList extends StatefulWidget {
   final List<ConversationEntity> conversations;
   final ValueChanged<ConversationEntity> onSelected;
@@ -836,14 +923,17 @@ class _RecipientPickerListState extends State<RecipientPickerList> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final query = _query.toLowerCase();
+    final query = _query.trim().toLowerCase();
     final candidates = recipientCandidates(widget.conversations)
-        .where((c) => recipientDisplayName(c).toLowerCase().contains(query))
+        .where((c) =>
+            recipientDisplayName(c, l10n).toLowerCase().contains(query))
         .toList();
     // Пока идёт поиск, «Избранное» прячется, а пустой результат — просто
-    // пустой список: «Нет чатов» там было бы неправдой.
-    final showSaved = widget.onSelectSaved != null && _query.isEmpty;
-    final showEmptyRow = candidates.isEmpty && _query.isEmpty;
+    // пустой список: «Нет чатов» там было бы неправдой. Пока беседы
+    // грузятся, индикатор виден и во время поиска.
+    final showSaved = widget.onSelectSaved != null && query.isEmpty;
+    final showEmptyRow =
+        candidates.isEmpty && (query.isEmpty || widget.loading);
     final itemCount =
         (showSaved ? 1 : 0) + (showEmptyRow ? 1 : candidates.length);
 
@@ -945,13 +1035,15 @@ class _RecipientTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final conv = conversation;
-    final shown = recipientDisplayName(conv);
-    final name =
-        shown.isNotEmpty ? shown : AppLocalizations.of(context)!.chatDialog;
+    final shown = recipientDisplayName(conv, l10n);
+    final name = shown.isNotEmpty ? shown : l10n.chatDialog;
     final avatarUrl =
         conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
-    final ringColor = rainbowColorFor(name.isNotEmpty ? name : conv.id);
+    // Цвет кольца — от имени, а у безымянной беседы от id: иначе все
+    // безымянные получили бы один цвет от подставленного «Диалог».
+    final ringColor = rainbowColorFor(shown.isNotEmpty ? shown : conv.id);
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(2),
@@ -992,7 +1084,7 @@ class _RecipientTile extends StatelessWidget {
                 )
               : Center(
                   child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    name[0].toUpperCase(),
                     style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -1031,7 +1123,7 @@ class _EmptyRow extends StatelessWidget {
 - [ ] **Step 4: Тест проходит**
 
 Run: `flutter test test/features/messenger/presentation/widgets/recipient_picker_list_test.dart`
-Expected: `+9: All tests passed!`
+Expected: `+15: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -1196,7 +1288,7 @@ Expected: пустой вывод (новых замечаний нет). Оши
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1614: All tests passed!` (1582 + 32 новых из Task 1–4).
+Expected: `+1620: All tests passed!` (1582 + 38 новых из Task 1–4).
 
 - [ ] **Step 5: Коммит**
 
@@ -1280,7 +1372,7 @@ Expected:
 - [ ] **Step 4: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1614: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
+Expected: `+1620: All tests passed!` — на тексты «Forward to chat» и «Message...» тесты не завязаны (проверено grep'ом).
 
 - [ ] **Step 5: Коммит**
 
@@ -1410,7 +1502,7 @@ comm -13 <(grep chat_room_screen "$OUT/analyze-before-ours.txt") "$OUT/analyze-t
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1614: All tests passed!`
+Expected: `comm` ничего не выводит; `+1620: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -1714,6 +1806,11 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
           ),
           Expanded(
             child: BlocBuilder<MessengerBloc, MessengerState>(
+              // Only what the list shows: the bloc emits for every message,
+              // typing indicator and call event.
+              buildWhen: (prev, curr) =>
+                  prev.conversations != curr.conversations ||
+                  prev.isLoading != curr.isLoading,
               builder: (context, state) => RecipientPickerList(
                 conversations: state.conversations,
                 loading: state.isLoading,
@@ -1905,7 +2002,7 @@ Expected: `+7: All tests passed!`
 - [ ] **Step 5: Полный прогон**
 
 Run: `flutter test`
-Expected: `+1621: All tests passed!`
+Expected: `+1627: All tests passed!`
 
 - [ ] **Step 6: Коммит**
 
@@ -1987,7 +2084,7 @@ comm -13 <(grep -E "app_router|share_picker_gate" "$OUT/analyze-before-ours.txt"
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1621: All tests passed!`
+Expected: `comm` ничего не выводит; `+1627: All tests passed!`
 
 - [ ] **Step 5: Коммит**
 
@@ -2226,7 +2323,7 @@ comm -13 <(grep -E "share_intent_service|pending_share|dashboard_screen" "$OUT/a
 flutter test
 ```
 
-Expected: `comm` ничего не выводит; `+1621: All tests passed!`
+Expected: `comm` ничего не выводит; `+1627: All tests passed!`
 
 - [ ] **Step 9: Коммит**
 
@@ -2246,9 +2343,9 @@ git commit -m "feat(share): выбор получателя открываетс
 - [ ] **Step 1: Все тесты**
 
 Run: `flutter test`
-Expected: `+1621: All tests passed!` (1582 + 7 + 10 + 6 + 9 + 7).
+Expected: `+1627: All tests passed!` (1582 + 7 + 10 + 6 + 15 + 7).
 
-Если итог не 1621, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
+Если итог не 1627, но всё зелёное, сверить, какие тесты добавились: `git diff 2f68fc0 --stat -- test`.
 
 - [ ] **Step 2: Новых замечаний анализатора нет**
 
