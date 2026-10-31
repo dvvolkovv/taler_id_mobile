@@ -1031,8 +1031,11 @@ import '../widgets/room_chat_panel.dart';
   /// Phones only: on tablets the system ignores orientation requests, so the
   /// lock would show while the screen keeps turning (see the service). The
   /// device's display decides, not the window: an iPad in Slide Over or
-  /// Stage Manager has a phone-sized window and still won't lock.
+  /// Stage Manager has a phone-sized window and still won't lock. Platforms
+  /// that don't rotate return before touching the display — on desktop
+  /// `View.display` can throw while the window's monitor is unknown.
   bool get _rotationLockAvailable {
+    if (!_orientation.isSupported) return false;
     final display = View.of(context).display;
     return _orientation
         .lockAvailableFor(display.size / display.devicePixelRatio);
