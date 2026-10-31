@@ -126,7 +126,12 @@ class ShareViewController: UIViewController {
 
         if type == .video {
             let asset = AVAsset(url: url)
-            let duration = CMTimeGetSeconds(asset.duration) * 1000
+            // Whole milliseconds: the Dart side reads `duration` as an int,
+            // and a fraction (10033.333…) failed the whole share there. A
+            // duration that can't be read (NaN) would fail JSON encoding —
+            // leave it out instead.
+            let seconds = CMTimeGetSeconds(asset.duration)
+            let duration: Double? = seconds.isFinite ? (seconds * 1000).rounded() : nil
             let thumbnailPath = generateVideoThumbnail(from: url)
             sharedMedia.append(SharedMediaItem(
                 path: decoded,

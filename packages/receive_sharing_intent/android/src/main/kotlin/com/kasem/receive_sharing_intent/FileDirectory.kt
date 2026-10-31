@@ -66,7 +66,9 @@ object FileDirectory {
         val ext = if (dot > 0 && name.length - dot <= 10) name.substring(dot) else ""
         var base = name.substring(0, name.length - ext.length)
         while (base.isNotEmpty() && (base + ext).toByteArray().size > MAX_NAME_BYTES) {
-            base = base.dropLast(1)
+            // Never split an emoji: a lone surrogate breaks the path the Dart
+            // side receives, and the attachment would silently not send.
+            base = base.dropLast(if (base.length >= 2 && base.last().isLowSurrogate()) 2 else 1)
         }
         return base + ext
     }

@@ -33,7 +33,10 @@ class SharedMediaFile {
   SharedMediaFile.fromMap(Map<String, dynamic> json)
       : path = json['path'],
         thumbnail = json['thumbnail'],
-        duration = json['duration'],
+        // PATCH P7 (Taler ID): a fractional duration (10033.333…, what our
+        // iOS share extension used to send) failed the whole share with
+        // "double is not a subtype of int?".
+        duration = (json['duration'] as num?)?.toInt(),
         type = SharedMediaType.fromValue(json['type']),
         mimeType = json['mimeType'],
         message = json['message'];

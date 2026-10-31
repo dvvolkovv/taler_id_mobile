@@ -156,12 +156,18 @@ class ReceiveSharingIntentPlugin : FlutterPlugin, ActivityAware, MethodCallHandl
         // Upstream sent "path": null, which the Dart side can't parse.
         if (path == null && text == null) return null
         val mType = mimeType ?: path?.let { URLConnection.guessContentTypeFromName(path) }
-        // PATCH P5 (Taler ID): a file that came as a stream stays a file even
-        // when its MIME type is text/* (.txt, .csv, .vcf, .ics, .html…).
-        // Upstream typed it TEXT, and the Dart side put its cache path into
-        // the message field instead of attaching the file.
-        val type = MediaType.fromMimeType(mType).let {
-            if (it == MediaType.TEXT && path != null) MediaType.FILE else it
+        // PATCH P5 (Taler ID): the kind follows what was actually read. A
+        // stream that was copied is a file even with a text/* MIME type
+        // (.txt, .csv, .vcf, .ics, .html…) — upstream typed it TEXT, and the
+        // Dart side put its cache path into the message field. Without a
+        // readable stream only the text is left: it is text, not an IMAGE
+        // whose "path" is a caption.
+        val type = if (path == null) {
+            MediaType.TEXT
+        } else {
+            MediaType.fromMimeType(mType).let {
+                if (it == MediaType.TEXT) MediaType.FILE else it
+            }
         }
         // PATCH P6 (Taler ID): no video thumbnail or duration — the app
         // doesn't read them, and MediaMetadataRetriever on the main thread
