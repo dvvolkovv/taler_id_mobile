@@ -63,7 +63,10 @@ class ShareIntentService {
   /// share arrives again (as it did before this rewrite).
   List<SharedMediaFile>? take() {
     final files = _pending.take();
-    if (files != null) ReceiveSharingIntent.instance.reset();
+    if (files != null) {
+      ReceiveSharingIntent.instance.reset().catchError(
+          (Object e) => debugPrint('[ShareIntent] reset error: $e'));
+    }
     return files;
   }
 

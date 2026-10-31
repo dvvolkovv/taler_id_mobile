@@ -57,6 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   StreamSubscription<SystemCallEvent>? _systemCallSub;
   GoRouter? _router; // listened to for the share picker, see _listenForShareIntent
   bool _shareCheckQueued = false;
+  StreamSubscription<bool>? _callUiSub;
   String? _showingCallDialogRoom;
   String? _pendingCallRoute; // queued when accept fires while phone is locked
   bool _waitingForCallAccept = false; // blocks in-app dialog after CallKit accept
@@ -234,22 +235,26 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       if (await _checkActiveCallKitCalls()) return;
       // Handle FCM notification tap when app was terminated
       final initialMsg = await NotificationService.getInitialMessage();
+      var openedFromNotification = false;
       if (initialMsg != null) {
         final route = notificationToRoute(initialMsg);
         if (route != null && mounted) {
           context.go(route);
+          openedFromNotification = true;
         }
       }
       // Deliberately not part of the block above: starting the wake-word
       // listener while the app is heading into a call would fight the call for
       // the microphone.
       _startWakeWord();
-      // A share that arrived before the dashboard existed (login, PIN) is
-      // waiting. Checked only now, after the call branches above: the global
-      // redirect is async, so a `go` to the picker issued earlier could win
-      // over the call screen being pushed. When startup went into a call, the
-      // route listener picks the share up once the call is minimised or over.
-      _queueSharePickerCheck();
+      // A share that arrived before the dashboard existed (login, PIN) waits
+      // in the slot. The explicit check comes last, after the call branches
+      // above, and not when startup went to a notification's screen: the
+      // global redirect is async, so a `go` to the picker issued while
+      // another navigation is in flight would cancel it — a call screen or
+      // the notification's target. Then the route listener picks the share
+      // up once that navigation has landed and no call is on screen.
+      if (!openedFromNotification) _queueSharePickerCheck();
     });
   }
 
@@ -680,6 +685,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     _callAcceptTimer?.cancel();
     ShareIntentService.instance.pending.removeListener(_queueSharePickerCheck);
     _router?.routerDelegate.removeListener(_queueSharePickerCheck);
+    _callUiSub?.cancel();
     _installResultSub?.cancel();
     for (final r in _ringHolds.toList()) {
       _holdRing(r, false);
@@ -696,12 +702,15 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   void _listenForShareIntent() {
     // A share from another app waits in ShareIntentService until the picker
     // can be shown: it may arrive before the dashboard exists (login, PIN) or
-    // while a call screen is open. The share arriving and every route change
-    // both re-check, so the picker opens as soon as both allow — and once.
+    // while a call, the assistant or another screen that holds it is open.
+    // The share arriving, every route change and every call-UI change
+    // re-check, so the picker opens as soon as all allow — and once.
     final router = GoRouter.of(context);
     _router = router;
     ShareIntentService.instance.pending.addListener(_queueSharePickerCheck);
     router.routerDelegate.addListener(_queueSharePickerCheck);
+    _callUiSub = CallStateService.instance.callUiStream
+        .listen((_) => _queueSharePickerCheck());
   }
 
   void _queueSharePickerCheck() {
@@ -725,6 +734,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
         stackLocations(router.routerDelegate.currentConfiguration))) {
       return;
     }
+    // A live assistant session holds the call UI without any call route (as
+    // do a mounted call screen and the in-app ringing sheet): `go` would
+    // replace the assistant tab and end its billed conversation.
+    if (CallStateService.instance.isCallUiActive) return;
     final files = ShareIntentService.instance.take();
     if (files == null) return;
     debugPrint('[Dashboard] Opening the share picker for ${files.length} files');
