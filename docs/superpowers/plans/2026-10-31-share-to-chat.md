@@ -3035,3 +3035,201 @@ git commit -m "fix(share): своя копия receive_sharing_intent — фот
 4. PDF из «Загрузок» — по-прежнему работает.
 5. Документ с комментарием → в пузыре под файлом виден комментарий.
 6. «Поделиться» ссылкой → в превью выбора иконка ссылки и сама ссылка.
+
+---
+
+### Task 18: Доработки по ревью задач 15–17
+
+Ожидаемый итог тестов — **1639** (1636 + 1 + 2); полный `flutter analyze` — снова 348 (вендоренный пакет исключается из анализа, как callkit).
+
+**Files:**
+- Modify: `packages/receive_sharing_intent/android/src/main/kotlin/com/kasem/receive_sharing_intent/FileDirectory.kt`, `…/ReceiveSharingIntentPlugin.kt`, `packages/receive_sharing_intent/PATCHES.md`, `analysis_options.yaml`
+- Modify: `lib/features/messenger/utils/file_caption.dart`, `test/features/messenger/utils/file_caption_test.dart`
+- Modify: `lib/features/messenger/presentation/screens/share_target_screen.dart`, `test/features/messenger/presentation/screens/share_target_screen_test.dart`
+
+**Commit 1 — плагин**
+
+1. `FileDirectory.kt`: в `getAbsolutePath` заменить
+```kotlin
+        val name = displayName(context, uri) ?: generatedName(context, uri)
+        val target = File(context.cacheDir, name)
+```
+на
+```kotlin
+        val name = fitName(displayName(context, uri) ?: generatedName(context, uri))
+        // Each copy in its own folder: two items with the same name in one
+        // share (or a new share while the previous file is still uploading)
+        // must not overwrite each other.
+        val dir = File(context.cacheDir, "shared/${System.nanoTime()}")
+        if (!dir.mkdirs() && !dir.isDirectory) return null
+        val target = File(dir, name)
+```
+и после функции `displayName` добавить
+```kotlin
+
+    /**
+     * File names are limited to 255 bytes; a long Cyrillic name (2 bytes a
+     * letter) can exceed that and the copy would fail. Keep the extension.
+     */
+    private fun fitName(name: String): String {
+        if (name.toByteArray().size <= MAX_NAME_BYTES) return name
+        val dot = name.lastIndexOf('.')
+        val ext = if (dot > 0 && name.length - dot <= 10) name.substring(dot) else ""
+        var base = name.substring(0, name.length - ext.length)
+        while (base.isNotEmpty() && (base + ext).toByteArray().size > MAX_NAME_BYTES) {
+            base = base.dropLast(1)
+        }
+        return base + ext
+    }
+
+    private const val MAX_NAME_BYTES = 200
+```
+В KDoc `getAbsolutePath` (PATCH P1) дописать последним абзацем: ` * Each copy goes into its own folder under cache/shared/, and over-long names are shortened to fit the file system.`
+
+2. `ReceiveSharingIntentPlugin.kt`, `toJsonObject`: заменить
+```kotlin
+        val type = MediaType.fromMimeType(mType)
+        val (thumbnail, duration) = path?.let { getThumbnailAndDuration(path, type) }
+                ?: Pair(null, null)
+        return JSONObject()
+                .put("path", path ?: text)
+                .put("type", type.value)
+                .put("mimeType", mType)
+                .put("thumbnail", thumbnail)
+                .put("duration", duration)
+```
+на
+```kotlin
+        // PATCH P5 (Taler ID): a file that came as a stream stays a file even
+        // when its MIME type is text/* (.txt, .csv, .vcf, .ics, .html…).
+        // Upstream typed it TEXT, and the Dart side put its cache path into
+        // the message field instead of attaching the file.
+        val type = MediaType.fromMimeType(mType).let {
+            if (it == MediaType.TEXT && path != null) MediaType.FILE else it
+        }
+        // PATCH P6 (Taler ID): no video thumbnail or duration — the app
+        // doesn't read them, and MediaMetadataRetriever on the main thread
+        // cost time and could throw, dropping the video itself.
+        return JSONObject()
+                .put("path", path ?: text)
+                .put("type", type.value)
+                .put("mimeType", mType)
+```
+удалить функцию `getThumbnailAndDuration` целиком (вместе с комментарием `// Get video thumbnail and duration.`) и ставшие ненужными импорты: `android.graphics.Bitmap`, `android.media.MediaMetadataRetriever`, `android.media.MediaMetadataRetriever.METADATA_KEY_DURATION`, `android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC`, `java.io.File`, `java.io.FileOutputStream` (перед удалением импорта убедиться grep'ом, что имя больше не используется в файле).
+
+3. `PATCHES.md`: дописать P5 и P6 («было/стало» как выше), к P1 — про папку на каждую копию и укорачивание имён; в рецепт сверки — что строка `Only in …/ios: Assets` ожидаема (пустую папку git не хранит, podspec её не использует).
+
+4. `analysis_options.yaml`: в `analyzer.exclude` после `- packages/flutter_callkit_incoming/**` добавить `- packages/receive_sharing_intent/**`.
+
+5. Проверка: `diff -r -x example -x test -x PATCHES.md ~/.pub-cache/hosted/pub.dev/receive_sharing_intent-1.8.1 packages/receive_sharing_intent` — по-прежнему только два Kotlin-файла (+ `ios/Assets`, если папки нет); полный `flutter analyze` — 348 замечаний, 0 ошибок; релизная сборка с `BASE_URL=https://id.taler.tirol` проходит. Коммит:
+```bash
+git add packages/receive_sharing_intent analysis_options.yaml
+git commit -m "fix(share): плагин — текстовые файлы остаются файлами, копии не затирают друг друга, без миниатюр видео"
+```
+
+**Commit 2 — Dart (тесты сначала)**
+
+1. `test/features/messenger/utils/file_caption_test.dart` — в конец `main()`:
+```dart
+
+  test('a document without a file name shows its text as the name, not twice',
+      () {
+    expect(
+        showsFileCaption(
+            content: 'Отчёт.pdf', fileName: null, fileType: 'document'),
+        isFalse);
+    expect(
+        showsFileCaption(
+            content: 'на память', fileName: null, fileType: 'image'),
+        isTrue);
+  });
+```
+Run → FAIL. Затем `lib/features/messenger/utils/file_caption.dart` целиком:
+```dart
+/// Whether a file message shows its text as a caption under the file.
+///
+/// A file message's text is the caption the sender typed. Without one, a
+/// document carries its own file name and a photo or video an empty string,
+/// so neither is repeated under the file. A document without a file name
+/// already shows its text as the name. Audio is left out: a voice message's
+/// text is not a caption.
+bool showsFileCaption({
+  required String content,
+  required String? fileName,
+  required String fileType,
+}) {
+  if (fileType == 'audio' || content.isEmpty || content == fileName) {
+    return false;
+  }
+  return fileName != null || fileType == 'image' || fileType == 'video';
+}
+```
+Run → `+6: All tests passed!`
+
+2. `test/features/messenger/presentation/screens/share_target_screen_test.dart` — в конец `main()`:
+```dart
+
+  testWidgets('a link shared as plain text gets the link icon',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: 'https://example.com/article', type: SharedMediaType.text),
+    ]);
+    expect(find.text('https://example.com/article'), findsOneWidget);
+    expect(find.byIcon(Icons.link_rounded), findsOneWidget);
+  });
+
+  testWidgets('a file shared with a text is described by the file',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: '/data/user/0/app/cache/Отчёт.pdf', type: SharedMediaType.file),
+      SharedMediaFile(path: 'see this', type: SharedMediaType.text),
+    ]);
+    expect(find.text('Отчёт.pdf'), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsOneWidget);
+  });
+```
+Run → FAIL (иконка текста вместо ссылки; «2 files»). Затем в `share_target_screen.dart`:
+- в класс `_ShareTargetScreenState` перед `_buildPreview()` добавить
+```dart
+  static bool _isText(SharedMediaFile f) =>
+      f.type == SharedMediaType.text || f.type == SharedMediaType.url;
+
+  /// A shared web address. Android browsers share links as plain text, so a
+  /// text item that parses as an http(s) URL counts as a link too.
+  static bool _isLink(SharedMediaFile f) {
+    if (f.type == SharedMediaType.url) return true;
+    if (f.type != SharedMediaType.text) return false;
+    final uri = Uri.tryParse(f.path.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  /// The attachments of the share; text and links go to the input field.
+  List<SharedMediaFile> get _attachments =>
+      widget.sharedFiles.where((f) => !_isText(f)).toList();
+```
+- в `_buildPreview()` заменить строку `final file = widget.sharedFiles.first;` на
+```dart
+    final attachments = _attachments;
+    final file =
+        attachments.isNotEmpty ? attachments.first : widget.sharedFiles.first;
+```
+а в ветке текста условие иконки `file.type == SharedMediaType.url` заменить на `_isLink(file)`;
+- `_getDescription()` целиком заменить на
+```dart
+  String _getDescription() {
+    final attachments = _attachments;
+    // Only text and links: shown as they are, they go into the input field.
+    if (attachments.isEmpty) return widget.sharedFiles.first.path;
+    if (attachments.length == 1) return attachments.first.path.split('/').last;
+    return AppLocalizations.of(context)!.shareFilesCount(attachments.length);
+  }
+```
+Run → `+13: All tests passed!`; `flutter test` → `+1639: All tests passed!`. Коммит:
+```bash
+git add lib/features/messenger/utils/file_caption.dart test/features/messenger/utils/file_caption_test.dart lib/features/messenger/presentation/screens/share_target_screen.dart test/features/messenger/presentation/screens/share_target_screen_test.dart
+git commit -m "fix(share): превью — ссылка из браузера как ссылка, описание по вложениям; без двойного имени у документа"
+```
