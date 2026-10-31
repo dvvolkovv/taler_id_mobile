@@ -1596,7 +1596,8 @@ void main() {
   Object? openedExtra;
 
   setUpAll(() {
-    registerFallbackValue<MessengerEvent>(LoadConversations());
+    // mocktail 1.0.4: registerFallbackValue(dynamic) без параметра типа.
+    registerFallbackValue(LoadConversations());
   });
 
   setUp(() async {
