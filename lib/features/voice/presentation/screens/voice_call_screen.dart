@@ -23,6 +23,7 @@ import 'package:dio/dio.dart' as dio_pkg;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/services/call_orientation_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -377,6 +378,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // Tracks whether we've already hidden system status bar for landscape fullscreen
   bool _systemUiHiddenForFs = false;
 
+  /// Rotation during the call and the user's "Не поворачивать экран" choice.
+  final CallOrientationService _orientation = sl<CallOrientationService>();
+
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   /// Video effects supported on iOS 15+ only (Vision framework).
@@ -395,12 +399,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
     _scheduleHideCallControls();
-    // Allow free rotation during a call. iOS 16+ doesn't pick up the new
-    // allowed-orientation set immediately, so we await + apply twice with a
-    // post-frame nudge — that triggers the native rotation refresh path.
-    _enableFreeRotation();
+    // Let the phone rotate during the call — unless the user locked it
+    // (remembered across calls, see CallOrientationService). iOS 16+ doesn't
+    // pick up a new allowed-orientation set immediately, so it is applied
+    // again after the first frame — that triggers the native rotation
+    // refresh path.
+    unawaited(_orientation.callScreenOpened());
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _enableFreeRotation();
+      if (mounted) unawaited(_orientation.reapply());
     });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
@@ -4733,6 +4739,11 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   void dispose() {
+    // First, before any teardown that could throw: a call screen that never
+    // reports closing keeps the whole app rotatable until restart. Back to
+    // portrait-only — unless another call screen is already open
+    // (re-entered before this one was disposed).
+    unawaited(_orientation.callScreenClosed());
     CallStateService.instance.setCallUi(this, false);
     _audioRouteSub?.cancel();
     _audioRouteSub = null;
@@ -4766,8 +4777,6 @@ Answer briefly — the user is in the middle of a conversation.''';
     _screenShareTransformCtrl.dispose();
     _chatLines.disposeAll();
     _callControlsHideTimer?.cancel();
-    // Restore portrait + native iOS orientation lock for the rest of the app
-    _restorePortraitLock();
     // Restore system status/navigation bars in case we hid them for landscape fs
     if (_systemUiHiddenForFs) {
       SystemChrome.setEnabledSystemUIMode(
@@ -6253,31 +6262,6 @@ Answer briefly — the user is in the middle of a conversation.''';
       _screenShareFullscreen = false;
       _userExitedScreenShareFullscreen = true;
     });
-  }
-
-  static const _orientationChannel = MethodChannel('taler_id/orientation');
-
-  /// Allow portrait + both landscape orientations during the call.
-  /// Async-await is required on iOS — synchronous calls were ignored on
-  /// some iOS 16+ devices (the rotation simply didn't happen). Plus we
-  /// flip the iOS-native orientation lock via AppDelegate so SystemChrome
-  /// preferences actually take effect on iPhone.
-  Future<void> _enableFreeRotation() async {
-    await SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    if (Platform.isIOS) {
-      try { await _orientationChannel.invokeMethod('setAllowAll', true); } catch (_) {}
-    }
-  }
-
-  Future<void> _restorePortraitLock() async {
-    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
-    if (Platform.isIOS) {
-      try { await _orientationChannel.invokeMethod('setAllowAll', false); } catch (_) {}
-    }
   }
 
   /// Auto-hide only makes sense when there is video to maximize. In a voice-
