@@ -1495,6 +1495,25 @@ field: 1 ctor: 1 used: 1
 
 Если `field`/`ctor` больше 1 — у другого виджета в файле нашлось такое же поле; откатить (`git checkout -- <файл>`) и вставить параметр в `_InputBar` вручную.
 
+- [ ] **Step 3b: Варианты отправки — только без файлов в полосе**
+
+Долгое нажатие «Отправить» (`_showSendOptions`: «без звука», «позже») работает только с текстом: с файлами в полосе ушёл бы один комментарий отдельным сообщением, а файлы остались бы без подписи. Пока в полосе есть файлы, меню не предлагается — в обоих местах создания `_InputBar`:
+
+```bash
+python3 - <<'PY2'
+from pathlib import Path
+p = Path('lib/features/messenger/presentation/screens/chat_room_screen.dart')
+s = p.read_text(encoding='utf-8')
+old = 'onSendOptions: _showSendOptions,'
+assert s.count(old) == 2, s.count(old)
+s = s.replace(old, 'onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,')
+p.write_text(s, encoding='utf-8')
+print('send options gated:', s.count('onSendOptions: _pendingFiles.isEmpty ? _showSendOptions : null,'))
+PY2
+```
+
+Expected: `send options gated: 2`
+
 - [ ] **Step 4: Анализатор и прогон**
 
 ```bash
