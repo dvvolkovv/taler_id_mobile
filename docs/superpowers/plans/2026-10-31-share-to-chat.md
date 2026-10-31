@@ -435,18 +435,22 @@ void main() {
       [RouteConstants.settings],
       [RouteConstants.calendar],
       ['/dashboard/messenger/c-1', '/dashboard/user/u-1'],
+      [RouteConstants.mail, '/mail/42'],
     ]) {
       expect(canOpenSharePicker(stack), isTrue, reason: '$stack');
     }
   });
 
-  test('the picker waits while a call screen is anywhere on the stack', () {
+  test('the picker waits while a call, mail compose or KYC is on the stack',
+      () {
     for (final stack in [
       [RouteConstants.voice],
       ['/dashboard/messenger/c-1', RouteConstants.voice],
       ['/dashboard/messenger/c-1', RouteConstants.voice, '/other'],
       ['/group-call/gc-1'],
       ['/dashboard/messenger/c-1', '/group-call/gc-1/lobby'],
+      [RouteConstants.mail, '/mail/compose'],
+      [RouteConstants.assistant, '/kyc/webview'],
     ]) {
       expect(canOpenSharePicker(stack), isFalse, reason: '$stack');
     }
@@ -592,15 +596,24 @@ Iterable<String> _locations(List<RouteMatchBase> matches) sync* {
 /// Whether a share from another app may open the recipient picker over the
 /// navigation [stack] (see [stackLocations]).
 ///
-/// Not while a call screen is anywhere on it: the picker is opened with `go`,
-/// which would drop the screen the conversation runs on, even with something
-/// pushed over it. The share waits until the call is minimised or over — the
-/// dashboard checks again on every route change.
-bool canOpenSharePicker(Iterable<String> stack) => !stack.any(_isCallScreen);
+/// Not while one of these screens is anywhere on it — the picker is opened
+/// with `go`, which drops them without asking, even with something pushed
+/// over them:
+/// - a call screen: the conversation runs on it;
+/// - mail compose: the typed letter would vanish, bypassing its "save the
+///   draft?" question (`go` skips `PopScope`);
+/// - the KYC web view: the verification step in progress would be lost.
+///
+/// The share waits until such a screen is closed — the dashboard checks again
+/// on every route change.
+bool canOpenSharePicker(Iterable<String> stack) =>
+    !stack.any(_holdsSharePicker);
 
-bool _isCallScreen(String location) =>
+bool _holdsSharePicker(String location) =>
     location.startsWith(RouteConstants.voice) ||
-    location.startsWith('/group-call/');
+    location.startsWith('/group-call/') ||
+    location == '${RouteConstants.mail}/compose' ||
+    location == '/kyc/webview';
 
 /// Redirect for the picker route: without shared files there is nothing to
 /// show, so back to the chat list.
@@ -2226,13 +2239,17 @@ class ShareIntentService {
 
   void init() {
     // Shared while the app was running.
-    _sub = ReceiveSharingIntent.instance
-        .getMediaStream()
-        .listen((raw) => _offer(raw, 'while running'));
+    _sub = ReceiveSharingIntent.instance.getMediaStream().listen(
+          (raw) => _offer(raw, 'while running'),
+          onError: (Object e) =>
+              debugPrint('[ShareIntent] media stream error: $e'),
+        );
     // Shared into a closed app.
     ReceiveSharingIntent.instance
         .getInitialMedia()
-        .then((raw) => _offer(raw, 'at launch'));
+        .then((raw) => _offer(raw, 'at launch'))
+        .catchError(
+            (Object e) => debugPrint('[ShareIntent] initial media error: $e'));
   }
 
   void _offer(List<SharedMediaFile> raw, String when) {
@@ -2242,8 +2259,11 @@ class ShareIntentService {
     _pending.offer(files);
   }
 
-  /// Hands the pending share out once and drops the plugin's copy, so a
-  /// restarted engine does not deliver the same files again.
+  /// Hands the pending share out once and clears the plugin's in-memory copy.
+  ///
+  /// On Android the SEND intent itself stays with the activity: if the system
+  /// kills the process and the user reopens the app from recents, the same
+  /// share arrives again (as it did before this rewrite).
   List<SharedMediaFile>? take() {
     final files = _pending.take();
     if (files != null) ReceiveSharingIntent.instance.reset();
@@ -2529,6 +2549,11 @@ ADB=~/Library/Android/sdk/platform-tools/adb; PKG=tirol.taler.taler_id_mobile.de
 $ADB -s emulator-5554 shell am force-stop $PKG
 ```
 «Поделиться» PDF из «Файлов». Ожидание: экран PIN; после ввода — сразу «Кому отправить», один раз. После проверки PIN выключить.
+
+- [ ] **Step 7b: Во время письма и после выгрузки процесса**
+
+1. Почта → «Написать», набрать пару слов. «Поделиться» PDF из «Файлов». Ожидание: экран письма остаётся с текстом. Закрыть письмо (появится вопрос о черновике, ответить) → сразу открывается «Кому отправить».
+2. Известное ограничение, не ошибка: после «Поделиться» с холодного старта выгрузить процесс (`$ADB -s emulator-5554 shell am kill tirol.taler.taler_id_mobile.dev` при свёрнутом приложении) и открыть приложение из недавних — Android доставит тот же share ещё раз, и выбор откроется со старым файлом. Так было и до переделки; записать, что увидели.
 
 - [ ] **Step 8: «Переслать» не сломалось**
 
