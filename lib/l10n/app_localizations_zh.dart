@@ -1406,6 +1406,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceAddParticipant => '添加参与者';
 
   @override
+  String get voiceRotationLock => '锁定屏幕旋转';
+
+  @override
+  String get voiceRotationUnlock => '允许屏幕旋转';
+
+  @override
   String get voiceReconnecting => '重新连接中...';
 
   @override

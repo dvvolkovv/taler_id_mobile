@@ -429,6 +429,8 @@
   "voiceEndThisCall": "Termina questa chiamata",
   "voiceCopyLink": "Copia link",
   "voiceAddParticipant": "Aggiungi partecipante",
+  "voiceRotationLock": "Blocca la rotazione dello schermo",
+  "voiceRotationUnlock": "Consenti la rotazione dello schermo",
   "voiceReconnecting": "Riconnessione...",
   "callHeldBySystem": "Chiamata in attesa: è in corso un'altra chiamata",
   "callResumeFromHold": "Riprendi la chiamata",

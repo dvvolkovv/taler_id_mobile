@@ -1426,6 +1426,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceAddParticipant => 'إضافة مشارك';
 
   @override
+  String get voiceRotationLock => 'قفل تدوير الشاشة';
+
+  @override
+  String get voiceRotationUnlock => 'السماح بتدوير الشاشة';
+
+  @override
   String get voiceReconnecting => 'إعادة الاتصال...';
 
   @override

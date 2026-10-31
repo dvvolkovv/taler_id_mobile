@@ -429,6 +429,8 @@
   "voiceEndThisCall": "Akhiri panggilan ini",
   "voiceCopyLink": "Salin tautan",
   "voiceAddParticipant": "Tambah peserta",
+  "voiceRotationLock": "Kunci rotasi layar",
+  "voiceRotationUnlock": "Izinkan rotasi layar",
   "voiceReconnecting": "Menyambungkan kembali...",
   "callHeldBySystem": "Panggilan ditahan — ada panggilan lain yang berlangsung",
   "callResumeFromHold": "Kembali ke panggilan",

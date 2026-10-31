@@ -429,6 +429,8 @@
   "voiceEndThisCall": "Ukončiť tento hovor",
   "voiceCopyLink": "Kopírovať odkaz",
   "voiceAddParticipant": "Pridať účastníka",
+  "voiceRotationLock": "Uzamknúť otáčanie obrazovky",
+  "voiceRotationUnlock": "Povoliť otáčanie obrazovky",
   "voiceReconnecting": "Opätovné pripojenie...",
   "callHeldBySystem": "Hovor je podržaný — prebieha iný hovor",
   "callResumeFromHold": "Vrátiť sa k hovoru",

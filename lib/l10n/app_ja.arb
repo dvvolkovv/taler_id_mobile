@@ -429,6 +429,8 @@
   "voiceEndThisCall": "この通話を終了",
   "voiceCopyLink": "リンクをコピー",
   "voiceAddParticipant": "参加者を追加",
+  "voiceRotationLock": "画面の回転をロック",
+  "voiceRotationUnlock": "画面の回転を許可",
   "voiceReconnecting": "再接続中...",
   "callHeldBySystem": "通話を保留中 — 別の通話中です",
   "callResumeFromHold": "通話に戻る",

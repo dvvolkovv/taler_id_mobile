@@ -1432,6 +1432,12 @@ class AppLocalizationsHa extends AppLocalizations {
   String get voiceAddParticipant => 'Ƙara mahalarta';
 
   @override
+  String get voiceRotationLock => 'Kulle juyawar allo';
+
+  @override
+  String get voiceRotationUnlock => 'Bari allo ya juya';
+
+  @override
   String get voiceReconnecting => 'Sake haɗawa...';
 
   @override

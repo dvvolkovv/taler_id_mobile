@@ -1434,6 +1434,12 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceAddParticipant => 'Tambah peserta';
 
   @override
+  String get voiceRotationLock => 'Kunci rotasi layar';
+
+  @override
+  String get voiceRotationUnlock => 'Izinkan rotasi layar';
+
+  @override
   String get voiceReconnecting => 'Menyambungkan kembali...';
 
   @override

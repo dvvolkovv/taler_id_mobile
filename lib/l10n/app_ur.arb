@@ -429,6 +429,8 @@
   "voiceEndThisCall": "یہ کال ختم کریں",
   "voiceCopyLink": "لنک کاپی کریں",
   "voiceAddParticipant": "شریک شامل کریں",
+  "voiceRotationLock": "اسکرین کی گردش لاک کریں",
+  "voiceRotationUnlock": "اسکرین کی گردش کی اجازت دیں",
   "voiceReconnecting": "دوبارہ جڑ رہا ہے...",
   "callHeldBySystem": "کال ہولڈ پر ہے — ایک اور کال جاری ہے",
   "callResumeFromHold": "کال پر واپس جائیں",

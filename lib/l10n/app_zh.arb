@@ -429,6 +429,8 @@
   "voiceEndThisCall": "结束此通话",
   "voiceCopyLink": "复制链接",
   "voiceAddParticipant": "添加参与者",
+  "voiceRotationLock": "锁定屏幕旋转",
+  "voiceRotationUnlock": "允许屏幕旋转",
   "voiceReconnecting": "重新连接中...",
   "callHeldBySystem": "通话已保持 — 正在进行另一通电话",
   "callResumeFromHold": "返回通话",

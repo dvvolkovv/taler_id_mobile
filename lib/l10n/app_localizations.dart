@@ -2836,6 +2836,18 @@ abstract class AppLocalizations {
   /// **'Add participant'**
   String get voiceAddParticipant;
 
+  /// No description provided for @voiceRotationLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock screen rotation'**
+  String get voiceRotationLock;
+
+  /// No description provided for @voiceRotationUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow screen rotation'**
+  String get voiceRotationUnlock;
+
   /// No description provided for @voiceReconnecting.
   ///
   /// In en, this message translates to:

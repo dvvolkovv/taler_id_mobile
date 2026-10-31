@@ -613,6 +613,8 @@
   "voiceEndThisCall": "End this call",
   "voiceCopyLink": "Copy link",
   "voiceAddParticipant": "Add participant",
+  "voiceRotationLock": "Lock screen rotation",
+  "voiceRotationUnlock": "Allow screen rotation",
   "voiceReconnecting": "Reconnecting...",
   "callHeldBySystem": "Call on hold — another call is in progress",
   "callResumeFromHold": "Resume call",

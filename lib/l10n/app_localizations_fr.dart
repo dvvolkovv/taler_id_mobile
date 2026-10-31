@@ -1446,6 +1446,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceAddParticipant => 'Ajouter un participant';
 
   @override
+  String get voiceRotationLock => 'Verrouiller la rotation de l\'écran';
+
+  @override
+  String get voiceRotationUnlock => 'Autoriser la rotation de l\'écran';
+
+  @override
   String get voiceReconnecting => 'Reconnexion...';
 
   @override

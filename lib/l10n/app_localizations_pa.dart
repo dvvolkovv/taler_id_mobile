@@ -1434,6 +1434,12 @@ class AppLocalizationsPa extends AppLocalizations {
   String get voiceAddParticipant => 'ਭਾਗੀਦਾਰ ਸ਼ਾਮਲ ਕਰੋ';
 
   @override
+  String get voiceRotationLock => 'ਸਕ੍ਰੀਨ ਘੁੰਮਣਾ ਲੌਕ ਕਰੋ';
+
+  @override
+  String get voiceRotationUnlock => 'ਸਕ੍ਰੀਨ ਘੁੰਮਣ ਦਿਓ';
+
+  @override
   String get voiceReconnecting => 'ਮੁੜ ਜੁੜ ਰਿਹਾ ਹੈ...';
 
   @override

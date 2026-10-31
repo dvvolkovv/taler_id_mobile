@@ -1409,6 +1409,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voiceAddParticipant => '参加者を追加';
 
   @override
+  String get voiceRotationLock => '画面の回転をロック';
+
+  @override
+  String get voiceRotationUnlock => '画面の回転を許可';
+
+  @override
   String get voiceReconnecting => '再接続中...';
 
   @override

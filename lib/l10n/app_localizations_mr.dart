@@ -1433,6 +1433,12 @@ class AppLocalizationsMr extends AppLocalizations {
   String get voiceAddParticipant => 'सहभागी जोडा';
 
   @override
+  String get voiceRotationLock => 'स्क्रीन फिरणे लॉक करा';
+
+  @override
+  String get voiceRotationUnlock => 'स्क्रीन फिरू द्या';
+
+  @override
   String get voiceReconnecting => 'पुन्हा कनेक्ट करत आहे...';
 
   @override

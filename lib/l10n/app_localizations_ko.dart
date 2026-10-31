@@ -1411,6 +1411,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceAddParticipant => '참가자 추가';
 
   @override
+  String get voiceRotationLock => '화면 회전 잠금';
+
+  @override
+  String get voiceRotationUnlock => '화면 회전 허용';
+
+  @override
   String get voiceReconnecting => '재연결 중...';
 
   @override

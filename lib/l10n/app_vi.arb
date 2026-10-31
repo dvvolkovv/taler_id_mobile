@@ -429,6 +429,8 @@
   "voiceEndThisCall": "Kết thúc cuộc gọi này",
   "voiceCopyLink": "Sao chép liên kết",
   "voiceAddParticipant": "Thêm người tham gia",
+  "voiceRotationLock": "Khóa xoay màn hình",
+  "voiceRotationUnlock": "Cho phép xoay màn hình",
   "voiceReconnecting": "Đang kết nối lại...",
   "callHeldBySystem": "Cuộc gọi đang chờ — đang có cuộc gọi khác",
   "callResumeFromHold": "Quay lại cuộc gọi",

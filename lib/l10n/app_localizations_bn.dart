@@ -1435,6 +1435,12 @@ class AppLocalizationsBn extends AppLocalizations {
   String get voiceAddParticipant => 'অংশগ্রহণকারী যোগ করুন';
 
   @override
+  String get voiceRotationLock => 'স্ক্রিন ঘোরানো লক করুন';
+
+  @override
+  String get voiceRotationUnlock => 'স্ক্রিন ঘোরানোর অনুমতি দিন';
+
+  @override
   String get voiceReconnecting => 'পুনঃসংযোগ হচ্ছে...';
 
   @override
