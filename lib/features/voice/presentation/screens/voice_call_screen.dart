@@ -37,6 +37,7 @@ import '../../../../core/desktop/desktop_breakpoints.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/room_chat_api.dart';
 import '../../domain/room_chat_text.dart';
+import '../../domain/rotation_lock_arg.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_chat_lines.dart';
 import '../controllers/recording_dialect.dart';
@@ -2543,11 +2544,7 @@ Answer briefly — the user is in the middle of a conversation.''';
         debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
         output = jsonEncode(await _setTranslationPair(hear, speak));
       } else if (name == 'set_screen_rotation_lock') {
-        final locked = switch (args['locked']) {
-          true || 'true' => true,
-          false || 'false' => false,
-          _ => null,
-        };
+        final locked = parseRotationLockArg(args['locked']);
         debugPrint('[InCallAssistant] set_screen_rotation_lock: $locked');
         if (locked == null) {
           output = jsonEncode({
