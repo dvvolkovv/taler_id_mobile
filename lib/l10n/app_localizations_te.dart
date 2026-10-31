@@ -1439,6 +1439,12 @@ class AppLocalizationsTe extends AppLocalizations {
   String get voiceAddParticipant => 'పాల్గొనేవారిని జోడించండి';
 
   @override
+  String get voiceRotationLock => 'స్క్రీన్ తిరగడాన్ని లాక్ చేయండి';
+
+  @override
+  String get voiceRotationUnlock => 'స్క్రీన్ తిరగడానికి అనుమతించండి';
+
+  @override
   String get voiceReconnecting => 'మళ్లీ కలుపుతున్నారు...';
 
   @override

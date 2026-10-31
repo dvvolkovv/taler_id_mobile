@@ -23,6 +23,7 @@ import 'package:dio/dio.dart' as dio_pkg;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/utils/constants.dart';
+import '../../../../core/services/call_orientation_service.dart';
 import '../../../../core/services/call_state_service.dart';
 import '../../../../core/storage/cache_service.dart';
 import '../../../../core/storage/secure_storage_service.dart';
@@ -36,10 +37,12 @@ import '../../../../core/desktop/desktop_breakpoints.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/room_chat_api.dart';
 import '../../domain/room_chat_text.dart';
+import '../../domain/rotation_lock_arg.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_chat_lines.dart';
 import '../controllers/recording_dialect.dart';
 import '../controllers/room_data_packet_ids.dart';
+import '../widgets/call_rotation_lock_button.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
@@ -377,6 +380,22 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   // Tracks whether we've already hidden system status bar for landscape fullscreen
   bool _systemUiHiddenForFs = false;
 
+  /// Rotation during the call and the user's "Не поворачивать экран" choice.
+  final CallOrientationService _orientation = sl<CallOrientationService>();
+
+  /// Phones only: on tablets the system ignores orientation requests, so the
+  /// lock would show while the screen keeps turning (see the service). The
+  /// device's display decides, not the window: an iPad in Slide Over or
+  /// Stage Manager has a phone-sized window and still won't lock. Platforms
+  /// that don't rotate return before touching the display — on desktop
+  /// `View.display` can throw while the window's monitor is unknown.
+  bool get _rotationLockAvailable {
+    if (!_orientation.isSupported) return false;
+    final display = View.of(context).display;
+    return _orientation
+        .lockAvailableFor(display.size / display.devicePixelRatio);
+  }
+
   static const _audioChannel = MethodChannel('taler_id/audio');
 
   /// Video effects supported on iOS 15+ only (Vision framework).
@@ -395,13 +414,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     FocusManager.instance.primaryFocus?.unfocus();
     // Schedule first auto-hide of bottom controls after initial reveal delay
     _scheduleHideCallControls();
-    // Allow free rotation during a call. iOS 16+ doesn't pick up the new
-    // allowed-orientation set immediately, so we await + apply twice with a
-    // post-frame nudge — that triggers the native rotation refresh path.
-    _enableFreeRotation();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _enableFreeRotation();
-    });
     // Listen for audio interruptions from native (parallel call from phone/other app)
     _audioChannel.setMethodCallHandler(_onNativeAudioEvent);
     // Someone who had to turn a previous call up will want this one up too.
@@ -530,6 +542,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     if (widget.outgoing && !widget.isIncoming && widget.calleeId != null) {
       CallStateService.instance.markOutgoing(widget.calleeId!, widget.roomName);
     }
+    // Let the phone rotate during the call — unless the user locked it
+    // (remembered across calls, see CallOrientationService). iOS 16+ doesn't
+    // pick up a new allowed-orientation set immediately, so it is applied
+    // again after the first frame — that triggers the native rotation
+    // refresh path. Last, after everything above that could throw: a State
+    // whose initState threw is never disposed, so it would never uncount.
+    unawaited(_orientation.callScreenOpened());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_orientation.reapply());
+    });
     _initCall();
   }
 
@@ -2205,6 +2227,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       final participantsStr = participantNames.isEmpty
           ? ''
           : '\nУчастники текущего звонка: $participantsJoined';
+      final rotationStr = _rotationLockAvailable
+          ? '\nЭкран звонка можно зафиксировать вертикально. Если пользователь просит «не переворачивай экран», «зафиксируй экран», «выключи автоповорот» — вызови set_screen_rotation_lock с locked=true; «разреши поворот», «пусть экран поворачивается», «включи автоповорот» — с locked=false. Это только про поворот экрана: камеру так не переключить (это кнопка «Повернуть» внизу), телефон не заблокировать. Выбор запоминается и для следующих звонков.\n'
+          : '';
       return '''Ты — голосовой ассистент во время звонка. Пользователь временно отключил микрофон в звонке, чтобы дать тебе команду. Будь кратким.
 $participantsStr
 Если пользователь просит добавить кого-то в звонок:
@@ -2216,13 +2241,16 @@ $participantsStr
 У комнаты есть текстовый чат, его видят все участники звонка. Если пользователь просит «напиши в чат», «скинь им …», «продиктуй в чат» — вызови send_room_chat с текстом. Он для того, что лучше написать, чем произнести: ссылки, адреса, номера, коды, суммы. До $kRoomChatMaxLength символов; чат живёт только пока идёт звонок.
 
 В звонке есть живой перевод. Если пользователь называет пару языков — «переводи с русского на немецкий», «включи перевод, он говорит по-английски» — вызови set_translation: hear_lang это язык, на котором пользователь хочет слышать остальных, speak_lang — на каком его собственную речь услышит собеседник. Хватает того, что пару назвал один человек; собеседнику ничего настраивать не нужно. Если названа только одна сторона — переспроси вторую, не догадывайся.
-
+$rotationStr
 Отвечай коротко — пользователь в разгаре разговора.''';
     }
 
     final participantsStr = participantNames.isEmpty
         ? ''
         : '\nCurrent call participants: $participantsJoined';
+    final rotationStr = _rotationLockAvailable
+        ? '\nThe call screen can be locked upright. If the user asks to "stop the screen rotating", "keep the screen upright", "lock rotation", "turn off auto-rotate" — call set_screen_rotation_lock with locked=true; "let the screen rotate", "allow rotation", "turn on auto-rotate" — with locked=false. Screen orientation only: it does not flip or switch the camera and does not lock the phone. The choice is remembered for the next calls too.\n'
+        : '';
     return '''You are a voice assistant during a call. The user has temporarily muted their microphone in the call to give you a command. Be brief.
 $participantsStr
 If the user asks to add someone to the call:
@@ -2234,7 +2262,7 @@ If the user asks to add someone to the call:
 The room has a text chat that every participant of the call sees. If the user asks to "write it in the chat", "send them …", "put that in the chat" — call send_room_chat with the text. It is for things better written than spoken: links, addresses, phone numbers, codes, amounts. Up to $kRoomChatMaxLength characters; the chat only lives while the call does.
 
 The call has live translation. If the user names a pair of languages — "translate between Russian and German", "turn on translation, he speaks English" — call set_translation: hear_lang is the language the user wants to hear everyone else in, speak_lang is what the other side hears the user's own speech in. One person naming the pair is enough; the other side does not have to set anything. If only one side is named, ask for the other rather than guessing.
-
+$rotationStr
 Answer briefly — the user is in the middle of a conversation.''';
   }
 
@@ -2317,6 +2345,22 @@ Answer briefly — the user is in the middle of a conversation.''';
               'required': ['text'],
             },
           },
+          if (_rotationLockAvailable)
+            {
+              'type': 'function',
+              'name': 'set_screen_rotation_lock',
+              'description': 'Lock or unlock rotation of the call screen on this phone. locked=true keeps the screen upright (portrait) and stops it turning when the phone tilts — "не переворачивай экран", "зафиксируй экран", "выключи автоповорот", "stop the screen rotating", "lock rotation". locked=false lets it rotate with the phone again — "разреши поворот", "включи автоповорот", "let the screen rotate". Screen orientation only: it does not flip or switch the camera and does not lock the phone. The choice is remembered for the next calls too.',
+              'parameters': {
+                'type': 'object',
+                'properties': {
+                  'locked': {
+                    'type': 'boolean',
+                    'description': 'true keeps the screen upright, false lets it rotate',
+                  },
+                },
+                'required': ['locked'],
+              },
+            },
         ],
         'turn_detection': {
           'type': 'server_vad',
@@ -2499,6 +2543,25 @@ Answer briefly — the user is in the middle of a conversation.''';
         final speak = (args['speak_lang'] as String? ?? '').toLowerCase();
         debugPrint('[InCallAssistant] set_translation: hear=$hear speak=$speak');
         output = jsonEncode(await _setTranslationPair(hear, speak));
+      } else if (name == 'set_screen_rotation_lock') {
+        final locked = parseRotationLockArg(args['locked']);
+        debugPrint('[InCallAssistant] set_screen_rotation_lock: $locked');
+        if (locked == null) {
+          output = jsonEncode({
+            'ok': false,
+            'message': 'locked must be true or false.',
+          });
+        } else {
+          await _orientation.setRotationLocked(locked);
+          final nowLocked = _orientation.rotationLocked.value;
+          output = jsonEncode({
+            'ok': true,
+            'locked': nowLocked,
+            'message': nowLocked
+                ? 'The call screen stays upright now and in the next calls.'
+                : "The call screen turns with the phone again, unless the phone's own rotation lock is on.",
+          });
+        }
       } else if (name == 'send_room_chat') {
         // Использует тот же `_sendChatMessage`, что и панель чата человека —
         // тот теперь тоже ходит через RoomChatApi (см. его класс-док), так
@@ -4733,6 +4796,11 @@ Answer briefly — the user is in the middle of a conversation.''';
 
   @override
   void dispose() {
+    // First, before any teardown that could throw: a call screen that never
+    // reports closing keeps the whole app rotatable until restart. Back to
+    // portrait-only — unless another call screen is already open
+    // (re-entered before this one was disposed).
+    unawaited(_orientation.callScreenClosed());
     CallStateService.instance.setCallUi(this, false);
     _audioRouteSub?.cancel();
     _audioRouteSub = null;
@@ -4766,8 +4834,6 @@ Answer briefly — the user is in the middle of a conversation.''';
     _screenShareTransformCtrl.dispose();
     _chatLines.disposeAll();
     _callControlsHideTimer?.cancel();
-    // Restore portrait + native iOS orientation lock for the rest of the app
-    _restorePortraitLock();
     // Restore system status/navigation bars in case we hid them for landscape fs
     if (_systemUiHiddenForFs) {
       SystemChrome.setEnabledSystemUIMode(
@@ -4876,6 +4942,8 @@ Answer briefly — the user is in the middle of a conversation.''';
         ),
         automaticallyImplyLeading: false,
         actions: [
+          if (_rotationLockAvailable)
+            CallRotationLockButton.appBar(service: _orientation),
           if (_roomName != null)
             IconButton(
               icon: const Icon(Icons.link_rounded),
@@ -4937,6 +5005,17 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ),
               ),
+            ),
+          // Rotation lock, paired with the back chevron: in landscape the
+          // AppBar — and the lock in it — is gone. Immersive fullscreen keeps
+          // its own exit button in this corner, so the lock isn't shown there.
+          // +2, not +8: the button's 48 px tap area pads its 36 px circle by
+          // 6, so the circle lines up with the chevron's.
+          if (isLandscape && !immersiveFs && _rotationLockAvailable)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 2,
+              right: MediaQuery.of(context).padding.right + 2,
+              child: CallRotationLockButton.floating(service: _orientation),
             ),
           // Floating restore button when bottom controls are auto-hidden
           if (_callControlsHidden && !_screenShareFullscreen)
@@ -6253,31 +6332,6 @@ Answer briefly — the user is in the middle of a conversation.''';
       _screenShareFullscreen = false;
       _userExitedScreenShareFullscreen = true;
     });
-  }
-
-  static const _orientationChannel = MethodChannel('taler_id/orientation');
-
-  /// Allow portrait + both landscape orientations during the call.
-  /// Async-await is required on iOS — synchronous calls were ignored on
-  /// some iOS 16+ devices (the rotation simply didn't happen). Plus we
-  /// flip the iOS-native orientation lock via AppDelegate so SystemChrome
-  /// preferences actually take effect on iPhone.
-  Future<void> _enableFreeRotation() async {
-    await SystemChrome.setPreferredOrientations(const [
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    if (Platform.isIOS) {
-      try { await _orientationChannel.invokeMethod('setAllowAll', true); } catch (_) {}
-    }
-  }
-
-  Future<void> _restorePortraitLock() async {
-    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
-    if (Platform.isIOS) {
-      try { await _orientationChannel.invokeMethod('setAllowAll', false); } catch (_) {}
-    }
   }
 
   /// Auto-hide only makes sense when there is video to maximize. In a voice-

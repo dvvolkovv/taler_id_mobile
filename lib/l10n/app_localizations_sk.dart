@@ -1435,6 +1435,12 @@ class AppLocalizationsSk extends AppLocalizations {
   String get voiceAddParticipant => 'Pridať účastníka';
 
   @override
+  String get voiceRotationLock => 'Uzamknúť otáčanie obrazovky';
+
+  @override
+  String get voiceRotationUnlock => 'Povoliť otáčanie obrazovky';
+
+  @override
   String get voiceReconnecting => 'Opätovné pripojenie...';
 
   @override

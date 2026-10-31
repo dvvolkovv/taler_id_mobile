@@ -1435,6 +1435,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceAddParticipant => 'Добавить участника';
 
   @override
+  String get voiceRotationLock => 'Не поворачивать экран';
+
+  @override
+  String get voiceRotationUnlock => 'Разрешить поворот экрана';
+
+  @override
   String get voiceReconnecting => 'Переподключение...';
 
   @override

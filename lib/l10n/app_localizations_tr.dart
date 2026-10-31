@@ -1436,6 +1436,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voiceAddParticipant => 'Katılımcı ekle';
 
   @override
+  String get voiceRotationLock => 'Ekran döndürmeyi kilitle';
+
+  @override
+  String get voiceRotationUnlock => 'Ekran döndürmeye izin ver';
+
+  @override
   String get voiceReconnecting => 'Yeniden bağlanıyor...';
 
   @override

@@ -1431,6 +1431,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get voiceAddParticipant => 'Thêm người tham gia';
 
   @override
+  String get voiceRotationLock => 'Khóa xoay màn hình';
+
+  @override
+  String get voiceRotationUnlock => 'Cho phép xoay màn hình';
+
+  @override
   String get voiceReconnecting => 'Đang kết nối lại...';
 
   @override

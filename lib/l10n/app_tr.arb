@@ -429,6 +429,8 @@
   "voiceEndThisCall": "Bu aramayı bitir",
   "voiceCopyLink": "Bağlantıyı kopyala",
   "voiceAddParticipant": "Katılımcı ekle",
+  "voiceRotationLock": "Ekran döndürmeyi kilitle",
+  "voiceRotationUnlock": "Ekran döndürmeye izin ver",
   "voiceReconnecting": "Yeniden bağlanıyor...",
   "callHeldBySystem": "Arama beklemede — başka bir arama sürüyor",
   "callResumeFromHold": "Aramaya dön",

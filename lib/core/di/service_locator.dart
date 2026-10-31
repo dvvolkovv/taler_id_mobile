@@ -25,6 +25,7 @@ import '../storage/secure_storage_service.dart';
 import '../storage/cache_service.dart';
 import '../services/apk_installer_service.dart';
 import '../services/app_update_controller.dart';
+import '../services/call_orientation_service.dart';
 import '../services/call_state_service.dart';
 import '../services/device_id_service.dart';
 import '../services/update_check_service.dart';
@@ -248,6 +249,13 @@ Future<void> setupDependencies() async {
   final meshPrefs = MeshPrefsService();
   await meshPrefs.init();
   sl.registerSingleton<MeshPrefsService>(meshPrefs);
+
+  // Call screen rotation (Hive) — the "Не поворачивать экран" choice, kept
+  // across calls and read synchronously when a call screen opens. init()
+  // never throws: without storage the choice just lives in memory.
+  final callOrientation = CallOrientationService();
+  await callOrientation.init();
+  sl.registerSingleton<CallOrientationService>(callOrientation);
 
   // Message drafts (Hive) — persisted unsent text per conversation
   final drafts = MessageDraftService();

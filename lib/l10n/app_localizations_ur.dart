@@ -1436,6 +1436,12 @@ class AppLocalizationsUr extends AppLocalizations {
   String get voiceAddParticipant => 'شریک شامل کریں';
 
   @override
+  String get voiceRotationLock => 'اسکرین کی گردش لاک کریں';
+
+  @override
+  String get voiceRotationUnlock => 'اسکرین کی گردش کی اجازت دیں';
+
+  @override
   String get voiceReconnecting => 'دوبارہ جڑ رہا ہے...';
 
   @override

@@ -429,6 +429,8 @@
   "voiceEndThisCall": "ఈ కాల్ ముగించండి",
   "voiceCopyLink": "లింక్ కాపీ చేయండి",
   "voiceAddParticipant": "పాల్గొనేవారిని జోడించండి",
+  "voiceRotationLock": "స్క్రీన్ తిరగడాన్ని లాక్ చేయండి",
+  "voiceRotationUnlock": "స్క్రీన్ తిరగడానికి అనుమతించండి",
   "voiceReconnecting": "మళ్లీ కలుపుతున్నారు...",
   "callHeldBySystem": "కాల్ హోల్డ్‌లో ఉంది — మరో కాల్ జరుగుతోంది",
   "callResumeFromHold": "కాల్‌కు తిరిగి వెళ్లండి",

@@ -1433,6 +1433,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get voiceAddParticipant => 'प्रतिभागी जोड़ें';
 
   @override
+  String get voiceRotationLock => 'स्क्रीन रोटेशन लॉक करें';
+
+  @override
+  String get voiceRotationUnlock => 'स्क्रीन रोटेशन की अनुमति दें';
+
+  @override
   String get voiceReconnecting => 'पुनः कनेक्ट कर रहे हैं...';
 
   @override

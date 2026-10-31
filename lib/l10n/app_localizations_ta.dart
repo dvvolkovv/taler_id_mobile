@@ -1444,6 +1444,12 @@ class AppLocalizationsTa extends AppLocalizations {
   String get voiceAddParticipant => 'பங்கேற்பாளரை சேர்';
 
   @override
+  String get voiceRotationLock => 'திரைச் சுழற்சியைப் பூட்டு';
+
+  @override
+  String get voiceRotationUnlock => 'திரைச் சுழற்சியை அனுமதி';
+
+  @override
   String get voiceReconnecting => 'மீண்டும் இணைக்கப்படுகிறது...';
 
   @override

@@ -1431,6 +1431,12 @@ class AppLocalizationsFa extends AppLocalizations {
   String get voiceAddParticipant => 'افزودن شرکت‌کننده';
 
   @override
+  String get voiceRotationLock => 'قفل چرخش صفحه';
+
+  @override
+  String get voiceRotationUnlock => 'اجازه چرخش صفحه';
+
+  @override
   String get voiceReconnecting => 'در حال اتصال مجدد...';
 
   @override

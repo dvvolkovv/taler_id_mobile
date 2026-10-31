@@ -429,6 +429,8 @@
   "voiceEndThisCall": "إنهاء هذه المكالمة",
   "voiceCopyLink": "نسخ الرابط",
   "voiceAddParticipant": "إضافة مشارك",
+  "voiceRotationLock": "قفل تدوير الشاشة",
+  "voiceRotationUnlock": "السماح بتدوير الشاشة",
   "voiceReconnecting": "إعادة الاتصال...",
   "callHeldBySystem": "المكالمة قيد الانتظار — هناك مكالمة أخرى جارية",
   "callResumeFromHold": "استئناف المكالمة",
