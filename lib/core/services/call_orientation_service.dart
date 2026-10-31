@@ -43,6 +43,20 @@ class CallOrientationService {
   /// Whether the screen rotates on this platform at all (iOS and Android).
   /// Elsewhere the button is hidden and nothing is applied.
   final bool isSupported;
+
+  /// From this shortest side (logical pixels) a device counts as a tablet.
+  /// There the system ignores orientation requests — iPadOS because the app
+  /// supports multitasking, Android 16+ on screens from 600 dp because the
+  /// app targets SDK 36 — so a lock would show "locked" while the screen
+  /// keeps turning.
+  static const tabletShortestSide = 600.0;
+
+  /// Whether the lock can take effect on a screen of [size]: a phone on a
+  /// platform that rotates. Only then does the call screen show the button
+  /// and the in-call assistant offer the command.
+  bool lockAvailableFor(Size size) =>
+      isSupported && size.shortestSide < tabletShortestSide;
+
   final bool _isIOS;
   final Future<Box> Function(String name) _openBox;
 

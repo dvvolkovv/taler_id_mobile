@@ -306,4 +306,14 @@ void main() {
 
     expect(s.rotationLocked.value, isFalse);
   });
+
+  test('the lock is offered on phones only', () {
+    final mobile = CallOrientationService(isSupported: true, isIOS: true);
+    final desktop = CallOrientationService(isSupported: false, isIOS: false);
+
+    expect(mobile.lockAvailableFor(const Size(390, 844)), isTrue);
+    expect(mobile.lockAvailableFor(const Size(844, 390)), isTrue);
+    expect(mobile.lockAvailableFor(const Size(820, 1180)), isFalse);
+    expect(desktop.lockAvailableFor(const Size(390, 844)), isFalse);
+  });
 }
