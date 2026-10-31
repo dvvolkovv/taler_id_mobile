@@ -70,7 +70,8 @@ void main() {
 
   tearDown(() => sl.reset());
 
-  Future<void> pumpScreen(WidgetTester tester, {bool settle = true}) async {
+  Future<void> pumpScreen(WidgetTester tester,
+      {bool settle = true, List<SharedMediaFile>? files}) async {
     final router = GoRouter(
       initialLocation: '/dashboard/messenger/share',
       routes: [
@@ -80,7 +81,8 @@ void main() {
           routes: [
             GoRoute(
               path: 'share',
-              builder: (_, __) => ShareTargetScreen(sharedFiles: _files),
+              builder: (_, __) =>
+                  ShareTargetScreen(sharedFiles: files ?? _files),
             ),
             GoRoute(
               path: ':id',
@@ -229,5 +231,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Anna Ivanova'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('a shared link is shown as the link, not as a file name',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: 'https://example.com/share-test', type: SharedMediaType.url),
+    ]);
+    expect(find.text('https://example.com/share-test'), findsOneWidget);
+    expect(find.text('share-test'), findsNothing);
+    expect(find.byIcon(Icons.link_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsNothing);
   });
 }

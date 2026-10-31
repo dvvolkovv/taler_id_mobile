@@ -112,6 +112,22 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     final file = widget.sharedFiles.first;
     final path = file.path;
 
+    if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.of(context).primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          file.type == SharedMediaType.url
+              ? Icons.link_rounded
+              : Icons.notes_rounded,
+          color: AppColors.of(context).primary,
+        ),
+      );
+    }
     if (file.type == SharedMediaType.image && path.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -154,6 +170,12 @@ class _ShareTargetScreenState extends State<ShareTargetScreen> {
     final count = widget.sharedFiles.length;
     if (count == 1) {
       final file = widget.sharedFiles.first;
+      // Text and links are shown as they are: they go into the input field,
+      // not as an attachment, and their "file name" would be a URL fragment.
+      if (file.type == SharedMediaType.text ||
+          file.type == SharedMediaType.url) {
+        return file.path;
+      }
       final name = file.path.split('/').last;
       return name;
     }
