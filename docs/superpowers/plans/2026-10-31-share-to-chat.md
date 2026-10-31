@@ -57,7 +57,7 @@ git status --short    # пусто
 
 - [ ] **Step 2: Снимок замечаний анализатора**
 
-Чистым `flutter analyze` в этом репозитории не бывает (сотни старых замечаний), поэтому сравниваем «до» и «после» по своим файлам, без номеров строк:
+Чистым `flutter analyze` в этом репозитории не бывает (сотни старых замечаний), поэтому сравниваем «до» и «после» по своим файлам, без номеров строк. В командах по отдельным файлам сначала отбираются строки диагностики (` • `): иначе в сравнение попадает шапка `Analyzing <файл>...`.
 
 ```bash
 OUT="${TMPDIR:-/tmp}/share-to-chat"; mkdir -p "$OUT"
@@ -1282,7 +1282,7 @@ filterRecipients left: 0
 ```bash
 OUT="${TMPDIR:-/tmp}/share-to-chat"
 flutter analyze --no-fatal-infos --no-fatal-warnings lib/features/messenger/presentation/screens/chat_room_screen.dart lib/features/messenger/presentation/widgets/recipient_picker_list.dart 2>&1 \
-  | grep -E "chat_room_screen|recipient_picker_list" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t5.txt"
+  | grep " • " | grep -E "chat_room_screen|recipient_picker_list" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t5.txt"
 comm -13 <(grep -E "chat_room_screen|recipient_picker_list" "$OUT/analyze-before-ours.txt") "$OUT/analyze-t5.txt"
 ```
 
@@ -1500,7 +1500,7 @@ field: 1 ctor: 1 used: 1
 ```bash
 OUT="${TMPDIR:-/tmp}/share-to-chat"
 flutter analyze --no-fatal-infos --no-fatal-warnings lib/features/messenger/presentation/screens/chat_room_screen.dart 2>&1 \
-  | grep chat_room_screen | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t7.txt"
+  | grep " • " | grep chat_room_screen | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t7.txt"
 comm -13 <(grep chat_room_screen "$OUT/analyze-before-ours.txt") "$OUT/analyze-t7.txt"
 flutter test
 ```
@@ -2082,7 +2082,7 @@ import 'share_picker_gate.dart';
 ```bash
 OUT="${TMPDIR:-/tmp}/share-to-chat"
 flutter analyze --no-fatal-infos --no-fatal-warnings lib/core/router 2>&1 \
-  | grep -E "app_router|share_picker_gate" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t9.txt"
+  | grep " • " | grep -E "app_router|share_picker_gate" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t9.txt"
 comm -13 <(grep -E "app_router|share_picker_gate" "$OUT/analyze-before-ours.txt") "$OUT/analyze-t9.txt"
 flutter test
 ```
@@ -2321,7 +2321,7 @@ Expected: пусто.
 ```bash
 OUT="${TMPDIR:-/tmp}/share-to-chat"
 flutter analyze --no-fatal-infos --no-fatal-warnings lib/core/services lib/features/dashboard 2>&1 \
-  | grep -E "share_intent_service|pending_share|dashboard_screen" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t10.txt"
+  | grep " • " | grep -E "share_intent_service|pending_share|dashboard_screen" | sed -E 's/:[0-9]+:[0-9]+ / /' | sort > "$OUT/analyze-t10.txt"
 comm -13 <(grep -E "share_intent_service|pending_share|dashboard_screen" "$OUT/analyze-before-ours.txt") "$OUT/analyze-t10.txt"
 flutter test
 ```
