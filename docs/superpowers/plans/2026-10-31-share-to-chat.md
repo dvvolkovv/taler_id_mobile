@@ -1177,6 +1177,9 @@ new = r'''/// Показывает выбор беседы и пересылае
 void showForwardPicker(BuildContext context, List<String> messageIds) {
   if (messageIds.isEmpty) return;
   final bloc = context.read<MessengerBloc>();
+  // Снимок на момент открытия, как раньше: лист перестраивается на каждый
+  // кадр клавиатуры, и живой список переставлялся бы под пальцем.
+  final conversations = bloc.state.conversations;
   final rootContext = context;
 
   void forwardTo(String convId) {
@@ -1234,7 +1237,7 @@ void showForwardPicker(BuildContext context, List<String> messageIds) {
             const SizedBox(height: 12),
             Expanded(
               child: RecipientPickerList(
-                conversations: bloc.state.conversations,
+                conversations: conversations,
                 scrollController: scrollController,
                 onSelected: (conv) {
                   Navigator.pop(sheetContext);
