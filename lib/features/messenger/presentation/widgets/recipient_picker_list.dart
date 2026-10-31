@@ -8,10 +8,15 @@ import '../../../voice/presentation/widgets/pulsing_avatar.dart'
 import '../../domain/entities/conversation_entity.dart';
 import '../../utils/recipient_filters.dart';
 
-/// Имя, которое показывает строка получателя и по которому ищет поиск:
-/// название беседы, а если его нет — имя собеседника.
-String recipientDisplayName(ConversationEntity c) =>
-    c.name ?? c.otherUserName ?? '';
+/// Имя, которое показывает строка получателя и по которому ищет поиск.
+///
+/// ИИ-аналитик — по названию из локализации, как в списке чатов: на сервере
+/// его беседа записана по-русски («AI Аналитик»). Остальные — название
+/// беседы, а если его нет — имя собеседника; пустая строка, если нет ничего.
+String recipientDisplayName(ConversationEntity c, AppLocalizations l10n) {
+  if (c.type == 'AI_ANALYST') return l10n.aiAnalystTitle;
+  return c.name ?? c.otherUserName ?? '';
+}
 
 /// Беседы, которые предлагаются получателями: те, куда можно писать, кроме
 /// «Избранного». У него своя строка сверху, а созданная беседа SAVED в
@@ -25,7 +30,8 @@ List<ConversationEntity> recipientCandidates(List<ConversationEntity> all) =>
 ///
 /// Общий для «Переслать» и «Поделиться», чтобы два выбора не расходились.
 /// Обёртку (лист или полный экран, заголовок) и действие по нажатию задаёт
-/// вызывающий.
+/// вызывающий. Высота должна быть ограничена: внутри `Column` оборачивать
+/// в `Expanded`.
 class RecipientPickerList extends StatefulWidget {
   final List<ConversationEntity> conversations;
   final ValueChanged<ConversationEntity> onSelected;
@@ -59,14 +65,17 @@ class _RecipientPickerListState extends State<RecipientPickerList> {
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final query = _query.toLowerCase();
+    final query = _query.trim().toLowerCase();
     final candidates = recipientCandidates(widget.conversations)
-        .where((c) => recipientDisplayName(c).toLowerCase().contains(query))
+        .where((c) =>
+            recipientDisplayName(c, l10n).toLowerCase().contains(query))
         .toList();
     // Пока идёт поиск, «Избранное» прячется, а пустой результат — просто
-    // пустой список: «Нет чатов» там было бы неправдой.
-    final showSaved = widget.onSelectSaved != null && _query.isEmpty;
-    final showEmptyRow = candidates.isEmpty && _query.isEmpty;
+    // пустой список: «Нет чатов» там было бы неправдой. Пока беседы
+    // грузятся, индикатор виден и во время поиска.
+    final showSaved = widget.onSelectSaved != null && query.isEmpty;
+    final showEmptyRow =
+        candidates.isEmpty && (query.isEmpty || widget.loading);
     final itemCount =
         (showSaved ? 1 : 0) + (showEmptyRow ? 1 : candidates.length);
 
@@ -168,13 +177,15 @@ class _RecipientTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = AppColors.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final conv = conversation;
-    final shown = recipientDisplayName(conv);
-    final name =
-        shown.isNotEmpty ? shown : AppLocalizations.of(context)!.chatDialog;
+    final shown = recipientDisplayName(conv, l10n);
+    final name = shown.isNotEmpty ? shown : l10n.chatDialog;
     final avatarUrl =
         conv.type == 'DIRECT' ? conv.otherUserAvatar : conv.avatarUrl;
-    final ringColor = rainbowColorFor(name.isNotEmpty ? name : conv.id);
+    // Цвет кольца — от имени, а у безымянной беседы от id: иначе все
+    // безымянные получили бы один цвет от подставленного «Диалог».
+    final ringColor = rainbowColorFor(shown.isNotEmpty ? shown : conv.id);
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(2),
@@ -215,7 +226,7 @@ class _RecipientTile extends StatelessWidget {
                 )
               : Center(
                   child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    name[0].toUpperCase(),
                     style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

@@ -38,10 +38,16 @@ void main() {
     );
   });
 
-  test('display name: the conversation name, else the other person', () {
-    expect(recipientDisplayName(_team), 'Taler team');
-    expect(recipientDisplayName(_anna), 'Anna Ivanova');
-    expect(recipientDisplayName(_conv('c-x', 'DIRECT')), '');
+  test('display name: the conversation name, else the other person; '
+      'the AI analyst by its app title', () {
+    final en = lookupAppLocalizations(const Locale('en'));
+    expect(recipientDisplayName(_team, en), 'Taler team');
+    expect(recipientDisplayName(_anna, en), 'Anna Ivanova');
+    expect(recipientDisplayName(_conv('c-x', 'DIRECT'), en), '');
+    expect(
+        recipientDisplayName(
+            _conv('c-ai', 'AI_ANALYST', name: 'AI Аналитик'), en),
+        'AI Analyst');
   });
 
   testWidgets('shows writable chats and Favorites once, at the top',
@@ -123,5 +129,80 @@ void main() {
       onSelected: (_) {},
     )));
     expect(find.text('No chats'), findsOneWidget);
+  });
+
+  testWidgets('Favorites stays on top of the spinner while chats load',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: const [],
+      loading: true,
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('No chats'), findsNothing);
+  });
+
+  testWidgets('a search with no matches shows an empty list', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _team],
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    await tester.enterText(find.byType(TextField), 'zzz');
+    await tester.pump();
+    expect(find.byType(ListTile), findsNothing);
+    expect(find.text('No chats'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('typing while chats still load keeps the spinner',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: const [],
+      loading: true,
+      onSelected: (_) {},
+    )));
+    await tester.enterText(find.byType(TextField), 'anna');
+    await tester.pump();
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('an unnamed conversation is shown as "Dialog"', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_conv('c-x', 'DIRECT')],
+      onSelected: (_) {},
+    )));
+    expect(find.text('Dialog'), findsOneWidget);
+  });
+
+  testWidgets('the AI analyst is listed and found by its app title',
+      (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _conv('c-ai', 'AI_ANALYST', name: 'AI Аналитик')],
+      onSelected: (_) {},
+    )));
+    expect(find.text('AI Analyst'), findsOneWidget);
+    expect(find.text('AI Аналитик'), findsNothing);
+    await tester.enterText(find.byType(TextField), 'analyst');
+    await tester.pump();
+    expect(find.text('AI Analyst'), findsOneWidget);
+    expect(find.text('Anna Ivanova'), findsNothing);
+  });
+
+  testWidgets('spaces around the query are ignored', (tester) async {
+    await tester.pumpWidget(_wrap(RecipientPickerList(
+      conversations: [_anna, _team],
+      onSelected: (_) {},
+      onSelectSaved: () {},
+    )));
+    await tester.enterText(find.byType(TextField), ' anna ');
+    await tester.pump();
+    expect(find.text('Anna Ivanova'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '   ');
+    await tester.pump();
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Taler team'), findsOneWidget);
   });
 }
