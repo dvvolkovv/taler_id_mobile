@@ -41,6 +41,7 @@ import '../controllers/room_chat_controller.dart';
 import '../controllers/room_chat_lines.dart';
 import '../controllers/recording_dialect.dart';
 import '../controllers/room_data_packet_ids.dart';
+import '../widgets/call_rotation_lock_button.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
 import '../widgets/pulsing_avatar.dart';
@@ -380,6 +381,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
   /// Rotation during the call and the user's "Не поворачивать экран" choice.
   final CallOrientationService _orientation = sl<CallOrientationService>();
+
+  /// Phones only: on tablets the system ignores orientation requests, so the
+  /// lock would show while the screen keeps turning (see the service). The
+  /// device's display decides, not the window: an iPad in Slide Over or
+  /// Stage Manager has a phone-sized window and still won't lock.
+  bool get _rotationLockAvailable {
+    final display = View.of(context).display;
+    return _orientation
+        .lockAvailableFor(display.size / display.devicePixelRatio);
+  }
 
   static const _audioChannel = MethodChannel('taler_id/audio');
 
@@ -4886,6 +4897,8 @@ Answer briefly — the user is in the middle of a conversation.''';
         ),
         automaticallyImplyLeading: false,
         actions: [
+          if (_rotationLockAvailable)
+            CallRotationLockButton.appBar(service: _orientation),
           if (_roomName != null)
             IconButton(
               icon: const Icon(Icons.link_rounded),
@@ -4947,6 +4960,17 @@ Answer briefly — the user is in the middle of a conversation.''';
                   ),
                 ),
               ),
+            ),
+          // Rotation lock, paired with the back chevron: in landscape the
+          // AppBar — and the lock in it — is gone. Immersive fullscreen keeps
+          // its own exit button in this corner, so the lock isn't shown there.
+          // +2, not +8: the button's 48 px tap area pads its 36 px circle by
+          // 6, so the circle lines up with the chevron's.
+          if (isLandscape && !immersiveFs && _rotationLockAvailable)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 2,
+              right: MediaQuery.of(context).padding.right + 2,
+              child: CallRotationLockButton.floating(service: _orientation),
             ),
           // Floating restore button when bottom controls are auto-hidden
           if (_callControlsHidden && !_screenShareFullscreen)
