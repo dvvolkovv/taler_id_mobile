@@ -2673,3 +2673,365 @@ git commit -m "docs(share): спецификация — реализовано 
 - [ ] **Step 3: Дальше — решение пользователя**
 
 superpowers:finishing-a-development-branch: слить в `dev` или открыть PR. Релиз (версия в `pubspec.yaml`, `APP_RELEASES` и `latest` в `taler-id/src/app.controller.ts`, сборки, деплой DEV → TEST → PROD, объявление после всех платформ) — по CLAUDE.md и только по команде пользователя для каждого окружения. Перед деплоем — обязательная батарея из CLAUDE.md.
+
+---
+
+## Доработки по итогам проверки на эмуляторе (2026-10-31)
+
+Задача 12 прошла на TEST-бэкенде (с мака не проходит TLS до DEV-хоста; DEV при этом жив). Нашлись две старые ошибки, которые прямо бьют по запросу «поделиться документом и дать комментарий», и одна косметическая. Задачи 15–17 выполняются до 13 и 14. Ожидаемый итог тестов после них — **1636** (1630 + 5 + 1).
+
+### Task 15: Подпись под документом
+
+Комментарий к документу доходит до сервера (в списке чатов «Вы: …»), но пузырь сообщения рисует подпись только у фото и видео (`chat_room_screen.dart`, блок «Show caption under image/video»). Голосовые и аудио не трогаем: их текст — не подпись.
+
+**Files:**
+- Create: `lib/features/messenger/utils/file_caption.dart`
+- Test: `test/features/messenger/utils/file_caption_test.dart`
+- Modify: `lib/features/messenger/presentation/screens/chat_room_screen.dart` (импорт + условие подписи)
+
+- [ ] **Step 1: Падающий тест**
+
+```dart
+// test/features/messenger/utils/file_caption_test.dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:taler_id_mobile/features/messenger/utils/file_caption.dart';
+
+void main() {
+  test('a document shows the comment typed with it', () {
+    expect(
+        showsFileCaption(
+            content: 'Посмотри до пятницы',
+            fileName: 'Отчёт.pdf',
+            fileType: 'document'),
+        isTrue);
+  });
+
+  test('a document sent without a comment does not repeat its name', () {
+    expect(
+        showsFileCaption(
+            content: 'Отчёт.pdf', fileName: 'Отчёт.pdf', fileType: 'document'),
+        isFalse);
+  });
+
+  test('photos and videos show their caption, as before', () {
+    expect(
+        showsFileCaption(
+            content: 'на память', fileName: 'IMG_1.jpg', fileType: 'image'),
+        isTrue);
+    expect(
+        showsFileCaption(
+            content: 'на память', fileName: 'clip.mp4', fileType: 'video'),
+        isTrue);
+  });
+
+  test('an empty text is no caption', () {
+    expect(
+        showsFileCaption(content: '', fileName: 'IMG_1.jpg', fileType: 'image'),
+        isFalse);
+  });
+
+  test('audio never shows its text as a caption', () {
+    expect(
+        showsFileCaption(
+            content: 'что-то', fileName: 'voice.m4a', fileType: 'audio'),
+        isFalse);
+  });
+}
+```
+
+Run: `flutter test test/features/messenger/utils/file_caption_test.dart` → FAIL (файла нет).
+
+- [ ] **Step 2: Реализация**
+
+```dart
+// lib/features/messenger/utils/file_caption.dart
+
+/// Whether a file message shows its text as a caption under the file.
+///
+/// A file message's text is the caption the sender typed. Without one, a
+/// document carries its own file name and a photo or video an empty string,
+/// so neither is repeated under the file. Audio is left out: a voice
+/// message's text is not a caption.
+bool showsFileCaption({
+  required String content,
+  required String? fileName,
+  required String fileType,
+}) =>
+    fileType != 'audio' && content.isNotEmpty && content != fileName;
+```
+
+Run → `+5: All tests passed!`
+
+- [ ] **Step 3: Пузырь сообщения**
+
+В `chat_room_screen.dart` после строки `import '../../utils/shared_items.dart';` добавить `import '../../utils/file_caption.dart';` и заменить
+```dart
+            // Show caption under image/video if content differs from fileName
+            if (widget.message.fileUrl != null &&
+                (_effectiveFileType(widget.message) == 'image' || _effectiveFileType(widget.message) == 'video') &&
+                widget.message.content.isNotEmpty &&
+                widget.message.content != widget.message.fileName)
+```
+на
+```dart
+            // Caption under the file, documents included: the comment written
+            // with a shared document used to show only in the chat list.
+            if (widget.message.fileUrl != null &&
+                showsFileCaption(
+                  content: widget.message.content,
+                  fileName: widget.message.fileName,
+                  fileType: _effectiveFileType(widget.message),
+                ))
+```
+
+- [ ] **Step 4: Анализатор, прогон, коммит**
+
+Анализатор по `chat_room_screen.dart` и двум новым файлам — без новых диагностик; `flutter test` → `+1635: All tests passed!`.
+
+```bash
+git add lib/features/messenger/utils/file_caption.dart test/features/messenger/utils/file_caption_test.dart lib/features/messenger/presentation/screens/chat_room_screen.dart
+git commit -m "fix(messenger): подпись под документом — комментарий был виден только в списке чатов"
+```
+
+---
+
+### Task 16: Ссылка в «Кому отправить» — как ссылка, а не как файл
+
+Для текста и ссылок плашка превью показывала скрепку и последний кусок адреса («share-test»), будто прикреплён файл.
+
+**Files:**
+- Modify: `lib/features/messenger/presentation/screens/share_target_screen.dart` (`_buildPreview`, `_getDescription`)
+- Modify: `test/features/messenger/presentation/screens/share_target_screen_test.dart`
+
+- [ ] **Step 1: Падающий тест**
+
+В `pumpScreen` добавить необязательный параметр файлов: сигнатура `Future<void> pumpScreen(WidgetTester tester, {bool settle = true, List<SharedMediaFile>? files})`, а маршрут `share` строит `ShareTargetScreen(sharedFiles: files ?? _files)`. В конец `main()` добавить:
+
+```dart
+
+  testWidgets('a shared link is shown as the link, not as a file name',
+      (tester) async {
+    await pumpScreen(tester, files: [
+      SharedMediaFile(
+          path: 'https://example.com/share-test', type: SharedMediaType.url),
+    ]);
+    expect(find.text('https://example.com/share-test'), findsOneWidget);
+    expect(find.text('share-test'), findsNothing);
+    expect(find.byIcon(Icons.link_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsNothing);
+  });
+```
+
+Run → FAIL (видно «share-test» и скрепку).
+
+- [ ] **Step 2: Реализация**
+
+В `_buildPreview()` первым делом после `final path = file.path;`:
+```dart
+    if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      return Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: AppColors.of(context).primary.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          file.type == SharedMediaType.url
+              ? Icons.link_rounded
+              : Icons.notes_rounded,
+          color: AppColors.of(context).primary,
+        ),
+      );
+    }
+```
+В `_getDescription()` внутри `if (count == 1) {` первой строкой после `final file = widget.sharedFiles.first;`:
+```dart
+      // Text and links are shown as they are: they go into the input field,
+      // not as an attachment, and their "file name" would be a URL fragment.
+      if (file.type == SharedMediaType.text ||
+          file.type == SharedMediaType.url) {
+        return file.path;
+      }
+```
+
+Run → `+11: All tests passed!`; `flutter test` → `+1636: All tests passed!`.
+
+- [ ] **Step 3: Коммит**
+
+```bash
+git add lib/features/messenger/presentation/screens/share_target_screen.dart test/features/messenger/presentation/screens/share_target_screen_test.dart
+git commit -m "fix(share): ссылка в «Кому отправить» показана как ссылка, а не как файл"
+```
+
+---
+
+### Task 17: `receive_sharing_intent` — своя копия с правкой Android
+
+Плагин 1.8.1 (в 1.9.0 Android-часть та же, а iOS ломает совместимость) на документах медиатеки (`com.android.providers.media.documents` — так системное приложение «Файлы» отдаёт фото, видео, аудио и документы из своих разделов):
+- для image/video/audio запрашивает коллекцию `MediaStore…EXTERNAL_CONTENT_URI` c `_id=?`, а поток открывает на всю коллекцию → `FileNotFoundException: Multiple items at content://media/external/images/media`;
+- для `document` возвращает `null` → `"path": null` → Dart не разбирает → share теряется;
+- исключение вылетает из `onAttachedToActivity` (регистрация плагина срывается на всю сессию) или из `onNewIntent`;
+- заодно: имя файла от отправителя (`_display_name`) идёт в `File(cacheDir, name)` без проверки — `../` выводит запись за пределы кэша.
+
+Правка: для content-URI всегда копировать по самому URI (именно на него отправитель выдал право чтения), имя — только последний сегмент; ошибки одного элемента не губят остальные и не вылетают из плагина.
+
+**Files:**
+- Create: `packages/receive_sharing_intent/` (копия pub.dev 1.8.1 без `example/`, `test/`), `packages/receive_sharing_intent/PATCHES.md`
+- Modify: `packages/receive_sharing_intent/android/src/main/kotlin/com/kasem/receive_sharing_intent/FileDirectory.kt`, `…/ReceiveSharingIntentPlugin.kt`
+- Modify: `pubspec.yaml` (`dependency_overrides`, комментарий у зависимости), `pubspec.lock`
+
+- [ ] **Step 1: Копия**
+
+```bash
+rsync -a --exclude example --exclude test --exclude '*.iml' --exclude .gradle \
+  ~/.pub-cache/hosted/pub.dev/receive_sharing_intent-1.8.1/ packages/receive_sharing_intent/
+shasum -a 256 ~/.pub-cache/hosted/pub.dev/receive_sharing_intent-1.8.1/pubspec.yaml
+```
+
+- [ ] **Step 2: `FileDirectory.kt` целиком**
+
+```kotlin
+package com.kasem.receive_sharing_intent
+
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import android.util.Log
+import android.webkit.MimeTypeMap
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Date
+
+object FileDirectory {
+
+    /**
+     * PATCH P1 (Taler ID): a path the app can read for a shared [uri].
+     *
+     * Content URIs are always copied into the cache through the URI itself:
+     * the sender granted read access to exactly that URI. Upstream rewrote
+     * media documents into a MediaStore collection query and then opened the
+     * whole collection ("Multiple items at content://media/external/images/
+     * media" for every photo shared from the system Files app), returned null
+     * for the "document" media type (files from its Documents category were
+     * lost), and handed out raw storage paths the app can't read under
+     * scoped storage.
+     */
+    fun getAbsolutePath(context: Context, uri: Uri): String? {
+        if (!"content".equals(uri.scheme, ignoreCase = true)) return uri.path
+        val name = displayName(context, uri) ?: generatedName(context, uri)
+        val target = File(context.cacheDir, name)
+        val input = context.contentResolver.openInputStream(uri) ?: return null
+        input.use { stream -> FileOutputStream(target).use { stream.copyTo(it) } }
+        return target.path
+    }
+
+    /**
+     * The sender's file name, reduced to its last segment: it ends up in a
+     * path under the cache, and "../" from a sender must not leave it.
+     */
+    private fun displayName(context: Context, uri: Uri): String? =
+        try {
+            context.contentResolver
+                .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                ?.substringAfterLast('/')
+                ?.takeIf { it.isNotBlank() && it != "." && it != ".." }
+        } catch (e: Exception) {
+            Log.w("FileDirectory", "No display name for $uri: $e")
+            null
+        }
+
+    private fun generatedName(context: Context, uri: Uri): String {
+        val mimeType = context.contentResolver.getType(uri)
+        val prefix = when {
+            mimeType == null -> "FILE"
+            mimeType.startsWith("image") -> "IMG"
+            mimeType.startsWith("video") -> "VID"
+            else -> "FILE"
+        }
+        val ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType)
+        return if (ext != null) "${prefix}_${Date().time}.$ext" else "${prefix}_${Date().time}"
+    }
+}
+```
+
+- [ ] **Step 3: `ReceiveSharingIntentPlugin.kt`**
+
+1. Импорт: после `import android.os.Build` добавить `import android.util.Log`.
+2. `handleIntent` переименовать в `handleIntentUnsafe` (объявление и только его), и перед ним добавить:
+```kotlin
+    // PATCH P2 (Taler ID): a share that can't be read must not throw out of
+    // onAttachedToActivity / onNewIntent. Upstream that aborted the plugin's
+    // registration for the whole activity (cold start) or crashed it.
+    private fun handleIntent(intent: Intent, initial: Boolean) {
+        try {
+            handleIntentUnsafe(intent, initial)
+        } catch (e: Exception) {
+            Log.e("ReceiveSharingIntent", "Failed to read shared content", e)
+        }
+    }
+
+```
+3. В `ACTION_SEND_MULTIPLE` заменить
+```kotlin
+                uris?.mapIndexedNotNull { index, uri ->
+                    toJsonObject(uri, null, mimeTypes?.getOrNull(index))
+                }?.let { JSONArray(it) }
+```
+на
+```kotlin
+                uris?.mapIndexedNotNull { index, uri ->
+                    // PATCH P3 (Taler ID): one unreadable item is skipped,
+                    // the rest of the share still arrives.
+                    try {
+                        toJsonObject(uri, null, mimeTypes?.getOrNull(index))
+                    } catch (e: Exception) {
+                        Log.w("ReceiveSharingIntent", "Skipping unreadable $uri: $e")
+                        null
+                    }
+                }?.let { JSONArray(it) }
+```
+4. В `toJsonObject` после строки `val path = uri?.let { FileDirectory.getAbsolutePath(applicationContext, it) }` добавить:
+```kotlin
+        // PATCH P4 (Taler ID): nothing readable and no text — no item.
+        // Upstream sent "path": null, which the Dart side can't parse.
+        if (path == null && text == null) return null
+```
+
+- [ ] **Step 4: `PATCHES.md`, pubspec**
+
+`packages/receive_sharing_intent/PATCHES.md` — по образцу `packages/flutter_callkit_incoming/PATCHES.md`: основа (pub.dev 1.8.1, sha256 архива), что не скопировано, команда сверки (`dart pub cache add receive_sharing_intent --version 1.8.1` + `diff -r -x example -x test -x PATCHES.md …`), почему не 1.9.0, список P1–P4 с «было/стало».
+
+В `pubspec.yaml` в `dependency_overrides` после блока `flutter_callkit_incoming` добавить
+```yaml
+  # Patched copy — see packages/receive_sharing_intent/PATCHES.md.
+  receive_sharing_intent:
+    path: packages/receive_sharing_intent
+```
+а над строкой `  receive_sharing_intent: ^1.8.1` — комментарий `  # Resolved from packages/receive_sharing_intent via dependency_overrides (patched copy, see its PATCHES.md).`. Затем `flutter pub get`; в `pubspec.lock` должна поменяться только запись `receive_sharing_intent` (source: path).
+
+- [ ] **Step 5: Сборка и прогон**
+
+```bash
+flutter test   # +1636: All tests passed!
+flutter build apk --flavor dev --release -t lib/main_dev.dart \
+  --dart-define=FLAVOR=dev --dart-define=BASE_URL=https://id.taler.tirol
+```
+Сборка — заодно проверка, что Kotlin компилируется.
+
+- [ ] **Step 6: Коммит**
+
+```bash
+git add packages/receive_sharing_intent pubspec.yaml pubspec.lock
+git commit -m "fix(share): своя копия receive_sharing_intent — фото и документы из «Файлов» больше не теряются"
+```
+
+- [ ] **Step 7: Повтор на эмуляторе** (свой эмулятор, TEST-бэкенд)
+
+1. «Файлы» → «Изображения» → одно фото → «Поделиться» → «DEV Taler ID»: открывается «Кому отправить» с миниатюрой.
+2. Там же три фото: в полосе чата три миниатюры.
+3. «Файлы» → «Документы» → PDF → «Поделиться»: выбор, файл в полосе.
+4. PDF из «Загрузок» — по-прежнему работает.
+5. Документ с комментарием → в пузыре под файлом виден комментарий.
+6. «Поделиться» ссылкой → в превью выбора иконка ссылки и сама ссылка.
