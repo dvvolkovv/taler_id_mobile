@@ -38,4 +38,26 @@ void main() {
     slot.take();
     expect(seen, [2, null]);
   });
+
+  test('replacing a waiting share notifies; taking from an empty slot does not',
+      () {
+    final slot = PendingShare()..offer([_file('/tmp/old.pdf')]);
+    var notified = 0;
+    slot.files.addListener(() => notified++);
+    slot.offer([_file('/tmp/new.pdf')]);
+    expect(notified, 1);
+    slot.take();
+    expect(notified, 2);
+    slot.take();
+    expect(notified, 2);
+  });
+
+  test('the slot keeps its own unmodifiable copy', () {
+    final source = [_file('/tmp/a.pdf')];
+    final slot = PendingShare()..offer(source);
+    source.add(_file('/tmp/b.pdf'));
+    final taken = slot.take()!;
+    expect(taken.length, 1);
+    expect(() => taken.add(_file('/tmp/c.pdf')), throwsUnsupportedError);
+  });
 }
