@@ -70,7 +70,11 @@ class AssistantSessionHooks {
 ///
 /// NOT handled here (kept in the screen because they send realtime events
 /// mid-execution or return no output at all): `enter_translator_mode`,
-/// `exit_translator_mode`, `start_call`.
+/// `exit_translator_mode`, `start_call`, `open_interpreter` — the last two
+/// navigate away and release the voice session's own microphone, same as
+/// each other. In text-chat mode (no screen alongside) a call to any of
+/// these falls through to the "Unknown tool" branch below — the same
+/// pre-existing limitation `start_call` has there.
 class AssistantToolsExecutor {
   AssistantToolsExecutor({this.hooks, this.onAction});
 

@@ -310,6 +310,23 @@ List<Map<String, dynamic>> assistantToolSchemas({required bool translatorMode}) 
           },
           {
             'type': 'function',
+            'name': 'open_interpreter',
+            'description':
+                'Open "Разговор с переводом" — face-to-face interpreter for two people sitting together, each with their own phone, each hearing only the translation of the other (NOT the "one phone on the table" translator mode — that is enter_translator_mode). action="host" opens the start screen to begin a new session and show a QR code; action="join" opens the QR scanner to join a session someone else started. Use when the user asks to "поговорить с переводом", "разговор с переводчиком на два телефона", "включи перевод для разговора вдвоём, у нас по телефону", "сканировать код для разговора с переводом", or similar.',
+            'parameters': {
+              'type': 'object',
+              'properties': {
+                'action': {
+                  'type': 'string',
+                  'enum': ['host', 'join'],
+                  'description': '"host" to start a new session, "join" to scan a partner\'s code',
+                },
+              },
+              'required': ['action'],
+            },
+          },
+          {
+            'type': 'function',
             'name': 'send_message',
             'description':
                 'Send a text message to a conversation. Pass replyToId to answer a specific message — that draws a real quote block in the chat, which plain text cannot do.',

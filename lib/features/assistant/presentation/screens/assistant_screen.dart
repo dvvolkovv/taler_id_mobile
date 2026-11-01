@@ -1243,6 +1243,49 @@ class _AssistantScreenState extends State<AssistantScreen>
         }
         return; // Skip the default sendEvent below — already sent
       }
+      if (name == 'open_interpreter') {
+        Map<String, dynamic> args = const {};
+        try {
+          args = jsonDecode(argsJson) as Map<String, dynamic>;
+        } catch (_) {}
+        final action = args['action'] as String? ?? 'host';
+        debugPrint('[Assistant] tool open_interpreter (callId=$callId) action=$action');
+
+        // No confirmation needed — unlike start_call this doesn't spend
+        // money or ring anyone by itself, so answer right away.
+        _sendEvent({
+          'type': 'conversation.item.create',
+          'item': {
+            'type': 'function_call_output',
+            'call_id': callId,
+            'output': jsonEncode({'ok': true}),
+          },
+        });
+
+        unawaited(_chatLogger.flushNow());
+
+        // Same ordering as start_call: navigate first so `mounted` can't go
+        // false mid-navigation, then release the session — the interpreter
+        // screen needs the microphone this voice session is holding.
+        _navigatingToCall = true;
+        final route = action == 'join'
+            ? '/dashboard/interpreter?scan=1'
+            : '/dashboard/interpreter';
+        debugPrint('[Assistant] Navigating to interpreter: $route');
+
+        setState(() {
+          _state = _CallState.idle;
+          _muted = false;
+          _aiSpeaking = false;
+        });
+
+        if (mounted) {
+          context.push(route);
+        }
+
+        await _cleanup();
+        return; // Skip the default sendEvent below — already sent
+      }
       final args = argsJson.isEmpty
           ? <String, dynamic>{}
           : jsonDecode(argsJson) as Map<String, dynamic>;
