@@ -1244,6 +1244,28 @@ class _AssistantScreenState extends State<AssistantScreen>
         return; // Skip the default sendEvent below — already sent
       }
       if (name == 'open_interpreter') {
+        // The schema already keeps this tool off non-mobile sessions (see
+        // assistant_tools_schema.dart), but answer gracefully instead of
+        // navigating to a `/dashboard/interpreter` route that doesn't exist
+        // there (app_router.dart only registers it when
+        // PlatformUtils.instance.isMobile) if it is ever called anyway.
+        if (!PlatformUtils.instance.isMobile) {
+          debugPrint('[Assistant] tool open_interpreter (callId=$callId) — not available on this platform');
+          _sendEvent({
+            'type': 'conversation.item.create',
+            'item': {
+              'type': 'function_call_output',
+              'call_id': callId,
+              'output': jsonEncode({
+                'error': 'not_available_on_this_platform',
+                'instruction':
+                    'Tell the user this feature is only available on the mobile app, not here.',
+              }),
+            },
+          });
+          _sendEvent({'type': 'response.create'});
+          return;
+        }
         Map<String, dynamic> args = const {};
         try {
           args = jsonDecode(argsJson) as Map<String, dynamic>;

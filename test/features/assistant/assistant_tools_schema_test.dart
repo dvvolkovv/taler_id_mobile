@@ -64,6 +64,21 @@ void main() {
     });
   });
 
+  group('open_interpreter schema', () {
+    // f2: the feature's routes exist only on mobile (LiveKit room +
+    // device-level earpiece/proximity plumbing has no desktop equivalent —
+    // see app_router.dart's `if (PlatformUtils.instance.isMobile)` route
+    // guard), so the tool itself should not be offered to the model
+    // elsewhere. `PlatformUtils.instance.isMobile` has no fake/override hook
+    // in this codebase and is `false` under `flutter test` on every host
+    // this repo builds on (same convention as
+    // interpreter_entry_button_test.dart), so this also doubles as "absent
+    // on desktop".
+    test('is not offered on this (desktop) test host', () {
+      expect(tools.where((t) => t['name'] == 'open_interpreter'), isEmpty);
+    });
+  });
+
   test('translator mode does not expose the pin tools (only its own two)', () {
     final translatorTools = assistantToolSchemas(translatorMode: true);
     final names = translatorTools.map((t) => t['name']).toSet();
