@@ -8,23 +8,30 @@ import 'interpreter_texts.dart';
 import 'language_picker_sheet.dart';
 
 /// Pre-session screen: pick a language, then either host a new call or scan
-/// a partner's QR code. [joinCode] is purely informational here — the
-/// screen that owns the bloc is the one that resumes a join once the
-/// language is picked; this view doesn't act on it.
+/// a partner's QR code. [joinCode] carries a code that arrived via a
+/// scanned/deep-linked `talerid://interp/<code>` link before any language
+/// was picked — per the spec's "Вход (Б)" flow the guest chooses a language
+/// first and only then joins, so while a code is pending this view swaps
+/// «Начать» for a short invitation hint and a «Подключиться» button that
+/// fires [onJoin] with that same code. «Сканировать QR» is shown either way.
 class StartView extends StatelessWidget {
   final InterpreterCatalog catalog;
   final String myLang;
+  final String? joinCode;
   final ValueChanged<String> onLanguageChosen;
   final VoidCallback onStart;
   final VoidCallback onScan;
+  final ValueChanged<String> onJoin;
 
   const StartView({
     super.key,
     required this.catalog,
     required this.myLang,
+    this.joinCode,
     required this.onLanguageChosen,
     required this.onStart,
     required this.onScan,
+    required this.onJoin,
   });
 
   Future<void> _openPicker(BuildContext context) async {
@@ -41,6 +48,7 @@ class StartView extends StatelessWidget {
     final colors = AppColors.of(context);
     final l10n = AppLocalizations.of(context)!;
     final langName = interpreterLanguageName(catalog.languages, myLang);
+    final code = joinCode;
 
     return SafeArea(
       child: Padding(
@@ -72,14 +80,30 @@ class StartView extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: onStart,
-                child: Text(l10n.interpreterStartButton),
+            if (code != null) ...[
+              Text(
+                l10n.interpreterInvitedHint,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors.textSecondary, fontSize: 13),
               ),
-            ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () => onJoin(code),
+                  child: Text(l10n.interpreterJoinButton),
+                ),
+              ),
+            ] else
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: onStart,
+                  child: Text(l10n.interpreterStartButton),
+                ),
+              ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,

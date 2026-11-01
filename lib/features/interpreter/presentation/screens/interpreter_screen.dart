@@ -34,9 +34,16 @@ class InterpreterScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Read on this (outer) context, not the one `create` receives: `provider`
+    // locks inherited-widget lookups for the whole duration of that callback
+    // (it only ever runs once, so it can't handle a locale change anyway),
+    // and `Localizations.localeOf` establishing a listener on it throws
+    // "Tried to listen to an InheritedWidget in a life-cycle that will never
+    // be called again" in debug builds every time this screen opens.
+    final localeCode = Localizations.localeOf(context).languageCode;
     return BlocProvider<InterpreterBloc>(
-      create: (ctx) => sl<InterpreterBloc>(
-        param1: Localizations.localeOf(ctx).languageCode,
+      create: (_) => sl<InterpreterBloc>(
+        param1: localeCode,
       )..add(Started(joinCode: joinCode)),
       child: _InterpreterView(scanFirst: scanFirst),
     );
@@ -181,13 +188,19 @@ class _InterpreterViewState extends State<_InterpreterView> {
         // listener) — this is just what shows behind/after it.
         return Center(child: CircularProgressIndicator(color: colors.primary));
 
-      case InterpreterChoosing(catalog: final catalog, myLang: final myLang):
+      case InterpreterChoosing(
+          catalog: final catalog,
+          myLang: final myLang,
+          joinCode: final joinCode,
+        ):
         return StartView(
           catalog: catalog,
           myLang: myLang,
+          joinCode: joinCode,
           onLanguageChosen: (code) => bloc.add(LanguageChosen(code)),
           onStart: () => bloc.add(const HostPressed()),
           onScan: _openScanner,
+          onJoin: (code) => bloc.add(JoinPressed(code)),
         );
 
       case InterpreterWorking(kind: final kind):

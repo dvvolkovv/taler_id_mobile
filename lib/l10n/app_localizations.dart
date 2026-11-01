@@ -7990,6 +7990,18 @@ abstract class AppLocalizations {
   /// **'Both of you need a voice print. The host pays per minute.'**
   String get interpreterStartHint;
 
+  /// No description provided for @interpreterInvitedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You were invited to a conversation with translation. Choose your language and join.'**
+  String get interpreterInvitedHint;
+
+  /// No description provided for @interpreterJoinButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get interpreterJoinButton;
+
   /// No description provided for @interpreterChooseLanguage.
   ///
   /// In en, this message translates to:

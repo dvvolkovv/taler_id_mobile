@@ -4201,6 +4201,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'Both of you need a voice print. The host pays per minute.';
 
   @override
+  String get interpreterInvitedHint =>
+      'You were invited to a conversation with translation. Choose your language and join.';
+
+  @override
+  String get interpreterJoinButton => 'Join';
+
+  @override
   String get interpreterChooseLanguage => 'Choose a language';
 
   @override

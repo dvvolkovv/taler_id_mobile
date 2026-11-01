@@ -2030,6 +2030,8 @@
   "interpreterStartButton": "Start",
   "interpreterScanButton": "Scan QR",
   "interpreterStartHint": "Both of you need a voice print. The host pays per minute.",
+  "interpreterInvitedHint": "You were invited to a conversation with translation. Choose your language and join.",
+  "interpreterJoinButton": "Join",
   "interpreterChooseLanguage": "Choose a language",
   "interpreterSearchLanguage": "Search language",
   "interpreterShowCode": "Show this code to your partner",

@@ -36,6 +36,7 @@ void main() {
       onLanguageChosen: (_) {},
       onStart: () {},
       onScan: () {},
+      onJoin: (_) {},
     )));
 
     expect(find.text('I speak: Русский'), findsOneWidget);
@@ -49,6 +50,7 @@ void main() {
       onLanguageChosen: (_) {},
       onStart: () => started = true,
       onScan: () {},
+      onJoin: (_) {},
     )));
 
     await tester.tap(find.text('Start'));
@@ -65,6 +67,7 @@ void main() {
       onLanguageChosen: (_) {},
       onStart: () {},
       onScan: () => scanned = true,
+      onJoin: (_) {},
     )));
 
     await tester.tap(find.text('Scan QR'));
@@ -83,6 +86,7 @@ void main() {
       onLanguageChosen: (code) => chosen = code,
       onStart: () {},
       onScan: () {},
+      onJoin: (_) {},
     )));
 
     await tester.tap(find.text('I speak: Русский'));
@@ -103,11 +107,81 @@ void main() {
       onLanguageChosen: (_) {},
       onStart: () {},
       onScan: () {},
+      onJoin: (_) {},
     )));
 
     expect(
       find.text('Both of you need a voice print. The host pays per minute.'),
       findsOneWidget,
+    );
+  });
+
+  // f1: a code arriving via a scanned/deep-linked link must not be silently
+  // dropped on the plain start view — see interpreter_screen.dart's wiring
+  // and the "Вход (Б)" flow in the spec.
+  group('with a pending joinCode', () {
+    testWidgets(
+        'shows the invited hint and "Join" instead of "Start"; tapping '
+        '"Join" fires onJoin with that code', (tester) async {
+      String? joined;
+      await tester.pumpWidget(_wrap(StartView(
+        catalog: _catalog,
+        myLang: 'ru',
+        joinCode: 'ABCD2345',
+        onLanguageChosen: (_) {},
+        onStart: () {},
+        onScan: () {},
+        onJoin: (code) => joined = code,
+      )));
+
+      expect(
+        find.text(
+            'You were invited to a conversation with translation. Choose '
+            'your language and join.'),
+        findsOneWidget,
+      );
+      expect(find.text('Start'), findsNothing);
+      expect(find.text('Join'), findsOneWidget);
+
+      await tester.tap(find.text('Join'));
+      await tester.pump();
+
+      expect(joined, 'ABCD2345');
+    });
+
+    testWidgets('"Scan QR" is still shown', (tester) async {
+      await tester.pumpWidget(_wrap(StartView(
+        catalog: _catalog,
+        myLang: 'ru',
+        joinCode: 'ABCD2345',
+        onLanguageChosen: (_) {},
+        onStart: () {},
+        onScan: () {},
+        onJoin: (_) {},
+      )));
+
+      expect(find.text('Scan QR'), findsOneWidget);
+    });
+  });
+
+  testWidgets('without a joinCode, behaviour is unchanged: "Start" is shown, '
+      'no invited hint, no "Join"', (tester) async {
+    await tester.pumpWidget(_wrap(StartView(
+      catalog: _catalog,
+      myLang: 'ru',
+      onLanguageChosen: (_) {},
+      onStart: () {},
+      onScan: () {},
+      onJoin: (_) {},
+    )));
+
+    expect(find.text('Start'), findsOneWidget);
+    expect(find.text('Join'), findsNothing);
+    expect(
+      find.text(
+          'You were invited to a conversation with translation. Choose '
+          'your language and join.'),
+      findsNothing,
     );
   });
 }

@@ -2023,6 +2023,8 @@
   "interpreterStartButton": "Начать",
   "interpreterScanButton": "Сканировать QR",
   "interpreterStartHint": "Нужен образец голоса — ваш и собеседника. Платит тот, кто начал разговор.",
+  "interpreterInvitedHint": "Вас пригласили в разговор с переводом. Выберите свой язык и подключитесь.",
+  "interpreterJoinButton": "Подключиться",
   "interpreterChooseLanguage": "Выберите язык",
   "interpreterSearchLanguage": "Поиск языка",
   "interpreterShowCode": "Покажите код собеседнику",

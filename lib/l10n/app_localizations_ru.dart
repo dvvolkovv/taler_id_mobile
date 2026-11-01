@@ -4260,6 +4260,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Нужен образец голоса — ваш и собеседника. Платит тот, кто начал разговор.';
 
   @override
+  String get interpreterInvitedHint =>
+      'Вас пригласили в разговор с переводом. Выберите свой язык и подключитесь.';
+
+  @override
+  String get interpreterJoinButton => 'Подключиться';
+
+  @override
   String get interpreterChooseLanguage => 'Выберите язык';
 
   @override
