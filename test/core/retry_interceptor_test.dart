@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -9,6 +11,28 @@ import 'package:taler_id_mobile/core/storage/secure_storage_service.dart';
 // An alternative: we create a Dio with interceptors and test error handling.
 
 class MockSecureStorageService extends Mock implements SecureStorageService {}
+
+/// Records every attempt and always fails the same way — enough to tell
+/// "sent once" from "retried" without a real socket.
+class _ScriptedAdapter implements HttpClientAdapter {
+  _ScriptedAdapter(this._makeError);
+
+  final DioException Function(RequestOptions options) _makeError;
+  final List<RequestOptions> requests = [];
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    requests.add(options);
+    throw _makeError(options);
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
 
 void main() {
   // Test ApiErrorHandler integration — retry is private, so we test the
@@ -78,8 +102,8 @@ void main() {
     test('retry interceptor logic: retries on connectionTimeout', () async {
       // Simulate what _RetryInterceptor does: check error type and retry count
       final requestOptions = RequestOptions(path: '/test');
-      final isConnectionTimeout =
-          DioExceptionType.connectionTimeout == DioExceptionType.connectionTimeout;
+      final isConnectionTimeout = DioExceptionType.connectionTimeout ==
+          DioExceptionType.connectionTimeout;
       final isReceiveTimeout =
           DioExceptionType.receiveTimeout == DioExceptionType.receiveTimeout;
       final isConnectionError =
@@ -116,6 +140,92 @@ void main() {
       // Delay formula: 500 * (retryCount + 1)
       expect(500 * (0 + 1), 500); // First retry: 500ms
       expect(500 * (1 + 1), 1000); // Second retry: 1000ms
+    });
+  });
+
+  // Exercises the real interceptor chain registered by `DioClient.create`
+  // against a scripted `HttpClientAdapter` — unlike the groups above, these
+  // assert actual request counts rather than just the retry formula.
+  group('kNoResendAfterTimeout', () {
+    DioClient buildClient(DioException Function(RequestOptions) makeError) {
+      final storage = MockSecureStorageService();
+      when(() => storage.getAccessToken()).thenAnswer((_) async => null);
+      final authInterceptor = AuthInterceptor(dio: Dio(), storage: storage);
+      final client = DioClient.create(authInterceptor: authInterceptor);
+      client.dio.httpClientAdapter = _ScriptedAdapter(makeError);
+      return client;
+    }
+
+    List<RequestOptions> requestsOf(DioClient client) =>
+        (client.dio.httpClientAdapter as _ScriptedAdapter).requests;
+
+    test('receiveTimeout with the flag is sent exactly once', () async {
+      final client = buildClient((o) => DioException(
+            requestOptions: o,
+            type: DioExceptionType.receiveTimeout,
+          ));
+
+      await expectLater(
+        client.dio.post<dynamic>(
+          '/interpreter/sessions/join',
+          options: Options(extra: {kNoResendAfterTimeout: true}),
+        ),
+        throwsA(isA<DioException>()
+            .having((e) => e.type, 'type', DioExceptionType.receiveTimeout)),
+      );
+
+      expect(requestsOf(client), hasLength(1));
+    });
+
+    test('receiveTimeout without the flag is retried as before', () async {
+      final client = buildClient((o) => DioException(
+            requestOptions: o,
+            type: DioExceptionType.receiveTimeout,
+          ));
+
+      await expectLater(
+        client.dio.post<dynamic>('/interpreter/sessions/join'),
+        throwsA(isA<DioException>()),
+      );
+
+      // Original attempt + 2 transient retries (default maxRetries).
+      expect(requestsOf(client), hasLength(3));
+    });
+
+    test(
+        'connectionError with the flag is still retried — the request never left',
+        () async {
+      final client = buildClient((o) => DioException(
+            requestOptions: o,
+            type: DioExceptionType.connectionError,
+          ));
+
+      await expectLater(
+        client.dio.post<dynamic>(
+          '/interpreter/sessions/join',
+          options: Options(extra: {kNoResendAfterTimeout: true}),
+        ),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(requestsOf(client), hasLength(3));
+    });
+
+    test('connectionTimeout with the flag is still retried too', () async {
+      final client = buildClient((o) => DioException(
+            requestOptions: o,
+            type: DioExceptionType.connectionTimeout,
+          ));
+
+      await expectLater(
+        client.dio.post<dynamic>(
+          '/interpreter/sessions/join',
+          options: Options(extra: {kNoResendAfterTimeout: true}),
+        ),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(requestsOf(client), hasLength(3));
     });
   });
 }

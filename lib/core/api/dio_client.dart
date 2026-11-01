@@ -8,6 +8,12 @@ import 'billing_paywall_interceptor.dart';
 import 'endpoint_service.dart';
 import '../services/device_id_service.dart';
 
+/// [Options.extra] key for a request the server must not get twice (a
+/// single-use code, a billing session): after a receive timeout it may have
+/// arrived, so it is neither retried nor failed over to another edge. A
+/// connection timeout or error still retries — that request never left.
+const kNoResendAfterTimeout = 'noResendAfterTimeout';
+
 class _RetryInterceptor extends Interceptor {
   final Dio dio;
   final int maxRetries;
@@ -25,7 +31,13 @@ class _RetryInterceptor extends Interceptor {
     // Don't retry logout — it's fire-and-forget; local cleanup runs regardless.
     final isLogout = err.requestOptions.path.contains('/auth/logout');
 
-    if (isNetworkError && !isLogout && retryCount < maxRetries) {
+    final mustNotResend = err.type == DioExceptionType.receiveTimeout &&
+        err.requestOptions.extra[kNoResendAfterTimeout] == true;
+
+    if (isNetworkError &&
+        !isLogout &&
+        !mustNotResend &&
+        retryCount < maxRetries) {
       await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1)));
       final opts = err.requestOptions;
       opts.extra['retryCount'] = retryCount + 1;
@@ -44,6 +56,7 @@ class _RetryInterceptor extends Interceptor {
     final failoverCount = err.requestOptions.extra['failoverCount'] as int? ?? 0;
     if (isNetworkError &&
         !isLogout &&
+        !mustNotResend &&
         ep != null &&
         ep.hasFallback &&
         failoverCount < ep.candidates.length - 1) {
@@ -155,10 +168,11 @@ class DioClient {
   Future<T> post<T>(
     String path, {
     dynamic data,
+    Options? options,
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final response = await _dio.post(path, data: data);
+      final response = await _dio.post(path, data: data, options: options);
       return fromJson != null ? fromJson(response.data) : response.data as T;
     } on DioException catch (e) {
       throw ApiErrorHandler.handle(e);
