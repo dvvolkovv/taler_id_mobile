@@ -961,14 +961,16 @@ void main() {
     );
 
     test(
-        'closing the bloc tears down the room without ending the session on the server',
-        () async {
+        'closing the bloc while a session is live tears down the room AND '
+        'ends the session on the server — otherwise the host keeps being '
+        'billed until the ~70s reconciler notices', () async {
       when(() => repo.catalog()).thenAnswer((_) async => _catalog());
       when(() => langStore.initial(any(), any())).thenAnswer((_) async => 'ru');
       when(() => voice.getStatus())
           .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
       when(() => repo.create('ru')).thenAnswer((_) async => _hostedSession());
       when(() => repo.get('sess-1')).thenAnswer((_) async => _activeView());
+      when(() => repo.end('sess-1')).thenAnswer((_) async {});
 
       bloc.add(const Started());
       await Future.delayed(_tinyDelay);
@@ -981,8 +983,94 @@ void main() {
       await bloc.close();
 
       verify(() => device.leaveConversation()).called(1);
-      verifyNever(() => repo.end(any()));
+      verify(() => repo.end('sess-1')).called(1);
       expect(port.disconnected, isTrue);
+    });
+  });
+
+  group('f4: close() notifies the server while a session is live', () {
+    test('close while Hosting (no partner yet) ends the session once',
+        () async {
+      when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+      when(() => langStore.initial(any(), any())).thenAnswer((_) async => 'ru');
+      when(() => voice.getStatus())
+          .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
+      when(() => repo.create('ru')).thenAnswer((_) async => _hostedSession());
+      when(() => repo.end('sess-1')).thenAnswer((_) async {});
+
+      bloc.add(const Started());
+      await Future.delayed(_tinyDelay);
+      bloc.add(const HostPressed());
+      await Future.delayed(_tinyDelay);
+      expect(bloc.state, isA<InterpreterHosting>());
+
+      await bloc.close();
+
+      verify(() => repo.end('sess-1')).called(1);
+    });
+
+    test('close while Active ends the session once', () async {
+      when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+      when(() => langStore.initial(any(), any())).thenAnswer((_) async => 'ru');
+      when(() => voice.getStatus())
+          .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
+      when(() => repo.create('ru')).thenAnswer((_) async => _hostedSession());
+      when(() => repo.get('sess-1')).thenAnswer((_) async => _activeView());
+      when(() => repo.end('sess-1')).thenAnswer((_) async {});
+
+      bloc.add(const Started());
+      await Future.delayed(_tinyDelay);
+      bloc.add(const HostPressed());
+      await Future.delayed(_tinyDelay);
+      port.emit(const ParticipantJoined(_partnerIdentity));
+      await Future.delayed(_tinyDelay);
+      expect(bloc.state, isA<InterpreterActive>());
+
+      await bloc.close();
+
+      verify(() => repo.end('sess-1')).called(1);
+    });
+
+    test(
+        'close after the call already Ended (via EndPressed) does not end '
+        'the session again beyond what that flow already did', () async {
+      when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+      when(() => langStore.initial(any(), any())).thenAnswer((_) async => 'ru');
+      when(() => voice.getStatus())
+          .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
+      when(() => repo.create('ru')).thenAnswer((_) async => _hostedSession());
+      when(() => repo.get('sess-1')).thenAnswer((_) async => _activeView());
+      when(() => repo.end('sess-1')).thenAnswer((_) async {});
+
+      bloc.add(const Started());
+      await Future.delayed(_tinyDelay);
+      bloc.add(const HostPressed());
+      await Future.delayed(_tinyDelay);
+      port.emit(const ParticipantJoined(_partnerIdentity));
+      await Future.delayed(_tinyDelay);
+      bloc.add(const EndPressed());
+      await Future.delayed(_tinyDelay);
+      expect(bloc.state, isA<InterpreterEnded>());
+
+      await bloc.close();
+
+      // Exactly the one call EndPressed's own handler already made —
+      // close() must not pile another one on top of it.
+      verify(() => repo.end('sess-1')).called(1);
+    });
+
+    test('close while Choosing (no session ever started) never calls repo.end',
+        () async {
+      when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+      when(() => langStore.initial(any(), any())).thenAnswer((_) async => 'ru');
+
+      bloc.add(const Started());
+      await Future.delayed(_tinyDelay);
+      expect(bloc.state, isA<InterpreterChoosing>());
+
+      await bloc.close();
+
+      verifyNever(() => repo.end(any()));
     });
   });
 

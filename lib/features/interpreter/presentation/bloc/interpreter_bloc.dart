@@ -741,6 +741,22 @@ class InterpreterBloc extends Bloc<InterpreterEvent, InterpreterState> {
 
   @override
   Future<void> close() async {
+    final sessionId = _sessionId;
+    final current = state;
+    // The screen going away mid-call (a programmatic route change, not the
+    // «Завершить» button) must not leave the host billed until the ~70s
+    // reconciler notices — tell the server too, not just tear down locally.
+    // Fire-and-forget: close() must not block on the network, and the end
+    // route is idempotent, so a failure here is simply left to that same
+    // reconciler. Wrapped defensively — a call that throws synchronously
+    // (e.g. an unstubbed mock in a test that never exercises this path)
+    // must not stop teardown from running either.
+    if (sessionId != null &&
+        (current is InterpreterHosting || current is InterpreterActive)) {
+      try {
+        unawaited(repo.end(sessionId).catchError((_) {}));
+      } catch (_) {}
+    }
     await _teardownRoom();
     return super.close();
   }
