@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/interpreter/domain/interpreter_code.dart';
+import '../platform/platform_utils.dart';
 import '../utils/constants.dart';
 
 /// Hosts whose OAuth links this app may act on. Mirrors the associated-domains
@@ -52,7 +53,7 @@ class DeepLinkHandler {
       return;
     }
 
-    final target = resolve(uri);
+    final target = resolve(uri, isMobile: PlatformUtils.instance.isMobile);
     if (target == null) return;
     // OAuth is pushed so the flow can be backed out of, returning the user to
     // wherever they were; the rest replace the location.
@@ -87,7 +88,18 @@ class DeepLinkHandler {
 
   /// Maps an incoming link to the in-app location it should open, or null when
   /// the app has nothing to do with it.
-  static DeepLinkTarget? resolve(Uri uri) {
+  ///
+  /// [isMobile] gates the interpreter branch below — kept as an injectable
+  /// parameter rather than this (static, pure) method reading
+  /// [PlatformUtils] itself, the same reason [InterpreterEntryButton] takes
+  /// the real platform check at its own call site: that global reads `false`
+  /// under `flutter test` on every host this repo builds on, which would
+  /// make the interpreter link silently stop resolving in every test, not
+  /// just the desktop ones. Defaults to `true` (the behaviour every other
+  /// branch here already has, since none of them are platform-gated) so
+  /// existing callers — including every test this method already had —
+  /// are unaffected unless they opt in.
+  static DeepLinkTarget? resolve(Uri uri, {bool isMobile = true}) {
     // OAuth native login (Universal Links / App Links):
     // https://<host>/oauth/auth?...
     //
@@ -147,9 +159,16 @@ class DeepLinkHandler {
 
     // Handle interpreter join links:
     // talerid://interp/{code}
-    final interpCode = codeFromScan(uri.toString());
-    if (interpCode != null) {
-      return DeepLinkTarget('/dashboard/interpreter/join/$interpCode');
+    //
+    // Mobile-only — the routes this resolves to don't exist on desktop (see
+    // InterpreterEntryButton, which hides the feature's own entry point the
+    // same way), so a logged-in desktop user opening one would otherwise
+    // land on go_router's error page instead of just not matching here.
+    if (isMobile) {
+      final interpCode = codeFromScan(uri.toString());
+      if (interpCode != null) {
+        return DeepLinkTarget('/dashboard/interpreter/join/$interpCode');
+      }
     }
 
     return null;

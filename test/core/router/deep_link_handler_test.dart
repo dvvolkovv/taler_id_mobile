@@ -9,7 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/core/router/deep_link_handler.dart';
 
 void main() {
-  DeepLinkTarget? resolve(String url) => DeepLinkHandler.resolve(Uri.parse(url));
+  DeepLinkTarget? resolve(String url, {bool isMobile = true}) =>
+      DeepLinkHandler.resolve(Uri.parse(url), isMobile: isMobile);
 
   group('OAuth links', () {
     const hosts = [
@@ -72,18 +73,24 @@ void main() {
     });
 
     test('interpreter join code over the custom scheme', () {
-      final t = resolve('talerid://interp/ABCD1234');
+      final t = resolve('talerid://interp/ABCD1234', isMobile: true);
       expect(t!.location, '/dashboard/interpreter/join/ABCD1234');
       expect(t.push, isFalse);
     });
 
     test('interpreter join link tolerates a trailing slash', () {
-      expect(resolve('talerid://interp/ABCD1234/')!.location,
+      expect(resolve('talerid://interp/ABCD1234/', isMobile: true)!.location,
           '/dashboard/interpreter/join/ABCD1234');
     });
 
     test('a talerid link to a different path is not an interpreter join', () {
-      expect(resolve('talerid://interp/code/extra'), isNull);
+      expect(resolve('talerid://interp/code/extra', isMobile: true), isNull);
+    });
+
+    test(
+        'desktop does not resolve an interpreter join link — the feature '
+        'is mobile-only (see InterpreterEntryButton)', () {
+      expect(resolve('talerid://interp/ABCD1234', isMobile: false), isNull);
     });
 
     test('an invite link without a token is not acted on', () {
