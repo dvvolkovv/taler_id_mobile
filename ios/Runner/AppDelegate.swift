@@ -194,6 +194,29 @@ import flutter_callkit_incoming
       }
     }
 
+    // Interpreter ("Разговор с переводом"): proximity sensor only. iOS keeps
+    // the mic running in the background through the `audio` UIBackgroundMode
+    // already declared in Info.plist, so startForeground/stopForeground
+    // (Android's foreground-service equivalent) are no-ops here.
+    if let controller = window?.rootViewController as? FlutterViewController {
+      let interpreterDeviceChannel = FlutterMethodChannel(
+        name: "taler_id/interpreter_device",
+        binaryMessenger: controller.binaryMessenger
+      )
+      interpreterDeviceChannel.setMethodCallHandler { call, result in
+        switch call.method {
+        case "setProximity":
+          let on = call.arguments as? Bool ?? false
+          UIDevice.current.isProximityMonitoringEnabled = on
+          result(nil)
+        case "startForeground", "stopForeground":
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+    }
+
     // Register for audio session interruptions (parallel calls from other apps/phone)
     NotificationCenter.default.addObserver(
       self,
