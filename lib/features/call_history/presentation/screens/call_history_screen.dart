@@ -31,6 +31,7 @@ import '../../../../core/theme/widgets.dart';
 import '../../../messenger/data/datasources/messenger_remote_datasource.dart';
 import '../../../messenger/presentation/bloc/messenger_bloc.dart';
 import '../../../billing/presentation/widgets/balance_chip.dart';
+import '../../../interpreter/presentation/widgets/interpreter_entry_button.dart';
 import '../../data/mesh_call_history_entry.dart';
 import '../../data/mesh_call_history_repository.dart';
 import 'call_history_merge.dart';
@@ -569,6 +570,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
                   _buildPersonalRoomSection(colors),
                   const SizedBox(height: 12),
                   _buildCreateMeetingButton(colors),
+                  const SizedBox(height: 12),
+                  InterpreterEntryButton(
+                    onTap: () => context.push(RouteConstants.interpreter),
+                  ),
                   const SizedBox(height: 12),
                   _buildMeetingSummariesButton(colors),
                   const SizedBox(height: 8),
