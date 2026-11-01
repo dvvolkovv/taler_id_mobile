@@ -17,6 +17,7 @@ import '../../../../core/utils/countries.dart';
 import '../../../../core/api/dio_client.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/storage/cache_service.dart';
+import '../../../interpreter/domain/interpreter_code.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/profile_bloc.dart';
 import '../../../voice/presentation/widgets/pulsing_avatar.dart' show rainbowColorFor;
@@ -904,6 +905,17 @@ class _QrScannerScreenState extends State<_QrScannerScreen> {
       if (uri.scheme == 'talerid' && uri.host == 'user' && uri.pathSegments.isNotEmpty) {
         _handled = true;
         widget.onUserScanned(uri.pathSegments.first);
+        return;
+      }
+      // Face-to-face interpreter join link: talerid://interp/<code>. The
+      // system camera opens these the same way it would a user QR — this
+      // scanner has to recognise them too, not just the dedicated one in
+      // `interpreter/presentation/widgets/scanner_screen.dart`.
+      final interpCode = codeFromScan(raw);
+      if (interpCode != null) {
+        _handled = true;
+        Navigator.of(context).pop();
+        GoRouter.of(context).push('/dashboard/interpreter/join/$interpCode');
         return;
       }
     }

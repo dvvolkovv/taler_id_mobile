@@ -71,6 +71,21 @@ void main() {
       expect(resolve('talerid://user/u-1')!.location, '/dashboard/user/u-1');
     });
 
+    test('interpreter join code over the custom scheme', () {
+      final t = resolve('talerid://interp/ABCD1234');
+      expect(t!.location, '/dashboard/interpreter/join/ABCD1234');
+      expect(t.push, isFalse);
+    });
+
+    test('interpreter join link tolerates a trailing slash', () {
+      expect(resolve('talerid://interp/ABCD1234/')!.location,
+          '/dashboard/interpreter/join/ABCD1234');
+    });
+
+    test('a talerid link to a different path is not an interpreter join', () {
+      expect(resolve('talerid://interp/code/extra'), isNull);
+    });
+
     test('an invite link without a token is not acted on', () {
       expect(resolve('https://id.taler.tirol/ui/invite.html'), isNull);
     });

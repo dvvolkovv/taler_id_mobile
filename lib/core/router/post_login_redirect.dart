@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/interpreter/data/pending_interpreter_join.dart';
 import '../../features/mail/domain/repositories/i_mail_repository.dart';
 import '../../features/oauth/data/oauth_pending_request.dart';
 import '../di/service_locator.dart';
@@ -9,14 +10,22 @@ import '../utils/constants.dart';
 
 /// Call this after a successful login/biometric/PIN entry. If the user opened
 /// the app via a Universal Link to /oauth/authorize before logging in,
-/// resume the OAuth consent flow. Otherwise navigate to onboarding (first
-/// login on this device) or straight to the assistant.
+/// resume the OAuth consent flow. Otherwise, if they opened a face-to-face
+/// interpreter join link, resume that. Otherwise navigate to onboarding
+/// (first login on this device) or straight to the assistant.
 Future<void> postLoginNavigate(BuildContext context) async {
   final pendingOAuth = await sl<OAuthPendingRequest>().consume();
   if (pendingOAuth != null) {
     if (!context.mounted) return;
     final query = pendingOAuth.query.isEmpty ? '' : '?${pendingOAuth.query}';
     context.go('${RouteConstants.oauthAuthorize}$query');
+    return;
+  }
+
+  final pendingJoinCode = sl<PendingInterpreterJoin>().consume();
+  if (pendingJoinCode != null) {
+    if (!context.mounted) return;
+    context.go('${RouteConstants.interpreter}/join/$pendingJoinCode');
     return;
   }
 

@@ -2,6 +2,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/interpreter/domain/interpreter_code.dart';
 import '../utils/constants.dart';
 
 /// Hosts whose OAuth links this app may act on. Mirrors the associated-domains
@@ -142,6 +143,13 @@ class DeepLinkHandler {
       if (userId.isNotEmpty) {
         return DeepLinkTarget('/dashboard/user/$userId');
       }
+    }
+
+    // Handle interpreter join links:
+    // talerid://interp/{code}
+    final interpCode = codeFromScan(uri.toString());
+    if (interpCode != null) {
+      return DeepLinkTarget('/dashboard/interpreter/join/$interpCode');
     }
 
     return null;
