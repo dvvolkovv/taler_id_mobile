@@ -174,6 +174,16 @@ import '../../features/billing/presentation/bloc/packages_bloc.dart';
 import '../../features/billing/presentation/bloc/toggles_bloc.dart';
 import '../../features/billing/presentation/bloc/transactions_bloc.dart';
 
+// Interpreter ("Разговор с переводом" — face-to-face interpreter)
+import '../../features/interpreter/data/interpreter_lang_store.dart';
+import '../../features/interpreter/data/interpreter_remote_datasource.dart';
+import '../../features/interpreter/data/interpreter_repository_impl.dart';
+import '../../features/interpreter/data/pending_interpreter_join.dart';
+import '../../features/interpreter/domain/interpreter_repository.dart';
+import '../../features/interpreter/presentation/bloc/interpreter_bloc.dart';
+import '../../features/interpreter/room/interpreter_device.dart';
+import '../../features/interpreter/room/livekit_interpreter_room.dart';
+
 // Assistant Chat
 import '../../features/assistant/data/assistant_chat_api.dart';
 import '../../features/assistant/data/assistant_draft_storage.dart';
@@ -788,6 +798,42 @@ Future<void> setupDependencies() async {
       eventBus: sl<BillingEventBus>(),
     ),
   );
+
+  // Registered unconditionally (unlike the LiveKit/device plumbing below):
+  // `_globalRedirect` in app_router.dart has to be able to save a join code
+  // for an unauthenticated scanner on every platform, same as
+  // `OAuthPendingRequest` above — the join route itself is still mobile-only.
+  sl.registerLazySingleton<PendingInterpreterJoin>(
+      () => PendingInterpreterJoin());
+
+  // Interpreter ("Разговор с переводом") — mobile only, same as the mesh
+  // group-call BLoC above: LiveKit rooms and the device-level earpiece/
+  // proximity/foreground-service plumbing have no desktop equivalent.
+  if (PlatformUtils.instance.isMobile) {
+    sl.registerLazySingleton(
+        () => InterpreterRemoteDataSource(sl<DioClient>()));
+    sl.registerLazySingleton<InterpreterRepository>(
+      () => InterpreterRepositoryImpl(sl<InterpreterRemoteDataSource>()),
+    );
+    sl.registerLazySingleton(
+        () => InterpreterLangStore(sl<SecureStorageService>()));
+    sl.registerLazySingleton(() => InterpreterDevice());
+    // Factory with a param: the screen passes the app's current locale code
+    // (`Localizations.localeOf(context).languageCode`) as the default
+    // language to preselect — a fresh bloc per screen visit, like the
+    // other per-screen BLoCs above.
+    sl.registerFactoryParam<InterpreterBloc, String, void>(
+      (appLocaleCode, _) => InterpreterBloc(
+        repo: sl<InterpreterRepository>(),
+        langStore: sl<InterpreterLangStore>(),
+        voice: sl<VoiceEnrollmentRepository>(),
+        roomFactory: LiveKitInterpreterRoom.new,
+        device: sl<InterpreterDevice>(),
+        appLocale: () => appLocaleCode,
+        livekitUrl: interpreterLivekitUrl,
+      ),
+    );
+  }
 
   // Outbox infrastructure
   sl.registerLazySingleton<OutboxQueue>(() => OutboxQueue());

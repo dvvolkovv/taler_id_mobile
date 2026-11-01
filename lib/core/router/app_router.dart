@@ -49,6 +49,8 @@ import '../../features/voice/presentation/screens/new_group_call_screen.dart';
 import '../../features/voice/presentation/screens/group_call_lobby_screen.dart';
 import '../../features/voice/presentation/screens/group_call_active_screen.dart';
 import '../../features/call_history/presentation/screens/call_history_screen.dart';
+import '../../features/interpreter/data/pending_interpreter_join.dart';
+import '../../features/interpreter/presentation/screens/interpreter_screen.dart';
 import '../../features/profile_sections/presentation/screens/profile_sections_screen.dart';
 import '../../features/billing/presentation/screens/wallet_screen.dart';
 import '../../features/billing/presentation/screens/transactions_screen.dart';
@@ -224,6 +226,25 @@ final appRouter = GoRouter(
         );
       },
     ),
+    // Face-to-face interpreter — mobile only (LiveKit room + device-level
+    // earpiece/proximity plumbing has no desktop equivalent). Full-screen,
+    // outside ShellRoute, same reason as the voice call route above: the
+    // proximity sensor and earpiece routing have no business sharing a
+    // screen with the bottom nav.
+    if (PlatformUtils.instance.isMobile) ...[
+      GoRoute(
+        path: RouteConstants.interpreter,
+        builder: (_, state) => InterpreterScreen(
+          scanFirst: state.uri.queryParameters['scan'] == '1',
+        ),
+      ),
+      GoRoute(
+        path: RouteConstants.interpreterJoin,
+        builder: (_, state) => InterpreterScreen(
+          joinCode: state.pathParameters['code'],
+        ),
+      ),
+    ],
     // Group mesh voice room — mobile only (mesh not available on desktop).
     if (PlatformUtils.instance.isMobile) ...[
       // Picker (Phase 1)
@@ -575,6 +596,27 @@ Future<String?> _globalRedirect(BuildContext context, GoRouterState state) async
       final hasToken = await storage.hasRefreshToken;
       if (!hasToken) {
         await sl<OAuthPendingRequest>().save(state.uri);
+        return RouteConstants.login;
+      }
+    } catch (_) {
+      // Storage briefly unavailable — let it through; the screen will fail-fast.
+    }
+    return null;
+  }
+
+  // Face-to-face interpreter join deep link opened from the system camera
+  // while logged out: same pattern as the native OAuth flow above — save the
+  // code before sending the user to /login, so postLoginNavigate can resume
+  // it, instead of just losing it to the generic protected-route check below.
+  if (state.matchedLocation.startsWith('${RouteConstants.interpreter}/join/')) {
+    try {
+      final storage = sl<SecureStorageService>();
+      final hasToken = await storage.hasRefreshToken;
+      if (!hasToken) {
+        final code = state.pathParameters['code'];
+        if (code != null && code.isNotEmpty) {
+          sl<PendingInterpreterJoin>().save(code);
+        }
         return RouteConstants.login;
       }
     } catch (_) {

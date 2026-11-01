@@ -59,6 +59,9 @@ class RouteConstants {
   static const forgotPassword = '/auth/forgot-password';
   static const verifyEmail = '/dashboard/profile/verify-email';
   static const translator = '/dashboard/translator';
+  // Face-to-face interpreter ("Разговор с переводом").
+  static const interpreter = '/dashboard/interpreter';
+  static const interpreterJoin = '/dashboard/interpreter/join/:code';
   static const profileSections = '/dashboard/profile/sections';
   static const aiTwin = '/dashboard/profile/ai-twin';
 
