@@ -67,6 +67,17 @@ class InterpreterChoosing extends InterpreterState {
         joinCode: joinCode,
       );
 
+  /// Same catalog/language, but with no code left on screen — [copyWith]
+  /// has no way to force a nullable field back to `null`, and this is the
+  /// one place that needs to: a join code the server has just declared dead
+  /// (expired/used/own/not-found) must not keep coming back every time the
+  /// start view is reached, offering a retry that can only repeat the same
+  /// definitive error.
+  InterpreterChoosing withoutJoinCode() => InterpreterChoosing(
+        catalog: catalog,
+        myLang: myLang,
+      );
+
   @override
   List<Object?> get props => [catalog, myLang, joinCode];
 }

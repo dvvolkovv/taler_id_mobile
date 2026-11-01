@@ -642,6 +642,19 @@ class InterpreterBloc extends Bloc<InterpreterEvent, InterpreterState> {
     emit(choosing);
   }
 
+  /// Backend codes that mean the join code itself is now dead, not just this
+  /// one attempt — offering it again on the start view (the deep-linked
+  /// code's whole reason for being there) would only repeat the same
+  /// definitive error, so [_emitRepoFailure] drops it from the Choosing it
+  /// falls back to. Every other code (network, voice print, unavailable,
+  /// host funds…) leaves the code in place so the guest can just retry.
+  static const _deadJoinCodeKinds = {
+    InterpreterErrorKind.codeExpired,
+    InterpreterErrorKind.codeUsed,
+    InterpreterErrorKind.ownCode,
+    InterpreterErrorKind.codeNotFound,
+  };
+
   /// Centralises what happens to a thrown repo/voice error: a bare
   /// `voice_print_required` reopens the gate when there is a pending
   /// action to resume; everything else — including `network`/`unknown` and
@@ -661,7 +674,15 @@ class InterpreterBloc extends Bloc<InterpreterEvent, InterpreterState> {
       emit(InterpreterNeedVoicePrint(then: pendingThen, code: pendingCode));
       return;
     }
-    emit(InterpreterFailure(kind: kind, back: back ?? _lastChoosing));
+    var effectiveBack = back ?? _lastChoosing;
+    if (_deadJoinCodeKinds.contains(kind) && effectiveBack?.joinCode != null) {
+      effectiveBack = effectiveBack!.withoutJoinCode();
+      // Kept in sync too: RetryPressed/BackToStart falls back to this very
+      // field whenever the caller passing `back` wasn't itself the current
+      // Failure's own `back` (e.g. a failure with no explicit `back` at all).
+      _lastChoosing = effectiveBack;
+    }
+    emit(InterpreterFailure(kind: kind, back: effectiveBack));
   }
 
   Future<void> _enterRoom({

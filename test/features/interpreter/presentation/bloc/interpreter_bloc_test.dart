@@ -634,6 +634,82 @@ void main() {
     }
   });
 
+  group('a dead join code does not stick around', () {
+    const deadCodeKinds = [
+      InterpreterErrorKind.codeExpired,
+      InterpreterErrorKind.codeUsed,
+      InterpreterErrorKind.ownCode,
+      InterpreterErrorKind.codeNotFound,
+    ];
+
+    for (final kind in deadCodeKinds) {
+      blocTest<InterpreterBloc, InterpreterState>(
+        '${kind.name} drops the pending code from Failure.back, and '
+        'BackToStart lands on Choosing without it',
+        build: () {
+          when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+          when(() => langStore.initial(any(), any()))
+              .thenAnswer((_) async => 'ru');
+          when(() => voice.getStatus())
+              .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
+          when(() => repo.join('JOIN99', 'ru'))
+              .thenThrow(InterpreterException(kind));
+          return bloc;
+        },
+        act: (b) async {
+          b.add(const Started(joinCode: 'JOIN99'));
+          await Future.delayed(_tinyDelay);
+          b.add(const JoinPressed('JOIN99'));
+          await Future.delayed(_tinyDelay);
+          b.add(const BackToStart());
+        },
+        expect: () => [
+          const InterpreterLoading(),
+          isA<InterpreterChoosing>()
+              .having((s) => s.joinCode, 'joinCode', 'JOIN99'),
+          const InterpreterWorking(InterpreterWorkKind.joining),
+          isA<InterpreterFailure>()
+              .having((s) => s.kind, 'kind', kind)
+              .having((s) => s.back?.joinCode, 'back.joinCode', isNull),
+          isA<InterpreterChoosing>()
+              .having((s) => s.joinCode, 'joinCode', isNull),
+        ],
+      );
+    }
+
+    blocTest<InterpreterBloc, InterpreterState>(
+      'a non-definitive failure (network) keeps the code so the guest can retry',
+      build: () {
+        when(() => repo.catalog()).thenAnswer((_) async => _catalog());
+        when(() => langStore.initial(any(), any()))
+            .thenAnswer((_) async => 'ru');
+        when(() => voice.getStatus())
+            .thenAnswer((_) async => const OwnerVoiceStatus(enrolled: true));
+        when(() => repo.join('JOIN99', 'ru')).thenThrow(
+            const InterpreterException(InterpreterErrorKind.network));
+        return bloc;
+      },
+      act: (b) async {
+        b.add(const Started(joinCode: 'JOIN99'));
+        await Future.delayed(_tinyDelay);
+        b.add(const JoinPressed('JOIN99'));
+        await Future.delayed(_tinyDelay);
+        b.add(const BackToStart());
+      },
+      expect: () => [
+        const InterpreterLoading(),
+        isA<InterpreterChoosing>()
+            .having((s) => s.joinCode, 'joinCode', 'JOIN99'),
+        const InterpreterWorking(InterpreterWorkKind.joining),
+        isA<InterpreterFailure>()
+            .having((s) => s.kind, 'kind', InterpreterErrorKind.network)
+            .having((s) => s.back?.joinCode, 'back.joinCode', 'JOIN99'),
+        isA<InterpreterChoosing>()
+            .having((s) => s.joinCode, 'joinCode', 'JOIN99'),
+      ],
+    );
+  });
+
   group('RetryPressed / BackToStart', () {
     blocTest<InterpreterBloc, InterpreterState>(
       'RetryPressed from a Failure returns to the Choosing it carries',
