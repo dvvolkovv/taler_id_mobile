@@ -608,7 +608,12 @@ Future<String?> _globalRedirect(BuildContext context, GoRouterState state) async
   // while logged out: same pattern as the native OAuth flow above — save the
   // code before sending the user to /login, so postLoginNavigate can resume
   // it, instead of just losing it to the generic protected-route check below.
-  if (state.matchedLocation.startsWith('${RouteConstants.interpreter}/join/')) {
+  // Mobile only — this route (and postLoginNavigate's resume of it) doesn't
+  // exist on desktop in the first place (app_router.dart's own
+  // `if (PlatformUtils.instance.isMobile)` route guard below), so saving the
+  // code here would just be lost work.
+  if (PlatformUtils.instance.isMobile &&
+      state.matchedLocation.startsWith('${RouteConstants.interpreter}/join/')) {
     try {
       final storage = sl<SecureStorageService>();
       final hasToken = await storage.hasRefreshToken;

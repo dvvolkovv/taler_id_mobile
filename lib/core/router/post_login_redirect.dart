@@ -22,11 +22,16 @@ Future<void> postLoginNavigate(BuildContext context) async {
     return;
   }
 
-  final pendingJoinCode = sl<PendingInterpreterJoin>().consume();
-  if (pendingJoinCode != null) {
-    if (!context.mounted) return;
-    context.go('${RouteConstants.interpreter}/join/$pendingJoinCode');
-    return;
+  // Mobile only — app_router.dart never registers the join route on desktop
+  // (`if (PlatformUtils.instance.isMobile)`), so consuming a pending code
+  // there would `context.go()` straight into a route that doesn't exist.
+  if (PlatformUtils.instance.isMobile) {
+    final pendingJoinCode = sl<PendingInterpreterJoin>().consume();
+    if (pendingJoinCode != null) {
+      if (!context.mounted) return;
+      context.go('${RouteConstants.interpreter}/join/$pendingJoinCode');
+      return;
+    }
   }
 
   final storage = sl<SecureStorageService>();
