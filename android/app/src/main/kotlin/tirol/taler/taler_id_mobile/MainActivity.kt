@@ -62,6 +62,9 @@ class MainActivity : FlutterFragmentActivity() {
     private var webrtcPlugin: FlutterWebRTCPlugin? = null
     private val audioRouteEventSink = AtomicReference<EventChannel.EventSink?>(null)
     private var audioDeviceCallback: AudioDeviceCallback? = null
+    // Interpreter conversations: screen-off proximity sensor, held only
+    // while a conversation is active (taler_id/interpreter_device channel).
+    private var proximityWakeLock: PowerManager.WakeLock? = null
 
     /**
      * Single owner of the in-call output route. Every path that requests audio
@@ -121,6 +124,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun onDestroy() {
         unregisterAudioRouteCallback()
+        setProximity(false)
         super.onDestroy()
     }
 
@@ -440,6 +444,54 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "taler_id/interpreter_device")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setProximity" -> {
+                        val on = call.arguments as? Boolean ?: false
+                        setProximity(on)
+                        result.success(null)
+                    }
+                    "startForeground" -> {
+                        val intent = Intent(this, InterpreterForegroundService::class.java)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intent)
+                        } else {
+                            startService(intent)
+                        }
+                        result.success(null)
+                    }
+                    "stopForeground" -> {
+                        val intent = Intent(this, InterpreterForegroundService::class.java).apply {
+                            action = InterpreterForegroundService.ACTION_STOP
+                        }
+                        startService(intent)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /** Acquires/releases the screen-off proximity wake lock used while an
+     * interpreter conversation is active. No-op where the device doesn't
+     * support this wake lock level. */
+    private fun setProximity(on: Boolean) {
+        if (on) {
+            if (proximityWakeLock?.isHeld == true) return
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) return
+            val wl = pm.newWakeLock(
+                PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK,
+                "taler_id:interpreter_proximity",
+            )
+            wl.acquire()
+            proximityWakeLock = wl
+        } else {
+            proximityWakeLock?.let { if (it.isHeld) it.release() }
+            proximityWakeLock = null
+        }
     }
 
     private fun requestAudioFocus(am: AudioManager) {
