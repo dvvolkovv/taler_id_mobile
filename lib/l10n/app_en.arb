@@ -2023,5 +2023,84 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "interpreterTitle": "Face-to-face interpreter",
+  "interpreterSpeakLabel": "I speak:",
+  "interpreterStartButton": "Start",
+  "interpreterScanButton": "Scan QR",
+  "interpreterStartHint": "Both of you need a voice print. The host pays per minute.",
+  "interpreterChooseLanguage": "Choose a language",
+  "interpreterSearchLanguage": "Search language",
+  "interpreterShowCode": "Show this code to your partner",
+  "interpreterNewCode": "New code",
+  "interpreterCodeExpiredShort": "Code expired",
+  "interpreterWaitingForPartner": "Waiting for your partner…",
+  "interpreterPartnerSpeaking": "your partner is speaking…",
+  "interpreterPhraseBadge": "phrase-by-phrase translation",
+  "interpreterServerNote": "Translation runs through the server",
+  "interpreterAgentAbsent": "Translation stopped, waiting…",
+  "interpreterReconnecting": "Translation is reconnecting…",
+  "interpreterTranslationFailedBanner": "Translation could not be restored",
+  "interpreterMicButton": "Microphone",
+  "interpreterEndButton": "End",
+  "interpreterSpentAmount": "Spent: {amount} μTAL",
+  "@interpreterSpentAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "interpreterTranslationCaptionLabel": "Translation",
+  "interpreterMyCaptionLabel": "You said",
+  "interpreterEndedTitle": "Call ended",
+  "interpreterDurationLabel": "Duration: {duration}",
+  "@interpreterDurationLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "interpreterDoneButton": "Done",
+  "interpreterAgainButton": "Again",
+  "interpreterEndHangup": "Call ended",
+  "interpreterEndPartnerLeft": "Your partner disconnected",
+  "interpreterEndExpired": "The code expired — nobody joined",
+  "interpreterEndTranslationFailed": "Translation could not recover",
+  "interpreterEndAgentLost": "The interpreter dropped out of the room",
+  "interpreterEndNoFunds": "The host ran out of balance",
+  "interpreterEndMaxDuration": "Call time limit reached",
+  "interpreterEndGeneric": "Call ended",
+  "interpreterUnavailableTitle": "This feature is unavailable right now",
+  "interpreterBackToStartButton": "Back to start",
+  "interpreterLeaveConfirmTitle": "End the call?",
+  "interpreterLeaveConfirmBody": "Leaving will end the call for both of you.",
+  "interpreterAskNewCodeHint": "Ask the host to show a new code",
+  "interpreterCreatingLabel": "Creating the call…",
+  "interpreterJoiningLabel": "Joining…",
+  "interpreterScanInstruction": "Point camera at QR code",
+  "interpreterPartnerFallback": "Your partner",
+  "interpreterErrInterpreterDisabled": "Face-to-face interpreter is unavailable right now",
+  "interpreterErrUnsupportedLanguage": "This language is not supported yet",
+  "interpreterErrSameLanguage": "You both speak the same language — no translation needed",
+  "interpreterErrVoicePrintRequired": "A voice print is required",
+  "interpreterErrHostVoicePrintRequired": "The host has no voice print yet",
+  "interpreterErrAlreadyInSession": "You already have an active interpreter call",
+  "interpreterErrSameVoicePrint": "Your voice is too similar to your partner's — the check failed",
+  "interpreterErrOwnCode": "That is your own code",
+  "interpreterErrCodeUsed": "This code has already been used",
+  "interpreterErrNotWaiting": "This session is no longer waiting for a guest",
+  "interpreterErrInsufficientFunds": "Insufficient balance",
+  "interpreterErrHostInsufficientFunds": "The host does not have enough balance",
+  "interpreterErrFeatureDisabled": "The feature is disabled in settings",
+  "interpreterErrHostFeatureDisabled": "The feature is disabled for the host",
+  "interpreterErrCodeNotFound": "Code not found",
+  "interpreterErrSessionNotFound": "Session not found",
+  "interpreterErrCodeExpired": "The code has expired",
+  "interpreterErrTooManyAttempts": "Too many attempts, try again later",
+  "interpreterErrInterpreterUnavailable": "The interpreter is temporarily unavailable, try again later",
+  "interpreterErrNetwork": "No connection to the server",
+  "interpreterErrUnknown": "Something went wrong"
 }

@@ -2016,5 +2016,84 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "interpreterTitle": "Разговор с переводом",
+  "interpreterSpeakLabel": "Я говорю на:",
+  "interpreterStartButton": "Начать",
+  "interpreterScanButton": "Сканировать QR",
+  "interpreterStartHint": "Нужен образец голоса — ваш и собеседника. Платит тот, кто начал разговор.",
+  "interpreterChooseLanguage": "Выберите язык",
+  "interpreterSearchLanguage": "Поиск языка",
+  "interpreterShowCode": "Покажите код собеседнику",
+  "interpreterNewCode": "Новый код",
+  "interpreterCodeExpiredShort": "Код истёк",
+  "interpreterWaitingForPartner": "Ждём собеседника…",
+  "interpreterPartnerSpeaking": "собеседник говорит…",
+  "interpreterPhraseBadge": "перевод по фразам",
+  "interpreterServerNote": "Перевод идёт через сервер",
+  "interpreterAgentAbsent": "Перевод прервался, ждём…",
+  "interpreterReconnecting": "Перевод восстанавливается…",
+  "interpreterTranslationFailedBanner": "Перевод не восстановился",
+  "interpreterMicButton": "Микрофон",
+  "interpreterEndButton": "Завершить",
+  "interpreterSpentAmount": "Потрачено: {amount} μTAL",
+  "@interpreterSpentAmount": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "interpreterTranslationCaptionLabel": "Перевод",
+  "interpreterMyCaptionLabel": "Вы сказали",
+  "interpreterEndedTitle": "Разговор завершён",
+  "interpreterDurationLabel": "Длительность: {duration}",
+  "@interpreterDurationLabel": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "interpreterDoneButton": "Готово",
+  "interpreterAgainButton": "Ещё раз",
+  "interpreterEndHangup": "Разговор завершён",
+  "interpreterEndPartnerLeft": "Собеседник отключился",
+  "interpreterEndExpired": "Код истёк — никто не подключился",
+  "interpreterEndTranslationFailed": "Перевод не восстановился",
+  "interpreterEndAgentLost": "Переводчик пропал из комнаты",
+  "interpreterEndNoFunds": "У организатора закончились средства",
+  "interpreterEndMaxDuration": "Достигнут лимит разговора",
+  "interpreterEndGeneric": "Разговор завершён",
+  "interpreterUnavailableTitle": "Функция сейчас недоступна",
+  "interpreterBackToStartButton": "На старт",
+  "interpreterLeaveConfirmTitle": "Завершить разговор?",
+  "interpreterLeaveConfirmBody": "Если вы уйдёте, разговор с переводом завершится для обоих.",
+  "interpreterAskNewCodeHint": "Попросите организатора показать новый код",
+  "interpreterCreatingLabel": "Создаём разговор…",
+  "interpreterJoiningLabel": "Подключаемся…",
+  "interpreterScanInstruction": "Наведите камеру на QR код",
+  "interpreterPartnerFallback": "Собеседник",
+  "interpreterErrInterpreterDisabled": "Разговор с переводом сейчас недоступен",
+  "interpreterErrUnsupportedLanguage": "Этот язык пока не поддерживается",
+  "interpreterErrSameLanguage": "Вы говорите на одном языке — перевод не нужен",
+  "interpreterErrVoicePrintRequired": "Нужен образец голоса",
+  "interpreterErrHostVoicePrintRequired": "У организатора нет образца голоса",
+  "interpreterErrAlreadyInSession": "У вас уже идёт разговор с переводом",
+  "interpreterErrSameVoicePrint": "Ваш голос слишком похож на голос собеседника, проверка не пройдена",
+  "interpreterErrOwnCode": "Это ваш собственный код",
+  "interpreterErrCodeUsed": "Код уже использован",
+  "interpreterErrNotWaiting": "Эта сессия уже не ждёт подключения",
+  "interpreterErrInsufficientFunds": "Недостаточно средств на балансе",
+  "interpreterErrHostInsufficientFunds": "У организатора не хватает средств",
+  "interpreterErrFeatureDisabled": "Функция отключена в настройках",
+  "interpreterErrHostFeatureDisabled": "Функция отключена у организатора",
+  "interpreterErrCodeNotFound": "Код не найден",
+  "interpreterErrSessionNotFound": "Сессия не найдена",
+  "interpreterErrCodeExpired": "Код истёк",
+  "interpreterErrTooManyAttempts": "Слишком много попыток, попробуйте позже",
+  "interpreterErrInterpreterUnavailable": "Переводчик временно недоступен, попробуйте позже",
+  "interpreterErrNetwork": "Нет соединения с сервером",
+  "interpreterErrUnknown": "Что-то пошло не так"
 }

@@ -4237,4 +4237,217 @@ class AppLocalizationsTe extends AppLocalizations {
 
   @override
   String get chatFormatSpoiler => 'Spoiler';
+
+  @override
+  String get interpreterTitle => 'Face-to-face interpreter';
+
+  @override
+  String get interpreterSpeakLabel => 'I speak:';
+
+  @override
+  String get interpreterStartButton => 'Start';
+
+  @override
+  String get interpreterScanButton => 'Scan QR';
+
+  @override
+  String get interpreterStartHint =>
+      'Both of you need a voice print. The host pays per minute.';
+
+  @override
+  String get interpreterChooseLanguage => 'Choose a language';
+
+  @override
+  String get interpreterSearchLanguage => 'Search language';
+
+  @override
+  String get interpreterShowCode => 'Show this code to your partner';
+
+  @override
+  String get interpreterNewCode => 'New code';
+
+  @override
+  String get interpreterCodeExpiredShort => 'Code expired';
+
+  @override
+  String get interpreterWaitingForPartner => 'Waiting for your partner…';
+
+  @override
+  String get interpreterPartnerSpeaking => 'your partner is speaking…';
+
+  @override
+  String get interpreterPhraseBadge => 'phrase-by-phrase translation';
+
+  @override
+  String get interpreterServerNote => 'Translation runs through the server';
+
+  @override
+  String get interpreterAgentAbsent => 'Translation stopped, waiting…';
+
+  @override
+  String get interpreterReconnecting => 'Translation is reconnecting…';
+
+  @override
+  String get interpreterTranslationFailedBanner =>
+      'Translation could not be restored';
+
+  @override
+  String get interpreterMicButton => 'Microphone';
+
+  @override
+  String get interpreterEndButton => 'End';
+
+  @override
+  String interpreterSpentAmount(String amount) {
+    return 'Spent: $amount μTAL';
+  }
+
+  @override
+  String get interpreterTranslationCaptionLabel => 'Translation';
+
+  @override
+  String get interpreterMyCaptionLabel => 'You said';
+
+  @override
+  String get interpreterEndedTitle => 'Call ended';
+
+  @override
+  String interpreterDurationLabel(String duration) {
+    return 'Duration: $duration';
+  }
+
+  @override
+  String get interpreterDoneButton => 'Done';
+
+  @override
+  String get interpreterAgainButton => 'Again';
+
+  @override
+  String get interpreterEndHangup => 'Call ended';
+
+  @override
+  String get interpreterEndPartnerLeft => 'Your partner disconnected';
+
+  @override
+  String get interpreterEndExpired => 'The code expired — nobody joined';
+
+  @override
+  String get interpreterEndTranslationFailed => 'Translation could not recover';
+
+  @override
+  String get interpreterEndAgentLost =>
+      'The interpreter dropped out of the room';
+
+  @override
+  String get interpreterEndNoFunds => 'The host ran out of balance';
+
+  @override
+  String get interpreterEndMaxDuration => 'Call time limit reached';
+
+  @override
+  String get interpreterEndGeneric => 'Call ended';
+
+  @override
+  String get interpreterUnavailableTitle =>
+      'This feature is unavailable right now';
+
+  @override
+  String get interpreterBackToStartButton => 'Back to start';
+
+  @override
+  String get interpreterLeaveConfirmTitle => 'End the call?';
+
+  @override
+  String get interpreterLeaveConfirmBody =>
+      'Leaving will end the call for both of you.';
+
+  @override
+  String get interpreterAskNewCodeHint => 'Ask the host to show a new code';
+
+  @override
+  String get interpreterCreatingLabel => 'Creating the call…';
+
+  @override
+  String get interpreterJoiningLabel => 'Joining…';
+
+  @override
+  String get interpreterScanInstruction => 'Point camera at QR code';
+
+  @override
+  String get interpreterPartnerFallback => 'Your partner';
+
+  @override
+  String get interpreterErrInterpreterDisabled =>
+      'Face-to-face interpreter is unavailable right now';
+
+  @override
+  String get interpreterErrUnsupportedLanguage =>
+      'This language is not supported yet';
+
+  @override
+  String get interpreterErrSameLanguage =>
+      'You both speak the same language — no translation needed';
+
+  @override
+  String get interpreterErrVoicePrintRequired => 'A voice print is required';
+
+  @override
+  String get interpreterErrHostVoicePrintRequired =>
+      'The host has no voice print yet';
+
+  @override
+  String get interpreterErrAlreadyInSession =>
+      'You already have an active interpreter call';
+
+  @override
+  String get interpreterErrSameVoicePrint =>
+      'Your voice is too similar to your partner\'s — the check failed';
+
+  @override
+  String get interpreterErrOwnCode => 'That is your own code';
+
+  @override
+  String get interpreterErrCodeUsed => 'This code has already been used';
+
+  @override
+  String get interpreterErrNotWaiting =>
+      'This session is no longer waiting for a guest';
+
+  @override
+  String get interpreterErrInsufficientFunds => 'Insufficient balance';
+
+  @override
+  String get interpreterErrHostInsufficientFunds =>
+      'The host does not have enough balance';
+
+  @override
+  String get interpreterErrFeatureDisabled =>
+      'The feature is disabled in settings';
+
+  @override
+  String get interpreterErrHostFeatureDisabled =>
+      'The feature is disabled for the host';
+
+  @override
+  String get interpreterErrCodeNotFound => 'Code not found';
+
+  @override
+  String get interpreterErrSessionNotFound => 'Session not found';
+
+  @override
+  String get interpreterErrCodeExpired => 'The code has expired';
+
+  @override
+  String get interpreterErrTooManyAttempts =>
+      'Too many attempts, try again later';
+
+  @override
+  String get interpreterErrInterpreterUnavailable =>
+      'The interpreter is temporarily unavailable, try again later';
+
+  @override
+  String get interpreterErrNetwork => 'No connection to the server';
+
+  @override
+  String get interpreterErrUnknown => 'Something went wrong';
 }

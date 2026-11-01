@@ -7959,6 +7959,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spoiler'**
   String get chatFormatSpoiler;
+
+  /// No description provided for @interpreterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Face-to-face interpreter'**
+  String get interpreterTitle;
+
+  /// No description provided for @interpreterSpeakLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'I speak:'**
+  String get interpreterSpeakLabel;
+
+  /// No description provided for @interpreterStartButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get interpreterStartButton;
+
+  /// No description provided for @interpreterScanButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan QR'**
+  String get interpreterScanButton;
+
+  /// No description provided for @interpreterStartHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Both of you need a voice print. The host pays per minute.'**
+  String get interpreterStartHint;
+
+  /// No description provided for @interpreterChooseLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a language'**
+  String get interpreterChooseLanguage;
+
+  /// No description provided for @interpreterSearchLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Search language'**
+  String get interpreterSearchLanguage;
+
+  /// No description provided for @interpreterShowCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this code to your partner'**
+  String get interpreterShowCode;
+
+  /// No description provided for @interpreterNewCode.
+  ///
+  /// In en, this message translates to:
+  /// **'New code'**
+  String get interpreterNewCode;
+
+  /// No description provided for @interpreterCodeExpiredShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expired'**
+  String get interpreterCodeExpiredShort;
+
+  /// No description provided for @interpreterWaitingForPartner.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your partner…'**
+  String get interpreterWaitingForPartner;
+
+  /// No description provided for @interpreterPartnerSpeaking.
+  ///
+  /// In en, this message translates to:
+  /// **'your partner is speaking…'**
+  String get interpreterPartnerSpeaking;
+
+  /// No description provided for @interpreterPhraseBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'phrase-by-phrase translation'**
+  String get interpreterPhraseBadge;
+
+  /// No description provided for @interpreterServerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation runs through the server'**
+  String get interpreterServerNote;
+
+  /// No description provided for @interpreterAgentAbsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation stopped, waiting…'**
+  String get interpreterAgentAbsent;
+
+  /// No description provided for @interpreterReconnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation is reconnecting…'**
+  String get interpreterReconnecting;
+
+  /// No description provided for @interpreterTranslationFailedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation could not be restored'**
+  String get interpreterTranslationFailedBanner;
+
+  /// No description provided for @interpreterMicButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone'**
+  String get interpreterMicButton;
+
+  /// No description provided for @interpreterEndButton.
+  ///
+  /// In en, this message translates to:
+  /// **'End'**
+  String get interpreterEndButton;
+
+  /// No description provided for @interpreterSpentAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Spent: {amount} μTAL'**
+  String interpreterSpentAmount(String amount);
+
+  /// No description provided for @interpreterTranslationCaptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get interpreterTranslationCaptionLabel;
+
+  /// No description provided for @interpreterMyCaptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You said'**
+  String get interpreterMyCaptionLabel;
+
+  /// No description provided for @interpreterEndedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get interpreterEndedTitle;
+
+  /// No description provided for @interpreterDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration: {duration}'**
+  String interpreterDurationLabel(String duration);
+
+  /// No description provided for @interpreterDoneButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get interpreterDoneButton;
+
+  /// No description provided for @interpreterAgainButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Again'**
+  String get interpreterAgainButton;
+
+  /// No description provided for @interpreterEndHangup.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get interpreterEndHangup;
+
+  /// No description provided for @interpreterEndPartnerLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Your partner disconnected'**
+  String get interpreterEndPartnerLeft;
+
+  /// No description provided for @interpreterEndExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The code expired — nobody joined'**
+  String get interpreterEndExpired;
+
+  /// No description provided for @interpreterEndTranslationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation could not recover'**
+  String get interpreterEndTranslationFailed;
+
+  /// No description provided for @interpreterEndAgentLost.
+  ///
+  /// In en, this message translates to:
+  /// **'The interpreter dropped out of the room'**
+  String get interpreterEndAgentLost;
+
+  /// No description provided for @interpreterEndNoFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'The host ran out of balance'**
+  String get interpreterEndNoFunds;
+
+  /// No description provided for @interpreterEndMaxDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Call time limit reached'**
+  String get interpreterEndMaxDuration;
+
+  /// No description provided for @interpreterEndGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Call ended'**
+  String get interpreterEndGeneric;
+
+  /// No description provided for @interpreterUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature is unavailable right now'**
+  String get interpreterUnavailableTitle;
+
+  /// No description provided for @interpreterBackToStartButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to start'**
+  String get interpreterBackToStartButton;
+
+  /// No description provided for @interpreterLeaveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'End the call?'**
+  String get interpreterLeaveConfirmTitle;
+
+  /// No description provided for @interpreterLeaveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Leaving will end the call for both of you.'**
+  String get interpreterLeaveConfirmBody;
+
+  /// No description provided for @interpreterAskNewCodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the host to show a new code'**
+  String get interpreterAskNewCodeHint;
+
+  /// No description provided for @interpreterCreatingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating the call…'**
+  String get interpreterCreatingLabel;
+
+  /// No description provided for @interpreterJoiningLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Joining…'**
+  String get interpreterJoiningLabel;
+
+  /// No description provided for @interpreterScanInstruction.
+  ///
+  /// In en, this message translates to:
+  /// **'Point camera at QR code'**
+  String get interpreterScanInstruction;
+
+  /// No description provided for @interpreterPartnerFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Your partner'**
+  String get interpreterPartnerFallback;
+
+  /// No description provided for @interpreterErrInterpreterDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Face-to-face interpreter is unavailable right now'**
+  String get interpreterErrInterpreterDisabled;
+
+  /// No description provided for @interpreterErrUnsupportedLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'This language is not supported yet'**
+  String get interpreterErrUnsupportedLanguage;
+
+  /// No description provided for @interpreterErrSameLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'You both speak the same language — no translation needed'**
+  String get interpreterErrSameLanguage;
+
+  /// No description provided for @interpreterErrVoicePrintRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'A voice print is required'**
+  String get interpreterErrVoicePrintRequired;
+
+  /// No description provided for @interpreterErrHostVoicePrintRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'The host has no voice print yet'**
+  String get interpreterErrHostVoicePrintRequired;
+
+  /// No description provided for @interpreterErrAlreadyInSession.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an active interpreter call'**
+  String get interpreterErrAlreadyInSession;
+
+  /// No description provided for @interpreterErrSameVoicePrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your voice is too similar to your partner\'s — the check failed'**
+  String get interpreterErrSameVoicePrint;
+
+  /// No description provided for @interpreterErrOwnCode.
+  ///
+  /// In en, this message translates to:
+  /// **'That is your own code'**
+  String get interpreterErrOwnCode;
+
+  /// No description provided for @interpreterErrCodeUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has already been used'**
+  String get interpreterErrCodeUsed;
+
+  /// No description provided for @interpreterErrNotWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'This session is no longer waiting for a guest'**
+  String get interpreterErrNotWaiting;
+
+  /// No description provided for @interpreterErrInsufficientFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'Insufficient balance'**
+  String get interpreterErrInsufficientFunds;
+
+  /// No description provided for @interpreterErrHostInsufficientFunds.
+  ///
+  /// In en, this message translates to:
+  /// **'The host does not have enough balance'**
+  String get interpreterErrHostInsufficientFunds;
+
+  /// No description provided for @interpreterErrFeatureDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The feature is disabled in settings'**
+  String get interpreterErrFeatureDisabled;
+
+  /// No description provided for @interpreterErrHostFeatureDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The feature is disabled for the host'**
+  String get interpreterErrHostFeatureDisabled;
+
+  /// No description provided for @interpreterErrCodeNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Code not found'**
+  String get interpreterErrCodeNotFound;
+
+  /// No description provided for @interpreterErrSessionNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Session not found'**
+  String get interpreterErrSessionNotFound;
+
+  /// No description provided for @interpreterErrCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The code has expired'**
+  String get interpreterErrCodeExpired;
+
+  /// No description provided for @interpreterErrTooManyAttempts.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts, try again later'**
+  String get interpreterErrTooManyAttempts;
+
+  /// No description provided for @interpreterErrInterpreterUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The interpreter is temporarily unavailable, try again later'**
+  String get interpreterErrInterpreterUnavailable;
+
+  /// No description provided for @interpreterErrNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection to the server'**
+  String get interpreterErrNetwork;
+
+  /// No description provided for @interpreterErrUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong'**
+  String get interpreterErrUnknown;
 }
 
 class _AppLocalizationsDelegate

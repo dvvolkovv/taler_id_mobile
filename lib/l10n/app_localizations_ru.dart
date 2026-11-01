@@ -4242,4 +4242,214 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get chatFormatSpoiler => 'Спойлер';
+
+  @override
+  String get interpreterTitle => 'Разговор с переводом';
+
+  @override
+  String get interpreterSpeakLabel => 'Я говорю на:';
+
+  @override
+  String get interpreterStartButton => 'Начать';
+
+  @override
+  String get interpreterScanButton => 'Сканировать QR';
+
+  @override
+  String get interpreterStartHint =>
+      'Нужен образец голоса — ваш и собеседника. Платит тот, кто начал разговор.';
+
+  @override
+  String get interpreterChooseLanguage => 'Выберите язык';
+
+  @override
+  String get interpreterSearchLanguage => 'Поиск языка';
+
+  @override
+  String get interpreterShowCode => 'Покажите код собеседнику';
+
+  @override
+  String get interpreterNewCode => 'Новый код';
+
+  @override
+  String get interpreterCodeExpiredShort => 'Код истёк';
+
+  @override
+  String get interpreterWaitingForPartner => 'Ждём собеседника…';
+
+  @override
+  String get interpreterPartnerSpeaking => 'собеседник говорит…';
+
+  @override
+  String get interpreterPhraseBadge => 'перевод по фразам';
+
+  @override
+  String get interpreterServerNote => 'Перевод идёт через сервер';
+
+  @override
+  String get interpreterAgentAbsent => 'Перевод прервался, ждём…';
+
+  @override
+  String get interpreterReconnecting => 'Перевод восстанавливается…';
+
+  @override
+  String get interpreterTranslationFailedBanner => 'Перевод не восстановился';
+
+  @override
+  String get interpreterMicButton => 'Микрофон';
+
+  @override
+  String get interpreterEndButton => 'Завершить';
+
+  @override
+  String interpreterSpentAmount(String amount) {
+    return 'Потрачено: $amount μTAL';
+  }
+
+  @override
+  String get interpreterTranslationCaptionLabel => 'Перевод';
+
+  @override
+  String get interpreterMyCaptionLabel => 'Вы сказали';
+
+  @override
+  String get interpreterEndedTitle => 'Разговор завершён';
+
+  @override
+  String interpreterDurationLabel(String duration) {
+    return 'Длительность: $duration';
+  }
+
+  @override
+  String get interpreterDoneButton => 'Готово';
+
+  @override
+  String get interpreterAgainButton => 'Ещё раз';
+
+  @override
+  String get interpreterEndHangup => 'Разговор завершён';
+
+  @override
+  String get interpreterEndPartnerLeft => 'Собеседник отключился';
+
+  @override
+  String get interpreterEndExpired => 'Код истёк — никто не подключился';
+
+  @override
+  String get interpreterEndTranslationFailed => 'Перевод не восстановился';
+
+  @override
+  String get interpreterEndAgentLost => 'Переводчик пропал из комнаты';
+
+  @override
+  String get interpreterEndNoFunds => 'У организатора закончились средства';
+
+  @override
+  String get interpreterEndMaxDuration => 'Достигнут лимит разговора';
+
+  @override
+  String get interpreterEndGeneric => 'Разговор завершён';
+
+  @override
+  String get interpreterUnavailableTitle => 'Функция сейчас недоступна';
+
+  @override
+  String get interpreterBackToStartButton => 'На старт';
+
+  @override
+  String get interpreterLeaveConfirmTitle => 'Завершить разговор?';
+
+  @override
+  String get interpreterLeaveConfirmBody =>
+      'Если вы уйдёте, разговор с переводом завершится для обоих.';
+
+  @override
+  String get interpreterAskNewCodeHint =>
+      'Попросите организатора показать новый код';
+
+  @override
+  String get interpreterCreatingLabel => 'Создаём разговор…';
+
+  @override
+  String get interpreterJoiningLabel => 'Подключаемся…';
+
+  @override
+  String get interpreterScanInstruction => 'Наведите камеру на QR код';
+
+  @override
+  String get interpreterPartnerFallback => 'Собеседник';
+
+  @override
+  String get interpreterErrInterpreterDisabled =>
+      'Разговор с переводом сейчас недоступен';
+
+  @override
+  String get interpreterErrUnsupportedLanguage =>
+      'Этот язык пока не поддерживается';
+
+  @override
+  String get interpreterErrSameLanguage =>
+      'Вы говорите на одном языке — перевод не нужен';
+
+  @override
+  String get interpreterErrVoicePrintRequired => 'Нужен образец голоса';
+
+  @override
+  String get interpreterErrHostVoicePrintRequired =>
+      'У организатора нет образца голоса';
+
+  @override
+  String get interpreterErrAlreadyInSession =>
+      'У вас уже идёт разговор с переводом';
+
+  @override
+  String get interpreterErrSameVoicePrint =>
+      'Ваш голос слишком похож на голос собеседника, проверка не пройдена';
+
+  @override
+  String get interpreterErrOwnCode => 'Это ваш собственный код';
+
+  @override
+  String get interpreterErrCodeUsed => 'Код уже использован';
+
+  @override
+  String get interpreterErrNotWaiting => 'Эта сессия уже не ждёт подключения';
+
+  @override
+  String get interpreterErrInsufficientFunds =>
+      'Недостаточно средств на балансе';
+
+  @override
+  String get interpreterErrHostInsufficientFunds =>
+      'У организатора не хватает средств';
+
+  @override
+  String get interpreterErrFeatureDisabled => 'Функция отключена в настройках';
+
+  @override
+  String get interpreterErrHostFeatureDisabled =>
+      'Функция отключена у организатора';
+
+  @override
+  String get interpreterErrCodeNotFound => 'Код не найден';
+
+  @override
+  String get interpreterErrSessionNotFound => 'Сессия не найдена';
+
+  @override
+  String get interpreterErrCodeExpired => 'Код истёк';
+
+  @override
+  String get interpreterErrTooManyAttempts =>
+      'Слишком много попыток, попробуйте позже';
+
+  @override
+  String get interpreterErrInterpreterUnavailable =>
+      'Переводчик временно недоступен, попробуйте позже';
+
+  @override
+  String get interpreterErrNetwork => 'Нет соединения с сервером';
+
+  @override
+  String get interpreterErrUnknown => 'Что-то пошло не так';
 }
