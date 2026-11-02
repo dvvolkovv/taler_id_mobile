@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -30,6 +31,36 @@ class _FakeHandler implements OutboxReplayHandler {
   Future<OutboxReplayResult> replay(OutboxOp op) async {
     seen.add(op);
     return resultsQueue.removeAt(0);
+  }
+}
+
+
+/// Очередь, роняющая запись результата: доказывает, что упавшая запись не уносит
+/// с собой весь прогон (до фикса исключение улетало из drain и операция навсегда
+/// оставалась inflight — ровно картина замороженной очереди 02.11.2026).
+class _FailingWriteQueue extends OutboxQueue {
+  final Set<String> failRemoveFor;
+  _FailingWriteQueue(this.failRemoveFor);
+  @override
+  Future<void> remove(String opId) async {
+    if (failRemoveFor.remove(opId)) throw StateError('disk went away');
+    return super.remove(opId);
+  }
+}
+
+
+/// Хендлер, который уходит в отправку и не возвращается: так ведёт себя прогон,
+/// залипший на живом приложении 02.11.2026 (запрос ушёл, на сервере применился,
+/// ответ в код не вернулся).
+class _HangingHandler implements OutboxReplayHandler {
+  @override
+  final String feature;
+  int calls = 0;
+  _HangingHandler(this.feature);
+  @override
+  Future<OutboxReplayResult> replay(OutboxOp op) {
+    calls++;
+    return Completer<OutboxReplayResult>().future; // навсегда
   }
 }
 
@@ -155,4 +186,122 @@ void main() {
 
     expect(handler.seen.length, 1);
   });
+
+  test('залипший inflight воскресает следующим прогоном, а не только на старте приложения', () async {
+    final handler = _FakeHandler('notes', [OutboxReplayResult.success()]);
+    final svc = OutboxReplayService(queue: queue);
+    svc.registerHandler(handler);
+    // Операция, которую прошлый прогон пометил «отправляется» и бросил.
+    await queue.enqueue(op(id: 'stuck'));
+    await queue.markInflight('stuck');
+    await queue.backdateAttempt('stuck', DateTime.now().subtract(const Duration(hours: 3)));
+
+    await svc.drain();
+
+    expect(handler.seen.map((o) => o.opId).toList(), ['stuck'],
+        reason: 'зависшую операцию обязан подобрать обычный прогон');
+    expect((await queue.pending()).isEmpty, true);
+  });
+
+  test('свежий inflight прогон не трогает — он может быть живым replay', () async {
+    final handler = _FakeHandler('notes', [OutboxReplayResult.success()]);
+    final svc = OutboxReplayService(queue: queue);
+    svc.registerHandler(handler);
+    await queue.enqueue(op(id: 'live'));
+    await queue.markInflight('live');
+
+    await svc.drain();
+
+    expect(handler.seen, isEmpty);
+    expect((await queue.pending()).single.status, OutboxOpStatus.inflight);
+  });
+
+  test('воскрешение считает попытку, поэтому вечно висящая операция в итоге умирает', () async {
+    final svc = OutboxReplayService(queue: queue);
+    svc.registerHandler(_FakeHandler('notes', []));
+    await queue.enqueue(op(id: 'zombie', attempts: 8));
+    await queue.markInflight('zombie');
+    await queue.backdateAttempt('zombie', DateTime.now().subtract(const Duration(hours: 3)));
+
+    await svc.drain();
+
+    final after = (await queue.pending()).single;
+    expect(after.status, OutboxOpStatus.failedDead,
+        reason: 'иначе зависающая операция воскресала бы бесконечно');
+  });
+
+  test('упавшая запись результата не обрывает прогон: следующая операция всё равно едет', () async {
+    final failing = _FailingWriteQueue({'a'});
+    final handler = _FakeHandler('notes', [
+      OutboxReplayResult.success(),
+      OutboxReplayResult.success(),
+    ]);
+    final svc = OutboxReplayService(queue: failing);
+    svc.registerHandler(handler);
+    await failing.enqueue(op(id: 'a', createdAt: DateTime.parse('2026-05-13T10:00:00Z')));
+    await failing.enqueue(op(id: 'b', createdAt: DateTime.parse('2026-05-13T10:01:00Z')));
+
+    await svc.drain();
+
+    expect(handler.seen.map((o) => o.opId).toList(), ['a', 'b'],
+        reason: 'падение на первой не должно морозить очередь');
+    final left = await failing.pending();
+    expect(left.map((o) => o.opId).toList(), ['a']);
+    expect(left.single.status, OutboxOpStatus.pending,
+        reason: 'операция обязана остаться повторяемой, а не залипнуть в inflight');
+    expect(left.single.attempts, 1);
+  });
+
+  test('периодический прогон повторяет попытку без участия пользователя', () async {
+    final handler = _FakeHandler('notes', [
+      OutboxReplayResult.retry(error: 'network'),
+      OutboxReplayResult.success(),
+    ]);
+    final svc = OutboxReplayService(queue: queue);
+    svc.registerHandler(handler);
+    await queue.enqueue(op());
+
+    svc.startPeriodicDrain(interval: const Duration(milliseconds: 30));
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    svc.stopPeriodicDrain();
+
+    expect(handler.seen.length, greaterThanOrEqualTo(2));
+    expect((await queue.pending()).isEmpty, true);
+  });
+
+
+  test('зависший прогон не блокирует следующие навсегда', () async {
+    // Единственный флаг single-flight означал: один прогон, не дошедший до конца,
+    // запирает очередь до перезапуска приложения. Именно это и случилось: таймаут
+    // на replay не спас, потому что зависло НЕ на нём, а флаг так и остался поднят.
+    final hanging = _HangingHandler('notes');
+    final svc = OutboxReplayService(
+      queue: queue,
+      maxDrainDuration: const Duration(milliseconds: 50),
+    );
+    svc.registerHandler(hanging);
+    await queue.enqueue(op(id: 'a'));
+
+    unawaited(svc.drain()); // повиснет внутри replay
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    // Следующий прогон обязан войти, а не выйти по флагу. Его тоже не ждём: на
+    // том же хендлере он повиснет так же — важно, что он ДОШЁЛ до отправки.
+    unawaited(svc.drain());
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+
+    expect(hanging.calls, greaterThanOrEqualTo(2),
+        reason: 'повисший прогон обязан уступить дорогу следующему');
+  });
+
+  test('пока предыдущий прогон укладывается в срок, второй не лезет параллельно', () async {
+    final handler = _FakeHandler('notes', [OutboxReplayResult.success()]);
+    final svc = OutboxReplayService(queue: queue);
+    svc.registerHandler(handler);
+    await queue.enqueue(op(id: 'a'));
+
+    await Future.wait([svc.drain(), svc.drain()]);
+
+    expect(handler.seen.length, 1, reason: 'операция не должна уехать дважды');
+  });
+
 }

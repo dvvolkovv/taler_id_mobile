@@ -862,6 +862,7 @@ Future<void> setupDependencies() async {
         local: sl<CalendarLocalDataSource>(),
         remote: sl<CalendarRemoteDataSource>(),
         outbox: sl<OutboxQueue>(),
+        replay: sl<OutboxReplayService>(),
       ));
   sl.registerLazySingleton<CalendarOutboxReplayHandler>(() => CalendarOutboxReplayHandler(
         remote: sl<CalendarRemoteDataSource>(),
@@ -997,6 +998,9 @@ Future<void> setupDependencies() async {
   sl<OutboxReplayService>().registerHandler(sl<TaskOutboxReplayHandler>());
   sl<OutboxReplayService>().registerHandler(sl<ContactsOutboxReplayHandler>());
   sl<ConnectivityWatcher>().start();
+  // Страховка от замороженной очереди: фоновый прогон по таймеру. Событийных
+  // триггеров (старт, экран, возврат связи) недостаточно — см. инцидент 02.11.2026.
+  sl<OutboxReplayService>().startPeriodicDrain();
   // First drain on app boot (in case we were offline last session)
   // ignore: discarded_futures
   sl<OutboxReplayService>().drain();

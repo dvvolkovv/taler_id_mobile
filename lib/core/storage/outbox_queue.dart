@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'outbox_op.dart';
 
@@ -87,6 +88,49 @@ class OutboxQueue {
     await for (final _ in _box.watch()) {
       yield await pending();
     }
+  }
+
+  /// Переводит «отправляется» старше [maxAge] обратно в «ждёт», считая попытку.
+  ///
+  /// Операция остаётся inflight только если прогон бросил между пометкой и записью
+  /// результата (или процесс умер в этот момент). До 02.11.2026 воскрешал её ТОЛЬКО
+  /// [onBoot], то есть холодный старт приложения: одна зависшая операция морозила
+  /// очередь на дни — правки владельца жили в локальном кэше, а сервер их не видел.
+  /// Попытка инкрементится намеренно: операция, зависающая всегда, иначе воскресала
+  /// бы вечно, а так доходит до предела попыток и честно умирает.
+  /// [maxAge] обязан быть больше таймаута одного replay, иначе watchdog уведёт
+  /// операцию из-под живой отправки и та уедет на сервер дважды.
+  Future<int> reviveStaleInflight(Duration maxAge, {DateTime? now}) async {
+    final cutoff = (now ?? DateTime.now()).subtract(maxAge);
+    var revived = 0;
+    for (final k in _box.keys.cast<String>().toList()) {
+      final raw = _box.get(k);
+      if (raw == null) continue;
+      final op = _decode(raw);
+      if (op == null || op.status != OutboxOpStatus.inflight) continue;
+      // Нет отметки о попытке — операция старая/битая, её тоже надо вернуть в строй.
+      final at = op.lastAttemptAt;
+      if (at != null && at.isAfter(cutoff)) continue;
+      await _box.put(
+        k,
+        jsonEncode(op
+            .copyWith(
+              status: OutboxOpStatus.pending,
+              attempts: op.attempts + 1,
+              lastError: 'stale inflight revived',
+            )
+            .toJson()),
+      );
+      revived++;
+    }
+    return revived;
+  }
+
+  /// ТОЛЬКО ДЛЯ ТЕСТОВ: состарить отметку последней попытки, чтобы проверить watchdog
+  /// без ожидания реального времени.
+  @visibleForTesting
+  Future<void> backdateAttempt(String opId, DateTime at) async {
+    await _mutate(opId, (op) => op.copyWith(lastAttemptAt: at));
   }
 
   Future<void> onBoot() async {

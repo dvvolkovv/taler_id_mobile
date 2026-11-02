@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:uuid/uuid.dart';
 import '../../../../core/storage/outbox_op.dart';
+import '../../../../core/services/outbox_replay_service.dart';
 import '../../../../core/storage/outbox_queue.dart';
 import '../../domain/entities/calendar_event_entity.dart';
 import '../../domain/repositories/i_calendar_repository.dart';
@@ -12,15 +13,21 @@ class CalendarRepositoryImpl implements ICalendarRepository {
   final CalendarLocalDataSource _local;
   final CalendarRemoteDataSource _remote;
   final OutboxQueue _outbox;
+  /// Постановка правок идёт через сервис, а не напрямую в очередь: его enqueue
+  /// сразу дёргает прогон, иначе правка лежит до следующего внешнего триггера
+  /// (открытие экрана, возврат связи, перезапуск приложения).
+  final OutboxReplayService _replay;
   final Uuid _uuid = const Uuid();
 
   CalendarRepositoryImpl({
     required CalendarLocalDataSource local,
     required CalendarRemoteDataSource remote,
     required OutboxQueue outbox,
+    required OutboxReplayService replay,
   })  : _local = local,
         _remote = remote,
-        _outbox = outbox;
+        _outbox = outbox,
+        _replay = replay;
 
   @override
   Stream<List<CalendarEventEntity>> watchAll() => _local.watchAll();
@@ -135,7 +142,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       localPending: true,
     );
     await _local.upsert(event);
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'calendar',
       op: OutboxOpKind.create,
@@ -207,7 +214,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
       final merged = Map<String, dynamic>.from(pendingCreate.payload ?? {});
       merged.addAll(partialPayload);
       await _outbox.remove(pendingCreate.opId);
-      await _outbox.enqueue(pendingCreate.copyWith(payload: merged));
+      await _replay.enqueue(pendingCreate.copyWith(payload: merged));
       return next;
     }
 
@@ -219,7 +226,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
     }
 
     // Enqueue new update op with OCC expectedUpdatedAt
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'calendar',
       op: OutboxOpKind.update,
@@ -261,7 +268,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
     }
 
     await _local.remove(id);
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'calendar',
       op: OutboxOpKind.delete,
@@ -292,7 +299,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
         await _outbox.remove(o.opId);
       }
     }
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'task',
       op: OutboxOpKind.delete,
@@ -313,7 +320,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
     if (status == 'done' || status == 'dropped') {
       await _local.remove(viewId);
     }
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'task',
       op: OutboxOpKind.update,
@@ -356,7 +363,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
         await _outbox.remove(o.opId);
       }
     }
-    await _outbox.enqueue(OutboxOp(
+    await _replay.enqueue(OutboxOp(
       opId: _uuid.v4(),
       feature: 'task',
       op: OutboxOpKind.update,
@@ -414,7 +421,7 @@ class CalendarRepositoryImpl implements ICalendarRepository {
           final serverUpdatedAt =
               DateTime.parse(server['updatedAt'] as String);
           await _outbox.remove(conflictOp.opId);
-          await _outbox.enqueue(OutboxOp(
+          await _replay.enqueue(OutboxOp(
             opId: _uuid.v4(),
             feature: 'calendar',
             op: OutboxOpKind.update,

@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:taler_id_mobile/core/storage/outbox_op.dart';
+import 'package:taler_id_mobile/core/services/outbox_replay_service.dart';
 import 'package:taler_id_mobile/core/storage/outbox_queue.dart';
 import 'package:taler_id_mobile/features/calendar/data/datasources/calendar_local_datasource.dart';
 import 'package:taler_id_mobile/features/calendar/data/datasources/calendar_remote_datasource.dart';
@@ -38,12 +39,29 @@ CalendarEventEntity ev(String id,
       localPending: pending,
     );
 
+/// Сервис-пустышка: кладёт правку в очередь, но НЕ запускает прогон. Тесты
+/// репозитория проверяют содержимое очереди, а настоящий прогон без хендлеров
+/// пометил бы операцию мёртвой («no handler») прямо под проверкой. Сам факт
+/// постановки ЧЕРЕЗ сервис (а не мимо, в обход триггера отправки) проверяет
+/// отдельный тест ниже по списку [enqueued].
+class _SilentReplay extends OutboxReplayService {
+  final OutboxQueue q;
+  final List<OutboxOp> enqueued = [];
+  _SilentReplay(this.q) : super(queue: q);
+  @override
+  Future<void> enqueue(OutboxOp op) async {
+    enqueued.add(op);
+    await q.enqueue(op);
+  }
+}
+
 void main() {
   late Directory tempDir;
   late CalendarLocalDataSource local;
   late OutboxQueue queue;
   late _MockRemote remote;
   late CalendarRepositoryImpl repo;
+  late _SilentReplay replay;
 
   setUpAll(() {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -59,8 +77,9 @@ void main() {
     local = CalendarLocalDataSource();
     queue = OutboxQueue();
     remote = _MockRemote();
-    repo =
-        CalendarRepositoryImpl(local: local, remote: remote, outbox: queue);
+    replay = _SilentReplay(queue);
+    repo = CalendarRepositoryImpl(
+        local: local, remote: remote, outbox: queue, replay: replay);
   });
 
   tearDown(() async {
@@ -367,4 +386,20 @@ void main() {
     expect(localNow.localPending, false);
     expect(localNow.conflictedWith, isNull);
   });
+
+  test('правка задачи ставится через сервис отправки, а не мимо него', () async {
+    // Мимо сервиса правка просто ложится в очередь и ждёт внешнего триггера
+    // (открытие экрана, возврат связи, перезапуск) — так перенос даты владельца
+    // пролежал двое суток и Линкеон показывал старую дату (инцидент 02.11.2026).
+    await repo.setTaskStatus(
+      taskId: 't-1',
+      status: 'done',
+      viewId: 'task:t-1:2026-11-02',
+    );
+
+    expect(replay.enqueued.map((o) => o.entityId).toList(), ['t-1'],
+        reason: 'постановка обязана идти через сервис — он дёргает прогон');
+    expect((await queue.pending()).single.feature, 'task');
+  });
+
 }
