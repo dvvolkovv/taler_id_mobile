@@ -534,6 +534,7 @@ class AssistantToolsExecutor {
           // user learns the recording produced nothing.
           if (status == 'processing') 'recapPending': true,
           if (status.startsWith('failed')) 'recordingFailed': true,
+          if (status == 'partial') 'partialRecording': true,
           if (wantsTranscript && transcript.isNotEmpty) ...{
             'transcript': transcript.length > transcriptCap
                 ? transcript.substring(0, transcriptCap)
