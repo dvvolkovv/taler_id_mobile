@@ -1062,6 +1062,8 @@
   "callHistoryMeetingRecording": "Meeting recording",
   "callHistoryProcessing": "Processing...",
   "callHistoryRecordingFailed": "Recording failed",
+  "callHistoryPartialRecording": "Partial recording",
+  "callHistoryPartialRecordingDetails": "Some audio tracks could not be processed. The available recording and transcript may be incomplete.",
   "callHistoryCreateTranscript": "Create transcript",
   "callHistoryNoSummaries": "No summaries",
   "callHistoryRecordDuringCall": "Press \"Record\" during a call",

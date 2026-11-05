@@ -23,6 +23,10 @@ void main() {
       expect(meetingCardState('failed'), MeetingCardState.failed);
     });
 
+    test('a usable but incomplete recording is partial, not ready or failed', () {
+      expect(meetingCardState('partial'), MeetingCardState.partial);
+    });
+
     test('an unknown or missing status is treated as a normal meeting', () {
       // Legacy rows predate the status column; a status we do not recognise is
       // not a reason to accuse the recording of having failed.
