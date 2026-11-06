@@ -208,6 +208,18 @@ void main() {
       expect(out['status'], 'failed_no_audio');
       expect(out['recordingFailed'], isTrue);
     });
+
+    test('flags a partial recording so the recap is not presented as complete', () async {
+      stubMeeting({'status': 'partial'});
+
+      final out = jsonDecode(await executor()
+          .execute('get_meeting_summary', {'meetingId': 'm-1'})) as Map;
+
+      expect(out['status'], 'partial');
+      expect(out['partialRecording'], isTrue);
+      expect(out.containsKey('recordingFailed'), isFalse);
+      expect(out.containsKey('recapPending'), isFalse);
+    });
   });
 
   group('transcribe_meeting', () {
