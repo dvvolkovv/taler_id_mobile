@@ -4720,6 +4720,18 @@ abstract class AppLocalizations {
   /// **'Recording failed'**
   String get callHistoryRecordingFailed;
 
+  /// No description provided for @callHistoryPartialRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial recording'**
+  String get callHistoryPartialRecording;
+
+  /// No description provided for @callHistoryPartialRecordingDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Some audio tracks could not be processed. The available recording and transcript may be incomplete.'**
+  String get callHistoryPartialRecordingDetails;
+
   /// No description provided for @callHistoryCreateTranscript.
   ///
   /// In en, this message translates to:

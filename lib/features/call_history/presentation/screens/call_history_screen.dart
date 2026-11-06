@@ -35,6 +35,7 @@ import '../../../interpreter/presentation/widgets/interpreter_entry_button.dart'
 import '../../data/mesh_call_history_entry.dart';
 import '../../data/mesh_call_history_repository.dart';
 import 'call_history_merge.dart';
+import '../widgets/partial_recording_banner.dart';
 import 'dart:convert' show base64Decode;
 import '../../../../core/mesh/crypto/keys/contact_key_store_hive.dart';
 import '../../../../core/mesh/transport/peer_id.dart';
@@ -2364,6 +2365,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
     final cardState = meetingCardState(item['status'] as String?);
     final isProcessing = cardState == MeetingCardState.processing;
     final hasFailed = cardState == MeetingCardState.failed;
+    final isPartial = cardState == MeetingCardState.partial;
 
     return GestureDetector(
       onTap: isProcessing ? null : () => Navigator.of(context).push(
@@ -2381,7 +2383,7 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
-                      colors: hasFailed
+                      colors: hasFailed || isPartial
                           ? const [Color(0xFFF59E0B), Color(0xFFD97706)]
                           : const [Color(0xFFA855F7), Color(0xFF7C3AED)],
                       begin: Alignment.topLeft,
@@ -2389,14 +2391,18 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (hasFailed ? const Color(0xFFF59E0B) : const Color(0xFFA855F7))
+                        color: (hasFailed || isPartial ? const Color(0xFFF59E0B) : const Color(0xFFA855F7))
                             .withOpacity(0.45),
                         blurRadius: 6,
                       ),
                     ],
                   ),
                   child: Icon(
-                    hasFailed ? Icons.mic_off_rounded : Icons.smart_toy_rounded,
+                    hasFailed
+                        ? Icons.mic_off_rounded
+                        : isPartial
+                            ? Icons.warning_amber_rounded
+                            : Icons.smart_toy_rounded,
                     size: 16,
                     color: Colors.white,
                   ),
@@ -2428,6 +2434,10 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
                 ],
               ],
             ),
+            if (isPartial) ...[
+              const SizedBox(height: 6),
+              const PartialRecordingBanner(compact: true),
+            ],
             if (participants.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(participants, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
@@ -2528,10 +2538,15 @@ class _MeetingSummaryDetailScreenState extends State<MeetingSummaryDetailScreen>
           final decisions = (data['decisions'] as List?)?.cast<String>() ?? [];
           final transcript = data['transcript'] as String? ?? '';
           final participants = (data['participants'] as List?)?.join(', ') ?? '';
+          final isPartial = meetingCardState(data['status'] as String?) == MeetingCardState.partial;
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              if (isPartial) ...[
+                const PartialRecordingBanner(),
+                const SizedBox(height: 20),
+              ],
               if (participants.isNotEmpty) ...[
                 Text(l10n.callHistoryParticipants, style: TextStyle(color: colors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
@@ -2840,6 +2855,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     final createdAt = (DateTime.tryParse(item['createdAt'] as String? ?? '') ?? DateTime.now()).toLocal();
     final recordingUrl = item['recordingUrl'] as String? ?? '';
     final status = item['status'] as String? ?? 'done';
+    final isPartial = meetingCardState(status) == MeetingCardState.partial;
     final hasTranscript = item['hasTranscript'] as bool? ?? false;
     final hasSummary = item['hasSummary'] as bool? ?? false;
     final durationStr = durationSec != null ? _formatDuration(durationSec) : '';
@@ -2886,6 +2902,10 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
           if (participants.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(participants, style: TextStyle(color: colors.textSecondary, fontSize: 13)),
+          ],
+          if (isPartial) ...[
+            const SizedBox(height: 6),
+            const PartialRecordingBanner(compact: true),
           ],
           const SizedBox(height: 12),
           // Inline audio player
@@ -3174,7 +3194,7 @@ class ParticipantTile extends StatelessWidget {
 }
 
 /// How a meeting card should read, derived from the recap's status.
-enum MeetingCardState { processing, failed, ready }
+enum MeetingCardState { processing, failed, partial, ready }
 
 /// `failed_no_audio` (recorder heard nobody) and `failed` (transcription died)
 /// both mean there is no recap to show — the row exists so the user learns that
@@ -3185,5 +3205,6 @@ MeetingCardState meetingCardState(String? status) {
   if (status == 'failed' || status == 'failed_no_audio') {
     return MeetingCardState.failed;
   }
+  if (status == 'partial') return MeetingCardState.partial;
   return MeetingCardState.ready;
 }

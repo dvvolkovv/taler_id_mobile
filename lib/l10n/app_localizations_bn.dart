@@ -2429,6 +2429,13 @@ class AppLocalizationsBn extends AppLocalizations {
   String get callHistoryRecordingFailed => 'Recording failed';
 
   @override
+  String get callHistoryPartialRecording => 'Partial recording';
+
+  @override
+  String get callHistoryPartialRecordingDetails =>
+      'Some audio tracks could not be processed. The available recording and transcript may be incomplete.';
+
+  @override
   String get callHistoryCreateTranscript => 'ট্রান্সক্রিপ্ট তৈরি করুন';
 
   @override

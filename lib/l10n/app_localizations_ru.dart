@@ -2430,6 +2430,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get callHistoryRecordingFailed => 'Запись не удалась';
 
   @override
+  String get callHistoryPartialRecording => 'Запись частичная';
+
+  @override
+  String get callHistoryPartialRecordingDetails =>
+      'Часть аудиодорожек не обработана. Доступные запись и протокол могут быть неполными.';
+
+  @override
   String get callHistoryCreateTranscript => 'Создать протокол';
 
   @override
