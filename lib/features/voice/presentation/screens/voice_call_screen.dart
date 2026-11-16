@@ -591,14 +591,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       if (existing != null) {
         // Switch to existing line instead
         await cs.holdAndSwitch(existing.roomName);
-        if (mounted) {
-          final route = '/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}';
-          context.pop();
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) context.push(route);
-          });
+        // Opened for that very line (the "return to call" banner goes here
+        // with a fresh stack, nothing to pop): resume it below.
+        if (existing.roomName != widget.roomName) {
+          if (mounted) {
+            final route = '/dashboard/voice?room=${existing.roomName}&convId=${existing.conversationId}';
+            context.pop();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) context.push(route);
+            });
+          }
+          return;
         }
-        return;
       }
     }
 
