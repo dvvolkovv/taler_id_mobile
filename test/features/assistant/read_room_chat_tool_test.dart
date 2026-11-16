@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +19,19 @@ class _MockRoomChatApi extends Mock implements RoomChatApi {}
 /// Same shape as _MockRoom in send_room_chat_tool_test.dart — the executor
 /// never touches the room itself, only the room *name*/*token* that
 /// CallStateService derives from it, so a bare mock is enough.
-class _MockRoom extends Mock implements lk.Room {}
+class _MockRoom extends Mock implements lk.Room {
+  @override
+  lk.ConnectionState get connectionState => lk.ConnectionState.connected;
+
+  // CallStateService watches every line's room: who is in it, and its events.
+  @override
+  UnmodifiableMapView<String, lk.RemoteParticipant> get remoteParticipants =>
+      UnmodifiableMapView(<String, lk.RemoteParticipant>{});
+
+  @override
+  lk.EventsListener<lk.RoomEvent> createListener({bool synchronized = false}) =>
+      lk.EventsListener<lk.RoomEvent>(lk.EventsEmitter<lk.RoomEvent>(), synchronized: synchronized);
+}
 
 RoomChatHistoryMessage _historyMessage(
   String name,

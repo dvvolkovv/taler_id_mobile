@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:livekit_client/livekit_client.dart' as lk;
@@ -12,6 +13,15 @@ import 'package:taler_id_mobile/core/services/call_state_service.dart';
 class MockRoom extends Mock implements lk.Room {
   @override
   lk.ConnectionState get connectionState => lk.ConnectionState.connected;
+
+  // CallStateService watches every line's room: who is in it, and its events.
+  @override
+  UnmodifiableMapView<String, lk.RemoteParticipant> get remoteParticipants =>
+      UnmodifiableMapView(<String, lk.RemoteParticipant>{});
+
+  @override
+  lk.EventsListener<lk.RoomEvent> createListener({bool synchronized = false}) =>
+      lk.EventsListener<lk.RoomEvent>(lk.EventsEmitter<lk.RoomEvent>(), synchronized: synchronized);
 }
 
 class MockLocalParticipant extends Mock implements lk.LocalParticipant {}

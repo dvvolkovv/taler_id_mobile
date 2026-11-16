@@ -214,6 +214,112 @@ class CallStateService {
   void setCallUi(Object owner, bool active) {
     final changed = active ? _callUiOwners.add(owner) : _callUiOwners.remove(owner);
     if (changed && !_callUiCtrl.isClosed) _callUiCtrl.add(isCallUiActive);
+    // Whether the call screen still has the active line decides who
+    // watches it — see [_checkLine].
+    if (changed) _checkLines();
+  }
+
+  // ── Line watch ───────────────────────────────────────────────────
+
+  /// Remote identities that are not the other side of the call — the same
+  /// ones VoiceCallScreen leaves out when deciding someone answered.
+  static const _botIdentities = {'ai-assistant', 'meeting-recorder', 'voice-translator'};
+
+  /// How long a line may sit with its peer gone before [_checkLine] ends
+  /// it. Longer than the call screen's own 3 s: a peer reconnecting leaves
+  /// the room and comes back as a new participant, and ending a live call
+  /// over that is worse than the banner lingering a few seconds more.
+  static const _peerGoneGrace = Duration(seconds: 10);
+
+  final Map<String, lk.EventsListener<lk.RoomEvent>> _watchers = {};
+  final Map<String, Timer> _peerGoneTimers = {};
+
+  /// Lines whose peer has been in the room at some point. An empty room
+  /// before that is a call still ringing, not one that is over.
+  final Set<String> _answeredLines = {};
+
+  bool _isPeer(lk.Participant p) => !_botIdentities.contains(p.identity);
+
+  bool _onScreen(String name) => isCallUiActive && name == _activeRoomName;
+
+  bool _peerGone(CallLine l) =>
+      !_onScreen(l.roomName) &&
+      _answeredLines.contains(l.roomName) &&
+      // The twin leaving is the caller's AI conversation ending, not the
+      // call — VoiceCallScreen._hangUp doesn't auto-end those either.
+      !isAiTwinRoom(l.roomName) &&
+      l.room.remoteParticipants.isEmpty;
+
+  void _watch(CallLine line) {
+    final name = line.roomName;
+    final room = line.room;
+    if (room.remoteParticipants.values.any(_isPeer)) _answeredLines.add(name);
+    // Disposing a listener cancels its subscriptions one await at a time,
+    // so a replaced room can still deliver an event or two: only the line's
+    // current room counts.
+    bool current() => identical(_lines[name]?.room, room);
+    _watchers[name] = room.createListener()
+      ..on<lk.ParticipantConnectedEvent>((e) {
+        if (!current()) return;
+        if (_isPeer(e.participant)) _answeredLines.add(name);
+        _checkLine(name);
+      })
+      ..on<lk.ParticipantDisconnectedEvent>((_) {
+        if (current()) _checkLine(name);
+      })
+      ..on<lk.RoomDisconnectedEvent>((_) {
+        if (current()) _checkLine(name);
+      });
+  }
+
+  void _unwatch(String name) {
+    _peerGoneTimers.remove(name)?.cancel();
+    unawaited(_watchers.remove(name)?.dispose());
+  }
+
+  /// The line is gone — nothing about it carries over to a later call that
+  /// reuses the room name (meeting and personal rooms do).
+  void _forget(String name) {
+    _unwatch(name);
+    _answeredLines.remove(name);
+  }
+
+  void _checkLines() {
+    for (final name in _lines.keys.toList()) {
+      _checkLine(name);
+    }
+  }
+
+  /// Ends [name]'s line once its call is over and nobody else will notice:
+  /// its room dropped, or the peer left and the room stayed empty for
+  /// [_peerGoneGrace] — a peer whose app died or lost network sends no
+  /// `call_ended`, and the server only tells about group calls. The line
+  /// on the call screen is the screen's: it reconnects a dropped room and
+  /// hangs up an emptied one itself, and does not follow a line ended from
+  /// under it.
+  void _checkLine(String name) {
+    final line = _lines[name];
+    if (line == null) return;
+    if (!_onScreen(name) && line.room.connectionState == lk.ConnectionState.disconnected) {
+      unawaited(endLine(name));
+      return;
+    }
+    if (!_peerGone(line)) {
+      _peerGoneTimers.remove(name)?.cancel();
+      return;
+    }
+    _peerGoneTimers[name] ??= Timer(_peerGoneGrace, () {
+      _peerGoneTimers.remove(name);
+      if (!identical(_lines[name], line)) return;
+      if (line.room.connectionState == lk.ConnectionState.connected && _peerGone(line)) {
+        debugPrint('[CallState] peer left $name — ending the line');
+        unawaited(endLine(name));
+      } else {
+        // Our own reconnect empties the room too, and refills it after:
+        // look again later rather than end the call in the middle of it.
+        _checkLine(name);
+      }
+    });
   }
 
   // ── Multi-line API ───────────────────────────────────────────────
@@ -378,8 +484,14 @@ class CallStateService {
       line.heldBySystem = true;
       line.micOnBeforeSystemHold = true;
     }
+    _unwatch(name);
+    // A reconnect is the same call: its peer having answered carries over.
+    if (previous == null) _answeredLines.remove(name);
     _lines[name] = line;
+    _watch(line);
     _activeRoomName = name;
+    // The line that was on screen may have just left it.
+    _checkLines();
     _stateCtrl.add(true);
     _activeRoomCtrl.add(name);
   }
@@ -438,6 +550,7 @@ class CallStateService {
           await target.room.localParticipant?.setMicrophoneEnabled(!target.wasMuted);
         } catch (_) {}
       }
+      _checkLines();
       _stateCtrl.add(true);
       _activeRoomCtrl.add(targetRoomName);
     }
@@ -456,6 +569,7 @@ class CallStateService {
   /// End a specific call line.
   Future<void> endLine(String name) async {
     final line = _lines.remove(name);
+    _forget(name);
     clearAnsweredState(name);
     // Unconditional, whether or not `name` was ever a line: a system hold
     // can land for a room that's still joining (see applySystemHold), and
@@ -498,6 +612,7 @@ class CallStateService {
         _activeRoomName = null;
         _activeRoomCtrl.add(null);
       }
+      _checkLines();
     }
     _stateCtrl.add(_lines.isNotEmpty);
   }
@@ -505,6 +620,10 @@ class CallStateService {
   Future<void> endCall() async {
     final lines = List<CallLine>.from(_lines.values);
     _lines.clear();
+    for (final name in {..._watchers.keys, ..._peerGoneTimers.keys}) {
+      _unwatch(name);
+    }
+    _answeredLines.clear();
     _activeRoomName = null;
     _bgConnecting = false;
     _bgGeneration++;
@@ -538,6 +657,7 @@ class CallStateService {
     if (_activeRoomName != null) {
       final ended = _activeRoomName!;
       if (_lines.remove(ended) != null) _reportLineEnded(ended);
+      _forget(ended);
       if (_lines.isNotEmpty) {
         final next = _lines.values.first;
         _activeRoomName = next.roomName;
@@ -565,12 +685,14 @@ class CallStateService {
       // that itself starts a new call via setRoom) and mutate _lines while
       // this loop is still walking its live key view.
       for (final name in _lines.keys.toList()) {
+        _forget(name);
         _reportLineEnded(name);
       }
       _lines.clear();
     }
     _bgConnecting = false;
     _bgGeneration++;
+    _checkLines();
     _stateCtrl.add(_lines.isNotEmpty);
   }
 
