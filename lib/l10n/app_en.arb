@@ -1891,6 +1891,8 @@
   "deviceApprovalDeny": "This wasn't me",
   "deviceApprovalApproved": "Sign-in allowed",
   "deviceApprovalDenied": "Sign-in rejected",
+  "deviceApprovalStaleTitle": "This request is no longer valid",
+  "deviceApprovalStaleBody": "A sign-in has to be confirmed within 10 minutes, or this request was already answered. If it was you, try signing in again. Devices with access to your account are listed in Settings → Devices.",
   "trustedDevicesTitle": "Devices",
   "trustedDevicesToggle": "Confirm sign-ins from new devices",
   "trustedDevicesToggleHint": "Signing in on an unfamiliar device will need confirmation here, or a code by email",

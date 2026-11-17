@@ -688,6 +688,7 @@ String? notificationToRoute(RemoteMessage message) {
         'deviceInfo': data['deviceInfo'] as String? ?? '',
         'ip': data['ip'] as String? ?? '',
         'location': data['location'] as String? ?? '',
+        'expiresAt': data['expiresAt'] as String? ?? '',
       };
       final query = q.entries
           .where((e) => e.value.isNotEmpty)

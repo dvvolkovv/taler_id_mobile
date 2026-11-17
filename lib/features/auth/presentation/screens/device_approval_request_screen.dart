@@ -22,12 +22,16 @@ class DeviceApprovalRequestScreen extends StatefulWidget {
   final String ip;
   final String location;
 
+  /// Когда запрос истекает. Нет у пушей от бэкенда старше 2026-11-17.
+  final DateTime? expiresAt;
+
   const DeviceApprovalRequestScreen({
     super.key,
     required this.approvalId,
     required this.deviceInfo,
     required this.ip,
     required this.location,
+    this.expiresAt,
   });
 
   @override
@@ -41,7 +45,28 @@ class _DeviceApprovalRequestScreenState
   String? _error;
   String? _done;
 
+  /// Запрос истёк или на него уже ответили. Уведомление легко открыть через
+  /// несколько часов, а запрос живёт 10 минут: без этого обе кнопки отвечали
+  /// сырым «Approval request not found» (2026-11-17).
+  bool _stale = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _stale = _pastDeadline();
+  }
+
+  bool _pastDeadline() {
+    final deadline = widget.expiresAt;
+    return deadline != null && !DateTime.now().isBefore(deadline);
+  }
+
   Future<void> _respond({required bool allow}) async {
+    // Экран мог провисеть открытым дольше, чем живёт запрос.
+    if (_pastDeadline()) {
+      setState(() => _stale = true);
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -63,7 +88,14 @@ class _DeviceApprovalRequestScreenState
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _error = e.message;
+        // 404 — это и «истёк», и «уже ответили с другого устройства», и чужой
+        // approvalId: сервер намеренно их не различает. Для человека всё это
+        // одно — отвечать уже не на что.
+        if (e.isNotFound) {
+          _stale = true;
+        } else {
+          _error = e.message;
+        }
       });
     }
   }
@@ -95,36 +127,62 @@ class _DeviceApprovalRequestScreenState
     );
   }
 
+  /// Конечный экран: ответ отправлен или отвечать уже не на что.
+  Widget _outcome(
+    BuildContext context,
+    IconData icon,
+    String title, {
+    String? body,
+  }) {
+    final colors = AppColors.of(context);
+    return DesktopAdaptiveScaffold(
+      cardMaxWidth: kCardWidthForm,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: colors.primary, size: 48),
+          const SizedBox(height: 24),
+          Text(
+            title,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (body != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              body,
+              style: TextStyle(color: colors.textSecondary, fontSize: 14),
+            ),
+          ],
+          const SizedBox(height: 32),
+          LoadingButton(
+            text: MaterialLocalizations.of(context).closeButtonLabel,
+            loading: false,
+            onPressed: _leave,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final colors = AppColors.of(context);
 
     if (_done != null) {
-      return DesktopAdaptiveScaffold(
-        cardMaxWidth: kCardWidthForm,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.check_circle_outline, color: colors.primary, size: 48),
-            const SizedBox(height: 24),
-            Text(
-              _done!,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 32),
-            LoadingButton(
-              text: MaterialLocalizations.of(context).closeButtonLabel,
-              loading: false,
-              onPressed: _leave,
-            ),
-          ],
-        ),
+      return _outcome(context, Icons.check_circle_outline, _done!);
+    }
+    if (_stale) {
+      return _outcome(
+        context,
+        Icons.timer_off_outlined,
+        l10n.deviceApprovalStaleTitle,
+        body: l10n.deviceApprovalStaleBody,
       );
     }
 

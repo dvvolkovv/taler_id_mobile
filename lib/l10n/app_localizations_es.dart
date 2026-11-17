@@ -4036,6 +4036,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get deviceApprovalDenied => 'Sign-in rejected';
 
   @override
+  String get deviceApprovalStaleTitle => 'This request is no longer valid';
+
+  @override
+  String get deviceApprovalStaleBody =>
+      'A sign-in has to be confirmed within 10 minutes, or this request was already answered. If it was you, try signing in again. Devices with access to your account are listed in Settings → Devices.';
+
+  @override
   String get trustedDevicesTitle => 'Devices';
 
   @override

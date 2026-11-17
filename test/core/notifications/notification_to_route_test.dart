@@ -22,6 +22,22 @@ void main() {
     expect(notificationToRoute(message), isNull);
   });
 
+  test('an approval notification carries its deadline to the screen', () {
+    const expiresAt = '2026-11-16T19:48:25.096Z';
+    const message = RemoteMessage(data: {
+      'type': 'device_approval',
+      'approvalId': 'appr-1',
+      'deviceInfo': 'Pixel',
+      'ip': '1.2.3.4',
+      'expiresAt': expiresAt,
+    });
+
+    final uri = Uri.parse(notificationToRoute(message)!);
+    expect(uri.path, '/auth/device-approval-request');
+    expect(uri.queryParameters['approvalId'], 'appr-1');
+    expect(uri.queryParameters['expiresAt'], expiresAt);
+  });
+
   test('other notifications still lead to their screens', () {
     const message = RemoteMessage(data: {'type': 'new_session'});
 

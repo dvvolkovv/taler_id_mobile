@@ -157,6 +157,7 @@ final appRouter = GoRouter(
           deviceInfo: q['deviceInfo'] ?? '',
           ip: q['ip'] ?? '',
           location: q['location'] ?? '',
+          expiresAt: DateTime.tryParse(q['expiresAt'] ?? ''),
         );
       },
     ),

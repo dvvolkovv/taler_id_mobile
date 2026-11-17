@@ -4040,6 +4040,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get deviceApprovalDenied => 'Вход отклонён';
 
   @override
+  String get deviceApprovalStaleTitle => 'Запрос больше не действует';
+
+  @override
+  String get deviceApprovalStaleBody =>
+      'Вход нужно подтвердить в течение 10 минут, либо на этот запрос уже ответили. Если входили вы — попробуйте войти ещё раз. Устройства с доступом к аккаунту — в настройках, раздел «Устройства».';
+
+  @override
   String get trustedDevicesTitle => 'Устройства';
 
   @override

@@ -7600,6 +7600,18 @@ abstract class AppLocalizations {
   /// **'Sign-in rejected'**
   String get deviceApprovalDenied;
 
+  /// No description provided for @deviceApprovalStaleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This request is no longer valid'**
+  String get deviceApprovalStaleTitle;
+
+  /// No description provided for @deviceApprovalStaleBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A sign-in has to be confirmed within 10 minutes, or this request was already answered. If it was you, try signing in again. Devices with access to your account are listed in Settings → Devices.'**
+  String get deviceApprovalStaleBody;
+
   /// No description provided for @trustedDevicesTitle.
   ///
   /// In en, this message translates to:

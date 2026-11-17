@@ -1884,6 +1884,8 @@
   "deviceApprovalDeny": "Это не я",
   "deviceApprovalApproved": "Вход разрешён",
   "deviceApprovalDenied": "Вход отклонён",
+  "deviceApprovalStaleTitle": "Запрос больше не действует",
+  "deviceApprovalStaleBody": "Вход нужно подтвердить в течение 10 минут, либо на этот запрос уже ответили. Если входили вы — попробуйте войти ещё раз. Устройства с доступом к аккаунту — в настройках, раздел «Устройства».",
   "trustedDevicesTitle": "Устройства",
   "trustedDevicesToggle": "Подтверждать вход с новых устройств",
   "trustedDevicesToggleHint": "Вход с незнакомого устройства потребует подтверждения с этого или кода на почту",
