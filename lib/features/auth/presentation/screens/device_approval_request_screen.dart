@@ -53,20 +53,14 @@ class _DeviceApprovalRequestScreenState
   @override
   void initState() {
     super.initState();
-    _stale = _pastDeadline();
-  }
-
-  bool _pastDeadline() {
+    // По часам телефона судим только при открытии — чтобы не предлагать
+    // кнопки к запросу многочасовой давности. Дальше решает сервер: часы
+    // могут спешить, а живой запрос отклонять из-за них нельзя.
     final deadline = widget.expiresAt;
-    return deadline != null && !DateTime.now().isBefore(deadline);
+    _stale = deadline != null && !DateTime.now().isBefore(deadline);
   }
 
   Future<void> _respond({required bool allow}) async {
-    // Экран мог провисеть открытым дольше, чем живёт запрос.
-    if (_pastDeadline()) {
-      setState(() => _stale = true);
-      return;
-    }
     setState(() {
       _busy = true;
       _error = null;
