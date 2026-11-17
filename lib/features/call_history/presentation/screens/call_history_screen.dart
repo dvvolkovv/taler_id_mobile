@@ -2359,8 +2359,8 @@ class _MeetingSummariesScreenState extends State<MeetingSummariesScreen> {
     final summary = item['summary'] as String? ?? '';
     final durationSec = item['durationSec'] as int?;
     final actionItemsCount = item['actionItemsCount'] as int? ?? 0;
-    final createdAt = (DateTime.tryParse(item['createdAt'] as String? ?? '') ?? DateTime.now()).toLocal();
-    final timeStr = '${createdAt.day}.${createdAt.month.toString().padLeft(2, '0')} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+    final startedAt = (meetingStartedAt(item) ?? DateTime.now()).toLocal();
+    final timeStr = '${startedAt.day}.${startedAt.month.toString().padLeft(2, '0')} ${startedAt.hour.toString().padLeft(2, '0')}:${startedAt.minute.toString().padLeft(2, '0')}';
     final durationStr = durationSec != null ? '${durationSec ~/ 60} мин' : '';
     final cardState = meetingCardState(item['status'] as String?);
     final isProcessing = cardState == MeetingCardState.processing;
@@ -2852,7 +2852,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
     final id = item['id'] as String? ?? '';
     final participants = (item['participants'] as List?)?.join(', ') ?? '';
     final durationSec = item['durationSec'] as int?;
-    final createdAt = (DateTime.tryParse(item['createdAt'] as String? ?? '') ?? DateTime.now()).toLocal();
+    final startedAt = (meetingStartedAt(item) ?? DateTime.now()).toLocal();
     final recordingUrl = item['recordingUrl'] as String? ?? '';
     final status = item['status'] as String? ?? 'done';
     final isPartial = meetingCardState(status) == MeetingCardState.partial;
@@ -2891,7 +2891,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  l10n.callHistoryRecordingDate(_formatDate(createdAt)),
+                  l10n.callHistoryRecordingDate(_formatDate(startedAt)),
                   style: TextStyle(color: colors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -2989,7 +2989,7 @@ class _MeetingRecordingsScreenState extends State<MeetingRecordingsScreen> {
                     icon: Icon(Icons.share_rounded, size: 20, color: colors.textSecondary),
                     onPressed: () => shareText(
                       btnCtx,
-                      '${l10n.callHistoryMeetingRecording} ${_formatDate(createdAt)}\n${l10n.callHistoryParticipants}: $participants\n\n$recordingUrl',
+                      '${l10n.callHistoryMeetingRecording} ${_formatDate(startedAt)}\n${l10n.callHistoryParticipants}: $participants\n\n$recordingUrl',
                       subject: l10n.callHistoryMeetingRecording,
                     ),
                     tooltip: l10n.callHistoryShare,
@@ -3207,4 +3207,19 @@ MeetingCardState meetingCardState(String? status) {
   }
   if (status == 'partial') return MeetingCardState.partial;
   return MeetingCardState.ready;
+}
+
+/// When the recording began, or null if the row time is unreadable.
+///
+/// The row is created the moment the recording stops, so `createdAt` is its end:
+/// shown as is, a recording from 9:01 to 9:33 read "9:33", as if it had been
+/// switched on half an hour late. Rows from before the pending-row change were
+/// created after processing, so for them this lands a few minutes late — still
+/// far closer than the end time.
+DateTime? meetingStartedAt(Map<String, dynamic> item) {
+  final createdAt = DateTime.tryParse(item['createdAt'] as String? ?? '');
+  if (createdAt == null) return null;
+  final durationSec = item['durationSec'];
+  if (durationSec is! int || durationSec <= 0) return createdAt;
+  return createdAt.subtract(Duration(seconds: durationSec));
 }

@@ -41,6 +41,7 @@ import '../../domain/rotation_lock_arg.dart';
 import '../controllers/room_chat_controller.dart';
 import '../controllers/room_chat_lines.dart';
 import '../controllers/recording_dialect.dart';
+import '../controllers/recording_ownership.dart';
 import '../controllers/room_data_packet_ids.dart';
 import '../widgets/call_rotation_lock_button.dart';
 import '../widgets/room_chat_panel.dart';
@@ -1279,18 +1280,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
       }
       debugPrint('[AudDbg] manual subscribe loop DONE');
 
-      // If meeting-recorder is already in the room, mark recording as active
-      // and claim ownership so user can stop/restart it
-      if (_participants.any((p) => p.identity == 'meeting-recorder')) {
-        final myId = _room?.localParticipant?.identity;
-        final l10n = AppLocalizations.of(context)!;
-        final myName = _room?.localParticipant?.name ?? l10n.voiceParticipant;
-        setState(() {
-          _isRecording = true;
-          _recordingApproved = true;
-          _recordingInitiatorId = myId;
-          _recordingInitiatorName = myName;
-        });
+      // The recorder is already here: somebody started a recording before we
+      // came. It is theirs, not ours — we only watch it, like anyone present
+      // when it began. The indicator follows the recorder itself
+      // (_recordingInRoom), and the record button stays off until it leaves.
+      // Claiming it here made leaving the call stop it for everyone (17.11.2026).
+      if (_participants.any((p) => p.identity == RecordingOwnership.recorderIdentity)) {
+        setState(() => _recordingApproved = true);
       }
 
       // If there are already human participants in the room, stop ringback immediately
@@ -1535,6 +1531,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         final identity = event.participant.identity;
         // If recording/transcription initiator left, end everything
         if (identity == _recordingInitiatorId && (_isRecording || _transcriptionActive || _consentPending)) {
+          _resetRecordingState();
+        }
+        // The recorder itself left: whoever's recording it was, it is over.
+        if (identity == RecordingOwnership.recorderIdentity &&
+            RecordingOwnership.resetWhenRecorderLeft(
+              localId: _room?.localParticipant?.identity,
+              initiatorId: _recordingInitiatorId,
+            )) {
           _resetRecordingState();
         }
         // Remove from consent tracking
@@ -4056,12 +4060,24 @@ Answer briefly — the user is in the middle of a conversation.''';
       } catch (_) {}
       _consentDialogShowing = false;
     }
-    // Stop recording/transcription on server BEFORE disconnecting
+    // Stop recording/transcription on server BEFORE disconnecting — but only
+    // our own and only as the last person out. While anyone stays the meeting
+    // goes on, and the recorder stops by itself once everybody has left. When
+    // we leave without stopping, nothing is broadcast either: `recording_ended`
+    // would make older builds that claimed the recording stop it for everyone.
     final localId = _room?.localParticipant?.identity;
-    if (_recordingInitiatorId == localId && (_isRecording || _transcriptionActive)) {
+    final recordingActive = _isRecording || _transcriptionActive;
+    if (RecordingOwnership.stopOnLeave(
+      localId: localId,
+      initiatorId: _recordingInitiatorId,
+      active: recordingActive,
+      roomConnected: _room?.connectionState == lk.ConnectionState.connected,
+      remoteIdentities:
+          _room?.remoteParticipants.values.map((p) => p.identity) ?? const [],
+    )) {
       _broadcastRecordingData({'type': 'recording_ended', 'initiatorId': localId});
       await _stopRecording();
-    } else if (_recordingInitiatorId == localId && _consentPending) {
+    } else if (localId != null && _recordingInitiatorId == localId && !recordingActive && _consentPending) {
       _broadcastRecordingData({'type': 'recording_denied', 'initiatorId': localId});
     }
     // Disable microphone first to release audio track
