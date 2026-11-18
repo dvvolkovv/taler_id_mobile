@@ -43,6 +43,7 @@ import '../controllers/room_chat_lines.dart';
 import '../controllers/recording_dialect.dart';
 import '../controllers/recording_ownership.dart';
 import '../controllers/room_data_packet_ids.dart';
+import '../controllers/sdk_reconnect_grace.dart';
 import '../widgets/call_rotation_lock_button.dart';
 import '../widgets/room_chat_panel.dart';
 import '../widgets/video_effects_picker.dart';
@@ -300,6 +301,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
   StreamSubscription? _aiTwinJoinedSub;
   StreamSubscription? _aiTwinLeftSub;
   Timer? _emptyRoomTimer;
+  /// Даёт LiveKit восстановить соединение самому, см. [SdkReconnectGrace].
+  late final SdkReconnectGrace _sdkGrace =
+      SdkReconnectGrace(onExpired: _onSdkGraceExpired);
   // Audio-flow watchdog: detects the "peer hears me but I hear silence"
   // one-way failure where the subscriber path is dead while everything
   // looks healthy (pub subscribed, track attached, mediaStreamTrack
@@ -1399,8 +1403,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
         _forceEarpiece();
         setState(() => _reconnecting = false);
       })
+      ..on<lk.RoomAttemptReconnectEvent>((event) {
+        // LiveKit пробует ещё раз — ждём его, а не перебиваем своим циклом.
+        if (_navigatedAway || _manualReconnecting) return;
+        _sdkGrace.attempt();
+      })
       ..on<lk.RoomDisconnectedEvent>((event) {
         debugPrint('[VoiceCall] RoomDisconnectedEvent reason=${event.reason} _aiTwinActive=$_aiTwinActive');
+        _sdkGrace.cancel();
         // If the AI voice twin is handling the call, a disconnect almost
         // always means the backend kicked us out after call_ended was
         // broadcast by the stale human callee device. Don't reconnect —
@@ -1668,10 +1678,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
 
     if (room.connectionState == lk.ConnectionState.disconnected) {
       if (_navigatedAway || _reconnecting || _manualReconnecting) return;
-      // Connection dropped without LiveKit's reconnect starting — try ours
-      _startManualReconnect();
+      // Не своё переподключение сразу: так LiveKit выглядит и посреди удачного
+      // восстановления после мигания сети. Ждём его, см. [SdkReconnectGrace];
+      // сдавшись, он пришлёт RoomDisconnectedEvent.
+      _sdkGrace.disconnected();
       return;
     }
+    _sdkGrace.cancel();
 
     // Sync participants list from room state
     if (mounted) {
@@ -1706,8 +1719,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen>
     }
   }
 
+  /// LiveKit так и не вернул соединение и не сообщил, что сдался.
+  void _onSdkGraceExpired() {
+    if (!mounted || _navigatedAway || _reconnecting || _manualReconnecting) {
+      return;
+    }
+    if (_room?.connectionState != lk.ConnectionState.disconnected) return;
+    debugPrint('[VoiceCall] LiveKit silent for '
+        '${SdkReconnectGrace.defaultGrace.inSeconds}s — starting our reconnect');
+    _startManualReconnect();
+  }
+
   Future<void> _startManualReconnect() async {
     if (_manualReconnecting || _navigatedAway || !mounted) return;
+    _sdkGrace.cancel();
     // Don't reconnect an AI twin session — the backend has almost
     // certainly already closed the room because the stale human callee
     // broadcast call_ended. Reconnect loops just thrash through dead
@@ -4834,6 +4859,7 @@ Answer briefly — the user is in the middle of a conversation.''';
     _aiTwinLeftSub?.cancel();
     _ringbackTimer?.cancel();
     _emptyRoomTimer?.cancel();
+    _sdkGrace.cancel();
     _audioFlowTimer?.cancel();
     _ringbackActive = false;
     _stopRingTone();
