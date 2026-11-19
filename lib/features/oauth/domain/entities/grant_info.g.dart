@@ -14,6 +14,7 @@ _$GrantInfoImpl _$$GrantInfoImplFromJson(Map<String, dynamic> json) =>
           .map((e) => ScopeDescriptor.fromJson(e as Map<String, dynamic>))
           .toList(),
       remembered: json['remembered'] as bool,
+      companies: CompanyConsent.fromJsonOrNull(json['companies']),
     );
 
 Map<String, dynamic> _$$GrantInfoImplToJson(_$GrantInfoImpl instance) =>
@@ -22,4 +23,5 @@ Map<String, dynamic> _$$GrantInfoImplToJson(_$GrantInfoImpl instance) =>
       'client_logo': instance.clientLogo,
       'scopes': instance.scopes,
       'remembered': instance.remembered,
+      'companies': CompanyConsent.toJsonOrNull(instance.companies),
     };

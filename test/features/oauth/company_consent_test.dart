@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:taler_id_mobile/features/oauth/domain/entities/company_consent.dart';
+import 'package:taler_id_mobile/features/oauth/domain/entities/grant_info.dart';
 
 const _json = {
   'person': {'name': 'Иван Петров'},
@@ -56,6 +57,28 @@ void main() {
     test('approve body', () {
       expect(const CompanySelection(actAs: 'a', companyIds: ['a', 'b']).toApproveFields(),
           {'act_as': 'a', 'company_ids': ['a', 'b']});
+    });
+  });
+
+  group('GrantInfo.companies', () {
+    test('parsed when grant-info sends it', () {
+      final g = GrantInfo.fromJson({
+        'client_name': 'Trientes',
+        'scopes': [],
+        'remembered': false,
+        'companies': _json,
+      });
+      expect(g.companies?.eligible.length, 2);
+    });
+
+    test('absent → null, older backends unaffected', () {
+      final g = GrantInfo.fromJson({'client_name': 'MyBook', 'scopes': [], 'remembered': true});
+      expect(g.companies, isNull);
+    });
+
+    test('round-trips without jsonEncode', () {
+      final g = GrantInfo.fromJson({'client_name': 'T', 'scopes': [], 'remembered': false, 'companies': _json});
+      expect(GrantInfo.fromJson(g.toJson()), g);
     });
   });
 }

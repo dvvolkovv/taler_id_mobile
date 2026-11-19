@@ -27,6 +27,12 @@ mixin _$GrantInfo {
   List<ScopeDescriptor> get scopes => throw _privateConstructorUsedError;
   bool get remembered => throw _privateConstructorUsedError;
 
+  /// Блок scope `companies`; (де)сериализация явная — см. company_consent.dart.
+  @JsonKey(
+      fromJson: CompanyConsent.fromJsonOrNull,
+      toJson: CompanyConsent.toJsonOrNull)
+  CompanyConsent? get companies => throw _privateConstructorUsedError;
+
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
   @JsonKey(ignore: true)
   $GrantInfoCopyWith<GrantInfo> get copyWith =>
@@ -42,7 +48,11 @@ abstract class $GrantInfoCopyWith<$Res> {
       {@JsonKey(name: 'client_name') String clientName,
       @JsonKey(name: 'client_logo') String? clientLogo,
       List<ScopeDescriptor> scopes,
-      bool remembered});
+      bool remembered,
+      @JsonKey(
+          fromJson: CompanyConsent.fromJsonOrNull,
+          toJson: CompanyConsent.toJsonOrNull)
+      CompanyConsent? companies});
 }
 
 /// @nodoc
@@ -62,6 +72,7 @@ class _$GrantInfoCopyWithImpl<$Res, $Val extends GrantInfo>
     Object? clientLogo = freezed,
     Object? scopes = null,
     Object? remembered = null,
+    Object? companies = freezed,
   }) {
     return _then(_value.copyWith(
       clientName: null == clientName
@@ -80,6 +91,10 @@ class _$GrantInfoCopyWithImpl<$Res, $Val extends GrantInfo>
           ? _value.remembered
           : remembered // ignore: cast_nullable_to_non_nullable
               as bool,
+      companies: freezed == companies
+          ? _value.companies
+          : companies // ignore: cast_nullable_to_non_nullable
+              as CompanyConsent?,
     ) as $Val);
   }
 }
@@ -96,7 +111,11 @@ abstract class _$$GrantInfoImplCopyWith<$Res>
       {@JsonKey(name: 'client_name') String clientName,
       @JsonKey(name: 'client_logo') String? clientLogo,
       List<ScopeDescriptor> scopes,
-      bool remembered});
+      bool remembered,
+      @JsonKey(
+          fromJson: CompanyConsent.fromJsonOrNull,
+          toJson: CompanyConsent.toJsonOrNull)
+      CompanyConsent? companies});
 }
 
 /// @nodoc
@@ -114,6 +133,7 @@ class __$$GrantInfoImplCopyWithImpl<$Res>
     Object? clientLogo = freezed,
     Object? scopes = null,
     Object? remembered = null,
+    Object? companies = freezed,
   }) {
     return _then(_$GrantInfoImpl(
       clientName: null == clientName
@@ -132,6 +152,10 @@ class __$$GrantInfoImplCopyWithImpl<$Res>
           ? _value.remembered
           : remembered // ignore: cast_nullable_to_non_nullable
               as bool,
+      companies: freezed == companies
+          ? _value.companies
+          : companies // ignore: cast_nullable_to_non_nullable
+              as CompanyConsent?,
     ));
   }
 }
@@ -143,7 +167,11 @@ class _$GrantInfoImpl implements _GrantInfo {
       {@JsonKey(name: 'client_name') required this.clientName,
       @JsonKey(name: 'client_logo') this.clientLogo,
       required final List<ScopeDescriptor> scopes,
-      required this.remembered})
+      required this.remembered,
+      @JsonKey(
+          fromJson: CompanyConsent.fromJsonOrNull,
+          toJson: CompanyConsent.toJsonOrNull)
+      this.companies})
       : _scopes = scopes;
 
   factory _$GrantInfoImpl.fromJson(Map<String, dynamic> json) =>
@@ -166,9 +194,16 @@ class _$GrantInfoImpl implements _GrantInfo {
   @override
   final bool remembered;
 
+  /// Блок scope `companies`; (де)сериализация явная — см. company_consent.dart.
+  @override
+  @JsonKey(
+      fromJson: CompanyConsent.fromJsonOrNull,
+      toJson: CompanyConsent.toJsonOrNull)
+  final CompanyConsent? companies;
+
   @override
   String toString() {
-    return 'GrantInfo(clientName: $clientName, clientLogo: $clientLogo, scopes: $scopes, remembered: $remembered)';
+    return 'GrantInfo(clientName: $clientName, clientLogo: $clientLogo, scopes: $scopes, remembered: $remembered, companies: $companies)';
   }
 
   @override
@@ -182,13 +217,15 @@ class _$GrantInfoImpl implements _GrantInfo {
                 other.clientLogo == clientLogo) &&
             const DeepCollectionEquality().equals(other._scopes, _scopes) &&
             (identical(other.remembered, remembered) ||
-                other.remembered == remembered));
+                other.remembered == remembered) &&
+            (identical(other.companies, companies) ||
+                other.companies == companies));
   }
 
   @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, clientName, clientLogo,
-      const DeepCollectionEquality().hash(_scopes), remembered);
+      const DeepCollectionEquality().hash(_scopes), remembered, companies);
 
   @JsonKey(ignore: true)
   @override
@@ -209,7 +246,11 @@ abstract class _GrantInfo implements GrantInfo {
       {@JsonKey(name: 'client_name') required final String clientName,
       @JsonKey(name: 'client_logo') final String? clientLogo,
       required final List<ScopeDescriptor> scopes,
-      required final bool remembered}) = _$GrantInfoImpl;
+      required final bool remembered,
+      @JsonKey(
+          fromJson: CompanyConsent.fromJsonOrNull,
+          toJson: CompanyConsent.toJsonOrNull)
+      final CompanyConsent? companies}) = _$GrantInfoImpl;
 
   factory _GrantInfo.fromJson(Map<String, dynamic> json) =
       _$GrantInfoImpl.fromJson;
@@ -224,6 +265,13 @@ abstract class _GrantInfo implements GrantInfo {
   List<ScopeDescriptor> get scopes;
   @override
   bool get remembered;
+  @override
+
+  /// Блок scope `companies`; (де)сериализация явная — см. company_consent.dart.
+  @JsonKey(
+      fromJson: CompanyConsent.fromJsonOrNull,
+      toJson: CompanyConsent.toJsonOrNull)
+  CompanyConsent? get companies;
   @override
   @JsonKey(ignore: true)
   _$$GrantInfoImplCopyWith<_$GrantInfoImpl> get copyWith =>
