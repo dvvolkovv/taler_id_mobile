@@ -51,6 +51,21 @@ const _grantInfoCompanies = GrantInfo(
   companies: _companies,
 );
 
+// Перечитанный после отказа сервера список: «Лютик» больше не подходит.
+const _grantInfoCompaniesRefreshed = GrantInfo(
+  clientName: 'Trientes',
+  scopes: [ScopeDescriptor(key: 'companies', label: 'Компании', description: '...')],
+  remembered: false,
+  companies: CompanyConsent(
+    personName: 'Иван',
+    eligible: [
+      CompanyOption(id: 'a', name: 'Ромашка', legalName: 'ООО «Ромашка»', role: 'OWNER'),
+    ],
+    unverified: [UnverifiedCompany(id: 'b', name: 'Лютик')],
+    lastSelection: CompanySelection(actAs: 'person', companyIds: []),
+  ),
+);
+
 // Сайт просит `companies`, но подходящих компаний нет — блоки скрыты.
 const _grantInfoNoEligible = GrantInfo(
   clientName: 'Trientes',
@@ -145,19 +160,82 @@ void main() {
       ],
     );
 
+    late _MockRepo errorRepo;
     blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
-      'approve error → returns to ConsentRequired',
+      'approve error without companies → back to ConsentRequired with a notice',
       build: () {
-        final repo = _MockRepo();
-        when(() => repo.approve(any(), selection: any(named: 'selection')))
+        errorRepo = _MockRepo();
+        when(() => errorRepo.approve(any(), selection: any(named: 'selection')))
             .thenThrow(Exception('500'));
-        return OAuthAuthorizeBloc(repo);
+        return OAuthAuthorizeBloc(errorRepo);
       },
       seed: () => const OAuthConsentRequired(_grantInfoFresh, _params),
       act: (bloc) => bloc.add(const ApprovePressed()),
       expect: () => [
         const OAuthApproving(_grantInfoFresh, _params),
-        const OAuthConsentRequired(_grantInfoFresh, _params),
+        const OAuthConsentRequired(_grantInfoFresh, _params, error: OAuthApproveError.failed),
+      ],
+      verify: (_) => verifyNever(() => errorRepo.getGrantInfo(any())),
+    );
+
+    late _MockRepo rejectRepo;
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'approve rejected with a choice → list re-read, choice narrowed to it, notice shown',
+      build: () {
+        rejectRepo = _MockRepo();
+        when(() => rejectRepo.approve(any(), selection: any(named: 'selection')))
+            .thenThrow(Exception('400 company is not available'));
+        when(() => rejectRepo.getGrantInfo(any()))
+            .thenAnswer((_) async => _grantInfoCompaniesRefreshed);
+        return OAuthAuthorizeBloc(rejectRepo);
+      },
+      seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
+          selection: CompanySelection(actAs: 'a', companyIds: ['a', 'b'])),
+      act: (bloc) => bloc.add(const ApprovePressed()),
+      expect: () => [
+        const OAuthApproving(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a', 'b'])),
+        // «Ромашка» по-прежнему подходит — выбор пользователя сохраняется,
+        // ушедший «Лютик» выпадает (а не сбрасывается к last_selection).
+        const OAuthConsentRequired(_grantInfoCompaniesRefreshed, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a']),
+            error: OAuthApproveError.companiesChanged),
+      ],
+      verify: (_) => verify(() => rejectRepo.getGrantInfo(_params)).called(1),
+    );
+
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'approve rejected and the list cannot be re-read → Failure (its retry reloads)',
+      build: () {
+        final repo = _MockRepo();
+        when(() => repo.approve(any(), selection: any(named: 'selection')))
+            .thenThrow(Exception('400'));
+        when(() => repo.getGrantInfo(any())).thenThrow(Exception('network'));
+        return OAuthAuthorizeBloc(repo);
+      },
+      seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
+          selection: CompanySelection(actAs: 'b', companyIds: ['b'])),
+      act: (bloc) => bloc.add(const ApprovePressed()),
+      expect: () => [
+        const OAuthApproving(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'b', companyIds: ['b'])),
+        isA<OAuthFailure>(),
+      ],
+    );
+
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'the notice stays while the choice is being fixed',
+      build: () => OAuthAuthorizeBloc(_MockRepo()),
+      seed: () => const OAuthConsentRequired(_grantInfoCompaniesRefreshed, _params,
+          selection: CompanySelection(actAs: 'person', companyIds: []),
+          error: OAuthApproveError.companiesChanged),
+      act: (bloc) => bloc
+        ..add(const ActAsChanged('a'))
+        ..add(const ShareToggled('a', false)),
+      expect: () => [
+        const OAuthConsentRequired(_grantInfoCompaniesRefreshed, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a']),
+            error: OAuthApproveError.companiesChanged),
       ],
     );
 

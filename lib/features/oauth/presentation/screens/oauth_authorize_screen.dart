@@ -73,7 +73,8 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
             return _buildConsent(context, state.grantInfo, state.selection, busy: true);
           }
           if (state is OAuthConsentRequired) {
-            return _buildConsent(context, state.grantInfo, state.selection, busy: false);
+            return _buildConsent(context, state.grantInfo, state.selection,
+                busy: false, error: state.error);
           }
           if (state is OAuthFailure) {
             return _buildFailure(context, state.message);
@@ -92,6 +93,7 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
     GrantInfo grantInfo,
     CompanySelection? selection, {
     required bool busy,
+    OAuthApproveError? error,
   }) {
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -133,6 +135,19 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
             ),
           ),
           const SizedBox(height: 16),
+          // Над кнопками, а не в списке: видно, даже если список прокручен.
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  _approveErrorText(error),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            ),
           ElevatedButton(
             onPressed: busy
                 ? null
@@ -157,6 +172,13 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
     );
   }
 
+  static String _approveErrorText(OAuthApproveError error) => switch (error) {
+        OAuthApproveError.failed => 'Не удалось разрешить вход. Попробуйте ещё раз.',
+        OAuthApproveError.companiesChanged =>
+          'Не удалось разрешить вход. Список компаний обновлён — проверьте выбор '
+              'и попробуйте ещё раз.',
+      };
+
   // Выбор «войти как» и «что передать» (scope companies). Компания из
   // «войти как» передаётся всегда — её галочка отмечена и заблокирована.
   List<Widget> _buildCompanies(
@@ -169,7 +191,7 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
     final title = Theme.of(context).textTheme.titleMedium;
     return [
       const SizedBox(height: 16),
-      Text('Войти как', style: title),
+      Semantics(header: true, child: Text('Войти как', style: title)),
       RadioGroup<String>(
         groupValue: selection.actAs,
         onChanged: (v) {
@@ -195,12 +217,13 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
         ),
       ),
       const SizedBox(height: 16),
-      Text('Передать данные компаний', style: title),
+      Semantics(header: true, child: Text('Передать данные компаний', style: title)),
       ...companies.eligible.map((c) {
         final locked = selection.actAs == c.id;
         return CheckboxListTile(
           value: locked || selection.companyIds.contains(c.id),
           title: Text(c.displayName),
+          subtitle: locked ? const Text('Вход от её имени — передаётся всегда') : null,
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           onChanged: busy || locked ? null : (v) => bloc.add(ShareToggled(c.id, v ?? false)),
@@ -211,7 +234,7 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
           padding: const EdgeInsets.only(top: 8),
           child: Text(
             'Не прошли KYB: ${companies.unverified.map((c) => c.name).join(', ')}. '
-            'Пройдите проверку компании в разделе «Организации» — тогда её можно будет выбрать.',
+            'Пройдите проверку компаний в разделе «Организации» — тогда их можно будет выбрать.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

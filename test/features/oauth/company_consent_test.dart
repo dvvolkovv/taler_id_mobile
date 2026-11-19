@@ -32,6 +32,25 @@ void main() {
     test('null stays null', () {
       expect(CompanyConsent.fromJsonOrNull(null), isNull);
     });
+
+    test('a malformed block is dropped, not thrown — sign-in goes on as a person', () {
+      final badId = {
+        ..._json,
+        'eligible': [
+          {'id': null, 'name': 'Ромашка', 'role': 'OWNER'},
+        ],
+      };
+      expect(CompanyConsent.fromJsonOrNull(badId), isNull);
+      expect(CompanyConsent.fromJsonOrNull({..._json, 'eligible': 'oops'}), isNull);
+      expect(CompanyConsent.fromJsonOrNull({..._json, 'last_selection': {'company_ids': 'a'}}),
+          isNull);
+      expect(CompanyConsent.fromJsonOrNull('oops'), isNull);
+
+      final g = GrantInfo.fromJson(
+          {'client_name': 'Trientes', 'scopes': [], 'remembered': false, 'companies': badId});
+      expect(g.companies, isNull);
+      expect(g.clientName, 'Trientes');
+    });
   });
 
   group('CompanySelection', () {
@@ -40,6 +59,21 @@ void main() {
       expect(CompanySelection.initialFor(c), const CompanySelection(actAs: 'a', companyIds: ['a']));
       final noLast = CompanyConsent.fromJson({..._json, 'last_selection': null});
       expect(CompanySelection.initialFor(noLast), const CompanySelection(actAs: 'person', companyIds: []));
+    });
+
+    test('the initial choice only holds eligible companies and shares the act-as one', () {
+      final c = CompanyConsent.fromJson(_json);
+      CompanySelection initialFrom(Map<String, dynamic> last) =>
+          CompanySelection.initialFor(CompanyConsent.fromJson({..._json, 'last_selection': last}));
+
+      expect(initialFrom({'act_as': 'b', 'company_ids': []}),
+          const CompanySelection(actAs: 'b', companyIds: ['b']));
+      expect(initialFrom({'act_as': 'person', 'company_ids': ['z', 'b', 'c']}),
+          const CompanySelection(actAs: 'person', companyIds: ['b']));
+      // компания из «войти как» больше не подходит → вход физлицом
+      expect(initialFrom({'act_as': 'z', 'company_ids': ['z', 'a']}),
+          const CompanySelection(actAs: 'person', companyIds: ['a']));
+      expect(CompanySelection.initialFor(c), const CompanySelection(actAs: 'a', companyIds: ['a']));
     });
 
     test('acting as a company always shares it', () {

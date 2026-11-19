@@ -37,8 +37,17 @@ class CompanyConsent extends Equatable {
     );
   }
 
-  static CompanyConsent? fromJsonOrNull(Object? json) =>
-      json == null ? null : CompanyConsent.fromJson(Map<String, dynamic>.from(json as Map));
+  /// Битый блок (не те типы, нет id) — null, а не исключение: из-за него не
+  /// должен ломаться вход на сайт целиком. Без выбора сервер считает вход
+  /// физлицом.
+  static CompanyConsent? fromJsonOrNull(Object? json) {
+    if (json == null) return null;
+    try {
+      return CompanyConsent.fromJson(Map<String, dynamic>.from(json as Map));
+    } catch (_) {
+      return null;
+    }
+  }
 
   static Map<String, dynamic>? toJsonOrNull(CompanyConsent? c) => c?.toJson();
 
@@ -112,7 +121,21 @@ class CompanySelection extends Equatable {
   const CompanySelection({required this.actAs, required this.companyIds});
 
   factory CompanySelection.initialFor(CompanyConsent c) =>
-      c.lastSelection ?? const CompanySelection(actAs: person, companyIds: []);
+      (c.lastSelection ?? const CompanySelection(actAs: person, companyIds: [])).restrictedTo(c);
+
+  /// Тот же выбор, суженный до подходящих компаний [c]: неподходящие
+  /// выпадают (если это компания из «войти как» — вход становится от
+  /// физлица), а компания из «войти как» всегда среди передаваемых.
+  CompanySelection restrictedTo(CompanyConsent c) {
+    final eligible = {for (final e in c.eligible) e.id};
+    final act = eligible.contains(actAs) ? actAs : person;
+    final shared = <String>[];
+    for (final id in companyIds) {
+      if (eligible.contains(id) && !shared.contains(id)) shared.add(id);
+    }
+    if (act != person && !shared.contains(act)) shared.add(act);
+    return CompanySelection(actAs: act, companyIds: shared);
+  }
 
   CompanySelection withActAs(String id) => CompanySelection(
         actAs: id,

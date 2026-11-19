@@ -170,11 +170,71 @@ void main() {
     expect(find.text('Иван Петров'), findsOneWidget);
     expect(find.text('ООО «Ромашка»'), findsNWidgets(2)); // «войти как» и «передать»
     expect(find.text('Передать данные компаний'), findsOneWidget);
-    expect(find.textContaining('Василёк'), findsOneWidget);
-    // компания из «войти как» отмечена и заблокирована
+    expect(
+        find.text('Не прошли KYB: Василёк. Пройдите проверку компаний в разделе '
+            '«Организации» — тогда их можно будет выбрать.'),
+        findsOneWidget);
+    // компания из «войти как» отмечена и заблокирована — и сказано почему
     final box = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
     expect(box.value, isTrue);
     expect(box.onChanged, isNull);
+    expect(find.text('Вход от её имени — передаётся всегда'), findsOneWidget);
+  });
+
+  testWidgets('section titles are headers for screen readers', (tester) async {
+    final semantics = tester.ensureSemantics();
+    final bloc = _MockBloc();
+    when(() => bloc.state).thenReturn(const OAuthConsentRequired(_grantInfoCompanies, _params,
+        selection: CompanySelection(actAs: 'person', companyIds: [])));
+    when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(_harness(bloc));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSemantics(find.text('Войти как')), containsSemantics(isHeader: true));
+    expect(tester.getSemantics(find.text('Передать данные компаний')),
+        containsSemantics(isHeader: true));
+    // разблокированная галочка без пояснения
+    expect(find.text('Вход от её имени — передаётся всегда'), findsNothing);
+    semantics.dispose();
+  });
+
+  testWidgets('companies changed: the notice is visible above the buttons on a phone',
+      (tester) async {
+    _usePhoneScreen(tester);
+    final bloc = _MockBloc();
+    when(() => bloc.state).thenReturn(const OAuthConsentRequired(_grantInfoManyCompanies, _params,
+        selection: CompanySelection(actAs: 'person', companyIds: []),
+        error: OAuthApproveError.companiesChanged));
+    when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(_harness(bloc));
+    await tester.pumpAndSettle();
+    // и после прокрутки списка до конца
+    await tester.drag(find.byType(Scrollable), const Offset(0, -3000));
+    await tester.pumpAndSettle();
+
+    expect(
+        find
+            .text('Не удалось разрешить вход. Список компаний обновлён — проверьте выбор '
+                'и попробуйте ещё раз.')
+            .hitTestable(),
+        findsOneWidget);
+    expect(find.text('Разрешить').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('approve failed without companies: a short notice, no silent failure',
+      (tester) async {
+    final bloc = _MockBloc();
+    when(() => bloc.state).thenReturn(
+        const OAuthConsentRequired(_grantInfo, _params, error: OAuthApproveError.failed));
+    when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(_harness(bloc));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Не удалось разрешить вход. Попробуйте ещё раз.'), findsOneWidget);
+    expect(find.text('Разрешить'), findsOneWidget);
   });
 
   testWidgets('tapping a person option dispatches ActAsChanged', (tester) async {

@@ -21,6 +21,7 @@ class OAuthAuthorizeBloc extends Bloc<OAuthAuthorizeEvent, OAuthAuthorizeState> 
   }
 
   Future<void> _onLoad(LoadGrantInfo event, Emitter<OAuthAuthorizeState> emit) async {
+    _currentSelection = null;
     _currentParams = event.params;
     emit(const OAuthLoading());
     try {
@@ -65,7 +66,35 @@ class OAuthAuthorizeBloc extends Bloc<OAuthAuthorizeEvent, OAuthAuthorizeState> 
       final result = await _repo.approve(params, selection: selection);
       emit(OAuthSuccess(result.redirectUri));
     } catch (_) {
-      emit(OAuthConsentRequired(grantInfo, params, selection: selection));
+      if (selection == null) {
+        emit(OAuthConsentRequired(grantInfo, params, error: OAuthApproveError.failed));
+        return;
+      }
+      await _reloadAfterRejectedChoice(params, selection, emit);
+    }
+  }
+
+  // Выбор компаний мог устареть между grant-info и approve (компанию сняли с
+  // KYB, у пользователя отобрали роль) — сервер отвечает 400, и повторная
+  // отправка того же выбора падала бы снова и молча. Перечитываем список и
+  // сужаем выбор пользователя до него, а не сбрасываем к last_selection.
+  Future<void> _reloadAfterRejectedChoice(
+    OAuthAuthorizeParams params,
+    CompanySelection selection,
+    Emitter<OAuthAuthorizeState> emit,
+  ) async {
+    try {
+      final fresh = await _repo.getGrantInfo(params);
+      _currentGrantInfo = fresh;
+      final companies = fresh.companies;
+      _currentSelection = companies != null && companies.eligible.isNotEmpty
+          ? selection.restrictedTo(companies)
+          : null;
+      emit(OAuthConsentRequired(fresh, params,
+          selection: _currentSelection, error: OAuthApproveError.companiesChanged));
+    } catch (e) {
+      // Не перечитать — экран ошибки: его «Повторить» загружает список заново.
+      emit(OAuthFailure(e.toString(), params));
     }
   }
 
@@ -91,7 +120,8 @@ class OAuthAuthorizeBloc extends Bloc<OAuthAuthorizeEvent, OAuthAuthorizeState> 
     final s = state;
     if (s is! OAuthConsentRequired || s.selection == null) return;
     _currentSelection = s.selection!.withActAs(event.actAs);
-    emit(OAuthConsentRequired(s.grantInfo, s.params, selection: _currentSelection));
+    emit(OAuthConsentRequired(s.grantInfo, s.params,
+        selection: _currentSelection, error: s.error));
   }
 
   void _onShare(ShareToggled event, Emitter<OAuthAuthorizeState> emit) {
@@ -100,6 +130,6 @@ class OAuthAuthorizeBloc extends Bloc<OAuthAuthorizeEvent, OAuthAuthorizeState> 
     final next = s.selection!.toggled(event.companyId, event.on);
     if (next == s.selection) return;
     _currentSelection = next;
-    emit(OAuthConsentRequired(s.grantInfo, s.params, selection: next));
+    emit(OAuthConsentRequired(s.grantInfo, s.params, selection: next, error: s.error));
   }
 }
