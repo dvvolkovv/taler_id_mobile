@@ -1,3 +1,4 @@
+import '../entities/company_consent.dart';
 import '../entities/grant_info.dart';
 import '../entities/oauth_authorize_params.dart';
 
@@ -8,5 +9,5 @@ class OAuthApproveResult {
 
 abstract class OAuthRepository {
   Future<GrantInfo> getGrantInfo(OAuthAuthorizeParams params);
-  Future<OAuthApproveResult> approve(OAuthAuthorizeParams params);
+  Future<OAuthApproveResult> approve(OAuthAuthorizeParams params, {CompanySelection? selection});
 }

@@ -1,4 +1,5 @@
 import '../../../../core/api/dio_client.dart';
+import '../../domain/entities/company_consent.dart';
 import '../../domain/entities/grant_info.dart';
 import '../../domain/entities/oauth_authorize_params.dart';
 
@@ -12,9 +13,12 @@ class OAuthRemoteDatasource {
         fromJson: (d) => GrantInfo.fromJson(Map<String, dynamic>.from(d)),
       );
 
-  Future<String> approve(OAuthAuthorizeParams params) => client.post(
+  Future<String> approve(OAuthAuthorizeParams params, {CompanySelection? selection}) => client.post(
         '/oauth/mobile/approve',
-        data: params.toQueryParameters(),
+        data: {
+          ...params.toQueryParameters(),
+          if (selection != null) ...selection.toApproveFields(),
+        },
         fromJson: (d) => Map<String, dynamic>.from(d)['redirect_uri'] as String,
       );
 }
