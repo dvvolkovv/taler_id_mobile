@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:taler_id_mobile/features/oauth/domain/entities/company_consent.dart';
 import 'package:taler_id_mobile/features/oauth/domain/entities/grant_info.dart';
 import 'package:taler_id_mobile/features/oauth/domain/entities/oauth_authorize_params.dart';
 import 'package:taler_id_mobile/features/oauth/domain/entities/scope_descriptor.dart';
@@ -33,9 +34,27 @@ const _grantInfoRemembered = GrantInfo(
   remembered: true,
 );
 
+const _companies = CompanyConsent(
+  personName: 'Иван',
+  eligible: [
+    CompanyOption(id: 'a', name: 'Ромашка', legalName: 'ООО «Ромашка»', role: 'OWNER'),
+    CompanyOption(id: 'b', name: 'Лютик', role: 'ADMIN'),
+  ],
+  unverified: [],
+  lastSelection: CompanySelection(actAs: 'a', companyIds: ['a']),
+);
+
+const _grantInfoCompanies = GrantInfo(
+  clientName: 'Trientes',
+  scopes: [ScopeDescriptor(key: 'companies', label: 'Компании', description: '...')],
+  remembered: false,
+  companies: _companies,
+);
+
 void main() {
   setUpAll(() {
     registerFallbackValue(_params);
+    registerFallbackValue(const CompanySelection(actAs: 'person', companyIds: []));
   });
 
   group('OAuthAuthorizeBloc', () {
@@ -58,7 +77,7 @@ void main() {
       build: () {
         final repo = _MockRepo();
         when(() => repo.getGrantInfo(any())).thenAnswer((_) async => _grantInfoRemembered);
-        when(() => repo.approve(any())).thenAnswer(
+        when(() => repo.approve(any(), selection: any(named: 'selection'))).thenAnswer(
           (_) async => const OAuthApproveResult('https://example.com/cb?code=AUTO&state=xyz'),
         );
         return OAuthAuthorizeBloc(repo);
@@ -75,7 +94,7 @@ void main() {
       'ApprovePressed from ConsentRequired → Approving → Success',
       build: () {
         final repo = _MockRepo();
-        when(() => repo.approve(any())).thenAnswer(
+        when(() => repo.approve(any(), selection: any(named: 'selection'))).thenAnswer(
           (_) async => const OAuthApproveResult('https://example.com/cb?code=USER&state=xyz'),
         );
         return OAuthAuthorizeBloc(repo);
@@ -118,7 +137,8 @@ void main() {
       'approve error → returns to ConsentRequired',
       build: () {
         final repo = _MockRepo();
-        when(() => repo.approve(any())).thenThrow(Exception('500'));
+        when(() => repo.approve(any(), selection: any(named: 'selection')))
+            .thenThrow(Exception('500'));
         return OAuthAuthorizeBloc(repo);
       },
       seed: () => const OAuthConsentRequired(_grantInfoFresh, _params),
@@ -127,6 +147,68 @@ void main() {
         const OAuthApproving(_grantInfoFresh, _params),
         const OAuthConsentRequired(_grantInfoFresh, _params),
       ],
+    );
+
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'with companies the selection starts from the last choice',
+      build: () {
+        final repo = _MockRepo();
+        when(() => repo.getGrantInfo(any())).thenAnswer((_) async => _grantInfoCompanies);
+        return OAuthAuthorizeBloc(repo);
+      },
+      act: (bloc) => bloc.add(const LoadGrantInfo(_params)),
+      expect: () => [
+        const OAuthLoading(),
+        const OAuthConsentRequired(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a'])),
+      ],
+    );
+
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'ActAsChanged switches who signs in and shares that company',
+      build: () => OAuthAuthorizeBloc(_MockRepo()),
+      seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
+          selection: CompanySelection(actAs: 'person', companyIds: [])),
+      act: (bloc) => bloc.add(const ActAsChanged('b')),
+      expect: () => [
+        const OAuthConsentRequired(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'b', companyIds: ['b'])),
+      ],
+    );
+
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'ShareToggled adds and removes a company',
+      build: () => OAuthAuthorizeBloc(_MockRepo()),
+      seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
+          selection: CompanySelection(actAs: 'a', companyIds: ['a'])),
+      act: (bloc) => bloc
+        ..add(const ShareToggled('b', true))
+        ..add(const ShareToggled('a', false)),
+      expect: () => [
+        const OAuthConsentRequired(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a', 'b'])),
+      ],
+    );
+
+    late _MockRepo approveRepo;
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'Approve sends the selection',
+      build: () {
+        approveRepo = _MockRepo();
+        when(() => approveRepo.approve(any(), selection: any(named: 'selection')))
+            .thenAnswer((_) async => const OAuthApproveResult('https://trientes.org/cb?code=x'));
+        return OAuthAuthorizeBloc(approveRepo);
+      },
+      seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
+          selection: CompanySelection(actAs: 'b', companyIds: ['b'])),
+      act: (bloc) => bloc.add(const ApprovePressed()),
+      expect: () => [
+        const OAuthApproving(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'b', companyIds: ['b'])),
+        const OAuthSuccess('https://trientes.org/cb?code=x'),
+      ],
+      verify: (_) => verify(() => approveRepo.approve(_params,
+          selection: const CompanySelection(actAs: 'b', companyIds: ['b']))).called(1),
     );
   });
 }

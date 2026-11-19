@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/company_consent.dart';
 import '../../domain/entities/grant_info.dart';
 import '../../domain/entities/oauth_authorize_params.dart';
 
@@ -19,17 +20,20 @@ class OAuthLoading extends OAuthAuthorizeState {
 class OAuthConsentRequired extends OAuthAuthorizeState {
   final GrantInfo grantInfo;
   final OAuthAuthorizeParams params;
-  const OAuthConsentRequired(this.grantInfo, this.params);
+  /// Есть, только если сайт просит `companies` и есть подходящая компания.
+  final CompanySelection? selection;
+  const OAuthConsentRequired(this.grantInfo, this.params, {this.selection});
   @override
-  List<Object?> get props => [grantInfo, params];
+  List<Object?> get props => [grantInfo, params, selection];
 }
 
 class OAuthApproving extends OAuthAuthorizeState {
   final GrantInfo grantInfo;
   final OAuthAuthorizeParams params;
-  const OAuthApproving(this.grantInfo, this.params);
+  final CompanySelection? selection;
+  const OAuthApproving(this.grantInfo, this.params, {this.selection});
   @override
-  List<Object?> get props => [grantInfo, params];
+  List<Object?> get props => [grantInfo, params, selection];
 }
 
 class OAuthAutoApproving extends OAuthAuthorizeState {

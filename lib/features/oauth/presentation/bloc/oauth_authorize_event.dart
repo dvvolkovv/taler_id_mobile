@@ -21,3 +21,19 @@ class ApprovePressed extends OAuthAuthorizeEvent {
 class CancelPressed extends OAuthAuthorizeEvent {
   const CancelPressed();
 }
+
+class ActAsChanged extends OAuthAuthorizeEvent {
+  /// 'person' или id компании.
+  final String actAs;
+  const ActAsChanged(this.actAs);
+  @override
+  List<Object?> get props => [actAs];
+}
+
+class ShareToggled extends OAuthAuthorizeEvent {
+  final String companyId;
+  final bool on;
+  const ShareToggled(this.companyId, this.on);
+  @override
+  List<Object?> get props => [companyId, on];
+}
