@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:taler_id_mobile/core/config/app_config.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../domain/entities/company_consent.dart';
 import '../../domain/entities/grant_info.dart';
 import '../../domain/entities/oauth_authorize_params.dart';
 import '../bloc/oauth_authorize_bloc.dart';
@@ -70,10 +70,10 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (state is OAuthApproving) {
-            return _buildConsent(context, state.grantInfo, busy: true);
+            return _buildConsent(context, state.grantInfo, state.selection, busy: true);
           }
           if (state is OAuthConsentRequired) {
-            return _buildConsent(context, state.grantInfo, busy: false);
+            return _buildConsent(context, state.grantInfo, state.selection, busy: false);
           }
           if (state is OAuthFailure) {
             return _buildFailure(context, state.message);
@@ -87,37 +87,52 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
     );
   }
 
-  Widget _buildConsent(BuildContext context, GrantInfo grantInfo, {required bool busy}) {
+  Widget _buildConsent(
+    BuildContext context,
+    GrantInfo grantInfo,
+    CompanySelection? selection, {
+    required bool busy,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (grantInfo.clientLogo != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Image.network(
-                grantInfo.clientLogo!,
-                height: 64,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-          Text(
-            '${grantInfo.clientName} запрашивает доступ',
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ...grantInfo.scopes.map<Widget>((s) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: ListTile(
-                  leading: const Icon(Icons.check_circle_outline),
-                  title: Text(s.label),
-                  subtitle: Text(s.description),
-                  contentPadding: EdgeInsets.zero,
+          // С блоками выбора компаний содержимое не влезает в экран — оно
+          // прокручивается, а кнопки остаются внизу, как раньше со Spacer.
+          Expanded(
+            child: ListView(
+              children: [
+                if (grantInfo.clientLogo != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Image.network(
+                      grantInfo.clientLogo!,
+                      height: 64,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                Text(
+                  '${grantInfo.clientName} запрашивает доступ',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
                 ),
-              )),
-          const Spacer(),
+                const SizedBox(height: 24),
+                ...grantInfo.scopes.map<Widget>((s) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: ListTile(
+                        leading: const Icon(Icons.check_circle_outline),
+                        title: Text(s.label),
+                        subtitle: Text(s.description),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    )),
+                if (selection != null && grantInfo.companies != null)
+                  ..._buildCompanies(context, grantInfo.companies!, selection, busy: busy),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: busy
                 ? null
@@ -142,10 +157,68 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
     );
   }
 
+  // Выбор «войти как» и «что передать» (scope companies). Компания из
+  // «войти как» передаётся всегда — её галочка отмечена и заблокирована.
+  List<Widget> _buildCompanies(
+    BuildContext context,
+    CompanyConsent companies,
+    CompanySelection selection, {
+    required bool busy,
+  }) {
+    final bloc = context.read<OAuthAuthorizeBloc>();
+    final title = Theme.of(context).textTheme.titleMedium;
+    return [
+      const SizedBox(height: 16),
+      Text('Войти как', style: title),
+      RadioGroup<String>(
+        groupValue: selection.actAs,
+        onChanged: (v) {
+          if (!busy && v != null) bloc.add(ActAsChanged(v));
+        },
+        child: Column(
+          children: [
+            RadioListTile<String>(
+              value: CompanySelection.person,
+              enabled: !busy,
+              title: Text(companies.personName.isEmpty ? 'Вы' : companies.personName),
+              subtitle: const Text('Физлицо'),
+              contentPadding: EdgeInsets.zero,
+            ),
+            ...companies.eligible.map((c) => RadioListTile<String>(
+                  value: c.id,
+                  enabled: !busy,
+                  title: Text(c.displayName),
+                  subtitle: const Text('KYB пройден'),
+                  contentPadding: EdgeInsets.zero,
+                )),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      Text('Передать данные компаний', style: title),
+      ...companies.eligible.map((c) {
+        final locked = selection.actAs == c.id;
+        return CheckboxListTile(
+          value: locked || selection.companyIds.contains(c.id),
+          title: Text(c.displayName),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          onChanged: busy || locked ? null : (v) => bloc.add(ShareToggled(c.id, v ?? false)),
+        );
+      }),
+      if (companies.unverified.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            'Не прошли KYB: ${companies.unverified.map((c) => c.name).join(', ')}. '
+            'Пройдите проверку компании в разделе «Организации» — тогда её можно будет выбрать.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+    ];
+  }
+
   Widget _buildFailure(BuildContext context, String message) {
-    final fallback = Uri.parse('${AppConfig.webUrl}/oauth/authorize').replace(
-      queryParameters: widget.params.toQueryParameters(),
-    );
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -155,16 +228,13 @@ class _OAuthAuthorizeScreenState extends State<OAuthAuthorizeScreen> {
           const SizedBox(height: 16),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 24),
+          // «Открыть в браузере» вела на /oauth/authorize, которого нет, а
+          // правильный /oauth/auth приложение перехватило бы снова (App Links).
           ElevatedButton(
             onPressed: () => context
                 .read<OAuthAuthorizeBloc>()
                 .add(LoadGrantInfo(widget.params)),
             child: const Text('Повторить'),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => _handleLaunch(fallback.toString()),
-            child: const Text('Открыть в браузере'),
           ),
         ],
       ),
