@@ -51,6 +51,18 @@ const _grantInfoCompanies = GrantInfo(
   companies: _companies,
 );
 
+// Сайт просит `companies`, но подходящих компаний нет — блоки скрыты.
+const _grantInfoNoEligible = GrantInfo(
+  clientName: 'Trientes',
+  scopes: [ScopeDescriptor(key: 'companies', label: 'Компании', description: '...')],
+  remembered: false,
+  companies: CompanyConsent(
+    personName: 'Иван',
+    eligible: [],
+    unverified: [UnverifiedCompany(id: 'c', name: 'Василёк')],
+  ),
+);
+
 void main() {
   setUpAll(() {
     registerFallbackValue(_params);
@@ -177,17 +189,46 @@ void main() {
     );
 
     blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
-      'ShareToggled adds and removes a company',
+      'ShareToggled adds and removes a company, the act-as one stays shared',
       build: () => OAuthAuthorizeBloc(_MockRepo()),
       seed: () => const OAuthConsentRequired(_grantInfoCompanies, _params,
           selection: CompanySelection(actAs: 'a', companyIds: ['a'])),
       act: (bloc) => bloc
         ..add(const ShareToggled('b', true))
+        ..add(const ShareToggled('b', false))
         ..add(const ShareToggled('a', false)),
       expect: () => [
         const OAuthConsentRequired(_grantInfoCompanies, _params,
             selection: CompanySelection(actAs: 'a', companyIds: ['a', 'b'])),
+        const OAuthConsentRequired(_grantInfoCompanies, _params,
+            selection: CompanySelection(actAs: 'a', companyIds: ['a'])),
       ],
+    );
+
+    late _MockRepo noEligibleRepo;
+    blocTest<OAuthAuthorizeBloc, OAuthAuthorizeState>(
+      'companies without an eligible one: no choice in state, approve sends none',
+      build: () {
+        noEligibleRepo = _MockRepo();
+        when(() => noEligibleRepo.getGrantInfo(any()))
+            .thenAnswer((_) async => _grantInfoNoEligible);
+        when(() => noEligibleRepo.approve(any(), selection: any(named: 'selection')))
+            .thenAnswer((_) async => const OAuthApproveResult('https://trientes.org/cb?code=p'));
+        return OAuthAuthorizeBloc(noEligibleRepo);
+      },
+      act: (bloc) async {
+        bloc.add(const LoadGrantInfo(_params));
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const ApprovePressed());
+      },
+      expect: () => [
+        const OAuthLoading(),
+        const OAuthConsentRequired(_grantInfoNoEligible, _params),
+        const OAuthApproving(_grantInfoNoEligible, _params),
+        const OAuthSuccess('https://trientes.org/cb?code=p'),
+      ],
+      verify: (_) =>
+          verify(() => noEligibleRepo.approve(_params, selection: null)).called(1),
     );
 
     late _MockRepo approveRepo;

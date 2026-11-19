@@ -39,6 +39,33 @@ const _grantInfoCompanies = GrantInfo(
   clientName: 'Trientes', scopes: [], remembered: false, companies: _companies,
 );
 
+// Пять компаний: на телефоне содержимое заведомо не влезает в экран.
+const _grantInfoManyCompanies = GrantInfo(
+  clientName: 'Trientes',
+  scopes: [],
+  remembered: false,
+  companies: CompanyConsent(
+    personName: 'Иван Петров',
+    eligible: [
+      CompanyOption(id: 'a', name: 'Ромашка', legalName: 'ООО «Ромашка»', role: 'OWNER'),
+      CompanyOption(id: 'b', name: 'Лютик', role: 'ADMIN'),
+      CompanyOption(id: 'd', name: 'Одуванчик', role: 'OWNER'),
+      CompanyOption(id: 'e', name: 'Колокольчик', role: 'ADMIN'),
+      CompanyOption(id: 'f', name: 'Незабудка', role: 'OWNER'),
+    ],
+    unverified: [UnverifiedCompany(id: 'c', name: 'Василёк')],
+  ),
+);
+
+void _usePhoneScreen(WidgetTester tester) {
+  tester.view.physicalSize = const Size(360 * 3, 640 * 3);
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.reset);
+}
+
+double _scrollExtent(WidgetTester tester) =>
+    tester.state<ScrollableState>(find.byType(Scrollable)).position.maxScrollExtent;
+
 Widget _harness(OAuthAuthorizeBloc bloc) => MaterialApp(
       home: BlocProvider<OAuthAuthorizeBloc>.value(
         value: bloc,
@@ -163,33 +190,83 @@ void main() {
     verify(() => bloc.add(const ActAsChanged('person'))).called(1);
   });
 
-  testWidgets('approving: choices are disabled, buttons stay on a small screen',
-      (tester) async {
-    tester.view.physicalSize = const Size(360 * 3, 640 * 3);
-    tester.view.devicePixelRatio = 3;
-    addTearDown(tester.view.reset);
+  testWidgets('tapping a share checkbox dispatches ShareToggled', (tester) async {
     final bloc = _MockBloc();
-    when(() => bloc.state).thenReturn(const OAuthApproving(_grantInfoCompanies, _params,
+    when(() => bloc.state).thenReturn(const OAuthConsentRequired(_grantInfoCompanies, _params,
+        selection: CompanySelection(actAs: 'person', companyIds: [])));
+    when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(_harness(bloc));
+    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pump();
+
+    verify(() => bloc.add(const ShareToggled('a', true))).called(1);
+  });
+
+  testWidgets('many companies on a phone: content scrolls, buttons stay on screen',
+      (tester) async {
+    _usePhoneScreen(tester);
+    final bloc = _MockBloc();
+    when(() => bloc.state).thenReturn(const OAuthConsentRequired(_grantInfoManyCompanies, _params,
+        selection: CompanySelection(actAs: 'person', companyIds: [])));
+    when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(_harness(bloc));
+    await tester.pumpAndSettle();
+
+    expect(_scrollExtent(tester), greaterThan(0));
+    expect(find.text('Разрешить').hitTestable(), findsOneWidget);
+    expect(find.text('Отмена').hitTestable(), findsOneWidget);
+
+    // последняя галочка ниже края — до неё можно докрутить и отметить
+    final lastBox = find.widgetWithText(CheckboxListTile, 'Незабудка');
+    await tester.scrollUntilVisible(lastBox, 100);
+    await tester.ensureVisible(lastBox);
+    await tester.pumpAndSettle();
+    await tester.tap(lastBox);
+    await tester.pump();
+    verify(() => bloc.add(const ShareToggled('f', true))).called(1);
+  });
+
+  testWidgets('approving: every choice is disabled, buttons stay on a phone screen',
+      (tester) async {
+    _usePhoneScreen(tester);
+    final bloc = _MockBloc();
+    when(() => bloc.state).thenReturn(const OAuthApproving(_grantInfoManyCompanies, _params,
         selection: CompanySelection(actAs: 'person', companyIds: ['a'])));
     when(() => bloc.stream).thenAnswer((_) => const Stream.empty());
 
     await tester.pumpWidget(_harness(bloc));
     await tester.pump();
 
+    expect(_scrollExtent(tester), greaterThan(0));
+    // «Разрешить» на время запроса показывает спиннер вместо текста
+    expect(find.byType(ElevatedButton).hitTestable(), findsOneWidget);
     expect(find.text('Отмена').hitTestable(), findsOneWidget);
     final radios =
         tester.widgetList<RadioListTile<String>>(find.byType(RadioListTile<String>));
-    expect(radios, hasLength(2));
+    expect(radios, hasLength(6));
     for (final tile in radios) {
       expect(tile.enabled, isFalse);
     }
-    final box = tester.widget<CheckboxListTile>(find.byType(CheckboxListTile));
-    expect(box.value, isTrue);
-    expect(box.onChanged, isNull);
-
-    await tester.tap(find.text('ООО «Ромашка»').first, warnIfMissed: false);
+    await tester.tap(find.byType(RadioListTile<String>).at(1), warnIfMissed: false);
     await tester.pump();
     verifyNever(() => bloc.add(any(that: isA<ActAsChanged>())));
+
+    // галочки ниже края — докручиваем до конца списка
+    await tester.drag(find.byType(Scrollable), const Offset(0, -3000));
+    await tester.pump();
+    final boxes = tester
+        .widgetList<CheckboxListTile>(find.byType(CheckboxListTile, skipOffstage: false));
+    expect(boxes, hasLength(5));
+    for (final box in boxes) {
+      expect(box.onChanged, isNull);
+    }
+
+    await tester.tap(find.byType(CheckboxListTile).first, warnIfMissed: false);
+    await tester.pump();
+    verifyNever(() => bloc.add(any(that: isA<ShareToggled>())));
   });
 
   testWidgets('failure screen has no broken "open in browser" link', (tester) async {
